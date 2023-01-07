@@ -1,0 +1,323 @@
+GraphicsWindow.Title="Triangles
+
+GraphicsWindow.BackgroundColor="tan
+
+GraphicsWindow.PenColor="RED
+
+GraphicsWindow.PenWidth=.5
+
+'-----------------------------------------GVX631
+
+args=0
+
+
+
+Sub writepp
+
+  p=args[1]
+
+  textwindow.write("(")
+
+  textwindow.write(p["x"])
+
+  textwindow.write(", ")
+
+  textwindow.write(p["y"])
+
+  textwindow.write(")")
+
+EndSub' textwindow.write
+
+
+
+Sub WriteTriangle'(t : Triangle)
+
+  t=args[1]
+
+  textwindow.write("Triangle: ")
+
+  LDCall.Function("writepp" t["p1"])
+
+  textwindow.write(", ")
+
+  LDCall.Function("writepp" t["p2"])
+
+  textwindow.write(", ")
+
+  LDCall.Function("writepp" t["p3"])
+
+EndSub' WriteTriangle
+
+
+
+Sub Det2D'(p1,p2,p3 : Point)
+
+  p1=args[1]
+
+  p2=args[2]
+
+  p3=args[3]
+
+  
+
+  RETURN=p1["x"] * (p2["y"] - p3["y"])  + p2["x"] * (p3["y"] - p1["y"]) + p3["x"] * (p1["y"] - p2["y"])
+
+EndSub' Det2D
+
+
+
+Sub CheckTriWinding'(VAR p1,p2,p3 : Point  allowReversed
+
+  p1=args[1]
+
+  p2=args[2]
+
+  p3=args[3]
+
+  allowReversed=args[4]
+
+  
+
+  detTri  = ldcall.Function3 ("Det2D" p1, p2, p3)
+
+  If detTri < 0.0 Then
+
+    If allowReversed Then
+
+      t  = p3
+
+      p3  = p2
+
+      p2  = t
+
+    Else
+
+      GraphicsWindow.ShowMessage( "triangle has wrong winding direction" "Err")
+
+      program.END()
+
+    EndIf
+
+  EndIf
+
+EndSub' CheckTriWinding
+
+
+
+Sub BoundaryCollideChk'(p1,p2,p3 : Point  eps
+
+  p1=args[1]
+
+  p2=args[2]
+
+  p3=args[3]
+
+  eps=args[4]
+
+  
+
+  If ldcall.Function3( "Det2D" p1, p2, p3) < eps Then
+
+    RETURN="TRUE
+
+  Else
+
+    RETURN="FALSE
+
+  EndIf
+
+EndSub' BoundaryCollideChk
+
+
+
+Sub BoundaryDoesntCollideChk'(p1,p2,p3 : Point  eps
+
+  p1=args[1]
+
+  p2=args[2]
+
+  p3=args[3]
+
+  eps=args[4]
+
+  
+
+  If  ldcall.Function3( "Det2D" p1, p2, p3) <= eps Then
+
+    RETURN="TRUE
+
+  Else
+
+    RETURN="FALSE
+
+  EndIf
+
+EndSub' BoundaryDoesntCollideChk
+
+
+
+Sub mpoints
+
+  a=""
+
+  For f=0 To 2
+
+    a[f]=args[f+1]
+
+  EndFor
+
+  RETURN=a
+
+EndSub
+
+
+
+Sub TriTri2D'(t1,t2 : Triangle  eps   allowReversed,onBoundary
+
+  t1=args[1]
+
+  t2=args[2]
+
+  eps=args[3]
+
+  allowReversed=args[4]
+
+  onBoundary=args[5]
+
+  '   chkEdge : sub(Point, Point, Point, LONGREAL) : BOOLEAN
+
+  'TextWindow.WriteLine(t1)
+
+  ldcall.Function4( "CheckTriWinding" t1["p1"], t1["p2"], t1["p3"], allowReversed)
+
+  ldcall.Function4( "CheckTriWinding" t2["p1"], t2["p2"], t2["p3"], allowReversed)
+
+  
+
+  If onBoundary Then 'determines whether points on boundary are considered as colliding or not *)
+
+    chkEdge  = "BoundaryCollideChk"
+
+  Else
+
+    chkEdge  = "BoundaryDoesntCollideChk"
+
+  EndIf
+
+  
+
+  lp1  = ldcall.Function3( "mPoints" t1["p1"], t1["p2"], t1["p3"])
+
+  lp2  = ldcall.Function3( "mPoints" t2["p1"], t2["p2"], t2["p3"])
+
+  
+
+  For i =0 To 2
+
+    j  = math.Remainder (i + 1 3)    ' Check all points of t2 lay on the external side of edge E. If they , the triangles  not overlap. *)
+
+    If  ldcall.Function4( chkEdge lp1[i], lp1[j], lp2[0], eps) AND ldcall.Function4(chkEdge lp1[i], lp1[j], lp2[1], eps) AND ldcall.Function4( chkEdge lp1[i], lp1[j], lp2[2], eps) Then
+
+      RETURN="FALSE
+
+      Goto rrr
+
+    EndIf
+
+  EndFor
+
+  
+
+  For i =0 To 2
+
+    j  = math.Remainder (i + 1  3)
+
+    If  ldcall.Function4(  chkEdge lp2[i], lp2[j], lp1[0], eps)  AND ldcall.Function4( chkEdge lp2[i], lp2[j], lp1[1], eps)  AND ldcall.Function4( chkEdge lp2[i], lp2[j], lp1[2], eps) Then
+
+      RETURN="FALSE
+
+      Goto rrr
+
+    EndIf
+
+  EndFor
+
+  
+
+  RETURN="TRUE
+
+  rrr:
+
+EndSub' TriTri2D
+
+
+
+Sub CheckOverlap'(t1,t2 : Triangle  eps :   allowReversed,onBoundary
+
+  LDCall.Function( "WriteTriangle" t1)
+
+  textwindow.write(" and")
+
+  textwindow.writeline("")
+
+  LDCall.Function( "WriteTriangle" t2)
+
+  textwindow.writeline("")
+
+  If ldcall.Function5( "TriTri2D" t1, t2, eps, allowReversed, onBoundary) Then
+
+    textwindow.write("overlap")
+
+  Else
+
+    textwindow.write("do not overlap")
+
+  EndIf
+
+  textwindow.writeline("")
+
+EndSub' CheckOverlap
+
+
+
+
+
+Sub mtriangle
+
+  tt=""
+
+  For r=1 To 3
+
+    q=LDText.Split(args[r] " ")
+
+    ti="p"+r
+
+    tt[ti]["x"]=q[1]
+
+    tt[ti]["y"]=q[2]
+
+  EndFor
+
+  GraphicsWindow.DrawTriangle(tt["p1"]["x"]*9 9*tt["p1"]["y"] tt["p2"]["x"]*9 9*tt["p2"]["y"] tt["p3"]["x"]*9 9*tt["p3"]["y"])
+
+  return=tt
+
+EndSub
+
+
+
+Sub main
+
+  TextWindow.Top=200
+
+  t1  = LDCall.Function3("mTriangle" "1.7 3" "15 0" "10 5")
+
+  t2  = LDCall.Function3("mTriangle" "0 0" "5 0" "0 5")
+
+  ldcall.Function5("CheckOverlap" t1, t2, 0.0, "FALSE", "TRUE")
+
+EndSub
+
+main()
+
+

@@ -1,0 +1,2815 @@
+'Poker
+
+'Mark Mossien
+
+'For convenience, all subs can be found sorted into categories as you scroll down.
+
+'Go to line 860 if you want to stack the deck.
+
+
+
+
+
+InitializeGame()
+
+SetVariables()
+
+
+
+Controls.ButtonClicked = buttonClicked                               
+
+
+
+Sub buttonClicked
+
+  lastButton = Controls.LastClickedButton 
+
+  If lastButton = TitleScreenPlayButton Then                                          'When user hits play,    
+
+    turnCounter = turnCounter + 1
+
+    roundCounter = roundCounter + 1
+
+    CreateGameAppearance()     
+
+    ShuffleCards()                                                                    'Initializes the first round.
+
+    DealCards()
+
+    DisplayCards()
+
+    ApplyAnte()  
+
+  ElseIf lastButton = TitleScreenExitButton Then                                      'Ends the program if user hits exit.
+
+    Program.End()
+
+  EndIf  
+
+  If roundTurn = "Player" Then
+
+    If lastButton = playerRaiseButton Then                                            'If player hits raise,
+
+      PlayerRaiseOutcome()                                                            'Checks to see if it is valid and then displays it.
+
+      If roundTurn = "Computer" Then                                                  'If the raise was valid,
+
+        turnCounter = turnCounter + 1                           
+
+        ComputerTurn()                                                                'It will be the computer's turn.
+
+      EndIf
+
+    ElseIf lastButton = playerFoldButton Then                                         'If player hits fold,
+
+      textDisplayMessage = textDisplayMessage + "Player folds!" + enter               'Display so.
+
+      roundWinner = "Computer"
+
+      DisplayComputerCards()
+
+      RoundEndMoneyUpdate()                                                           'End the round and set up the next one.
+
+      RoundEndMessageDisplay() 
+
+      If gameWinner = "None" Then
+
+        AddDealButton()                                                               'Keeps the game circulating while there is no winner.
+
+      Else
+
+        AddFinishButton()
+
+      EndIf      
+
+    ElseIf lastButton = playerCallButton Then                                         'If player hits call and it is not the first turn..
+
+      If turnCounter > 1 Then 
+
+        playerRaiseAmount = computerRaiseAmount    
+
+        textDisplayMessage = textDisplayMessage + "Player calls!" + enter             'Player raises what the computer raised.
+
+        If playerRaiseAmount <> 0 Then 
+
+          textDisplayMessage = textDisplayMessage + "Player contributes $" + playerRaiseAmount + " to " + enter + "the pot." + enter
+
+        EndIf
+
+        textDisplayMessage = textDisplayMessage + "Reveal cards!" + enter  
+
+        Controls.SetTextBoxText(textDisplayBox,textDisplayMessage)                    'Cards are revealed, winner is announced, 
+
+        UpdateDisplayPot()
+
+        SubtractRaiseAmount()
+
+        DisplayComputerCards()
+
+        EvaluateHand()                                                                'and the round ends.
+
+        CompareHands()    
+
+        RoundEndMoneyUpdate()
+
+        RoundEndMessageDisplay() 
+
+        If gameWinner = "None" Then
+
+          AddDealButton()
+
+        Else
+
+          AddFinishButton()
+
+        EndIf        
+
+      Else                                                                  'The switchs seen here prevent the textbox from repeating messages.
+
+        If callSwitch = "False" Then 
+
+          textDisplayMessage = textDisplayMessage + "On first turn, Player may " + enter + "only check or raise." + enter
+
+          Controls.SetTextBoxText(textDisplayBox,textDisplayMessage)      'For when player tries to call on the first turn.
+
+          callSwitch = "True"
+
+        EndIf
+
+      EndIf
+
+    ElseIf lastButton = playerCheckButton Then                              'If player hits check and it is the first turn..
+
+      If turnCounter = 1 Then
+
+        turnCounter = turnCounter + 1
+
+        textDisplayMessage = textDisplayMessage + "Player checks!" + enter    'Displays so and goes to the computer's turn.
+
+        Controls.SetTextBoxText(textDisplayBox,textDisplayMessage)
+
+        roundTurn = "Computer"
+
+        ComputerTurn()
+
+      Else
+
+        If checkSwitch = "False" Then
+
+          textDisplayMessage = textDisplayMessage + "Player can only check on " + enter + "the first turn." + enter
+
+          Controls.SetTextBoxText(textDisplayBox,textDisplayMessage)          'For when player tries to check after the first turn.
+
+          checkSwitch = "True"
+
+        EndIf
+
+      EndIf       
+
+      
+
+    ElseIf lastButton = playerFinishButton Then                               'For the end of the game.
+
+      EndOfGameDisplay()     
+
+    EndIf
+
+  Else
+
+    If turnSwitch = "False" Then                                              'For when the player tries to use buttons when it is computer's turn.
+
+      If roundTurn = "Computer" Then
+
+        textDisplayMessage = textDisplayMessage + "It is currently the " + enter + "computer's turn." + enter  
+
+        Controls.SetTextBoxText(textDisplayBox,textDisplayMessage)
+
+        turnSwitch = "True"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  If lastButton = playerDealButton Then                                 'If player hits the deal button..
+
+    roundCounter = roundCounter + 1
+
+    DealButtonPress()                                                       'Begins the next round.
+
+    If Math.Remainder(roundCounter,10) = 0 Then
+
+      CreateGameAppearance()                                                'Clears the board every ten rounds to prevent lag.
+
+      DisplayCards()
+
+      For i = 1 To 5
+
+        DrawCardFace()
+
+      EndFor  
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+'==========================================================================================
+
+'==========================================================================================
+
+'APPEARANCE AND INITIALIZATION
+
+'==========================================================================================
+
+'==========================================================================================
+
+
+
+Sub CreateGameAppearance
+
+  GraphicsWindow.Clear()  
+
+  GraphicsWindow.BackgroundColor = "DarkGreen"
+
+  gh = 600
+
+  gw = 1200
+
+  GraphicsWindow.Top = (Desktop.Height - gh) / 2 - 25
+
+  GraphicsWindow.Left = (Desktop.Width - gw) / 2             
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.BrushColor = "Maroon"
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.PenWidth = 5
+
+  cardPositionX = 140
+
+  For i = 1 To 5
+
+    GraphicsWindow.FillRectangle(cardPositionX,25,125,175)
+
+    GraphicsWindow.FillRectangle(cardPositionX,400,125,175)                     'Creates the appearance of the game display.
+
+    GraphicsWindow.DrawRectangle(cardPositionX,25,125,175)
+
+    GraphicsWindow.DrawRectangle(cardPositionX,400,125,175)
+
+    playerCardSlotX[i] = cardPositionX                                          'Sets variables for later use.
+
+    playerCardSlotY[i] = 400
+
+    computerCardSlotX[i] = cardPositionX
+
+    computerCardSlotY[i] = 25
+
+    cardPositionX = cardPositionX + 150
+
+  EndFor
+
+  GraphicsWindow.PenWidth = 3
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.BrushColor = "MidnightBlue"    
+
+  GraphicsWindow.FillRectangle(895,540,73,37)
+
+  GraphicsWindow.DrawRectangle(895,540,73,37) 
+
+  GraphicsWindow.BrushColor = "Red"
+
+  GraphicsWindow.FillRectangle(9,10,110,37)
+
+  GraphicsWindow.DrawRectangle(9,10,110,37)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.DrawBoundText(900,545,200,"Player")
+
+  GraphicsWindow.DrawBoundText(14,15,200,"Computer")
+
+  GraphicsWindow.DrawRectangle(5,395,120,37)
+
+  GraphicsWindow.BrushColor = "MidnightBlue"
+
+  GraphicsWindow.FillRectangle(5,395,120,37)
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.FontName = "Abadi MT Condensed Light"
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  playerRaiseButton = Controls.AddButton("Raise",10,400)                        'Makes buttons, creates display.
+
+  Controls.SetSize(playerRaiseButton,50,27)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawRectangle(10,400,50,27)
+
+  GraphicsWindow.BrushColor = "MidnightBlue"
+
+  playerRaiseBox = Controls.AddTextBox(70,400)
+
+  Controls.SetSize(playerRaiseBox,50,27)
+
+  GraphicsWindow.DrawRectangle(70,400,50,27)
+
+  GraphicsWindow.DrawRectangle(5,461,120,37)
+
+  GraphicsWindow.BrushColor = "MidnightBlue"
+
+  GraphicsWindow.FillRectangle(5,461,120,37)
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  playerCallButton = Controls.AddButton("Call",10,465)
+
+  Controls.SetSize(playerCallButton,50,27)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawRectangle(10,465,50,27)
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  playerCheckButton = Controls.AddButton("Check",68,465)
+
+  Controls.SetSize(playerCheckButton,51,27)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawRectangle(68,465,51,27)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawRectangle(34,528,62,42)
+
+  GraphicsWindow.BrushColor = "MidnightBlue"
+
+  GraphicsWindow.FillRectangle(34,528,62,42)
+
+  GraphicsWindow.DrawRectangle(40,534,50,30)
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  playerFoldButton = Controls.AddButton(" Fold ",40,534)
+
+  Controls.SetSize(playerFoldButton,50,30)
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  GraphicsWindow.FillRectangle(885,400,94,48)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 35
+
+  GraphicsWindow.DrawBoundText(890,403,300,"Bank")
+
+  GraphicsWindow.DrawRectangle(885,400,94,48)
+
+  GraphicsWindow.FontSize = 25
+
+  playerBankDisplayX = 894
+
+  playerBankDisplayY = 465
+
+  playerBankDisplay = Shapes.AddText("$" + playerBank)
+
+  Shapes.Move(playerBankDisplay,playerBankDisplayX,playerBankDisplayY)
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  GraphicsWindow.FillRectangle(15,150,94,48)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 35
+
+  GraphicsWindow.DrawBoundText(20,155,300,"Bank")
+
+  GraphicsWindow.DrawRectangle(15,150,94,48)
+
+  GraphicsWindow.FontSize = 25
+
+  computerBankDisplayX = 25
+
+  computerBankDisplayY = 105                                                        'Stores more variables along the way for later use.
+
+  computerBankDisplay = Shapes.AddText("$" + computerBank)
+
+  Shapes.Move(computerBankDisplay,computerBankDisplayX,computerBankDisplayY)
+
+  GraphicsWindow.PenWidth = 4
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  GraphicsWindow.FillRectangle(455,227,95,52)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawRectangle(455,227,95,52)
+
+  GraphicsWindow.FontSize = 50
+
+  GraphicsWindow.DrawBoundText(460,225,300,"Pot")
+
+  GraphicsWindow.FontSize = 15
+
+  GraphicsWindow.BrushColor = "NavajoWhite"
+
+  GraphicsWindow.PenWidth = 5
+
+  GraphicsWindow.FillRectangle(1000,1,200,600)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawRectangle(1000,1,198,598)
+
+  textDisplayBox = Controls.AddMultiLineTextBox(1000,1)
+
+  Controls.SetSize(textDisplayBox,200,600)
+
+  GraphicsWindow.FontSize = 50
+
+  potLocationX = 450
+
+  potLocationY = 285
+
+  potAmountDisplay = Shapes.AddText("$" + potAmount)
+
+  Shapes.Move(potAmountDisplay,potLocationX,potLocationY)  
+
+EndSub
+
+
+
+Sub SetVariables
+
+  playerBank = 1000
+
+  computerBank = 1000  
+
+  potAmount = 0
+
+  ante = 20                                                                           'Important variables initialized for later use.
+
+  roundTurn = "Player" 
+
+  playerRaiseAmount = 0
+
+  computerRaiseAmount = 0
+
+  validRaise = "True"
+
+  turnSwitch = "False"
+
+  callSwitch = "False"
+
+  checkSwitch = "False"
+
+  turnCounter = 0
+
+  roundCounter = 0
+
+EndSub
+
+
+
+Sub InitializeGame
+
+  GetDeck()
+
+  GetCardNames()                                                                      'Creates important card arrays.
+
+  GetCardRanks()
+
+  CreateHands()
+
+  gh = 600
+
+  gw = 800
+
+  backOfCardImage = Program.Directory + "\BackOfCard.jpg"
+
+  enter = Text.GetCharacter(10)
+
+  GraphicsWindow.CanResize = "False"
+
+  GraphicsWindow.BackgroundColor = "Maroon"          'Maroon? 
+
+  GraphicsWindow.Top = (Desktop.Height - gh) / 2 - 25
+
+  GraphicsWindow.Left = (Desktop.Width - gw) / 2             
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.FontSize = 25
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawBoundText(360,80,300,"Five Card")
+
+  GraphicsWindow.FontSize = 80 
+
+  GraphicsWindow.BrushColor = "MidnightBlue"                                          'Creates the main menu.
+
+  GraphicsWindow.DrawBoundText(300,100,400,"Poker")
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.FontSize = 30
+
+  TitleScreenPlayButton = Controls.AddButton("Play",375,250)
+
+  TitleScreenExitButton = Controls.AddButton("Exit",378,350)
+
+  GraphicsWindow.PenWidth = 5
+
+  GraphicsWindow.DrawRectangle(375,250,77,48)
+
+  GraphicsWindow.DrawRectangle(378,350,71,48)
+
+  backOfCard1 = Shapes.AddImage(backOfCardImage)
+
+  Shapes.Move(backOfCard1,62,180)       
+
+  GraphicsWindow.DrawRectangle(62,180,153,250)
+
+  backOfCard2 = Shapes.AddImage(backOfCardImage)
+
+  Shapes.Move(backOfCard2,588,180)
+
+  GraphicsWindow.DrawRectangle(588,180,153,250)
+
+EndSub
+
+
+
+'==========================================================================================
+
+'==========================================================================================
+
+'CREATION OF DECK AND GENERAL CARD-RELATED ARRAYS
+
+'==========================================================================================
+
+'==========================================================================================
+
+
+
+Sub GetDeck
+
+  For i = 1 To 52
+
+    deck[i] = i                                                                 'Creates the deck with 52 slots
+
+  EndFor
+
+EndSub
+
+
+
+Sub GetCardNames
+
+  hearts = Text.GetCharacter(9829)                                  
+
+  diamonds = Text.GetCharacter(9830)  
+
+  clubs = Text.GetCharacter(9827)      
+
+  spades = Text.GetCharacter(9824)                                            'Stores each of the four suits as a variable for use.
+
+  displaySuits[1] = hearts
+
+  displaySuits[2] = diamonds
+
+  displaySuits[3] = clubs
+
+  displaySuits[4] = spades
+
+  
+
+  For i = 0 To 3                                                              'Looks more complicated than it is...
+
+    For j = 1 To 10
+
+      If j < 10 Then
+
+        cardName[(i * 13) + j] = Text.Append(j + 1,displaySuits[i + 1])   'The algorithm in the cardName brackets just keeps a constant counter going from 1 to 52 while the
+
+      Else                                                                'other numbers are being manipulated.
+
+        cardName[(i * 13) + j] = Text.Append("J",displaySuits[i + 1])   
+
+        cardName[(i * 13) + 1 + j] = Text.Append("Q",displaySuits[i + 1])   'j < 10 is for the numbered cards. These four lines are for the face cards.
+
+        cardName[(i * 13) + 2 + j] = Text.Append("K",displaySuits[i + 1])
+
+        cardName[(i * 13) + 3 + j] = Text.Append("A",displaySuits[i + 1])
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub GetCardRanks
+
+  For i = 0 To 3
+
+    For j = 2 To 14
+
+      cardRank[(i * 13) - 1 + j] = j                                      'Gets the ranks (2-14) of the cards in each suit.
+
+    EndFor                                                                'Like before, the algorithm in the cardRank brackets just keeps a counter going while j is 2-14 at all times.
+
+  EndFor                                                                  'Hooray for efficiency! (until you realize how long the program is)
+
+EndSub
+
+
+
+Sub CreateHands
+
+  pokerHand[1] = "High Card"
+
+  pokerHand[2] = "One Pair"
+
+  pokerHand[3] = "Two Pair"
+
+  pokerHand[4] = "Three of a Kind"                                        'Stores the possible hands for reference purposes.
+
+  pokerHand[5] = "Straight"
+
+  pokerHand[6] = "Flush"
+
+  pokerHand[7] = "Full House"
+
+  pokerHand[8] = "Four of a Kind"
+
+  pokerHand[9] = "Straight Flush"
+
+  For i = 1 To 52
+
+    If i <= 13 Then
+
+      suits[i] = hearts
+
+    ElseIf i <= 26 Then
+
+      suits[i] = diamonds                                                 'Stores the suits corresponding to 4 sets of 13.
+
+    ElseIf i <= 39 Then
+
+      suits[i] = clubs
+
+    Else
+
+      suits[i] = spades
+
+    EndIf 
+
+  EndFor
+
+EndSub
+
+
+
+'==========================================================================================
+
+'==========================================================================================
+
+'EVALUATION, COMPARISON, MANIPULATION OF HANDS
+
+'==========================================================================================
+
+'==========================================================================================
+
+
+
+
+
+Sub EvaluateHand
+
+  For i = 1 To 5
+
+    playerHandRank[i] = cardRank[playerHand[i]]                                 'Gets the ranks of the player's cards.
+
+  EndFor
+
+  SortHand()                                                                    'Organizes these ranks from smallest to largest.
+
+  playerHandValue = 1 
+
+  playerHasHand = "False" 'Control switch.
+
+  If playerHandSuit[1] = playerHandSuit[2] And playerHandSuit[2] = playerHandSuit[3] Then       'If player has a flush...
+
+    If Text.IsSubText(cardName[playerHand[5]],"A") = "False" Then
+
+      If playerHandSuit[3] = playerHandSuit[4] And playerHandSuit[4] = playerHandSuit[5] Then               'Checks for straight flush
+
+        If playerHandRank[1] = playerHandRank[2] - 1 And playerHandRank[2] = playerHandRank[3] - 1 Then
+
+          If playerHandRank[3] = playerHandRank[4] - 1 And playerHandRank[4] = playerHandRank[5] - 1 Then   'If player has a straight..
+
+            playerHandValue = 9
+
+            playerStraightFlushRank = playerHandRank[5]                                               'Player has a straight flush.
+
+            playerHasHand = "True"                                                                    
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+    Else
+
+      If playerHandRank[1] = playerHandRank[2] - 1 And playerHandRank[2] = playerHandRank[3] - 1 Then
+
+        If playerHandRank[3] = playerHandRank[4] - 1 Then                                           'Special case for the Ace card.
+
+          playerHandValue = 9                                                                              
+
+          playerStraightFlushHighCard = playerHandRank[5]
+
+          playerHasHand = "True"
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  
+
+  If playerHasHand = "False" Then
+
+    For i = 1 To 2
+
+      If playerHandRank[i] = playerHandRank[i + 3] Then                                           'Checks for four of a kind
+
+        playerHandValue = 8                                                                       'i + 3 is used because the ranks are sorted, so if there is a FOAK then
+
+        playerFourOfKindRank = playerHandRank[i]                                                  'i and i + 3 will be equal.
+
+        playerHasHand = "True"  
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  
+
+  If playerHasHand = "False" Then                                                                 'Check for full house
+
+    If playerHandRank[1] = playerHandRank[2] Then                                                 'If player has a pair and a TOAK.. (pos. 1)
+
+      If playerHandRank[3] = playerHandRank[4] And playerHandRank[4] = playerHandRank[5] Then
+
+        playerHandValue = 7                                                                       'Full house!    
+
+        playerFullHouseRank2 = playerHandRank[1]                                                  'Stores the ranks of the pair and TOAK
+
+        playerFullHouseRank3 = playerHandRank[3]
+
+        playerHasHand = "True"
+
+      ElseIf playerHandRank[1] = playerHandRank[2] And playerHandRank[2] = playerHandRank[3] Then
+
+        If playerHandRank[4] = playerHandRank[5] Then                                             'If player has a pair and a TOAK.. (pos. 2)
+
+          playerHandValue = 7                                                                     'Full house!
+
+          playerFullHouseRank2 = playerHandRank[4]                                                 'Stores the ranks of the pair and TOAK
+
+          playerFullHouseRank3 = playerHandRank[1]
+
+          playerHasHand = "True"
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  
+
+  If playerHasHand = "False" Then 
+
+    If playerHandSuit[1] = playerHandSuit[2] And playerHandSuit[2] = playerHandSuit[3] Then           'Checks for flush  
+
+      If playerHandSuit[3] = playerHandSuit[4] And playerHandSuit[4] = playerHandSuit[5] Then         'If all of the suits are equal..
+
+        playerHandValue = 6                                                                     'You have a flush.
+
+        playerFlushHighCard = playerHandRank[5]
+
+        playerHasHand = "True"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  
+
+  If playerHasHand = "False" Then
+
+    If Text.IsSubText(cardName[playerHand[5]],"A") = "False" Then                                                'Checks for straight
+
+      If playerHandRank[1] = playerHandRank[2] - 1 And playerHandRank[2] = playerHandRank[3] - 1 Then
+
+        If playerHandRank[3] = playerHandRank[4] - 1 And playerHandRank[4] = playerHandRank[5] - 1 Then      'If the ranks of the player's hand are consecutive..
+
+          playerHandValue = 5                                                                                
+
+          playerStraightHighCardRank = playerHandRank[5]                                                  'You have a straight.
+
+          playerHasHand = "True"  
+
+        EndIf
+
+      EndIf
+
+    Else                                                                                                
+
+      If playerHandRank[1] = playerHandRank[2] - 1 And playerHandRank[2] = playerHandRank[3] - 1 Then
+
+        If playerHandRank[3] = playerHandRank[4] - 1 Then
+
+          playerHandValue = 5                                                                             'Again, special case for Ace.   
+
+          playerStraightHighCard = playerHandRank[5]
+
+          playerHasHand = "True"
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf 
+
+  
+
+  If playerHasHand = "False" Then                                             'Checks for three of a kind
+
+    For i = 1 To 3
+
+      If playerHandRank[i] = playerHandRank[i + 2] Then                       'Because the ranks are sorted, i and i + 3 are used
+
+        playerHandValue = 4                                                   'If three are equal, then i and i + 3 will be as well.
+
+        playerThreeOfKindRank = playerHandRank[i]                              
+
+        playerHasHand = "True"   
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  
+
+  If playerHasHand = "False" Then                                                                 'Checks for two pair
+
+    If playerHandRank[1] = playerHandRank[2] And playerHandRank[3] = playerHandRank[4] Then     
+
+      playerHandValue = 3 
+
+      playerPairOneRank = playerHandRank[1]
+
+      playerPairTwoRank = playerHandRank[3]                                                         'Checks if any two pairs of cards are equal, in every possible way.
+
+      playerHasHand = "True"   
+
+    ElseIf playerHandRank[1] = playerHandRank[2] And playerHandRank[4] = playerHandRank[5] Then    
+
+      playerHandValue = 3
+
+      playerPairOneRank = playerHandRank[1]
+
+      playerPairTwoRank = playerHandRank[4]      
+
+      playerHasHand = "True"   
+
+    ElseIf playerHandRank[2] = playerHandRank[3] And playerHandRank[4] = playerHandRank[5] Then   
+
+      playerHandValue = 3
+
+      playerPairOneRank = playerHandRank[2]
+
+      playerPairTwoRank = playerHandRank[4]   
+
+      playerHasHand = "True"   
+
+    EndIf
+
+  EndIf 
+
+  If playerHasHand = "False" Then
+
+    For i = 1 To 4
+
+      If playerHandRank[i] = playerHandRank[i + 1] Then 
+
+        playerHandValue = 2                                                                       'Checks for one pair
+
+        playerOnePairRank = playerHandRank[i]                                                     'Checks if any two cards are equal.
+
+        playerOnePairPosition = i  
+
+      EndIf
+
+    EndFor
+
+  EndIf 
+
+  If playerHandValue = 1 Then                                                                   'If the player hand value has not been set to anything higher (it started as 1)...
+
+    playerHighCardRank = playerHandRank[5]                                                      'Your hand is high card.
+
+  EndIf
+
+  
+
+  For i = 1 To 5                                                            'The following section is not thoroughly commented because it is exactly the same as the previous section,
+
+    computerHandRank[i] = cardRank[computerHand[i]]                         'but with computer variables. Refer to above.
+
+  EndFor 
+
+  SortHand()
+
+  computerHandValue = 1 
+
+  computerHasHand = "False" 
+
+  If computerHandSuit[1] = computerHandSuit[2] And computerHandSuit[2] = computerHandSuit[3] Then
+
+    If Text.IsSubText(cardName[computerHand[5]],"A") = "False" Then
+
+      If computerHandSuit[3] = computerHandSuit[4] And computerHandSuit[4] = computerHandSuit[5] Then         'Checks for straight flush
+
+        If computerHandRank[1] = computerHandRank[2] - 1 And computerHandRank[2] = computerHandRank[3] - 1 Then
+
+          If computerHandRank[3] = computerHandRank[4] - 1 And computerHandRank[4] = computerHandRank[5] - 1 Then
+
+            computerHandValue = 9
+
+            computerStraightFlushRank = computerHandRank[i]
+
+            computerHasHand = "True"
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+    Else
+
+      If computerHandRank[1] = computerHandRank[2] - 1 And computerHandRank[2] = computerHandRank[3] - 1 Then
+
+        If computerHandRank[3] = computerHandRank[4] - 1 Then
+
+          computerHandValue = 9                                                                              
+
+          computerStraightFlushHighCard = computerHandRank[5]
+
+          computerHasHand = "True"
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  
+
+  If computerHasHand = "False" Then
+
+    For i = 1 To 2
+
+      If computerHandRank[i] = computerHandRank[i + 3] Then       'Checks for four of a kind
+
+        computerHandValue = 8
+
+        computerFourOfKindRank = computerHandRank[i]
+
+        computerHasHand = "True"  
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  
+
+  If computerHasHand = "False" Then
+
+    If computerHandRank[1] = computerHandRank[2] Then
+
+      If computerHandRank[3] = computerHandRank[4] And computerHandRank[4] = computerHandRank[5] Then
+
+        computerHandValue = 7                                                                             'Check for full house
+
+        computerFullHouseRank2 = computerHandRank[1]
+
+        computerFullHouseRank3 = computerHandRank[3]       
+
+        computerHasHand = "True" 
+
+      ElseIf computerHandRank[1] = computerHandRank[2] And computerHandRank[2] = computerHandRank[3] Then
+
+        If computerHandRank[4] = computerHandRank[5] Then
+
+          computerHandValue = 7
+
+          computerFullHouseRank2 = computerHandRank[4]
+
+          computerFullHouseRank3 = computerHandRank[1]
+
+          computerHasHand = "True"
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf 
+
+  
+
+  If computerHasHand = "False" Then
+
+    If computerHandSuit[1] = computerHandSuit[2] And computerHandSuit[2] = computerHandSuit[3] Then
+
+      If computerHandSuit[3] = computerHandSuit[4] And computerHandSuit[4] = computerHandSuit[5] Then   'Checks for flush
+
+        computerHandValue = 6
+
+        computerFlushHighCard = computerHandRank[5]
+
+        computerHasHand = "True"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  
+
+  If computerHasHand = "False" Then
+
+    If Text.IsSubText(cardName[computerHand[5]],"A") = "False" Then
+
+      If computerHandRank[1] = computerHandRank[2] - 1 And computerHandRank[2] = computerHandRank[3] - 1 Then
+
+        If computerHandRank[3] = computerHandRank[4] - 1 And computerHandRank[4] = computerHandRank[5] - 1 Then
+
+          computerHandValue = 5                                                                   'Checks for straight 
+
+          computerStraightHighCardRank = computerHandRank[5]
+
+          computerHasHand = "True"  
+
+        EndIf
+
+      EndIf
+
+    Else
+
+      If computerHandRank[1] = computerHandRank[2] - 1 And computerHandRank[2] = computerHandRank[3] - 1 Then
+
+        If computerHandRank[3] = computerHandRank[4] - 1 Then
+
+          computerHandValue = 5                                                                              
+
+          computerStraightHighCard = computerHandRank[5]
+
+          computerHasHand = "True"
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  
+
+  If computerHasHand = "False" Then
+
+    For i = 1 To 3
+
+      If computerHandRank[i] = computerHandRank[i + 2] Then
+
+        computerHandValue = 4                                  'Checks for three of a kind
+
+        computerThreeOfKindRank = computerHandRank[i]                                 
+
+        computerHasHand = "True"   
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  
+
+  If computerHasHand = "False" Then
+
+    If computerHandRank[1] = computerHandRank[2] And computerHandRank[3] = computerHandRank[4] Then 
+
+      computerHandValue = 3 
+
+      computerPairOneRank = computerHandRank[1]
+
+      computerPairTwoRank = computerHandRank[3]                                                       'Checks for two pair
+
+      computerHasHand = "True"   
+
+    ElseIf computerHandRank[1] = computerHandRank[2] And computerHandRank[4] = computerHandRank[5] Then    
+
+      computerHandValue = 3
+
+      computerPairOneRank = computerHandRank[1]                                     
+
+      computerPairTwoRank = computerHandRank[4]      
+
+      computerHasHand = "True"   
+
+    ElseIf computerHandRank[2] = computerHandRank[3] And computerHandRank[4] = computerHandRank[5] Then   
+
+      computerHandValue = 3
+
+      computerPairOneRank = computerHandRank[2]
+
+      computerPairTwoRank = computerHandRank[4]   
+
+      computerHasHand = "True"   
+
+    EndIf
+
+  EndIf
+
+  
+
+  If computerHasHand = "False" Then
+
+    For i = 1 To 4
+
+      If computerHandRank[i] = computerHandRank[i + 1] Then
+
+        computerHandValue = 2                                                                       'Checks for one pair
+
+        computerOnePairRank = computerHandRank[i]                                        
+
+        computerOnePairPosition = i    
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  
+
+  If computerHandValue = 1 Then
+
+    computerHighCardRank = computerHandRank[5]
+
+  EndIf
+
+EndSub
+
+
+
+
+
+
+
+Sub CompareHands                                                                        'For the comparison of the player and computer hands.
+
+  If playerHandValue > computerHandValue Then             
+
+    roundWinner = "Player"
+
+  Else                                                                      'Basic statement: If either player's hand value is greater than the other's, they win.
+
+    roundWinner = "Computer"
+
+  EndIf
+
+  If playerHandValue = computerHandValue Then                               'If the hand values are the same....
+
+    
+
+    If playerHandValue = 1 Then
+
+      
+
+      If computerHighCardRank > playerHighCardRank Then
+
+        roundWinner = "Computer"                                               'Goes through and checks the second highest, third highest, etc, cards to see whose is greater.
+
+      ElseIf computerHighCardRank < computerHighCardRank Then                       
+
+        roundWinner = "Player"
+
+      Else
+
+        If computerHandRank[4] > playerHandRank[4] Then
+
+          roundWinner = "Computer"
+
+        ElseIf computerHandRank[4] < playerHandRank[4] Then
+
+          roundWinner = "Player"
+
+        Else
+
+          If computerHandRank[3] > playerHandRank[3] Then
+
+            roundWinner = "Computer"
+
+          ElseIf computerHandRank[3] < playerHandRank[3] Then
+
+            roundWinner = "Player"
+
+          Else
+
+            If computerHandRank[2] > playerHandRank[2] Then
+
+              roundWinner = "Computer"
+
+            ElseIf computerHandRank[2] < playerHandRank[2] Then
+
+              roundWinner = "Player"
+
+            Else
+
+              If computerHandRank[1] > playerHandRank[1] Then
+
+                roundWinner = "Computer"  
+
+              ElseIf computerHandRank[1] < playerHandRank[1] Then           'If all of the cards are the same, then there is no winner. Round ties.
+
+                roundWinner = "Player"
+
+              Else
+
+                roundWinner = "None"
+
+              EndIf
+
+            EndIf
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+      
+
+    ElseIf playerHandValue = 2 Then                                 'If both players have one pair..
+
+      
+
+      If playerOnePairRank > computerOnePairRank Then                       'If either player has a greater pair than the other, they win.
+
+        roundWinner = "Player"
+
+      ElseIf playerOnePairRank < computerOnePairRank Then
+
+        roundWinner = "Computer"
+
+      Else                                                                  'If the pairs are the same...
+
+        pHighCardCounter = 0
+
+        cHighCardCounter = 0
+
+        For i = 1 To 5
+
+          If playerHandRank[i] <> playerOnePairRank Then
+
+            pHighCardCounter = pHighCardCounter + 1
+
+            playerOnePairHighCardRank[pHighCardCounter] = playerHandRank[i]
+
+          EndIf
+
+          If computerHandRank[i] <> computerOnePairRank Then                    'Goes through each hand and extracts non-paired cards for comparison.
+
+            cHighCardCounter = cHighCardCounter + 1
+
+            computerOnePairHighCardRank[cHighCardCounter] = computerHandRank[i]
+
+          EndIf
+
+        EndFor
+
+        If playerOnePairHighCardRank[3] > computerOnePairHighCardRank[3] Then       'Same process is used here as is for high card comparison. Refer to above.
+
+          roundWinner = "Player"
+
+        ElseIf playerOnePairHighCardRank[3] < computerOnePairHighCardRank[3] Then
+
+          roundWinner = "Computer
+
+        Else
+
+          If playerOnePairHighCardRank[2] > computerOnePairHighCardRank[2] Then
+
+            roundWinner = "Player"
+
+          ElseIf playerOnePairHighCardRank[2] < computerOnePairHighCardRank[2] Then
+
+            roundWinner = "Computer"
+
+          Else 
+
+            If playerOnePairHighCardRank[1] > computerOnePairHighCardRank[1] Then
+
+              roundWinner = "Player" 
+
+            ElseIf playerOnePairHighCardRank[1] < computerOnePairHighCardRank[1] Then
+
+              roundWinner = "Computer"
+
+            Else
+
+              roundWinner = "None"
+
+            EndIf
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+      
+
+    ElseIf playerHandValue = 3 Then                                            'If both players have two pair..
+
+      
+
+      If playerPairOneRank > playerPairTwoRank Then                                 'Stores the highest pair of each player.
+
+        playerTwoPairHighPairRank = playerPairOneRank                               'If either player has a greater high pair than the other, they win.
+
+      Else 
+
+        playerTwoPairHighPairRank = playerPairTwoRank 
+
+      EndIf
+
+      If computerPairOneRank > computerPairTwoRank Then
+
+        computerTwoPairHighPairRank = computerPairOneRank
+
+      Else 
+
+        computerTwoPairHighPairRank = computerPairTwoRank 
+
+      EndIf    
+
+      If playerTwoPairHighPairRank > computerTwoPairHighPairRank Then
+
+        roundWinner = "Player"
+
+      ElseIf playerTwoPairHighPairRank < computerTwoPairHighPairRank Then
+
+        roundWinner = "Computer
+
+      Else                                                                          'If they have the same pairs...
+
+        pHighCardCounter = 0
+
+        cHighCardCounter = 0
+
+        For i = 1 To 5
+
+          If playerHandRank[i] <> playerPairOneRank And playerHandRank[i] <> playerPairTwoRank Then
+
+            pHighCardCounter = pHighCardCounter + 1                                                     'Extracts non-paired cards and compares them- refer to above.
+
+            playerTwoPairHighCardRank = playerHandRank[i]
+
+          EndIf
+
+          If computerHandRank[i] <> computerPairOneRank And computerHandRank[i] <> computerPairTwoRank Then
+
+            cHighCardCounter = cHighCardCounter + 1
+
+            computerTwoPairHighCardRank = computerHandRank[i]
+
+          EndIf  
+
+        EndFor   
+
+      EndIf
+
+      If playerTwoPairHighCardRank > computerTwoPairHighCardRank Then
+
+        roundWinner = "Player"
+
+      Else
+
+        roundWinner = "Computer"
+
+      EndIf       
+
+      
+
+    ElseIf playerHandValue = 4 Then                                  'If both players have three of a kind....
+
+      
+
+      If playerThreeOfKindRank > computerThreeOfKindRank Then                                        'If either player has the greater rank, they win.
+
+        roundWinner = "Player"
+
+      ElseIf playerThreeOfKindRank < computerThreeOfKindRank Then
+
+        roundWinner = "Computer"
+
+      EndIf
+
+      
+
+    ElseIf playerHandValue = 5 Then       'If both players have a straight...
+
+      
+
+      If playerStraightHighCardRank > computerStraightHighCardRank Then                              'Checks the highest card, and if they are equal,
+
+        roundWinner = "Player"
+
+      ElseIf playerStraightHighCardRank < computerStraightHighCardRank Then 
+
+        roundWinner = "Computer"
+
+      Else
+
+        roundWinner = "None"                                                                          'There is a tie.
+
+      EndIf
+
+      
+
+    ElseIf playerHandValue = 6 Then                                'If both players have a flush...
+
+      
+
+      If computerHandRank[5] > playerHandRank[5] Then                             'Compares the cards using same method as high card. Refer to above.
+
+        roundWinner = "Computer"
+
+      ElseIf computerHandRank[5] < playerHandRank[5] Then
+
+        roundWinner = "Player"
+
+      Else   
+
+        If computerHandRank[4] > playerHandRank[4] Then
+
+          roundWinner = "Computer"
+
+        ElseIf computerHandRank[4] < playerHandRank[4] Then
+
+          roundWinner = "Player"
+
+        Else
+
+          If computerHandRank[3] > playerHandRank[3] Then
+
+            roundWinner = "Computer"
+
+          ElseIf computerHandRank[3] < playerHandRank[3] Then
+
+            roundWinner = "Player"
+
+          Else
+
+            If computerHandRank[2] > playerHandRank[2] Then
+
+              roundWinner = "Computer"
+
+            ElseIf computerHandRank[2] < playerHandRank[2] Then
+
+              roundWinner = "Player"
+
+            Else
+
+              If computerHandRank[1] > playerHandRank[1] Then
+
+                roundWinner = "Computer"
+
+              ElseIf computerHandRank[1] < playerHandRank[1] Then
+
+                roundWinner = "Player"
+
+              Else
+
+                roundWinner = "None"
+
+              EndIf
+
+            EndIf
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+      
+
+    ElseIf playerHandValue = 7 Then                             'If both players have a full house.. (what are the odds?)
+
+      
+
+      If playerFullHouseRank2 > playerFullHouseRank3 Then
+
+        playerFullHouseHighRank = playerFullHouseRank2            'Gets the higher pairing of each hand for comparison.
+
+      Else
+
+        playerFullHouseHighRank = playerFullHouseRank3
+
+        playerFullHouseLowRank = playerFullHouseRank2     
+
+      EndIf 
+
+      If computerFullHouseRank2 > computerFullHouseRank3 Then
+
+        computerFullHouseHighRank = computerFullHouseRank2
+
+        computerFullHouseLowRank = computerFullHouseRank3 
+
+      Else
+
+        computerFullHouseHighRank = computerFullHouseRank3
+
+        computerFullHouseLowRank = computerFullHouseRank2        
+
+      EndIf   
+
+      If playerFullHouseHighRank > computerFullHouseHighRank Then                     'If either player's pairing is greater, then they win.
+
+        roundWinner = "Player"
+
+      ElseIf playerFullHouseHighRank < computerFullHouseHighRank Then 
+
+        roundWinner = "Computer"
+
+      Else                                                                            'No case for tieing; it is impossible here.
+
+        If playerFullHouseLowRank > computerFullHouseLowRank Then
+
+          roundWinner = "Player"
+
+        Else
+
+          roundWinner = "Computer"
+
+        EndIf
+
+      EndIf
+
+      
+
+    ElseIf playerHandValue = 8 Then                         'If both players have a four of a kind... (I looked up the odds this time... .00005% chance! Probably wrong, but who cares)
+
+      
+
+      If playerFourOfKindRank > computerFourOfKindRank Then           'Compares the ranks and whoever's is higher wins.
+
+        roundWinner = "Player"
+
+      Else 
+
+        roundWinner = "Computer"
+
+      EndIf
+
+    EndIf  
+
+  EndIf 
+
+EndSub
+
+
+
+Sub SortHand
+
+  For i = 1 To 5
+
+    For j = 1 To 4
+
+      If playerHandRank[j + 1] < playerHandRank[j] Then                         'Sorts the hands from smallest to greatest.
+
+        tempCard = playerHandRank[j]                                           
+
+        playerHandRank[j] = playerHandRank[j + 1]
+
+        playerHandRank[j + 1] = tempCard
+
+      EndIf
+
+      If computerHandRank[j + 1] < computerHandRank[j] Then
+
+        tempCard = computerHandRank[j]
+
+        computerHandRank[j] = computerHandRank[j + 1]
+
+        computerHandRank[j + 1] = tempCard
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+'===============================================================================
+
+'===============================================================================
+
+'DISPLAY AND MANIPULATION OF CARDS
+
+'===============================================================================
+
+'===============================================================================
+
+
+
+Sub ShuffleCards
+
+  For i = 1 To 52
+
+    tempCard = deck[i]                
+
+    randomCardLocation = Math.GetRandomNumber(52)
+
+    deck[i] = deck[randomCardLocation]                                'Shuffles the cards. 'Pulls' one out, determines a random position, and swaps it with one already there.
+
+    deck[randomCardLocation] = tempCard  
+
+  EndFor
+
+EndSub
+
+
+
+
+
+
+
+Sub DealCards
+
+  StackDeck()            '     Line 957
+
+  For i = 1 To 5
+
+    playerHand[i] = deck[i]           'Comment out when stacking the deck.
+
+    computerHand[i] = deck[i + 5]                                                       'Distributes the cards to each player.                                               '   
+
+  EndFor
+
+EndSub
+
+
+
+
+
+
+
+Sub DisplayCards
+
+  For i = 1 To 5                                                                         'Displays the player's cards.
+
+    GraphicsWindow.BrushColor = "White" 
+
+    GraphicsWindow.FillRectangle(playerCardSlotX[i],playerCardSlotY[i],125,175) 
+
+    GraphicsWindow.FontSize = 20   
+
+    playerHandSuit[i] = suits[playerHand[i]]    
+
+    If playerHand[i] > 0 And playerHand[i] < 27 Then
+
+      GraphicsWindow.BrushColor = "Red"
+
+    Else
+
+      GraphicsWindow.BrushColor = "Black"
+
+    EndIf         
+
+    GraphicsWindow.DrawBoundText(playerCardSlotX[i],playerCardSlotY[i],300,cardName[playerHand[i]])
+
+    If Text.GetLength(cardName[playerHand[i]]) > 2 Then
+
+      suitOffSet = 88
+
+    Else
+
+      suitOffSet = 98    
+
+    EndIf
+
+    GraphicsWindow.DrawBoundText(playerCardSlotX[i] + suitOffSet,playerCardSlotY[i] + 150,300,cardName[playerHand[i]])  
+
+    DrawCardFace()
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.FontSize = 10
+
+  EndFor
+
+EndSub
+
+
+
+
+
+
+
+Sub DrawCardFace
+
+  GraphicsWindow.BrushColor = "AntiqueWhite"
+
+  GraphicsWindow.PenColor = "MidnightBlue"
+
+  GraphicsWindow.PenWidth = 3
+
+  computerBackOfCardDisplay = Shapes.AddRectangle(125,175)
+
+  computerBackOfCardDisplayX = computerCardSlotX[i]                                                               'Creates the back of the computer's cards seen throughout each round.
+
+  computerBackOfCardDisplayY = computerCardSlotY[i]
+
+  Shapes.Move(computerBackOfCardDisplay,computerBackOfCardDisplayX,computerBackOfCardDisplayY)
+
+  GraphicsWindow.PenWidth = .75
+
+  cardTop = computerBackOfCardDisplayY
+
+  cardBottom = cardTop + 175
+
+  cardRight = computerBackOfCardDisplayX + 125
+
+  xInc = 0
+
+  yInc = 0
+
+  For j = 1 To 51
+
+    If j < 26 Then
+
+      Shapes.AddLine(computerBackOfCardDisplayX + xInc,cardTop,cardRight,(computerBackOfCardDisplayY + 175) - yInc)
+
+      Shapes.AddLine(computerBackOfCardDisplayX,cardBottom - yInc,cardRight - xInc,cardTop)
+
+      xInc = xInc + 5
+
+      yInc = yInc + 7
+
+    ElseIf j = 26 Then                                                                                            'These loops draw the lines on each card.
+
+      xInc = 0
+
+      yInc = 0
+
+    Else
+
+      Shapes.AddLine(computerBackOfCardDisplayX,cardTop + yInc,cardRight - xInc,cardBottom)
+
+      Shapes.AddLine(computerBackOfCardDisplayX + xInc,cardBottom,cardRight,cardTop + yInc)
+
+      xInc = xInc + 5
+
+      yInc = yInc + 7
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+
+
+
+
+Sub DisplayComputerCards
+
+  For i = 1 To 5
+
+    GraphicsWindow.BrushColor = "White" 'Change color?
+
+    computerCardDisplay[i] = Shapes.AddRectangle(125,175)
+
+    Shapes.Move(computerCardDisplay[i],computerCardSlotX[i],computerCardSlotY[i])  
+
+    GraphicsWindow.FontSize = 20  
+
+    computerHandSuit[i] = suits[computerHand[i]]       
+
+    If computerHand[i] > 0 And computerHand[i] < 27 Then
+
+      GraphicsWindow.BrushColor = "Red"
+
+    Else                                                                                                  'Displays the computer's cards at the end of the round.
+
+      GraphicsWindow.BrushColor = "Black"
+
+    EndIf      
+
+    computerCardNameDisplay1[i] = Shapes.AddText(cardName[computerHand[i]])
+
+    Shapes.Move(computerCardNameDisplay1[i],computerCardSlotX[i],computerCardSlotY[i])
+
+    If Text.GetLength(cardName[computerHand[i]]) > 2 Then
+
+      suitOffSet = 88
+
+    Else
+
+      suitOffSet = 98    
+
+    EndIf
+
+    computerCardNameDisplay2[i] = Shapes.AddText(cardName[computerHand[i]]) 
+
+    Shapes.Move(computerCardNameDisplay2[i],computerCardSlotX[i] + suitOffSet,computerCardSlotY[i] + 150)  
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.FontSize = 10     
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub StackDeck
+
+  playerHand[1] = 26
+
+  playerHand[2] = 1 
+
+  playerHand[3] = 2  
+
+  playerHand[4] = 3
+
+  playerHand[5] = 4                                          'For "testing" purposes.
+
+  
+
+  computerHand[1] = 14
+
+  computerHand[2] = 15
+
+  computerHand[3] = 16
+
+  computerHand[4] = 17
+
+  computerHand[5] = 31
+
+EndSub
+
+
+
+'====================================================================================
+
+'====================================================================================
+
+'DISPLAY AND MANIPULATION OF MONEY
+
+'====================================================================================
+
+'====================================================================================
+
+
+
+Sub playerRaiseOutcome
+
+  validRaise = "True"
+
+  playerRaiseAmount = Controls.GetTextBoxText(playerRaiseBox)                                                 'Stores the raise amount and gets its length.
+
+  Controls.SetTextBoxText(playerRaiseBox,"")
+
+  playerRaiseAmountLength = Text.GetLength(playerRaiseAmount)
+
+  If playerRaiseAmount <> "" Then                                                 'If the box has not been left empty..
+
+    If playerRaiseAmount > playerBank Or playerRaiseAmountLength > 4 Then                                               'If raise is more than 4 digits or greater than player bank..
+
+      Controls.SetTextBoxText(textDisplayBox,"Player cannot raise by " + enter + "more than what they " + enter + "have.")  'Error message
+
+      validRaise = "False"  
+
+    EndIf
+
+    For i = 1 To playerRaiseAmountLength
+
+      PRACharCode[i] = Text.GetCharacterCode((Text.GetSubText(playerRaiseAmount,i,1)))    'Stores the character codes of the raise amount
+
+      If PRACharCode[i] < 48 Or PRACharCode[i] > 57 Then                                'If any character is not a number...
+
+        Controls.SetTextBoxText(textDisplayBox,"Player raise amount " + enter + "must be positive " + enter + "and numeric.") 'Error message
+
+        validRaise = "False"  
+
+      EndIf             
+
+    EndFor 
+
+    If playerRaiseAmount >= 0 And playerRaiseAmount < 20 Then                       'If raise is less than $20...
+
+      Controls.SetTextBoxText(textDisplayBox,"Player must raise by " + enter + "at least $20.") 'Error message
+
+      validRaise = "False"  
+
+    EndIf    
+
+    If playerRaiseAmount > computerBank Then                                            'If player bets more than they have..
+
+      Controls.SetTextBoxText(textDisplayBox,"Player cannot bet more " + enter + "than what the computer " + enter + "has." + enter) 'Error message
+
+      validRaise = "False"  
+
+    EndIf  
+
+    If validRaise = "False" Then
+
+      playerRaiseAmount = 0                     'For control purposes.
+
+    EndIf 
+
+    
+
+    If validRaise = "True" Then                                                     'If all of the error checks are passed..
+
+      potAmount = potAmount + playerRaiseAmount
+
+      playerBank = playerBank - playerRaiseAmount                                     'Display the raise and add it to the pot.
+
+      textDisplayMessage = textDisplayMessage + "Player raises $" + playerRaiseAmount + "!" + enter
+
+      Controls.SetTextBoxText(textDisplayBox,textDisplayMessage)
+
+      UpdateDisplayPot()                                                        'Update the display.
+
+      SubtractRaiseAmount()
+
+      roundTurn = "Computer"  
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+
+
+
+
+Sub UpdateDisplayPot
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 50
+
+  Shapes.Remove(potAmountDisplay)                                 'Updates the displayed pot amount when called.
+
+  potAmountDisplay = Shapes.AddText("$" + potAmount)
+
+  Shapes.Move(potAmountDisplay,potLocationX,potLocationY)
+
+EndSub
+
+
+
+
+
+
+
+Sub SubtractRaiseAmount
+
+  If roundTurn = "Player" Then  
+
+    GraphicsWindow.FontSize = 25
+
+    Shapes.Remove(playerBankDisplay) 
+
+    GraphicsWindow.BrushColor = "Black"
+
+    playerBankDisplay = Shapes.AddText("$" + playerBank)                                          'Removes bank display,updates, and readds.
+
+    Shapes.Move(playerBankDisplay,playerBankDisplayX,playerBankDisplayY)
+
+    GraphicsWindow.BrushColor = "Red"
+
+    PRAShape = Shapes.AddText("-$" + playerRaiseAmount)
+
+    Shapes.Move(PRAShape,playerBankDisplayX,playerBankDisplayY + 25)
+
+    Shapes.Animate(PRAShape,playerBankDisplayX + 500,playerBankDisplayY + 50,5000)
+
+    For i = 1 To 100 Step .05                                                                   
+
+      Shapes.SetOpacity(PRAShape,100-i)
+
+    EndFor                                                                                        'Creates the animation seen during money flow.
+
+    GraphicsWindow.BrushColor = "Black"
+
+  Else
+
+    GraphicsWindow.FontSize = 25
+
+    Shapes.Remove(computerBankDisplay)
+
+    GraphicsWindow.BrushColor = "Black"
+
+    computerBankDisplay = Shapes.AddText("$" + computerBank)                                    'Refer to above.
+
+    Shapes.Move(computerBankDisplay,computerBankDisplayX,computerBankDisplayY)
+
+    GraphicsWindow.BrushColor = "Red"
+
+    CRAShape = Shapes.AddText("-$" + computerRaiseAmount)
+
+    Shapes.Move(CRAShape,computerBankDisplayX,computerBankDisplayY + 25)
+
+    Shapes.Animate(CRAShape,computerBankDisplayX - 500,computerBankDisplayY - 5,5000)
+
+    For i = 1 To 100 Step .05
+
+      Shapes.SetOpacity(CRAShape,100-i)
+
+    EndFor
+
+    GraphicsWindow.BrushColor = "Black" 
+
+  EndIf
+
+EndSub
+
+
+
+
+
+
+
+Sub SubtractAnte 
+
+  GraphicsWindow.FontSize = 25
+
+  Shapes.Remove(playerBankDisplay)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  playerBankDisplay = Shapes.AddText("$" + playerBank)
+
+  Shapes.Move(playerBankDisplay,playerBankDisplayX,playerBankDisplayY)                      'For the start of each round. Takes ante from each player's bank
+
+  GraphicsWindow.BrushColor = "Red"
+
+  pAnteShape = Shapes.AddText("-$" + ante)
+
+  Shapes.Move(pAnteShape,playerBankDisplayX,playerBankDisplayY + 25)
+
+  Shapes.Animate(pAnteShape,playerBankDisplayX + 500,playerBankDisplayY + 50,5000)
+
+  For i = 1 To 100 Step .05
+
+    Shapes.SetOpacity(pAnteShape,100-i)
+
+  EndFor                                                                                    'Displays new banks and adds an animation.
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 25
+
+  Shapes.Remove(computerBankDisplay)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  computerBankDisplay = Shapes.AddText("$" + computerBank)
+
+  Shapes.Move(computerBankDisplay,computerBankDisplayX,computerBankDisplayY)
+
+  GraphicsWindow.BrushColor = "Red"
+
+  cAnteShape = Shapes.AddText("-$" + ante)
+
+  Shapes.Move(cAnteShape,computerBankDisplayX,computerBankDisplayY + 25)
+
+  Shapes.Animate(cAnteShape,computerBankDisplayX - 500,computerBankDisplayY - 5,5000)
+
+  For i = 1 To 100 Step .05
+
+    Shapes.SetOpacity(cAnteShape,100-i)
+
+  EndFor
+
+  GraphicsWindow.BrushColor = "Black"
+
+EndSub
+
+
+
+
+
+
+
+Sub RoundEndMoneyUpdate
+
+  If roundWinner = "Player" Then
+
+    playerBank = playerBank + potAmount                                    'If the player wins...
+
+    GraphicsWindow.FontSize = 25
+
+    Shapes.Remove(playerBankDisplay)
+
+    GraphicsWindow.BrushColor = "Black"
+
+    playerBankDisplay = Shapes.AddText("$" + playerBank)                        'At the end of the round- updates each players money applicably
+
+    Shapes.Move(playerBankDisplay,playerBankDisplayX,playerBankDisplayY)
+
+    GraphicsWindow.BrushColor = "Green"
+
+    moneyWon = Shapes.AddText("+$" + potAmount)
+
+    Shapes.Move(moneyWon,playerBankDisplayX,playerBankDisplayY + 25)
+
+    Shapes.Animate(moneyWon,playerBankDisplayX + 500,playerBankDisplayY + 50,5000)
+
+    For i = 1 To 100 Step .05
+
+      Shapes.SetOpacity(moneyWon,100-i)                                           'With animation, of course.
+
+    EndFor
+
+    GraphicsWindow.BrushColor = "Black"
+
+  ElseIf roundWinner = "Computer" Then                                'If the computer wins...
+
+    computerBank = computerBank + potAmount
+
+    GraphicsWindow.FontSize = 25
+
+    Shapes.Remove(computerBankDisplay)
+
+    GraphicsWindow.BrushColor = "Black"                                             
+
+    computerBankDisplay = Shapes.AddText("$" + computerBank)
+
+    Shapes.Move(computerBankDisplay,computerBankDisplayX,computerBankDisplayY)
+
+    If Text.GetSubTextToEnd(moneyWon,2) <> 0 Then
+
+      GraphicsWindow.BrushColor = "Green"
+
+      moneyWon = Shapes.AddText("+$" + potAmount)                                     'Same as above.
+
+      Shapes.Move(moneyWon,computerBankDisplayX,computerBankDisplayY + 25)
+
+      Shapes.Animate(moneyWon,computerBankDisplayX - 500,computerBankDisplayY - 5,5000)
+
+      For i = 1 To 100 Step .05
+
+        Shapes.SetOpacity(moneyWon,100-i)
+
+      EndFor
+
+    EndIf    
+
+  Else                                                                  'If there is a tie...
+
+    playerBank = playerBank + Math.Floor(.5 * potAmount)                                          'Splits the pot.
+
+    computerBank = computerBank + Math.Floor(.5 * potAmount)                  
+
+    GraphicsWindow.FontSize = 25
+
+    Shapes.Remove(playerBankDisplay)
+
+    GraphicsWindow.BrushColor = "Black" 
+
+    playerBankDisplay = Shapes.AddText("$" + playerBank)
+
+    Shapes.Move(playerBankDisplay,playerBankDisplayX,playerBankDisplayY)
+
+    GraphicsWindow.BrushColor = "Green"
+
+    moneyWon = Shapes.AddText("+$" + potAmount)
+
+    Shapes.Move(moneyWon,playerBankDisplayX,playerBankDisplayY + 25)
+
+    Shapes.Animate(moneyWon,playerBankDisplayX + 500,playerBankDisplayY + 50,5000)
+
+    For i = 1 To 100 Step .05                                                         'Updates the banks and adds the animation.
+
+      Shapes.SetOpacity(moneyWon,100-i)
+
+    EndFor
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.FontSize = 25
+
+    Shapes.Remove(computerBankDisplay)
+
+    GraphicsWindow.BrushColor = "Black"
+
+    computerBankDisplay = Shapes.AddText("$" + computerBank)
+
+    Shapes.Move(computerBankDisplay,computerBankDisplayX,computerBankDisplayY)
+
+    If Text.GetSubTextToEnd(moneyWon,2) <> 0 Then
+
+      GraphicsWindow.BrushColor = "Green"
+
+      moneyWon = Shapes.AddText("+$" + potAmount)
+
+      Shapes.Move(moneyWon,computerBankDisplayX,computerBankDisplayY + 25)
+
+      Shapes.Animate(moneyWon,computerBankDisplayX - 500,computerBankDisplayY - 5,5000)
+
+      For i = 1 To 100 Step .05
+
+        Shapes.SetOpacity(moneyWon,100-i)
+
+      EndFor
+
+    EndIf  
+
+  EndIf
+
+  potAmount = 0
+
+  UpdateDisplayPot()
+
+EndSub
+
+
+
+
+
+
+
+Sub ApplyAnte
+
+  playerBank = playerBank - 20
+
+  computerBank = computerBank - 20                                            'Subtracts ante at beginning of each round.
+
+  SubtractAnte()
+
+  potAmount = potAmount + 40
+
+  UpdateDisplayPot()
+
+EndSub
+
+
+
+'=============================================================================
+
+'=============================================================================
+
+'MESSAGE DISPLAY
+
+'=============================================================================
+
+'=============================================================================
+
+
+
+
+
+Sub RoundEndMessageDisplay
+
+  GraphicsWindow.FontSize = 15 
+
+  If roundWinner <> "None" Then
+
+    textDisplayMessage = textDisplayMessage + roundWinner + " won this " + enter + "round." + enter
+
+  Else                                                                                                  'Displays the winner of each round.
+
+    textDisplayMessage = textDisplayMessage + "Tie! Split the pot!" + enter
+
+  EndIf
+
+  
+
+  If playerBank < 20 Then
+
+    gameWinner = "Computer"                                                                               'If either player has less than $20, then the other wins the game.
+
+    textDisplayMessage = textDisplayMessage + "Game over! Press finish to " + enter + "continue." + enter 
+
+  ElseIf computerBank < 20 Then
+
+    gameWinner = "Player"
+
+    textDisplayMessage = textDisplayMessage + "Game over! Press finish to " + enter + "continue." + enter 
+
+  Else 
+
+    gameWinner = "None"
+
+  EndIf
+
+  
+
+  Controls.SetTextBoxText(textDisplayBox,textDisplayMessage)
+
+  If gameWinner = "None" Then
+
+    textDisplayMessage = textDisplayMessage + "Press 'Deal' when ready to " + enter + "begin the next round." + enter
+
+    Controls.SetTextBoxText(textDisplayBox,textDisplayMessage)
+
+  EndIf
+
+EndSub
+
+
+
+
+
+
+
+Sub EndOfGameDisplay
+
+  GraphicsWindow.Clear()
+
+  Controls.Remove(playerDealButton)
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.PenWidth = 10
+
+  GraphicsWindow.FillRectangle(455,25,300,215)                                          'Creates the last screen seen after the game is over.
+
+  GraphicsWindow.DrawRectangle(455,25,300,215)
+
+  GraphicsWindow.FontSize = 50
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawBoundText(480,50,500,gameWinner)
+
+  GraphicsWindow.DrawBoundText(540,135,500,"Wins!")  
+
+  GraphicsWindow.DrawBoundText(330,300,750,"Thank You For Playing!")
+
+  GraphicsWindow.FontSize = 25
+
+  TitleScreenExitButton = Controls.AddButton("Exit",570,375)
+
+EndSub
+
+
+
+'=============================================================================
+
+'=============================================================================
+
+'BUTTON CREATION AND RESULTS
+
+'=============================================================================
+
+'=============================================================================
+
+
+
+Sub DealButtonPress
+
+  Controls.Remove(playerDealButton) 
+
+  Controls.SetTextBoxText(textDisplayBox,"")
+
+  textDisplayMessage = ""
+
+  turnCounter = 1
+
+  computerRaiseCounter = 0
+
+  checkSwitch = "False"
+
+  callSwitch = "False"
+
+  turnSwitch = "False"                                              'When the 'deal' button is pressed. Resets key variables and reinitializes the game
+
+  potAmount = 0
+
+  roundTurn = "Player" 
+
+  playerRaiseAmount = 0
+
+  computerRaiseAmount = 0
+
+  validRaise = "True"
+
+  ShuffleCards()
+
+  DealCards()
+
+  DisplayCards()
+
+  ApplyAnte()
+
+EndSub
+
+
+
+Sub AddDealButton
+
+  roundTurn = "None"
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  playerDealButton = Controls.AddButton("Deal",computerCardSlotX[5] + 150,computerCardSlotY[5])         'When called, adds the deal button.
+
+  Controls.SetSize(playerDealButton,80,40)
+
+EndSub
+
+
+
+Sub AddFinishButton
+
+  playerFinishButton = Controls.AddButton("Finish",computerCardSlotX[5] + 150,computerCardSlotY[5])     'When called, adds the finish button.
+
+  Controls.SetSize(playerFinishButton,80,40)
+
+EndSub
+
+
+
+'=============================================================================
+
+'=============================================================================
+
+'COMPUTER IN-GAME REACTION LOGIC
+
+'=============================================================================
+
+'=============================================================================
+
+
+
+Sub ComputerTurn
+
+  computerFold = "False"
+
+  computerCall = "False"
+
+  computerRaiseAmount = 0
+
+  If playerRaiseAmount < (300 + Math.GetRandomNumber(50)) Then                                                'This massive if statement has many possibilities, each of which have different effects
+
+    If computerRaiseCounter < Math.GetRandomNumber(5) + 1 Then                                                'but all serve the same purpose: to vary the computer's raise amount based off of the
+
+      If computerHandValue >= 4 Then                                                                          'player raise amount and its own hand.
+
+        computerRaiseAmount = Math.Ceiling(Math.GetRandomNumber(100)/2) + 25 / 10
+
+        computerRaiseAmount = Math.Floor(computerRaiseAmount)                                                 
+
+        computerRaiseAmount = computerRaiseAmount * 10
+
+        computerRaiseAmount = computerRaiseAmount * .5
+
+        computerRaiseAmount = Text.GetSubText(computerRaiseAmount,1,(Text.GetIndexOf(computerRaiseAmount,".")) - 1)
+
+        If computerHandValue >= 5 Then
+
+          computerRaiseAmount = computerRaiseAmount + 50
+
+          If computerHandValue >= 7 Then
+
+            computerRaiseAmount = Math.Ceiling(2/3 * ((.8 / Math.GetRandomNumber(3)) * computerBank))
+
+          EndIf
+
+        EndIf
+
+      Else
+
+        If computerHandValue = 3 Then
+
+          If computerPairOneRank Or computerPairTwoRank > 8 Then
+
+            If computerPairOneRank > computerPairTwoRank Then
+
+              computerRaiseAmount = Math.Floor(1/3 * (Math.Power(computerPairOneRank,Math.Ceiling(Math.GetRandomNumber(2) + .5))))
+
+            Else
+
+              computerRaiseAmount = Math.Floor(1/3 * (Math.Power(computerPairTwoRank,Math.Ceiling(Math.GetRandomNumber(2) + .5))))
+
+            EndIf 
+
+          Else
+
+            computerRaiseAmount = (Math.GetRandomNumber(2) + 1) * (computerPairOneRank + computerPairTwoRank)
+
+          EndIf
+
+        ElseIf computerHandValue = 2 Then
+
+          
+
+          If computerOnePairRank > 5 Then
+
+            If Math.GetRandomNumber(5) > 5 Then  
+
+              computerRaiseAmount = (computerOnePairRank + Math.GetRandomNumber(3)) * 2 + (-(Math.GetRandomNumber(1)) + 5)
+
+            EndIf
+
+          Else
+
+            computerCall = "True"
+
+          EndIf
+
+        Else
+
+          computerRaiseAmount = 0
+
+        EndIf
+
+      EndIf  
+
+    EndIf
+
+  Else
+
+    If computerHandValue < Math.GetRandomNumber(3) + 1 Then
+
+      computerFold = "True"
+
+    Else
+
+      computerCall = "True"
+
+    EndIf
+
+  EndIf
+
+  
+
+  If computerRaiseAmount > computerBank Then                                  'If computer raises more than it has...
+
+    computerRaiseAmount = computerBank - Math.GetRandomNumber(5) + 5          'Change the raise amount accordingly.
+
+  EndIf
+
+  
+
+  If computerRaiseAmount > playerBank Then
+
+    computerRaiseAmount = Math.GetRandomNumber(playerBank)             'If computer raises more than what the player has, then change the raise amount to less than the player's bank.
+
+  EndIf
+
+  
+
+  If playerBank = 0 Then 
+
+    computerCall = "True"                                              'Prevents the computer from raising when the player is out of money.
+
+    computerRaiseAmount = 0
+
+  EndIf
+
+  
+
+  If computerFold = "False" Then 
+
+    If computerRaiseAmount = 0 Then
+
+      If computerHandValue = 1 Then
+
+        If computerHighCardRank < 11 Then
+
+          If Math.GetRandomNumber(5) = 1 Then
+
+            computerFold = "True"                                       'Possibilities for if, after passing through the massive if-statement above, the raise amount is 0
+
+          Else                                                          'Makes a case for high cards.
+
+            computerCall = "True"                                           
+
+          EndIf
+
+        Else
+
+          If computerRaiseCounter < 6 Then
+
+            computerRaiseAmount = Math.GetRandomNumber(30) + computerHandRank[Math.GetRandomNumber(5)]   'Most common outcome, because high cards are the most common hand.
+
+          Else
+
+            computerCall = "True"
+
+          EndIf
+
+        EndIf
+
+      Else
+
+        computerCall = "True"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  
+
+  If computerRaiseAmount > 0 Then                       'If computer raises...
+
+    computerRaiseCounter = computerRaiseCounter + 1
+
+    textDisplayMessage = textDisplayMessage + "Computer raises $" + computerRaiseAmount + "!" + enter        'Add '$' where ever a money display is 
+
+    computerBank = computerBank - computerRaiseAmount               'Display so and update the variables.
+
+    potAmount = potAmount + computerRaiseAmount
+
+    SubtractRaiseAmount()  
+
+    UpdateDisplayPot()                                              'Update money display.
+
+  EndIf
+
+  
+
+  If computerFold = "True" Then                                     'If computer folds..
+
+    computerCall = "False"
+
+    DisplayComputerCards()
+
+    textDisplayMessage = textDisplayMessage + "Computer Folds!" + enter               'Display so and say that the player wins the round.
+
+    roundWinner = "Player"
+
+    roundTurn = "Player"
+
+    RoundEndMoneyUpdate()                                               'Updates money and display.
+
+    RoundEndMessageDisplay()   
+
+    AddDealButton()  
+
+  EndIf
+
+  
+
+  If computerCall = "True" Then                                       'If computer calls...
+
+    computerRaiseAmount = playerRaiseAmount    
+
+    textDisplayMessage = textDisplayMessage + "Computer calls! " + enter 
+
+    If computerRaiseAmount <> 0 Then                                          'Display so and says how much was raised, if any.
+
+      textDisplayMessage = textDisplayMessage + "Computer adds $" + computerRaiseAmount + " to " + enter + "the pot." + enter
+
+    EndIf
+
+    potAmount = potAmount + computerRaiseAmount 
+
+    computerBank = computerBank - computerRaiseAmount
+
+    UpdateDisplayPot()
+
+    SubtractRaiseAmount()                                                   'Updates display, subtracts from money, prepares for the next round.
+
+    roundTurn = "Player"
+
+    textDisplayMessage = textDisplayMessage + "Reveal Cards!" + enter
+
+    DisplayComputerCards()
+
+    EvaluateHand()
+
+    CompareHands()
+
+    RoundEndMoneyUpdate()
+
+    RoundEndMessageDisplay()
+
+    If gameWinner = "None" Then
+
+      AddDealButton()
+
+    Else
+
+      AddFinishButton()
+
+    EndIf
+
+  EndIf
+
+  
+
+  If computerCall = "False" And computerFold = "False" Then                 'If the computer's decision does not end the round...
+
+    roundTurn = "Player"                                                                    
+
+    textDisplayMessage = textDisplayMessage + "It is now the player's turn." + enter  'Display that it is the player's turn.
+
+    Controls.SetTextBoxText(textDisplayBox,textDisplayMessage)
+
+  EndIf
+
+EndSub
+
+
+
+
+
+
+
+'Not sure if you made it this far, but thanks for going through it all if you did. And thanks for being such a great teacher!
+
+
+
+

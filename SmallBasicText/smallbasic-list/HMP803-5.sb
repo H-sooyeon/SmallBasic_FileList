@@ -1,0 +1,973 @@
+' Dragon vs Turtle
+
+' Copyright © 2015 Nonki Takahashi.  The MIT License.
+
+' Version 0.6b
+
+' Last update 2015-05-20
+
+' Program ID HMP803-5
+
+' Update:
+
+'  First beta version - can be played.
+
+'
+
+title = "Dragon vs Turtle"
+
+version = "0.6b"
+
+GraphicsWindow.Title = title
+
+Not = "False=True;True=False;"
+
+SB_Workaround()
+
+folder = "http://www.nonkit.com/smallbasic.files"
+
+GraphicsWindow.BackgroundColor = "YellowGreen"
+
+gw = 598
+
+gh = 428
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.FontName = "Trebuchet MS"
+
+GraphicsWindow.BrushColor = "White"
+
+GraphicsWindow.DrawText(8, gh - 22, title + " " + version)
+
+bw = Math.Floor((gw - 50) / 2)
+
+param = "left=10;top=10;width=" + bw + ";height=20;color=OrangeRed;level=100;"
+
+Controls_AddProgressBar()
+
+dPBar = progressBar
+
+param = "left=" + (gw - 10 - bw) + ";top=10;width=" + bw + ";height=20;color=ForestGreen;level=100;"
+
+Controls_AddProgressBar()
+
+tPBar = progressBar
+
+InitTurtle()
+
+InitStar()
+
+InitDragon()
+
+InitFire()
+
+mouseDown = "False"
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+t = Clock.ElapsedMilliseconds / 1000
+
+tf = t  ' time fired
+
+inGame = "True"
+
+While inGame
+
+  Program.Delay(100) '1000/30)
+
+  t1 = t
+
+  t = Clock.ElapsedMilliseconds / 1000
+
+  dt = t - t1
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  MoveTurtle()
+
+  MoveDragon()
+
+  If mouseDown Then
+
+    ThrowStar()
+
+    mouseDown = "False"
+
+  EndIf
+
+  MoveStar()
+
+  If 3 <= t - tf Then
+
+    AddFire()
+
+    tf = t
+
+  EndIf
+
+  MoveFire()
+
+  CheckTurtleHit()
+
+  CheckDragonHit()
+
+EndWhile
+
+ShowResult()
+
+Sub CheckTurtleHit
+
+  hit = "False"
+
+  ' check with dragon head
+
+  x = bx[ih] - tx
+
+  y = by[ih] - ty
+
+  dist = Math.SquareRoot(x * x + y * y)
+
+  If dist <= dw Then
+
+    hit = "True"
+
+  EndIf
+
+  ' check with dragon head
+
+  If Not[hit] Then
+
+    iFire = Array.GetAllIndices(fire)
+
+    n = Array.GetItemCount(fire)
+
+    For i = 1 To n
+
+      x = fx[iFire[i]] - tx
+
+      y = fy[iFire[i]] - ty
+
+      dist = Math.SquareRoot(x * x + y * y)
+
+      If dist <= dw Then
+
+        hit = "True"
+
+        i = n ' break
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  If hit Then
+
+    param = "progressBar=" + tPBar + ";"
+
+    Controls_GetLevel()
+
+    level = level - 10
+
+    If level <= 0 Then
+
+      inGame = "False"
+
+    EndIf
+
+    param["level"] = level
+
+    Controls_SetLevel()
+
+  EndIf
+
+EndSub
+
+Sub CheckDragonHit
+
+  hit = "False"
+
+  ' check with stars
+
+  For i = 1 To nStar
+
+    hit = "False"
+
+    star = stars[i]
+
+    If star["thrown"] Then
+
+      x = star["x"] - bx[ih]
+
+      y = star["y"] - by[ih]
+
+      dist = Math.SquareRoot(x * x + y * y)
+
+      If dist <= (dw + 5) / 2 Then
+
+        hit = "True"
+
+      EndIf
+
+      If hit Then
+
+        param = "progressBar=" + dPBar + ";"
+
+        Controls_GetLevel()
+
+        level = level - 5
+
+        If level <= 0 Then
+
+          inGame = "False"
+
+        EndIf
+
+        param["level"] = level
+
+        Controls_SetLevel()
+
+        star["thrown"] = "False"
+
+        Shapes.Move(star["img"], -10, -10)
+
+        stars[i] = star
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub OnMouseDown
+
+  mouseDown = "True"
+
+EndSub
+
+Sub AddFire
+
+  nFire = nFire + 1
+
+  GraphicsWindow.BrushColor = "Red"
+
+  GraphicsWindow.PenWidth = 0
+
+  fire[nFire] = Shapes.AddEllipse(dw, dw)
+
+  fx[nFire] = bx[ih]
+
+  fy[nFire] = by[ih]
+
+  Shapes.Move(fire[nFire], fx[nFire] - dw / 2, fy[nFire] - dw / 2)
+
+  fo[nFire] = 100 ' opacity
+
+  _a = Math.GetRadians(ba[ih])
+
+  dfx[nFire] = Math.Cos(_a) * dw * 1.5
+
+  dfy[nFire] = Math.Sin(_a) * dw * 1.5
+
+EndSub
+
+Sub MoveFire
+
+  iFire = Array.GetAllIndices(fire)
+
+  n = Array.GetItemCount(fire)
+
+  For i = 1 To n
+
+    fo[iFire[i]] = fo[iFire[i]] - 6
+
+    If fo[iFire[i]] <= 0 Then
+
+      Shapes.Remove(fire[iFire[i]])
+
+      fire[iFire[i]] = ""
+
+    Else
+
+      Shapes.SetOpacity(fire[iFire[i]], fo[iFire[i]])
+
+      fx[iFire[i]] = fx[iFire[i]] + dfx[iFire[i]]
+
+      fy[iFire[i]] = fy[iFire[i]] + dfy[iFire[i]]
+
+      Shapes.Move(fire[iFire[i]], fx[iFire[i]] - dw / 2, fy[iFire[i]] - dw / 2)
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub AddStar
+
+  nStar = nStar + 1
+
+  img = folder + "/star.png"
+
+  star["img"] = Shapes.AddImage(img)
+
+  If silverlight Then
+
+    Program.Delay(msWait)
+
+  EndIf
+
+  Shapes.Move(star["img"], -20, -20)
+
+  star["thrown"] = "False"
+
+  stars[nStar] = star
+
+EndSub
+
+Sub ThrowStar
+
+  For i = 1 To nStar
+
+    star = stars[i]
+
+    If Not[star["thrown"]] Then
+
+      star["thrown"] = "True"
+
+      star["x"] = tx
+
+      star["y"] = ty
+
+      Shapes.Move(star["img"], tx - 5, ty - 5)
+
+      dist = Math.SquareRoot(Math.Power(mx - tx, 2) + Math.Power(my - ty, 2))
+
+      star["dx"] = (mx - tx) / dist * 5
+
+      star["dy"] = (my - ty) / dist * 5
+
+      star["a"] = 0
+
+      stars[i] = star
+
+      i = nStar ' break
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub MoveStar
+
+  For i = 1 To nStar
+
+    star = stars[i]
+
+    If star["thrown"] Then
+
+      star["x"] = star["x"] + star["dx"]
+
+      star["y"] = star["y"] + star["dy"]
+
+      If star["x"] < -10 Or gw + 10 < star["x"] Then
+
+        star["thrown"] = "False"
+
+      EndIf
+
+      If star["y"] < - 10 Or gh + 10 < star["y"] Then
+
+        star["thrown"] = "False"
+
+      EndIf
+
+      If star["thrown"] Then
+
+        Shapes.Move(star["img"], star["x"] - 5, star["y"] - 5)
+
+        star["a"] = star["a"] + 30
+
+        If 360 <= star["a"] Then
+
+          star["a"] = star["a"] - 360
+
+        EndIf
+
+        Shapes.Rotate(star["img"], star["a"])
+
+      EndIf
+
+      stars[i] = star
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub MoveTurtle
+
+  tx = Turtle.X
+
+  ty = Turtle.Y
+
+  x = mx - tx
+
+  y = my - ty
+
+  Math_CartesianToPolar()
+
+  Turtle.Angle = a + 90
+
+  Turtle.Move(4)
+
+EndSub
+
+Sub MoveDragon
+
+  tx = Turtle.X
+
+  ty = Turtle.Y
+
+  x = tx - bx[ih]
+
+  y = ty - by[ih]
+
+  dist = Math.SquareRoot(x * x + y * y)
+
+  Math_CartesianToPolar()
+
+  da = a - ba[ih]
+
+  While da <= -180
+
+    da = da + 360
+
+  EndWhile
+
+  While 180 < da
+
+    da = da - 360
+
+  EndWhile
+
+  maxDa = 5
+
+  If dist < 200 And -150 <= da And da <= -90 Then
+
+    da = maxDa
+
+  ElseIf da < -maxDa Then
+
+    da = -maxDa
+
+  ElseIf dist < 200 And 90 <= da And da <= 150 Then
+
+    da = -maxDa
+
+  ElseIf maxDa < da Then
+
+    da = maxDa
+
+  EndIf
+
+  ' move head
+
+  ba[ih2] = ba[ih] + da
+
+  _a = Math.GetRadians(ba[ih2])
+
+  bx[ih2] = bx[ih] + dw * Math.Cos(_a)
+
+  by[ih2] = by[ih] + dw * Math.Sin(_a)
+
+  Shapes.Move(head, bx[ih2] - dw / 2, by[ih2] - dw / 2)
+
+  Shapes.Rotate(head, ba[ih2])
+
+  ' move tail
+
+  Shapes.Move(body[it], bx[in2] - dw / 2, by[in2] - dw / 2)
+
+  body[in2] = body[it]
+
+  body[it] = ""
+
+  ' move legs
+
+  Shapes.Move(legs, bx[il2] - dw * 1.5 - 1, by[il2] - 2 * dw - 1)
+
+  Shapes.Rotate(legs, ba[il2])
+
+  ' move arms
+
+  Shapes.Move(arms, bx[ia2] - dw * 1.5 - 1, by[ia2] - 2 * dw - 1)
+
+  Shapes.Rotate(arms, ba[ia2])
+
+  ih = ih2
+
+  CalcIndex()
+
+EndSub
+
+Sub InitTurtle
+
+  Turtle.PenUp()
+
+  Turtle.TurnRight()
+
+  Turtle.Move(220)
+
+  Turtle.TurnLeft()
+
+  Turtle.TurnLeft()
+
+EndSub
+
+Sub InitStar
+
+  nStar = 0
+
+  For j = 1 To 10
+
+    AddStar()
+
+  EndFor
+
+EndSub
+
+Sub CalcIndex
+
+  ' index for head
+
+  ih2 = ih + 1
+
+  If h < ih2 Then
+
+    ih2 = ih2 - h
+
+  EndIf
+
+  ' index for legs
+
+  il = ih + 7
+
+  If h < il Then
+
+    il = il - h
+
+  EndIf
+
+  il2 = il + 1
+
+  If h < il2 Then
+
+    il2 = il2 - h
+
+  EndIf
+
+  ' index for arms
+
+  ia = ih + 15
+
+  If h < ia Then
+
+    ia = ia - h
+
+  EndIf
+
+  ia2 = ia + 1
+
+  If h < ia2 Then
+
+    ia2 = ia2 - h
+
+  EndIf
+
+  ' index for tail
+
+  it = ih2
+
+  ' index for neck (to)
+
+  in2 = ih
+
+EndSub
+
+Sub InitDragon
+
+  interval = 3  ' sec
+
+  dc = "OrangeRed"
+
+  dw = 12
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.BrushColor = dc
+
+  h = 22
+
+  ih = h
+
+  CalcIndex()
+
+  bx[it] = 60 ' for tail
+
+  by[it] = 200
+
+  img = folder + "/dragonarm.png"
+
+  body[it] = Shapes.AddEllipse(dw, dw)
+
+  Shapes.Move(body[it], bx[it] - dw / 2, by[it] - dw / 2)
+
+  ba[it] = 0 ' body angle
+
+  ang = Math.GetRandomNumber(10) - 5
+
+  If ang < 1 Then
+
+    ang = ang - 1
+
+  EndIf
+
+  For i = 2 To h - 1 
+
+    UpdateAngle()
+
+    _a = Math.GetRadians(ba[i])
+
+    bx[i] = bx[i - 1] + dw * Math.Cos(_a)
+
+    by[i] = by[i - 1] + dw * Math.Sin(_a)
+
+    If i = il Then
+
+      legs = Shapes.AddImage(img)
+
+      If silverlight Then
+
+        Program.Delay(msWait)
+
+      EndIf
+
+      Shapes.Move(legs, bx[i] - dw * 1.5 - 1, by[i] - 2 * dw - 1)
+
+      Shapes.Rotate(legs, ba[i])
+
+      Shapes.HideShape(legs)
+
+    EndIf
+
+    If i = ia Then
+
+      arms = Shapes.AddImage(img)
+
+      If silverlight Then
+
+        Program.Delay(msWait)
+
+      EndIf
+
+      Shapes.Move(arms, bx[i] - dw * 1.5 - 1, by[i] - 2 * dw - 1)
+
+      Shapes.Rotate(arms, ba[i])
+
+      Shapes.HideShape(arms)
+
+    EndIf
+
+  EndFor
+
+  For i = 2 To h - 1
+
+    body[i] = Shapes.AddEllipse(dw, dw)
+
+    Shapes.Move(body[i], bx[i] - dw / 2, by[i] - dw / 2)
+
+    If i = il Then
+
+      Shapes.ShowShape(legs)
+
+    EndIf
+
+    If i = ia Then
+
+      Shapes.ShowShape(arms)
+
+    EndIf
+
+    Program.Delay(100)
+
+  EndFor
+
+  UpdateAngle()
+
+  _a = Math.GetRadians(ba[i])
+
+  bx[i] = bx[i - 1] + dw * Math.Cos(_a)
+
+  by[i] = by[i - 1] + dw * Math.Sin(_a)
+
+  head = Shapes.AddRectangle(dw, dw)
+
+  Shapes.Move(head, bx[i] - dw / 2, by[i] - dw / 2)
+
+  Shapes.Rotate(head, ba[i])
+
+EndSub
+
+Sub InitFire
+
+  nFire = 0
+
+EndSub
+
+Sub UpdateAngle
+
+  da = Math.Sin((i - 1) / 25 * 2 * Math.Pi) * ang
+
+  ba[i] = ba[i - 1] + da
+
+EndSub
+
+Sub ShowResult
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FontSize = 40
+
+  param = "progressBar=" + dPBar + ";"
+
+  Controls_GetLevel()
+
+  dLevel = level
+
+  param = "progressBar=" + tPBar + ";"
+
+  Controls_GetLevel()
+
+  tLevel = level
+
+  If dLevel = tLevel Then
+
+    result = "DRAW"
+
+  ElseIf dLevel < tLevel Then
+
+    result = "WIN"
+
+  Else
+
+    result = "LOSE"
+
+  EndIf
+
+  txtResult = Shapes.AddText(result)
+
+  x = 260
+
+  y = 160
+
+  Shapes.Move(txtResult, x, y)
+
+EndSub
+
+Sub Math_CartesianToPolar
+
+  ' Math | convert cartesian coodinate to polar coordinate
+
+  ' param x, y - cartesian coordinate
+
+  ' return r, a - polar coordinate
+
+  r = Math.SquareRoot(x * x + y * y)
+
+  If x = 0 And y > 0 Then
+
+    a = 90 ' [degree]
+
+  ElseIf x = 0 And y < 0 Then
+
+    a = -90
+
+  Else
+
+    a = Math.ArcTan(y / x) * 180 / Math.Pi
+
+  EndIf
+
+  If x < 0 Then
+
+    a = a + 180
+
+  ElseIf x > 0 And y < 0 Then
+
+    a = a + 360
+
+  EndIf
+
+EndSub
+
+Sub Controls_AddProgressBar
+
+  ' param["left"] - control left x co-ordinate
+
+  ' param["top"] - control top y co-ordinate
+
+  ' param["width"] - control width
+
+  ' param["height"] - control height
+
+  ' param["color"] - bar color
+
+  ' return progressBar
+
+  nPBar = nPBar + 1
+
+  progressBar = "ProgressBar" + nPBar
+
+  pBar = param
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "DimGray"
+
+  pBar["bg"] = Shapes.AddRectangle(pBar["width"], pBar["height"])
+
+  Shapes.Move(pBar["bg"], pBar["left"], pBar["top"])
+
+  ControlsHelper_AdjustLevel()
+
+  pBar["level"] = level
+
+  ControlsHelper_AddBar()
+
+  pBars[nPBar] = pBar
+
+EndSub
+
+Sub Controls_GetLevel
+
+  ' param["progressBar"] - progress bar to get level
+
+  ' return level - to get
+
+  n = Text.GetSubTextToEnd(param["progressBar"], 12)
+
+  pBar = pBars[n]
+
+  level = pBar["level"]
+
+EndSub
+
+Sub Controls_SetLevel
+
+  ' param["progressBar"] - progress bar to set level
+
+  ' param["level"] - level to set
+
+  n = Text.GetSubTextToEnd(param["progressBar"], 12)
+
+  pBar = pBars[n]
+
+  ControlsHelper_AdjustLevel()
+
+  If pBar["level"] <> level Then
+
+    pBar["level"] = level
+
+    If pBar["fg"] <> "" Then
+
+      Shapes.Remove(pBar["fg"])
+
+      pBar["fg"] = ""
+
+    EndIf
+
+    ControlsHelper_AddBar()
+
+    pBars[n] = pBar
+
+  EndIf
+
+EndSub
+
+Sub ControlsHelper_AdjustLevel
+
+  level = param["level"]
+
+  If level + 0 = level Then
+
+    If level < 0 Then
+
+      level = 0
+
+    ElseIf 100 < level Then
+
+      level = 100
+
+    EndIf
+
+  Else
+
+    level = 0
+
+  EndIf
+
+EndSub
+
+Sub ControlsHelper_AddBar
+
+  If 0 < level Then
+
+    GraphicsWindow.PenWidth = 0
+
+    GraphicsWindow.BrushColor = pBar["color"]
+
+    width = Math.Floor((pBar["width"] - 4) * level / 100)
+
+    pBar["fg"] = Shapes.AddRectangle(width, pBar["height"] - 4)
+
+    Shapes.Move(pBar["fg"], pBar["left"] + 2, pBar["top"] + 2)
+
+  EndIf
+
+EndSub
+
+Sub SB_Workaround
+
+  ' Small Basic | Workaround for Silverlight
+
+  ' returns silverlight - "True" if in remote
+
+  color = GraphicsWindow.GetPixel(0, 0)
+
+  If Text.GetLength(color) > 7 Then
+
+    silverlight = "True"
+
+    msWait = 300
+
+  Else
+
+    silverlight = "False"
+
+  EndIf
+
+EndSub
+
+

@@ -1,0 +1,545 @@
+
+
+Controls.ButtonClicked = OnButtonClicked
+
+
+
+Init()
+
+InitGrid()
+
+Main()
+
+
+
+Sub Main
+
+  MainLoop = T 
+
+  While MainLoop = T
+
+    CheckGrid()
+
+    If CellChanged = T Then 
+
+      C = Text.ConvertToUpperCase(Text.GetSubText(Controls.GetTextBoxText(PCell[YGI][XGI]), 1, 4))
+
+      Make = F
+
+      SearchCommand()
+
+      If Found = T Then
+
+        Found = F
+
+          Controls.SetTextBoxText(Cell[YGI][XGI], PCell[YGI][XGI])
+
+      EndIf 
+
+    EndIf 
+
+    If OBC = T Then
+
+      OBC = F  
+
+      CheckButton()
+
+    EndIf 
+
+  EndWhile 
+
+EndSub 'Main
+
+Program.End()
+
+
+
+Sub CheckGrid
+
+  CellName = LDFocus.GetFocus()
+
+  If CellName <> OldCell Then 
+
+    CheckCommand()
+
+    CellChanged = T 
+
+    For i = 1 To GridLines 
+
+      For j = 1 To GridColumn
+
+        If CellName = Cell[i][j] Then 
+
+          XGI = j
+
+          YGI = i
+
+          i = GridLines
+
+          j = GridColumn
+
+          LDFocus.SetFocus(Cell[YGI][XGI])
+
+          OldCell = Cell[YGI][XGI]
+
+        EndIf 
+
+      EndFor 
+
+    EndFor 
+
+  Else 
+
+    CellChanged = F 
+
+  EndIf 
+
+EndSub 'CheckGrid
+
+
+
+Sub CheckCommand
+
+  For i = 1 To GridLines 
+
+    For j = 1 To GridColumn
+
+      if OldCell = Cell[i][j] Then 
+
+        ii = i
+
+        jj = j
+
+        i = GridLines
+
+        j = GridColumn
+
+      EndIf 
+
+    EndFor 
+
+  EndFor 
+
+  RCell[ii][jj] = Controls.GetTextBoxText(Cell[ii][jj])
+
+  C = Text.ConvertToUpperCase(Text.GetSubText(RCell[ii][jj], 1, 4))
+
+  Make = T
+
+  SearchCommand()
+
+EndSub 'CheckCommand
+
+
+
+Sub SearchCommand
+
+  if Array.ContainsValue(Command, C) = T Then 
+
+    For k = 1 to Array.GetItemCount(Command)
+
+      If C = Command[k] Then 
+
+        If Command[k] = "#SUM" Then 
+
+          If  Make = T Then 
+
+            SumCommand()
+
+          Else 
+
+            Found = T
+
+          EndIf 
+
+        ElseIf Command[k] = "#ADD" Then
+
+          'AddCommand()
+
+        ElseIf Command[k] = "#SUB" Then
+
+          'SubCommand()
+
+        ElseIf Command[k] = "#MUL" Then
+
+          'MulCommand()
+
+        ElseIf Command[k] = "#DIV" Then
+
+          'DivCommand()
+
+        EndIf 
+
+      EndIf 
+
+    EndFor 
+
+  EndIf 
+
+EndSub 'SearchCommand
+
+
+
+Sub SumCommand
+
+  'Syntax #SUM (VonZeile,VonSpalte:BisZeile,BisSpalte)
+
+  '              #sum (1,1:3,1)
+
+
+
+  L = Text.GetLength(RCell[ii][jj])
+
+  Index = 0
+
+  P = F
+
+  Para = ""
+
+  Zahl = ""
+
+  For il = 6 To L 
+
+    Z = Text.GetSubText(RCell[ii][jj], il, 1)
+
+    If Z = ")" Then 
+
+      Index = Index + 1
+
+      Para[Index] = Zahl 
+
+      Zahl = ""
+
+      il = L
+
+      MakeSum()
+
+    ElseIf Z = "," Then 
+
+      Index = Index + 1
+
+      Para[Index] = Zahl 
+
+      Zahl = ""
+
+    ElseIf Z = ":" Then 
+
+      Index = Index + 1
+
+      Para[Index] = Zahl 
+
+      Zahl = ""
+
+    Elseif Z = "(" Then 
+
+      P = T
+
+    Elseif Array.ContainsValue(Num, Z) = T Then 
+
+      If P = T Then 
+
+        Zahl = Zahl + Z 
+
+      EndIf 
+
+    EndIf 
+
+  EndFor 
+
+EndSub 'SumCommand
+
+
+
+Sub MakeSum
+
+  PCell[ii][jj] = RCell[ii][jj]
+
+  If Para[1] = Para[3] Then
+
+    For iP = Para[2] To Para[4]
+
+      S = S + RCell[Para[1]][iP]
+
+    EndFor 
+
+    RCell[ii][jj] = S
+
+    S = ""
+
+    Controls.SetTextBoxText(Cell[ii][jj], RCell[ii][jj])
+
+  Else 
+
+    For iP = Para[1] To Para[3]
+
+      S = S + RCell[iP][Para[2]]
+
+    EndFor 
+
+    RCell[ii][jj] = S
+
+    S = ""
+
+    Controls.SetTextBoxText(Cell[ii][jj], RCell[ii][jj])
+
+  EndIf 
+
+EndSub 'MakeSum
+
+
+
+Sub CheckButton
+
+  LBC = Controls.LastClickedButton 
+
+  If LBC = BT[1] Then 'New
+
+    For i = 1 To GridLines 
+
+      For j = 1 To GridColumn
+
+        Controls.SetTextBoxText(Cell[i][j], "") 
+
+      EndFor 
+
+    EndFor 
+
+  ElseIf LBC = BT[2] Then 'Load
+
+    RCell = ""
+
+    NameOfFile = LDDialogs.OpenFile("sba", RootFolder)
+
+' The following line could be harmful and has been automatically commented.
+
+'     RCell = File.ReadContents(NameOfFile)
+
+    For i = 1 To GridLines 
+
+      For j = 1 To GridColumn
+
+        Controls.SetTextBoxText(Cell[i][j], RCell[i][j]) 
+
+      EndFor 
+
+    EndFor 
+
+    XGI = 1
+
+    YGI = 1
+
+    LDFocus.SetFocus(Cell[YGI][XGI])
+
+    L = Text.GetLength(NameOfFile)
+
+    NNameOfFile = Text.GetSubText(NameOfFile, 1, L-1)
+
+    NNameOfFile = NNameOfFile + "b"
+
+' The following line could be harmful and has been automatically commented.
+
+'     PCell = File.ReadContents(NameOfFile)
+
+  ElseIf LBC = BT[3] Then 'Save
+
+    For i = 1 To GridLines 
+
+      For j = 1 To GridColumn
+
+        RCell[i][j] = Controls.GetTextBoxText(Cell[i][j])
+
+      EndFor 
+
+    EndFor 
+
+    NameOfFile = LDDialogs.SaveFile("sba", RootFolder)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteContents(NameOfFile, RCell)
+
+    L = Text.GetLength(NameOfFile)
+
+    NNameOfFile = Text.GetSubText(NameOfFile, 1, L-1)
+
+    NNameOfFile = NNameOfFile + "b"
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteContents(NameOfFile, PCell)
+
+  ElseIf LBC = BT[4] Then 'Exit
+
+    MainLoop = F
+
+  EndIf 
+
+EndSub 'CheckButton
+
+
+
+Sub InitGrid
+
+  GraphicsWindow.BrushColor = "SteelBlue"
+
+  SPenColor = GraphicsWindow.PenColor
+
+  SBrushColor = GraphicsWindow.BrushColor 
+
+  SBackgroundColor = GraphicsWindow.BackgroundColor 
+
+  GraphicsWindow.PenColor = GridLineColor 
+
+  GridWidth = (GraphicsWindow.Width - GridLeft - GridColumn - 25) / GridColumn
+
+  GridHeight = (GraphicsWindow.Height - GridTop - GridLines - 25)  / GridLines
+
+  For i = 1 To GridLines
+
+    X = 60
+
+    Y = i*GridHeight-GridHeight+GridTop + 6
+
+    If i < 10 Then 
+
+      X = X + 10
+
+    EndIf 
+
+    GraphicsWindow.DrawText(X, Y, i)
+
+  EndFor 
+
+  For j = 1 To GridColumn
+
+    X = j*GridWidth-GridWidth+GridLeft + 6
+
+    GraphicsWindow.DrawText(X, 25, j)
+
+  EndFor 
+
+  For i = 1 To GridLines 
+
+    For j = 1 To GridColumn
+
+      X = j*GridWidth-GridWidth+GridLeft
+
+      Y = i*GridHeight-GridHeight+GridTop
+
+      GraphicsWindow.BrushColor = "SteelBlue"
+
+      GraphicsWindow.DrawRectangle(X, Y, GridWidth, GridHeight)
+
+      GraphicsWindow.BrushColor = "Black"
+
+      Cell[i][j] = Controls.AddTextBox(X + 2 * GraphicsWindow.PenWidth, Y + 2 * GraphicsWindow.PenWidth)
+
+      Controls.SetSize(Cell[i][j], GridWidth - 2 * GraphicsWindow.PenWidth - 4, GridHeight - 2 * GraphicsWindow.PenWidth - 4)
+
+    EndFor 
+
+  EndFor 
+
+  XGI = 1
+
+  YGI = 1
+
+  LDFocus.SetFocus(Cell[YGI][XGI])
+
+EndSub 'InitGrid
+
+
+
+Sub Init
+
+  GraphicsWindow.Top = 1
+
+  GraphicsWindow.Left = 1
+
+  GraphicsWindow.Height = Desktop.Height - 70
+
+  GraphicsWindow.Width = Desktop.Width -30
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.Show()
+
+  
+
+  RootFolder = "E:\Data\ExelLight"
+
+  
+
+  T = "True"
+
+  F = "False"
+
+  
+
+  Num[1] = "1"
+
+  Num[2] = "2"
+
+  Num[3] = "3"
+
+  Num[4] = "4"
+
+  Num[5] = "5"
+
+  Num[6] = "6"
+
+  Num[7] = "7"
+
+  Num[8] = "8"
+
+  Num[9] = "9"
+
+  Num[10] = "0"
+
+  
+
+  
+
+  Command[1] = "#SUM"
+
+  Command[2] = "#ADD"
+
+  Command[3] = "#SUB"
+
+  Command[4] = "#MUL"
+
+  Command[5] = "#DIV"
+
+  
+
+  BT[1] = Controls.AddButton("New", 100, GraphicsWindow.Height - 30)
+
+  BT[2] = Controls.AddButton("Load", 150, GraphicsWindow.Height - 30)
+
+  BT[3] = Controls.AddButton("Save", 200, GraphicsWindow.Height - 30)
+
+  BT[4] = Controls.AddButton("Exit", 400, GraphicsWindow.Height - 30)
+
+  
+
+  GridLines = 20
+
+  GridColumn = 8
+
+  GridTop = 40
+
+  GridLeft = 100
+
+  GridLineColor = "LightGray"  
+
+EndSub 'Init
+
+
+
+Sub OnButtonClicked
+
+  OBC = T
+
+EndSub 'OnButtonClicked
+
+

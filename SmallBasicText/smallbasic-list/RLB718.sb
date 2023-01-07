@@ -1,0 +1,2217 @@
+key_enabled = "FALSE"
+
+setEventHander()
+
+setVariables()
+
+readSettingFile()
+
+readDataFile()
+
+prepareWindow()
+
+showTitleWindow()
+
+'showUserWindow()
+
+
+
+Sub executeGames
+
+  current_score = 0
+
+  For i = 1 To number_of_answer
+
+  EndFor
+
+  executeOneGame()
+
+EndSub
+
+
+
+Sub executNextGame
+
+  clearCorrectAnswer()
+
+  clearHint()
+
+  clearTryBox()
+
+  Shapes.SetText(border_text,"")
+
+  executeOneGame()
+
+EndSub
+
+
+
+Sub executeOneGame
+
+  'set answer
+
+  index_history = 0
+
+  hint_is_used = "FALSE"
+
+  Controls.ShowControl(hint_button)
+
+  chooseWord()
+
+  showGameWindow()
+
+EndSub
+
+
+
+Sub examineTryWord
+
+  flag_empty = "FALSE"
+
+  j = 0
+
+  For i = 1 To theAnswer_length
+
+    try_character_i = Text.ConvertToLowerCase(tryCharacter[i])
+
+    answer_character_i = Text.ConvertToLowerCase(theAnswer_character[i])
+
+    If (try_character_i = "") Then
+
+      flag_empty = "TRUE"
+
+    EndIf
+
+    If (try_character_i <> answer_character_i) Then
+
+      j = j + 1
+
+      rest_tryCharacter[j] = try_character_i
+
+      rest_answerCharacter[j] = answer_character_i
+
+    EndIf
+
+  EndFor
+
+  If (flag_empty = "TRUE") Then
+
+    Shapes.SetText(border_text,"fill word!")
+
+    Shapes.ShowShape(border_text)
+
+  Else
+
+    If (j = 0) Then
+
+      winOneGame()
+
+    Else
+
+      number_of_hit = theAnswer_length - j
+
+      number_of_blow = 0
+
+      number_of_rest_tryCharacter = j
+
+      number_of_rest_answerCharacter = j
+
+      For i = 1 To j
+
+        target_character = rest_tryCharacter[i]
+
+        For k = 1 To number_of_rest_answerCharacter
+
+          If (target_character = rest_answerCharacter[k]) Then
+
+            number_of_blow = number_of_blow + 1
+
+            'remove rest_answerCharacter[k] from array
+
+            For l = k + 1 To number_of_rest_answerCharacter
+
+              rest_answerCharacter[l-1] = rest_answerCharacter[l]
+
+            EndFor
+
+            number_of_rest_answerCharacter = number_of_rest_answerCharacter - 1
+
+            Goto EXIT_INNER_FOR_LOOP
+
+          EndIf
+
+        EndFor
+
+        EXIT_INNER_FOR_LOOP:
+
+      EndFor
+
+      nextTry()
+
+    EndIf  
+
+  EndIf
+
+EndSub
+
+
+
+Sub winOneGame
+
+  current_score = current_score + point
+
+  If (current_score > HighScore[index_user]) Then
+
+    HighScore[index_user] = current_score
+
+  EndIf
+
+  writeSettingFile()
+
+  hideHistory()
+
+  showScore()
+
+  Controls.HideControl(hint_button)
+
+  Controls.HideControl(button_try)
+
+  Shapes.SetText(border_text,"You Win!")
+
+  Shapes.ShowShape(border_text)
+
+  showCorrectAnswer()
+
+  Controls.ShowControl(nextgame_button)
+
+EndSub
+
+
+
+Sub loseOneGame
+
+  hideHistory()
+
+  Controls.HideControl(hint_button)
+
+  Controls.HideControl(button_try)
+
+  Shapes.SetText(border_text,"You Lose")
+
+  Shapes.ShowShape(border_text)
+
+  showCorrectAnswer()
+
+  Controls.ShowControl(nextgame_button)
+
+EndSub
+
+
+
+Sub nextTry
+
+  'TextWindow.WriteLine(index_history)
+
+  If (index_history = number_of_history) Then
+
+    loseOneGame()
+
+  Else
+
+    index_history = index_history + 1
+
+    For i = 1 To theAnswer_length
+
+      historyCharacter[index_history][i] = tryCharacter[i]
+
+      hit_history[index_history] = number_of_hit
+
+      blow_history[index_history] = number_of_blow
+
+    EndFor
+
+    showScore()
+
+    showHistory()
+
+  EndIf
+
+EndSub
+
+
+
+Sub showCorrectAnswer
+
+  hideButtons()
+
+  For i = 1 To theAnswer_length
+
+    left_position = (i-1)*(width_box + width_box_margin) + left_answer_area
+
+    Shapes.SetText(answer_text[i],theAnswer_character[i])
+
+    Shapes.ShowShape(answer_text[i])
+
+    Shapes.Move(answer_text[i],left_position+width_adjust_text,top_answer_area+height_adjust_text)
+
+    For level_opacity = 1 to 10
+
+      Shapes.SetOpacity(rectangle_answer[index_column], (11-level_opacity)*10)
+
+      Program.Delay(50)
+
+    EndFor
+
+    Shapes.HideShape(rectangle_answer[i])
+
+  EndFor
+
+  showButtons()
+
+EndSub
+
+
+
+Sub clearCorrectAnswer
+
+  For i = 1 To max_word_length
+
+    Shapes.SetText(answer_text[i],"")
+
+    Shapes.HideShape(answer_text[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub showGameWindow
+
+  showScore()
+
+  showAnswer()
+
+  showHint()
+
+  showTryBox()
+
+  hideHistory()
+
+  key_enabled = "TRUE"
+
+EndSub
+
+
+
+Sub hideGameWindow
+
+  key_enabled = "FALSE"
+
+  hideScore()
+
+  hideAnswer()
+
+  clearCorrectAnswer()
+
+  clearHint()
+
+  clearTryBox()
+
+  Shapes.SetText(border_text,"")
+
+  Shapes.HideShape(border_text)
+
+  Controls.HideControl(nextgame_button)
+
+  hideHint()
+
+  hideTryBox()
+
+  hideHistory()
+
+EndSub
+
+
+
+Sub showScore
+
+  If (index_history = 0) Then
+
+    point = 20
+
+  Else
+
+    point = 10 - (index_history-1)*2
+
+  EndIf
+
+  If (hint_is_used = "TRUE") Then
+
+    point = point/2
+
+  EndIf
+
+  Controls.ShowControl(userselect_button)
+
+  Shapes.SetText(current_user,Name[index_user])
+
+  Shapes.ShowShape(current_user)
+
+  Shapes.ShowShape(current_score_title)
+
+  Shapes.ShowShape(high_score_title)
+
+  Shapes.SetText(current_score_text,current_score)
+
+  Shapes.ShowShape(current_score_text)
+
+  Shapes.SetText(high_score_text,HighScore[index_user])
+
+  Shapes.ShowShape(high_score_text)
+
+  Shapes.ShowShape(point_title)
+
+  Shapes.SetText(point_text,point)
+
+  Shapes.ShowShape(point_text)
+
+EndSub
+
+
+
+Sub hideScore
+
+  Controls.HideControl(userselect_button)
+
+  Shapes.HideShape(current_user)
+
+  Shapes.HideShape(current_score_title)
+
+  Shapes.HideShape(high_score_title)
+
+  Shapes.HideShape(current_score_text)
+
+  Shapes.HideShape(high_score_text)
+
+  Shapes.HideShape(point_title)
+
+  Shapes.HideShape(point_text)
+
+EndSub
+
+
+
+Sub showAnswer
+
+  hideButtons()
+
+  For index_column = 1 To theAnswer_length
+
+    Shapes.SetOpacity(rectangle_answer[index_column], 0)
+
+    Shapes.ShowShape(rectangle_answer[index_column])
+
+    For level_opacity = 1 to 10
+
+      Shapes.SetOpacity(rectangle_answer[index_column], level_opacity*10)
+
+      Program.Delay(50)
+
+    EndFor
+
+  EndFor
+
+  showButtons()
+
+  'TextWindow.WriteLine(theAnswer_index)
+
+EndSub
+
+
+
+Sub showButtons
+
+  Controls.ShowControl(userselect_button)
+
+  Controls.ShowControl(hint_button)
+
+EndSub
+
+
+
+Sub hideButtons
+
+  Controls.HideControl(userselect_button)
+
+  Controls.HideControl(hint_button)
+
+EndSub
+
+
+
+Sub hideAnswer
+
+  For index_column = 1 To max_word_length
+
+    Shapes.HideShape(rectangle_answer[index_column])
+
+  EndFor
+
+EndSub
+
+
+
+Sub showHint
+
+  Shapes.ShowShape(hintbox)
+
+  text_data = csv_data[theAnswer_index][2]
+
+  If (hint_is_used = "TRUE") Then
+
+    text_data = text_data + " " + csv_data[theAnswer_index][3]
+
+  EndIf
+
+  Shapes.SetText(hint,text_data)
+
+  Shapes.ShowShape(hint)
+
+EndSub
+
+
+
+Sub hideHint
+
+  Shapes.HideShape(hintbox)
+
+  Shapes.HideShape(hint)
+
+EndSub
+
+
+
+Sub clearHint
+
+  Shapes.SetText(hint,"")
+
+EndSub
+
+
+
+Sub showTryBox
+
+  For index_column = 1 To theAnswer_length
+
+    Shapes.ShowShape(rectangle_try[index_column])
+
+    Shapes.ShowShape(textbox_try[index_column])
+
+  EndFor
+
+  Shapes.ShowShape(rectangle_try_current)
+
+  index_character = 1
+
+  moveChracterBackground()
+
+  Controls.ShowControl(button_try)
+
+  Controls.ShowControl(set_button)
+
+EndSub
+
+
+
+Sub hideTryBox
+
+  For index_column = 1 To max_word_length
+
+    Shapes.HideShape(rectangle_try[index_column])
+
+    Shapes.HideShape(textbox_try[index_column])
+
+  EndFor
+
+  Shapes.HideShape(rectangle_try_current)
+
+  Controls.HideControl(button_try)
+
+  Controls.HideControl(set_button)
+
+EndSub
+
+
+
+Sub clearTryBox
+
+  For index_column = 1 To max_word_length
+
+    Shapes.SetText(textbox_try[index_column],"")
+
+    Shapes.HideShape(rectangle_try[index_column])
+
+    Shapes.HideShape(textbox_try[index_column])
+
+  EndFor
+
+  Shapes.HideShape(rectangle_try_current)
+
+EndSub
+
+
+
+Sub showHistory
+
+  Shapes.ShowShape(hit_title)
+
+  Shapes.ShowShape(blow_title)
+
+  '----- show history text
+
+  For index_row = 1 To index_history
+
+    i = index_history - index_row + 1
+
+    For index_column = 1 To theAnswer_length
+
+      Shapes.SetText(text_history[index_row][index_column],historyCharacter[i][index_column])
+
+      Shapes.ShowShape(text_history[index_row][index_column])
+
+    EndFor
+
+    Shapes.SetText(hit_history_text[index_row],hit_history[i])
+
+    Shapes.ShowShape(hit_history_text[index_row])
+
+    Shapes.SetText(blow_history_text[index_row],blow_history[i])
+
+    Shapes.ShowShape(blow_history_text[index_row])
+
+    Shapes.SetText(length_history_text[index_row],"/"+theAnswer_length)
+
+    Shapes.ShowShape(length_history_text[index_row])
+
+  EndFor
+
+EndSub
+
+
+
+Sub hideHistory
+
+  Shapes.HideShape(hit_title)
+
+  Shapes.HideShape(blow_title)
+
+  '----- hide history text
+
+  For index_row = 1 To number_of_history
+
+    For index_column = 1 To max_word_length
+
+      Shapes.HideShape(text_history[index_row][index_column])
+
+      Shapes.HideShape(hit_history_text[index_row])
+
+      Shapes.HideShape(blow_history_text[index_row])
+
+      Shapes.HideShape(length_history_text[index_row])
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub prepareWindow
+
+  '----- draw graphic window
+
+  GraphicsWindow.BackgroundColor = "White"
+
+  GraphicsWindow.Title = "Master Word"
+
+  GraphicsWindow.Width = window_width
+
+  GraphicsWindow.Height = window_height
+
+  GraphicsWindow.Show()
+
+  prepareUserWindow()
+
+  prepareGameWindow()
+
+EndSub
+
+
+
+Sub showTitleWindow
+
+  ' ----- draw TITLE line
+
+  GraphicsWindow.BrushColor = "OliveDrab"
+
+  GraphicsWindow.FillRectangle(left_title_area-width_box_margin,top_title_area+height_title_area-5,width_title_area+width_box_margin*2,5)
+
+  ' ----- draw TITLE animation
+
+  GraphicsWindow.FontName = "Meiryo"
+
+  GraphicsWindow.FontSize = 24
+
+  font_height = 30
+
+  font_width = 20
+
+  GraphicsWindow.BrushColor = "Green"
+
+
+
+  title_char[1] = "M"
+
+  title_char[2] = "A"
+
+  title_char[3] = "S"
+
+  title_char[4] = "T"
+
+  title_char[5] = "E"
+
+  title_char[6] = "R"
+
+  title_char[7] = "W"
+
+  title_char[8] = "O"
+
+  title_char[9] = "R"
+
+  title_char[10] = "D"
+
+  For index_row = 1 To 10
+
+    left_position = (index_row-1) * 30 + left_title_area
+
+    If (index_row > 6) Then
+
+      left_position = left_position + 40
+
+    EndIf
+
+    title_text[index_row] = Shapes.AddText(title_char[index_row])
+
+    For top_position = 0 To top_title_area
+
+      Shapes.Move(title_text[index_row], left_position,top_position)
+
+      Program.Delay(10)
+
+    EndFor
+
+  EndFor
+
+  ' ----- draw description
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = FontSize_medium
+
+  description = Controls.AddMultiLineTextBox(left_main_area,top_main_area)
+
+  Controls.SetSize(description,width_main_area,height_main_area)
+
+  Controls.SetTextBoxText(description,description_text)
+
+  ' ----- draw start_button
+
+  GraphicsWindow.FontSize = FontSize_small
+
+  start_button = Controls.AddButton("Start",left_handler_area,top_handler_area+height_adjust_button)
+
+EndSub
+
+
+
+Sub hideDescription
+
+  Controls.HideControl(description)
+
+  Controls.HideControl(start_button)
+
+EndSub
+
+
+
+Sub prepareUserWindow
+
+  ' ----- draw title newuser
+
+  GraphicsWindow.FontSize = FontSize_medium
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  title_newuser = Shapes.AddText("")
+
+  Shapes.Move(title_newuser,left_hint_area,top_hint_area)
+
+  Shapes.HideShape(title_newuser)
+
+  Shapes.SetText(title_newuser,"?ñ∞Ë¶è„É¶?Éº?Ç∂?Éº?ôª?å≤ÔºàÂêç?âç?Çí?Ö•?äõÔº?")
+
+  ' ----- draw newuser textbox
+
+  GraphicsWindow.FontSize = FontSize_big
+
+  GraphicsWindow.BrushColor = "Black"
+
+  newuser = Controls.AddTextBox(left_try_area,top_try_area)
+
+  Controls.HideControl(newuser)
+
+  Controls.SetSize(newuser,width_try_area,height_try_area)
+
+  GraphicsWindow.FontSize = FontSize_small
+
+  newuser_button = Controls.AddButton("?ôª?å≤",left_handler_area,top_try_area)
+
+  Controls.HideControl(newuser_button)
+
+  ' ----- draw title userlist
+
+  GraphicsWindow.FontSize = FontSize_medium
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  title_userlist = Shapes.AddText("")
+
+  Shapes.Move(title_userlist,left_main_area,top_border_area)
+
+  Shapes.HideShape(title_userlist)
+
+  Shapes.SetText(title_userlist,"")
+
+  ' ----- draw userlist
+
+  GraphicsWindow.BrushColor = "Black"
+
+  For i = 1 To number_of_history
+
+    GraphicsWindow.FontSize = FontSize_big
+
+    top_position = top_history_area + (i-1)*(height_box+height_box_margin)
+
+    userlist[i] = Shapes.AddText("")
+
+    Shapes.Move(userlist[i],left_main_area,top_position)
+
+    Shapes.HideShape(userlist[i])
+
+    GraphicsWindow.FontSize = FontSize_small
+
+    userlist_button[i] = Controls.AddButton("?Å∏?äû",left_handler_area,top_position+height_adjust_button)
+
+    Controls.HideControl(userlist_button[i])
+
+    userlist_button_delete[i] = Controls.AddButton("?âä?ô§",left_handler_area+width_box*2+width_box_margin,top_position+height_adjust_button)
+
+    Controls.HideControl(userlist_button_delete[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub showUserWindow
+
+  checkUserList()
+
+  ' ----- show newuser
+
+  If (Number_of_registered_user < number_of_history) Then
+
+    Shapes.ShowShape(title_newuser)
+
+    Controls.ShowControl(newuser)
+
+    Controls.ShowControl(newuser_button)
+
+  Else
+
+    Shapes.HideShape(title_newuser)
+
+    Controls.HideControl(newuser)
+
+    Controls.HideControl(newuser_button)
+
+  EndIf
+
+  ' ----- show title
+
+  If (Number_of_registered_user <> 0) Then
+
+    Shapes.SetText(title_userlist,"?É¶?Éº?Ç∂?Éº?Å∏?äû??(?Éè?Ç§?Çπ?Ç≥?Ç¢)")
+
+    Shapes.ShowShape(title_userlist)
+
+  ' ----- show userlist
+
+    For i = 1 To number_of_history
+
+      If (Name[i] = "") Then
+
+        Shapes.SetText(userlist[i],i+":ÔºàÊú™?ôª?å≤Ôº?")
+
+        Controls.HideControl(userlist_button[i])
+
+        Controls.HideControl(userlist_button_delete[i])
+
+      Else
+
+        Shapes.SetText(userlist[i],i+":??"+Name[i]+"("+HighScore[i]+")")
+
+        Controls.ShowControl(userlist_button[i])
+
+        Controls.ShowControl(userlist_button_delete[i])
+
+      EndIf
+
+      Shapes.ShowShape(userlist[i])
+
+    EndFor
+
+  Else
+
+    Shapes.HideShape(title_userlist)
+
+    For i = 1 To number_of_history
+
+      Shapes.HideShape(userlist[i])
+
+      Controls.HideControl(userlist_button[i])
+
+      Controls.HideControl(userlist_button_delete[i])
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub hideUserWindow
+
+  Shapes.HideShape(title_newuser)
+
+  Controls.HideControl(newuser)
+
+  Controls.HideControl(newuser_button)
+
+  Shapes.HideShape(title_userlist)
+
+  For i = 1 To number_of_history
+
+    Shapes.HideShape(userlist[i])
+
+    Controls.HideControl(userlist_button[i])
+
+    Controls.HideControl(userlist_button_delete[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub prepareGameWindow
+
+  ' ----- draw userselect_button
+
+  GraphicsWindow.FontSize = FontSize_small
+
+  GraphicsWindow.BrushColor = "Black"
+
+  userselect_button = Controls.AddButton("Back",left_help_area+width_box*3,top_help_area-20)
+
+  Controls.HideControl(userselect_button)
+
+  ' ----- draw user_name
+
+  GraphicsWindow.FontSize = FontSize_medium
+
+  GraphicsWindow.BrushColor = "Black"
+
+  current_user = Shapes.AddText("")
+
+  Shapes.Move(current_user,left_help_area,top_help_area+hight_font_medium)
+
+  Shapes.HideShape(current_user)
+
+  ' ----- draw Score / High Score
+
+  GraphicsWindow.FontSize = FontSize_medium
+
+  GraphicsWindow.BrushColor = current_score_color
+
+  current_score_title = Shapes.AddText("SCORE")
+
+  Shapes.Move(current_score_title,left_handler_area,top_handler_area)
+
+  Shapes.HideShape(current_score_title)
+
+  current_score_text = Shapes.AddText("")
+
+  Shapes.Move(current_score_text,left_handler_area,top_handler_area+hight_font_medium)
+
+  Shapes.HideShape(current_score_text)
+
+  GraphicsWindow.BrushColor = high_score_color
+
+  high_score_title = Shapes.AddText("HIGH")
+
+  Shapes.Move(high_score_title,left_handler_area+width_box*3,top_handler_area)
+
+  Shapes.HideShape(high_score_title)
+
+  high_score_text = Shapes.AddText("")
+
+  Shapes.Move(high_score_text,left_handler_area+width_box*3,top_handler_area+hight_font_medium)
+
+  Shapes.HideShape(high_score_text)
+
+  ' ----- draw point
+
+  GraphicsWindow.BrushColor = point_color
+
+  point_title = Shapes.AddText("POINT")
+
+  Shapes.Move(point_title,left_handler_area,top_hint_area)
+
+  Shapes.HideShape(point_title)
+
+  point_text = Shapes.AddText("")
+
+  Shapes.Move(point_text,left_handler_area,top_hint_area+hight_font_medium+hight_font_medium_margin)
+
+  Shapes.HideShape(point_text)
+
+  ' ----- draw use hint
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = FontSize_small
+
+  hint_button = Controls.AddButton("Hint",left_handler_area+width_box*3,top_hint_area+height_adjust_button)
+
+  Controls.HideControl(hint_button)
+
+  ' ----- draw answer
+
+  GraphicsWindow.FontSize = FontSize_big
+
+  GraphicsWindow.PenColor = pen_color_answer
+
+  For index_column = 1 to max_word_length
+
+    GraphicsWindow.BrushColor = brush_color_answer
+
+    left_position = (index_column-1)*(width_box + width_box_margin) + left_answer_area
+
+    rectangle_answer[index_column] = Shapes.AddRectangle(width_box, height_box)
+
+    Shapes.Move(rectangle_answer[index_column], left_position, top_answer_area)
+
+    Shapes.HideShape(rectangle_answer[index_column])
+
+    answer_text[index_column] = Shapes.AddText("")
+
+    Shapes.Move(answer_text[index_column],left_position+width_adjust_text,top_answer_area+height_adjust_text)
+
+    Shapes.HideShape(answer_text[index_column])
+
+  EndFor
+
+  ' ----- draw hint box
+
+  GraphicsWindow.FontSize = FontSize_medium
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.BrushColor = "White"
+
+  hintbox = Shapes.AddRectangle(width_hint_area,height_hint_area)
+
+  Shapes.Move(hintbox,left_hint_area,top_hint_area)
+
+  Shapes.HideShape(hintbox)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  hint = Shapes.AddText("")
+
+  Shapes.Move(hint,left_hint_area+width_adjust_text,top_hint_area+height_adjust_text)
+
+  Shapes.HideShape(hint)
+
+  ' ----- draw try box
+
+  GraphicsWindow.FontSize = FontSize_small
+
+  GraphicsWindow.BrushColor = "Black"
+
+  set_button = Controls.AddButton("",left_try_area-width_box,top_try_area+height_adjust_button)
+
+  Controls.HideControl(set_button)
+
+  GraphicsWindow.PenColor = pen_color_try
+
+  GraphicsWindow.BrushColor = brush_color_try
+
+  For index_column = 1 to max_word_length
+
+    left_position = (index_column-1)*(width_box + width_box_margin) + left_try_area
+
+    rectangle_try[index_column] = Shapes.AddRectangle(width_box, height_box)
+
+    Shapes.Move(rectangle_try[index_column], left_position, top_try_area)
+
+    Shapes.HideShape(rectangle_try[index_column])
+
+  EndFor
+
+  GraphicsWindow.PenColor = pen_color_current
+
+  GraphicsWindow.BrushColor = brush_color_current
+
+  rectangle_try_current = Shapes.AddRectangle(width_box,height_box)
+
+  Shapes.Move(rectangle_try_current,left_try_area,top_try_area)
+
+  Shapes.HideShape(rectangle_try_current)
+
+  '----- draw try text
+
+  GraphicsWindow.FontSize = FontSize_big
+
+  GraphicsWindow.BrushColor = "Black"
+
+  For index_column = 1 To max_word_length
+
+    left_position = (index_column-1)*(width_box+width_box_margin) + left_try_area
+
+    textbox_try[index_column] = Shapes.AddText("")
+
+    Shapes.Move(textbox_try[index_column],left_position+width_adjust_text,top_try_area+height_adjust_text)
+
+    Shapes.HideShape(textbox_try[index_column])
+
+  EndFor
+
+  ' [ draw try_button ]
+
+  GraphicsWindow.FontSize = FontSize_small
+
+  GraphicsWindow.BrushColor = "Black"
+
+  button_try = Controls.AddButton(" Try! ",left_handler_area,top_try_area+height_adjust_button)
+
+  Controls.HideControl(button_try)
+
+  ' [ draw nextgame_button ]
+
+  nextgame_button = Controls.AddButton("next",left_handler_area+width_box*2,top_try_area+height_adjust_button)
+
+  Controls.HideControl(nextgame_button)
+
+  ' ----- draw border_text
+
+  GraphicsWindow.FontSize = FontSize_big
+
+  GraphicsWindow.BrushColor = "Red"
+
+  border_text = Shapes.AddText("")
+
+  Shapes.Move(border_text,left_border_area,top_border_area)
+
+  Shapes.HideShape(border_text)
+
+  '----- draw hit/blow title
+
+  GraphicsWindow.FontSize = FontSize_big
+
+  GraphicsWindow.BrushColor = brush_color_hit
+
+  hit_title = Shapes.AddText("Hit")
+
+  Shapes.Move(hit_title,left_handler_area,top_border_area)
+
+  Shapes.HideShape(hit_title)
+
+  GraphicsWindow.BrushColor = brush_color_blow
+
+  blow_title = Shapes.AddText("Blow")
+
+  Shapes.Move(blow_title,left_handler_area+width_box*2,top_border_area)
+
+  Shapes.HideShape(blow_title)
+
+  '----- draw history text
+
+  For index_row = 1 To number_of_history
+
+    GraphicsWindow.FontSize = FontSize_big
+
+    GraphicsWindow.BrushColor = brush_color_history[index_row]
+
+    top_position = (index_row-1)*(height_box+height_box_margin)+top_history_area
+
+    For index_column = 1 To max_word_length
+
+      left_position = (index_column-1)*(width_box+width_box_margin)+left_history_area
+
+      text_history[index_row][index_column] = Shapes.AddText("")
+
+      Shapes.Move(text_history[index_row][index_column],left_position+width_adjust_text,top_position+height_adjust_text)
+
+      Shapes.HideShape(text_history[index_row][index_column])
+
+    EndFor
+
+    GraphicsWindow.BrushColor = brush_color_hit
+
+    hit_history_text[index_row] = Shapes.AddText("")
+
+    Shapes.Move(hit_history_text[index_row],left_handler_area,top_position)
+
+    Shapes.HideShape(hit_history_text[index_row])
+
+    GraphicsWindow.BrushColor = brush_color_blow
+
+    blow_history_text[index_row] = Shapes.AddText("")
+
+    Shapes.Move(blow_history_text[index_row],left_handler_area+width_box*2,top_position)
+
+    Shapes.HideShape(blow_history_text[index_row])
+
+    GraphicsWindow.FontSize = FontSize_medium
+
+    GraphicsWindow.BrushColor = "Black"
+
+    length_history_text[index_row] = Shapes.AddText("")
+
+    Shapes.Move(length_history_text[index_row],left_handler_area+width_box*4,top_position+5)
+
+    Shapes.HideShape(length_history_text[index_row])
+
+  EndFor
+
+EndSub
+
+
+
+Sub chooseWord
+
+  'TextWindow.WriteLine(number_of_answer)
+
+  theAnswer_index = Math.GetRandomNumber(number_of_answer) + 1
+
+  'TextWindow.WriteLine(theAnswer_index)
+
+  theAnswer = csv_data[theAnswer_index][1]
+
+  'TextWindow.WriteLine(theAnswer)
+
+  theAnswer_length = Text.GetLength(theAnswer)
+
+  For i = 1 To theAnswer_length
+
+    theAnswer_character[i] = Text.GetSubText(theAnswer,i,1)
+
+  EndFor
+
+EndSub
+
+
+
+Sub readSettingFile
+
+' The following line could be harmful and has been automatically commented.
+
+'   masterword_settingfile = File.GetSettingsFilePath()
+
+' The following line could be harmful and has been automatically commented.
+
+'   txt_buffer = File.ReadContents(masterword_settingfile)
+
+  If (Text.GetLength(txt_buffer)=0) Then
+
+    For i = 1 To number_of_history
+
+      Name[i] = ""
+
+      HighScore[i] = 0
+
+    EndFor
+
+    writeSettingFile()
+
+  Else
+
+    For i = 1 To number_of_history
+
+' The following line could be harmful and has been automatically commented.
+
+'       Name[i] = File.ReadLine(masterword_settingfile,2*i-1)
+
+' The following line could be harmful and has been automatically commented.
+
+'       HighScore[i] = File.ReadLine(masterword_settingfile,2*i)
+
+    EndFor
+
+  EndIf
+
+  checkUserList()
+
+EndSub
+
+
+
+Sub checkUserList
+
+  Number_of_registered_user = 0
+
+  index_newuser = 0
+
+  For i = 1 To number_of_history
+
+    If (Name[i] = "") Then
+
+      If (index_newuser = 0) Then
+
+        index_newuser = i
+
+      EndIf
+
+    Else
+
+      Number_of_registered_user = Number_of_registered_user + 1
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub addNewuser
+
+  newuser_name = Controls.GetTextBoxText(newuser)
+
+  If (newuser_name <> "") Then
+
+    Name[index_newuser] = newuser_name
+
+    HighScore[index_newuser] = 0
+
+    writeSettingFile()
+
+    showUserWindow()
+
+  EndIf
+
+EndSub
+
+
+
+Sub deleteUser
+
+  If (index_deleteuser <= number_of_history) Then
+
+    Name[index_deleteuser]  = ""
+
+    HighScore[index_deleteuser] = ""
+
+    writeSettingFile()
+
+    showUserWindow()
+
+  EndIf
+
+EndSub
+
+
+
+Sub writeSettingFile
+
+' The following line could be harmful and has been automatically commented.
+
+'   masterword_settingfile = File.GetSettingsFilePath()
+
+  For i = 1 To number_of_history
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteLine(masterword_settingfile,2*i-1,Name[i])
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteLine(masterword_settingfile,2*i,HighScore[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub readDataFile
+
+  path = Program.Directory
+
+  masterword_dataFile = path + "\data.csv"
+
+' The following line could be harmful and has been automatically commented.
+
+'   txt_buffer = File.ReadContents(masterword_dataFile)
+
+  If (Text.GetLength(txt_buffer)=0) Then
+
+    game_mode = "MASTER MIND"
+
+  Else
+
+    game_mode = "MASTER WORD"
+
+    readCSVData()
+
+  EndIf
+
+EndSub
+
+
+
+Sub readCSVData
+
+'----- read row
+
+  csv_index_row = 1
+
+' The following line could be harmful and has been automatically commented.
+
+'   csv_line = File.ReadLine(masterword_dataFile, csv_index_row)
+
+  While (csv_line <> "")
+
+    '----- read line
+
+    comma_index = Text.GetIndexOf(csv_line,",")
+
+    csv_index_column = 1
+
+    While(comma_index > 0)
+
+      csv_data[csv_index_row][csv_index_column] = Text.GetSubText(csv_line,1,comma_index-1)
+
+      csv_line = Text.GetSubTextToEnd(csv_line,comma_index+1)
+
+      comma_index = Text.GetIndexOf(csv_line,",")
+
+      csv_index_column = csv_index_column + 1
+
+    EndWhile
+
+    csv_data[csv_index_row][csv_index_column] = csv_line
+
+    csv_index_row = csv_index_row + 1
+
+' The following line could be harmful and has been automatically commented.
+
+'     csv_line = File.ReadLine(masterword_dataFile, csv_index_row)
+
+  EndWhile
+
+  
+
+  csv_number_of_row = csv_index_row - 1
+
+  csv_number_of_column = csv_index_column - 1
+
+  number_of_answer = csv_number_of_row - 1
+
+  
+
+  'For i = 1 To csv_number_of_row
+
+  '  TextWindow.Write("[")
+
+  '  For j = 1 To csv_number_of_column
+
+  '    TextWindow.Write(csv_data[i][j] + ",")
+
+  '  EndFor
+
+  '  TextWindow.WriteLine("]")
+
+  'EndFor
+
+EndSub
+
+
+
+Sub setVariables
+
+  ' global
+
+  game_mode = "MASTER MIND"
+
+  
+
+  ' ----- window design
+
+  ' [general]
+
+  max_word_length = 12
+
+  number_of_history = 5
+
+  height_box = 40
+
+  height_box_margin = 10
+
+  width_box = 28
+
+  width_box_margin = 7
+
+  width_main = max_word_length*width_box + (max_word_length-1)*width_box_margin
+
+  width_handler = (width_box*2)*2 + width_box_margin
+
+  width_window_margin = 40
+
+  height_window_margin = 30
+
+  width_area_margin = 20
+
+  height_area_margin = 20
+
+  height_adjust_button = 5
+
+  width_adjust_text = 5
+
+  height_adjust_text = 5
+
+  FontSize_big = 24 '  font_height = 30,  font_width = 20
+
+  FontSize_medium = 18
+
+  FontSize_small = 12
+
+  hight_font_medium = 20
+
+  hight_font_medium_margin = 5
+
+  ' <title_area>
+
+  FontName_title = "Meiryo"
+
+  FontSize_title = 24 '  font_height = 30,  font_width = 20
+
+  FontColor_title = "Green"
+
+  
+
+  left_title_area = width_window_margin
+
+  top_title_area = height_window_margin
+
+  width_title_area = width_main
+
+  height_title_area = 30
+
+
+
+  ' <help_area> {
+
+  left_help_area = left_title_area + width_title_area + width_area_margin
+
+  top_help_area = top_title_area
+
+  width_help_area = width_handler
+
+  height_help_area = height_title_area
+
+  '}
+
+  ' <main_area> {
+
+  left_main_area = left_title_area
+
+  top_main_area = top_title_area + height_title_area + height_area_margin
+
+  width_main_area = width_main
+
+  height_main_area = 0
+
+    ' -> answer_area <- {
+
+    left_answer_area = left_main_area
+
+    top_answer_area = top_main_area
+
+    width_answer_area = width_main
+
+    height_answer_area = height_box
+
+    height_main_area = height_main_area + height_answer_area + height_area_margin
+
+    pen_color_answer = "Indigo"
+
+    brush_color_answer = "DarkViolet"
+
+    '}
+
+    ' -> hint_area <- {
+
+    left_hint_area = left_main_area
+
+    top_hint_area = top_answer_area + height_answer_area + height_area_margin
+
+    width_hint_area = width_main
+
+    height_hint_area = height_box
+
+    height_main_area = height_main_area + height_hint_area + height_area_margin
+
+    '}
+
+    ' -> try_area <- {
+
+    left_try_area = left_main_area
+
+    top_try_area = top_hint_area + height_hint_area + height_area_margin
+
+    width_try_area = width_main
+
+    height_try_area = height_box
+
+    height_main_area = height_main_area + height_try_area + height_area_margin
+
+    pen_color_try = "Gray"
+
+    brush_color_try = "White"
+
+    pen_color_current = "Gray"
+
+    brush_color_current = "LightCyan"
+
+    '}
+
+    ' -> border_area <- {
+
+    left_border_area = left_main_area
+
+    top_border_area = top_try_area + height_try_area + height_area_margin
+
+    width_border_area = width_main
+
+    height_border_area = height_box
+
+    height_main_area = height_main_area + height_border_area + height_area_margin
+
+    '}
+
+    ' -> history_area <- {
+
+    left_history_area = left_main_area
+
+    top_history_area = top_border_area + height_border_area + height_area_margin
+
+    width_history_area = width_main
+
+    height_history_area = number_of_history*height_box + (number_of_history-1)*height_box_margin
+
+    height_main_area = height_main_area + height_history_area' + height_area_margin
+
+    brush_color_history[1] = "Navy"
+
+    brush_color_history[2] = "SteelBlue"
+
+    brush_color_history[3] = "LightSteelBlue"
+
+    brush_color_history[4] = "SkyBlue"
+
+    brush_color_history[5] = "LightBlue"
+
+    brush_color_hit = "Red"
+
+    brush_color_blow = "Blue"
+
+    '}
+
+  '}
+
+  ' <handler_area> {
+
+  left_handler_area = left_main_area + width_main_area + width_area_margin
+
+  top_handler_area = top_main_area
+
+  width_handler_area = width_handler
+
+  height_handler_area = height_main_area
+
+    ' -> result_history_area <- {
+
+    left_result_history_area = left_handler_area
+
+    top_result_history_area = top_history_area
+
+    width_result_history_area = width_handler
+
+    height_result_history_area = height_history_area
+
+    '}
+
+  '}  
+
+  ' [window]  
+
+  window_width = width_window_margin*2 + width_main + width_area_margin + width_handler
+
+  window_height = height_window_margin*2 + height_title_area + height_area_margin + height_main_area
+
+
+
+  ' Score
+
+  current_score_color = "Red"
+
+  high_score_color = "Green"
+
+  point_color = "Blue"
+
+  
+
+  crlf = Text.GetCharacter(13)+Text.GetCharacter(10)
+
+  description_text = "?Éª?çòË™û„Çí?ïèÈ°å„Å®?Åó?Å¶?á∫?Åó?Åæ?Åô??"+crlf
+
+  description_text = description_text+"?Éª?ñáÂ≠ó„Çí?Ö•?äõ?Åó?Å¶?õûÁ≠î„Åó?Å¶?Åè?Å†?Åï?ÅÑ(Try!)"+crlf+crlf
+
+  description_text = description_text+"Hit :?ñáÂ≠óÁ®Æ?ÇÇ‰ΩçÁΩÆ?ÇÇÂΩì„Åü?Å£?Å¶?ÅÑ?Åæ?Åô"+crlf
+
+  description_text = description_text+"Blow:?ñáÂ≠óÁ®Æ?ÅØÂΩì„Åü?Å£?Å¶?ÅÑ?Åæ?Åô?Åå‰ΩçÁΩÆ?Åå?Åï?ÅÑ?Åæ?Åô"+crlf+crlf
+
+  description_text = description_text+"?ÉªÁ≠î„Åà?Çí?é®?êÜ?Åó?Å¶5?õû‰ª•ÂÜÖ?Å´ÂΩì„Å¶?Å¶?Åè?Å†?Åï?ÅÑ"+crlf
+
+  description_text = description_text+"?Éª?õû?ï∞?ÅåÂ¢ó„Åà?ÇãÊØé„Å´?Çπ?ï∞?ÅåÊ∏õ„Çä?Åæ?Åô"+crlf
+
+  description_text = description_text+"?ÉªHint?Çí‰Ωø„ÅÜ?Å®?ñáÂ≠ó„ÅÆË™??Åø?ñπ?Åå‰∏é„Åà?Çâ?Çå?Åæ?Åô"+crlf
+
+  description_text = description_text+"???Åó?Åã?Åó?Çπ?ï∞?Åå?çä?àÜ?Å´?Å™?Çä?Åæ?Åô"+crlf+crlf
+
+  description_text = description_text+"?ÉªÁ≠î„Åà?ÅØ?Ç≠?Éº?Éú?Éº?Éâ?Åß?Ö•?äõ?Åó?Å¶‰∏ã„Åï?ÅÑ"+crlf
+
+  description_text = description_text+"??Ôºà‚Üê,?Üí,delete,BackSpace?ÇÇ‰Ωø„Åà?Åæ?ÅôÔº?"+crlf
+
+  description_text = description_text+"??ÔºàÂÖ•?äõ?Åß?Åç?Å™?ÅÑ?Å®?Åç?ÅØÁ©∫„Éú?Çø?É≥?Çí?äº?Åó?Å¶?Åè?Å†?Åï?ÅÑÔº?"+crlf
+
+EndSub
+
+
+
+Sub moveChracterBackground
+
+  left_position = Shapes.GetLeft(rectangle_try_current)
+
+  top_position = Shapes.GetTop(rectangle_try_current)
+
+  left_position_to_go = (index_character-1)*(width_box + width_box_margin)+left_try_area
+
+  Shapes.Move(rectangle_try_current, left_position_to_go, top_position)
+
+EndSub
+
+
+
+Sub setEventHander
+
+  Controls.ButtonClicked = eventButtonClicked
+
+  GraphicsWindow.KeyDown = eventKeyDown
+
+EndSub
+
+
+
+Sub eventButtonClicked
+
+  If (Controls.LastClickedButton = button_try) Then
+
+    examineTryWord()
+
+  EndIf
+
+  If (Controls.LastClickedButton = newuser_button) Then
+
+    addNewuser()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userlist_button_delete[1]) Then
+
+    index_deleteuser = 1
+
+    deleteUser()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userlist_button_delete[2]) Then
+
+    index_deleteuser = 2
+
+    deleteUser()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userlist_button_delete[3]) Then
+
+    index_deleteuser = 3
+
+    deleteUser()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userlist_button_delete[4]) Then
+
+    index_deleteuser = 4
+
+    deleteUser()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userlist_button_delete[5]) Then
+
+    index_deleteuser = 5
+
+    deleteUser()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userlist_button[1]) Then
+
+    index_user = 1
+
+    hideUserWindow()
+
+    executeGames()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userlist_button[2]) Then
+
+    index_user = 2
+
+    hideUserWindow()
+
+    executeGames()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userlist_button[3]) Then
+
+    index_user = 3
+
+    hideUserWindow()
+
+    executeGames()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userlist_button[4]) Then
+
+    index_user = 4
+
+    hideUserWindow()
+
+    executeGames()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userlist_button[5]) Then
+
+    index_user = 5
+
+    hideUserWindow()
+
+    executeGames()
+
+  EndIf
+
+  If (Controls.LastClickedButton = hint_button) Then
+
+    Controls.HideControl(hint_button)
+
+    hint_is_used = "TRUE"
+
+    showHint()
+
+    showScore()
+
+  EndIf
+
+  If (Controls.LastClickedButton = start_button) Then
+
+    hideDescription()
+
+    showUserWindow()
+
+  EndIf
+
+  If (Controls.LastClickedButton = userselect_button) Then
+
+    writeSettingFile()
+
+    hideGameWindow()
+
+    showUserWindow()
+
+  EndIf
+
+  If (Controls.LastClickedButton = nextgame_button) Then
+
+    Controls.HideControl(nextgame_button)
+
+    executNextGame()
+
+  EndIf
+
+EndSub
+
+
+
+Sub eventKeyDown
+
+  character = GraphicsWindow.LastKey
+
+  If (character = "A") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "B") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "C") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "D") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "E") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "F") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "G") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "H") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "I") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "J") Then
+
+  eventAlphabetInput()
+
+  EndIf
+
+  If (character = "K") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "L") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "M") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "N") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "O") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "P") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "Q") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "R") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "S") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "T") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "U") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "V") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "W") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "X") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "Y") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "Z") Then
+
+    eventAlphabetInput()
+
+  EndIf
+
+  If (character = "Back") Then
+
+    eventDeleteCharacter()
+
+  EndIf
+
+  If (character = "Delete") Then
+
+    eventDeleteCharacter()
+
+  EndIf
+
+  If (character = "Left") Then
+
+    eventBackCharacter()
+
+  EndIf
+
+  If (character = "Right") Then
+
+    eventForwardCharacter()
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+Sub eventAlphabetInput
+
+  If (key_enabled = "TRUE") Then
+
+    If (flag_empty = "TRUE") Then
+
+      Shapes.SetText(border_text,"")
+
+      flag_empty = "FALSE"
+
+    EndIf
+
+    If (index_character <> 1) Then
+
+      character = Text.ConvertToLowerCase(character)
+
+    EndIf
+
+    Shapes.SetText(textbox_try[index_character],character)
+
+    tryCharacter[index_character] = character
+
+    If (index_character = theAnswer_length) Then
+
+      index_character = 1
+
+    Else
+
+      index_character = index_character + 1
+
+    EndIf
+
+    moveChracterBackground()
+
+  EndIf
+
+  'TextWindow.Write(key_enabled + ":" + character)
+
+EndSub
+
+
+
+Sub eventDeleteCharacter
+
+  If (key_enabled = "TRUE") Then 
+
+    If (flag_empty = "TRUE") Then
+
+      Shapes.SetText(border_text,"")
+
+      flag_empty = "FALSE"
+
+    EndIf
+
+    Shapes.SetText(textbox_try[index_character],"")
+
+    tryCharacter[index_character] = ""
+
+  EndIf
+
+EndSub
+
+
+
+Sub eventForwardCharacter
+
+  If (key_enabled = "TRUE") Then 
+
+    If (flag_empty = "TRUE") Then
+
+      Shapes.SetText(border_text,"")
+
+      flag_empty = "FALSE"
+
+    EndIf 
+
+    If (index_character = theAnswer_length) Then
+
+      index_character = 1
+
+    Else
+
+      index_character = index_character + 1
+
+    EndIf
+
+    moveChracterBackground()
+
+  EndIf
+
+EndSub
+
+
+
+Sub eventBackCharacter
+
+  If (key_enabled = "TRUE") Then 
+
+    If (flag_empty = "TRUE") Then
+
+      Shapes.SetText(border_text,"")
+
+      flag_empty = "FALSE"
+
+    EndIf
+
+    If (index_character = 1) Then
+
+      index_character = theAnswer_length
+
+    Else
+
+      index_character = index_character - 1
+
+    EndIf
+
+    moveChracterBackground()
+
+  EndIf
+
+EndSub
+
+
+
+
+
+  
+
+

@@ -1,0 +1,151 @@
+'=============================================================================
+
+' HISTOGRAM OF DICE THROWS - WITH SCALING DEPENDING ON GW SIZE AND THROW COUNT
+
+'=============================================================================
+
+
+
+'Setup GraphicsWindow
+
+gw = 12*50 'Some multiple of 12 works well since there will be 11+1(scale) columns
+
+gh = 600
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.Left = (Desktop.Width-gw)/2
+
+GraphicsWindow.Top = 10
+
+GraphicsWindow.CanResize = "False"
+
+GraphicsWindow.BackgroundColor = "AliceBlue"
+
+numThrow = 1000 'Number of dice throws - will affect vertical scaling of the histogram
+
+Xaxis = 30 'pixels above window bottom for X axis
+
+rad = 4 'Expected frequency blob size
+
+'Frequency ratios - expected proportion for each score - solution to text problem 5.2
+
+freq = ""
+
+For i = 1 To 6
+
+  For j = 1 To 6
+
+    freq[i+j] = freq[i+j] + 1/36
+
+  EndFor
+
+EndFor
+
+
+
+While ("True") 'Keep repeating
+
+  'Setup display and histogram axes
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawText((gw-260)/2,10,"Frequency of "+numThrow+" random dice pair throws") 'Roughly centre this text
+
+  GraphicsWindow.PenWidth = 0.1
+
+  pixelScale = 4*gh/numThrow 'Vertical pixels per frequency count - to fit histogram on window
+
+  'Vertical left axis
+
+  For j = 0 To numThrow/5 Step numThrow/100 ' 20 scale points on the left axis
+
+    GraphicsWindow.DrawText(5,gh-Xaxis-8-pixelScale*j,j)
+
+    GraphicsWindow.DrawLine(gw/12,gh-Xaxis-pixelScale*j,12*gw/12,gh-Xaxis-pixelScale*j)
+
+  EndFor
+
+  'Bottom axis
+
+  For j = 2 To 12
+
+    x = (j-1)/12*gw
+
+    GraphicsWindow.DrawText(x+gw/35,gh-Xaxis/2,j)
+
+  EndFor
+
+  'Expected value blobs
+
+  GraphicsWindow.BrushColor = "Red"
+
+  For i = 2 To 12
+
+    blob[i] = Shapes.AddEllipse(2*rad,2*rad)
+
+  EndFor
+
+  
+
+  'Do the simulation
+
+  score = ""
+
+  For i = 1 To numThrow
+
+    dice1 = Math.GetRandomNumber(6)
+
+    dice2 = Math.GetRandomNumber(6)
+
+    total = dice1+dice2
+
+    score[total] = score[total]+1
+
+    updatePlot()
+
+  EndFor
+
+  
+
+  Program.Delay(1000)
+
+EndWhile
+
+
+
+Sub updatePlot
+
+  GraphicsWindow.BrushColor = "SlateGray" 'For histogram
+
+  For j = 2 To 12
+
+    x = (j-1)*gw/12
+
+    y = pixelScale*score[j] 'Vertical scaling depending on window size and number of throws
+
+    GraphicsWindow.FillRectangle(x,gh-Xaxis-y,gw/12-2,y)
+
+    'Move expetation blobs
+
+    Shapes.Move(blob[j],x+gw/24-rad,gh-Xaxis-pixelScale*i*freq[j]-rad)
+
+  EndFor
+
+  'Counter update
+
+  GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
+
+  GraphicsWindow.FillRectangle(gw-70,10,100,20)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawText(gw-70,10,i)
+
+EndSub
+
+

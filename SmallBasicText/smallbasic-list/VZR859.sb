@@ -1,0 +1,3887 @@
+' ============================================================================
+
+' =============================   KEYPAD LIBRARY    ===============================
+
+' ============================================================================
+
+pKeyPadPort = 1
+
+KEYPAD_ADDRESS = 90
+
+
+
+' Ported from MINDSENSORS NumericPad NXC Library
+
+'KEY_MAP = "0=0;1=1;2=2;3=3;4=4;5=5;6=6;7=7;8=8;9=9;10=*;11=#"
+
+'KEY_ORDER = "0=4;1=1;2=7;3=10;4=5;5=2;6=8;7=0;8=3;9=6;10=9;11=11"
+
+KEY_ORDER[0] = 4
+
+KEY_ORDER[1] = 1
+
+KEY_ORDER[2] = 7
+
+KEY_ORDER[3] = 10
+
+KEY_ORDER[4] = 5
+
+KEY_ORDER[5] = 2
+
+KEY_ORDER[6] = 8
+
+KEY_ORDER[7] = 0
+
+KEY_ORDER[8] = 3
+
+KEY_ORDER[9] = 6
+
+KEY_ORDER[10] = 9
+
+KEY_ORDER[11] = 11
+
+
+
+Sub InitKeyPad
+
+  'Do not change the contents of these Group variables or the order 
+
+  ' These messages configure the keypad capacitive sensing chip MPR121
+
+  cfg0[0] = 123
+
+  cfg0[1] = 11
+
+  
+
+  cfg1[0] = 43
+
+  cfg1[1] = 1
+
+  cfg1[2] = 1
+
+  cfg1[3] = 0
+
+  cfg1[4] = 0
+
+  cfg1[5] = 1
+
+  cfg1[6] = 1
+
+  cfg1[7] = 255
+
+  cfg1[8] = 2  
+
+  
+
+  cfg2[0] = 65
+
+  cfg2[1] = 15
+
+  cfg2[2] = 10
+
+  cfg2[3] = 15
+
+  cfg2[4] = 10
+
+  cfg2[5] = 15
+
+  cfg2[6] = 10
+
+  cfg2[7] = 15
+
+  cfg2[8] = 10
+
+  cfg2[9] = 15 
+
+  
+
+  cfg3[0] = 74
+
+  cfg3[1] = 10
+
+  cfg3[2] = 15
+
+  cfg3[3] = 10
+
+  cfg3[4] = 15
+
+  cfg3[5] = 10
+
+  cfg3[6] = 15
+
+  cfg3[7] = 10
+
+  cfg3[8] = 15
+
+  
+
+  cfg4[0] = 82
+
+  cfg4[1] = 10
+
+  cfg4[2] = 15
+
+  cfg4[3] = 10
+
+  cfg4[4] = 15
+
+  cfg4[5] = 10
+
+  cfg4[6] = 15
+
+  cfg4[7] = 10
+
+  cfg4[8] = 15  
+
+  
+
+  cfg5[0] = 92
+
+  cfg5[1] = 11
+
+  cfg5[2] = 32
+
+  cfg5[3] = 12
+
+  
+
+  cfg6[0] = 125
+
+  cfg6[1] = 156
+
+  cfg6[2] = 101
+
+  cfg6[3] = 140
+
+  
+
+  _ret = Sensor.CommunicateI2C(pKeyPadPort, KEYPAD_ADDRESS, 10 , 0 ,cfg2)
+
+  _ret = Sensor.CommunicateI2C(pKeyPadPort, KEYPAD_ADDRESS, 9 , 0 ,cfg3)
+
+  _ret = Sensor.CommunicateI2C(pKeyPadPort, KEYPAD_ADDRESS, 9 , 0 ,cfg4)
+
+  _ret = Sensor.CommunicateI2C(pKeyPadPort, KEYPAD_ADDRESS, 4 , 0 ,cfg5)
+
+  _ret = Sensor.CommunicateI2C(pKeyPadPort, KEYPAD_ADDRESS, 9 , 0 ,cfg1)
+
+  _ret = Sensor.CommunicateI2C(pKeyPadPort, KEYPAD_ADDRESS, 2 , 0 ,cfg0)  
+
+  _ret = Sensor.CommunicateI2C(pKeyPadPort, KEYPAD_ADDRESS, 4 , 0 ,cfg6)   
+
+EndSub
+
+
+
+Sub ReadKeyPad
+
+  cmd = Vector.Init(1,0)
+
+  cmd[0] = 0
+
+  result = Sensor.CommunicateI2C(pKeyPadPort, KEYPAD_ADDRESS, 1, 2, cmd)
+
+  rRawKeys = result[1]*256+result[0]
+
+  DecodeKeys()
+
+EndSub
+
+
+
+Sub DecodeKeys
+
+  rPressedKeys = 0
+
+  rKeys = Vector.Init(12,0)
+
+  bit = 11
+
+  While bit>=0 And rRawKeys>0
+
+    pow = Math.Round(Math.Power(2,bit))
+
+    if rRawKeys>=pow Then 
+
+      rRawKeys = rRawKeys - pow
+
+      rPressedKeys = rPressedKeys + 1
+
+      _index = KEY_ORDER[11-bit]
+
+      rKeys[_index] = 1
+
+    Endif
+
+    bit = bit - 1
+
+  EndWhile
+
+EndSub
+
+
+
+Sub ShowPressedKeys 
+
+  If (rPressedKeys>0) Then
+
+    i = 0
+
+    _sk = ""
+
+    While i<12
+
+      If (rKeys[i]>0) Then
+
+        Speaker.Note(100,300,10)
+
+        _sk = Text.Append(_sk, " ")
+
+        '_sk = Text.Append(_sk, KEY_MAP[i])
+
+        _sk = Text.Append(_sk,i )
+
+      EndIf
+
+      i = i + 1
+
+    EndWhile
+
+    LCD.Text(1, 5, 60, 1, "key pressed: "+_sk+"          ")
+
+  Else
+
+    LCD.Text(1, 5, 60, 1, "key pressed: none             ")
+
+  EndIf
+
+EndSub
+
+
+
+' ============================================================================
+
+' ============================   SENSOR MUX LIBRARY    ============================
+
+' ============================================================================
+
+
+
+MUX_SENSOR1 = 80
+
+MUX_SENSOR2 = 81
+
+MUX_SENSOR3 = 82
+
+MUX_MODE_REG = 82
+
+MUX_DATA_REG = 84
+
+MUX_READY_REG = 116
+
+
+
+COLOR_MODE = 2
+
+
+
+' color returned by color sensor
+
+COLOR_NONE_CODE =   0
+
+COLOR_BLACK_CODE =  1
+
+COLOR_BLUE_CODE =   2
+
+COLOR_GREEN_CODE =  3
+
+COLOR_YELLOW_CODE = 4
+
+COLOR_RED_CODE =    5
+
+COLOR_WHITE_CODE =  6
+
+COLOR_BROWN_CODE =  7
+
+
+
+pMuxPort = 1
+
+pSensorID = 1
+
+pSensorMode = 1
+
+rMuxData = 0
+
+
+
+Sub SetMuxSensorMode
+
+  cmd = Vector.Init(2,0)
+
+  cmd[0] = MUX_MODE_REG
+
+  cmd[1] = pSensorMode
+
+  ret = Sensor.CommunicateI2C(pMuxPort, pSensorID, 2, 1, cmd)
+
+  'LCD.Text(1, 5 ,20, 1, "ret = "+ret[0])
+
+EndSub
+
+
+
+Sub ReadMuxColorSensor
+
+  cmd = Vector.Init(1,0)
+
+  cmd[0] = MUX_DATA_REG
+
+  ret = Sensor.CommunicateI2C(pMuxPort, pSensorID, 1, 1, cmd) 
+
+  rMuxData = ret[0]
+
+EndSub
+
+
+
+Sub CheckPresence
+
+  rBlueOK = 0
+
+  rWhiteOK = 0
+
+  rRedOK = 0
+
+  pSensorID = MUX_SENSOR1
+
+  ReadMuxColorSensor()
+
+  If rMuxData=5 Then 'RED is 5
+
+    rRedOK = 1
+
+  EndIf    
+
+  pSensorID = MUX_SENSOR2
+
+  ReadMuxColorSensor()
+
+  If rMuxData=6 Then 'WHITE is 6
+
+    rWhiteOK = 1
+
+  EndIf  
+
+  pSensorID = MUX_SENSOR3
+
+  ReadMuxColorSensor()
+
+  If rMuxData=2 Then 'BLUE is 2
+
+    rBlueOK = 1
+
+  EndIf
+
+EndSub
+
+
+
+Sub InitMuxAllColor
+
+  pSensorMode = COLOR_MODE
+
+  pSensorID = MUX_SENSOR1
+
+  SetMuxSensorMode()
+
+  pSensorID = MUX_SENSOR2
+
+  SetMuxSensorMode()
+
+  pSensorID = MUX_SENSOR3
+
+  SetMuxSensorMode() 
+
+EndSub
+
+
+
+' ============================================================================
+
+' ============================   NXTSERVO LIBRARY ===============================
+
+' ============================================================================
+
+NXTServo_POWER_PORT = "A"
+
+NXTServo_PORT     = 1 
+
+NXTServo_VBATT    = 65
+
+NXTServo_SPEED    = 82
+
+NXTServo_POS      = 89
+
+NXTServo_ADDRESS  = 88
+
+
+
+' --------- CONSTANTS
+
+
+
+RED_LIGHT_ID = 6
+
+YELLOW_LIGHT_ID = 7
+
+GREEN_LIGHT_ID = 8
+
+
+
+pServoID = 1
+
+pSpeed = 0
+
+pPos = 1500
+
+pLightID = RED_LIGHT_ID
+
+pLightStatus = 0
+
+rServo = 0 ' result of SetServoSpeed(), if 0 is OK
+
+rPos = 0 ' result of SetServoPos(), if 0 is OK
+
+
+
+Sub SetServoPosition
+
+  ok = 0
+
+  attempts = 0
+
+  While ok = 0 AND attempts < 2
+
+    n = NXTServo_POS + pServoID
+
+    cmd = Vector.Init(2,0)
+
+    cmd[0] = n
+
+    cmd[1] = pPos/10
+
+    result = Sensor.CommunicateI2C(NXTServo_PORT, NXTServo_ADDRESS, 2, 1, cmd)
+
+    rPos = result[0]
+
+    If result[0] = 0 Then
+
+      'LCD.Text(1,0,115,0,"S"+pServoID+" Pos: "+pPos+"R:"+result[0])
+
+      ok = 1
+
+    Else
+
+      attempts = attempts + 1
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+
+
+Sub SetServoSpeed
+
+  ok = 0
+
+  attempts = 0
+
+  While ok = 0 AND attempts < 3
+
+    n = NXTServo_SPEED + pServoID - 1
+
+    cmd = Vector.Init(2,0)
+
+    cmd[0] = n
+
+    cmd[1] = pSpeed
+
+    result = Sensor.CommunicateI2C(NXTServo_PORT, NXTServo_ADDRESS, 2, 1, cmd)
+
+    'LCD.Text(1, 0, 100, 1, "res="+result[0]+","+result[1]+","+result[2]+","+result[3]+","+result[4])
+
+    rSpeed = result[0]
+
+    If result[0] = 0 Then
+
+      'LCD.Text(1,0,100,1,"Set Servo "+pServoID+" Speed: "+pSpeed)      
+
+      ok = 1
+
+    Else
+
+      attempts = attempts + 1
+
+    EndIf
+
+  EndWhile  
+
+EndSub
+
+
+
+Sub GetServoBattery
+
+  cmd = Vector.Init(1,0)
+
+  cmd[0] = NXTServo_VBATT
+
+  result = Sensor.CommunicateI2C(NXTServo_PORT, NXTServo_ADDRESS, 1, 1, cmd)
+
+  'LCD.Text(1, 0, 100, 1, "res="+result[0]+","+result[1]+","+result[2]+","+result[3]+","+result[4])
+
+  rBattery = result[0]*37
+
+EndSub
+
+
+
+Sub FloatServos
+
+  i = 1
+
+  While i<6
+
+    pPos = 0
+
+    pServoID = i
+
+    SetServoPosition()
+
+    i = i + 1
+
+  EndWhile
+
+EndSub
+
+
+
+Sub SetStatusLights
+
+  pServoID = pLightID
+
+  If pLightStatus >0 Then
+
+    pPos = 2500
+
+  Else
+
+    pPos = 0
+
+  EndIf
+
+  SetServoPosition()
+
+EndSub
+
+
+
+Sub NoLights
+
+  pLightStatus = 0
+
+  pLightID = RED_LIGHT_ID
+
+  SetStatusLights()
+
+  pLightID = YELLOW_LIGHT_ID
+
+  SetStatusLights()
+
+  pLightID = GREEN_LIGHT_ID
+
+  SetStatusLights()
+
+EndSub
+
+
+
+Sub RedLight
+
+  NoLights()
+
+  pLightID = RED_LIGHT_ID
+
+  pLightStatus = 1
+
+  EV3.SetLEDColor("RED","NORMAL")
+
+  SetStatusLights()
+
+EndSub
+
+
+
+Sub YellowLight
+
+  NoLights()
+
+  pLightID = YELLOW_LIGHT_ID
+
+  pLightStatus = 1
+
+  EV3.SetLEDColor("ORANGE","NORMAL")
+
+  SetStatusLights()
+
+EndSub
+
+
+
+Sub GreenLight
+
+  NoLights()
+
+  pLightID = GREEN_LIGHT_ID
+
+  pLightStatus = 1
+
+  EV3.SetLEDColor("GREEN","PULSE")
+
+  SetStatusLights()
+
+EndSub
+
+
+
+Sub PowerOnServo
+
+  Motor.StartPower(NXTServo_POWER_PORT,80)
+
+EndSub
+
+
+
+Sub PowerOffServo
+
+  Motor.Stop(NXTServo_POWER_PORT,"False")
+
+EndSub
+
+
+
+' ============================================================================
+
+' ============================   MOTOR MANAGEMENT =============================
+
+' ============================================================================
+
+
+
+pPort1 = ""
+
+pAng1 = 0
+
+pSpeed1 = 75
+
+pAccPercent1 = 0
+
+pBrake1 = "True"
+
+pWait1 = "True"
+
+
+
+Sub MoveAbs1
+
+  _ang1 =  pAng1 - Motor.GetCount(pPort1)
+
+  _acc1 = Math.Round(Math.Abs(_ang1)*pAccPercent1/200)
+
+  _sgn = 1
+
+  _speed1 = pSpeed1
+
+  If (_ang1 < 0) Then 
+
+    _sgn = -1
+
+  EndIf
+
+  _ang1 = _ang1 - 2*_acc1*_sgn
+
+  _speed1 = pSpeed1 * _sgn
+
+  Motor.Schedule(pPort1, _speed1, _acc1, _ang1, _acc1, pBrake1)
+
+  While ( pWait1 AND Motor.IsBusy(pPort1) )
+
+    Program.Delay(10)
+
+  EndWhile  
+
+EndSub
+
+
+
+' ============================================================================
+
+' ======================= CAR CONFIGURATION USER INTERFACE  =====================
+
+' ============================================================================
+
+
+
+KEY_FRONT_RED =   1
+
+KEY_FRONT_WHITE = 4
+
+KEY_FRONT_BLUE =  7
+
+KEY_ROOF_RED =    2
+
+KEY_ROOF_WHITE =  5
+
+KEY_ROOF_BLUE =   8
+
+KEY_ROOF_NONE =   0
+
+KEY_BACK_RED =    3
+
+KEY_BACK_WHITE =  6
+
+KEY_BACK_BLUE =   9
+
+KEY_ENTER = 11
+
+KEY_CANCEL = 10
+
+
+
+COLOR_NONE =  0
+
+COLOR_RED =   1
+
+COLOR_WHITE = 2
+
+COLOR_BLUE =  3
+
+
+
+MEDIA_PATH = "Factory/"
+
+'COLOR_ARRAY = "0=0;1=1;2=1;3=1;4=2;5=2;6=2;7=3;8=3;9=3;10=0;11=0"
+
+COLOR_ARRAY[0] = 0
+
+COLOR_ARRAY[1] = 1
+
+COLOR_ARRAY[2] = 1
+
+COLOR_ARRAY[3] = 1
+
+COLOR_ARRAY[4] = 2
+
+COLOR_ARRAY[5] = 2
+
+COLOR_ARRAY[6] = 2
+
+COLOR_ARRAY[7] = 3
+
+COLOR_ARRAY[8] = 3
+
+COLOR_ARRAY[9] = 3
+
+COLOR_ARRAY[10] = 0
+
+COLOR_ARRAY[11] = 0
+
+'COLOR_NAMES = "0=None;1=Red;2=White;3=Blue"
+
+COLOR_NAMES[0] = "None"
+
+COLOR_NAMES[1] = "Red"
+
+COLOR_NAMES[2] = "White"
+
+COLOR_NAMES[3] = "Blue"
+
+'PARTS_SOUND_FILES = "0=NoneRoof;1=RedFront;2=RedRoof;3=RedBack;4=WhiteFront;5=WhiteRoof;6=WhiteBack;7=BlueFront;8=BlueRoof;9=BlueBack;10=;11="
+
+PARTS_SOUND_FILES[0] = COLOR_NAMES[0]+"Roof"
+
+PARTS_SOUND_FILES[1] = COLOR_NAMES[1]+"Front"
+
+PARTS_SOUND_FILES[2] = COLOR_NAMES[1]+"Roof"
+
+PARTS_SOUND_FILES[3] = COLOR_NAMES[1]+"Back"
+
+PARTS_SOUND_FILES[4] = COLOR_NAMES[2]+"Front"
+
+PARTS_SOUND_FILES[5] = COLOR_NAMES[2]+"Roof"
+
+PARTS_SOUND_FILES[6] = COLOR_NAMES[2]+"Back"
+
+PARTS_SOUND_FILES[7] = COLOR_NAMES[3]+"Front"
+
+PARTS_SOUND_FILES[8] = COLOR_NAMES[3]+"Roof"
+
+PARTS_SOUND_FILES[9] = COLOR_NAMES[3]+"Back"
+
+PARTS_SOUND_FILES[10] = ""
+
+PARTS_SOUND_FILES[11] = ""
+
+
+
+Sub ParseKeys
+
+  If (rPressedKeys = 1) Then ' filter out multiple keys pressed together by mistake
+
+    i = 0
+
+    _sk = ""
+
+    While i<12
+
+      If (rKeys[i]>0) Then
+
+        _fileName = PARTS_SOUND_FILES[i]
+
+        Speaker.Play(100,(MEDIA_PATH + _fileName))
+
+        _sk = Text.Append(_sk, " ")
+
+        _sk = Text.Append(_sk, _fileName)
+
+        If Text.IsSubText(_fileName,"Front") Then
+
+          pCarFront = COLOR_ARRAY[i]
+
+        ElseIf Text.IsSubText(_fileName,"Back") Then
+
+          pCarBack = COLOR_ARRAY[i]
+
+        ElseIf Text.IsSubText(_fileName,"Roof") Then
+
+          pCarRoof = COLOR_ARRAY[i]
+
+        EndIf
+
+      EndIf
+
+      i = i + 1
+
+    EndWhile
+
+    ShowCarConfiguration()
+
+  EndIf
+
+EndSub  
+
+
+
+Sub ShowCarConfiguration
+
+  LCD.Clear()
+
+  LCD.BmpFile(1,0,0,MEDIA_PATH + "CarSide")
+
+  LCD.Text(1,100,7,1,COLOR_NAMES[pCarRoof])
+
+  LCD.Text(1,45,72,2,COLOR_NAMES[pCarFront])
+
+  LCD.Text(1,130,75,1,COLOR_NAMES[pCarBack])
+
+EndSub
+
+
+
+Sub TellCarConfiguration
+
+  Speaker.Play(100,MEDIA_PATH + COLOR_NAMES[pCarFront] + "Front")
+
+  Speaker.Wait()
+
+  Speaker.Play(100,MEDIA_PATH + COLOR_NAMES[pCarBack] + "Back")
+
+  Speaker.Wait()  
+
+  Speaker.Play(100,MEDIA_PATH + COLOR_NAMES[pCarRoof] + "Roof")
+
+  Speaker.Wait()   
+
+EndSub
+
+
+
+pCarFront = COLOR_NONE
+
+pCarRoof = COLOR_NONE
+
+pCarBack = COLOR_NONE
+
+
+
+Sub WaitKeyPadRelease
+
+  ReadKeyPad()
+
+  While (rPressedKeys>0) ' wait for key release
+
+    ReadKeyPad()
+
+  EndWhile
+
+EndSub
+
+
+
+rColorChosen = "False"
+
+
+
+Sub ChooseColors
+
+  ShowCarConfiguration()
+
+  rColorChosen = "False"
+
+  ReadKeyPad()
+
+  ParseKeys()
+
+  If (rPressedKeys = 1 AND rKeys[KEY_ENTER]>0) Then
+
+    WaitKeyPadRelease()
+
+    If (pCarFront <> COLOR_NONE And pCarBack <> COLOR_NONE) Then ' show configuration and ask for confirmation
+
+      Speaker.Tone(100,300,50)
+
+      Program.Delay(60)
+
+      Speaker.Tone(100,600,50)
+
+      '_confirm = 0
+
+      pPopUpStr = "OK?"
+
+      pPopUpFont = 2
+
+      ShowPopUpMessage()
+
+      While (rKeys[KEY_ENTER]=0 AND rKeys[KEY_CANCEL] = 0 ) ' wait for user to press ENTER OR CANCEL
+
+        ReadKeyPad()
+
+      EndWhile
+
+      If (rPressedKeys = 1 AND rKeys[KEY_ENTER]>0) Then ' user accepted configuration, show it and proceed
+
+        '_ok = 1
+
+        rColorChosen = "True"
+
+      Else ' user cancelled to continue editing
+
+        Speaker.Tone(100,600,50)
+
+        Program.Delay(60)
+
+        Speaker.Tone(100,300,50)
+
+        ShowCarConfiguration()
+
+      EndIf
+
+    Else ' car configuration is not complete
+
+      LCD.FillRect(1,0,30,178,50)
+
+      LCD.Text(0,40,35,2,"Setup")
+
+      LCD.Text(0,5,55,2,"incomplete")
+
+      'RedLight()
+
+      Speaker.Play(100,MEDIA_PATH + "Error alarm")
+
+      'Program.Delay(2000)
+
+      ShowCarConfiguration()
+
+      'YellowLight()
+
+    EndIf
+
+  EndIf
+
+  WaitKeyPadRelease()
+
+EndSub
+
+
+
+' ============================================================================
+
+' ============================   SERVO SEQUENCES ================================
+
+' ============================================================================
+
+' The sequences are saved as unidimensional arrays but are actually two-dimensional arrays;
+
+' each frame of a sequence is made by [duration, pos1, pos2, pos3, pos4], its size being FS = 5
+
+' In a N-frame sequence seq, access the elements of frame F (o...N-1) with
+
+' duration = seq[F*FS+0]
+
+' pos1 = seq[F*FS+1]
+
+' pos2 = seq[F*FS+2]
+
+' pos3 = seq[F*FS+3]
+
+' pos4 = seq[F*FS+4]
+
+CLAW_OPEN = 1000
+
+CLAW_CLOSED = 1600
+
+BASE_PICK = 1820
+
+BASE_DROP = 920
+
+
+
+' 0 rest
+
+seqChassis1[0] = 300
+
+seqChassis1[1] = BASE_PICK
+
+seqChassis1[2] = 1540
+
+seqChassis1[3] = 1900
+
+seqChassis1[4] = CLAW_OPEN
+
+' 1 presupply
+
+seqChassis1[5] = 400
+
+seqChassis1[6] = BASE_PICK
+
+seqChassis1[7] = 1160
+
+seqChassis1[8] = 2190
+
+seqChassis1[9] = CLAW_OPEN
+
+' 2 supply
+
+seqChassis1[10] = 500
+
+seqChassis1[11] = 1610
+
+seqChassis1[12] = 1160
+
+seqChassis1[13] = 2190
+
+seqChassis1[14] = CLAW_OPEN
+
+' 3 post supply
+
+seqChassis1[15] = 200
+
+seqChassis1[16] = BASE_PICK
+
+seqChassis1[17] = 1160
+
+seqChassis1[18] = 2190
+
+seqChassis1[19] = CLAW_OPEN
+
+' 4 prepick 1
+
+seqChassis1[20] = 300
+
+seqChassis1[21] = BASE_PICK
+
+seqChassis1[22] = 1040
+
+seqChassis1[23] = 2280
+
+seqChassis1[24] = CLAW_OPEN
+
+' 5 prepick 2
+
+seqChassis1[25] = 300
+
+seqChassis1[26] = BASE_PICK
+
+seqChassis1[27] = 980
+
+seqChassis1[28] = 2320
+
+seqChassis1[29] = CLAW_OPEN
+
+' 6 grab
+
+seqChassis1[30] = 500
+
+seqChassis1[31] = BASE_PICK
+
+seqChassis1[32] = 980
+
+seqChassis1[33] = 2320
+
+seqChassis1[34] = CLAW_CLOSED
+
+' 7 lift1
+
+seqChassis1[35] = 200 
+
+seqChassis1[36] = BASE_PICK-10
+
+seqChassis1[37] = 1070
+
+seqChassis1[38] = 2230
+
+seqChassis1[39] = CLAW_CLOSED
+
+' lift2
+
+seqChassis1[40] = 300 
+
+seqChassis1[41] = 1780
+
+seqChassis1[42] = 1390
+
+seqChassis1[43] = 1890
+
+seqChassis1[44] = CLAW_CLOSED
+
+' rotate
+
+seqChassis1[45] = 900
+
+seqChassis1[46] = 930
+
+seqChassis1[47] = 1390
+
+seqChassis1[48] = 1890
+
+seqChassis1[49] = CLAW_CLOSED
+
+' predrop1
+
+seqChassis1[50] = 300 '
+
+seqChassis1[51] = BASE_DROP
+
+seqChassis1[52] = 1020
+
+seqChassis1[53] = 2180
+
+seqChassis1[54] = CLAW_CLOSED
+
+' predrop2
+
+seqChassis1[55] = 300
+
+seqChassis1[56] = BASE_DROP
+
+seqChassis1[57] = 1000
+
+seqChassis1[58] = 2210
+
+seqChassis1[59] = CLAW_CLOSED
+
+' release
+
+seqChassis1[60] = 400
+
+seqChassis1[61] = BASE_DROP
+
+seqChassis1[62] = 1020
+
+seqChassis1[63] = 2210
+
+seqChassis1[64] = CLAW_OPEN
+
+' up
+
+seqChassis1[65] = 400
+
+seqChassis1[66] = BASE_DROP
+
+seqChassis1[67] = 1260
+
+seqChassis1[68] = 2210
+
+seqChassis1[69] = CLAW_OPEN
+
+seqChassis1Len = 14 ' 5 elements each frame
+
+
+
+' 0 rest
+
+seqChassis2[0] = 300
+
+seqChassis2[1] = BASE_PICK
+
+seqChassis2[2] = 1540
+
+seqChassis2[3] = 1900
+
+seqChassis2[4] = CLAW_OPEN
+
+' 1 presupply
+
+seqChassis2[5] = 600
+
+seqChassis2[6] = BASE_PICK
+
+seqChassis2[7] = 1060
+
+seqChassis2[8] = 1880
+
+seqChassis2[9] = CLAW_OPEN
+
+' 2 supply 
+
+seqChassis2[10] = 500
+
+seqChassis2[11] = 1600
+
+seqChassis2[12] = 1060
+
+seqChassis2[13] = 1860'1880
+
+seqChassis2[14] = CLAW_OPEN
+
+' 3 post supply
+
+seqChassis2[15] = 300 '400
+
+seqChassis2[16] = BASE_PICK
+
+seqChassis2[17] = 1060
+
+seqChassis2[18] = 1880
+
+seqChassis2[19] = CLAW_OPEN
+
+' 4 prepick1
+
+seqChassis2[20] = 200
+
+seqChassis2[21] = BASE_PICK
+
+seqChassis2[22] = 990
+
+seqChassis2[23] = 1900
+
+seqChassis2[24] = CLAW_OPEN
+
+' 5 prepick2
+
+seqChassis2[25] = 300
+
+seqChassis2[26] = BASE_PICK
+
+seqChassis2[27] = 930 '940
+
+seqChassis2[28] = 1940'1930
+
+seqChassis2[29] = CLAW_OPEN
+
+' 6 grab
+
+seqChassis2[30] = 500
+
+seqChassis2[31] = BASE_PICK
+
+seqChassis2[32] = 930 '940 
+
+seqChassis2[33] = 1940'1930 
+
+seqChassis2[34] = CLAW_CLOSED
+
+' 7 lift1
+
+seqChassis2[35] = 200
+
+seqChassis2[36] = BASE_PICK-40
+
+seqChassis2[37] = 1020
+
+seqChassis2[38] = 1880
+
+seqChassis2[39] = CLAW_CLOSED
+
+' 8 lift2
+
+seqChassis2[40] = 300 '400
+
+seqChassis2[41] = BASE_PICK-40
+
+seqChassis2[42] = 1440
+
+seqChassis2[43] = 1890
+
+seqChassis2[44] = CLAW_CLOSED
+
+' 9 rotate 
+
+seqChassis2[45] = 900 '1000
+
+seqChassis2[46] = BASE_DROP
+
+seqChassis2[47] = 1440
+
+seqChassis2[48] = 1890
+
+seqChassis2[49] = CLAW_CLOSED
+
+' 10 predrop1
+
+seqChassis2[50] = 400
+
+seqChassis2[51] = BASE_DROP
+
+seqChassis2[52] = 1050 
+
+seqChassis2[53] = 2160 
+
+seqChassis2[54] = CLAW_CLOSED
+
+' 11 predrop2
+
+seqChassis2[55] = 300
+
+seqChassis2[56] = BASE_DROP
+
+seqChassis2[57] = 990 
+
+seqChassis2[58] = 2180
+
+seqChassis2[59] = CLAW_CLOSED
+
+' 12 release 
+
+seqChassis2[60] = 400
+
+seqChassis2[61] = BASE_DROP
+
+seqChassis2[62] = 1000
+
+seqChassis2[63] = 2210
+
+seqChassis2[64] = CLAW_OPEN
+
+' 13 up
+
+seqChassis2[65] = 400
+
+seqChassis2[66] = BASE_DROP
+
+seqChassis2[67] = 1260
+
+seqChassis2[68] = 2210
+
+seqChassis2[69] = CLAW_OPEN
+
+seqChassis2Len = 14 ' 5 elements each frame
+
+
+
+seqInit = seqChassis1
+
+seqInitLen = seqChassis1Len
+
+
+
+' playvback debug variables
+
+stepByStep = 0
+
+resetBelt = 0
+
+pauseAtFrame = 0
+
+
+
+' ============================================================================
+
+' ============================   SERVO PLAYBACK =================================
+
+' ============================================================================
+
+' debug
+
+STOP_BUTTON_PORT = 4
+
+
+
+BASE_SPEED = 30
+
+JOINT1_SPEED = 30
+
+JOINT2_SPEED = 36
+
+CLAW_SPEED = 50
+
+FRAME_SIZE = 5
+
+
+
+BASE_ID = 1
+
+JOINT1_ID = 2
+
+JOINT2_ID = 3
+
+CLAW_ID = 4
+
+NXTServoID[0] = BASE_ID
+
+NXTServoID[1] = JOINT1_ID
+
+NXTServoID[2] = JOINT2_ID
+
+NXTServoID[3] = CLAW_ID
+
+
+
+stopPressed = "False"
+
+pSequenceToPlay = seqChassis1
+
+seqLen = 0
+
+pSequenceLength = 0
+
+pFrameToPlay = 0
+
+pWaitFrameCompletion = "False"
+
+
+
+pFrameToEdit = 0
+
+
+
+'tweaksFile = Program.Directory+"\_tweaks-"+Clock.Month+"-"+Clock.Day+"-"+Clock.Hour+Clock.Minute+Clock.Second+".txt"
+
+tweaksFile = ""
+
+tweaks = ""
+
+tweakingSeqName = ""
+
+
+
+Sub ManualEdit
+
+  ' Wait for ENTER to continue, manually move the arm using KEYS
+
+  j1p = pSequenceToPlay[pFrameToEdit*FRAME_SIZE+JOINT1_ID]
+
+  j2p = pSequenceToPlay[pFrameToEdit*FRAME_SIZE+JOINT2_ID]
+
+  inc = 10
+
+  LCD.Clear()
+
+  LCD.Text(1, 0, 5, 1, "Frame:"+pFrameToEdit+"/"+pSequenceLength+"   ")
+
+  _s1c = "False"
+
+  _s2c = "False"
+
+  _done = "False"
+
+  While _done = "False" 
+
+    K = Buttons.Current
+
+    If Text.IsSubText(K, "R") then
+
+      Speaker.Tone(50,1000,10)
+
+      _s2c = "True"
+
+      j2p = j2p - inc
+
+      pServoID = JOINT2_ID
+
+      pPos = j2p
+
+      SetServoPosition()   
+
+    elseif Text.IsSubText(K, "L") then
+
+      _s2c = "True"
+
+      Speaker.Tone(50,1000,10)
+
+      j2p = j2p + inc
+
+      pServoID = JOINT2_ID
+
+      pPos = j2p
+
+      SetServoPosition()      
+
+    elseif Text.IsSubText(K, "D") then
+
+      _s1c = "True"
+
+      Speaker.Tone(50,1000,10)
+
+      j1p = j1p - inc
+
+      pServoID = JOINT1_ID
+
+      pPos = j1p
+
+      SetServoPosition()  
+
+    elseif Text.IsSubText(K, "U") then
+
+      _s1c = "True"
+
+      Speaker.Tone(50,1000,10)
+
+      j1p = j1p + inc
+
+      pServoID = JOINT1_ID
+
+      pPos = j1p
+
+      SetServoPosition()  
+
+    elseIf Text.IsSubText(Buttons.Current, "E") Then
+
+      _done = "True"
+
+    EndIf
+
+    If Sensor.ReadPercent(STOP_BUTTON_PORT)>50 Then
+
+      stepByStep = 0   
+
+      _done = "True"
+
+      Speaker.Tone(100,1000,50)
+
+      LCD.Text(1, 0, 60, 1, "continuous execution    ")
+
+      While   Sensor.ReadPercent(STOP_BUTTON_PORT)>50
+
+        Program.Delay(100)
+
+      EndWhile
+
+    EndIf
+
+    LCD.Text(1, 0, 20+15*pServoID, 0, "S"+pServoID+":   "+pPos+"   ")
+
+    Program.Delay(100)
+
+  EndWhile  
+
+  
+
+  '===================================== TWEAKS 
+
+  'If _s1c Then
+
+  '  _tmp = tweakingSeqName + "["+(pFrameToEdit*FRAME_SIZE+JOINT1_ID)+"] = "+j1p'+Text.GetCharacter(13)+Text.GetCharacter(10)
+
+' The following line could be harmful and has been automatically commented.
+
+'   '  _r = File.AppendContents(tweaksFile,_tmp)
+
+  '  If _r="FAILED" Then 
+
+  '    'TextWindow.WriteLine("Append to file failed!")
+
+  '  EndIf
+
+  'EndIf
+
+  'If _s2c Then
+
+  '  _tmp = tweakingSeqName + "["+(pFrameToEdit*FRAME_SIZE+JOINT2_ID)+"] = "+j2p'+Text.GetCharacter(13)+Text.GetCharacter(10)
+
+' The following line could be harmful and has been automatically commented.
+
+'   '  _r = File.AppendContents(tweaksFile,_tmp)
+
+  '  If _r="FAILED" Then 
+
+  '    'TextWindow.WriteLine("Append to file failed!")
+
+  '  EndIf   
+
+  'EndIf
+
+  'Speaker.Tone(100,3000,100)
+
+  '===================================== TWEAKS 
+
+EndSub
+
+
+
+Sub ExecuteFrame
+
+  'LCD.Text(1, 0, 5, 1, "Frame:"+pFrameToPlay+"/"+pSequenceLength+"   ")
+
+  For i = 0 to 3
+
+    pServoID = NXTServoID[i]
+
+    pPos = pSequenceToPlay[pFrameToPlay*FRAME_SIZE+i+1]
+
+    LCD.Text(1, 0, 20+15*i, 0, "S"+(i+1)+":   "+pPos+"   ")
+
+    SetServoPosition()
+
+  EndFor
+
+  If pWaitFrameCompletion Then
+
+    Program.Delay(pSequenceToPlay[pFrameToPlay*FRAME_SIZE])
+
+  EndIf
+
+EndSub
+
+
+
+Sub InitServos
+
+  FloatServos()
+
+  RedLight()
+
+  Program.Delay(200)
+
+  pServoID = BASE_ID
+
+  pSpeed = BASE_SPEED
+
+  SetServoSpeed()
+
+  
+
+  pServoID = JOINT1_ID
+
+  pSpeed = JOINT1_SPEED
+
+  SetServoSpeed()
+
+  
+
+  pServoID = JOINT2_ID
+
+  pSpeed = JOINT2_SPEED
+
+  SetServoSpeed()
+
+  
+
+  pServoID = CLAW_ID
+
+  pSpeed = CLAW_SPEED
+
+  SetServoSpeed()
+
+  Program.Delay(200)
+
+  PowerOnServo()
+
+  
+
+  pFrameToPlay = 0
+
+  pSequenceToPlay = seqInit
+
+  pWaitFrameCompletion = "False"
+
+  ExecuteFrame() 
+
+EndSub
+
+
+
+rSequenceCompleted = "False"
+
+'PARAMETERS: pSequenceToPlay, pSequenceLength
+
+Sub ExecuteSequence
+
+  tweaksFile = Program.Directory+"\_tweaks"+EV3.Time+".txt"
+
+  pWaitFrameCompletion = "True"
+
+  rSequenceCompleted = "False"
+
+  f = 0
+
+  stopReq = "False"
+
+  While f<pSequenceLength AND stopReq = "False"
+
+    pFrameToPlay = f
+
+    ExecuteFrame()
+
+    
+
+    ' ============================================ TWEAK SEQUENCE
+
+    'If Sensor.ReadPercent(STOP_BUTTON_PORT)>50 Then
+
+    '  tweaksFile = Program.Directory+"\_tweaks "+EV3.Time+".txt"
+
+    '  stepByStep = 1  
+
+    '  Speaker.Tone(100,2000,50)
+
+    '  LCD.Text(1, 0, 60, 1, "step by step execution    ")
+
+    '  While Sensor.ReadPercent(STOP_BUTTON_PORT)>50
+
+    '    Program.Delay(100)
+
+    '  EndWhile
+
+    'EndIf    
+
+    'If pauseAtFrame<>0 And pFrameToPlay>=pauseAtFrame Then
+
+    '  stepByStep = 1
+
+    'EndIf
+
+    'if (stepByStep>0) Then 
+
+    '  YellowLight()
+
+    '  pFrameToEdit = f
+
+    '  ManualEdit()   
+
+    '  Buttons.Flush()
+
+    '  GreenLight()
+
+    'EndIf
+
+    ' ============================================ END TWEAK SEQUENCE    
+
+    
+
+    stopReq = stopPressed ' user interrupt
+
+    f = f + 1
+
+  EndWhile
+
+  If f = pSequenceLength Then
+
+    ' go back to zero
+
+    pFrameToPlay = 0
+
+    pWaitFrameCompletion = "False"    
+
+    ExecuteFrame()
+
+    rSequenceCompleted = "True"
+
+    'TextWindow.WriteLine(" sequence completed!")
+
+  EndIf
+
+EndSub
+
+
+
+' ============================================================================
+
+' =============================    COMMUNICATION    ==============================
+
+' ============================================================================
+
+' ------------------------------------------------ MASTER COMMANDS -----------------------------------------
+
+CMD_PREPARE_CONVEYOR =    "PC" ' move conveyor to the very beginning to receive car
+
+CMD_LOAD_CAR =            "LC" ' move conveyor fordward to load car
+
+CMD_ASSEMBLE =            "CX" ' pick and place, check, press
+
+CMD_DELIVER =             "DL" ' deliver car to next module
+
+CMD_RESET =               "RS"
+
+CMD_STOP =                "ST"
+
+CMD_GET_STATUS =          "GS" ' this requires a special ack from slave
+
+CMD_GET_RACKS =           "RK" ' the reply is in the format "RK=<R><W><B>" each field being "1" if ok or "0" if rack is empty
+
+CMD_PING =                "PG"
+
+CMD_CANCEL =              "KK" ' cancel order
+
+
+
+CMD_ASSEMBLE_COLOR[0] = "N" ' None (valid only for roof)
+
+CMD_ASSEMBLE_COLOR[1] = "R" 'Red
+
+CMD_ASSEMBLE_COLOR[2] = "W" 'White
+
+CMD_ASSEMBLE_COLOR[3] = "B" ' Blue
+
+
+
+' ------------------------------------------------ SLAVE REPLIES  -----------------------------------------------
+
+RESULT_UNKNOWN = -2
+
+RESULT_TIMEOUT =      -1
+
+RESULT_OK =           0 ' ack when command is received
+
+RESULT_READY =        1 ' status when module is ready to execute commands
+
+RESULT_BUSY =         2 ' status when module is busy
+
+RESULT_STOP =         3 ' status when module is stopped
+
+RESULT_ERROR =        4 ' status if part was misplaced
+
+RESULT_EMPTY =        5 ' status if selected color rack is empty
+
+RESULT_NN = 6 ' number of possible results
+
+
+
+REPLY_DATA[RESULT_OK] =       "OK" 
+
+REPLY_DATA[RESULT_READY] =    "READY"
+
+REPLY_DATA[RESULT_STOP] =     "STOP"
+
+REPLY_DATA[RESULT_BUSY] =     "BUSY"
+
+REPLY_DATA[RESULT_ERROR] =    "ERR"
+
+REPLY_DATA[RESULT_EMPTY] =    "EMPTY"
+
+
+
+' -------------------------------------------------------------------------------------------------------------------------
+
+MODULE_FRONT = 0
+
+MODULE_BACK = 1
+
+MODULE_ROOF = 2
+
+MODULE_CHASSIS = 3
+
+
+
+SLAVE_INBOX_NAME = "inbox"
+
+MASTER_INBOX[MODULE_FRONT] = "replyFront"
+
+MASTER_INBOX[MODULE_BACK] = "replyBack"
+
+MASTER_INBOX[MODULE_ROOF] = "replyRoof"
+
+replyInboxID = Vector.Init(3,0)
+
+useModule[MODULE_FRONT] = "True"
+
+useModule[MODULE_BACK] = "True"
+
+useModule[MODULE_ROOF] = "True"
+
+
+
+rBrickName = ""
+
+autoSlaveID = 0
+
+slaveInboxID = 0
+
+COMM_TIMEOUT = 500 'ms
+
+
+
+' ------------------------------------------------ SLAVE BRICK NAMES ---------------------------------------------
+
+' these must be indentical to actual brick names
+
+MASTER_BRICK_NAME = "CEA_master"
+
+BRICK_NAME[MODULE_FRONT] = "CEA_front"
+
+BRICK_NAME[MODULE_BACK] = "CEA_back"
+
+BRICK_NAME[MODULE_ROOF] = "CEA_roof"
+
+BRICK_NAME[MODULE_CHASSIS] = MASTER_BRICK_NAME
+
+
+
+' --------------------------------------------------------------------------------------------------------------------------
+
+
+
+Sub GetBrickName
+
+' The following line could be harmful and has been automatically commented.
+
+'   fid = EV3File.OpenRead("/home/root/lms2012/sys/settings/BrickName") ' EV3 filesystem tree
+
+' The following line could be harmful and has been automatically commented.
+
+'   rBrickName = EV3File.ReadLine(fid)
+
+  autoSlaveID = -1
+
+  For i = 0 To 2
+
+    If Text.IsSubText(rBrickName,BRICK_NAME[i]) Then
+
+      autoSlaveID = i
+
+    EndIf
+
+  EndFor  
+
+EndSub
+
+
+
+' ------------------------------------------------- MASTER -------------------------------------------------
+
+' NOTE: slaves should be already connected to master before starting the program
+
+Sub InitMasterCommunication
+
+  GetBrickName()
+
+  For i = 0 To 2
+
+    If (useModule[i]) Then
+
+      Mailbox.Connect(BRICK_NAME[i])
+
+    EndIf
+
+    replyInboxID[i] = Mailbox.Create(MASTER_INBOX[i])
+
+  EndFor
+
+EndSub
+
+
+
+pSlaveID = 0
+
+pRemoteCommand = ""
+
+pWaitReply = "True"
+
+
+
+rResult = RESULT_OK
+
+rInData = ""
+
+
+
+Sub ParseReply
+
+  rResult = RESULT_UNKNOWN
+
+  For i = 0 To RESULT_NN
+
+    If rInData = REPLY_DATA[i] Then
+
+      rResult = i
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub WaitReply
+
+  _start = EV3.Time 
+
+  _reply = "False"
+
+  rInData = ""
+
+  rResult = RESULT_TIMEOUT  
+
+  LCD.Text(1,0,70,1,"wait reply          ")
+
+  While (EV3.Time - _start)<COMM_TIMEOUT AND _reply = "False"
+
+    If Mailbox.IsAvailable(replyInboxID[pSlaveID]) Then
+
+      rInData = Mailbox.Receive(replyInboxID[pSlaveID])
+
+      _reply = "True"
+
+    EndIf
+
+  EndWhile
+
+  If _reply Then
+
+    LCD.Text(1,0,70,1,"rec: "+rInData+"      ")
+
+    ParseReply()
+
+  Else 
+
+    LCD.Text(1,0,70,1,"TIMEOUT!              ")
+
+  EndIf
+
+EndSub
+
+
+
+Sub SendCommand
+
+  Mailbox.Send(BRICK_NAME[pSlaveID], SLAVE_INBOX_NAME, pRemoteCommand)
+
+  If pWaitReply Then
+
+    WaitReply()
+
+  EndIf
+
+EndSub
+
+
+
+Sub GetSlaveStatus
+
+  Mailbox.Send(BRICK_NAME[pSlaveID], SLAVE_INBOX_NAME, CMD_GET_STATUS)
+
+  WaitReply()
+
+EndSub
+
+
+
+rPing = "False"
+
+Sub Ping
+
+  rPing = "False"
+
+  Mailbox.Send(BRICK_NAME[pSlaveID], SLAVE_INBOX_NAME, CMD_PING)
+
+  WaitReply()
+
+  If rResult = RESULT_OK Then
+
+    rPing = "True"
+
+    LCD.Text(1,0,85,1,"PING OK!             ")
+
+  EndIf
+
+EndSub
+
+
+
+' RK=xxx
+
+pRackReply = ""
+
+rRackParseResult = 0
+
+rSlaveRackOK = Vector.Init(3,0)
+
+rackFrontOK = Vector.Init(3,0)
+
+rackBackOK = Vector.Init(3,0)
+
+rackRoofOK = Vector.Init(3,0)
+
+
+
+Sub ParseRackStatus
+
+  _r = pRackReply
+
+  rRackParseResult = 1 ' OK
+
+  If Text.IsSubText(_r,"RK=") = "False" Or Text.GetLength(_r)<6 Then
+
+    rRackParseResult = 0 ' parse error
+
+  Else
+
+    LCD.Text(1,0,100,1,"rack reply: "+_r+"      ")
+
+    For i = 0 To 2
+
+      If Text.GetSubText(_r,4+i,1) = "1" Then
+
+        rSlaveRackOK[i] = 1
+
+      Else
+
+        rSlaveRackOK[i] = 0
+
+      EndIf
+
+    EndFor
+
+  Endif
+
+EndSub
+
+
+
+Sub GetRackStatus
+
+  If pSlaveID <> MODULE_CHASSIS Then ' remote module
+
+    Mailbox.Send(BRICK_NAME[pSlaveID], SLAVE_INBOX_NAME, CMD_GET_RACKS)
+
+    WaitReply()  
+
+    ParseRackStatus()
+
+  Else ' local racks have no color
+
+    rSlaveRackOK[0] = 1
+
+    rSlaveRackOK[1] = 1
+
+    rSlaveRackOK[2] = 1
+
+  EndIf
+
+EndSub
+
+
+
+Sub GetAllSlavesRackInfo
+
+  pSlaveID = MODULE_FRONT
+
+  GetRackStatus()
+
+  If (rRackParseResult>0) Then
+
+    rackFrontOK = rSlaveRackOK
+
+  EndIf
+
+  
+
+  pSlaveID = MODULE_BACK
+
+  GetRackStatus()
+
+  If (rRackParseResult>0) Then
+
+    rackBackOK = rSlaveRackOK
+
+  EndIf
+
+  
+
+  pSlaveID = MODULE_ROOF
+
+  GetRackStatus()
+
+  If (rRackParseResult>0) Then
+
+    rackRoofOK = rSlaveRackOK
+
+  EndIf  
+
+EndSub
+
+
+
+Sub WaitNextModule
+
+  _wait = "True"
+
+  While _wait
+
+    GetSlaveStatus()
+
+    If rResult <> RESULT_BUSY Then
+
+      _wait = "False"
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+
+
+' ============================================================================
+
+' ============================   MAIN PROGRAM ==================================
+
+' ============================================================================
+
+' ----------------------------------------------- STATE MACHINE CONSTANTS --------------------------------------------
+
+S_MISPLACED =   -3
+
+S_EMPTY_RACKS = -2
+
+S_COMM_ERR =    -1
+
+S_IDLE =         0
+
+S_INIT =          1
+
+S_INPUT =         2
+
+S_STOP =          3
+
+S_PICKPLACE =     4
+
+S_PREPARE_CONV =  5
+
+S_DELIVER_CAR =   6
+
+S_LOAD_CAR =      7
+
+
+
+' --------------------------------------------------------- INPUT/OUTPUT-----------------------------------------------------
+
+KEYPAD_PORT = 1
+
+MUX_PORT = 2
+
+SERVO_PORT = 3
+
+STOP_BUTTON_PORT = 4
+
+SERVO_POWER_PORT = "B"
+
+CONVEYOR = "C"
+
+
+
+MUX_PRESENCE_CHASSIS1 = MUX_SENSOR3
+
+MUX_PRESENCE_CHASSIS2 = MUX_SENSOR2
+
+MUX_PRESENCE_PLACED = MUX_SENSOR1
+
+
+
+' ----------------------------------------------- POSITIONING PARAMETERS -----------------------------------------------
+
+CONVEYOR_OFFSET = 22'22
+
+CONVEYOR_WAIT_CHASSIS = -515 + CONVEYOR_OFFSET 
+
+CONVEYOR_DELIVER_CAR = -1500 + CONVEYOR_OFFSET
+
+CONVEYOR_SCAN_LIMIT = -1050 + CONVEYOR_OFFSET
+
+CONVEYOR_WAIT_CAR = -230 + CONVEYOR_OFFSET
+
+
+
+' ----------------------------------------------------------- VARIABLES ---------------------------------------------------------
+
+moduleSequence[0] = MODULE_CHASSIS
+
+moduleSequence[1] = MODULE_FRONT
+
+moduleSequence[2] = MODULE_BACK
+
+moduleSequence[3] = MODULE_ROOF
+
+lastModule = 3
+
+
+
+status = S_INIT
+
+lastStatus = S_INIT
+
+statusBeforeError = S_INIT
+
+
+
+LCD_LINE_STATUS = 20
+
+LCD_LINE_DEBUG = 80
+
+
+
+' --------------------------------------------------------- SUB ROUTINES ------------------------------------------------------
+
+Sub WaitEnterBump
+
+  While Text.IsSubText(Buttons.Current, "E") = "True" 
+
+    Program.Delay(10)
+
+  EndWhile
+
+  While Text.IsSubText(Buttons.Current, "E") = "False" 
+
+    Program.Delay(10)
+
+  EndWhile
+
+EndSub
+
+
+
+Sub PlayAlarm 
+
+  Speaker.Play(100,MEDIA_PATH + "Error alarm")
+
+EndSub
+
+
+
+rChassisCheck = 0
+
+
+
+Sub CheckChassisPlacement 
+
+  pPort1 = CONVEYOR
+
+  pAng1 = CONVEYOR_SCAN_LIMIT
+
+  pWait1 = "False"
+
+  pSpeed1 = 30
+
+  pAccPercent1 = 10
+
+  if stopPressed = "False" Then
+
+    Motor.Move(pPort1, pSpeed1, 60, "True")
+
+    MoveAbs1() ' return at once
+
+  EndIf
+
+  
+
+  rChassisCheck = 0
+
+  wheelN = 0
+
+  While rChassisCheck = 0 
+
+    If (Math.Abs(Motor.GetCount(CONVEYOR)) >= Math.Abs(CONVEYOR_SCAN_LIMIT)) Then
+
+      ' conveyor moved the part all the way through the sensor but no part was detected
+
+      Motor.Stop(CONVEYOR,"True")
+
+      rChassisCheck = -1
+
+    EndIf
+
+    ' wait for white - black- white sequence
+
+    pSensorID = MUX_PRESENCE_PLACED
+
+    ReadMuxColorSensor()
+
+    'TextWindow.WriteLine("check: "+ rMuxData)
+
+    LCD.Text(1,0,LCD_LINE_DEBUG,1,"check:" + rMuxData+"    ")
+
+    If wheelN = 0  AND (rMuxData = COLOR_WHITE_CODE) Then ' first white wheel rim detected
+
+      Speaker.Tone(100, 2000, 100)
+
+      wheelN = 1
+
+    Elseif wheelN = 1 AND (rMuxData < COLOR_BLUE_CODE) Then ' wait dark chassis
+
+      wheelN = 2
+
+      Speaker.Tone(100, 1500, 100)
+
+    Elseif wheelN = 2 AND (rMuxData = COLOR_WHITE_CODE) Then ' second white wheel rim detected
+
+      Motor.Stop(CONVEYOR,"True")
+
+      Speaker.Tone(100, 2500, 100)
+
+      rChassisCheck = 1
+
+    EndIf
+
+    
+
+    If stopPressed Then
+
+      rChassisCheck = -2
+
+    EndIf    
+
+  EndWhile
+
+  Motor.Stop(CONVEYOR,"True")
+
+  'If rChassisCheck = -1 Then
+
+  '  pPort1 = CONVEYOR
+
+  '  pAng1 = CONVEYOR_WAIT_CHASSIS
+
+  '  pWait1 = "True"
+
+  '  pSpeed1 = 50
+
+  '  pAccPercent1 = 30
+
+  '  YellowLight()
+
+  '  PlayAlarm()
+
+  '  MoveAbs1()
+
+  'EndIf
+
+EndSub
+
+
+
+rCommOK = "True"
+
+rOfflineBrickNames = ""
+
+Sub CheckComm ' check if slave is connected and program is running
+
+  rCommOK = "True"
+
+  For s = 0 To 2
+
+    If useModule[s] Then ' don't check comm with modules that are not used
+
+      pSlaveID = s
+
+      Ping()
+
+      If rPing = "False" Then
+
+        rCommOK = "False"
+
+        rOfflineBrickNames = rOfflineBrickNames + BRICK_NAME[s] + " "
+
+        's = 3 ' works like break
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub ResetMovingParts
+
+  NXTServo_PORT = SERVO_PORT
+
+  NXTServo_POWER_PORT = SERVO_POWER_PORT
+
+  InitServos()
+
+  'If Sensor.ReadPercent(STOP_BUTTON_PORT)<50 Then ' skippable with STOP button for DEBUG
+
+  ' Reset the conveyors to the zero position
+
+  pResetConvMotorID1 = CONVEYOR
+
+  'Thread.Run = ResetConveyor1
+
+  ResetConveyor1()
+
+  ' conveyor motor parameters
+
+  pPort1 = CONVEYOR
+
+  pAng1 = CONVEYOR_WAIT_CHASSIS
+
+  pAccPercent1 = 30
+
+  pWait1 = "False"
+
+  pBrake1= "True"
+
+  pSpeed1 = 50
+
+  MoveAbs1()
+
+  'EndIf
+
+EndSub  
+
+
+
+Sub Initialize
+
+  LCD.Clear()
+
+  ' COMMUNICATION IS CRUCIAL
+
+  InitMasterCommunication()  
+
+  CheckComm()
+
+  If rCommOK = "False" Then ' try again
+
+    LCD.Text(1,0,LCD_LINE_STATUS+20,1,"trying again in 3s       ")
+
+    Program.Delay(3000)
+
+    CheckComm()
+
+    'LCD.Text(1,5,45,1,"                      ")
+
+  EndIf
+
+  'rCommOK = "True" ' uncomment to skip comm check
+
+  If rCommOK = "False" Then
+
+    PlayAlarm()
+
+    LCD.Text(1,5,LCD_LINE_STATUS,2,"COMM ERROR! ")
+
+    LCD.Text(1,5,LCD_LINE_STATUS+20,1,rOfflineBrickNames)
+
+    EV3.SetLEDColor("RED","NORMAL")
+
+    Program.Delay(2000)
+
+    Program.End()
+
+  EndIf
+
+  pMuxPort = MUX_PORT
+
+  InitMuxAllColor()
+
+  pKeyPadPort = KEYPAD_PORT
+
+  InitKeyPad()
+
+EndSub
+
+
+
+rEmptyRacks = "False"
+
+
+
+Sub PickAndPlace
+
+  rEmptyRacks = "False"
+
+  ' pick and place chassis from ramp1
+
+  pSensorID = MUX_PRESENCE_CHASSIS1
+
+  ReadMuxColorSensor()
+
+  If (rMuxData>0) Then ' there's a chassis in ramp 1
+
+    pSequenceToPlay = seqChassis1
+
+    pSequenceLength = seqChassis1Len
+
+    tweakingSeqName = "seqChassis1"
+
+    ExecuteSequence()
+
+  Else 
+
+    pSensorID = MUX_PRESENCE_CHASSIS2
+
+    ReadMuxColorSensor()
+
+    If (rMuxData>0) Then ' there's a chassis in ramp 2
+
+      pSequenceToPlay = seqChassis2
+
+      pSequenceLength = seqChassis2Len 
+
+      tweakingSeqName = "seqChassis2"
+
+      ExecuteSequence()
+
+    Else
+
+      rEmptyRacks = "True"
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub DeliverCar
+
+  pPort1 = CONVEYOR
+
+  pAng1 = CONVEYOR_DELIVER_CAR
+
+  pAccPercent1 = 30
+
+  pWait1 = "True"
+
+  pSpeed1 = 50
+
+  If stopPressed = "False" Then 
+
+    MoveAbs1() 
+
+    Thread.Run = RewindConveyor
+
+  EndIf
+
+EndSub
+
+
+
+Sub RewindConveyor
+
+  Program.Delay(1500)
+
+  pPort1 = CONVEYOR
+
+  pAng1 = CONVEYOR_WAIT_CHASSIS
+
+  pAccPercent1 = 30
+
+  pBrake1= "True"
+
+  pWait1 = "False"
+
+  pSpeed1 = 90
+
+  If stopPressed = "False" Then   
+
+    MoveAbs1()
+
+  EndIf    
+
+EndSub
+
+
+
+Sub LoadCar
+
+  pPort1 = CONVEYOR
+
+  pAng1 = CONVEYOR_WAIT_CHASSIS
+
+  pAccPercent1 = 30
+
+  pBrake1= "True"
+
+  pSpeed1 = 50
+
+  MoveAbs1()
+
+EndSub
+
+
+
+pCmd = ""
+
+pCmdColor = COLOR_NONE
+
+rCmdResult = RESULT_OK
+
+pModuleID = MODULE_CHASSIS
+
+
+
+Sub ManageCommandResult
+
+  If rCmdResult = RESULT_EMPTY Then ' a rack was empty
+
+    statusBeforeError = status
+
+    lastStatus = status
+
+    status = S_EMPTY_RACKS
+
+  ElseIf rCmdResult = RESULT_ERROR Then ' part was placed bad or color check failed
+
+    statusBeforeError = status
+
+    lastStatus = status
+
+    status = S_MISPLACED
+
+    'TextWindow.WriteLine("ManageCommandResult set status = S_MISPLACED")
+
+  ElseIf rCmdResult = RESULT_TIMEOUT Then ' comm error
+
+    statusBeforeError = status
+
+    lastStatus = status
+
+    status = S_COMM_ERR
+
+  ElseIf rCmdResult = RESULT_STOP Then 
+
+    statusBeforeError = status
+
+    lastStatus = status
+
+    'TextWindow.WriteLine("switch to STOP; last status = "+lastStatus)
+
+    status = S_STOP
+
+  ElseIf rCmdResult = RESULT_OK Then ' all went good
+
+    ' do not change status
+
+  EndIf  
+
+  'TextWindow.WriteLine("ManageCommandResult: "+REPLY_DATA[rCmdResult])
+
+EndSub
+
+
+
+' this represents an abstraction layer so that slave and master can share the same API.
+
+' this sub should wait for module to be ready, and then wait for command completion
+
+Sub ExecuteCommand
+
+  If pModuleID <> MODULE_CHASSIS Then 'remote  modules
+
+    pSlaveID = pModuleID
+
+    WaitNextModule()
+
+    pRemoteCommand = pCmd
+
+    SendCommand()
+
+    Program.Delay(100)
+
+    WaitNextModule()
+
+    rCmdResult = rResult
+
+  Else ' local (master) module
+
+    If Text.IsSubText(pCmd, CMD_PREPARE_CONVEYOR) Then
+
+      ' nothing to do
+
+      rCmdResult = RESULT_READY
+
+    ElseIf Text.IsSubText(pCmd, CMD_LOAD_CAR) Then 
+
+      pWait1 = "True"
+
+      LoadCar()
+
+      rCmdResult = RESULT_READY
+
+    ElseIf Text.IsSubText(pCmd, CMD_DELIVER) Then
+
+      DeliverCar()
+
+    ElseIf Text.IsSubText(pCmd, CMD_ASSEMBLE) Then ' check parts, pick-and-place, check placement, assemble, return to zero
+
+      PickAndPlace()
+
+      If rEmptyRacks Then
+
+        rCmdResult = RESULT_EMPTY
+
+      ElseIf rSequenceCompleted Then
+
+        CheckChassisPlacement()
+
+        FloatServos() ' save battery        
+
+        If rChassisCheck > 0 Then
+
+          rCmdResult = RESULT_READY
+
+        ElseIf rChassisCheck = -1 Then 
+
+          pWait1 = "False"
+
+          LoadCar()
+
+          rCmdResult = RESULT_ERROR
+
+        ElseIf rChassisCheck = -2 Then
+
+          rCmdResult = RESULT_STOP
+
+        EndIf
+
+      Else ' user interrupted pick and place
+
+        rCmdResult = RESULT_STOP
+
+      EndIf
+
+    EndIf ' pCmd switch
+
+    If stopPressed Then
+
+      rCmdResult = RESULT_STOP
+
+    EndIf
+
+  EndIf ' remote or local module
+
+EndSub
+
+
+
+Sub SetOrderFrontBack
+
+  moduleSequence[1] = MODULE_FRONT
+
+  moduleSequence[2] = MODULE_BACK
+
+EndSub
+
+
+
+Sub SetOrderBackFront
+
+  moduleSequence[1] = MODULE_BACK
+
+  moduleSequence[2] = MODULE_FRONT
+
+EndSub
+
+
+
+isBackFrontSet = "False"
+
+Sub ShowModuleSwappingMenu
+
+  LCD.Clear()
+
+  Speaker.Play(100,MEDIA_PATH + "Confirm")
+
+  LCD.Text(1,0,10,2,"  Select")
+
+  LCD.Text(1,0,30,2,"   order:")
+
+  LCD.Text(1,0,80,1,"Back->Front  ")
+
+  LCD.Text(1,0,95,1,"           Front->Back  ")
+
+  While isBackFrontSet = "False"
+
+    If Buttons.Current = "L" Then
+
+      SetOrderBackFront()
+
+      pPopUpStr = "Back>Front"
+
+      pPopUpFont = 2
+
+      ShowPopUpMessage()
+
+      isBackFrontSet = "True"
+
+    ElseIf Buttons.Current ="R" Then
+
+      SetOrderFrontBack()
+
+      pPopUpStr = "Front>Back"
+
+      pPopUpFont = 2
+
+      ShowPopUpMessage()
+
+      isBackFrontSet = "True"
+
+    EndIf
+
+  EndWhile
+
+  Program.Delay(1000)
+
+EndSub
+
+
+
+Sub ShowEmptyRackGUI
+
+  PlayAlarm()
+
+  YellowLight()
+
+  LCD.Clear()
+
+  _cet = ""
+
+  If rSlaveRackOK[COLOR_RED-1] = 0 Then
+
+    _cet = _cet + "RED "
+
+  EndIf
+
+  If rSlaveRackOK[COLOR_WHITE-1] = 0 Then
+
+    _cet = _cet + "WHITE "
+
+  EndIf
+
+  If rSlaveRackOK[COLOR_BLUE-1] = 0 Then
+
+    _cet = _cet + "BLUE "     
+
+  EndIf
+
+  LCD.Text(1,0,LCD_LINE_STATUS,2,"EMPTY RACK! ")
+
+  LCD.Text(1,0,LCD_LINE_STATUS+20,1,"( "+_cet+")  ")
+
+  LCD.Text(1,5,LCD_LINE_STATUS+35,1,"Refill & press Enter ")
+
+EndSub
+
+
+
+Sub ShowMisplacedPartGUI 
+
+  PlayAlarm()
+
+  YellowLight()
+
+  LCD.Clear()
+
+  LCD.Text(1,5,10,2,"PLACEMENT ")
+
+  LCD.Text(1,5,30,2,"ERROR! ")
+
+  LCD.Text(1,5,50,1,"Press Enter ")
+
+  LCD.Text(1,5,65,1,"when ready    ")
+
+EndSub
+
+
+
+Sub ShowStopGUI
+
+  PlayAlarm()
+
+  RedLight()
+
+  LCD.Clear()
+
+  LCD.Text(1,5,LCD_LINE_STATUS,2,"STOPPED ")
+
+  If pModuleID = MODULE_CHASSIS Then 
+
+    LCD.Text(1,5,LCD_LINE_STATUS+20,1,"Press Enter ")
+
+    LCD.Text(1,5,LCD_LINE_STATUS+35,1,"when ready    ")
+
+  Else 
+
+    LCD.Text(1,5,LCD_LINE_STATUS+20,1,BRICK_NAME[pModuleID])
+
+  EndIf
+
+EndSub
+
+
+
+pPopUpStr = ""
+
+pPopUpFont = 1
+
+Sub ShowPopUpMessage
+
+  LCD_W = 178
+
+  LCD_H = 128
+
+  _fw = 8
+
+  _fh = 9
+
+  If pPopUpFont = 0 Or pPopUpFont = 1 Then
+
+    _fw = 8
+
+    _fh = 9
+
+    _OS = 4
+
+  Else ' large font
+
+    _fw = 16
+
+    _fh = 16
+
+    _OS = 6
+
+  EndIf
+
+  strw = Text.GetLength(pPopUpStr)*_fw
+
+  _xt = (LCD_W-strw)/2
+
+  _yt = (LCD_H-_fh)/2
+
+  _xf = (LCD_W-strw-_OS)/2
+
+  _yf = (LCD_H-_fh-_OS)/2
+
+  LCD.FillRect(1,_xf+_OS,_yf+_OS,strw+_OS,_fh+_OS)
+
+  LCD.FillRect(0,_xf,_yf,strw+_OS,_fh+_OS)
+
+  LCD.Rect(1,_xf,_yf,strw+_OS,_fh+_OS)
+
+  LCD.Text(1,_xt,_yt,pPopUpFont,pPopUpStr) 
+
+EndSub
+
+
+
+Sub ComputeOffsetForDifferentPusherSize
+
+  While "True"
+
+    pPort1 = CONVEYOR
+
+    pAng1 = CONVEYOR_SCAN_LIMIT
+
+    pWait1 = "False"
+
+    pSpeed1 = 10
+
+    pAccPercent1 = 0
+
+    MoveAbs1() ' return at once
+
+    
+
+    found = "False"
+
+    
+
+    While found = "False"
+
+      pSensorID = MUX_PRESENCE_PLACED
+
+      ReadMuxColorSensor()
+
+      if rMuxData = 7 Then
+
+        Motor.Stop(CONVEYOR,"True")
+
+        Motor.ResetCount(CONVEYOR)
+
+        found = "True"
+
+      EndIf
+
+    EndWhile
+
+    Program.Delay(500)
+
+    pResetConvMotorID1 = CONVEYOR
+
+    'Thread.Run = ResetConveyor1
+
+    ResetConveyor1()
+
+    Buttons.Wait()
+
+    Buttons.Flush()
+
+  EndWhile
+
+EndSub
+
+
+
+Sub StandAloneServoTest
+
+  useModule[MODULE_FRONT] = "False"
+
+  useModule[MODULE_BACK] = "False"
+
+  useModule[MODULE_ROOF] = "False"
+
+  
+
+  Initialize()
+
+  If Buttons.Current = "E" Then
+
+    ResetMovingParts()
+
+  Else
+
+    NXTServo_PORT = SERVO_PORT
+
+    NXTServo_POWER_PORT = SERVO_POWER_PORT
+
+    InitServos()
+
+    Motor.ResetCount(CONVEYOR)
+
+  EndIf
+
+  
+
+  While "True"
+
+    LCD.Clear()
+
+    LCD.Text(1,0,100,2,"CH1     CH2")
+
+    Buttons.Wait()
+
+    If Buttons.Current = "L" Then
+
+      'LoadCar()
+
+      pSequenceToPlay = seqChassis1
+
+      pSequenceLength = seqChassis1Len
+
+      tweakingSeqName = "seqChassis1"
+
+    EndIf
+
+    If Buttons.Current = "R" Then
+
+      'LoadCar()
+
+      pSequenceToPlay = seqChassis2
+
+      pSequenceLength = seqChassis2Len 
+
+      tweakingSeqName = "seqChassis2"
+
+    EndIf
+
+    ExecuteSequence()
+
+    Buttons.Flush()
+
+  EndWhile
+
+EndSub
+
+
+
+
+
+
+
+' --------------------------------------------------------- STATE MACHINE ---------------------------------------------------------
+
+status = S_INIT
+
+lastStatus = S_INIT
+
+statusBeforeError = S_INIT
+
+stopPressed = "False"
+
+currentModule = 0
+
+pCarColors = Vector.Init(4,COLOR_NONE)
+
+nbCar=10
+
+'configure 10 cars
+
+'COLOR_NAMES[0] = "None"
+
+'COLOR_NAMES[1] = "Red"
+
+'COLOR_NAMES[2] = "White"
+
+'COLOR_NAMES[3] = "Blue"
+
+NONE = 0
+
+RED = 1
+
+WHITE = 2
+
+BLUE = 3
+
+
+
+
+
+ROOF[1]=WHITE
+
+ROOF[2]=BLUE
+
+ROOF[3]=BLUE
+
+ROOF[4]=BLUE
+
+ROOF[5]=WHITE
+
+ROOF[6]=RED
+
+ROOF[7]=RED
+
+ROOF[8]=WHITE
+
+ROOF[9]=RED
+
+ROOF[10]=BLUE
+
+
+
+BACK[1]=BLUE
+
+BACK[2]=WHITE
+
+BACK[3]=RED
+
+BACK[4]=RED
+
+BACK[5]=WHITE
+
+BACK[6]=BLUE
+
+BACK[7]=WHITE
+
+BACK[8]=WHITE
+
+BACK[9]=RED
+
+BACK[10]=WHITE
+
+
+
+FRONT[1]=RED
+
+FRONT[2]=RED
+
+FRONT[3]=WHITE
+
+FRONT[4]=BLUE
+
+FRONT[5]=RED
+
+FRONT[6]=RED
+
+FRONT[7]=BLUE
+
+FRONT[8]=WHITE
+
+FRONT[9]=RED
+
+FRONT[10]=BLUE
+
+
+
+
+
+
+
+CMD_ASSEMBLE_COLOR[0] = "N" ' None (valid only for roof)
+
+CMD_ASSEMBLE_COLOR[1] = "R" 'Red
+
+CMD_ASSEMBLE_COLOR[2] = "W" 'White
+
+CMD_ASSEMBLE_COLOR[3] = "B" ' Blue
+
+
+
+
+
+'=================================DEBUG 
+
+'StandAloneServoTest()
+
+'=================================DEBUG 
+
+
+
+
+
+Initialize() ' this also checks communication, and stops the program if remote modules are not responding
+
+ShowModuleSwappingMenu()
+
+Thread.Run = CheckStopButton
+
+
+
+While "True"
+
+  If nbCar=0 Then
+
+    Program.End()
+
+    
+
+  ElseIf status = S_INIT Then
+
+    LCD.Clear()
+
+    LCD.Text(1,0,LCD_LINE_STATUS,2,"Init...        ")
+
+    ResetMovingParts()
+
+    GreenLight()
+
+    FloatServos()
+
+    lastStatus = status
+
+    status = S_INPUT
+
+    
+
+  ElseIf status = S_INPUT Then ' test routines or option menus can be activated from here
+
+    If status <> lastStatus Then ' execute once 
+
+      FloatServos()
+
+      YellowLight()
+
+      lastStatus = status
+
+      ' reset car configuration (comment to save last input)
+
+      'pCarFront = COLOR_NONE
+
+      'pCarRoof = COLOR_NONE
+
+      'pCarBack = COLOR_NONE
+
+    EndIf
+
+    
+
+    rColorChosen = "True"
+
+    pCarBack=BACK[nbCar]
+
+    pCarFront=FRONT[nbCar]
+
+    pCarRoof=ROOF[nbCar]
+
+    nbCar=nbCar-1
+
+    'ChooseColors() 
+
+    
+
+    If Buttons.Current = "L" Then
+
+      'Speaker.Play(100, MEDIA_PATH + "Click") 
+
+      Speaker.Tone(100,2000,100)
+
+      moduleSequence[1] = MODULE_BACK
+
+      moduleSequence[2] = MODULE_FRONT
+
+      pPopUpStr = "Back>Front"
+
+      pPopUpFont = 2
+
+      ShowPopUpMessage()
+
+      Program.Delay(1000)
+
+    ElseIf Buttons.Current ="R" Then
+
+      'Speaker.Play(100, MEDIA_PATH + "Click") 
+
+      Speaker.Tone(100,2500,100)
+
+      moduleSequence[1] = MODULE_FRONT
+
+      moduleSequence[2] = MODULE_BACK
+
+      pPopUpStr = "Front>Back"
+
+      pPopUpFont = 2
+
+      ShowPopUpMessage()
+
+      Program.Delay(1000)      
+
+    EndIf
+
+    Program.Delay(100)
+
+    
+
+    If rColorChosen Then
+
+      status = S_PICKPLACE
+
+      currentModule = 0 ' start building from first module (chassis)
+
+      Speaker.Play(100, MEDIA_PATH + "Confirm")       
+
+      LCD.Clear()
+
+      pCarColors[MODULE_FRONT] = pCarFront
+
+      pCarColors[MODULE_BACK] = pCarBack
+
+      pCarColors[MODULE_ROOF] = pCarRoof
+
+      pCarColors[MODULE_CHASSIS] = COLOR_NONE     
+
+    EndIf
+
+    
+
+    ' currentModule counter determines which module is working (could be this one or a slave)
+
+    ' ExecuteCommand() provides an abstraction layer, and a common API for local functions and remote functions
+
+  ElseIf status = S_PICKPLACE Then 
+
+    GreenLight()
+
+    pModuleID = moduleSequence[currentModule] 
+
+    _color = pCarColors[pModuleID]
+
+    pCmd = CMD_ASSEMBLE + CMD_ASSEMBLE_COLOR[_color]
+
+    LCD.Clear()
+
+    LCD.Text(1,0,LCD_LINE_STATUS,2,"Pick place...      ")
+
+    LCD.Text(1,0,LCD_LINE_STATUS+20,1,BRICK_NAME[pModuleID]+ "      ")       
+
+    ExecuteCommand()
+
+    ManageCommandResult()'  if there was an error, this also changes state machine status
+
+    'TextWindow.WriteLine("Pick and Place, module "+BRICK_NAME[pModuleID])
+
+    'TextWindow.WriteLine("status= "+status)
+
+    If rCmdResult = RESULT_READY  Then
+
+      lastStatus = status
+
+      If (currentModule = lastModule) Then ' next status 
+
+        status = S_DELIVER_CAR
+
+      Else
+
+        status = S_PREPARE_CONV 
+
+      EndIf
+
+    EndIf
+
+    
+
+  ElseIf status = S_PREPARE_CONV Then
+
+    LCD.Clear()
+
+    LCD.Text(1,0,LCD_LINE_STATUS,2,"Prepare Conveyor...      ")
+
+    LCD.Text(1,0,LCD_LINE_STATUS+20,1,BRICK_NAME[pModuleID]+ "      ")
+
+    pModuleID = moduleSequence[currentModule+1] 
+
+    pCmd = CMD_PREPARE_CONVEYOR
+
+    'TextWindow.WriteLine("PREPARE NEXT CONVEYOR, module "+BRICK_NAME[pModuleID])
+
+    ExecuteCommand()
+
+    lastStatus = status
+
+    status = S_DELIVER_CAR
+
+    ManageCommandResult()'  if there was an error, this also changes state machine status      
+
+    
+
+  ElseIf status = S_DELIVER_CAR Then
+
+    LCD.Clear()
+
+    LCD.Text(1,0,LCD_LINE_STATUS,2,"Deliver car...      ")
+
+    LCD.Text(1,0,LCD_LINE_STATUS+20,1,BRICK_NAME[pModuleID]+ "      ")    
+
+    pModuleID = moduleSequence[currentModule] 
+
+    pCmd = CMD_DELIVER
+
+    'TextWindow.WriteLine("DELIVER CAR, module "+BRICK_NAME[pModuleID])
+
+    ExecuteCommand()
+
+    ManageCommandResult()'  if there was an error, this also changes state machine status            
+
+    If rCmdResult = RESULT_READY  Then
+
+      lastStatus = status
+
+      If (currentModule = lastModule) Then ' next status 
+
+        status = S_INPUT ' on last module, restart after delivery
+
+      Else
+
+        status = S_LOAD_CAR 
+
+      EndIf
+
+    EndIf
+
+    
+
+  ElseIf status = S_LOAD_CAR Then
+
+    LCD.Clear()
+
+    LCD.Text(1,0,LCD_LINE_STATUS,2,"Load car...      ")
+
+    LCD.Text(1,0,LCD_LINE_STATUS+20,1,BRICK_NAME[pModuleID]+ "      ")        
+
+    pModuleID = moduleSequence[currentModule+1] 
+
+    pCmd = CMD_LOAD_CAR
+
+    ExecuteCommand()
+
+    lastStatus = status
+
+    'TextWindow.WriteLine("LOAD CAR, module "+BRICK_NAME[pModuleID])
+
+    ManageCommandResult()'  if there was an error, this also changes state machine status            
+
+    If rCmdResult = RESULT_READY Then
+
+      status = S_PICKPLACE
+
+      currentModule = currentModule + 1 ' loop restarts 
+
+      ' ============================================ DEBUG
+
+      'LCD.Text(1,0,LCD_LINE_DEBUG,2,"DBG PAUSE    ")
+
+      'dWaitEnterBump()
+
+    EndIf
+
+    
+
+  ElseIf status = S_IDLE Then
+
+    Program.Delay(200)
+
+    
+
+  ElseIf status = S_STOP Then  
+
+    If status <> lastStatus Then
+
+      ShowStopGUI()
+
+      lastStatus = status 
+
+    EndIf
+
+    ' recover from error
+
+    If pModuleID = MODULE_CHASSIS Then ' if error is local, press ENTER on master
+
+      If Text.IsSubText(Buttons.Current, "E") = "True" Then
+
+        stopPressed = "False" ' rearm stop button
+
+        status = S_INIT ' reset from unknown status
+
+      EndIf    
+
+    Else ' if slave stopped, poll slave for status READY
+
+      pSlaveID = pModuleID ' module that was stopped
+
+      GetSlaveStatus()
+
+      If rResult = RESULT_TIMEOUT Then
+
+        status = S_COMM_ERR
+
+      ElseIf rResult = RESULT_READY Then ' error recovered on slave
+
+        status = S_INPUT
+
+      EndIf
+
+    EndIf
+
+    
+
+  ElseIf status = S_EMPTY_RACKS Then  
+
+    If status <> lastStatus Then
+
+      pSlaveID = pModuleID
+
+      GetRackStatus()
+
+      ShowEmptyRackGUI()
+
+      lastStatus = status 
+
+    EndIf
+
+    ' recover from error
+
+    If pModuleID = MODULE_CHASSIS Then ' if error is local, press ENTER on master
+
+      If Text.IsSubText(Buttons.Current, "E") = "True" Then
+
+        status = statusBeforeError
+
+      EndIf    
+
+    Else ' if error is on slave, poll slave for status READY
+
+      pSlaveID = pModuleID ' module that caused the error
+
+      GetSlaveStatus()
+
+      If rResult = RESULT_TIMEOUT Then
+
+        status = S_COMM_ERR
+
+      ElseIf rResult <> RESULT_EMPTY Then ' error recovered on slave
+
+        status = statusBeforeError
+
+      EndIf
+
+    EndIf
+
+    
+
+  ElseIf status = S_MISPLACED Then  
+
+    If status <> lastStatus Then
+
+      ShowMisplacedPartGUI()
+
+      lastStatus = status 
+
+    EndIf
+
+    ' recover from error
+
+    If pModuleID = MODULE_CHASSIS Then ' if error is local, press ENTER on master
+
+      If Text.IsSubText(Buttons.Current, "E") = "True" Then
+
+        status = statusBeforeError
+
+      EndIf    
+
+    Else ' if error is on slave, poll slave for status READY
+
+      pSlaveID = pModuleID ' module that caused the error
+
+      GetSlaveStatus()
+
+      If rResult = RESULT_TIMEOUT Then
+
+        status = S_COMM_ERR
+
+      ElseIf rResult = RESULT_STOP Then ' error recovered on slave
+
+        status = S_STOP
+
+      ElseIf rResult = RESULT_READY Then
+
+        status = statusBeforeError
+
+      EndIf
+
+    EndIf
+
+    
+
+  ElseIf status = S_COMM_ERR Then 
+
+    If status <> lastStatus Then
+
+      YellowLight()
+
+      LCD.Clear()
+
+      LCD.Text(1,5,LCD_LINE_STATUS,2,"COMM ERROR ")
+
+      LCD.Text(1,5,LCD_LINE_STATUS+20,1,BRICK_NAME[pSlaveID])
+
+      LCD.Text(1,5,LCD_LINE_STATUS+40,1,"Press Enter ")
+
+      LCD.Text(1,5,LCD_LINE_STATUS+60,1,"when ready    ")
+
+      lastStatus = status 
+
+    EndIf
+
+    If Text.IsSubText(Buttons.Current, "E") = "True" Then
+
+      status = S_INPUT 
+
+    EndIf    
+
+  EndIf ' end state machine switch
+
+  
+
+EndWhile
+
+
+
+
+
+' ============================================================================
+
+' ================================   OTHER TASKS ================================
+
+' ============================================================================
+
+
+
+Sub ResetConveyor1
+
+  rResetConveyorBusy1 = "True"
+
+  Motor.StartPower(pResetConvMotorID1,-40)
+
+  Program.Delay(500)
+
+  Motor.StartPower(pResetConvMotorID1,30)
+
+  Program.Delay(200)
+
+  While Motor.GetSpeed(pResetConvMotorID1)>0
+
+    '  LCD.Text(1,10,5,2, "spd  "+Motor.GetSpeed(pResetConvMotorID))
+
+    Program.Delay(30)
+
+  EndWhile
+
+  Motor.Stop(pResetConvMotorID1,"True")
+
+  Motor.Move(pResetConvMotorID1,-20,20,"True")
+
+  Program.Delay(100)
+
+  'LCD.Text(1,5,20,2,Motor.GetCount(pResetConvMotorID1))
+
+  Motor.ResetCount(pResetConvMotorID1)
+
+  Motor.Stop(pResetConvMotorID1,"False")
+
+  'Speaker.Tone(100,2000,100)
+
+  rResetConveyorBusy1 = "False"
+
+EndSub
+
+
+
+Sub CheckStopButton
+
+  While "True"
+
+    If Sensor.ReadPercent(STOP_BUTTON_PORT)>50 Then
+
+      stopPressed = "True"
+
+      FloatServos()
+
+      Motor.Stop(CONVEYOR,"False")
+
+    EndIf
+
+    Program.Delay(50)
+
+  EndWhile
+
+EndSub
+
+

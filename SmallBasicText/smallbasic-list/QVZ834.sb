@@ -1,0 +1,821 @@
+'A3 cipher
+
+'Programmer Amir Rke
+
+'https:facebook.com/incredibleamir
+
+'_______________________________________________________
+
+'#################Show Graphics window######################
+
+'----------------------------------------------------------------------------------------------- 
+
+onLoad()
+
+Sub init
+
+init_Vars()
+
+gww = 600
+
+gwh = 400
+
+GraphicsWindow.Width = gww
+
+GraphicsWindow.Height = gwh
+
+GraphicsWindow.CanResize = 0
+
+GraphicsWindow.Title = "A3 Cipher By Amir Version 1.0"
+
+GraphicsWindow.Show()
+
+'-----------------------------------------------------------------------------------------------
+
+
+
+'_______________________________________________________
+
+'################Add Controls##############################
+
+'-----------------------------------------------------------------------------------------------
+
+'**********************Main Text  Box***************************************
+
+GraphicsWindow.BrushColor = "Black"
+
+GraphicsWindow.FontBold = "False"
+
+GraphicsWindow.FontSize = 15
+
+textBoxMain = Controls.AddMultiLineTextBox(10,10)
+
+Controls.SetSize(textBoxMain,gww-20,gwh-70)
+
+GraphicsWindow.FontSize = 20
+
+GraphicsWindow.FontBold = "True"
+
+textBoxKey = Controls.AddTextBox(10,gwh-50)
+
+Controls.SetSize(textBoxKey,300,30)
+
+GraphicsWindow.FontSize = 12
+
+GraphicsWindow.BrushColor = "DarkBlue"
+
+'-----------------------------------------------------------------------------------------------
+
+
+
+'_______________________________________________________
+
+'################Add Buttons###############################
+
+'-----------------------------------------------------------------------------------------------
+
+enCryptBtn = Controls.AddButton("Encrypt",320,gwh-50)
+
+deCryptBtn = Controls.AddButton("Decrypt",392,gwh-50)
+
+openFileBtn = Controls.AddButton("Open File",464,gwh-50)
+
+exitBtn = Controls.AddButton("Save",545,gwh-50)
+
+
+
+'_______________________________________________________
+
+'##################Progress lables##########################
+
+'----------------------------------------------------------------------------------------------
+
+GraphicsWindow.DrawText(10,gwh-15,"Process : ")
+
+process = Shapes.AddText(0)
+
+Shapes.Move(process,70,gwh-15)
+
+GraphicsWindow.DrawText(100,gwh-15,"Progress : ")
+
+progress = Shapes.AddText("0 %")
+
+Shapes.Move(progress,165,gwh-15)
+
+GraphicsWindow.DrawText(355,gwh-15,"Press 'F1' to generate random keyword")
+
+EndSub
+
+'-----------------------------------------------------------------------------------------------
+
+
+
+'_______________________________________________________
+
+'##################Variable initialization######################
+
+'-----------------------------------------------------------------------------------------------
+
+Sub init_Vars
+
+'handle ascii values outside of range
+
+offset[1] = 0
+
+mod[offset[1]] = 0
+
+'handle ascii values between 65-90
+
+offset[2] = 65
+
+mod[offset[2]] = 26
+
+'handle ascii values between 97-122
+
+offset[3] = 97
+
+mod[offset[3]] = 26
+
+'handle ascii values between 48-57
+
+offset[4] = 48
+
+mod[offset[4]] = 10
+
+'handle ascii values between 0-47
+
+offset[5] = 0
+
+mod[offset[5]] = 48
+
+'hansle ascii values between 91-96
+
+offset[6] = 91
+
+mod[offset[6]] = 6
+
+'handle ascii values between 58-64
+
+offset[7] = 7
+
+mod[offset[7]] = 7
+
+'handle ascii values 123 - 127
+
+offset[8] = 123
+
+mod[offset[8]] = 5
+
+i = 1
+
+count = 1
+
+keyword = ""
+
+EndSub
+
+'-----------------------------------------------------------------------------------------------
+
+
+
+'________________________________________________________
+
+'##################Progress Show#############################
+
+Sub updatePro
+
+  If argue =  "" Then
+
+    Shapes.SetText(progress,Math.Round((i*100)/stringLenght)+" %")
+
+    EndIf
+
+EndSub
+
+Sub updateProcess
+
+  If argue = "" Then
+
+    Shapes.SetText(process,j)
+
+    EndIf
+
+EndSub
+
+'-------------------------------------------------------------------------------------------------
+
+
+
+'_______________________________________________________
+
+'##################Event Handler###########################
+
+'-----------------------------------------------------------------------------------------------
+
+Controls.ButtonClicked = onClick
+
+GraphicsWindow.KeyDown = keyDown
+
+'-----------------------------------------------------------------------------------------------
+
+
+
+'________________________________________________________
+
+'######################Key Dots############################
+
+' under development
+
+'-------------------------------------------------------------------------------------------------
+
+
+
+'________________________________________________________
+
+'###################Button Click Handler#######################
+
+'-------------------------------------------------------------------------------------------------
+
+Sub onCLick
+
+  lastCliked = Controls.LastClickedButton
+
+  If lastCliked = "Button1" Then
+
+    getKeyString()
+
+    If keyLenght <> 0 And stringLenght <> 0 Then
+
+      repeatKey()
+
+      ciPher()
+
+      outPut()
+
+      saveKey()
+
+  Else
+
+    sHowError()
+
+    EndIf
+
+  ElseIf lastCliked = "Button2" Then
+
+    getKeyString()
+
+    If keyLenght <> 0 And stringLenght <> 0 Then
+
+      repeatKey()
+
+      deCipher()
+
+      outPut()
+
+      saveKey()
+
+    Else
+
+      sHowError()
+
+    EndIf
+
+  ElseIF lastCliked = "Button3" Then
+
+    openFile()
+
+  ElseIF lastCliked = "Button4" Then
+
+    getKeyString()
+
+    If keyLenght <> 0 And stringLenght <> 0 Then
+
+      saveFile()
+
+    Else
+
+      sHowError()
+
+      EndIf
+
+  EndIf
+
+EndSub
+
+'---------------------------------------------------------------------------------------------------
+
+
+
+'__________________________________________________________
+
+'#################File Open Event Handler########################
+
+'----------------------------------------------------------------------------------------------------
+
+Sub openFile
+
+  filepath = LDDialogs.OpenFile("txt")
+
+' The following line could be harmful and has been automatically commented.
+
+'   fileData = File.ReadContents(filepath)
+
+  Controls.SetTextBoxText(textBoxMain,fileData)
+
+EndSub
+
+'-----------------------------------------------------------------------------------------------------
+
+
+
+'___________________________________________________________
+
+'#####################File save ivent handler######################
+
+'-----------------------------------------------------------------------------------------------------
+
+Sub saveFile
+
+  fileData = Controls.GetTextBoxText(textBoxMain)
+
+  filepath = LDDialogs.SaveFile("txt")
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(filepath,fileData)
+
+EndSub
+
+'------------------------------------------------------------------------------------------------------
+
+
+
+'___________________________________________________________
+
+'#######################Encryption############################
+
+'-----------------------------------------------------------------------------------------------------
+
+Sub ciPher
+
+  j = 2
+
+  updateProcess()
+
+  For i = 1 To stringLenght
+
+    updatePro()
+
+    getKeyChar()
+
+    getStringChar()
+
+    If stringChar >= 0 And stringChar <= 47 Then
+
+      enCryptChar()
+
+      appendChar()
+
+    Else
+
+      appendChar()
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+'------------------------------------------------------------------------------------------------------
+
+
+
+'___________________________________________________________
+
+'#################Decryption##################################
+
+'------------------------------------------------------------------------------------------------------
+
+Sub deCipher
+
+  j = 2
+
+  updateProcess()
+
+  For i = 1 To stringLenght
+
+    updatePro()
+
+    getKeyChar()
+
+    getStringChar()
+
+    If stringChar >= 0 And stringChar <= 47 Then
+
+      deCryptChar()
+
+      cHeck()
+
+      appendChar()
+
+    Else
+
+      appendChar()
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+'-------------------------------------------------------------------------------------------------------
+
+
+
+'____________________________________________________________
+
+'######################Get Character  from  key#####################
+
+'-------------------------------------------------------------------------------------------------------
+
+Sub getKeyChar
+
+  keyChar = Text.GetCharacterCode(Text.GetSubText(keyword,i,1))
+
+  If keyChar >= 65 And keyChar <= 90 Then
+
+    valk = 2
+
+  ElseIf keyChar >= 97 And keyChar <= 122 Then
+
+    valk = 3
+
+  ElseIf keyChar >= 48 And keyChar  <= 57 Then
+
+    valk = 4
+
+    EndIf
+
+  keyChar = keyChar - offset[valk]
+
+EndSub
+
+'---------------------------------------------------------------------------------------------------------
+
+
+
+'_____________________________________________________________
+
+'#####################Get Character from String######################
+
+'---------------------------------------------------------------------------------------------------------
+
+Sub getStringChar
+
+  stringChar = Text.GetCharacterCode(Text.GetSubText(string,i,1))
+
+  If stringChar >= 65 And stringChar <= 90 Then
+
+    vals = 2
+
+  ElseIf stringChar >= 97 And stringChar <= 122 Then
+
+    vals = 3
+
+  ElseIf stringChar >= 48 And stringChar <= 57 Then
+
+    vals = 4
+
+  ElseIf stringChar >= 0 And stringChar <= 47 Then
+
+    vals = 5
+
+  ElseIf stringChar >= 91 And stringChar <= 96 Then
+
+    vals = 6
+
+  ElseIf stringChar >= 58 And stringChar <= 64 Then
+
+    vals = 7
+
+  ElseIf stringChar >= 123 And stringChar <= 127 Then
+
+    vals = 8
+
+    EndIf
+
+  stringChar = stringChar - offset[vals]
+
+EndSub
+
+'------------------------------------------------------------------------------------------------------------
+
+
+
+'_______________________________________________________________
+
+'#####################Encrytp Character#############################
+
+'------------------------------------------------------------------------------------------------------------
+
+Sub enCryptChar
+
+  enchar =  Math.Remainder(keychar+stringChar,mod[offset[vals]]) + offset[vals]
+
+EndSub
+
+'------------------------------------------------------------------------------------------------------------
+
+
+
+'_______________________________________________________________
+
+'####################Decrypt Char##################################
+
+'-------------------------------------------------------------------------------------------------------------
+
+Sub deCryptChar
+
+  enchar =  Math.Remainder(stringChar - keyChar,mod[offset[vals]]) + offset[vals]
+
+EndSub
+
+'-------------------------------------------------------------------------------------------------------------
+
+
+
+'________________________________________________________________
+
+'######################Append Characters############################
+
+'--------------------------------------------------------------------------------------------------------------
+
+Sub appendChar
+
+    If stringChar >= 0 And stringChar <= 47 Then
+
+    enstring = Text.Append(enstring,Text.GetCharacter(enchar))
+
+  Else
+
+    enstring = Text.Append(enstring,Text.GetCharacter(stringChar + offset[vals]))
+
+  EndIf
+
+EndSub
+
+'---------------------------------------------------------------------------------------------------------------
+
+
+
+'_________________________________________________________________
+
+'######################Repeat the key#################################
+
+'----------------------------------------------------------------------------------------------------------------
+
+Sub repeatKey
+
+  j = 1
+
+  updateProcess()
+
+  init_Vars()
+
+  While Text.GetLength(keyword)  < stringLenght
+
+    If count > keyLenght Then
+
+      count = 1
+
+    EndIf
+
+    keyLetter = Text.GetSubText(key,count,1)
+
+    keyword = keyword + keyLetter
+
+    count = count + 1
+
+    i = i + 1
+
+    updatePro()
+
+  EndWhile
+
+  keyLenght = Text.GetLength(keyword)
+
+EndSub
+
+'---------------------------------------------------------------------------------------------------------------
+
+
+
+'_________________________________________________________________
+
+'#################Decrypter offset Check################################
+
+'---------------------------------------------------------------------------------------------------------------
+
+Sub cHeck
+
+  If enchar < offset[vals] Then
+
+    enchar = enchar + mod[offset[vals]]
+
+  EndIf
+
+EndSub
+
+'----------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+'_________________________________________________________________
+
+'##############Get key and string from text boxes###########################
+
+'----------------------------------------------------------------------------------------------------------------
+
+Sub getKeyString
+
+  If argue <> "" Then
+
+    key = arguekey
+
+    string = argustring
+
+  Else
+
+    key = Controls.GetTextBoxText(textBoxKey)
+
+    string = Controls.GetTextBoxText(textBoxMain)
+
+  EndIf
+
+  keyLenght = Text.GetLength(key)
+
+  stringLenght = Text.GetLength(string)
+
+EndSub
+
+
+
+'------------------------------------------------------------------------------------------------------------------
+
+
+
+'___________________________________________________________________
+
+'###########Print The final output into the textbox##############################
+
+'-------------------------------------------------------------------------------------------------------------------
+
+Sub outPut
+
+  Controls.SetTextBoxText(textBoxMain,enstring)
+
+  enstring = ""
+
+EndSub
+
+'--------------------------------------------------------------------------------------------------------------------
+
+
+
+'____________________________________________________________________
+
+'################Show error if fiels are empty################################
+
+'---------------------------------------------------------------------------------------------------------------------
+
+Sub sHowError
+
+  GraphicsWindow.ShowMessage("Either Text box or Key box is empty or may be both","Error")
+
+EndSub
+
+'---------------------------------------------------------------------------------------------------------------------
+
+
+
+'____________________________________________________________________
+
+'##########Drag-n-Drop encrypter console(Experimental) currently not working#########
+
+'---------------------------------------------------------------------------------------------------------------------
+
+Sub onLoad
+
+  argue = Program.GetArgument(1)
+
+  If argue <> "" Then
+
+' The following line could be harmful and has been automatically commented.
+
+'     argustring = File.ReadContents(argue)
+
+    TextWindow.WriteLine("Enter key")
+
+    arguekey = TextWindow.Read()
+
+    TextWindow.Hide()
+
+    init_Vars()
+
+    getKeyString()
+
+    repeatKey()
+
+    ciPher()
+
+    TextWindow.WriteLine("Give your encrypted file a name")
+
+    name = TextWindow.Read()
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteContents(Program.Directory+"\"+name+".txt",string)
+
+    Program.End()
+
+  Else
+
+    init()
+
+  EndIf
+
+EndSub
+
+'-----------------------------------------------------------------------------------------------------------------------
+
+
+
+'_____________________________________________________________________'
+
+'#####################Random key Generater################################
+
+'-----------------------------------------------------------------------------------------------------------------------
+
+Sub keyDown
+
+  If GraphicsWindow.LastKey = "F1" Then
+
+    randKey()
+
+  EndIf
+
+  EndSub
+
+Sub randKey
+
+  chars = "abcdefghijklmnopqrstuvwxyz1234567890"
+
+  lenght = 25
+
+  keyw = ""
+
+  While Text.GetLength(keyw) < lenght
+
+    randigit = Math.GetRandomNumber(36)
+
+    kchar = Text.GetSubText(chars,randigit,1)
+
+    keyw = keyw + kchar
+
+  EndWhile
+
+  Controls.SetTextBoxText(textBoxKey,keyw)
+
+EndSub
+
+'-------------------------------------------------------------------------------------------------------------------------
+
+
+
+'______________________________________________________________________
+
+'########################Prompt to save key################################
+
+'------------------------------------------------------------------------------------------------------------------------
+
+Sub saveKey
+
+  return = PlusPlusDialogs.ShowMessage("Save key on local drive?","Save Key","YesNo","Question","Button2")
+
+  If return = "Yes" Then
+
+  path = LDDialogs.SaveFile("txt")
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(path,key)
+
+  Controls.SetTextBoxText(textBoxKey,"")
+
+  EndIf
+
+  EndSub
+
+

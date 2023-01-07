@@ -1,0 +1,327 @@
+Screen_Width = 800
+
+Screen_Height = 600
+
+
+
+Object_Radius = 100
+
+Object_Corners = 10
+
+Object_VY = 0
+
+Object_Angle = 0
+
+Gravity = 0.5
+
+Rotation = 2
+
+Ground = Screen_Height-50
+
+Pi = Math.Pi
+
+Corner_TG = -1
+
+
+
+GraphicsWindow.Width = Screen_Width
+
+GraphicsWindow.Height = Screen_Height
+
+Shapes.AddLine(0, Ground, Screen_Width, Ground)
+
+GraphicsWindow.PenWidth = 0.3
+
+Shapes.AddLine(Screen_Width/2, 0, Screen_Width/2, Screen_Height)
+
+Shapes.AddLine(0, Screen_Height/2, Screen_Width, Screen_Height/2)
+
+
+
+Object_Initialize()
+
+
+
+Object_X = Screen_Width/2
+
+Object_Y = Screen_Height/2
+
+
+
+Object_Arrange_Corners()
+
+
+
+Draw_Text()
+
+
+
+GraphicsWindow.PenColor = "Green"
+
+
+
+'Main loop:
+
+While GraphicsWindow.LastKey <> "Escape"
+
+  Time_Start = Clock.ElapsedMilliseconds
+
+  
+
+  Object_VY = Object_VY + Gravity
+
+  Object_Y = Object_Y + Object_VY
+
+  Object_Angle = Object_Angle + Rotation
+
+  
+
+  Object_Update()
+
+  Object_Draw()
+
+  
+
+  If(Mouse.IsLeftButtonDown)Then
+
+    Object_X = GraphicsWindow.MouseX
+
+    Object_Y = GraphicsWindow.MouseY
+
+    Object_VY = 0
+
+    
+
+    Object_Arrange_Corners()
+
+  EndIf
+
+  
+
+  Time_Passed = Clock.ElapsedMilliseconds - Time_Start
+
+  PerfectDelay = 15 - Time_Passed
+
+  If PerfectDelay > 0 Then
+
+    Program.Delay(PerfectDelay)
+
+  EndIf
+
+EndWhile
+
+Program.End() 'This ends the program when escape is pressed
+
+
+
+
+
+Sub Object_Arrange_Corners
+
+  For i = 1 To Object_Corners
+
+    Corner_X[i] = Object_X + Math.Cos(Object_Angle + Corner_Angle[i]) * Corner_Radius[i]
+
+    Corner_Y[i] = Object_Y + Math.Sin(Object_Angle + Corner_Angle[i]) * Corner_Radius[i]
+
+  EndFor
+
+EndSub
+
+
+
+
+
+
+
+Sub Object_Initialize
+
+  GraphicsWindow.BrushColor = "Red"
+
+  GraphicsWindow.PenWidth = 0
+
+  
+
+  For i = 1 To Object_Corners
+
+    Corner[i] = Shapes.AddEllipse(5,5)
+
+    Corner_Angle[i] = i*(360/Object_Corners)
+
+  EndFor
+
+  Corner[Object_Corners+1] = Shapes.AddEllipse(10, 10)
+
+  GraphicsWindow.PenWidth = 1
+
+  
+
+  Xsum = 0
+
+  Ysum = 0
+
+  'Randomly add Corners in the right angle:
+
+  For i = 1 To Object_Corners
+
+    Random_Radius = Math.GetRandomNumber(Object_Radius-Object_Radius/3) + Object_Radius/3
+
+    
+
+    Corner_X[i] = Object_Radius/2 + Math.Cos(Math.GetRadians(Corner_Angle[i])) * Random_Radius
+
+    Corner_Y[i] = Object_Radius/2 + Math.Sin(Math.GetRadians(Corner_Angle[i])) * Random_Radius
+
+    
+
+    Xsum = Xsum + Corner_X[i]
+
+    Ysum = Ysum + Corner_Y[i]
+
+  EndFor
+
+  
+
+  'Get the Centroid of the Corners:
+
+  Object_X = Xsum/Object_Corners
+
+  Object_Y = Ysum/Object_Corners
+
+  
+
+  'Recalculate the radius for each Corner to keep the Objects X and Y as the centroid:
+
+  For i = 1 To Object_Corners 'Is it possiblle that i made a mistake somewhere?!
+
+    Xdist = Object_X - Corner_X[i]
+
+    Ydist = Object_Y - Corner_Y[i]
+
+    Corner_Radius[i] = Math.SquareRoot(Xdist*Xdist + Ydist*Ydist)
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub Object_Update 
+
+  Object_Checkwalls()
+
+  
+
+  'Rotate Object corners
+
+  For i = 1 To Object_Corners
+
+    theta = Math.GetRadians(Object_Angle + Corner_Angle[i])
+
+    Corner_X[i] = Object_X + Math.Cos(theta) * Corner_Radius[i]
+
+    Corner_Y[i] = Object_Y + Math.Sin(theta) * Corner_Radius[i]
+
+    
+
+    Shapes.Move(Corner[i],Corner_X[i]-2.5,Corner_Y[i]-2.5)
+
+  endfor
+
+  
+
+  'UPDATE Object
+
+  Shapes.Move(Corner[Object_Corners+1], Object_X-5, Object_Y-5)
+
+EndSub
+
+
+
+Sub Object_Draw  
+
+  Lasti = Object_Corners
+
+  For i = 1 To Object_Corners
+
+    Shapes.Remove(Corner_Line[i])
+
+    Corner_Line[i] = Shapes.AddLine(Corner_X[i], Corner_Y[i], Corner_X[Lasti], Corner_Y[Lasti])
+
+    Lasti = i
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub Object_Checkwalls  
+
+  'Find lowest corner - we only want one on the ground at any point in time
+
+  iLow = 1
+
+  For i = 2 To Object_Corners
+
+    If (Corner_Y[i] > Corner_Y[iLow]) Then
+
+      iLow = i
+
+    EndIf
+
+  EndFor
+
+  
+
+  'Check this corner for on the ground and find block centre - due to small rounding errors with the trig we need to to check for 'near'
+
+  If (Corner_Y[iLow] > Ground Or Math.Abs(Corner_Y[iLow]-Ground) < 1) Then  'if under ground or distance to it <1 then:
+
+    Corner_Y[iLow] = Ground
+
+    Object_VY = 0
+
+    
+
+    theta = Math.GetRadians(Object_Angle+Corner_Angle[iLow] + 180)
+
+    
+
+    Object_X = Corner_X[iLow] + Math.Cos(theta) * Corner_Radius[iLow]
+
+    Object_Y = Corner_Y[iLow] + Math.Sin(theta) * Corner_Radius[iLow]
+
+    
+
+    Corner_TG = iLow
+
+  EndIf
+
+  
+
+  'If(Corner_TG_Old <> Corner_TG)Then 'If "Two" corners are touching a wall/ground:
+
+    'Rotation = Rotation * 0.5
+
+  'EndIf
+
+EndSub
+
+
+
+
+
+Sub Draw_Text
+
+  GraphicsWindow.BrushColor = "DeepSkyBlue"
+
+  GraphicsWindow.DrawText(20, 20, "Use the mouse to drag and drop the Object")
+
+EndSub
+
+

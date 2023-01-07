@@ -1,0 +1,237 @@
+' SmallBasic Version 1.0
+
+' Funktion: ToolbarButtons.sb / Transparent Toolbar Buttons from Strip / Skin Themes
+
+' Autor: Pappa Lapub
+
+' Herkunft: 
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev
+
+' Kommentar: 
+
+' http://www.irfanview.com/skins.htm
+
+' http://newsgroup.xnview.com/viewtopic.php?t=13652
+
+'' http://newsgroup.xnview.com/viewtopic.php?t=20339 ,   res://   Protokoll  - works for html images in eg. LD-Browser 
+
+' http://www.rarlab.com/themes.htm
+
+'  
+
+' Variablen: Indent, BW, BD  ...  to set Button serie
+
+'                      Cnt  ...  total number of Buttons / Images on Strip  (~ "Button#", ~ "ImageList#")
+
+' --------------------------------------------------------------------------------
+
+ImagePath = "http://www.irfanview.com/skins/sonic.png"
+
+'ImagePath = Program.Directory + "\TBSkins\sonic_19.png"      ' RENAMED  OrigImage_Cnt.png
+
+RefImage = Program.Directory + "\sonic5th_24.png"  ' Reference-Image under 5.) b.)
+
+
+
+Strip = ImageList.LoadImage(ImagePath)
+
+StripW = ImageList.GetWidthOfImage(Strip)    ' 456 Pxl,   or from ImagePath
+
+StripH = ImageList.GetHeightOfImage(Strip)   ' 24 Pxl,    or from ImagePath
+
+
+
+Cnt = 19    ' Images on Strip
+
+'' Alternat_1: Get ImageCount Cnt from ImagePath-Filename (when eg.  sonic_19.png):
+
+' The following line could be harmful and has been automatically commented.
+
+' ' Cnt = Text.GetSubTextToEnd(LDFile.GetFile(ImagePath), Text.GetLength(LDFile.GetFile(ImagePath))-1)
+
+'' Alternat_2: Get ImageCount Cnt from StripH:
+
+' Cnt = StripW/StripH
+
+
+
+ImgW = 24   ' Width of one single Image on Strip     24 Pxl
+
+' ImgW = StripH
+
+'ImgW = StripW/Cnt
+
+
+
+GraphicsWindow.BackgroundColor = "Black"
+
+GraphicsWindow.BrushColor = "Orange"
+
+
+
+
+
+
+
+' 1.)  Original Image from ImageList:
+
+' LDImage.SetPixel(Strip,12 + 4*StripH, 12, "Transparent")    '  Removes Transparency from ImageList Image  -> #D4D0C8
+
+GraphicsWindow.DrawImage(Strip, 10,10)
+
+GraphicsWindow.DrawText(10,20+StripH, "StripW: " + StripW + " | StripH: " + StripH)
+
+TransICol = GraphicsWindow.GetPixel(12 + 4*StripH, 12)   ' 5th Image on Strip (Printer)
+
+GraphicsWindow.DrawText(300,20+StripH, "Transp. ImgList Color: "+TransICol + " (default)")
+
+
+
+
+
+'2.)  Image from ImageList on single Button (unresized, ButtonHeight 36 = default height after LDShapes.SetImage ?)
+
+TBButton = Controls.AddButton("",10,100)
+
+LDShapes.BrushColour(TBButton, "Transparent")
+
+LDShapes.SetImage(TBButton,Strip)
+
+GraphicsWindow.DrawText(10,110 + LDShapes.Height("Button1"), "ButtonH: " + LDShapes.Height("Button1"))
+
+
+
+
+
+' 3.) 19 SPLITTED Images (via ImagList) on Button serie (19 Buttons):
+
+Indent = 10           ' Offset from GWLeft - First(/Upper) Button,;  |<->Button
+
+BW = 20               ' ButtonWidth;                                                           <-Button->     ( = Button Height)
+
+BD = 10               ' Distance between Buttons;                                   Button<->Button
+
+F0 = Indent - BW - BD	' Constant,   for ButtonXY = F0 + N*F1
+
+F1 = BW + BD		' Factor to Button number,   for ButtonXY = F0 + N*F1
+
+
+
+For N = 1 To Cnt
+
+  Num = N + 1
+
+  Controls.AddButton("",F0 + N * F1, 200)                   ' "Button2" - "Button20"
+
+  Controls.SetSize("Button"+Num, BW,BW)
+
+  LDImage.Crop(LDImage.Copy(Strip), (N-1)*ImgW,0,ImgW,ImgW) ' "ImageList2"  - "ImageList20" 
+
+  LDShapes.BrushColour("Button"+Num, "Transparent")
+
+  LDShapes.SetImage("Button"+Num, "ImageList"+Num)
+
+  LDImage.Remove("ImageList"+Num)
+
+EndFor
+
+'' Fazit: LDImage.Crop  removes Transparancy in ImageList  (.Resize, .SetPixel    TOO) !!
+
+
+
+
+
+' 4.) Copied Image from ImageList on single Button (unresized, ButtonHeight 36)  to test  LDImage.Copy (-> keeps TRANSPARENCY):
+
+TestButton = Controls.AddButton("",10,300)              ' "Button21"
+
+LDShapes.BrushColour(TestButton, "Transparent")
+
+LDShapes.SetImage(TestButton,LDImage.Copy(Strip))	      ' LDImage.Copy  TEST   ,  "ImageList21" 
+
+LDImage.Remove("ImageList21")
+
+
+
+' Goto Finish
+
+' 5.)  Cropped single Image from ImageList on Button:
+
+'  a.)
+
+TestButton2 = Controls.AddButton("",10,400)              ' "Button22"
+
+'Controls.SetSize("Button22", 48,48)
+
+LDShapes.BrushColour(TestButton2, "Transparent")
+
+LDImage.Crop(LDImage.Copy(Strip), 4*ImgW,0,ImgW,ImgW)    ' "ImageList22", 5th Image on Strip (Printer)
+
+
+
+'LDImage.SetPixel("ImageList22", 62,402, "Transparent")    ' NO Effect on Pixel 62/402
+
+''PictureTools.SetTransparencyColor("ImageList22","#D4D0C8")  '  ->  "ImageList23"    ,  NO Effect
+
+LDShapes.SetImage(TestButton2, "ImageList22")
+
+GraphicsWindow.DrawImage("ImageList22",60, 400)
+
+LDImage.Remove("ImageList22")
+
+TransICol = GraphicsWindow.GetPixel(62,402) ' (64,404)
+
+GraphicsWindow.DrawText(100,400, "Transp. ImgList Color: "+TransICol)   ' Transparency -> #D4D0C8  (212, 208, 200) in ImageList
+
+GraphicsWindow.DrawText(100,420, "(212, 208, 200)")
+
+
+
+'  b.)  Referenz
+
+RefButton = Controls.AddButton("", 350,400)
+
+'Controls.SetSize(RefButton, 48,48)
+
+LDShapes.BrushColour(RefButton, "Transparent")
+
+LDShapes.SetImage(RefButton,RefImage)
+
+
+
+GraphicsWindow.DrawImage(RefImage, 400,400)
+
+TransICol = GraphicsWindow.GetPixel(402,402) ' (404,404)
+
+GraphicsWindow.DrawText(440,400, "Transp. ImgList Color: "+TransICol)   ' Transparency OK
+
+GraphicsWindow.DrawText(440,420, "Reference Image")
+
+
+
+Finish:
+
+
+
+
+
+
+
+Controls.ButtonClicked = Clicked
+
+
+
+' //////////  SUBs  -  EVENTs  \\\\\\\\\\
+
+Sub Clicked
+
+  GraphicsWindow.Title = Controls.LastClickedButton
+
+EndSub
+
+
+
+

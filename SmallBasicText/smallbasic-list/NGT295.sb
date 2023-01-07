@@ -1,0 +1,157 @@
+'Put a circle in the middle of the screen - move it with the mouse later
+
+gw = GraphicsWindow.Width
+
+gh = GraphicsWindow.Height
+
+radius = 25
+
+circle  = Shapes.AddEllipse(2*radius,2*radius)
+
+circleX = gw/2
+
+circleY = gh/2
+
+Shapes.SetOpacity(circle,30)
+
+GraphicsWindow.PenColor = "#10000000"
+
+
+
+While ("True")
+
+  'Move Circle
+
+  circleX = GraphicsWindow.MouseX
+
+  circleY = GraphicsWindow.MouseY
+
+  Shapes.Move(circle,circleX-radius,circleY-radius)
+
+  'Get a random point
+
+  xP = Math.GetRandomNumber(gw)
+
+  yP = Math.GetRandomNumber(gh)
+
+  'Random direction for ray (0,2Pi)
+
+  theta = 0.01*(Math.GetRandomNumber(101)-1)*2*Math.Pi
+
+  'Does it hit the circle?
+
+  'ray equation is (xP+rCos(theta),yP+rSin(theta)), where r is any distance along the ray
+
+  'circle equation is (xC-circleX)^2+(yC-cirleY)^2 = radius^2
+
+  'We want xC = xP+rCos(theta) and yC = yP+rSin(theta)
+
+  'So (xP+rCos(theta)-circleX)^2+(yP+rSin(theta)-circleY)^2= radius^2
+
+  'Ar^2 + Br + C = 0, where we can solve the quadratic equation r = (-B+-sqrt(B^2-4.A.C))/2A
+
+  'A = Cos(theta)^2+Sin(theta)^2 = 1
+
+  'B = 2(xP-circleX)Cos(theta) + 2(yP-circleY)Sin(theta)
+
+  'C = (xP-circleX)^2+(yP-circleY)^2-radius^2
+
+  'We have an intersection if  B^2-4.A.C > 0
+
+  A = 1
+
+  B = 2*(xP-circleX)*Math.Cos(theta) + 2*(yP-circleY)*Math.Sin(theta)
+
+  C = (xP-circleX)*(xP-circleX)+(yP-circleY)*(yP-circleY)-radius*radius
+
+  root = B*B-4*A*C
+
+  'Also we dont want a point inside circle
+
+  dist2 = (xP-circleX)*(xP-circleX)+(yP-circleY)*(yP-circleY)-radius*radius
+
+  If (root > 0 And dist2 > 0) Then
+
+    r1 = (-B+Math.SquareRoot(root))/(2*A)
+
+    r2 = (-B-Math.SquareRoot(root))/(2*A)
+
+    'We want the shortest distance (the front face, not the back)
+
+    If (Math.Abs(r1) < Math.Abs(r2)) Then
+
+      r = r1
+
+    Else
+
+      r = r2
+
+    EndIf
+
+    'If r is negative then reverse direction
+
+    If (r < 0) Then
+
+      theta = theta+Math.Pi
+
+      r = -r
+
+    EndIf
+
+    'Get point of contact
+
+    xC = xP+r*Math.Cos(theta)
+
+    yC = yP+r*Math.Sin(theta)
+
+    'Get angle on circle (phi)
+
+    dx = circleX-xC
+
+    dy = circleY-yC
+
+    'Angle from contact point to circle centre
+
+    If (dx = 0) Then
+
+      phi = Math.Pi/2
+
+    Else
+
+      phi = Math.ArcTan(dy/dx)
+
+    EndIf
+
+    If (dx < 0) Then
+
+      phi = phi+Math.Pi
+
+    EndIf
+
+    'The angle of incidence (theta-phi) is equal to the angle of reflection (phi-psi)
+
+    psi = 2*phi-theta
+
+    'Get a reflected point 1000 away from contact point (off screen)
+
+    xR = xC-1000*Math.Cos(psi)
+
+    yR = yC-1000*Math.Sin(psi)
+
+    'Draw a line to contact point and then reflection
+
+    GraphicsWindow.DrawLine(xP,yP,xC,yC)
+
+    GraphicsWindow.DrawLine(xC,yC,xR,yR)
+
+    Program.Delay(1000)
+
+  EndIf
+
+EndWhile
+
+
+
+
+
+

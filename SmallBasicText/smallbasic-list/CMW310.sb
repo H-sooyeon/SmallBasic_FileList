@@ -1,0 +1,991 @@
+' SmallBasic Version 1.0
+
+' Funktion: GuiPoser, Controls/Shapes- Designer/Positioner
+
+' Autor: Pappa Lapub
+
+' Herkunft: 
+
+' Import: 
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev, 
+
+' Kommentar: ?? BoolToInt zum Rechnen mit True/False -> 1/0
+
+'    Namen von (ML)TextBox, Button ??
+
+' Variablen:
+
+'  SBFile    Created GuiDesign(_n).sb in AppDir
+
+'  GW, GH    GraphicsWindow  Width, Height
+
+'  MX, MY    mouse position X, Y
+
+'  LX, LY    coord label position X, Y
+
+'  Label	 TxtShape with text LblTxt
+
+'  LblTxt   Text (= mouse coord, dx,dy) on Shape 'Label'
+
+'  dx, dy    Control/Shape-  Breite, HÃ¶he
+
+'  xxNo, xxNam   Control/Shape-  Nummer, Name
+
+' --------------------------------------------------------------------------------
+
+TAB = Text.GetCharacter(9)
+
+QU = Text.GetCharacter(34)
+
+LF = Text.GetCharacter(10)
+
+OpVal = 70  ' Opacity Value
+
+
+
+MX = 0  ' Mouse Init xPos
+
+MY = 0 ' Mouse Init yPos
+
+StepX = 5 '  Delta/Min Width
+
+StepY = 5 '  Delta/Min Height
+
+dx = 80 ' dxInit (default before CrossB added)
+
+dy = 30 ' dyInit (default before CrossB added)
+
+
+
+BtnNo = 0   ' Button Count
+
+TBNo = 0    ' TextBox Count
+
+MLTBNo = 0    ' MultiLineTextBox Count
+
+RecNo = 0   ' Rectangle Count
+
+EllNo = 0   ' Ellipse Count
+
+TxtNo = 0   ' Text (area) Count
+
+LDLBNo = 0   ' LDListBox Count
+
+LDCombNo = 0  ' LDComboBox Count
+
+LDRTNo = 0  ' LDRichTextBox Count
+
+LDCBNo = 0  ' LDCheckBox Count
+
+LDRBNo = 0  ' LDRadioButton Count
+
+
+
+'True = 1
+
+'False = 0
+
+'                                            1  wenn "True", 0 wenn "False" 
+
+' LX = MX + 10 - 120*((GW-MX)<110)  ' funkt. nicht
+
+' LY = MY + 10 - 40*((GH-MY)<30)
+
+
+
+AutoRen()   ' falls SBFile 'GUIDesign.sb' existiert
+
+'TextWindow.WriteLine(SBFile)
+
+
+
+' Template for Image/Bid, I
+
+'ImgTempl = Program.Directory + "\img\FrameCork.jpg"
+
+ImgTempl = Program.Directory + "\img\FrameThinW.png"
+
+'ImgTempl = Program.Directory + "\img\FrameThinB.png"
+
+'ImgTempl = Program.Directory + "\img\FrameWood.png"
+
+ImgFile = Text.GetSubTextToEnd(ImgTempl,Text.GetLength(Program.Directory)+1)
+
+ImgFrame = ImageList.LoadImage(ImgTempl)
+
+
+
+GraphicsWindow.Top = 50
+
+GW = GraphicsWindow.Width
+
+GH = GraphicsWindow.Height
+
+GraphicsWindow.Title = "GuiPoser  ?-Hilfe |  " + SBFile
+
+Grid()
+
+
+
+'CrossA() ' red MainCross
+
+
+
+'Sub CrossA   ' red MainCross
+
+GraphicsWindow.PenWidth = 1
+
+GraphicsWindow.PenColor = "DarkRed"
+
+GraphicsWindow.BrushColor = "Black"
+
+LDCursors.None()
+
+
+
+LineVert = Shapes.AddLine(MX,0,MX,GH)
+
+LineHorz = Shapes.AddLine(0,MY,GW,MY)
+
+CrossB()
+
+Label = Shapes.AddText("")
+
+' EndSub
+
+
+
+GraphicsWindow.MouseMove = MouseMoves
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+
+
+' ////////// SUBs \\\\\\\\\\\
+
+Sub MouseMoves
+
+  MX = GraphicsWindow.MouseX
+
+  MY = GraphicsWindow.MouseY
+
+  
+
+  ' While (MX <= GW) And (MY <= GH)
+
+  'LblTxt = "x: " + MX + " | y: " + MY
+
+  LblTxt = "x: " + MX + " | y: " + MY + LF + "B: " + dx + " | H: " + dy
+
+  Shapes.Move(LineVert,MX,0)  ' Haupt Senkrechte red
+
+  If MY <= GH Then
+
+    Shapes.Move(LineHorz,0,MY)  ' Haupt Waagrechte red
+
+  EndIf
+
+  CrossBUpd()
+
+  
+
+  Lbl()
+
+  ' LblRU() ' Orig
+
+  
+
+  ' LX = MX + 10 - 120*((GW-MX)<110)    ' wenn (GW-MX)<110    ->  0-false oder 1-true
+
+  'If (GW - MX) < 110 Then
+
+  '  LX = MX - 110
+
+  'Else
+
+  '  LX = MX + 10
+
+  'EndIf
+
+  
+
+  ' LY = MY + 10 - 40*((GH-MY)<30)    ' wenn   (GH-MY)<30    ->  0-false oder 1-true
+
+  'If (GH - MY) < 30 Then
+
+  '  LY = MY - 30
+
+  'Else
+
+  '  LY = MY +10
+
+  'EndIf
+
+  '  ---
+
+  
+
+  'LblTxtUpd()
+
+  Shapes.Move(Label,LX,LY)
+
+  Shapes.SetText(Label, LblTxt)
+
+  ' Program.Delay(20)
+
+  ' EndWhile
+
+EndSub
+
+
+
+Sub Lbl ' Coord InfoTip CursorPos upper left Point, dx, dy
+
+  If MY <= GH Then
+
+    
+
+    'LX = MX - 100 + 110*(MX<100)    ' wenn (MX<100)    ->  0-false oder 1-true
+
+    If MX < 100 Then
+
+      LX = MX + 10
+
+    Else
+
+      LX = MX - 100
+
+    EndIf
+
+    
+
+    ' LY = MY - 30 + 40*(MY<30)    ' wenn   (MY<30)    ->  0-false oder 1-true
+
+    If MY < 30 Then
+
+      LY = MY + 10
+
+    Else
+
+      LY = MY - 30
+
+    EndIf
+
+    
+
+  EndIf
+
+EndSub
+
+
+
+Sub LblRU ' Coord InfoTip CursorPos upper left Point, dx, dy
+
+  If (GW - MX) < 110 Then
+
+    LX = MX - 110
+
+  Else
+
+    LX = MX + 10
+
+  EndIf
+
+  
+
+  If (GH - MY) < 30 Then
+
+    LY = MY - 30
+
+  Else
+
+    LY = MY +10
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub OnKeyDown
+
+  Key = GraphicsWindow.LastKey
+
+  If Key = "OemOpenBrackets" Then    ' HelpPanel
+
+    'If GraphicsWindow.LastKey = "OemOpenBrackets" Then    ' HelpPanel
+
+    If HelpOn Then
+
+      GraphicsWindow.Height = GH
+
+      HelpOn = "False"
+
+    Else
+
+      Legend()
+
+      HelpOn = "True"
+
+    EndIf
+
+    
+
+  ElseIf Key = "Left" Then   ' Decrease Width if > StepX  
+
+    'ElseIf GraphicsWindow.LastKey = "Left" Then   ' Decrease Width if > StepX
+
+    'dx = dx - StepX*(dx > StepX)
+
+    If dx > StepX Then
+
+      dx = dx - StepX
+
+      CrossBUpd()
+
+    EndIf
+
+    
+
+  ElseIf Key = "Right" Then  ' Increase Width  
+
+    'ElseIf GraphicsWindow.LastKey = "Right" Then  ' Increase Width
+
+    dx = dx + StepX
+
+    CrossBUpd()
+
+    
+
+  ElseIf Key = "Up" Then ' Decrease Height if > StepY  
+
+    'ElseIf GraphicsWindow.LastKey = "Up" Then ' Decrease Height if > StepY
+
+    ' dy = dy - StepY*(dy > StepY)
+
+    If dy > StepY Then
+
+      dy = dy - StepY
+
+      CrossBUpd()
+
+    EndIf
+
+    
+
+  ElseIf Key = "Down" Then ' Increase Height  
+
+    'ElseIf GraphicsWindow.LastKey = "Down" Then ' Increase Height
+
+    dy = dy + StepY
+
+    CrossBUpd()
+
+    
+
+  ElseIf Key = "N" Then    ' Show GuiDesign(_n).sb = SBFile in Notepad  
+
+    'ElseIf GraphicsWindow.LastKey = "N" Then    ' Show GuiDesign(_n).sb = SBFile in Notepad
+
+' The following line could be harmful and has been automatically commented.
+
+'     If LDFile.Length(SBFile) >= 0 Then
+
+      'TextWindow.WriteLine(SBFile)
+
+      'TextWindow.Read()
+
+      'TextWindow.Hide()
+
+      LDProcess.Start("notepad.exe", SBFile)
+
+      'LDProcess.Start("C:\Tools\Notepad2\notepad2.exe",SBFile)
+
+    Else
+
+      GraphicsWindow.ShowMessage(SBFile + " nicht gefunden!", "Datei zum Anzeigen (noch) nicht vorhanden")
+
+    EndIf
+
+    
+
+  ElseIf Key = "P" Then    ' GuiScreenshot+PicView  
+
+    'ElseIf GraphicsWindow.LastKey = "P" Then    ' GuiScreenshot+PicView
+
+    AutoPic()
+
+    
+
+  ElseIf Key = "K" Then    ' Compile+Run  
+
+    'ElseIf GraphicsWindow.LastKey = "K" Then    ' Compile+Run
+
+    KompRun()
+
+    
+
+  ElseIf Key = "B" Then    ' Button  
+
+    'ElseIf GraphicsWindow.LastKey = "B" Then    ' Button
+
+    BtnNo = BtnNo + 1
+
+    BtnNam = "Button" + BtnNo
+
+    'BtnNam = Text.Append("Button",BtnNo+1)
+
+    BtnNam = Controls.AddButton(BtnNam,MX,MY)
+
+    Controls.SetSize(BtnNam,dx,dy)
+
+    Shapes.SetOpacity(BtnNam,OpVal)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, BtnNam + " = Controls.AddButton(" + QU + BtnNam + QU + ", " + MX + "," + MY + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "Controls.SetSize(" + BtnNam + ", " + dx + "," + dy + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+  ElseIf Key = "T" Then    ' TextBox  
+
+    'ElseIf GraphicsWindow.LastKey = "T" Then    ' TextBox
+
+    TBNo = TBNo + 1
+
+    TBNam = "TBox" + TBNo
+
+    'TBNam = Text.Append("TBox",TBNo+1)
+
+    TBNam = Controls.AddTextBox(MX,MY)
+
+    Controls.SetSize(TBNam,dx,dy)
+
+    Controls.SetTextBoxText(TBNam, "TBox" + TBNo)
+
+    Shapes.SetOpacity(TBNam,OpVal)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, TBNam + " = Controls.AddTextBox(" + MX + "," + MY + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "Controls.SetSize(" + TBNam + ", " + dx + "," + dy + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+  ElseIf Key = "M" Then    ' MultiLineTextBox  
+
+    'ElseIf GraphicsWindow.LastKey = "M" Then    ' MultiLineTextBox
+
+    MLTBNo = MLTBNo + 1
+
+    MLTBNam = "MLTBox" + MLTBNo +1
+
+    'MLTBNam = Text.Append("MLTBox",MLTBNo+1)
+
+    MLTBNam = Controls.AddMultiLineTextBox(MX,MY)
+
+    Controls.SetSize(MLTBNam,dx,dy)
+
+    Controls.SetTextBoxText(MLTBNam, "MLTBox" + MLTBNo)
+
+    Shapes.SetOpacity(MLTBNam,OpVal)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, MLTBNam + " = Controls.AddMultiLineTextBox(" + MX + "," + MY + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "Controls.SetSize(" + MLTBNam + ", " + dx + "," + dy + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+  ElseIf Key = "L" Then    ' LD-ListBox  
+
+    'ElseIf GraphicsWindow.LastKey = "L" Then    ' LD-ListBox
+
+    LDLBNo = LDLBNo + 1
+
+    LDLBNam = "LDLBox" + LDLBNo
+
+    LDLBDat[LDLBNo] = LDLBNam
+
+    LDLBNam = LDControls.AddListBox(LDLBDat,dx,dy)
+
+    Controls.Move(LDLBNam,MX,MY)
+
+    Shapes.SetOpacity(LDLBNam,OpVal)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "LDLBDat[" + LDLBNo + "] = " + QU + "LDLBox" + LDLBNo + QU)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, LDLBNam + " = LDControls.AddListBox(LDLBDat, " + dx + "," + dy + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "Controls.Move(" + LDLBNam + ", " + MX + "," + MY + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+  ElseIf Key = "C" Then    ' LD-ComboBox  
+
+    'ElseIf GraphicsWindow.LastKey = "C" Then    ' LD-ComboBox
+
+    LDCombNo = LDCombNo + 1
+
+    LDCombNam = "LDComBox" + LDCombNo
+
+    LDCombDat[LDCombNo] = LDCombNam
+
+    LDCombNam = LDControls.AddComboBox(LDCombDat,dx,dy)
+
+    Controls.Move(LDCombNam,MX,MY)
+
+    Shapes.SetOpacity(LDCombNam,OpVal)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "LDCombDat[" + LDCombNo + "] = " + QU + "LDComBox" + LDCombNo + QU)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, LDCombNam + " = LDControls.AddComboBox(LDCombDat, " + dx + "," + dy + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "Controls.Move(" + LDCombNam + ", " + MX + "," + MY + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+  ElseIf Key = "H" Then    ' LD-RichTextBox  
+
+    'ElseIf GraphicsWindow.LastKey = "H" Then    ' LD-RichTextBox
+
+    LDRTNo = LDRTNo + 1
+
+    LDRTNam = "LDRiTeBox" + LDRTNo
+
+    LDRTNam = LDControls.AddRichTextBox(dx,dy)
+
+    Controls.Move(LDRTNam,MX,MY)
+
+    LDControls.RichTextBoxSetText(LDRTNam,"LDRiTeBox" + LDRTNo,"False")
+
+    Shapes.SetOpacity(LDRTNam,OpVal)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, LDRTNam + " = LDControls.AddRichTextBox(" + dx + "," + dy + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "Controls.Move(" + LDRTNam + ", " + MX + "," + MY + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "LDControls.RichTextBoxSetText(" + LDRTNam + ", " + QU + "LDRiTeBox" + LDRTNo + QU + "," + QU + "False" + QU + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+  ElseIf Key = "D" Then    ' LD-CheckBox  
+
+    'ElseIf GraphicsWindow.LastKey = "D" Then    ' LD-CheckBox
+
+    LDCBNo = LDCBNo + 1
+
+    LDCBNam = "LDCheckB" + LDCBNo
+
+    LDCBNam = LDControls.AddCheckBox(LDCBNam)
+
+    Controls.Move(LDCBNam,MX,MY)
+
+    Shapes.SetOpacity(LDCBNam,OpVal)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, LDCBNam + " = LDControls.AddCheckBox(" + LDCBNam + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "Controls.Move(" + LDCBNam + ", " + MX + "," + MY + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+  ElseIf Key = "O" Then   ' LD-RadioButton  
+
+    'ElseIf GraphicsWindow.LastKey = "O" Then   ' LD-RadioButton
+
+    LDRBNo = LDRBNo + 1
+
+    LDRBNam = "LDRadB" + LDRBNo
+
+    LDRBNam = LDControls.AddRadioButton(LDRBNam,LDRBNam)
+
+    Controls.Move(LDRBNam,MX,MY)
+
+    Shapes.SetOpacity(LDRBNam,OpVal)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, LDRBNam + " = LDControls.AddRadioButton(" + LDRBNam + ", " + LDRBNam + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "Controls.Move(" + LDRBNam + ", " + MX + "," + MY + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+    
+
+    
+
+  ElseIf Key = "R" Then    ' FillRectangle
+
+    'ElseIf GraphicsWindow.LastKey = "R" Then    ' FillRectangle
+
+    RecNo = RecNo + 1
+
+    GraphicsWindow.BrushColor = "Orange"
+
+    GraphicsWindow.FillRectangle(MX,MY,dx,dy)
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.DrawText(MX,MY,"Rect" + RecNo)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "GraphicsWindow.FillRectangle(" + MX + "," + MY + "," + dx + "," + dy + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+  ElseIf Key = "E" Then    ' FillEllipse
+
+    'ElseIf GraphicsWindow.LastKey = "E" Then    ' FillEllipse
+
+    EllNo = EllNo + 1
+
+    GraphicsWindow.BrushColor = "Purple"
+
+    GraphicsWindow.FillEllipse(MX,MY,dx,dy)
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.DrawText(MX,MY,"Ell" + EllNo)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "GraphicsWindow.FillEllipse(" + MX + "," + MY + "," + dx + "," + dy + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+  ElseIf Key = "X" Then    ' Text(Area)
+
+    ' ElseIf GraphicsWindow.LastKey = "X" Then    ' Text(Area)
+
+    TxtNo = TxtNo + 1
+
+    TxtNam = QU + "TEXT" + TxtNo + QU
+
+    GraphicsWindow.DrawBoundText(MX,MY,dx,TxtNam)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "GraphicsWindow.DrawBoundText(" + MX + "," + MY + "," + dx + ", " + TxtNam + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+  ElseIf Key = "I" Then    ' Image  
+
+    'ElseIf GraphicsWindow.LastKey = "I" Then    ' Image
+
+    PicNo = PicNo + 1
+
+    'PicNam = "Bild" + PicNo
+
+    GraphicsWindow.DrawResizedImage(ImgFrame,MX,MY,dx,dy)
+
+    GraphicsWindow.DrawText(MX,MY,"Bild" + PicNo)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "GraphicsWindow.DrawResizedImage(Program.Directory + " + QU + ImgFile + QU  + ", " + MX + "," + MY + "," + dx + "," + dy + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(SBFile, "")
+
+    
+
+    
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub Grid
+
+  GraphicsWindow.PenColor = "GhostWhite"    ' oder LightGray
+
+  For GridX = 10 To GW Step 10
+
+    GraphicsWindow.DrawLine(GridX,0,GridX,GH)
+
+  EndFor
+
+  For GridY = 10 To GH Step 10
+
+    GraphicsWindow.DrawLine(0,GridY,GW,GridY)
+
+  EndFor
+
+  GraphicsWindow.PenColor = "Black"
+
+EndSub
+
+
+
+
+
+Sub CrossB  ' blue SizeCross Init
+
+  GraphicsWindow.PenColor = "SkyBlue"
+
+  'LineVertB = Shapes.AddLine(MX+dx,0,MX+dx,GH)
+
+  'LineHorzB = Shapes.AddLine(0,MY+dy,GW,MY+dy)
+
+  LineVertB = Shapes.AddLine(MX,0,MX,GH)
+
+  LineHorzB = Shapes.AddLine(0,MY,GW,MY)
+
+EndSub
+
+
+
+Sub CrossBUpd
+
+  Shapes.Move(LineVertB,MX+dx,0)  ' Hilfs SenkrechteB blue
+
+  If MY <= (GH-dy) Then
+
+    Shapes.Move(LineHorzB,0,MY+dy)  ' Hilfs WaagrechteB blue
+
+  EndIf
+
+  'LblTxtUpd()
+
+EndSub
+
+
+
+Sub LblTxtUpd
+
+  LblTxt = "x: " + MX + " | y: " + MY + LF + "B: " + dx + " | H: " + dy
+
+  Shapes.Move(Label,LX,LY)
+
+  Shapes.SetText(Label, LblTxt)
+
+  'Lbl()
+
+EndSub
+
+
+
+
+
+Sub Legend    ' HelpPanel
+
+  ' B, T, M, P - L, C, D, O - H, V - R, E, X, I, K - Left, Right, Up, Down, Z, N, ?
+
+  GraphicsWindow.Height = GH + 105
+
+  GraphicsWindow.DrawLine(0,GH,GW,GH)
+
+  GraphicsWindow.BrushColor = "PaleGoldenrod"
+
+  GraphicsWindow.FillRectangle(0,GH,GW,105)
+
+  GraphicsWindow.BrushColor = "MidnightBlue"
+
+  GraphicsWindow.DrawText(5,GH+5,"B - Button" + TAB + "T - TextBox" + TAB + "M - MultiLineTextBox")
+
+  GraphicsWindow.DrawText(5,GH+25,"L - LDListBox" + TAB + "C - LDComBox" + TAB + "D - LDCheckBox  " + TAB + "O - LDRadioBtn")
+
+  GraphicsWindow.DrawText(5,GH+45,"H - LDRiTeBox" + TAB + "V - LDTreeVw" + TAB + "W - LDBrowser")
+
+  'GraphicsWindow.BrushColor = "DimGray"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawText(5,GH+65,"R - Rechteck" + TAB + "E - Ellipse" + TAB + "X - Textbereich  " + TAB + "I - Bild" + TAB + "P - GWPhoto" + TAB + "K - Komp+Start")
+
+  GraphicsWindow.DrawText(5,GH+85,"<->  -/+ ?”x" + TAB + "^|v  -/+ ?”y" + TAB + "Z - Objekt entfernen" + TAB + "N - GuiDesign Np" + TAB + "? - Hilfe ?—/à¹?")
+
+EndSub
+
+
+
+Sub AutoRen   ' AutoRename every new SBFile  GuiDesign.sb - GuiDesign_1.sb - GuiDesign_2.sb - ..
+
+  SBFile = Program.Directory + "\GUIDesign.sb"
+
+  BaseFile = Program.Directory + "\GUIDesign"
+
+  FExt = ".sb"
+
+  Num = 0
+
+' The following line could be harmful and has been automatically commented.
+
+'   While LDFile.Length(SBFile) >= 0
+
+    'While FilePlus.FileExists(SBFile)    ' DataExt
+
+    Num = Num + 1
+
+    SBFile = BaseFile + "_" + Num + FExt
+
+  EndWhile
+
+EndSub
+
+
+
+Sub AutoPic   ' Screenshot of AppGui to autorenamed GuiDesign.jpg - GuiDesign_1.jpg - GuiDesign_2.jpg - ..
+
+  SBPic = Program.Directory + "\GUIDesign.jpg"
+
+  BaseFile = Program.Directory + "\GUIDesign"
+
+  FExt = ".jpg"
+
+  Num = 0
+
+' The following line could be harmful and has been automatically commented.
+
+'   While LDFile.Length(SBPic) >= 0
+
+    'While FilePlus.FileExists(SBPic)    ' DataExt
+
+    Num = Num + 1
+
+    SBPic = BaseFile + "_" + Num + FExt
+
+  EndWhile
+
+  
+
+  LDUtilities.GWCapture(SBPic,"")
+
+  Program.Delay(400)
+
+  'ImgView = "%WINDIR%\system32\shimgvw.dll,ImageView_Fullscreen " + SBPic      ' funktioniert nicht mit SysVars
+
+  'ImgView = "shimgvw.dll,ImageView_Fullscreen " + SBPic
+
+  'LDProcess.Start("rundll32.exe", ImgView)
+
+  LDProcess.Start("rundll32.exe", "shimgvw.dll,ImageView_Fullscreen " + SBPic)
+
+EndSub
+
+
+
+Sub KompRun   ' Compile SBFile and start Exe
+
+' The following line could be harmful and has been automatically commented.
+
+'   If LDFile.Length(SBFile) >= 0 Then
+
+    LDProcess.Start("C:\Program Files\Microsoft\Small Basic\SBCompile.vbs", QU + SBFile + QU)
+
+    'LDProcess.Start("wscript.exe", "C:\Program Files\Microsoft\Small Basic\SBCompile.vbs" + " " + QU + SBFile + QU)
+
+    Program.Delay(2000)
+
+' The following line could be harmful and has been automatically commented.
+
+'     SBExe = QU + LDFile.GetFolder(SBFile) + "\" + LDFile.GetFile(SBFile) + ".exe" + QU
+
+    
+
+    'TextWindow.WriteLine(SBFile + LF + SBExe)
+
+    'TextWindow.Read()
+
+    LDProcess.Start(SBExe,"")
+
+  Else
+
+    GraphicsWindow.ShowMessage(SBFile + " nicht gefunden!", "Datei zum Kompilieren (noch) nicht vorhanden")
+
+  EndIf
+
+EndSub
+
+

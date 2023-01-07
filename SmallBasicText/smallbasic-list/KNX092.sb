@@ -1,0 +1,573 @@
+' SmallBasic Version 1.0
+
+' Program: MathArt Engl
+
+' Changelog: 02.15
+
+' Author: Pappa Lapub
+
+' Website: http://matt.wandel.ca/artwork/math_art.html  (Matthias Wandel)
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev, Data Ext, (SBMath)
+
+' Comment: http://matt.wandel.ca/artwork/sinpats.bas	(MS QB 4.5 Source)
+
+'  StandardfenstergrÃ¶ÃŸe: 640x480 (xp = 320+ .., yp = 240+ .. -> +80)
+
+' Variables: n .. keyNumber (0-9)
+
+' ToDo: 
+
+' ================================================================================
+
+helpDurat = 6000
+
+title = "MathArt  [?, F1  Help]  "
+
+names = "0=Fig1-9;1=Fig1;2=Flower1 (Fig2);3=Flower2 (Fig3);4=Fig4;5=Slinky (Fig5);6=Fig6;7=Waves (Fig7);8=Shingles (Fig8);9=Fig9;"
+
+
+
+pi = 3.14159   ' pi = Math.Pi
+
+e = 2.71828    ' e = SBMath.E
+
+tab = Text.GetCharacter(9)
+
+lf = Text.GetCharacter(10)
+
+args = ""
+
+
+
+helpTxt = "1-9" +tab+ "Figures" +lf+ "0" +tab+ "All figures in rand colors" +lf
+
+helpTxt = helpTxt+ "?†?†“/?†’?†‘" +tab+ "-/+ Figure" +lf
+
+helpTxt = helpTxt+ "else" +tab+ "Clear GW" +lf+ "MousR" +tab+ "FloodFill" +lf
+
+helpTxt = helpTxt+ "C" +tab+ "Copy to clipboard" +lf+ "S" +tab+ "Save as.." +lf
+
+helpTxt = helpTxt+ "?, F1" +tab+ "This help" +lf+ "ESC" +tab+ "Exit"
+
+
+
+GraphicsWindow.Top = 0
+
+GraphicsWindow.Width = 640
+
+GraphicsWindow.Height = 640
+
+GraphicsWindow.Title = title
+
+GraphicsWindow.BackgroundColor = "Black"
+
+LDGraphicsWindow.Icon = Program.Directory + "\Icons\MathArt.ico"
+
+
+
+GraphicsWindow.BrushColor = "Orange"
+
+GraphicsWindow.PenWidth = 1
+
+GraphicsWindow.PenColor = "White"
+
+n = 1
+
+DrawFigure()
+
+'Fig1() ' Flower1
+
+
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+
+
+While "True"
+
+  If helpOn And Clock.ElapsedMilliseconds >= now+helpDurat Then
+
+    HelpView()
+
+  EndIf
+
+  Program.Delay(20)
+
+EndWhile
+
+
+
+
+
+' //////////  EVENTs  \\\\\\\\\\
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  If lastKey = "Escape" Then
+
+    Program.End()
+
+  ElseIf lastKey = "OemOpenBrackets" Or lastKey = "F1" Then   ' <?>, <F1>
+
+    HelpView()
+
+  ElseIf Text.StartsWith(lastKey, "D") And Text.IsSubText("01223456789", Text.GetSubText(lastKey,2,1)) Then
+
+    n = Text.GetSubText(lastKey, 2,1)   ' D0-D9
+
+    DrawFigure()
+
+  ElseIf lastKey = "Left" Or lastKey = "Down" Then
+
+    n = Math.Remainder(7+n,9)+1 ' 9-n-2
+
+    DrawFigure()
+
+  ElseIf lastKey = "Right" Or lastKey = "Up" Then
+
+    n = Math.Remainder(n,9)+1
+
+    DrawFigure()
+
+    
+
+  ElseIf lastKey = "C" Then
+
+    img = LDGraphicsWindow.Capture("","")
+
+    Program.Delay(20)
+
+    Clipboard.SetImage(img)
+
+  ElseIf lastKey = "S" Then
+
+    img = LDGraphicsWindow.Capture("","")
+
+    Program.Delay(20)
+
+    SaveToFile()
+
+  Else
+
+    GraphicsWindow.Clear()
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseMove
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY  
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  If Mouse.IsRightButtonDown Then
+
+    LDGraphicsWindow.FloodFill(mx,my, GraphicsWindow.GetRandomColor())
+
+  EndIf
+
+EndSub
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+' Tastenfunktionen
+
+Sub DrawFigure
+
+  If n > 0 Then
+
+    GraphicsWindow.Clear()
+
+  EndIf
+
+  GraphicsWindow.Title = title + names[n]
+
+  GraphicsWindow.PenColor = GraphicsWindow.GetRandomColor()
+
+  LDCall.Function("Fig"+n, "")
+
+EndSub
+
+
+
+Sub SaveToFile
+
+' The following line could be harmful and has been automatically commented.
+
+'   savePath = LDDialogs.SaveFile("bmp;*.gif;*.jpg;*.png", "") ' LDFile.PicturesFolder
+
+  If savePath <> "" Then
+
+    LDImage.SaveAs(img, savePath)
+
+  EndIf
+
+EndSub
+
+
+
+Sub HelpView
+
+  If helpOn Then
+
+    For opac = 100 To 0 Step -0.05      ' Fade Out
+
+      Shapes.SetOpacity(helpShp, opac)
+
+    EndFor
+
+    Shapes.Remove(helpShp)
+
+    helpOn = ""
+
+  Else
+
+    helpShp = Shapes.AddText(helpTxt)
+
+    helpOn = "True"
+
+    now = Clock.ElapsedMilliseconds
+
+  EndIf
+
+EndSub
+
+
+
+'' ----------------------------------
+
+'' Polar Parameterfunktionen
+
+Sub Fig1  ' UnNamed (FlÃ¼gel)
+
+  For theta = 0 To 12 * pi Step .05
+
+    rad = Math.Cos(theta) * Math.Sin(theta / 3) * Math.Sin(theta / 2) * 80 * (3 + Math.Cos(theta * 6.333))
+
+    xp = 320 + rad * Math.Cos(theta)
+
+    yp = 240 + rad * Math.Sin(theta) +80
+
+    
+
+    If theta > 0 Then
+
+      GraphicsWindow.DrawLine(x,y, xp,yp)
+
+    EndIf
+
+    x = xp
+
+    y = yp
+
+  EndFor
+
+EndSub
+
+
+
+Sub Fig2  ' Flower1
+
+  For theta = 0 To 2 * pi Step .015
+
+    rad = -(.5 * Math.Sin(5 * theta)) * (.5 * Math.Cos(4 * theta)) * 1000
+
+    angle = theta + Math.Sin(rad / 100)
+
+    xp = 320 + rad * Math.Cos(angle)
+
+    yp = 240 + rad * Math.Sin(angle) +80
+
+    
+
+    If theta > 0 Then
+
+      GraphicsWindow.DrawLine(x,y, xp,yp)
+
+      ' Turtle.MoveTo(xp,yp)
+
+      'Else
+
+      '' at Turtle.Speed = 10
+
+      '  Turtle.X = xp
+
+      '  Turtle.Y = xp
+
+    EndIf
+
+    x = xp
+
+    y = yp
+
+  EndFor
+
+EndSub
+
+
+
+Sub Fig3  ' Flower2
+
+  For theta = 0 To 4 * pi Step .04
+
+    rad = (1.05 + Math.Sin(theta * 4.5)) * 100
+
+    angle = theta - Math.Cos(theta * 10) / 10
+
+    xp = 320 + rad * Math.Cos(angle)
+
+    yp = 240 + rad * Math.Sin(angle) +80
+
+    
+
+    If theta > 0 Then
+
+      GraphicsWindow.DrawLine(x,y, xp,yp)
+
+    EndIf
+
+    x = xp
+
+    y = yp
+
+  EndFor
+
+EndSub
+
+
+
+Sub Fig4  ' UnNamed (Square, Lissajous)
+
+  For theta = 0 To (4 * pi + .02) Step .02
+
+    xp = 320 + Math.Sin(theta * 5) * 200
+
+    yp = 240 + Math.Cos(theta * 5.5) * 200 +80
+
+    
+
+    If theta > 0 Then
+
+      GraphicsWindow.DrawLine(x,y, xp,yp)
+
+    EndIf
+
+    x = xp
+
+    y = yp
+
+  EndFor
+
+EndSub
+
+
+
+Sub Fig5  'Slinky
+
+  For theta = 0 To 2 * pi Step .02
+
+    xp = 320 + Math.Sin(theta * 5) * Math.Cos(theta * 6) * 200
+
+    yp = 240 + Math.Cos(theta * 5.5) * Math.Sin(theta * 6.5) * 200 +80
+
+    
+
+    If theta > 0 Then
+
+      GraphicsWindow.DrawLine(x,y, xp,yp)
+
+    EndIf
+
+    x = xp
+
+    y = yp
+
+  EndFor
+
+EndSub
+
+
+
+Sub Fig6  ' UnNamed (Netz)
+
+  For theta = 0 To 4 * pi Step .004
+
+    xp = Math.Power(e, Math.Sin(theta * 10)) * 230 - 30
+
+    t = Math.Power(e, Math.Cos(theta * 9.5)) * 180 - 30
+
+    
+
+    yp = t + Math.Sin(xp / 20) * 20 +80
+
+    xp = xp + Math.Sin(t / 20) * 20
+
+    'yp = t + Math.Sin(xp / 20) * 20 +80
+
+    
+
+    If theta > 0 Then
+
+      GraphicsWindow.DrawLine(x,y, xp,yp)
+
+    EndIf
+
+    x = xp
+
+    y = yp
+
+  EndFor
+
+EndSub
+
+
+
+Sub Fig7  ' Waves
+
+  For theta = 0 To 4 * pi Step .004
+
+    xt = Math.Sin(theta * 10) * 230 + 320
+
+    yt = Math.Cos(theta * 9.5) * 200 + 240
+
+    nthet = xt / 30 + yt / 30
+
+    
+
+    yp = yt + Math.Sin(nthet) * 20 +80
+
+    xp = xt + Math.Cos(nthet) * 20
+
+    'yp = yt + Math.Sin(nthet) * 20 +80
+
+    
+
+    If theta > 0 Then
+
+      GraphicsWindow.DrawLine(x,y, xp,yp)
+
+    EndIf
+
+    x = xp
+
+    y = yp
+
+  EndFor
+
+EndSub
+
+
+
+Sub Fig8  ' Shingles
+
+  For theta = 0 To 160 Step .06
+
+    xt = Math.Sin(theta) * theta * 2 + 320
+
+    yt = Math.Cos(theta) * theta * 2 + 240
+
+    nthet = xt / 30 + yt / 30
+
+    othet = xt / 30 - yt / 30
+
+    
+
+    yp = yt + Math.Sin(nthet) * 15 + Math.Sin(othet) * 15 +80
+
+    xp = xt + Math.Cos(nthet) * 15 + Math.Cos(othet) * 15
+
+    'yp = yt + Math.Sin(nthet) * 15 + Math.Sin(othet) * 15 +80
+
+    
+
+    If theta > 0 Then
+
+      GraphicsWindow.DrawLine(x,y, xp,yp)
+
+    EndIf
+
+    x = xp
+
+    y = yp
+
+  EndFor
+
+EndSub
+
+
+
+Sub Fig9  ' UnNamed (Wurmloch)
+
+  For theta = 0 To 40 * pi Step .04
+
+    rad = (1.4 + Math.Sin(theta * 3.05)) * 110
+
+    xt = Math.Sin(theta) * rad + 320
+
+    yt = Math.Cos(theta) * rad + 240
+
+    nthet = xt / 20
+
+    othet = yt / 20
+
+    
+
+    yp = yt + Math.Sin(nthet) * 15 +80
+
+    xp = xt + Math.Cos(othet) * 15
+
+    'yp = yt + Math.Sin(nthet) * 15 +80
+
+    
+
+    If theta > 0 Then
+
+      GraphicsWindow.DrawLine(x,y, xp,yp)
+
+    EndIf
+
+    x = xp
+
+    y = yp
+
+  EndFor
+
+EndSub
+
+
+
+Sub Fig0  ' All (1-9)
+
+  For n = 1 To 9
+
+    GraphicsWindow.PenColor = GraphicsWindow.GetRandomColor()
+
+    LDCall.Function("Fig"+n,"")
+
+  EndFor
+
+EndSub
+
+

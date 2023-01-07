@@ -1,0 +1,599 @@
+' Poker 0.51b
+
+' Copyright © 2012-2015 Nonki Takahashi.  The MIT License.
+
+'
+
+' History
+
+'  0.51b 2015-05-03 Removed trial count.
+
+'  0.5b 2015-05-03 Modified for Challenge of the Month. 
+
+'  0.4 2014-01-09 Changed for performance. (RMP814-0)
+
+'  0.3 2014-01-06 Rewrote to check full house probability. (RMP814)
+
+'  0.2 2013-04-04 Modified for Challenge of the Month. (CZJ358-0)
+
+'  0.1 2012-08-21 Created. (CZJ358)
+
+'
+
+GraphicsWindow.Title = "Poker 0.51b"
+
+Not = "False=True;True=False;"
+
+sim = "True"
+
+Cards_Init()
+
+GraphicsWindow.FontSize = 12 * scale
+
+GraphicsWindow.BrushColor = "White"
+
+txtWinner = Shapes.AddText("Winner")
+
+Shapes.Move(txtWinner, 80 * scale, y0 + 30 * scale)
+
+txtWinner = Shapes.AddText("")
+
+Shapes.Move(txtWinner, 140 * scale, y0 + 30 * scale)
+
+GraphicsWindow.BrushColor = "Black"
+
+buttonTry = Controls.AddButton("Deal", 80 * scale, y0)
+
+GraphicsWindow.BrushColor = "White"
+
+txtPlayer[CPU] = Shapes.AddText("CPU")
+
+col = 6
+
+row = 2
+
+x = x0 + (col - 1) * (width + 10)
+
+y = y0 + (row - 1) * (height + 30)
+
+Shapes.Move(txtPlayer[CPU], x, y)
+
+txtHand[CPU] = Shapes.AddText("")
+
+Shapes.Move(txtHand[CPU], x, y + 12 * scale)
+
+txtPlayer[PLAYER] = Shapes.AddText("PLAYER")
+
+row = 3
+
+y = y0 + (row - 1) * (height + 30)
+
+Shapes.Move(txtPlayer[PLAYER], x, y)
+
+txtHand[PLAYER] = Shapes.AddText("")
+
+Shapes.Move(txtHand[PLAYER], x, y + 12 * scale)
+
+clicked = "False"
+
+Controls.ButtonClicked = OnButtonClicked
+
+While "True"
+
+  If clicked Then
+
+    clicked = "False"
+
+    RecombineCards()
+
+    col = 1
+
+    row = 2
+
+    ShuffleCards()
+
+    DrawCards()
+
+    turn = CPU
+
+    CheckPokerHand()
+
+    nums[CPU] = kindNum
+
+    turn = PLAYER
+
+    CheckPokerHand()
+
+    nums[PLAYER] = kindNum
+
+    For i = CPU To PLAYER
+
+      Shapes.SetText(txtHand[i], pokerHand[i])
+
+    EndFor
+
+    CheckWinner()
+
+    Shapes.SetText(txtWinner, winner)
+
+    Program.Delay(1000)
+
+  EndIf
+
+EndWhile
+
+Sub OnButtonClicked
+
+  clicked = "True"
+
+EndSub
+
+Sub DrawCards
+
+  ' draw 5 cards from deck
+
+  ' param col, row - target position to draw
+
+  ' param turn - 1 for AI, 2 for PLAYER
+
+  For i = 1 To 10
+
+    index = deck[i]
+
+    field[i] = index
+
+    Cards_Move()
+
+    col = col + 1
+
+    If 5 < col Then
+
+      col = 1
+
+      row = row + 1
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub CheckWinner
+
+  ' param nums - array for kind of numbers
+
+  If pokerHands[pokerHand[CPU]] < pokerHands[pokerHand[PLAYER]] Then
+
+    winner = "PLAYER"
+
+  ElseIf pokerHands[pokerHand[PLAYER]] < pokerHands[pokerHand[CPU]] Then
+
+    winner = "CPU"
+
+  Else
+
+    cpuNums = nums[CPU]
+
+    playerNums = nums[PLAYER]
+
+    winner = "DRAW"
+
+    If cpuNums[1] <> "" And playerNums[1] = "" Then
+
+      winner = "CPU"
+
+    ElseIf cpuNums[1] = "" And playerNums[1] <> "" Then
+
+      winner = "PLAYER"
+
+    Else
+
+      For n = 13 To 2 Step -1
+
+        If cpuNums[n] <> "" And playerNums[n] = "" Then
+
+          winner = "CPU"
+
+          n = 2 ' break
+
+        ElseIf cpuNums[n] = "" And playerNums[n] <> "" Then
+
+          winner = "PLAYER"
+
+          n = 2 ' break
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub CheckPokerHand
+
+  ' param turn - 1 for CPU, 2 for PLAYER
+
+  ' return pokerHand
+
+  pokerHand[turn] = ""
+
+  kindNum = ""
+
+  kindSuite = ""
+
+  For i = 1 + (turn - 1) * 5 To 5 + (turn - 1) * 5 
+
+    num = Math.Remainder(field[i] - 1, 13) + 1
+
+    kindNum[num] = kindNum[num] + 1 
+
+    suite = Math.Floor((field[i] - 1) / 13) + 1
+
+    kindSuite[suite] = kindSuite[suite] + 1 
+
+  EndFor
+
+  nKind = Array.GetItemCount(kindNum)
+
+  iKind = Array.GetAllIndices(kindNum)
+
+  If nKind = 2 Then
+
+    If kindNum[iKind[1]] = 1 Or kindNum[iKind[1]] = 4 Then
+
+      pokerHand[turn] = "Four of a Kind"
+
+    ElseIf kindNum[iKind[1]] = 2 Or kindNum[iKind[1]] = 3 Then
+
+      pokerHand[turn] = "Full House"
+
+    EndIf
+
+  ElseIf nKind = 3 Then
+
+    If kindNum[iKind[1]] = 3 Or kindNum[iKind[2]] = 3 Or kindNum[iKind[3]] = 3 Then
+
+      pokerHand[turn] = "Three of a Kind"
+
+    ElseIf kindNum[iKind[1]] = 1 Or kindNum[iKind[2]] = 1 Or kindNum[iKind[3]] = 1 Then
+
+      pokerHand[turn] = "Two Pair"
+
+    EndIf
+
+  ElseIf nKind = 4 Then
+
+    pokerHand[turn] = "One Pair"
+
+  Else
+
+    min = 13
+
+    max = 1
+
+    For i = 1 To 13
+
+      If kindNum[i] <> "" Then
+
+        If i < min Then
+
+          min = i
+
+        EndIf
+
+        If max < i Then
+
+          max = i
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+    If max - min = 4 Then
+
+      pokerHand[turn] = "Straight"
+
+    EndIf
+
+  EndIf
+
+  nKind = Array.GetItemCount(kindSuite)
+
+  If nKind = 1 Then
+
+    If pokerHand[turn] = "Straight" Then
+
+      pokerHand[turn] = "Straight Flush"
+
+    Else
+
+      pokerHand[turn] = "Flush"
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub RecombineCards
+
+  col = 1
+
+  row = 1
+
+  For i = 1 To 10
+
+    index = field[i]
+
+    Cards_Move()
+
+  EndFor
+
+EndSub
+
+Sub ShuffleCards
+
+  ' Shuffle  cards
+
+  For i = 1 To 10
+
+    i1 = i
+
+    i2 = Math.GetRandomNumber(nSuites * nNumbers)
+
+    Cards_Swap()
+
+  EndFor
+
+EndSub
+
+Sub Cards_Init
+
+  ' return cards - array for cards properties
+
+  ' return nSuites - number of suites
+
+  ' return nNumbers - number of numbers
+
+  CPU = 1
+
+  PLAYER = 2
+
+  pokerHands = "Straight Flush=8;Four of a Kind=7;Full House=6;Flush=5;Straight=4;Three of a Kind=3;Two Pair=2;One Pair=1;"
+
+  scale = 1.4
+
+  width = 50 * scale
+
+  height = 70 * scale
+
+  cards["width"] = width
+
+  cards["height"] = height
+
+  cards["xs"] = 4 * scale ' offset for suite in a card
+
+  cards["ys"] = 30 * scale
+
+  cards["xn"] = 4 * scale ' offset for number in a card
+
+  cards["yn"] = 5 * scale
+
+  cards["xp"] = 6 * scale ' offset for pattern in card
+
+  cards["yp"] = 0
+
+  pattern = "color=DarkBlue;code=2593;"
+
+  suites["club"] = "color=Black;code=2663;"
+
+  suites["diamond"] = "color=#AA0000;code=2666;"
+
+  suites["heart"] = "color=#AA0000;code=2665;"
+
+  suites["spade"] = "color=Black;code=2660;"
+
+  numbers = "1=A;2=2;3=3;4=4;5=5;6=6;7=7;8=8;9=9;10=10;11=J;12=Q;13=K;"
+
+  nSuites = Array.GetItemCount(suites)
+
+  nNumbers = Array.GetItemCount(numbers)
+
+  iSuites = Array.GetAllIndices(suites)
+
+  GraphicsWindow.BackgroundColor = "#004400"
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.FontName = "Courier New"
+
+  GraphicsWindow.Width = 598  ' (width + 10) * nNumbers + 10
+
+  GraphicsWindow.Height = 428 ' (height + 10) * (nSuites + 1) + 10
+
+  col = 1
+
+  row = 1
+
+  x0 = 20 * scale
+
+  y0 = 20 * scale
+
+  hex = pattern["code"]
+
+  Math_Hex2Dec()
+
+  pChar = Text.GetCharacter(dec)
+
+  For s = 1 To nSuites
+
+    suite = suites[iSuites[s]]
+
+    hex = suite["code"]
+
+    Math_Hex2Dec()
+
+    sChar = Text.GetCharacter(dec)
+
+    For n = 1 To nNumbers
+
+      index = index + 1
+
+      deck[index] = index
+
+      GraphicsWindow.BrushColor = "White"
+
+      card = cards[index]
+
+      card["oCard"] = Shapes.AddRectangle(width, height)
+
+      GraphicsWindow.BrushColor = suite["color"]
+
+      GraphicsWindow.FontSize = 28 * scale
+
+      card["oSuite"] = Shapes.AddText(sChar)
+
+      card["oNumber"] = Shapes.AddText(numbers[n])
+
+      If Not[sim] Then
+
+        GraphicsWindow.BrushColor = "White"
+
+        card["oCard2"] = Shapes.AddRectangle(width, height)
+
+        GraphicsWindow.BrushColor = pattern["color"]
+
+        GraphicsWindow.FontSize = 60 * scale
+
+        card["oPattern"] = Shapes.AddText(pChar)
+
+      EndIf
+
+      cards[index] = card
+
+      Cards_Move()
+
+    EndFor
+
+  EndFor
+
+  If sim Then
+
+    card = cards[index]
+
+    GraphicsWindow.BrushColor = "White"
+
+    card["oCard2"] = Shapes.AddRectangle(width, height)
+
+    GraphicsWindow.BrushColor = pattern["color"]
+
+    GraphicsWindow.FontSize = 60 * scale
+
+    card["oPattern"] = Shapes.AddText(pChar)
+
+    Shapes.Move(card["oCard2"], x0, y0)
+
+    Shapes.Move(card["oPattern"], x0 + cards["xp"], y0 + cards["yp"])
+
+    cards[index] = card
+
+  EndIf
+
+EndSub
+
+Sub Cards_Close
+
+  ' param index
+
+  card = cards[index]
+
+  Shapes.ShowShape(card["oCard2"])
+
+  Shapes.ShowShape(card["oPattern"])
+
+EndSub
+
+Sub Cards_Open
+
+  ' param index
+
+  card = cards[index]
+
+  Shapes.HideShape(card["oPattern"])
+
+  Shapes.HideShape(card["oCard2"])
+
+EndSub
+
+Sub Cards_Move
+
+  ' param index - index of a card
+
+  ' param col, row - position to move
+
+  card = cards[index]
+
+  card["col"] = col
+
+  card["row"] = row
+
+  x = x0 + (col - 1) * (width + 10)
+
+  y = y0 + (row - 1) * (height + 30)
+
+  Shapes.Move(card["oCard"], x, y)
+
+  Shapes.Move(card["oSuite"], x + cards["xs"], y + cards["ys"])
+
+  Shapes.Move(card["oNumber"], x + cards["xn"], y + cards["yn"])
+
+  If Not[sim] Then
+
+    Shapes.Move(card["oCard2"], x, y)
+
+    Shapes.Move(card["oPattern"], x + cards["xp"], y + cards["yp"])
+
+  EndIf
+
+  cards[index] = card
+
+EndSub
+
+Sub Cards_Swap
+
+  ' param i1, i2 - indices of two cards
+
+  index = deck[i1]
+
+  deck[i1] = deck[i2]
+
+  deck[i2] = index
+
+EndSub
+
+Sub Math_Hex2Dec
+
+  ' Math | Convert hexadecimal to decimal
+
+  ' param hex
+
+  ' return dec
+
+  dec = 0
+
+  len = Text.GetLength(hex)
+
+  For ptr = 1 To len
+
+    dec = dec * 16 + Text.GetIndexOf("0123456789ABCDEF", Text.GetSubText(hex, ptr, 1)) - 1
+
+  EndFor
+
+EndSub
+
+

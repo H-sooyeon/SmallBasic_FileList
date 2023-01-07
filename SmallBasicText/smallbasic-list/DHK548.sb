@@ -1,0 +1,1181 @@
+'setup the windows
+
+
+
+GraphicsWindow.Top = 180
+
+GraphicsWindow.Width = 400
+
+GraphicsWindow.Height = 400
+
+GraphicsWindow.Show()
+
+GraphicsWindow.BackgroundColor="black"
+
+
+
+TextWindow.Left = GraphicsWindow.Left + GraphicsWindow.Width + 20
+
+TextWindow.Top = 360
+
+TextWindow.Title= "Small 3d Example"
+
+
+
+'-----------------------------------------------------------------------------------------
+
+' initialize a few values first:
+
+' those have to stay constant
+
+' just enumerate them 
+
+XX = 0
+
+YY = 1
+
+ZZ = 2
+
+NX = 3
+
+NY = 4
+
+NZ = 5
+
+isDeleted = 6
+
+' do not change XX,YY,ZZ...til isDeleted
+
+' isDeleted is not really in use yet, but if stuff shall be added or deleted, this will be needed
+
+'those 3 to store colors split in RGB 
+
+FaceRed = 7
+
+FaceGreen = 8
+
+FaceBlue = 9
+
+' this to store a shading-value 
+
+FaceShade = 10
+
+' add in here more properties if you want to:
+
+' isVisible has to be the last for tirangles!
+
+isVisible = 11
+
+
+
+' setup view 
+
+
+
+' set up a projection-table for 0° to 360° degrees
+
+' just used for graphical stuff 
+
+For i1 = 0 To 360
+
+  Sinus[i1] = Math.Sin(i1 * Math.Pi/180)
+
+  Cosinus[i1] = Math.Cos(i1 * Math.Pi/180)
+
+EndFor
+
+'  the table can also be used for movement in 3d, example:
+
+' add like this to go forward:
+
+'        NewPosX = Xpos + Sinus(lookingdirection) * stepsize
+
+'        NewPosY = YPos + Cosinus(lookingdirection) * stepsize
+
+'  or subtract to move backward:
+
+'       NewPosX = Xpos - Sinus(lookingdirection) * stepsize
+
+'       NewPosY = YPos - Cosinus(lookingdirection) * stepsize
+
+'  if you want to step to the side you have to cross the values... 
+
+
+
+' GraphicsWindows size is 400, position centered
+
+WorldPos[XX] = 200
+
+WorldPos[YY] = 200
+
+
+
+' there's no rotation around Z used, since mouse can only move in 2 dimensions and
+
+' there's no mouse.wheel()
+
+' rotated view around Z is 0 but can be changed or built in...
+
+' XX and YY get set by Sub OnMouseMove
+
+RotView[ZZ] = 0
+
+
+
+'minimal light, so a face doesnt completely go black
+
+AmbientLight = 32
+
+
+
+' positioning the view centered
+
+View[XX] = 0
+
+View[YY] = 0 
+
+View[ZZ] = -1
+
+' geometry is XX from left to right ( left -0.5, right 0.5)
+
+'                    YY from up to down (up -0.5, down 0.5)
+
+'	     ZZ from viewer into the monitor 
+
+'   (You sit somewhere in negative ZZ, screen-surface is zero ZZ, inside your screen is positive ZZ)
+
+
+
+' create 1 light beam from viewer, pointing to viewing point 
+
+' by calling Normalize
+
+' setup parameters for call
+
+Param[0][XX] = 100
+
+Param[0][YY] = 100
+
+Param[0][ZZ] = -100
+
+' call
+
+
+
+Normalize()
+
+' put result into the right place
+
+LightDirectional[XX]=ResultOfSub[XX] 
+
+LightDirectional[YY]=ResultOfSub[YY] 
+
+LightDirectional[ZZ]=ResultOfSub[ZZ] 
+
+
+
+' say "hello" to the user
+
+TextWindow.WriteLine("Welcome to Small3dExample")
+
+TextWindow.WriteLine("")
+
+TextWindow.WriteLine("This is to demonstrate how to set up 3d-stuff in Smallbasic")
+
+TextWindow.WriteLine("In the GraphicsWindow you can see probably a square. But it's a cube.")
+
+TextWindow.WriteLine("Rotate it by holding left mouse-button. Reset rotation by right-clicking on it.")
+
+TextWindow.WriteLine("You experience flickering? ")
+
+textwindow.WriteLine("That's because Smallbasic does not support backbuffering. :.(..")
+
+TextWindow.WriteLine("")
+
+TextWindow.WriteLine("Type 'help' for help")
+
+TextWindow.WriteLine("")
+
+TextWindow.WriteLine("Ready")
+
+
+
+' setup events
+
+
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+GraphicsWindow.MouseDown = OnMouseDown 
+
+GraphicsWindow.MouseUp = OnMouseUp 
+
+
+
+'create an example cube by calling:
+
+CreateCube3d()
+
+' draw the initial view
+
+Draw3dView()
+
+
+
+'-----------------------------------------------------------------------------------------
+
+
+
+MainLoop:
+
+
+
+' always read out what the user typed
+
+qInput = TextWindow.Read()
+
+
+
+If qInput <>"" Then
+
+  ' if typed something, chop leading spaces
+
+  While Text.GetLength(qInput) > 1 And Text.StartsWith(qInput," ")
+
+    qInput=Text.GetSubTextToEnd(qInput,2)
+
+  EndWhile
+
+  ' chop tailing spaces
+
+  While Text.GetLength(qInput) > 1 And Text.EndsWith(qInput," ")
+
+    qInput=Text.GetSubText(qInput,1, Text.GetLength(qInput))
+
+  EndWhile
+
+EndIf
+
+' still some qInput left?
+
+If (qInput <>" ") And  (qInput <> "") then
+
+  ' ok, then we have to...
+
+  qInput = Text.ConvertToLowerCase(qInput)
+
+  
+
+  If qInput ="end" or qInput="quit" or qInput ="exit" Then
+
+    Program.End()
+
+  EndIf 
+
+  
+
+  ' if questioning state is "help":
+
+  If qState = "help" then 
+
+    ' give answers to with qInput specified question
+
+    If qInput ="g" then
+
+      TextWindow.WriteLine("How to control the GraphicsWindow:") 
+
+      TextWindow.WriteLine("Hold left button and move mouse gently to rotate") 
+
+      qState = ""
+
+    ElseIf qInput ="b" then 
+
+      TextWindow.WriteLine("You asked when I need a BackBuffer:")
+
+      TextWindow.WriteLine("The answer is: '" + Clock.WeekDay +"'" )
+
+      TextWindow.WriteLine("but better would have been yesterday.")   
+
+      qState = ""
+
+  ElseIf qInput ="r" then 
+
+      TextWindow.WriteLine("How to reset the rotation:")
+
+      TextWindow.WriteLine("right-click into the GraphicsWindow")
+
+    elseIf qInput = "x" then 
+
+      TextWindow.WriteLine("How to end this program:")
+
+      TextWindow.WriteLine("type 'quit', 'exit' or 'end' and press <ENTER>" ) 
+
+      qState = "" 
+
+    Else
+
+      qState = "" 
+
+      TextWindow.WriteLine("type 'help' and press <ENTER> for help")  
+
+    EndIf 
+
+  EndIf  
+
+  
+
+  If qInput = "help" Then
+
+    TextWindow.WriteLine("What do you want to know?")
+
+    TextWindow.WriteLine("B - When do you need that Backbuffer?")
+
+    TextWindow.WriteLine("G - how to control the GraphicsWindow?") 
+
+    TextWindow.WriteLine("R- how to reset rotation?")
+
+    TextWindow.WriteLine("X - how to end this program?")
+
+    qState = "help"
+
+  EndIf 
+
+  
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("Ready")
+
+endif
+
+
+
+
+
+Goto MainLoop
+
+
+
+'---------------------------------------------------------------------------------------
+
+' mouse-event-handling:
+
+
+
+Sub OnMouseMove
+
+  If isMouseLeftDown = 1 Then
+
+    ' rotated view changes    
+
+    RotView[XX] = RotView[XX] + (OldMousePos[YY] - GraphicsWindow.MouseY)/10    
+
+    RotView[YY] = RotView[YY] + (OldMousePos[XX] - GraphicsWindow.MouseX)/10
+
+    ' need to redraw now:
+
+    Draw3dView()
+
+  EndIf
+
+  ' store the old mouse position to use it next time
+
+  OldMousePos[XX]=GraphicsWindow.MouseX
+
+  OldMousePos[YY]=GraphicsWindow.MouseY
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  If Mouse.IsLeftButtonDown Then 
+
+    ' we just need to know if user keeps left button pressed
+
+    isMouseLeftDown = 1
+
+  EndIf 
+
+  If Mouse.IsRightButtonDown Then
+
+    ' right-click should reset rotated view to 0   
+
+    RotView[XX] = 0
+
+    RotView[YY] = 0
+
+    RotView[ZZ] = 0
+
+    'now draw this by calling
+
+    Draw3dView()
+
+  endif
+
+  
+
+EndSub
+
+
+
+Sub OnMouseUp
+
+  If Mouse.IsLeftButtonDown Then
+
+    ' nothing will happen if user releases any other button...
+
+  Else 
+
+    If isMouseLeftDown = 1 Then 
+
+      isMouseLeftDown = 0
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+'-----------------------------------------------------
+
+
+
+Sub Normalize
+
+  ' add up distances in all 3 directions and fast calculate sqare-root by Power(#, 0.5)
+
+  Lenght = Math.Power(Math.Power(Param[0][XX],2)+Math.Power(Param[0][YY],2) + Math.Power(Param[0][ZZ],2), 0.5)
+
+  If Lenght < 0.05 Then
+
+    'don't divide that by 0 nor let it be a negative value
+
+    Lenght =  0.05
+
+  EndIf
+
+  'store for each direction the share of total (1.0) 
+
+  ResultOfSub[XX]=Param[0][XX]/Lenght
+
+  ResultOfSub[YY]=Param[0][YY]/Lenght
+
+  ResultOfSub[ZZ]=Param[0][ZZ]/Lenght
+
+  
+
+EndSub
+
+'-----------------------------------------------------
+
+Sub Clear3d
+
+  ' call to delete all faces and vertices 
+
+  ' call before Create...SomethingNew()  
+
+  
+
+  If FaceCount > 0 Then 
+
+    For i1 = 0 To FaceCount - 1
+
+      Fc[i1][isDeleted]= 1
+
+    EndFor
+
+  FaceCount = 0
+
+  EndIf
+
+  If VertexCount > 0 Then
+
+    For i1 = 0 To VertexCount - 1
+
+      Vx[i1][isDeleted] = 1
+
+    EndFor
+
+  VertexCount = 0
+
+  EndIf
+
+ 
+
+ ' just to ensure element[0][] does not exist
+
+  Fc[0][isDeleted] = 1
+
+  Vx[0][isDeleted] = 1
+
+  
+
+EndSub
+
+
+
+Sub CreateCube3d
+
+  'create some demonstration-cube
+
+  Clear3d()
+
+  
+
+  'first create the vertex-data
+
+  'left,lower, front corner
+
+  Vx[0][XX] = -50.0
+
+  Vx[0][YY] = 50.0
+
+  Vx[0][ZZ] = -50.0 
+
+  Vx[0][isDeleted] = 0
+
+  'left,upper, front
+
+  Vx[1][XX] = -50.0
+
+  Vx[1][YY] = -50.0
+
+  Vx[1][ZZ] = -50.0 
+
+  Vx[1][isDeleted] = 0
+
+  'left, lower, back
+
+  Vx[2][XX] = -50.0
+
+  Vx[2][YY] = 50.0
+
+  Vx[2][ZZ] = 50.0 
+
+  Vx[2][isDeleted] = 0
+
+  'left upper back
+
+  Vx[3][XX] = -50.0
+
+  Vx[3][YY] = -50.0
+
+  Vx[3][ZZ] = 50.0 
+
+  Vx[3][isDeleted] = 0
+
+  'right, lower, front
+
+  Vx[4][XX] = 50.0
+
+  Vx[4][YY] = 50.0
+
+  Vx[4][ZZ] = -50.0 
+
+  Vx[4][isDeleted] = 0
+
+  'right, upper, front
+
+  Vx[5][XX] = 50.0
+
+  Vx[5][YY] = -50.0
+
+  Vx[5][ZZ] = -50.0 
+
+  Vx[5][isDeleted] = 0
+
+  'right, lower, back
+
+  Vx[6][XX] = 50.0
+
+  Vx[6][YY] = 50.0
+
+  Vx[6][ZZ] = 50.0 
+
+  Vx[6][isDeleted] = 0
+
+  'right, upper, back
+
+  Vx[7][XX] = 50.0
+
+  Vx[7][YY] = -50.0
+
+  Vx[7][ZZ] = 50.0 
+
+  Vx[7][isDeleted] = 0
+
+  ' so we have 8 Vertices
+
+  VertexCount = 8
+
+  ' now create cubes face-data, a cube has 6 rectangular faces, 
+
+  '  means for us to create 12 triangular faces
+
+  
+
+  'describe visible face by odering corners anti-clockwise
+
+  ' maybe it's supposed to be vice versa
+
+  'but I cannot tell, it flickers too much! 
+
+  'try to change value Fc[][1] andFc [][2]  
+
+
+
+  ' front:
+
+  
+
+  Fc[0][0] = 0 
+
+  Fc[0][1] = 4
+
+  Fc[0][2] = 1
+
+  Fc[0][FaceRed] = 200
+
+  Fc[0][FaceGreen] = 128
+
+  Fc[0][FaceBlue] = 128
+
+  Fc[0][isDeleted] = 0
+
+  
+
+  Fc[1][0] = 1 
+
+  Fc[1][1] = 4
+
+  Fc[1][2] = 5
+
+  Fc[1][FaceRed] = 200
+
+  Fc[1][FaceGreen] = 128
+
+  Fc[1][FaceBlue] = 128
+
+  Fc[1][isDeleted] = 0
+
+  
+
+  ' right side
+
+  Fc[2][0] = 4 
+
+  Fc[2][1] = 6
+
+  Fc[2][2] = 5
+
+  Fc[2][FaceRed] = 128
+
+  Fc[2][FaceGreen] = 200
+
+  Fc[2][FaceBlue] = 128
+
+  Fc[2][isDeleted] = 0
+
+  
+
+  Fc[3][0] = 5 
+
+  Fc[3][1] = 6
+
+  Fc[3][2] = 7
+
+  Fc[3][FaceRed] = 128
+
+  Fc[3][FaceGreen] = 200
+
+  Fc[3][FaceBlue] = 128
+
+  Fc[3][isDeleted] = 0
+
+  
+
+  ' back
+
+  Fc[4][0] = 6 
+
+  Fc[4][1] = 3
+
+  Fc[4][2] = 7
+
+  Fc[4][FaceRed] = 128
+
+  Fc[4][FaceGreen] = 128
+
+  Fc[4][FaceBlue] = 200
+
+  Fc[4][isDeleted] = 0
+
+  
+
+  Fc[5][0] = 3 
+
+  Fc[5][1] = 6
+
+  Fc[5][2] = 2
+
+  Fc[5][FaceRed] = 128
+
+  Fc[5][FaceGreen] = 128
+
+  Fc[5][FaceBlue] = 200
+
+  Fc[5][isDeleted] = 0
+
+  
+
+  ' left side
+
+  Fc[6][0] = 2 
+
+  Fc[6][1] = 0
+
+  Fc[6][2] = 3
+
+  Fc[6][FaceRed] = 200
+
+  Fc[6][FaceGreen] = 128
+
+  Fc[6][FaceBlue] = 200
+
+  Fc[6][isDeleted] = 0
+
+  
+
+  Fc[7][0] = 0 
+
+  Fc[7][1] = 1
+
+  Fc[7][2] = 3
+
+  Fc[7][FaceRed] = 200
+
+  Fc[7][FaceGreen] = 128
+
+  Fc[7][FaceBlue] = 200
+
+  Fc[7][isDeleted] = 0
+
+  
+
+  ' top
+
+  Fc[8][0] = 1
+
+  Fc[8][1] = 5
+
+  Fc[8][2] = 3
+
+  Fc[8][FaceRed] = 200
+
+  Fc[8][FaceGreen] = 200
+
+  Fc[8][FaceBlue] = 128
+
+  Fc[8][isDeleted] = 0
+
+  
+
+  Fc[9][0] = 3 
+
+  Fc[9][1] = 5
+
+  Fc[9][2] = 7
+
+  Fc[9][FaceRed] = 200
+
+  Fc[9][FaceGreen] = 200
+
+  Fc[9][FaceBlue] = 128
+
+  Fc[9][isDeleted] = 0
+
+  
+
+  ' bottom
+
+  Fc[10][0] = 2 
+
+  Fc[10][1] = 4
+
+  Fc[10][2] = 0
+
+  Fc[10][FaceRed] = 128
+
+  Fc[10][FaceGreen] = 200
+
+  Fc[10][FaceBlue] = 200
+
+  Fc[10][isDeleted] = 0
+
+  
+
+  Fc[11][0] = 4 
+
+  Fc[11][1] = 2
+
+  Fc[11][2] = 6
+
+  Fc[11][FaceRed] = 128
+
+  Fc[11][FaceGreen] = 200
+
+  Fc[11][FaceBlue] = 200
+
+  Fc[11][isDeleted] = 0
+
+  
+
+  ' now we've described 12 faces (0 to 11)
+
+  FaceCount = 12
+
+  
+
+EndSub
+
+'-----------------------------------------------------
+
+Sub Draw3dView
+
+  ' this is to create the view of our faces now
+
+  
+
+  GraphicsWindow.Clear()
+
+  'yeah, that flickers... urgently backbuffering needed!
+
+  
+
+  ' limit View-Settings from 0° to 360° and to integer since
+
+  'the projection-table (Sinus/Cosinus) is an array from 0 to 360
+
+  For i1 = XX To ZZ
+
+    While RotView[i1]> 359
+
+      RotView[i1]=RotView[i1]-360
+
+    EndWhile
+
+    While RotView[i1] < 0
+
+      RotView[i1]=RotView[i1]+360
+
+    EndWhile
+
+    RotView[i1] = Math.Floor(RotView[i1])
+
+  EndFor
+
+  
+
+  ' setup the rotation matrix to rotate our Vx[][]es,
+
+  RM[0][0] = Cosinus[RotView[ZZ]] * Cosinus[RotView[YY]]
+
+  RM[0][1] = Cosinus[RotView[ZZ]] * -Sinus[RotView[YY]] * -Sinus[RotView[XX]] + Sinus[RotView[ZZ]] * Cosinus[RotView[XX]]
+
+  RM[0][2] = Cosinus[RotView[ZZ]] * -Sinus[RotView[YY]] * Cosinus[RotView[XX]] + Sinus[RotView[ZZ]] * Sinus[RotView[XX]]
+
+  RM[1][0] = -Sinus[RotView[ZZ]] * Cosinus[RotView[YY]]
+
+  RM[1][1] = -Sinus[RotView[ZZ]] * -Sinus[RotView[YY]] * -Sinus[RotView[XX]] + Cosinus[RotView[ZZ]] * Cosinus[RotView[XX]]
+
+  RM[1][2] = -Sinus[RotView[ZZ]] * -Sinus[RotView[YY]] * Cosinus[RotView[XX]] + Cosinus[RotView[ZZ]] * Sinus[RotView[XX]]
+
+  RM[2][0] = Sinus[RotView[YY]] 
+
+  RM[2][1] = Cosinus[RotView[YY]] * -Sinus[RotView[XX]]
+
+  RM[2][2] = Cosinus[RotView[YY]] * Cosinus[RotView[XX]]
+
+  
+
+  If VertexCount = 0 Then
+
+    ' no corners?- no picture
+
+    Goto ExitDraw3dView    
+
+  EndIf
+
+  
+
+  ' rotate all vertices to their display-position
+
+  For i1 = 0 To VertexCount - 1
+
+    DisplayV[i1][XX] = Vx[i1][XX] * RM[0][0] + Vx[i1][YY] * RM[0][1] + Vx[i1][ZZ] * RM[0][2]
+
+    DisplayV[i1][YY] = Vx[i1][XX] * RM[1][0] + Vx[i1][YY] * RM[1][1] + Vx[i1][ZZ] * RM[1][2]
+
+    DisplayV[i1][ZZ] = Vx[i1][XX] * RM[2][0] + Vx[i1][YY] * RM[2][1] + Vx[i1][ZZ] * RM[2][2]
+
+  EndFor
+
+  
+
+  If FaceCount = 0 Then
+
+    ' no faces to draw? - lets get out of here!
+
+    Goto ExitDraw3dView
+
+  EndIf
+
+  
+
+  For i1 = 0 To FaceCount - 1
+
+    ' normalize all faces to meet their displayed position
+
+    ' calculate difference between corners...
+
+    temp[0][XX] = DisplayV[Fc[i1][1]][XX] - DisplayV[Fc[i1][0]][XX]
+
+    temp[0][YY] = DisplayV[Fc[i1][1]][YY] - DisplayV[Fc[i1][0]][YY]
+
+    temp[0][ZZ] = DisplayV[Fc[i1][1]][ZZ] - DisplayV[Fc[i1][0]][ZZ]
+
+    temp[1][XX] = DisplayV[Fc[i1][2]][XX] - DisplayV[Fc[i1][0]][XX]
+
+    temp[1][YY] = DisplayV[Fc[i1][2]][YY] - DisplayV[Fc[i1][0]][YY]
+
+    temp[1][ZZ] = DisplayV[Fc[i1][2]][ZZ] - DisplayV[Fc[i1][0]][ZZ]
+
+    
+
+    'calculate perpendicular vector to the face
+
+    temp[2][XX] = temp[0][YY] * temp[1][ZZ] -temp[0][ZZ] * temp[1][YY]
+
+    temp[2][YY] = temp[0][XX] * temp[1][ZZ] -temp[0][ZZ] * temp[1][XX]
+
+    temp[2][ZZ] = temp[0][XX] * temp[1][YY] -temp[0][YY] * temp[1][XX]
+
+    
+
+    ' add up distances in all 3 directions and fast calculate sqare-root by Power(#, 0.5)
+
+    Lenght = Math.Power(Math.Power(temp[2][XX],2)+Math.Power(temp[2][YY],2) + Math.Power(temp[2][ZZ],2), 0.5)
+
+    'don't divide that by 0 nor let it be a negative value
+
+    If Lenght < 0.05 Then
+
+      Lenght =  0.05
+
+    EndIf
+
+    'store for each direction the share of total (1.0)  as normal-vector of face Fc[i1][]
+
+    Fc[i1][NX]=temp[2][XX]/Lenght
+
+    Fc[i1][NY]=temp[2][YY]/Lenght
+
+    Fc[i1][NZ]=temp[2][ZZ]/Lenght
+
+    ' check, if face Fc[i1][] -normal-vector points from face to viewer    
+
+    If (Fc[i1][NX] * View[XX] + Fc[i1][NY] * View[YY] + Fc[i1][NZ] * View[ZZ]) >= 0 Then
+
+      ' this face is visible
+
+      Fc[i1][isVisible]=1
+
+      ' needs to calc shading for this face:
+
+      Fc[i1][FaceShade] = Math.Abs(Fc[i1][NX] * LightDirectional[XX] + Fc[i1][NY] * LightDirectional[YY] + Fc[i1][NZ] * LightDirectional[ZZ])
+
+    Else
+
+      ' this face is turned away from viewer, so
+
+      Fc[i1][isVisible]=0
+
+    EndIf
+
+  EndFor
+
+  
+
+  If FaceCount > 1 Then
+
+    ' sort triangles from the farthest to the closest, so the farthest can be drawn first
+
+    ' is needed, so a triangle won't be covered by triangles that lay behind
+
+    
+
+    For i1 = 1 To FaceCount - 1
+
+      'copy this triangle to memory as CurrentTriangle  
+
+      For i2 = 0 to isVisible
+
+        CurrentTriangle[i2] = Fc[i1][i2]
+
+      EndFor
+
+      ' store sorting position	
+
+      CurrentPos = i1
+
+      ' get initial average distance on Z-axis from first & second face
+
+      AverageZ1 = (DisplayV[Fc[CurrentPos-1][0]][ZZ] + DisplayV[Fc[CurrentPos-1][1]][ZZ] + DisplayV[Fc[CurrentPos-1][2]][ZZ])/3
+
+      AverageZ2 = (DisplayV[CurrentTriangle[0]][ZZ] + DisplayV[CurrentTriangle[1]][ZZ] + DisplayV[CurrentTriangle[2]][ZZ])/3
+
+      ' start finding faces position :
+
+      While AverageZ1 > AverageZ2
+
+        ' shift face further 
+
+        For i2 = 0 to isVisible
+
+          Fc[CurrentPos][i2] = Fc[CurrentPos-1][i2]
+
+        EndFor
+
+        CurrentPos = CurrentPos - 1
+
+        If CurrentPos = 0 Then 
+
+          ' done with this face
+
+          Goto  ExitSortFaces
+
+        EndIf 
+
+        AverageZ1 = (DisplayV[Fc[CurrentPos-1][0]][ZZ] + DisplayV[Fc[CurrentPos-1][1]][ZZ] + DisplayV[Fc[CurrentPos-1][2]][ZZ])/3
+
+        AverageZ2 = (DisplayV[CurrentTriangle[0]][ZZ] + DisplayV[CurrentTriangle[1]][ZZ] + DisplayV[CurrentTriangle[2]][ZZ])/3
+
+      EndWhile
+
+      ExitSortFaces:
+
+      
+
+      ' at that sorting position the as CurrentTriangle stored on will be filled in
+
+      For i2 = 0 to isVisible
+
+        
+
+        Fc[CurrentPos][i2] = CurrentTriangle[i2]      
+
+      EndFor      
+
+      ' go up and continue with next triangle, if not done yet
+
+    EndFor
+
+    'faces are sorted now
+
+  EndIf
+
+  
+
+  'now let's draw faces in sorted order:
+
+  For i1 = 0 To FaceCount - 1
+
+    'first is color-shading 
+
+    
+
+    ' use Fc[i1][FaceShade]-value which has been calculated at the beginning of this sub
+
+    ' where the unvisible faces were sorted out
+
+    ' -0.5 is to center the value to 127 (neutral)
+
+    CurrentLight = Fc[i1][FaceShade] - 0.5
+
+    
+
+    ' now get Red, Green, Blue 
+
+    CurrentRedLight = CurrentLight * 256 + Fc[i1][FaceRed] + AmbientLight
+
+    CurrentGreenLight = CurrentLight * 256 + Fc[i1][FaceGreen] + AmbientLight
+
+    CurrentBlueLight = CurrentLight * 256 + Fc[i1][FaceBlue] + AmbientLight
+
+    
+
+    'limit to values from 0 to 255 so GraphicsWindow.GetColorFromRGB() can use them
+
+    If CurrentRedLight > 255 Then
+
+      CurrentRedLight = 255
+
+    ElseIf CurrentRedLight < 0 then
+
+      CurrentRedLight = 0
+
+    EndIf     
+
+    If CurrentGreenLight > 255 Then
+
+      CurrentGreenLight = 255
+
+    ElseIf CurrentGreenLight < 0 then
+
+      CurrentGreenLight = 0
+
+    EndIf
+
+    If CurrentBlueLight > 255 Then
+
+      CurrentBlueLight = 255
+
+    ElseIf CurrentBlueLight < 0 then
+
+      CurrentBlueLight = 0
+
+    EndIf
+
+    
+
+    ' set pen & brushcolor...
+
+    GraphicsWindow.PenColor=GraphicsWindow.GetColorFromRGB(CurrentRedLight,CurrentGreenLight,CurrentBlueLight)
+
+    GraphicsWindow.BrushColor=GraphicsWindow.GetColorFromRGB(CurrentRedLight,CurrentGreenLight,CurrentBlueLight)
+
+    
+
+    ' and draw triangle
+
+    GraphicsWindow.FillTriangle(DisplayV[Fc[i1][0]][XX]+WorldPos[XX] ,DisplayV[Fc[i1][0]][YY]+WorldPos[YY], DisplayV[Fc[i1][1]][XX] + WorldPos[XX] ,DisplayV[Fc[i1][1]][YY] + WorldPos[YY] ,DisplayV[Fc[i1][2]][XX] + WorldPos[XX],DisplayV[Fc[i1][2]][YY]+ WorldPos[YY])  
+
+    
+
+    'go up and continue with next triangle if not done yet
+
+  EndFor
+
+  
+
+  ExitDraw3dView:
+
+  
+
+EndSub
+
+

@@ -1,0 +1,305 @@
+GraphicsWindow.Title = "Trafic Simulator 0.1a"
+
+GraphicsWindow.BackgroundColor = "LightGray"
+
+cols = 5
+
+rows = 4
+
+cars = 40
+
+wRoad = 20
+
+wBlock = 100
+
+x0 = 40
+
+y0 = 20
+
+width = (cols - 1) * (wRoad + wBlock) + wRoad
+
+GraphicsWindow.BrushColor = "DimGray"
+
+For i = 1 To rows
+
+  y = y0 + (i - 1) * (wRoad + wBlock)
+
+  GraphicsWindow.FillRectangle(x0, y, width, wRoad)
+
+  nStreet = nStreet + 1
+
+  street[nStreet]["x"] = x0
+
+  street[nStreet]["y"] = y
+
+  street[nStreet]["width"] = width
+
+  street[nStreet]["height"] = wRoad
+
+EndFor
+
+height = (rows - 1) * (wRoad + wBlock) + wRoad
+
+For j = 1 To cols
+
+  x = x0 + (j - 1) * (wRoad + wBlock)
+
+  GraphicsWindow.FillRectangle(x, y0, wRoad, height)
+
+  nStreet = nStreet + 1
+
+  street[nStreet]["x"] = x
+
+  street[nStreet]["y"] = y0
+
+  street[nStreet]["width"] = wRoad
+
+  street[nStreet]["height"] = height
+
+EndFor
+
+For i = 1 To rows
+
+  For j = 1 To cols
+
+    CheckCorner()
+
+    If isCorner = "False" Then
+
+      width = 30
+
+      height = 10
+
+      x = x0 + (j - 1) * (wRoad + wBlock) + wRoad + 5
+
+      y = y0 + (i - 1) * (wRoad + wBlock) - height - 5
+
+      AddSignal()
+
+      width = 10
+
+      height = 30
+
+      x = x0 + (j - 1) * (wRoad + wBlock) + wRoad + 5
+
+      y = y0 + (i - 1) * (wRoad + wBlock) + wRoad + 5
+
+      AddSignal()
+
+    EndIf
+
+  EndFor
+
+EndFor
+
+width = wRoad / 2
+
+height = width * 2
+
+For k = 1 To cars
+
+  Randomize()
+
+  AddCar()
+
+EndFor
+
+Sub AddCar
+
+  ' param iStreet - index of street
+
+  ' param percent - for position
+
+  ' param width, height - size of car
+
+  ' param direction - [1..4] for ESWN
+
+  ' param color - of car
+
+  nCar = nCar + 1
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = color
+
+  'car[nCar]["oBody"] = Shapes.AddTriangle(width / 2, 0, 0, height, width, height)
+
+  car[nCar]["oBody"] = Shapes.AddRectangle(width, height)
+
+  Shapes.Rotate(car[nCar]["oBody"], direction * 90)
+
+  dx = street[iStreet]["x"]
+
+  dy = street[iStreet]["y"]
+
+  If direction = 1 Then ' East
+
+    x = dx + wRoad + ((wRoad + wBlock) * (cols - 1) - 2 * wRoad) * percent / 100 + width / 4
+
+    y = dy + wRoad / 2 - width / 2
+
+  ElseIf direction = 2 Then ' South
+
+    x = dx
+
+    y = dy + wRoad + ((wRoad + wBlock) * (rows - 1) - 2 * wRoad) * percent / 100
+
+  ElseIf direction = 3 Then ' West
+
+    x = dx + wRoad + ((wRoad + wBlock) * (cols - 1) - 2 * wRoad) * percent / 100 + width / 4
+
+    y = dy - width / 2
+
+  ElseIf direction = 4 Then ' North
+
+    x = dx + wRoad / 2
+
+    y = dy + wRoad + ((wRoad + wBlock) * (rows - 1) - 2 * wRoad) * percent / 100
+
+  EndIf
+
+  Shapes.Move(car[nCar]["oBody"], x, y)
+
+EndSub
+
+Sub AddSignal
+
+  ' param x, y - position
+
+  ' param width, height - size
+
+  nSignal = nSignal + 1
+
+  signal[nSignal]["x"] = x
+
+  signal[nSignal]["y"] = y
+
+  signal[nSignal]["width"] = width
+
+  signal[nSignal]["height"] = height
+
+  If height < width Then
+
+    d80 = height * 0.8  ' diameter: 80% of height
+
+    d10 = height * 0.1  ' delta: 10% of height
+
+    dx = height
+
+    dy = 0
+
+    opR = 90
+
+    opY = 10
+
+    opG = 10
+
+  Else
+
+    d80 = width * 0.8   ' diameter: 80% of width
+
+    d10 = width * 0.1   ' delta: 10% of width
+
+    dx = 0
+
+    dy = width
+
+    opR = 10
+
+    opY = 10
+
+    opG = 90
+
+  EndIf
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FillRectangle(x, y, width, height)
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "Red"
+
+  signal[nSignal]["oRed"] = Shapes.AddEllipse(d80, d80)
+
+  Shapes.Move(signal[nSignal]["oRed"], x + d10, y + d10)
+
+  Shapes.SetOpacity(signal[nSignal]["oRed"], opR)
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  signal[nSignal]["oYellow"] = Shapes.AddEllipse(d80, d80)
+
+  Shapes.Move(signal[nSignal]["oYellow"], x + d10 + dx, y + d10 + dy)
+
+  Shapes.SetOpacity(signal[nSignal]["oYellow"], opY)
+
+  GraphicsWindow.BrushColor = "Green"
+
+  signal[nSignal]["oGreen"] = Shapes.AddEllipse(d80, d80)
+
+  Shapes.Move(signal[nSignal]["oGreen"], x + d10 + dx * 2, y + d10 + dy * 2)
+
+  Shapes.SetOpacity(signal[nSignal]["oGreen"], opG)
+
+EndSub
+
+Sub CheckCorner
+
+  ' param i, j -
+
+  ' param rows, cols -
+
+  ' return isCorner - "True" if it's corner
+
+  isCorner = "False"
+
+  If i = 1 And j = 1 Then
+
+    isCorner = "True"
+
+  ElseIf i = 1 And j = cols Then
+
+    isCorner = "True"
+
+  ElseIf i = rows And j = 1 Then
+
+    isCorner = "True"
+
+  ElseIf i = rows And j = cols Then
+
+    isCorner = "True"
+
+  EndIf  
+
+EndSub
+
+Sub Randomize
+
+  r = Math.GetRandomNumber(127) + 128
+
+  g = Math.GetRandomNumber(127) + 128
+
+  b = Math.GetRandomNumber(127) + 128
+
+  color = GraphicsWindow.GetColorFromRGB(r, g, b)
+
+  iStreet = Math.GetRandomNumber(nStreet)
+
+  If street[iStreet]["width"] < street[iStreet]["height"] Then
+
+    direction = Math.GetRandomNumber(2) * 2
+
+  Else
+
+    direction = Math.GetRandomNumber(2) * 2 - 1
+
+  EndIf
+
+  percent = Math.GetRandomNumber(101) - 1
+
+EndSub
+
+    
+
+

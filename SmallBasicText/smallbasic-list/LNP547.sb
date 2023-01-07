@@ -1,0 +1,207 @@
+'Example solution to December 2013 Challenge (Curriculum 2.6(3))
+
+'Uses Timer and Stack to asyncronously download images in preparation for use
+
+'Shape images are created and destroyed as required
+
+'The only limiting feature is that ImageList will continue to grow gradually consuminng memory
+
+
+
+'Setup variables and GW
+
+Initialise()
+
+
+
+'Start Timer to get images asyncronously (in parallel on Timer thread)
+
+Timer.Interval = 1000
+
+Timer.Tick = OnTick
+
+
+
+'Main loop
+
+While "True"
+
+  start = Clock.ElapsedMilliseconds
+
+  
+
+  UpdateImages()
+
+  
+
+  'Pause up to 10ms depending on time spent doing updates
+
+  delay = 10 - (Clock.ElapsedMilliseconds-start)
+
+  If (delay > 0) Then
+
+    Program.Delay(delay)
+
+  EndIf
+
+EndWhile
+
+
+
+'===========================================================
+
+'SUBROUTINES
+
+'===========================================================
+
+
+
+'All initialisation
+
+Sub Initialise
+
+  imageCount = 0 'Current image number
+
+  imageShape = "" 'Store for current moving images
+
+  tag = "santa claus" 'Tag for Flickr image
+
+  
+
+  'Setup GW
+
+  gw = Desktop.Width-40
+
+  gh = 600
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  GraphicsWindow.Top = 10
+
+  GraphicsWindow.Left = 10
+
+  GraphicsWindow.Title = tag+" slideshow"
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.BrushColor = "Pink"
+
+  GraphicsWindow.FontSize = 50
+
+  loading = Shapes.AddText("loading...")
+
+  Shapes.Move(loading,100,100)
+
+  Mouse.HideCursor()
+
+EndSub
+
+
+
+'Asyncronous download of images - careful not to use any variable names used in main loop subrotines
+
+Sub OnTick
+
+  Timer.Pause() ' Stop the timer as this sub will continue for ever loading imges as required
+
+  While ("True")
+
+    If (Stack.GetCount("images") < 10) Then 'load up to 10 images ready to use
+
+      'If we don't use ImageList then we cannot get the image size
+
+      'There is no way in standard SB to remove used images from ImageList so memory will gradually grow
+
+      image = ImageList.LoadImage(Flickr.GetRandomPicture(tag))
+
+      w = ImageList.GetWidthOfImage(image)
+
+      h = ImageList.GetHeightOfImage(image)
+
+      img = Shapes.AddImage(image) 'We can get some flicker when image is added - to minimise we immediately move off-screen
+
+      Shapes.Move(img,-w,(gh-h)/2)
+
+      Stack.PushValue("images", img)
+
+      If (imageShape = "") Then 'Create first image
+
+        NextImage()
+
+        Shapes.Remove(loading)
+
+      EndIf
+
+    EndIf
+
+    Program.Delay(10) 'Don't mash cpu when nothing to do
+
+  EndWhile
+
+EndSub
+
+
+
+'Get the next image and add it to the moving list array
+
+Sub NextImage
+
+  If (Stack.GetCount("images") > 0) Then
+
+    imageCount = imageCount+1
+
+    imageShape[imageCount] = Stack.PopValue("images")
+
+  EndIf
+
+EndSub
+
+
+
+'Move the current active images
+
+Sub UpdateImages
+
+  indexShapes = Array.GetAllIndices(imageShape)
+
+  For i = 1 To Array.GetItemCount(indexShapes)
+
+    'Get current moving image and update its position
+
+    index = indexShapes[i]
+
+    shape = imageShape[index]
+
+    x = Shapes.GetLeft(shape)
+
+    y = Shapes.GetTop(shape)
+
+    Shapes.Move(shape, x+1, y)
+
+    'Start a new image (with a pixel space of 10)
+
+    If (x < 10 And x+1 >= 10) Then
+
+      NextImage()
+
+    EndIf
+
+    'Clean up and remove finished images
+
+    If (x > gw) Then
+
+      Shapes.Remove(shape) 'Remove finished with shape
+
+      imageShape[index] = ""
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+      
+
+

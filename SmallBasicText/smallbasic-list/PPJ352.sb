@@ -1,0 +1,297 @@
+' Frequency of Pitches 0.1
+
+' Copyright (c) 2013 Nonki Takahashi.  All rights reserved.
+
+'
+
+' History:
+
+'  0.1 2013-12-09 Created.
+
+'
+
+debug = "False"
+
+Not = "False=True;True=False;"
+
+title = "Frequency of Pitches 0.1"
+
+pitch = "C#D#EF#G#A#B"
+
+pA = Text.GetIndexOf(pitch, "A")
+
+p = pA
+
+octave = 4
+
+GetKeyNumber()
+
+nA4 = n   ' key number of O4A (440.00 Hz)
+
+ww = 18   ' width of white key
+
+hw = 80   ' height of white key
+
+wb = 10   ' width of black key
+
+hb = 50   ' height of black key
+
+yw1 = 10
+
+yw2 = yw1 + hw
+
+yb1 = 10
+
+yb2 = yb1 + hb
+
+x1 = 10
+
+x = x1
+
+For octave = 0 to 8
+
+  If octave = 0 Then
+
+    p1 = pA
+
+  Else
+
+    p1 = Text.GetIndexOf(pitch, "C")
+
+  EndIf
+
+  If octave = 8 Then
+
+    p2 = Text.GetIndexOf(pitch, "C")
+
+  Else
+
+    p2 = Text.GetIndexOf(pitch, "B")
+
+  EndIf
+
+  For p = p1 To p2 
+
+    GetKeyNumber()
+
+    GetNote()
+
+    key[n]["mml"] = mml
+
+    If Text.IsSubText(mml, "#") Then
+
+      key[n]["x1"] = x - wb / 2
+
+      key[n]["x2"] = x + wb / 2
+
+      key[n]["color"] = "Black"
+
+    Else
+
+      key[n]["x1"] = x
+
+      key[n]["x2"] = x + ww - 1
+
+      key[n]["color"] = "White"
+
+      x = x + ww
+
+    EndIf
+
+    f100 = Math.Round(440 * Math.Power(2, (n - nA4) / 12) * 100)
+
+    fLen = Text.GetLength(f100)
+
+    fInt = Text.GetSubText(f100, 1, fLen - 2)
+
+    fFraq = Text.GetSubText(f100, fLen - 1, 2)
+
+    key[n]["f"] = Text.Append(fInt, Text.Append(".", fFraq))
+
+    If debug Then
+
+      f = Text.GetSubText("  ", 1, 6 - fLen) + (key[n]["f"] + "[Hz]")
+
+      If n < 10 Then
+
+        TextWindow.Write(" ")
+
+      EndIf
+
+      TextWindow.WriteLine(n + ": " + mml + " " + f)
+
+    EndIf
+
+  EndFor 
+
+EndFor
+
+wg = key[88]["x2"] + x1
+
+hg = yw2 + yw1
+
+GraphicsWindow.Width = wg
+
+GraphicsWindow.Height = hg
+
+GraphicsWindow.Title = title
+
+DrawKeyboard()
+
+clicked = "False"
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+While "True"
+
+  If clicked Then
+
+    ScanKeyboard()
+
+    If n <= 88 Then
+
+      Sound.PlayMusic(key[n]["mml"] + "16")
+
+      GraphicsWindow.Title = title + " - " + key[n]["mml"] + " " + key[n]["f"] + "Hz"
+
+    EndIf
+
+    clicked = "False"
+
+  Else
+
+    Program.Delay(200)
+
+  EndIf
+
+EndWhile
+
+Sub ScanKeyboard
+
+  If yb1 <= ym And ym <= yb2 Then
+
+    For n = 1 To 88
+
+      If key[n]["color"] = "Black" Then
+
+        If key[n]["x1"] <= xm And xm <= key[n]["x2"] Then
+
+          Goto break
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  ElseIf yw1 <= ym And ym <= yw2 Then
+
+    For n = 1 To 88
+
+      If key[n]["color"] = "White" Then
+
+        If key[n]["x1"] <= xm And xm <= key[n]["x2"] Then
+
+          Goto break
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  break:
+
+EndSub
+
+Sub OnMouseDown
+
+  If Not[clicked] Then
+
+    xm = GraphicsWindow.MouseX
+
+    ym = GraphicsWindow.MouseY
+
+    clicked = "True"
+
+  EndIf
+
+EndSub    
+
+Sub DrawKeyboard
+
+  GraphicsWindow.BackgroundColor = "#333333"
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "Gray"
+
+  GraphicsWindow.BrushColor = "White"
+
+  For n = 1 To 88
+
+    If key[n]["color"] = "White" Then
+
+      GraphicsWindow.FillRectangle(key[n]["x1"], yw1, ww, hw)
+
+      GraphicsWindow.DrawRectangle(key[n]["x1"], yw1, ww, hw)
+
+    EndIf
+
+  EndFor
+
+  GraphicsWindow.BrushColor = "Black"
+
+  For n = 1 To 88
+
+    If key[n]["color"] = "Black" Then
+
+      GraphicsWindow.FillRectangle(key[n]["x1"], yw1, wb, hb)
+
+      GraphicsWindow.DrawRectangle(key[n]["x1"], yw1, wb, hb)
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub GetKeyNumber
+
+  ' param octave - 0..5
+
+  ' param p - 1..12 pitch index
+
+  ' return n - 1..88 note number
+
+  n = p - pA + 1 + octave * 12
+
+EndSub
+
+Sub GetNote
+
+  ' param octave - 0..5
+
+  ' param p - 1..12 pitch index
+
+  ' return mml - note in MML
+
+  note = Text.GetSubText(pitch, p, 1)
+
+  If note = "#" Then
+
+    note = Text.GetSubText(pitch, p - 1, 2)
+
+  Else
+
+    note = note + " "
+
+  EndIf
+
+  mml = "O" + octave + " " + note
+
+EndSub
+
+

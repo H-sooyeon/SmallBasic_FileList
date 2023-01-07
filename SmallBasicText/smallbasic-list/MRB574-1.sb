@@ -1,0 +1,1763 @@
+' TicTacToe v0.5
+
+'
+
+'  RANDOM vs
+
+'  CENTER vs
+
+'  CLAIM vs
+
+'  MONTECARLO vs
+
+'  HUMAN
+
+'
+
+' Copyright (c) 2010 NonkiTakahashi
+
+'
+
+' constants
+
+SPACE = 0 ' none
+
+TURN1 = 1 ' X
+
+TURN2 = 2 ' O
+
+OB = 3    ' out bound
+
+GMAX = 10 ' max number of games
+
+iRo = 3  ' number of ro (dimension)
+
+iNR = 0  ' number of record
+
+'
+
+sVersion = "v0.5"  ' program version
+
+GraphicsWindow.Title = "TicTacToe " + sVersion 
+
+sFigure[1] = "X"
+
+sFigure[2] = "O"
+
+'
+
+sEntry[1] = "HUMAN"
+
+sEntry[2] = "RANDOM"
+
+sEntry[3] = "CENTER"
+
+sEntry[4] = "CLAIM"
+
+sEntry[5] = "MONTECARLO"
+
+iNE = 5  ' number of entries
+
+'
+
+iTGMax = GMAX
+
+iE1 = 2
+
+iE2 = 2
+
+sPlayer[1] = sEntry[iE1]
+
+sPlayer[2] = sEntry[iE2]
+
+'
+
+lMainMenu:
+
+GraphicsWindow.Clear()
+
+InitGame()
+
+If bStart <> "True" Then
+
+  Program.End()
+
+EndIf  
+
+'
+
+GraphicsWindow.BrushColor = "SteelBlue"
+
+iSeed = 0
+
+bDebug = "False"
+
+'
+
+lReplay:
+
+iT1 = 0 ' times X win
+
+iT2 = 0 ' times O win
+
+iTD = 0 ' times draw
+
+iTG = 0 ' times games
+
+iTW = 10 ' times work out for MONTECARLO
+
+'
+
+lNextGame:
+
+GraphicsWindow.Clear()
+
+If iTG > 0 Then
+
+  ShowResult()
+
+EndIf  
+
+iS = 0  ' step
+
+InitBoard() ' initialize board
+
+SaveBoard() ' current board <- board
+
+DrawBoard()
+
+'
+
+' game start
+
+While "True"
+
+'
+
+  ' turn X (Player 1)
+
+  iTurn = TURN1
+
+  EachTurn()
+
+  If sGame <> "continue" Then
+
+    Goto lExit
+
+  EndIf
+
+'
+
+  ' turn O (Player 2)
+
+  iTurn = TURN2
+
+  EachTurn()
+
+  If sGame <> "continue" Then
+
+    Goto lExit
+
+  EndIf
+
+'
+
+EndWhile
+
+'
+
+lExit:
+
+GraphicsWindow.BrushColor = "SteelBlue"
+
+GraphicsWindow.DrawText(10, 10, sGame)
+
+If sGame = "X win" then
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "SteelBlue"
+
+  GraphicsWindow.DrawLine(iWX0, iWY0, iWX1, iWY1)
+
+  iT1 = iT1 + 1
+
+ElseIf sGame = "O win" then
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "SteelBlue"
+
+  GraphicsWindow.DrawLine(iWX0, iWY0, iWX1, iWY1)
+
+  iT2 = iT2 + 1
+
+Else
+
+  iTD = iTD + 1
+
+EndIf
+
+iTG = iTG + 1
+
+If sGame = "X win" then
+
+  Program.Delay(500)
+
+Else
+
+  Program.Delay(1000)
+
+EndIf
+
+If iTG < iTGmax Then
+
+  Goto lNextGame
+
+EndIf
+
+GraphicsWindow.BrushColor = "White"
+
+GraphicsWindow.FillRectangle(400, 20, 150, 150)
+
+GraphicsWindow.BrushColor = "SteelBlue"
+
+ShowResult()
+
+Continue()
+
+If bRestart Then
+
+  Goto lReplay
+
+Else
+
+  Goto lMainMenu
+
+EndIf  
+
+'
+
+' EachTurn
+
+' in: integer iTurn - 1 or 2
+
+' in: string sPlayer[] - selected player
+
+Sub EachTurn
+
+  GetPutList()  ' find next possible puts
+
+  iS = iS + 1
+
+  If sPlayer[iTurn] = "RANDOM" Then
+
+    Random()
+
+  ElseIf sPlayer[iTurn] = "CENTER" Then
+
+    Center()
+
+  ElseIf sPlayer[iTurn] = "CLAIM" Then
+
+    Claim()
+
+  ElseIf sPlayer[iTurn] = "MONTECARLO" Then
+
+    WorkOut() 'determine a from put list by MONTECARLO method
+
+  ElseIf sPlayer[iTurn] = "HUMAN" Then
+
+    Human()
+
+  EndIf
+
+  Sound.PlayClickAndWait()
+
+  PutFigure()
+
+  Record()    ' record game score
+
+  RestoreBoard() ' board <- current board
+
+  DrawBoard()
+
+  Judge()
+
+EndSub  
+
+'  
+
+' Initialize Game
+
+' work: integer iY1, iY2, iY3, iY4, iY5, idY
+
+Sub InitGame
+
+  idY = 40
+
+  iY1 = 50
+
+  iY2 = iY1 + idY
+
+  iY3 = iY2 + idY
+
+  iY4 = iY3 + idY
+
+  iY5 = iY4 + idY
+
+  GraphicsWindow.FontSize = 18
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawBoundText(10, 10, 400, "TicTacToe " + sVersion)
+
+  GraphicsWindow.DrawText(10, iY1, "Main Menu")
+
+  GraphicsWindow.DrawText(10, iY2, "player 1 :")
+
+  GraphicsWindow.DrawText(10, iY3, "player 2 :")
+
+  GraphicsWindow.DrawText(10, iY4, "games :")
+
+  oTB1 = Controls.AddTextBox(120, iY2)
+
+  oTB2 = Controls.AddTextBox(120, iY3)
+
+  oTBG = Controls.AddTextBox(120, iY4)
+
+  oBL1 = Controls.AddButton("<", 310, iY2)
+
+  oBR1 = Controls.AddButton(">", 345, iY2)
+
+  oBL2 = Controls.AddButton("<", 310, iY3)
+
+  oBR2 = Controls.AddButton(">", 345, iY3)
+
+  oBLG = Controls.AddButton("<", 310, iY4)
+
+  oBRG = Controls.AddButton(">", 345, iY4)
+
+  oBStart = Controls.AddButton("Start", 10, iY5)
+
+  oBEnd = Controls.AddButton("End", 75, iY5)
+
+  sPlayer[1] = sEntry[iE1]
+
+  sPlayer[2] = sEntry[iE2]
+
+  Controls.SetTextBoxText(oTB1, sPlayer[1])
+
+  Controls.SetTextBoxText(oTB2, sPlayer[2])
+
+  Controls.SetTextBoxText(oTBG, iTGMax)
+
+  bStart = ""
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  While bStart = ""
+
+    Program.Delay(500)
+
+  EndWhile  
+
+EndSub
+
+' 
+
+Sub DrawGrid
+
+  iX0 = 100
+
+  iY0 = 100
+
+  iX1 = 700
+
+  iY1 = 500
+
+  GraphicsWindow.PenColor = "Cyan"
+
+  GraphicsWindow.PenWidth = 1
+
+  For iX = iX0 To iX1 Step iX0
+
+    For iY = iY0 To iY1 Step iY0
+
+      GraphicsWindow.DrawLine(iX, 0, iX, iY1)
+
+      GraphicsWindow.DrawLine(0, iY, iX1, iY)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+'
+
+' Continue ?
+
+Sub Continue
+
+  iY1 = 200
+
+  GraphicsWindow.FontSize = 18
+
+  GraphicsWindow.BrushColor = "Black"
+
+  oBC = Controls.AddButton("Continue", 400, iY1)
+
+  oBM = Controls.AddButton("Main", 500, iY1)
+
+  bRestart = ""
+
+  Controls.ButtonClicked = OnButtonClicked2
+
+  While bRestart = ""
+
+    Program.Delay(500)
+
+  EndWhile  
+
+EndSub
+
+'
+
+Sub OnButtonClicked
+
+  oBu = Controls.LastClickedButton
+
+  If oBu = oBStart Then
+
+    bStart = "True"
+
+  ElseIf oBu = oBEnd Then
+
+    bStart = "False"
+
+  ElseIf oBu = oBL1 Then
+
+    iE1 = iE1 - 1
+
+    If iE1 < 1 Then
+
+      iE1 = iNE
+
+    EndIf
+
+    sPlayer[1] = sEntry[iE1]
+
+    Controls.SetTextBoxText(oTB1, sPlayer[1])
+
+  ElseIf oBu = oBR1 Then
+
+    iE1 = iE1 + 1
+
+    If iE1 > iNE Then
+
+      iE1 = 1
+
+    EndIf
+
+    sPlayer[1] = sEntry[iE1]
+
+    Controls.SetTextBoxText(oTB1, sPlayer[1])
+
+  ElseIf oBu = oBL2 Then
+
+    iE2 = iE2 - 1
+
+    If iE2 < 1 Then
+
+      iE2 = iNE
+
+    EndIf
+
+    sPlayer[2] = sEntry[iE2]
+
+    Controls.SetTextBoxText(oTB2, sPlayer[2])
+
+  ElseIf oBu = oBR2 Then
+
+    iE2 = iE2 + 1
+
+    If iE2 > iNE Then
+
+      iE2 = 1
+
+    EndIf
+
+    sPlayer[2] = sEntry[iE2]
+
+    Controls.SetTextBoxText(oTB2, sPlayer[2])
+
+  ElseIf oBu = oBLG Then
+
+    If itGMax > 1 Then
+
+      iTGMax = iTGMax - 1
+
+    Else
+
+      iTGMax = GMAX
+
+    EndIf
+
+    Controls.SetTextBoxText(oTBG, iTGMax)
+
+  ElseIf oBu = oBRG Then
+
+    If iTGMax < GMAX Then
+
+      iTGMax = iTGMax + 1
+
+    Else
+
+     iTGMax = 1
+
+    EndIf
+
+    Controls.SetTextBoxText(oTBG, iTGMax)
+
+  EndIf  
+
+EndSub
+
+'
+
+Sub OnButtonClicked2
+
+  oBu = Controls.LastClickedButton
+
+  If oBu = oBC Then
+
+    bRestart = "True"
+
+  ElseIf oBu = oBM Then
+
+    bRestart = "False"
+
+  EndIf  
+
+EndSub
+
+'
+
+' Player HUMAN
+
+' in: integer iPX[], iPY[] - possible puts
+
+' in: integer iNumPuts - entry count of possible puts
+
+' work: integer i - index of possible puts
+
+' work: integer iMX, iMY - mouse position
+
+' out: integer iX, iY - next put
+
+Sub Human
+
+  iX = iPX[1]
+
+  iY = iPY[1]
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+  While "True"
+
+    bNotClicked = "True"
+
+    While bNotClicked
+
+      Program.Delay(200)
+
+    EndWhile  
+
+    GetPosition()
+
+    For i = 1 To iNumPuts
+
+      If iPX[i] = iX And iPY[i] = iY Then
+
+        Goto lReturnMouse
+
+      EndIf  
+
+    EndFor
+
+  EndWhile
+
+lReturnMouse:  
+
+  iX = iPX[i]
+
+  iY = iPY[i]
+
+EndSub
+
+'
+
+' Processing on mouse clicked
+
+' out: integer iMX, iMY - mouse position
+
+' out: boolean bNotClicked - mouse not clicked
+
+Sub OnMouseDown
+
+  iMX = GraphicsWindow.MouseX
+
+  iMY = GraphicsWindow.MouseY
+
+  bNotClicked = "False"  
+
+EndSub
+
+'
+
+' Get position of mouse clicked
+
+' in: integer iMX, iMY - mouse position
+
+' out: iX, iY - board position
+
+Sub GetPosition
+
+  If iMX < 150 Then
+
+    iX = 1
+
+  ElseIf iMX < 250 Then
+
+    iX = 2
+
+  Else
+
+    iX = 3
+
+  EndIf    
+
+  If iMY < 150 Then
+
+    iY = 1
+
+  ElseIf iMY < 250 Then
+
+    iY = 2
+
+  Else
+
+    iY = 3
+
+  EndIf    
+
+EndSub
+
+'
+
+' Record game score
+
+' in: integer iX, iY - next put
+
+' in: integer iS - stage
+
+' out: iRX[], iRY[] - game score
+
+Sub Record
+
+  iRX[iS] = iX
+
+  iRY[iS] = iY
+
+EndSub
+
+'
+
+' Show game score to text window for debug
+
+' in: integer iRX[], iRY[] - game score
+
+' in: integer iS - put count (stage)
+
+' work: integer i - index of game score
+
+Sub ShowRecord
+
+  For i = 1 to iS
+
+    TextWindow.Write("[" + iRX[i] + "][" + iRY[i] + "],")
+
+  EndFor    
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+'
+
+' Show possible puts list to text window for debug
+
+' in: integer iNumPuts - entry count of possible puts
+
+' in: integer iPX[], iPY[] - possible puts
+
+' work: integer i - index of possible puts
+
+Sub ShowPutList
+
+  For i = 1 To iNumPuts
+
+    TextWindow.Write("iPX[" + i + "]=" + iPX[i])
+
+    TextWindow.WriteLine(",iPY[" + i + "]=" + iPY[i])
+
+  EndFor
+
+EndSub    
+
+'
+
+' Save possible puts list
+
+' in: integer iPX[], iPY[] - possible puts
+
+' in: integer iNumPuts - entry count of possible puts
+
+' work: integer i
+
+' out: integer iSX[], iSX[] - saved possible puts
+
+' out: integer iSNP - saved entry count of possible puts
+
+Sub SavePutList
+
+  iSNP = iNumPuts
+
+  For i = 1 To iSNP
+
+    iSX[i] = iPX[i]
+
+    iSY[i] = iPY[i]
+
+  EndFor
+
+EndSub
+
+'
+
+' Restore possble puts list
+
+' in: integer iSX[], iSY[] - saved possible puts
+
+' in: integer iSNP - saved entry count of possible puts
+
+' out: integer iPX[], iPY[] - (restored) possible puts
+
+' out: iNumPuts - (restored) entry count of possible puts
+
+Sub RestorePutList
+
+  iNumPuts = iSNP
+
+  For i = 1 To iNumPuts
+
+    iPX[i] = iSX[i]
+
+    iPY[i] = iSY[i]
+
+  EndFor
+
+EndSub
+
+'
+
+' Save current board
+
+' in: integer iBoard[][] - board
+
+' work: integer iX, iY
+
+' out: integer iSaved[][] - saved current board
+
+Sub SaveBoard
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      iSaved[iX][iY] = iBoard[iX][iY]
+
+    EndFor
+
+  EndFor
+
+EndSub  
+
+'
+
+' Restore current board
+
+' in: integer iRo - 3
+
+' in: integer iSaved[] - saved current board
+
+' work: integer iX, iY
+
+' out: iBoard[] - (restored) board
+
+Sub RestoreBoard
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      iBoard[iX][iY] = iSaved[iX][iY]
+
+    EndFor
+
+  EndFor
+
+EndSub  
+
+'
+
+' Player MONTECARLO
+
+' in: integer iS - stage
+
+' in: integer iSNP - entry count of possible puts
+
+' work: integer iSS - saved stage
+
+' work: integer iTT - saved turn
+
+' work: integer i - index of win counter
+
+' work: integer iFP - first put
+
+' work: integer iG - work out game count
+
+' work: integer iTurn
+
+' out: integer iX, iY
+
+Sub WorkOut
+
+  SavePutList()
+
+  iSS = iS ' save stage
+
+  iTT = iTurn ' save turn
+
+
+
+  For i = 1 To iSNP ' instead of iNumPuts
+
+    iWin[i] = 0 ' result clear
+
+  EndFor
+
+  For iG = 1 To iTW * iSNP
+
+    iS = iSS - 1 ' temporaly stage
+
+    RestoreBoard() ' board <- current board
+
+    iTurn = TURN1
+
+    If Math.Remainder(iS, 2) = 0 Then
+
+      iTurn = TURN2
+
+      Goto lNextO
+
+    EndIf
+
+'
+
+lNextX:
+
+    ' turn X
+
+    GetPutList()
+
+    iS = iS + 1
+
+    Claim()
+
+    If iS = iSS Then
+
+      iFP = iNP ' first put
+
+    EndIf
+
+    iBoard[iX][iY] = TURN1
+
+    Judge()
+
+    If sGame <> "continue" Then
+
+      Goto lEndGame
+
+    EndIf
+
+'
+
+lNextO:
+
+    ' turn O
+
+    GetPutList()
+
+    iS = iS + 1
+
+    Claim()
+
+    If iS = iSS Then
+
+      iFP = iNP ' first put
+
+    EndIf
+
+    iBoard[iX][iY] = TURN2
+
+    Judge()
+
+    If sGame <> "continue" Then
+
+      Goto lEndGame
+
+    EndIf
+
+'
+
+    Goto lNextX
+
+'
+
+lEndGame:
+
+    If sGame = sFigure[iTurn] + " win" Then
+
+      iWin[iFP] = iWin[iFP] + 3 * (10 - iS)
+
+    ElseIf sGame = "draw" then
+
+      iWin[iFP] = iWin[iFP] + (10 - iS)
+
+    Else
+
+      iWin[iFP] = iWin[iFP] + 2 * (10 - iS)
+
+    EndIf  
+
+  EndFor
+
+'
+
+  iMax = 0
+
+  For i = 1 to iSNP ' instead of p
+
+    If iWin[i] >= iMax Then
+
+      iMax = iWin[i]
+
+      iNP = i
+
+    EndIf
+
+  EndFor    
+
+  RestorePutList()
+
+  iS = iSS ' restore stage
+
+  iTurn = iTT ' restore turn
+
+  iX = iPX[iNP]
+
+  iY = iPY[iNP]
+
+EndSub
+
+'
+
+' Player RANDOM
+
+' in: boolean bDebug - is debug ?
+
+' in/out: integer iSeed - seed for random number debug version
+
+' in: integer iNumPuts - number of possible puts
+
+' work: integer iNP - index of possible puts
+
+' out: integer iX, iY - next put
+
+Sub Random
+
+  iNP = Math.GetRandomNumber(iNumPuts)
+
+  If bDebug Then
+
+    iSeed = iSeed + 1
+
+    If iSeed > iNumPuts Then
+
+      iSeed = 1
+
+    EndIf
+
+    iNP = iSeed
+
+  EndIf
+
+  iX = iPX[iNP]
+
+  iY = iPY[iNP]
+
+EndSub
+
+'
+
+' Player CENTER
+
+' in: integer iBoard[][] - board
+
+' out: integer iX, iY - next put
+
+Sub Center
+
+  If iBoard[2][2] = SPACE Then
+
+    iX = 2
+
+    iY = 2
+
+  Else
+
+    Random()
+
+  EndIf
+
+EndSub
+
+'
+
+' Player CLAIM
+
+' in: integer iNumPuts - entry count of possible puts
+
+' in: integer iPX[], iPY[] - possible puts
+
+' work: integer iRun[] - count of run (ex. X_X for X)
+
+' work: integer iStop[] - count of stop (ex. O_O for X)
+
+' work: integer i -  index of run and stop candidate
+
+' work: integer iX0, iY0 - a possible put
+
+' work: integer iMax - max count of run
+
+' work: integer iX1, iY1, iX2, iY2 - points on a run
+
+' out: integer iNP - final index of possble puts
+
+' out: integer iX, iY - next put
+
+Sub Claim
+
+  ' clear run and stop candidate
+
+  For i = 1 To iNumPuts
+
+    iRun[i] = 0
+
+    iStop[i] = 0
+
+  EndFor
+
+  ' set next of candidate
+
+  For i = 1 To iNumPuts
+
+    iX0 = iPX[i]
+
+    If iX0 = 1 Then
+
+      iX1 = 2
+
+      iX2 = 3
+
+    ElseIf iX0 = 2 Then
+
+      iX1 = 1
+
+      iX2 = 3
+
+    Else ' iX0 = 3
+
+      iX1 = 1
+
+      iX2 = 2
+
+    EndIf
+
+    iY0 = iPY[i]
+
+    If iY0 = 1 Then
+
+      iY1 = 2
+
+      iY2 = 3
+
+    ElseIf iY0 = 2 Then
+
+      iY1 = 1
+
+      iY2 = 3
+
+    Else ' iY0 = 3
+
+      iY1 = 1
+
+      iY2 = 2
+
+    EndIf
+
+    '
+
+    If iBoard[iX1][iY0] = iBoard[iX2][iY0] Then
+
+      '  horizontal run or stop found
+
+      If iBoard[iX1][iY0] = TURN1 Then
+
+        ' X_X
+
+        If Math.Remainder(iS, 2) = 1 Then
+
+          ' turn X
+
+          iRun[i] = iRun[i] + 1
+
+        Else
+
+          ' turn O
+
+          iStop[i] = iStop[i] + 1
+
+        EndIf
+
+      EndIf
+
+      If iBoard[iX1][iY0] = TURN2 Then
+
+        ' O_O
+
+        If Math.Remainder(iS, 2) = 1 Then
+
+          ' turn X
+
+          iStop[i] = iStop[i] + 1
+
+        Else
+
+          ' turn O
+
+          iRun[i] = iRun[i] + 1
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+    If iBoard[iX0][iY1] = iBoard[iX0][iY2] Then
+
+      '  vartical run or stop found
+
+      If iBoard[iX0][iY1] = TURN1 Then
+
+        ' X_X
+
+        If Math.Remainder(iS, 2) = 1 Then
+
+          ' turn X
+
+          iRun[i] = iRun[i] + 1
+
+        Else
+
+          ' turn O
+
+          iStop[i] = iStop[i] + 1
+
+        EndIf
+
+      EndIf
+
+      If iBoard[iX0][iY1] = TURN2 Then
+
+        ' O_O
+
+        If Math.Remainder(iS, 2) = 1 Then
+
+          ' turn X
+
+          iStop[i] = iStop[i] + 1
+
+        Else
+
+          ' turn O
+
+          iRun[i] = iRun[i] +1
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+    If iX0 = iY0 And iBoard[iX1][iY1] = iBoard[iX2][iY2] Then
+
+      ' down run or stop found
+
+      If iBoard[iX1][iY1] = TURN1 Then
+
+        ' X_X
+
+        If Math.Remainder(iS, 2) = 1 Then
+
+          ' turn X
+
+          iRun[i] = iRun[i] + 1
+
+        Else
+
+          ' turn O
+
+          iStop[i] = iStop[i] + 1
+
+        EndIf
+
+      EndIf
+
+      If iBoard[iX1][iY1] = TURN2 Then
+
+        ' O_O
+
+        If Math.Remainder(iS, 2) = 1 Then
+
+          ' turn X
+
+          iStop[i] = iStop[i] + 1
+
+        Else
+
+          ' turn O
+
+          iRun[i] = iRun[i] + 1
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+    If iX0 + iY0 = 4 And iBoard[iX1][iY2] = iBoard[iX2][iY1] Then
+
+      ' up run or stop found
+
+      If iBoard[iX1][iY2] = TURN1 Then
+
+        ' X_X
+
+        If Math.Remainder(iS, 2) = 1 Then
+
+          ' turn X
+
+          iRun[i] = iRun[i] + 1
+
+        Else
+
+          ' turn O
+
+          iStop[i] = iStop[i] + 1
+
+        EndIf
+
+      EndIf
+
+      If iBoard[iX1][iY2] = TURN2 Then
+
+        ' O_O
+
+        If Math.Remainder(iS, 2) = 1 Then
+
+          ' turn X
+
+          iStop[i] = iStop[i] + 1
+
+        Else
+
+          ' turn O
+
+          iRun[i] = iRun[i] + 1
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  iMax = 0
+
+  For i = 1 To iNumPuts
+
+    If iRun[i] > iMax Then
+
+      iMax = iRun[i]
+
+      iNP = i
+
+    EndIf
+
+  EndFor
+
+  If iMax > 0 Then
+
+    Goto lReturnNP
+
+  EndIf 
+
+  For i = 1 To iNumPuts
+
+    If iStop[i] > iMax Then
+
+      iMax = iStop[i] 
+
+      iNP = i
+
+    EndIf
+
+  EndFor
+
+  If iMax > 0 Then
+
+    Goto lReturnNP
+
+  EndIf 
+
+  Random()
+
+lReturnNP:  
+
+  iX = iPX[iNP]
+
+  iY = iPY[iNP]
+
+EndSub
+
+'
+
+' Show result of games
+
+' in: integer iT1 - times X wins
+
+' in: integer iT2 - times O wins
+
+' in: integer iTD - times draw
+
+' in: integer iTG - games
+
+' in: string sPlayer[] - players logic names
+
+Sub ShowResult
+
+  GraphicsWindow.DrawText(400, 20, sFigure[1] + " win: " + iT1 + " (" + Math.Floor(iT1 / iTG * 100) + "%)")
+
+  GraphicsWindow.DrawText(400, 40, sFigure[2] + " win: " + iT2 + " (" + Math.Floor(iT2 / iTG * 100) + "%)")
+
+  GraphicsWindow.DrawText(400, 60, "draw : " + iTD + " (" + Math.Floor(iTD / iTG * 100) + "%)")
+
+  GraphicsWindow.DrawText(400, 80, "games: " + iTG)
+
+  GraphicsWindow.DrawText(400, 120, sFigure[1] + ": " + sPlayer[1])
+
+  GraphicsWindow.DrawText(400, 140, sFigure[2] + ": " + sPlayer[2])
+
+EndSub
+
+'
+
+' Check game end
+
+' in: integer iNumPuts - entry count of possible puts
+
+' in: integer iS - stage
+
+' out: string sGame - game result "continue" or "X win" or "O win" or "draw"
+
+Sub Judge
+
+  sGame = "continue"
+
+  If iNumPuts <= 6 Then
+
+    If Math.Remainder(iS, 2) = 1 Then
+
+      iTurn = TURN1
+
+    Else
+
+      iTurn = TURN2
+
+    EndIF    
+
+    CheckRun()
+
+    If iNumPuts = 1 And sGame = "continue" Then
+
+      sGame = "draw"
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+'
+
+' Check Run
+
+' in: integer iTurn
+
+' in: integer iBoard[][] - board
+
+' out: string sGame
+
+' out: integer iWX0, iWY0, iWX1, iWY1 - line of win
+
+Sub CheckRun
+
+  If iBoard[1][1] = iTurn And iBoard[2][1] = iTurn And iBoard[3][1] = iTurn Then
+
+    iWX0 =  50
+
+    iWY0 = 100
+
+    iWX1 = 350
+
+    iWY1 = 100
+
+    sGame = sFigure[iTurn] + " win"
+
+  ElseIf iBoard[1][2] = iTurn And iBoard[2][2] = iTurn And iBoard[3][2] = iTurn Then
+
+    iWX0 =  50
+
+    iWY0 = 200
+
+    iWX1 = 350
+
+    iWY1 = 200
+
+    sGame = sFigure[iTurn] + " win"
+
+  ElseIf iBoard[1][3] = iTurn And iBoard[2][3] = iTurn And iBoard[3][3] = iTurn Then
+
+    iWX0 =  50
+
+    iWY0 = 300
+
+    iWX1 = 350
+
+    iWY1 = 300
+
+    sGame = sFigure[iTurn] + " win"
+
+  ElseIf iBoard[1][1] = iTurn And iBoard[1][2] = iTurn And iBoard[1][3] = iTurn Then
+
+    iWX0 = 100
+
+    iWY0 =  50
+
+    iWX1 = 100
+
+    iWY1 = 350
+
+    sGame = sFigure[iTurn] + " win"
+
+  ElseIf iBoard[2][1] = iTurn And iBoard[2][2] = iTurn And iBoard[2][3] = iTurn Then
+
+    iWX0 = 200
+
+    iWY0 =  50
+
+    iWX1 = 200
+
+    iWY1 = 350
+
+    sGame = sFigure[iTurn] + " win"
+
+  ElseIf iBoard[3][1] = iTurn And iBoard[3][2] = iTurn And iBoard[3][3] = iTurn Then
+
+    iWX0 = 300
+
+    iWY0 =  50
+
+    iWX1 = 300
+
+    iWY1 = 350
+
+    sGame = sFigure[iTurn] + " win"
+
+  ElseIf iBoard[1][1] = iTurn And iBoard[2][2] = iTurn And iBoard[3][3] = iTurn Then
+
+    iWX0 =  50
+
+    iWY0 =  50
+
+    iWX1 = 350
+
+    iWY1 = 350
+
+    sGame = sFigure[iTurn] + " win"
+
+  ElseIf iBoard[1][3] = iTurn And iBoard[2][2] = iTurn And iBoard[3][1] = iTurn Then
+
+    iWX0 = 350
+
+    iWY0 =  50
+
+    iWX1 =  50
+
+    iWY1 = 350
+
+    sGame = sFigure[iTurn] + " win"
+
+  EndIf
+
+EndSub
+
+'
+
+' Get possible puts list
+
+' in: integer iBoard[][] - board
+
+' out: integer iNumPuts - entry count of possible puts
+
+' out: integer iPX[], iPY[] - possible puts
+
+' work: integer iNP - instead of x, y for iBoard[][]
+
+Sub GetPutList
+
+  iNumPuts = 0
+
+  For iNP = 0 To 8
+
+    If iBoard[Math.Remainder(iNP, 3) + 1][Math.Floor(iNP / 3) + 1] = SPACE Then
+
+      iNumPuts = iNumPuts + 1
+
+      iPX[iNumPuts] = Math.Remainder(iNP, 3) + 1
+
+      iPY[iNumPuts] = Math.Floor(iNP / 3) + 1
+
+    EndIf  
+
+  EndFor
+
+EndSub
+
+'
+
+' Draw board on graphics window
+
+' in: integer iRo - 3
+
+' work: integer iX, iY
+
+Sub DrawBoard
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.DrawLine(50, 150, 350, 150)
+
+  GraphicsWindow.DrawLine(50, 250, 350, 250)
+
+  GraphicsWindow.DrawLine(150, 50, 150, 350)
+
+  GraphicsWindow.DrawLine(250, 50, 250, 350)
+
+  GraphicsWindow.PenWidth = 4
+
+  GraphicsWindow.PenColor = "Gray"
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If sFigure[iBoard[iX][iY]] = "O" Then
+
+        GraphicsWindow.DrawEllipse(65 + (iX - 1) * 100, 65 + (iY - 1) * 100, 70, 70)
+
+      ElseIf sFigure[iBoard[iX][iY]] = "X" Then
+
+        GraphicsWindow.DrawLine(65 + (iX - 1) * 100, 65 + (iY - 1) * 100, 135 + (iX - 1) * 100, 135 + (iY - 1) * 100)
+
+        GraphicsWindow.DrawLine(135 + (iX - 1) * 100, 65 + (iY - 1) * 100, 65 + (iX - 1) * 100, 135 + (iY - 1) * 100)
+
+      EndIf
+
+    EndFor
+
+  EndFor    
+
+EndSub
+
+'
+
+' Put figure onto board
+
+' in: integer iSaved[][] - current board
+
+' in: integer iRo - 3
+
+' in: integer iX -x coordinate
+
+' in: integer iY -y coordinate
+
+' in: integer iTurn - 1 or 2
+
+' in: string sAlpha[] - alphabet for SGF game score
+
+Sub PutFigure
+
+  If (iX > 0 And iX <= iRo And iY > 0 And iY <= iRo) Then
+
+    iSaved[iX][iY] = iTurn
+
+    If (iTurn = TURN1) Then
+
+      sLine = ";B[" + sAlpha[iX] + sAlpha[iY] + "]C[" + sFigure[TURN1] + "(" + iX + "," + iY + ")]"
+
+      OutputLine()
+
+    ElseIf (iTurn = TURN2) Then
+
+      sLine = ";W[" + sAlpha[iX] + sAlpha[iY] + "]C[" + sFigure[TURN2] + "(" + iX + "," + iY + ")]"
+
+      OutputLine()
+
+    ElseIf (iTurn = SPACE) Then
+
+      sLine = ";E[" + sAlpha[iX] + sAlpha[iY] + "]C[-(" + iX + "," + iY + ")]"
+
+      OutputLine()
+
+    EndIf  
+
+  EndIf
+
+EndSub
+
+'
+
+' OutputLine
+
+' in: string sLine - output line
+
+Sub OutputLine
+
+  iNR = iNR + 1
+
+  sRec[iNR] = sLine
+
+EndSub
+
+'
+
+' Get figure from board
+
+' in: integer iSaved[][] - current board
+
+' in: integer iX, iY - x, y coordinate
+
+' out: integer iFigure - TURN1 or TURN2
+
+Sub GetFigure
+
+  If (iX >= 1 And iX <= iRo And iY >= 1 And iY <= iRo) Then
+
+    iFigure = iSaved[iX][iY]
+
+  Else
+
+    iFigure = OB
+
+  EndIf
+
+EndSub
+
+'
+
+' Initialize board
+
+' in: integer iRo - 3
+
+' work: integer iX, iY, i
+
+' out: integer iBoard - board
+
+' out: string sAlpha[] - alphabet for SGF game score
+
+Sub InitBoard
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      iBoard[iX][iY] = SPACE
+
+    EndFor
+
+  EndFor
+
+'
+
+  For i = 0 To iRo + 1
+
+    iBoard[i][0] = OB
+
+    iBoard[i][iRo + 1] = OB
+
+    iBoard[0][i] = OB
+
+    iBoard[iRo + 1][i] = OB
+
+  EndFor
+
+'
+
+  For i = 0 To iRo
+
+    ' alphabet for SGF game score
+
+    sAlpha[i] = Text.GetSubText(" abcdefghijklmnopqrs", i + 1, 1)
+
+  EndFor
+
+EndSub
+
+

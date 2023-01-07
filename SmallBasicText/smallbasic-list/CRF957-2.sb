@@ -1,0 +1,249 @@
+GraphicsWindow.Show()
+
+GW = 600
+
+GraphicsWindow.Width = GW
+
+GraphicsWindow.Height = GW
+
+TextWindow.Left = GraphicsWindow.Left + GW + 15
+
+TextWindow.Top = GraphicsWindow.Top
+
+
+
+GraphicsWindow.PenColor = "White"
+
+Pi = Math.Pi
+
+Ground = GW-100
+
+GraphicsWindow.DrawLine(0,Ground,GW,Ground)
+
+Metaball_Sides = 16
+
+Metaball_Radius = 100
+
+Metaball_Hardness = Metaball_Radius/2
+
+Metaball_Area = Metaball_Radius*Metaball_Radius*Pi
+
+Metaball_Original_Area = Metaball_Radius*Metaball_Radius*Pi
+
+For i = 0 to Metaball_Sides
+
+  Outline_Angle[i] = Pi * ((i * (360/Metaball_Sides)) / 180) 'No -0.5 
+
+endfor
+
+GraphicsWindow.BrushColor = "#55FF0000"
+
+GraphicsWindow.PenWidth = 0
+
+Circle = Shapes.AddEllipse(Metaball_Radius*2,Metaball_Radius*2)
+
+
+
+GraphicsWindow.BrushColor = "Red"
+
+Center = Shapes.AddEllipse(10,10)
+
+
+
+GraphicsWindow.BackgroundColor = "Black"
+
+GraphicsWindow.PenWidth = 5
+
+
+
+While "True"
+
+  
+
+  UpdateOutlines()
+
+  
+
+  If Mouse.IsLeftButtonDown Then
+
+    Metaball_Y = GraphicsWindow.MouseY
+
+    Metaball_X = GraphicsWindow.MouseX
+
+    Metaball_WY = 0
+
+  endif
+
+  Shapes.Move(Center,Metaball_Center_X-5,Metaball_Center_Y-5)
+
+  
+
+  'The circle is meant to show the difference between the original area and the metaball area
+
+  Shapes.Move(Circle,Metaball_Center_X-Metaball_Radius,Metaball_Center_Y-Metaball_Radius)
+
+  
+
+  TextWindow.WriteLine("theta/2*radius^2: " + Metaball_Area)
+
+  TextWindow.WriteLine("radius^2*pi:      " + Metaball_Original_Area)
+
+  
+
+  Program.Delay(15)
+
+  
+
+  TextWindow.Clear()
+
+endwhile
+
+
+
+
+
+
+
+Sub UpdateOutlines
+
+  
+
+  Metaball_WY = Metaball_WY + 1
+
+  Metaball_Y = Metaball_Y + Metaball_WY
+
+  Metaball_Cornersum_Y = 0
+
+  Metaball_Cornersum_X = 0
+
+  For i = 1 to Metaball_Sides
+
+    Metaball_Cornersum_Y = Metaball_Cornersum_Y + Outline_Y[i]
+
+    Metaball_Cornersum_X = Metaball_Cornersum_X + Outline_X[i]
+
+  endfor
+
+  Metaball_Center_Y = Metaball_Cornersum_Y/Metaball_Sides
+
+  Metaball_Center_X = Metaball_Cornersum_X/Metaball_Sides
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  If Metaball_Center_Y+Metaball_Radius > Ground Then
+
+    'Metaball_Center_Y+Metaball_Radius <= this cant be right since the metaball radius is actually constantly changing.. 
+
+    'but Metaball_Radius is always 100. any solution?
+
+    Metaball_WY = (Metaball_WY*0.9)-(Metaball_Hardness - (Ground - Metaball_Y))*0.05
+
+    For i = 0 To Metaball_Sides
+
+      Outline_Radius[i] = Metaball_WY + Metaball_Radius 'Math.SquareRoot((Metaball_Area)/Pi)
+
+    endfor
+
+  endif
+
+  
+
+  
+
+  
+
+  'First pass at shape and area
+
+  Metaball_Area = 0
+
+  For i = 0 To Metaball_Sides
+
+    Outline_X[i] = Metaball_Center_X+Outline_Radius[i]*Math.Cos(Outline_Angle[i])
+
+    Outline_Y[i] = Metaball_Center_Y+Outline_Radius[i]*Math.Sin(Outline_Angle[i])
+
+    If Outline_Y[i] > Ground Then
+
+      Outline_Y[i] = Ground
+
+      Outline_Radius[i] = Math.SquareRoot(Math.Power((Outline_Y[i]-Metaball_Center_Y),2) + Math.Power((Outline_X[i]-Metaball_Center_X),2))
+
+    Else
+
+      Outline_Radius[i] = Metaball_Radius
+
+    endif
+
+    If i > 0 Then
+
+      Metaball_Area = Metaball_Area+(Math.GetRadians(360/Metaball_Sides/2)*(Outline_Radius[i]*Outline_Radius[i]))
+
+    endif
+
+  endfor
+
+  
+
+  'Rescale radii to maintain area approximately
+
+  scale = Math.SquareRoot(Metaball_Original_Area/Metaball_Area)
+
+  
+
+  'Second pass at shape
+
+  For i = 0 To Metaball_Sides
+
+    
+
+    Outline_Radius[i] = scale * Outline_Radius[i]
+
+    Outline_X[i] = Metaball_X + Outline_Radius[i] * Math.Cos(Outline_Angle[i])
+
+    Outline_Y[i] = Metaball_Y + Outline_Radius[i] * Math.Sin(Outline_Angle[i])
+
+    
+
+    If Outline_Y[i] > Ground Then
+
+      Outline_Y[i] = Ground
+
+      ' I dont think we need this code here because the radius isnt being used after this here....  (can we delete it?)
+
+      
+
+      '  Outline_Radius[i] = Math.SquareRoot(Math.Power((Outline_Y[i]-Metaball_Center_Y),2) + Math.Power((Outline_X[i]-Metaball_Center_X),2)) 
+
+      'Else
+
+      '  Outline_Radius[i] = Metaball_Radius
+
+    endif
+
+    
+
+    If i > 0 Then
+
+      Shapes.Remove(Outline[i])
+
+      Outline[i] = Shapes.AddLine(Outline_X[i-1],Outline_Y[i-1],Outline_X[i],Outline_Y[i])
+
+    endif
+
+  endfor
+
+  
+
+endsub
+
+
+
+

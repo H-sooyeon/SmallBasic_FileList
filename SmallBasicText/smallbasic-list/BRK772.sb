@@ -1,0 +1,389 @@
+' Pictionary - English
+
+' Version 0.9
+
+' Copyright © 2017-2019 Nonki Takahashi.  The MIT License.
+
+' Last update 2019-04-17
+
+
+
+GraphicsWindow.Title = "Pictionary"
+
+SB_Workaround()
+
+gw = 598
+
+gh = 428
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.BackgroundColor = "LightGray"
+
+' initialize shapes for english
+
+Shapes_Init_English()
+
+angle = 0 ' dummy
+
+' add shapes
+
+scale = 1
+
+iMin = 1
+
+iMax = Array.GetItemCount(shape)
+
+Shapes_Add()
+
+' initialize shapes for caption
+
+Shapes_Init_Caption()
+
+' add shapes
+
+iMax = Array.GetItemCount(shape)
+
+Shapes_Add()
+
+
+
+Sub Shapes_Init_Caption
+
+  ' Shapes | Initialize shapes data
+
+  ' return shX, shY - current position of shapes
+
+  ' return shape - array of shapes
+
+  shX = 414 ' x offset
+
+  shY = 358 ' y offset
+
+  shape = ""
+
+  shape[1] = "func=text;x=0;y=0;text=English;fn=Trebuchet MS;fs=50;fb=True;pw=0;bc=Black;"
+
+EndSub
+
+
+
+Sub Shapes_Init_English
+
+  ' Shapes | Initialize shapes data
+
+  ' return shX, shY - current position of shapes
+
+  ' return shape - array of shapes
+
+  shX = 99  ' x offset
+
+  shY = 94  ' y offset
+
+  shape = ""
+
+  shape[1] = "pw=0;bc=#FFF;func=rect;width=400;height=240;x=0;y=0;"
+
+  shape[2] = "pw=0;bc=#CD202C;func=rect;width=48;height=240;x=176;y=0;"
+
+  shape[3] = "pw=0;bc=#CD202C;func=rect;width=400;height=48;x=0;y=96;"
+
+EndSub
+
+
+
+Sub SB_RotateWorkaround
+
+  ' Small Basic | Rotate workaround for Silverlight
+
+  ' param shp - current shape
+
+  ' param x, y - original coordinate
+
+  ' param alpha - angle [radian]
+
+  ' returns x, y - workaround coordinate
+
+  If shp["func"] = "tri" Then
+
+    x1 = -Math.Floor(shp["x3"] / 2)
+
+    y1 = -Math.Floor(shp["y3"] / 2)
+
+  ElseIf shp["func"] = "line" Then
+
+    x1 = -Math.Floor(Math.Abs(shp["x1"] - shp["x2"]) / 2)
+
+    y1 = -Math.Floor(Math.Abs(shp["y1"] - shp["y2"]) / 2)
+
+  EndIf
+
+  ox = x - x1
+
+  oy = y - y1
+
+  x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
+
+  y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
+
+EndSub
+
+
+
+Sub SB_Workaround
+
+  ' Small Basic | Workaround for Silverlight
+
+  ' returns silverlight - "True" if in remote
+
+  color = GraphicsWindow.GetPixel(0, 0)
+
+  If Text.GetLength(color) > 7 Then
+
+    silverlight = "True"
+
+    msWait = 300
+
+  Else
+
+    silverlight = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Shapes_Add
+
+  ' Shapes | add shapes as shapes data
+
+  ' param iMin, iMax - shape indices to add
+
+  ' param shape - array of shapes
+
+  ' param scale - 1 if same scale
+
+  ' return shWidth, shHeight - total size of shapes
+
+  ' return shAngle - current angle of shapes
+
+  Stack.PushValue("local", i)
+
+  Stack.PushValue("local", x)
+
+  Stack.PushValue("local", y)
+
+  Shapes_CalcWidthAndHeight()
+
+  s = scale
+
+  For i = iMin To iMax
+
+    shp = shape[i]
+
+    GraphicsWindow.PenWidth = shp["pw"] * s
+
+    If shp["pw"] > 0 Then
+
+      GraphicsWindow.PenColor = shp["pc"]
+
+    EndIf
+
+    If Text.IsSubText("rect|ell|tri|text", shp["func"]) Then
+
+      GraphicsWindow.BrushColor = shp["bc"]
+
+    EndIf
+
+    If shp["func"] = "rect" Then
+
+      shp["obj"] = Shapes.AddRectangle(shp["width"] * s, shp["height"] * s)
+
+    ElseIf shp["func"] = "ell" Then
+
+      shp["obj"] = Shapes.AddEllipse(shp["width"] * s, shp["height"] * s)
+
+    ElseIf shp["func"] = "tri" Then
+
+      shp["obj"] = Shapes.AddTriangle(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s, shp["x3"] * s, shp["y3"] * s)
+
+    ElseIf shp["func"] = "line" Then
+
+      shp["obj"] = Shapes.AddLine(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s)
+
+    ElseIf shp["func"] = "text" Then
+
+      If silverlight Then
+
+        fs = Math.Floor(shp["fs"] * 0.9)
+
+      Else
+
+        fs = shp["fs"]
+
+      EndIf
+
+      GraphicsWindow.FontSize = fs * s
+
+      GraphicsWindow.FontName = shp["fn"]
+
+      shp["obj"] = Shapes.AddText(shp["text"])
+
+    EndIf
+
+    x = shp["x"]
+
+    y = shp["y"]
+
+    shp["rx"] = x
+
+    shp["ry"] = y
+
+    If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
+
+      alpha = Math.GetRadians(shp["angle"])
+
+      SB_RotateWorkaround()
+
+      shp["wx"] = x
+
+      shp["wy"] = y
+
+    EndIf
+
+    Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
+
+    If Text.IsSubText("rect|ell|tri|text", shp["func"]) And (shp["angle"] <> 0) And (shp["angle"] <> "") Then
+
+      Shapes.Rotate(shp["obj"], shp["angle"])
+
+    EndIf
+
+    shape[i] = shp
+
+  EndFor
+
+  shAngle = 0
+
+  y = Stack.PopValue("local")
+
+  x = Stack.PopValue("local")
+
+  i = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Shapes_CalcWidthAndHeight
+
+  ' Shapes | Calculate total width and height of shapes
+
+  ' param iMin, iMax - shape indices to add
+
+  ' return shWidth, shHeight - total size of shapes
+
+  For i = iMin To iMax
+
+    shp = shape[i]
+
+    If shp["func"] = "tri" Or shp["func"] = "line" Then
+
+      xmin = shp["x1"]
+
+      xmax = shp["x1"]
+
+      ymin = shp["y1"]
+
+      ymax = shp["y1"]
+
+      If shp["x2"] < xmin Then
+
+        xmin = shp["x2"]
+
+      EndIf
+
+      If xmax < shp["x2"] Then
+
+        xmax = shp["x2"]
+
+      EndIf
+
+      If shp["y2"] < ymin Then
+
+        ymin = shp["y2"]
+
+      EndIf
+
+      If ymax < shp["y2"] Then
+
+        ymax = shp["y2"]
+
+      EndIf
+
+      If shp["func"] = "tri" Then
+
+        If shp["x3"] < xmin Then
+
+          xmin = shp["x3"]
+
+        EndIf
+
+        If xmax < shp["x3"] Then
+
+          xmax = shp["x3"]
+
+        EndIf
+
+        If shp["y3"] < ymin Then
+
+          ymin = shp["y3"]
+
+        EndIf
+
+        If ymax < shp["y3"] Then
+
+          ymax = shp["y3"]
+
+        EndIf
+
+      EndIf
+
+      shp["width"] = xmax - xmin
+
+      shp["height"] = ymax - ymin
+
+    EndIf
+
+    If i = 1 Then
+
+      shWidth = shp["x"] + shp["width"]
+
+      shHeight = shp["y"] + shp["height"]
+
+    Else
+
+      If shWidth < shp["x"] + shp["width"] Then
+
+        shWidth = shp["x"] + shp["width"]
+
+      EndIf
+
+      If shHeight < shp["y"] + shp["height"] Then
+
+        shHeight = shp["y"] + shp["height"]
+
+      EndIf
+
+    EndIf
+
+    shape[i] = shp
+
+  EndFor
+
+EndSub
+
+

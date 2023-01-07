@@ -1,0 +1,257 @@
+DataExtension.Init()
+
+GameWindow.Width = 500
+
+GameWindow.Height = 400
+
+GameWindow.Title = "Small Music Player - By Amir"
+
+GameWindow.CanResize = "True"
+
+GameWindow.Show()
+
+Slider_Progress_Bar = GameControls.AddProgressBar(0,15,200,400,16)
+
+Slider = GameControls.AddSlider(0,15,200,400,15)
+
+Play = GameControls.AddButton("Play",238,250-25,70,50)
+
+Next = GameControls.AddButton("Next",317,250-17.5,80,35)
+
+File_Open = GameControls.AddButton("Open Files",10,10,80,30)
+
+Prev = GameControls.AddButton("Prev",149,250-17.5,80,35)
+
+Player = Media.CreateMediaPlayer("C:\Users\Home\Music\Music\1.mp3",0,0,0,0)
+
+Stop = GameControls.AddButton("Stop",70,250-17,70,35)
+
+GameControls.RegisterMouseDownEvent(Play,"Play_Song")
+
+GameControls.RegisterMouseDownEvent(File_Open,"Open_Files")
+
+GameControls.RegisterMouseDownEvent(Next,"Play_Next")
+
+GameControls.RegisterMouseDownEvent(Prev,"Play_Prev")
+
+GameControls.RegisterMouseDownEvent(Stop,"Stop_Song")
+
+GameControls.RegisterMouseMoveEvent(Slider,"Slider_Move")
+
+Sub Open_Files
+
+  Dir = "C:\Users\Home\Music\Music\Green Day - 21st Century Breakdown - 2009"
+
+  Files_Array = FilePlus.GetAllFiles(Dir)
+
+  Total_Files = Array.GetItemCount(Files_Array)
+
+  If Array.IsArray(Files_Array) = "True" Then
+
+    GameControls.Remove(File_Open)
+
+  EndIf
+
+  Play_List()
+
+EndSub
+
+Sub Play_Song
+
+   If Array.IsArray(Files_Array) = "False" Then
+
+   Dialogs.ShowMessageBox("Please Select Media Diractory First","No Files","OK","Error")
+
+  Else
+
+   Media.stop(Player)
+
+   Media.SetMedia(Player, Files_Array[1])
+
+   GameControls.SetValue(Slider,0)
+
+   Media.Play(Player)
+
+   Song_Id = 1
+
+   Play_List()
+
+   EndIf
+
+ EndSub
+
+ Sub Play_Next
+
+   If Array.IsArray(Files_Array) = "False" Then
+
+   Dialogs.ShowMessageBox("No Song Files To Play","No Files","OK","Error")
+
+  Else
+
+   Media.stop(Player)
+
+   Song_Id = Song_Id + 1
+
+   If Song_Id > Total_Files Then
+
+     Song_Id = Total_Files
+
+   EndIf
+
+   Media.SetMedia(Player, Files_Array[Song_Id+1])
+
+   GameControls.SetValue(Slider,0)
+
+   Media.Play(Player)
+
+   Play_List()
+
+   EndIf
+
+ EndSub
+
+ Sub Play_Prev
+
+   If Array.IsArray(Files_Array) = "False" Then
+
+   Dialogs.ShowMessageBox("No Song Files To Play","No Files","OK","Error")
+
+  Else
+
+   Media.stop(Player)
+
+   Song_Id = Song_Id - 1
+
+   If Song_Id < 1 Then
+
+     Song_Id = 1
+
+   EndIf
+
+   Media.SetMedia(Player, Files_Array[Song_Id])
+
+   GameControls.SetValue(Slider,0)
+
+   GameWindow.BrushColor = GameWindow.BackgroundColor
+
+   Media.Play(Player)
+
+   Play_List()
+
+   EndIf
+
+ EndSub 
+
+ Sub Stop_Song
+
+   If Array.IsArray(Files_Array) = "False" Then
+
+   Dialogs.ShowMessageBox("Already Stoped","No Files","OK","Error")
+
+  Else
+
+    Media.stop(Player)
+
+    EndIf
+
+  EndSub 
+
+    Sub Slider_Move
+
+  If Array.IsArray(Files_Array) = "False" Then
+
+    Dialogs.ShowMessageBox("Please Select Media Diractory First","No Files","OK","Error")
+
+  Else
+
+  Media_Lenth = Media.GetLength(Player)
+
+  Media_Position = Media.GetPosition(Player)
+
+  Slider_Position = GameControls.GetValue(Slider)
+
+  Slider_Time_Position = (Slider_Position*Media_Lenth)/100
+
+  Media.SetPosition(Player,Slider_Time_Position)
+
+  EndIf
+
+ EndSub
+
+ Sub Play_List
+
+   GameWindow.BrushColor = GameWindow.BackgroundColor
+
+   GameControls.AddRectangle(0,70,480,105)
+
+   GameWindow.BrushColor = "Green"
+
+   GameWindow.BrushColor = "Red"
+
+   GameControls.AddText("Prev Song : " +FilePlus.GetFileName(Files_Array[Song_Id-2]),20,70,"Comic Sans MS",11,"False","False")
+
+   GameControls.AddText("Prev Song : " +FilePlus.GetFileName(Files_Array[Song_Id-1]),30,90,"Comic Sans MS",13,"False","False")
+
+   GameWindow.BrushColor = "Green"
+
+   GameControls.AddText("Current Song : " +FilePlus.GetFileName(Files_Array[Song_Id]),40,110,"Comic Sans MS",16,"False","False")
+
+   GameWindow.BrushColor = "Red"
+
+   GameControls.AddText("Next Song : " +FilePlus.GetFileName(Files_Array[Song_Id+1]),30,130,"Comic Sans MS",13,"False","False")
+
+   GameControls.AddText("Next Song : " +FilePlus.GetFileName(Files_Array[Song_Id+2]),20,150,"Comic Sans MS",11,"False","False")
+
+   EndSub
+
+   While("True")
+
+  ProgramPlus.Delay(20)
+
+  Media_Lenth = Media.GetLength(Player)
+
+  Media_Position = Media.GetPosition(Player)
+
+  Real_Time_Position = (Media_Position*100)/Media_Lenth
+
+  GameControls.SetValue(Slider_Progress_Bar,Real_Time_Position)
+
+  GameControls.SetValue(Slider,Real_Time_Position/10)
+
+  If Media_Position = Media_Lenth Then
+
+    GameControls.SetValue(Slider,0)
+
+    GameControls.SetValue(Slider_Progress_Bar,0)
+
+    Play_Next()
+
+  EndIf
+
+Time_Info()
+
+EndWhile
+
+Sub Time_Info
+
+  Min = Math.Floor(Math.Remainder(Media_Position/(1000*60),60))
+
+  Secs = Math.Floor(Math.Remainder(Media_Position/1000,60))
+
+  ProgramPlus.Delay(1000)
+
+  GameWindow.BrushColor = "White"
+
+  GameControls.AddRectangle(417,199,40,19)
+
+  GameWindow.BrushColor = "Black"
+
+  GameControls.AddText(Min,420,200,"Arial",16,"False","False")
+
+  GameControls.AddText(":",430,200,"Arial",16,"False","False")
+
+  GameControls.AddText(Secs,435,200,"Arial",16,"False","False")
+
+  EndSub
+
+

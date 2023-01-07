@@ -1,0 +1,373 @@
+' Castle
+
+' Version 0.2
+
+' Copyright © 2015 Nonki Takahashi.  The MIT License.
+
+' Last update 2015-07-07
+
+'
+
+GraphicsWindow.BackgroundColor = "#FFFFFF"
+
+GraphicsWindow.PenWidth = 0
+
+gw = GraphicsWindow.Width
+
+gh = GraphicsWindow.Height
+
+Physics_Init()
+
+default = "f=0.03;r=0.5;d=1;a=0;c=#999999;w=50;h=50;s=r;o=50;"
+
+
+
+s[1] = "r=0.8;d=10;x=300;y=100;a=0;c=#666666;w=20;h=20;s=e;"
+
+s[2] = "x=300;y=200;a=1;"
+
+s[3] = "x=300;y="+(gh-175)+";"
+
+s[4] = "x=300;y="+(gh-125)+";"
+
+s[5] = "x=300;y="+(gh-75)+";"
+
+s[6] = "x=300;y="+(gh-25)+";"
+
+For i = 7 To 11
+
+  s[i] = s[i-5]
+
+  s[i]["x"] = 400
+
+EndFor
+
+For i = 12 To 16
+
+  s[i] = s[i-5]
+
+  s[i]["x"] = 500
+
+EndFor
+
+s[i] = s[i-5]
+
+s[i]["w"] = 250
+
+s[i]["h"] = 20
+
+s[i]["x"] = 400
+
+s[i]["y"] = 150
+
+n = i
+
+For i = 1 To n
+
+  CheckDefault()
+
+  AddShape()
+
+EndFor
+
+s[i] = "r=0.9;x=0;y=200;c=#FF9900;w=15;h=15;s=e;ix=300;iy=-300;"
+
+Timer.Interval = 500
+
+Timer.Tick = OnTick
+
+
+
+While ("True")
+
+  t = Clock.ElapsedMilliseconds
+
+  Physics_DoTimestep()
+
+  If tick Then
+
+    GraphicsWindow.Title = i
+
+    s[i] = s[18]
+
+    CheckDefault()
+
+    AddShape()
+
+    i = i + 1
+
+    tick = "False"
+
+  EndIf
+
+  dt = _dt * 1000 - (Clock.ElapsedMilliseconds - t)
+
+  If 0 < dt Then
+
+    Program.Delay(dt)
+
+  EndIf
+
+EndWhile
+
+
+
+Sub OnTick
+
+  tick = "True"
+
+EndSub
+
+
+
+Sub CheckDefault
+
+  ' param i - index for shape array
+
+  nDefault = Array.GetItemCount(default)
+
+  index = Array.GetAllIndices(default)
+
+  For j = 1 To nDefault
+
+    If s[i][index[j]] = "" Then
+
+      s[i][index[j]] = default[index[j]]
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub AddShape
+
+  ' c - color
+
+  GraphicsWindow.BrushColor = s[i]["c"]
+
+  param = s[i]
+
+  Physics_AddMovingShape()
+
+  s[i]["id"] = id
+
+  param = s[i]
+
+  Physics_SetPositions()
+
+  ' o - opacity
+
+  Shapes.SetOpacity(s[i]["id"], s[i]["o"])
+
+  If s[i]["ix"] <> "" Then
+
+    Physics_SetImpulse()
+
+  EndIf
+
+EndSub
+
+
+
+Sub Physics_AddMovingShape
+
+  ' param["f"] - friction 0 to 1
+
+  ' param["r"] - restitusion 0 to 1
+
+  ' param["d"] - density (default 1)
+
+  ' param["s"] - shape "r", "e" or "t"
+
+  ' param["w"] - width
+
+  ' param["h "]- height
+
+  ' return id - shape id
+
+  If param["s"] = "r" Then
+
+    id = Shapes.AddRectangle(param["w"], param["h"])
+
+    _m = param["d"] * param["w"] * param["h"] / 100
+
+  ElseIf s[i]["s"] = "e" Then
+
+    id = Shapes.AddEllipse(param["w"], param["h"])
+
+    _m = param["d"] * param["w"] * param["h"] * Math.Pi / 400
+
+  ElseIf s[i]["s"] = "t" Then
+
+    id = Shapes.AddTriangle(0, param["h"], param["w"]/2, 0, param["w"], param["h"])
+
+    _m = param["d"] * param["w"] * param["h"] / 200
+
+  EndIf
+
+  _s[id] = param
+
+  _s[id]["m"] = _m
+
+EndSub
+
+
+
+Sub Physics_SetPositions
+
+  ' param["id"] - shape id
+
+  ' param["x"] - position (x co-ordinate)
+
+  ' param["y"] - position (y co-ordinate)
+
+  _id = param["id"]
+
+  _s[_id]["x"] = param["x"]
+
+  _s[_id]["y"] = param["y"]
+
+  _x = param["x"] - _s[_id]["w"] / 2
+
+  _y = param["y"] - _s[_id]["h"] / 2
+
+  Shapes.Move(_id, _x, _y)
+
+EndSub
+
+
+
+Sub Physics_SetImpulse
+
+  ' param["id"] - shape id
+
+  ' param["ix"] - x component of the impulse
+
+  ' param["iy"] - y component of the impulse
+
+  _id = param["id"]
+
+  _s[_id]["ix"] = param["ix"]
+
+  _s[_id]["iy"] = param["iy"]
+
+EndSub
+
+
+
+Sub Physics_DoTimestep
+
+  _n = Array.GetItemCount(_s)
+
+  _index = Array.GetAllIndices(_s)
+
+  For _i = 1 To _n
+
+    _id = _index[_i]
+
+    _vx = _s[_id]["vx"]
+
+    _vy = _s[_id]["vy"]
+
+    _ax = _s[_id]["ix"] / _s[id]["m"]
+
+    _ay = _s[_id]["iy"] / _s[id]["m"]
+
+    _s[_id]["vx"] = _vx + _gx * _dt + _ax
+
+    _s[_id]["vy"] = _vy + _gy * _dt + _ay 
+
+    _s[_id]["ix"] = 0
+
+    _s[_id]["iy"] = 0
+
+    _x = _s[_id]["x"] + (_s[_id]["vx"] + _vx) * _dt / 2
+
+    _y = _s[_id]["y"] + (_s[_id]["vy"] + _vy) * _dt / 2
+
+    ' corrision detect with walls
+
+    If (_x - _s[id]["w"] / 2) <= 0 Then
+
+      _x = _x - 2 * (_x - _s[id]["w"] / 2)
+
+      _s[_id]["vx"] = -_s[_id]["vx"] * _s[_id]["r"]
+
+    ElseIf  gw <= (_x + _s[id]["w"] / 2) Then
+
+      _x = _x - 2 * (_x + _s[id]["w"] / 2 - gw)
+
+      _s[_id]["vx"] = -_s[_id]["vx"] * _s[_id]["r"]
+
+    EndIf
+
+    If (_y - _s[id]["h"] / 2) <= 0 Then
+
+      _y = _y - 2 * (_y - _s[id]["h"] / 2)
+
+      _s[_id]["vy"] = -_s[_id]["vy"] * _s[_id]["r"]
+
+    ElseIf  gh <= (_y + _s[id]["h"] / 2) Then
+
+      _y = _y - 2 * (_y + _s[id]["h"] / 2 - gh)
+
+      _s[_id]["vy"] = -_s[_id]["vy"] * _s[_id]["r"]
+
+    EndIf
+
+    ' corrision detect with other shapes
+
+    For _j = _i + 1 To _n
+
+      _idJ = index[_j]
+
+      _dx = _s[_idJ]["x"] - _x
+
+      _dy = _s[_idJ]["y"] - _y
+
+      _d2 = _dx * _dx + _dy * _dy
+
+      _r2 = Math.Power(_s[_id]["w"] + _s[_idJ]["w"], 2) + Math.Power(_s[_id]["h"] + _s[_idJ]["h"], 2)
+
+      If  _d2 <= _r2 Then
+
+        _e = _s[_idJ]["r"] * _s[_id]["r"]
+
+        _vx = _e * (_s[_idJ]["vx"] - _s[_id]["vx"])
+
+        _vy = _e * (_s[_idJ]["vy"] - _s[_id]["vy"])
+
+      EndIf
+
+    EndFor
+
+    param["id"] = _id
+
+    param["x"] = _x
+
+    param["y"] = _y
+
+    Physics_SetPositions()
+
+  EndFor
+
+EndSub
+
+
+
+Sub Physics_Init
+
+  _dt = 0.025 ' [s]
+
+  _gx = 0
+
+  _gy = 100
+
+EndSub
+
+  
+
+

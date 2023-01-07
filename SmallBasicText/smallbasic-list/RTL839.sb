@@ -1,0 +1,677 @@
+'Senior Countdown Clock - (C)opyright 2016 by codingCat aka Matthew L. Parets - No rights reserved if no money earned
+
+'
+
+'The end time is set at 3:10 pm, the end of the school day. This default
+
+'can be changed below. If it is past this time in the day the program
+
+'will default to 10 seconds into the future. This default can be 
+
+'changed by modifying the SetTestTime() subroutine.
+
+'
+
+'The size of the display is set dynaically based on the windows height.
+
+'The default height is set below. The size can also be changed while the
+
+'program is running by dragging the windows edge. This behavior is
+
+'a little squirrelly due to the limits/inconsistencies  in Small Basic / Windows
+
+
+
+
+
+'Program Initalizations - Set the default window height
+
+'Scaling is based on the height of the window. Sizes were developed with a height of 600. Minimum viable is 175
+
+GraphicsWindow.Height = 600 
+
+windowHeight = GraphicsWindow.Height
+
+
+
+'This represents the top for the dynamic resizing
+
+top:
+
+restart = "False"
+
+BuildTheScreen()
+
+
+
+'Set the countdown time -- when in the future will the clock stop
+
+ih = 15       'Default time is 3:10 pm
+
+im = 10
+
+is = 00
+
+ims = 0
+
+
+
+'Set up time. How many milliseconds in the future is the stop time.
+
+CalculateMils()
+
+mils = calcmils
+
+
+
+GetCurrentMils()
+
+If mils - curmils < 1 then        'If we have past the end time.
+
+  SetTestTime()                   'Go with a test time instead
+
+endif
+
+
+
+angleIncr = 1               'How often to update the clock.
+
+milSlice = (mils-curmils) / 360   'Default pause for 360 ticks around the clock
+
+While milSlice > 10000            'Ensure that the clock updates at least every 10 seconds
+
+  milSlice = milSlice / 2         'Half the time slice
+
+  angleIncr = angleIncr / 2       'Half the size of the tick (double how many their are)
+
+endwhile
+
+
+
+framestart = Clock.ElapsedMilliseconds  'Start the tick clock
+
+clockStart = Clock.ElapsedMilliseconds  'Start the master finish clock
+
+
+
+'Starting point for the clock face
+
+nudge = 1.05                      'Compensate for margin of error in drawing the arrow.
+
+prevarad =Math.GetRadians(0)
+
+angle = 0
+
+
+
+' --- Main Program Loop ---------------------------------------------
+
+While curmils < mils              'Keep going when there is time left
+
+  UpdatePointer()                 'Move the clock hand
+
+  
+
+  frameWait()                     'pause for a moment - update the milliseconds - check for window sizing
+
+  If (restart = "True") Then      'Restart if window has been resized
+
+    Goto top
+
+  EndIf
+
+  prevang = angle                 
+
+  angle = angle + angleIncr       'The next position for the clock hand
+
+endWhile
+
+
+
+'recenter the pointer following the last tick
+
+angle = 360
+
+UpdatePointer()
+
+FinalTimeUpdate()
+
+
+
+'----------------------------------------------------------------------------
+
+'Subroutines
+
+'----------------------------------------------------------------------------
+
+
+
+'----------------------------------------------------------------------------
+
+'Set a test time when the time is past the default start time.
+
+Sub SetTestTime
+
+  ih = Clock.Hour
+
+  im = Clock.Minute
+
+  is = Clock.Second +10 '10 seconds in the future
+
+  If is > 59 then       'Wrap the time past seconds and mins as needed
+
+    is = is -60
+
+    im = im + 1
+
+  endif
+
+  If im > 59 then
+
+    im = im - 60
+
+    ih = ih + 1
+
+  endif
+
+  ims = Clock.Millisecond
+
+  CalculateMils()
+
+  mils = calcmils
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------
+
+'Build the screen scaled for the window size - Clock face, time box, and message.
+
+Sub BuildTheScreen
+
+  'Window Setup
+
+  GraphicsWindow.Clear()
+
+  'Set the width - The ratio between the height and the width is 2/3
+
+  GraphicsWindow.Width = GraphicsWindow.Height + (GraphicsWindow.Height * (2/3))
+
+  windowWidth = GraphicsWindow.Width
+
+  GraphicsWindow.Title = "Senior Count Down Clock
+
+  GraphicsWindow.BackgroundColor = "lightgreen"
+
+  GraphicsWindow.Show()
+
+  
+
+  'Scale settings
+
+  scl = (windowHeight * 100) / 600'Scaling for the window program developed with window height of 600
+
+  digitSiz = 95 * (scl / 100)     'base font size = 100
+
+  milsDigsiz = 20 * (scl / 100)   'base font size = 20
+
+  msgSiz = 75 * (scl / 100)       'baed on font size of 75
+
+  
+
+  'Draw the Clock Face
+
+  siz = windowHeight / 2 - 50
+
+  bdrSiz = 20
+
+  x = windowWidth - siz - 30
+
+  y = windowHeight / 2
+
+  GraphicsWindow.BrushColor = "black"
+
+  shadow = Shapes.AddEllipse(siz*2 + bdrSiz * 2,siz*2 + bdrSiz * 2)
+
+  Shapes.SetOpacity(shadow,25)
+
+  shapes.Move(shadow,x - siz - bdrSiz + 3, y - siz - bdrSiz + 3) 
+
+  face = Shapes.AddEllipse(siz*2 + bdrSiz * 2,siz*2 + bdrSiz * 2)
+
+  shapes.Move(face,x - siz - bdrSiz, y - siz - bdrSiz) 
+
+  GraphicsWindow.BrushColor = "yellow"
+
+  dial = Shapes.AddEllipse(siz*2,siz*2)
+
+  Shapes.move(dial,x - siz,y - siz)
+
+  cdSize = 50
+
+  
+
+  'Draw the time box
+
+  sclBw = 500 * (scl / 100) 
+
+  sclBh = 125 * (scl / 100)
+
+  GraphicsWindow.BrushColor = "black"
+
+  GraphicsWindow.PenColor = GraphicsWindow.BrushColor
+
+  boxshaddow = Shapes.AddRectangle(sclBw,sclBh)
+
+  Shapes.SetOpacity(boxshaddow, 10)
+
+  Shapes.Move(boxshaddow,5,5)
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(234,236,255)
+
+  Shapes.AddRectangle(sclBw,sclBh)
+
+  GraphicsWindow.PenWidth = 2
+
+  
+
+  'Display the message
+
+  msgY = windowHeight
+
+  GraphicsWindow.FontName = "Tahoma"
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.FontItalic = "true"
+
+  GraphicsWindow.BrushColor = "black"
+
+  GraphicsWindow.FontSize = msgSiz
+
+  senShapeShad = Shapes.AddText("Senior")
+
+  Shapes.SetOpacity(senShapeShad,15)
+
+  cntShapeShad = Shapes.AddText("Count Down")
+
+  Shapes.SetOpacity(cntShapeShad,15)
+
+  clkShapeShad = Shapes.AddText("Clock")
+
+  Shapes.SetOpacity(clkShapeShad,15)
+
+  msgBot = 90 * (scl / 100)
+
+  msgStp = 70 * (scl / 100)
+
+  Shapes.Move(senShapeShad,5+3,msgY-(msgBot+(msgStp*2))+3)
+
+  Shapes.Move(cntShapeShad,15+3,msgY-(msgBot+(msgStp*1))+3)
+
+  Shapes.Move(clkShapeShad,25+3,msgy-(msgBot+(msgStp*0))+3)
+
+  
+
+  GraphicsWindow.BrushColor = "black"
+
+  senShape = Shapes.AddText("Senior")
+
+  cntShape = Shapes.AddText("Count Down")
+
+  clkShape = Shapes.AddText("Clock")
+
+  Shapes.Move(senShape,5,msgY-(msgBot+(msgStp*2)))
+
+  Shapes.Move(cntShape,15,msgY-(msgBot+(msgStp*1)))
+
+  Shapes.Move(clkShape,25,msgy-(msgBot+(msgStp*0)))
+
+  GraphicsWindow.FontBold = "false"
+
+  
+
+  'Font settings for the time
+
+  GraphicsWindow.FontName = "Magmawave Caps"
+
+  GraphicsWindow.FontItalic = "True"
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------
+
+'One last update once time time has expired - zero everything out
+
+Sub FinalTimeUpdate
+
+  mils = curmils
+
+  TimeUpdate()
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------
+
+'Get the current time - Upate the display
+
+sub DisplayTimeUpdates
+
+  GetCurrentMils()
+
+  TimeUpdate()  
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------
+
+'Given the current milliseconds since midnight, calcuate the 
+
+'Hours minutes and seconds until the stop time.
+
+Sub TimeUpdate
+
+  rms = mils - curmils
+
+  rs = Math.Floor(rms/1000)
+
+  rms = rms - (rs * 1000)
+
+  rm = Math.Floor(rs/60)
+
+  rs = rs - (rm * 60)
+
+  rh = Math.Floor(rm/60)
+
+  rm = rm - (rh * 60)
+
+  
+
+  GraphicsWindow.BrushColor = "black"
+
+  If rs <> prs Then
+
+    GraphicsWindow.FontSize = digitSiz
+
+    If rh < 10 Then
+
+      trh = "x" + "0" + rh
+
+    Else
+
+      trh = "x" + rh
+
+    EndIf
+
+    If rm < 10 Then
+
+      trm = "x" + "0" + rm
+
+    Else
+
+      trm = "x" + rm
+
+    EndIf
+
+    If rs < 10 then
+
+      trs = "x" + 0 + rs
+
+    Else
+
+      trs = "x" + rs
+
+    EndIf
+
+    timStr = Text.GetSubTextToEnd(trh,2) + ":" + Text.GetSubTextToEnd(trm,2) + ":" + Text.GetSubTextToEnd(trs,2)
+
+    timShapeNew = Shapes.AddText(timStr)
+
+    Shapes.Remove(timShape)
+
+    timShape = timShapeNew
+
+  EndIf
+
+  
+
+  trms = rms + "x"
+
+  While Text.GetLength(trms) < 4
+
+    trms = "0" + trms
+
+  EndWhile
+
+  Shapes.Remove(milsShape)
+
+  GraphicsWindow.FontSize = milsDigsiz
+
+  milsShape = Shapes.AddText(Text.GetSubText(trms,1,3))
+
+  
+
+  prms = rms
+
+  prs = rs
+
+  prm = rm
+
+  prh = rh
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------
+
+'Calculate the current time based on the number of millisecond since 
+
+'midnight. This does not account for the time wrap at mightnight
+
+Sub GetCurrentMils
+
+  prevmils = curmils
+
+  ih = Clock.Hour
+
+  im = Clock.Minute
+
+  is = Clock.Second
+
+  ims =Clock.Millisecond
+
+  CalculateMils()
+
+  curmils = calcmils
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------
+
+'Given a time, Calcualte the number of milliseconds since 
+
+'midnight
+
+Sub CalculateMils
+
+  HrMn = ih * 60
+
+  MsSc = (im + HrMn) * 60
+
+  ScMl = (is + MsSc) * 1000
+
+  calcmils = ScMl + ims
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------
+
+'Update Clock face - The clock face is obscured by places a
+
+'black tranglular wedge between the last update and the one
+
+Sub UpdateSlice
+
+  prevarad = Math.GetRadians(prevang)
+
+  x1 = x + (Math.Sin(prevarad) * (siz * nudge))
+
+  y1 = y - (Math.Cos(prevarad) * (siz * nudge))
+
+  arad = Math.GetRadians(angle)
+
+  x2 = x + (Math.Sin(arad) * (siz * nudge))
+
+  y2 = y - (Math.Cos(arad) * (siz * nudge))
+
+  GraphicsWindow.PenColor = "black"
+
+  GraphicsWindow.BrushColor = "black"
+
+  t = Shapes.AddTriangle(x,y,x1,y1,x2,y2)
+
+  GraphicsWindow.PenColor = "black"
+
+  GraphicsWindow.BrushColor = "red"
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------
+
+'Based on the time slice, draw a triangle arrow pointing down 
+
+'the current angle
+
+Sub UpdatePointer
+
+  Shapes.Remove(pointer)
+
+  Shapes.Remove(centerDisk)
+
+  UpdateSlice()  
+
+  ba = 180 - (angle + 90)
+
+  bar = Math.GetRadians(ba)
+
+  x3 = x + (Math.Sin(bar) * 15)
+
+  y3 = y + (Math.cos(bar) * 15)
+
+  ba = 180 - (angle + 90) + 180
+
+  bar = Math.GetRadians(ba)
+
+  x4 = x + (Math.Sin(bar) * 15)
+
+  y4 = y + (Math.cos(bar) * 15)
+
+  pointer = Shapes.AddTriangle(x3,y3,x4,y4,x2,y2)
+
+  centerDisk = Shapes.AddEllipse(cdSize,cdSize)
+
+  Shapes.Move(centerDisk,x-(cdSize/2),y-(cdSize/2))
+
+endsub
+
+
+
+'----------------------------------------------------------------------------
+
+'Pause for the completion of this frame. While waiting update the 
+
+'millisecond display, and check to see if the window has been
+
+'resized.
+
+Sub frameWait
+
+  'Wait for the end of the from. Length is based on the distance to the end time and can be as long as 10 seconds
+
+  While Clock.ElapsedMilliseconds - framestart < milSlice And restart = "False" 
+
+    DisplayTimeUpdates()                'Update the millisecond clock
+
+    tick = Clock.ElapsedMilliseconds    'Inner wait - pause for roughtly 1/20 of a second to prevent flashing effect on the screen
+
+    'Wait for 1/20 of a second  - 57 milliseconds to be exact. The odd number gives the illusion the clock running full speed without the flashing or over tasking the processor
+
+    While Clock.ElapsedMilliseconds - tick < 57 And Clock.ElapsedMilliseconds - framestart < milSlice And restart = "False"
+
+      DynamicUpdateSize()               'Check to see if the window has been resized
+
+    EndWhile
+
+  EndWhile
+
+  framestart = Clock.ElapsedMilliseconds
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------
+
+'Check to see if the window has been resized. Once the resize has
+
+'been detected restart the program with the new screen size.
+
+'A side effect is that the size of the tick frame will be recalculated, 
+
+'the clock hand will again be at zero, and the tick happen faster 
+
+Sub DynamicUpdateSize
+
+  If GraphicsWindow.Height <> windowHeight Then 'Has the size of the window changed?
+
+    'Recalcualte the window width, keeping it in the correct proportion.
+
+    'A glitch in SmallBasic/Windows can cause the width to resize after this setting. 
+
+    'Making for an odd result.
+
+    GraphicsWindow.Width = GraphicsWindow.Height + (GraphicsWindow.Height * (2/3))
+
+    'Check if movment has passed a threshold (25 pixes). This will keep the update from happening too often.
+
+    'The change is ignored if the resulting window is too small  - below 175
+
+    If Math.Abs(GraphicsWindow.Height - windowHeight) > 25 And GraphicsWindow.Height >=174 then 
+
+      GraphicsWindow.Width = GraphicsWindow.Height + (GraphicsWindow.Height * (2/3)) 'Match the width - again, glitch possible
+
+      windowHeight = GraphicsWindow.Height    'variable used in all dynamic calculations
+
+      restart = "true"                        'Signal the main program loop to restart.
+
+    EndIf
+
+  'If the width changes independantly of the height, simply reset back to the width that matches the current height
+
+  ElseIf GraphicsWindow.Width <> windowWidth And restart = "False" then
+
+    GraphicsWindow.Width = windowWidth
+
+  EndIf
+
+EndSub
+
+
+
+

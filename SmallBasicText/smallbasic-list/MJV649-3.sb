@@ -1,0 +1,849 @@
+'  Missile Turret
+
+'  by Zock77 & GoToLoop
+
+'  MJV649-3
+
+'  http://Social.MSDN.Microsoft.com/Forums/en-US/smallbasic/thread/1f6bce18-6021-443c-97e2-6ad181f8bd3e
+
+'_______________________________________________________________________________'
+
+xRes      = 800      '  GraphicsWindow's width
+
+yRes      = 600      '  GraphicsWindow's height
+
+xResSc    = xRes/100 '  1% of GraphicsWindow's width
+
+
+
+Delay     = 1        '  Game slowness adjustment
+
+Rad       = 200      '  Aim point radius
+
+
+
+Grav      = 20       '  Gravity force
+
+GravInc   = 20
+
+GravMax   = 700
+
+
+
+nTanks    = 10       '  Number of tanks (directly impacts game performance)
+
+nTanksMax = 25
+
+TankSp    = .4       '  Tank movement speed
+
+TankSpInc = .1
+
+TankSpMax = 8
+
+
+
+TWide     = 40       '  Tank dimensions
+
+THigh     = 15
+
+TWideH    = TWide/2
+
+THighH    = THigh/2
+
+TWideQ    = TWide/4
+
+THighQ    = THigh/4
+
+
+
+MWide     = 10       '  Missile dimensions
+
+MHigh     = 5
+
+MWideH    = MWide/2
+
+MHighH    = MHigh/2
+
+MSpeed    = 10       '  How explosive a missile is shot from turret
+
+
+
+InitX     = 55       '  X  offset starting point for missiles
+
+InitY     = yRes/2   '  Y  offset starting point for missiles and also for turret and its cross-hair's Y position
+
+RotationX = InitX/4  '  How much further turret's cannon can rotate to get near Y axis (less means nearer)
+
+
+
+Missed    = 0        '  Escaped tank counter
+
+MissedMax = 20       '  Max escaped tanks allowed, then it's game over
+
+Destroyed = 0        '  Put down missile counter
+
+Elapsed   = 0        '  Current game duration counter
+
+i         = 0        '  Created missile counter
+
+ii        = 0        '  Erased  missile counter
+
+
+
+AllowSpdIncrease   = "True"  '  Increases speed of tanks for each tank batch
+
+AllowTankIncrease  = "False"  '  Increases numer of tanks after each tank batch
+
+AllowGravIncrease  = "True"  '  Increases gravity after each tank batch
+
+
+
+AllowAltSprites    = "True"  '  Allows usage of some alternative image shapes instead of default ones
+
+AllowBackgroundImg = "False"  '  Allows loading image from Flickr as background scenery
+
+AllowTankFadeFX    = "False"  '  Makes tanks gradually become more visible  (slows game!)
+
+
+
+MTrack = Math.Round(xRes*25/640)   ' # of missiles necessary to keep movement track on the screen
+
+If Math.Abs(yRes - Grav) <= yRes * 1/2 Then  ' (MTrack seriously impacts game performance!)
+
+  MTrack = Math.Round(MTrack * 1.5)
+
+EndIf
+
+
+
+GraphicsWindow.Width  = xRes
+
+GraphicsWindow.Height = yRes
+
+GraphicsWindow.Left   = 0
+
+GraphicsWindow.Top    = 0
+
+'GraphicsWindow.Left   = (Desktop.Width  - GraphicsWindow.Width ) / 2
+
+'GraphicsWindow.Top    = (Desktop.Height - GraphicsWindow.Height) / 2
+
+
+
+GraphicsWindow.CanResize = "False"
+
+GraphicsWindow.PenColor  = "Black"
+
+
+
+If AllowAltSprites Then
+
+  GraphicsWindow.BackgroundColor = "White"
+
+Else
+
+  GraphicsWindow.BackgroundColor = "Khaki"
+
+EndIf
+
+
+
+LoadShapes()
+
+CreateShapes()
+
+
+
+tag = "WarGame"              '  Theme for Flickr's background
+
+
+
+If AllowBackgroundImg Then
+
+  LoadBackgroundImage()
+
+EndIf
+
+
+
+MPosXOut = MWide + xRes      '  X missile pos from which it is considered away from visible screen
+
+
+
+GraphicsWindow.MouseDown  = MouseDown
+
+GraphicsWindow.MouseMove  = MouseMove
+
+GraphicsWindow.KeyDown    = Quit
+
+
+
+Timer.Tick = GarbageCleanup
+
+Timer.Interval = 1000        '  Cleanup and Timer happens for each 1sec
+
+'_______________________________________________________________________________'
+
+Loop:
+
+
+
+MoveTanks()
+
+MoveMissiles()
+
+
+
+msg = "Fired: "+i + "  Erased: "+ii + "   Destroyed: "+Destroyed + "   Missed: "+Missed
+
+msg = msg + "   Gravity: "+Grav + "   Speed: "+TankSp + "   Elapsed: "+Elapsed+"s"
+
+GraphicsWindow.Title = msg
+
+
+
+Program.Delay(Delay)
+
+
+
+Goto Loop
+
+'_______________________________________________________________________________'
+
+Sub LoadShapes
+
+
+
+  path   = Program.Directory + "\"
+
+  path   = "http://Sean.Alyrica.net/"
+
+  folder = "Artillery wars/"
+
+
+
+  AimImg     = ImageList.LoadImage(path + "crosshair.png")
+
+  TurretImg  = ImageList.LoadImage(path + "Turrit.png")
+
+
+
+  TurSzH = ImageList.GetHeightOfImage(Turret) / 2  '  <--- Half size of turret shape
+
+  If TurSzH < 5 Then  '  <---  If it fails to determine its size, consider it to be 17
+
+    TurSzH = 17
+
+  EndIf
+
+
+
+  If AllowAltSprites Then
+
+    TankImg    = ImageList.LoadImage(path + folder + "Tank2.bmp")
+
+    MissileImg = ImageList.LoadImage(path + folder + "missile.bmp")
+
+
+
+    TWide = ImageList.GetWidthOfImage (TankImg)
+
+    THigh = ImageList.GetHeightOfImage(TankImg)
+
+
+
+    MWide = ImageList.GetWidthOfImage (MissileImg)
+
+    MHigh = ImageList.GetHeightOfImage(MissileImg)
+
+
+
+    If TWide < 10 Then
+
+      TWide = 40
+
+    EndIf
+
+
+
+    If THigh < 5 Then
+
+      THigh = 15
+
+    EndIf
+
+
+
+    If MWide < 7 Then
+
+      MWide = 24
+
+    EndIf
+
+
+
+    If MHigh < 4 Then
+
+      MHigh = 6
+
+    EndIf
+
+
+
+  EndIf
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub LoadBackgroundImage
+
+
+
+  GraphicsWindow.DrawResizedImage( Flickr.GetRandomPicture(tag)  0,0  xRes,yRes )
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub CreateShapes
+
+
+
+  Aim    = Shapes.AddImage(AimImg)
+
+  Turret = Shapes.AddImage(TurretImg)
+
+  Shapes.Move( Turret  10,InitY-TurSzH )
+
+
+
+  For j = 1 To nTanks
+
+    CreateNewTank()
+
+  EndFor
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub CreateNewTank
+
+
+
+  If AllowAltSprites Then
+
+    Tank[j] = Shapes.AddImage(TankImg)
+
+  Else
+
+    GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
+
+    Tank[j] = Shapes.AddRectangle(TWide,THigh)
+
+  EndIf
+
+
+
+  Shapes.Move( Tank[j]  0,-50 )  '  <---  Hide it ASAP!
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub SpawnTanks
+
+
+
+  For j = 1 To nTanks
+
+
+
+    For z = 0 To 0 Step 0  '  <---  Infinite For ... EndFor loop
+
+      z = 1  '  <--- If at the end of loop z = 1 (or any value > 0), loop breaks free
+
+      TX[j] = Math.GetRandomNumber(xRes) + xRes ' <---  Spawns tanks some place beyond east side
+
+
+
+      For jj = j-1 To 1 Step -1 '  <---   Makes sure all tanks are not horizontally overlapping too much
+
+        If Math.Abs( TX[j] - TX[jj] ) < TWideH Then
+
+          z  = 0  ' <---  If they are, do not let loop break free, setting z = 0 again
+
+          jj = 0
+
+        EndIf
+
+      EndFor
+
+
+
+    EndFor
+
+
+
+    For z = 0 To 0 Step 0
+
+      z = 1
+
+      TY[j] = Math.GetRandomNumber(yRes/1.5)
+
+
+
+      For jj = j-1 To 1 Step -1 '  <---   Makes sure all tanks are not vertically overlapping too much
+
+        If Math.Abs( TY[j] - TY[jj] ) < THighQ Then
+
+          z  = 0
+
+          jj = 0
+
+        EndIf
+
+      EndFor
+
+
+
+    EndFor
+
+
+
+    Shapes.Move( Tank[j]  TX[j],TY[j] ) ' <---  Move them to their random set position
+
+    Shapes.ShowShape(Tank[j])           ' <---  Before displaying them up
+
+
+
+  EndFor
+
+
+
+  Sound.PlayChimesAndWait()
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub CheckDifficulty
+
+
+
+  If AllowTankIncrease Then
+
+    IncreaseNumTanks()
+
+  EndIf
+
+
+
+  If AllowSpdIncrease Then
+
+    IncreaseTankSpeed()
+
+  EndIf
+
+
+
+  If AllowGravIncrease Then
+
+    IncreaseGravity()
+
+  EndIf
+
+
+
+  GravH    = Grav/2          ' <---   Recalculate extra support gravity vars
+
+  GravTank = Grav/1000
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub IncreaseNumTanks
+
+
+
+  nTanks = nTanks + 1
+
+
+
+  If nTanks > nTanksMax Then
+
+    nTanks = nTanksMax
+
+  EndIf
+
+
+
+  j = nTanks
+
+  CreateNewTank()
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub IncreaseTankSpeed
+
+
+
+  TankSp = TankSp + TankSpInc
+
+
+
+  If TankSp > TankSpMax Then
+
+    TankSp = TankSpMax
+
+  EndIf
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub IncreaseGravity
+
+
+
+  Grav = Grav + GravInc
+
+
+
+  If Grav > GravMax Then
+
+    Grav = 0
+
+  EndIf
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub MouseMove
+
+
+
+  MouseX = GraphicsWindow.MouseX - InitX
+
+  MouseY = GraphicsWindow.MouseY - InitY
+
+
+
+  If MouseX < RotationX Then
+
+    MouseX = RotationX
+
+  EndIf
+
+
+
+  Angle    = Math.ArcTan( MouseY / MouseX )
+
+  Deg      = Math.GetDegrees(Angle)
+
+
+
+  AngleCos = Math.Cos(Angle)
+
+  AngleSin = Math.Sin(Angle)
+
+
+
+  AimX = Rad*AngleCos + InitX
+
+  AimY = Rad*AngleSin + InitY
+
+
+
+  Shapes.Rotate( Turret,Deg  )
+
+  Shapes.Move( Aim AimX,AimY )
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub MouseDown
+
+
+
+  i = i + 1   '   <---   Missile # i
+
+
+
+  If AllowAltSprites Then
+
+    Missile[i] = Shapes.AddImage  ( MissileImg  )
+
+  Else
+
+    GraphicsWindow.PenColor = GraphicsWindow.GetRandomColor()
+
+    Missile[i] = Shapes.AddEllipse( MWide,MHigh )  '  <---  Creates a missile shape number = i
+
+  EndIf
+
+
+
+  Shapes.Move  ( Missile[i]  0,-50 )               '  <---  Hide it ASAP!
+
+  Shapes.Rotate( Missile[i]  Deg   )
+
+
+
+  vCosInit[i]  = Math.GetDegrees(AngleCos) * MSpeed
+
+  vSinInit[i]  = Math.GetDegrees(AngleSin) * MSpeed
+
+
+
+  TimeStart[i] = Clock.ElapsedMilliseconds
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub CheckHit
+
+
+
+  For j = 1 To nTanks
+
+    If TX[j] <> "" Then  '   <---  If this tank still exists, checks whether a missile had hit it
+
+      MSizeX = MPosX + MWide
+
+      MSizeY = MPosY + MHigh
+
+      TSizeX = TX[j] + TWideH
+
+      TSizeY = TY[j] + THighH
+
+
+
+      If MSizeX > TX[j] And MPosX < TSizeX And MSizeY > TY[j] And MPosY < TSizeY Then
+
+        TX[j] = ""       '  <---  If so, flags this tank is no more
+
+        Destroyed = Destroyed + 1
+
+        Shapes.HideShape(Missile[p])
+
+        Shapes.HideShape(Tank[j])
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub MoveMissiles
+
+
+
+  For p = i-MTrack To i  '  <---   From oldest fired to the just fired MTrack missiles + 1
+
+    TimeNow = ( Clock.ElapsedMilliseconds - TimeStart[p] ) / 1000
+
+    MPosX = vCosInit[p]*TimeNow + InitX
+
+    If MPosX < MPosXOut Then '  <---   Skips whole huge slow process if this missile is already off-screen
+
+      MPosY = vSinInit[p]*TimeNow + GravH*TimeNow*TimeNow + InitY
+
+      Shapes.Move( Missile[p]  MPosX,MPosY )
+
+      CheckHit()  '  <---  For each missile movement, check it against each nTanks number of tanks!
+
+    EndIf
+
+  EndFor
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub MoveTanks
+
+
+
+  For j = 1 To nTanks
+
+    If TX[j] > 0 Then '  <---   If this tank has not yet reached the leftmost border's side, make it move to left
+
+
+
+      TX[j] = TX[j] - TankSp
+
+      TY[j] = TY[j] + GravTank
+
+      Shapes.Move( Tank[j]  TX[j],TY[j] )
+
+      If AllowTankFadeFX Then  '  <--- This FX makes game fairly slower!!!
+
+        Shapes.SetOpacity( Tank[j], -( TX[j]/xResSc - 50 ) + 75 )
+
+      EndIf
+
+
+
+    ElseIf TX[j] <> "" Then  '  <---   Otherwise, tank has escaped
+
+      TX[j]  = ""            '  <---   Thus, flags this tank is no more
+
+      Missed = Missed + 1
+
+      If Missed >= MissedMax Then  '  <---  Checks if player allowed too many tanks escaping
+
+        GameOver()
+
+      EndIf
+
+      Shapes.HideShape(Tank[j])
+
+
+
+    EndIf
+
+  EndFor
+
+
+
+  If TX = "" Then                      ' <--- If all TX[]'s values became empty
+
+    CheckDifficulty()                  ' <--- Check whether to increase each type of game difficulty
+
+    SpawnTanks()                       ' <--- Respawn all of the tanks again
+
+    HideAllMissiles()                  ' <--- Hide all missiles which are still visible
+
+  EndIf
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub HideAllMissiles
+
+
+
+  For p = i-MTrack To i  '  <---   From oldest fired to the just fired MTrack missiles + 1
+
+    Shapes.HideShape(Missile[p])
+
+    vCosInit[p] = MPosXOut '  <---   Make missile be off-screen to speed up Sub MoveMissiles
+
+  EndFor
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub GarbageCleanup
+
+
+
+  Elapsed = Elapsed + 1
+
+
+
+  While ii < i-MTrack   '  <--- ii is always behind most recent fired missile #i up to MTrack older ones
+
+    Shapes.Remove( Missile[ii] )
+
+    Missile   [ii] = ""
+
+    TimeStart [ii] = ""
+
+    vCosInit  [ii] = ""
+
+    vSinInit  [ii] = ""
+
+    ii = ii + 1
+
+  EndWhile
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub GameOver
+
+
+
+  Sound.PlayMusic("T180 O2P2P8 L8GGG L2E- P24P8 L8FFF L2D R")
+
+  GraphicsWindow.ShowMessage("You let " + Missed + " tanks escape!!!"  "Game Over")
+
+  Program.End()
+
+
+
+  For z = 0 To 0 Step 0
+
+    Program.Delay(1000)
+
+  EndFor
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+Sub Quit
+
+
+
+  Sound.PlayChimeAndWait()
+
+  Program.End()
+
+
+
+EndSub
+
+'_______________________________________________________________________________'
+
+

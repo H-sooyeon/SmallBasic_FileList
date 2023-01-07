@@ -1,0 +1,451 @@
+' Motion Recorder
+
+' Version 0.5
+
+' Copyright Â© 2010-2017 Nonki Takahshi.  The MIT License.
+
+'
+
+' History
+
+'  0.5 2017-01-06 Rewrote as Motion Recorder.
+
+'  0.4b 2014-06-16 Enabled Play button. (JVH699-0)
+
+'  0.3a 2014-06-15 Created from Piano. (JVH699)
+
+'  0.2 2012-12-29 Removed while loop. (ZWF718-2)
+
+'  0.1 2012-08-07 Title and background color added. (ZWF718-1)
+
+'  0.0 2010-07-21 Created for the 25 line challange in Small Basic Forum. (ZWF718)
+
+'
+
+GraphicsWindow.Title = "Motion Recorder 0.5"
+
+Init()
+
+DrawGrid()
+
+While "True"
+
+  If recording Then
+
+    rec = ""
+
+    nRec = 0
+
+    ems0 = 0
+
+    While recording
+
+      If bodiesChanged Then
+
+        count = KinectBodyList.Count
+
+        For index = 1 To count
+
+          isTracked = KinectBodyList.IsTracked(index)
+
+          If isTracked Then
+
+            id = KinectBodyList.GetTrackingId(index)
+
+            nRec = nRec + 1
+
+            ems = Clock.ElapsedMilliseconds
+
+            If ems0 = 0 Then
+
+              ems0 = ems
+
+            EndIf
+
+            rec[nRec]["ems"] = ems - ems0
+
+            For j = 1 To nJoint
+
+              pos = KinectBodyList.GetJointPosition(index, jointType[j])
+
+              If pos <> "" Then
+
+                pos["X"] = Math.Round(pos["X"] * 1000) / 1000
+
+                pos["Y"] = Math.Round(pos["Y"] * 1000) / 1000
+
+                pos["Z"] = Math.Round(pos["Z"] * 1000) / 1000
+
+                rec[nRec][jointType[j]] = pos
+
+                Map2D()
+
+                DrawJoint()
+
+              EndIf
+
+            EndFor
+
+          EndIf
+
+        EndFor
+
+      Else
+
+        Program.Delay(40)
+
+      EndIf
+
+    EndWhile
+
+    Shapes.SetOpacity(lamp, off)
+
+  EndIf
+
+  If playing Then
+
+    i = 1
+
+    ems0 = Clock.ElapsedMilliseconds
+
+    While playing And (i <= nRec)
+
+      If rec[i]["ems"] < (Clock.ElapsedMilliseconds - ems0) Then
+
+        For j = 1 To nJoint
+
+          pos = rec[i][jointType[j]]
+
+          If pos <> "" Then
+
+            Map2D()
+
+            DrawJoint()
+
+          EndIf
+
+        EndFor
+
+        i = i + 1
+
+      Else
+
+        Program.Delay(40)
+
+      EndIf
+
+    EndWhile
+
+    playing = "False"
+
+  EndIf
+
+EndWhile
+
+
+
+Sub DrawGrid
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "Cyan"
+
+  pos["Y"] = -1.35
+
+  zmin = 2.5
+
+  zmax = 3.5
+
+  xmin = -1
+
+  xmax = 1
+
+  For z = zmin To zmax Step 0.1
+
+    pos["Z"] = z
+
+    pos["X"] = xmin
+
+    Map2D()
+
+    x1 = Math.Round(p["x"])
+
+    y1 = Math.Round(p["y"])
+
+    pos["X"] = xmax
+
+    Map2D()
+
+    x2 = Math.Round(p["x"])
+
+    y2 = Math.Round(p["y"])
+
+    GraphicsWindow.DrawLine(x1, y1, x2, y2)
+
+  EndFor  
+
+  For x = xmin To xmax Step 0.1
+
+    pos["X"] = x
+
+    pos["Z"] = zmin
+
+    Map2D()
+
+    x1 = Math.Round(p["x"])
+
+    y1 = Math.Round(p["y"])
+
+    pos["Z"] = zmax
+
+    Map2D()
+
+    x2 = Math.Round(p["x"])
+
+    y2 = Math.Round(p["y"])
+
+    GraphicsWindow.DrawLine(x1, y1, x2, y2)
+
+  EndFor  
+
+EndSub
+
+
+
+Sub DrawJoint
+
+  ' param j - index for joint array
+
+  If joint[j] <> "" Then
+
+    Shapes.Remove(joint[j])
+
+  EndIf
+
+  If link[j] <> "" Then
+
+    Shapes.Remove(link[j])
+
+  EndIf
+
+  If Text.StartsWith(jointType[j], "Spine") Or jointType[j] = "Neck" Then
+
+    size = 8
+
+  ElseIf jointType[j] = "Head" Then
+
+    size = 12
+
+  Else
+
+    size = 4
+
+  EndIf
+
+  needLink = "False"
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "Black"
+
+  If 2 <= j And j <= 5 Then
+
+    needLink = "True" ' body
+
+    GraphicsWindow.PenWidth = 4
+
+  ElseIf 7 <= j And j <= 11 Then
+
+    needLink = "True" ' right arm
+
+  ElseIf 13 <= j And j <= 17 Then
+
+    needLink = "True" ' left arm
+
+  ElseIf 19 <= j And j <= 21 Then
+
+    needLink = "True" ' right leg
+
+  ElseIf 23 <= j And j <= 25 Then
+
+    needLink = "True" ' left leg
+
+  EndIf
+
+  If needLink Then
+
+    link[j] = Shapes.AddLine(pLast["x"], pLast["y"], p["x"], p["y"])
+
+  EndIf
+
+  If j <> 10 And j <> 16 Then
+
+    pLast = p
+
+  EndIf
+
+  GraphicsWindow.PenWidth = 0
+
+  joint[j] = Shapes.AddEllipse(size, size)
+
+  Shapes.Move(joint[j], p["x"] - size / 2, p["y"] - size / 2)
+
+EndSub
+
+
+
+Sub Init
+
+  gw = 600
+
+  gh = 600
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  playing = "False"
+
+  recording = "False"
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "Black"
+
+  lamp = Shapes.AddEllipse(12, 12)
+
+  Shapes.Move(lamp, 209, 553)
+
+  on = 0
+
+  off = 80
+
+  Shapes.SetOpacity(lamp, off)
+
+  GraphicsWindow.BrushColor = "Red"
+
+  GraphicsWindow.FillEllipse(210, 554, 10, 10)
+
+  btnRec = Controls.AddButton("REC", 230, 540)
+
+  Controls.SetSize(btnRec, 40, 40) 
+
+  GraphicsWindow.BrushColor = "Black"
+
+  btnPlay = Controls.AddButton("?–¶", 280, 540)
+
+  Controls.SetSize(btnPlay, 40, 40) 
+
+  btnStop = Controls.AddButton("?– ", 330, 540)
+
+  Controls.SetSize(btnStop, 40, 40)
+
+  tbox = Controls.AddMultiLineTextBox(10, 10)
+
+  Controls.SetSize(tbox, gw - 20, 80)
+
+  op = "1=GetJointPosition;2=GetJointScreenPosition;"
+
+  op = op + "3=GetHandState;4=GetJointOrientation;5=GetLean;"
+
+  hand = "1=right;2=left;"
+
+  jointType = "1=Head;2=Neck;3=SpineShoulder;4=SpineMid;5=SpineBase;"
+
+  jointType = jointType + "6=ShoulderRight;7=ElbowRight;8=WristRight;"
+
+  jointType = jointType + "9=HandRight;10=ThumbRight;11=HandTipRight;"
+
+  jointType = jointType + "12=ShoulderLeft;13=ElbowLeft;14=WristLeft;"
+
+  jointType = jointType + "15=HandLeft;16=ThumbLeft;17=HandTipLeft;"
+
+  jointType = jointType + "18=HipRight;19=KneeRight;20=AnkleRight;"
+
+  jointType = jointType + "21=FootRight;22=HipLeft;23=KneeLeft;"
+
+  jointType = jointType + "24=AnkleLeft;25=FootLeft;"
+
+  nJoint = Array.GetItemCount(jointType)
+
+  ru = 170
+
+  a60 = Math.GetRadians(60)
+
+  a120 = Math.GetRadians(120)
+
+  closeSensor = "False"
+
+  xo = -gw * 0.23
+
+  yo = gh * 0.7
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  KinectBodyList.BodiesChanged = OnBodiesChanged
+
+  KinectBodyList.StartTracking()
+
+EndSub
+
+
+
+Sub Map2D
+
+  ' param pos["X"], pos["Y"], pos["Z"]
+
+  ' return p["x"],  p["y"]
+
+  p["x"] = xo + ru * Math.Sin(a60) * pos["Z"] + ru * Math.Sin(-a60) * pos["X"]
+
+  p["y"] = yo - ru * Math.Cos(a60) * pos["Z"] - ru * pos["Y"] - ru * Math.Cos(-a60) * pos["X"]
+
+EndSub
+
+
+
+Sub OnBodiesChanged
+
+  bodiesChanged = "True"
+
+EndSub
+
+
+
+Sub OnButtonClicked
+
+  If Controls.LastClickedButton = btnPlay Then
+
+    recording = "False"
+
+    playing = "True"
+
+    rec = Controls.GetTextBoxText(tbox)
+
+    nRec = Array.GetItemCount(rec)
+
+  ElseIf Controls.LastClickedButton = btnRec Then
+
+    recording = "True"
+
+    playing = "False"
+
+    Shapes.SetOpacity(lamp, on)
+
+  ElseIf Controls.LastClickedButton = btnStop Then
+
+    recording = "False"
+
+    playing = "False"
+
+    Shapes.SetOpacity(lamp, off)
+
+    Controls.SetTextBoxText(tbox, rec)
+
+  EndIf
+
+EndSub
+
+    
+
+

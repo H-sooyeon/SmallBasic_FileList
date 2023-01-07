@@ -1,0 +1,387 @@
+' Graph Maze 0.1
+
+' Copyright © 2016 Nonki Takahashi.  The MIT License.
+
+' Reference
+
+' [1] Depth-first search: Wikipedia, https://en.wikipedia.org/wiki/Maze_generation_algorithm
+
+' [2] Depth-first search: Wikipedia, https://en.wikipedia.org/wiki/Depth-first_search
+
+gw = 598
+
+gh = 428
+
+fs = 10
+
+Not = "False=True;True=False;"
+
+GraphicsWindow.Title = "Graph Maze 0.1"
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.BackgroundColor = "White"
+
+GraphicsWindow.PenColor = "Black"
+
+GraphicsWindow.PenWidth = 2
+
+GraphicsWindow.FontSize = fs
+
+x0 = 24
+
+y0 = 24
+
+gapX = 34
+
+gapY = 34
+
+size = 24
+
+width = 17
+
+height = 12
+
+goal = width * height
+
+While "True"
+
+  InitializeNodes()
+
+  GenerateMaze()
+
+  SolveMaze()
+
+  Program.Delay(3000)
+
+  GraphicsWindow.Clear()
+
+EndWhile
+
+Sub GenerateMaze
+
+  ' Generate a maze with depth-first search
+
+  ' Start at a particular cell and call it the "exit."
+
+  exit = Math.GetRandomNumber(goal)
+
+  node = exit
+
+  visited = ""
+
+  Recur()
+
+  For node1 = 1 To goal
+
+    index = Array.GetAllIndices(edge[node1])
+
+    n = Array.GetItemCount(edge[node1])
+
+    For i = 1 To n
+
+      node2 = index[i]
+
+      If Not[edge[node1][node2]] Then
+
+        edge[node1][node2] = ""
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub FillNode
+
+  GraphicsWindow.BrushColor = "#33000000"
+
+  x = x0 + Math.Remainder(node - 1, width) * gapX
+
+  y = y0 + Math.Floor((node - 1) / width) * gapY
+
+  GraphicsWindow.FillEllipse(x - size / 2, y - size / 2, size, size)
+
+EndSub
+
+Sub InitializeNodes
+
+  ' param width, height
+
+  ' param gapX, gapY
+
+  ' param x0, y0
+
+  GraphicsWindow.PenColor = "Black"
+
+  edge = ""
+
+  For j = 1 To height
+
+    y = y0 + (j - 1) * gapY
+
+    For i = 1 To width
+
+      node1 = (j - 1) * width + i
+
+      x = x0 + (i - 1) * gapX
+
+      GraphicsWindow.BrushColor = "White"
+
+      GraphicsWindow.FillEllipse(x - size / 2, y - size / 2, size, size)
+
+      GraphicsWindow.DrawEllipse(x - size / 2, y - size / 2, size, size)
+
+      GraphicsWindow.BrushColor = "Black"
+
+      If node1 < 10 Then
+
+        dx = fs * 0.3
+
+      ElseIf node1 < 100 Then
+
+        dx = fs * 0.59
+
+      Else
+
+        dx = fs
+
+      EndIf
+
+      GraphicsWindow.DrawText(x - dx, y - fs * 0.6, node1)
+
+      If j < height Then
+
+        node2 = node1 + width ' south
+
+        edge[node1][node2] = "False"
+
+        edge[node2][node1] = "False"
+
+        obj[node1][node2] = Shapes.AddLine(0, size / 2, 0, gapY - size / 2)
+
+        Shapes.Move(obj[node1][node2], x, y)
+
+        Shapes.HideShape(obj[node1][node2])
+
+      EndIf
+
+      If i < width Then
+
+        node2 = node1 + 1 ' east
+
+        edge[node1][node2] = "False"
+
+        edge[node2][node1] = "False"
+
+        obj[node1][node2] = Shapes.AddLine(size / 2, 0, gapX - size / 2, 0)
+
+        Shapes.Move(obj[node1][node2], x, y)
+
+        Shapes.HideShape(obj[node1][node2])
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  node = 1
+
+  FillNode()
+
+  node = goal
+
+  FillNode()
+
+EndSub
+
+Sub SolveMaze
+
+  ' Solve a maze with depth-first search (DFS)
+
+  node = 1
+
+  discovered = ""
+
+  DFS()
+
+  node = goal
+
+  While node <> 1
+
+    Stack.PushValue("path", node)
+
+    index = Array.GetAllIndices(edge[node])
+
+    node = index[1]
+
+  EndWhile
+
+  Turtle.Speed = 9
+
+  x = x0 + Math.Remainder(node - 1, width) * gapX
+
+  y = y0 + Math.Floor((node - 1) / width) * gapY
+
+  Turtle.PenUp()
+
+  Turtle.Show()
+
+  Turtle.MoveTo(x, y)
+
+  Turtle.Speed = 10
+
+  Turtle.PenDown()
+
+  GraphicsWindow.PenColor = "#9900FFFF"
+
+  While 0 < Stack.GetCount("path")
+
+    node = Stack.PopValue("path")
+
+    x = x0 + Math.Remainder(node - 1, width) * gapX
+
+    y = y0 + Math.Floor((node - 1) / width) * gapY
+
+    Turtle.MoveTo(x, y)
+
+  EndWhile
+
+EndSub
+
+Sub DFS
+
+  discovered[node] = "True"
+
+  FillNode()
+
+  neighbor = edge[node]
+
+  n = Array.GetItemCount(neighbor)
+
+  index = Array.GetAllIndices(neighbor)
+
+  For i = 1 To n
+
+    node2 = index[i]
+
+    If neighbor[node2] Then
+
+      If discovered[node2] Then
+
+      Else
+
+        Stack.PushValue("local", node)
+
+        Stack.PushValue("local", neighbor)
+
+        Stack.PushValue("local", node2)
+
+        Stack.PushValue("local", index)
+
+        Stack.PushValue("local", n)
+
+        Stack.PushValue("local", i)
+
+        edge[node][node2] = ""
+
+        node1 = node
+
+        node = node2
+
+        DFS()
+
+        i = Stack.PopValue("local")
+
+        n = Stack.PopValue("local")
+
+        index = Stack.PopValue("local")
+
+        node2 = Stack.PopValue("local")
+
+        neighbor = Stack.PopValue("local")
+
+        node = Stack.PopValue("local")
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub Recur
+
+  ' param node - current cell
+
+  ' Mark the current cell as visited,
+
+  node1 = node
+
+  visited[node] = "True"
+
+  ' and get a list of its neighbors. For each neighbor, 
+
+  neighbor = edge[node]
+
+  n = Array.GetItemCount(neighbor)
+
+  While 0 < n
+
+    ' starting with a randomly selected neighbor:
+
+    index = Array.GetAllIndices(neighbor)
+
+    node = index[Math.GetRandomNumber(n)]
+
+    node2 = node
+
+    neighbor[node] = ""
+
+    n = n - 1
+
+    ' If that neighbor hasn't been visited, 
+
+    If visited[node] Then
+
+    Else
+
+      ' remove the wall between this cell and that neighbor,
+
+      edge[node1][node2] = "True"
+
+      edge[node2][node1] = "True"
+
+      Shapes.ShowShape(obj[Math.Min(node1, node2)][Math.Max(node1, node2)])
+
+      ' and then recur with that neighbor as the current cell.
+
+      Stack.PushValue("local", neighbor)
+
+      Stack.PushValue("local", node1)
+
+      Stack.PushValue("local", n)
+
+      Recur()
+
+      n = Stack.PopValue("local")
+
+      node1 = Stack.PopValue("local")
+
+      neighbor = Stack.PopValue("local")
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+      
+
+

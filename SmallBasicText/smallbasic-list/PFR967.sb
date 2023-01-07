@@ -1,0 +1,269 @@
+dim = 16
+
+Sensitivity = 10
+
+gw = 400
+
+Multiplier = gw / dim
+
+GraphicsWindow.Width = (gw * 2) + 10
+
+GraphicsWindow.Height = gw + 100
+
+GraphicsWindow.CanResize = "False"
+
+GraphicsWindow.BrushColor = "Black"
+
+Controls.ButtonClicked = Bc
+
+NewImage = Controls.AddButton("Reset image",20,gw + 40)
+
+Slider1 = LDControls.AddSlider(200,50,"H")
+
+Shapes.Move(Slider1,140,gw+40)
+
+LDControls.SliderValue(Slider1,Sensitivity*2)
+
+SensitivityText = Shapes.AddText("Sensitivity: " + Sensitivity)
+
+Shapes.Move(SensitivityText,200,gw+20)
+
+LDControls.SliderChanged = OnSliderChange
+
+
+
+GraphicsWindow.PenColor = "White"
+
+GraphicsWindow.BrushColor = "White"
+
+
+
+
+
+
+
+
+
+webCam = LDWebCam.Start(dim,dim)
+
+Shapes.Move(webCam,gw*2,gw*2)
+
+Program.Delay(1000) 'Get going
+
+
+
+
+
+
+
+
+
+
+
+For i = 1 to 8
+
+  channel[i] =  1
+
+EndFor
+
+channel[2] = 0.5
+
+Program.Delay(200)
+
+imgstart = LDWebCam.SnapshotToImageList()
+
+
+
+
+
+While 1 = 1
+
+  
+
+  GetImage()
+
+  Get_Location()
+
+  Draw_Lines()
+
+  Get_Output()
+
+Transmitlocation()
+
+  
+
+EndWhile
+
+
+
+
+
+
+
+'==============================================================================
+
+'==============================================================================
+
+'======================SUBROUTINES===========================================
+
+'==============================================================================
+
+'==============================================================================
+
+
+
+
+
+Sub GetImage
+
+  LDImage.Remove(imgDiff)
+
+  img = LDWebCam.SnapshotToImageList()
+
+  imgDiff = LDImage.DifferenceImages(img,imgstart)
+
+  GraphicsWindow.DrawResizedImage(imgDiff,0,0,gw - 10,gw - 10)
+
+  GraphicsWindow.DrawResizedImage(img,gw,0,gw - 10,gw - 10)
+
+EndSub
+
+
+
+Sub Get_Location
+
+  Xnum = 0
+
+  Ynum = 0
+
+  Xrawavr = 0
+
+  Yrawavr = 0
+
+  
+
+  For x = 1 To dim 
+
+    For y = 1 To dim 
+
+      Color = LDImage.GetPixel(imgDiff,x-1,y-1)
+
+      data[x][y] = LDColours.GetLightness(Color)
+
+      
+
+      If Math.Floor(100*data[x][y]) > Sensitivity Then  
+
+        Xnum = Xnum + 1
+
+        Xrawavr = Xrawavr + x
+
+        Ynum = Ynum + 1
+
+        Yrawavr = Yrawavr + y
+
+      EndIf
+
+      
+
+    EndFor
+
+  EndFor
+
+  XPosAvrg = LDMath.Truncate(Xrawavr / Xnum * 100) / 100
+
+  YPosAvrg = LDMath.Truncate(Yrawavr / Ynum * 100) / 100
+
+EndSub
+
+
+
+Sub Draw_Lines
+
+  
+
+  GraphicsWindow.DrawLine(Multiplier*XPosAvrg,0,Multiplier*XPosAvrg,GraphicsWindow.Height)
+
+  GraphicsWindow.DrawLine(0,Multiplier*YPosAvrg,GraphicsWindow.Width,Multiplier*YPosAvrg)
+
+EndSub
+
+
+
+Sub Get_Output
+
+
+
+status = "Channels"
+
+  For i = 1 To 8
+
+    If XPosAvrg <> 0 Then
+
+      channel[2] = 1 - LDMath.Truncate(((XPosAvrg*Multiplier)/(gw-10)) * 1000) / 1000
+
+      If channel[2] > 1 Then
+
+        channel[2] = 1
+
+      EndIF 
+
+      If channel[2] < 0 Then
+
+        channel[2] = 0
+
+      EndIF
+
+    EndIf
+
+    
+
+    If  XPosAvrg <> 0 Then
+
+      channel[5] = 0
+
+    Else
+
+      channel[5] = 1
+
+      EndIf
+
+    
+
+    status = status + " : " + channel[i]
+
+  EndFor
+
+  GraphicsWindow.Title = status  
+
+EndSub
+
+
+
+Sub Transmitlocation
+
+  WaveForm.PlayDX7(channel)
+
+EndSub
+
+
+
+Sub BC 
+
+  imgstart = LDWebCam.SnapshotToImageList()
+
+EndSub
+
+
+
+Sub OnSliderChange
+
+  Sensitivity = Math.Round(LDControls.SliderGetValue(Slider1) / 2)
+
+  Shapes.SetText(SensitivityText,"Sensitivity: " + Sensitivity)
+
+  EndSub
+
+  
+
+

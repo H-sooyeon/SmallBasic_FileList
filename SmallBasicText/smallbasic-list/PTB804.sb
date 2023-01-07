@@ -1,0 +1,4947 @@
+' Go Simulator 0.1
+
+' Copyright (c) 2009-2012 Nonki Takahashi. All right reserved.
+
+'
+
+' History:
+
+' 0.1 2012/11/01 Created by Goban 0.4 and Igo v0.95.
+
+'
+
+' Refrence:
+
+' [1]Ê∏ÖÊÑº‰∏?, Â±±‰∏ãÂÆ?, ‰Ωê„?ÖÊú®ÂÆ£‰ªã: ?é„Ç≥?É≥?Éî?É•?Éº?Çø?õ≤Á¢Å„ÅÆ?Ö•????, ?Ö±Á´ãÂá∫?âà, 2005.
+
+' [2]?ü≥?âÊòá, Ê¢ÖÊ≤¢?î±È¶ôÈáå, ÈªíÁ?ßÊ?£ÊÜ≤, ?Öµ?†≠‰øäÂ§´: ?éÊù±Â§ßÊïôÈ§äÂõ≤Á¢ÅË¨õÂ∫ß„??, ?Öâ?ñáÁ§æÊñ∞?õ∏, 2007.
+
+' [3]Anders Kierulf: File Format FF[1], http://www.red-bean.com/sgf/, 1990.
+
+' [4]Arno Hollosi: SGF File Format FF[4], http://www.red-bean.com/sgf/, 2006.
+
+' [5]Karl Baker: The Way to Go, American Go Association, 1986.
+
+' [6]ÁæéÊ∑ª‰∏?Ê®?: ?É¢?É≥?ÉÜ?Ç´?É´????ú®Ê§úÁ¥¢, ?ÉÖ?†±?á¶?êÜ, Vol.49 No.6, pp.686-693 (2008).
+
+' [7]Â±±‰∏ãÂÆ?: ?éÂº∑Ë±™Âõ≤Á¢Å„ÇΩ?Éï?Éà?åÂΩ©?ç„Å´?Å§?ÅÑ?Å¶??,http://www32.ocn.ne.jp/~yss/index_j.html, 2009. 
+
+' 
+
+' ---------------------------------
+
+' Main Program
+
+' ---------------------------------
+
+' work bInProgram - program running
+
+' work bInGame - in game
+
+' work iMove - number of moves
+
+' work bDebug - in debug
+
+'
+
+sProgram = "Go Simulator" ' program name
+
+sVersion = "0.1"    ' program version
+
+bDebug = "False"    ' in debug
+
+bSound = "True"     ' sound effect on
+
+bNewRo = "False"    ' number of ro (lines) changed
+
+bTime = "True"      ' display time
+
+bAuto = "True"      ' auto
+
+bDumpWL = "True"    ' dump win and lose
+
+InitProgram()       ' initialize program
+
+InitRoDepend()      ' initialize variables if number of ro (lines) changed
+
+InitControls()      ' initialize controls
+
+' while in program repeat in {}
+
+While bInProgram
+
+  ' {
+
+  ' new game mode
+
+  InitBoard()       ' initilaize board
+
+  ResetControls()   ' reset controls
+
+  ClearBoard()      ' clear board
+
+  ShowBoard()       ' show board
+
+  lRetry:
+
+  InputGameInfo()   ' input player name (or game record name)
+
+  If bTime Then
+
+    StartClock()
+
+  EndIf
+
+  ' play mode (or read game record)
+
+  If bOpen Then
+
+    Rec_ReadRecord()    ' read game record
+
+    If bError Then
+
+      Goto lRetry
+
+    EndIf
+
+    If bNewRo Then
+
+      Shapes.HideShape(oPrisoner[BLACK])
+
+      Shapes.HideShape(oPrisoner[WHITE])
+
+      GraphicsWindow.BrushColor = "Silver"
+
+      GraphicsWindow.FillRectangle(0, 0, GraphicsWindow.Width, GraphicsWindow.Height)
+
+      InitRoDepend()  ' initialize variables if number of ro (lines) changed
+
+      InitBoard()     ' initialize board
+
+      ResetControls() ' reset controls
+
+      ClearBoard()    ' clear board
+
+      ShowBoard()     ' show board
+
+      bNewRo = "False"
+
+    EndIf
+
+    Rec_ReplayGame()      ' replay game record
+
+  Else  ' play mode
+
+    Shapes.SetText(oPrisoner[BLACK], 0) ' clear prisoner
+
+    Shapes.SetText(oPrisoner[WHITE], 0) ' clear prisoner
+
+    Rec_InitRecord()      ' initialize game record
+
+    CreateRdmArray()  ' initialize random space array
+
+    Rec_SaveGameDate()    ' save game date
+
+    iMove = 0         ' clear number of moves
+
+    ' game - repeat in {} until game end
+
+    While bInGame
+
+      ' {
+
+      EachTurn()      ' black turn
+
+      If bInGame Then
+
+        EachTurn()    ' white turn
+
+      EndIf    
+
+      ' }
+
+    EndWhile
+
+  EndIf
+
+  If bTime Then
+
+    TextWindow.Write("iMove=" + iMove + " " + sScore + " ")
+
+    StopClock()
+
+    PrintTime()
+
+  EndIf
+
+  ' game end mode (replay or save game record)
+
+  bInGame = "True"
+
+  While bInGame
+
+    InputGameEndInfo()  ' input player name (or game record name)
+
+    If bReplay Then
+
+      Rec_ReplayGame()      ' replay game record
+
+    ElseIf bSave Then
+
+      Rec_WriteRecord()     ' save game record
+
+    EndIf
+
+  EndWhile
+
+  ' }
+
+EndWhile
+
+
+
+Sub EachTurn
+
+  ' each turn
+
+  ' param bReplay - "True" if replay
+
+  ' param iMove - number of moves
+
+  ' work iET
+
+  ' return iPass - pass times
+
+  ' return bResign - "True" if resign
+
+  ' return bInGame - "True" if in game
+
+  iMove = iMove + 1
+
+  iColor = Math.Remainder((iMove - 1), 2) + 1
+
+  ' show black turn lamp
+
+  iX = iBLX
+
+  iY = iBLY
+
+  If iColor = BLACK Then
+
+    bOn = "True"
+
+  Else
+
+    bOn = "False"
+
+  EndIf
+
+  DrawLamp()
+
+  ' show white turn lamp
+
+  iX = iWLX
+
+  iY = iWLY
+
+  If iColor = WHITE Then
+
+    bOn = "True"
+
+  Else  
+
+    bOn = "False"
+
+  EndIf  
+
+  DrawLamp()
+
+  ' next move
+
+  If bReplay Then
+
+    Replay()
+
+  Else
+
+    If sPlayer[iColor] = "Random" Or sPlayer[iColor] = "CPU" Or sPlayer[iColor] = "Easy" Then
+
+      bEyes = "True"
+
+    Else
+
+      bEyes = "False"
+
+    EndIf
+
+    If sPlayer[iColor] = "Random" Then
+
+      bEasy = "False"
+
+      Random()
+
+    ElseIf sPlayer[iColor] = "Easy" Then
+
+      bEasy = "True"
+
+      Random()
+
+    Else
+
+      Human()
+
+    EndIf
+
+  EndIf
+
+  ' game end if resigned
+
+  If bResign Then
+
+    bInGame = "False"
+
+    If (Math.Remainder(iMove, 2) = 1) Then
+
+      sScore = "W+R"  ' resigned by black
+
+      GraphicsWindow.Title = sProgram + " " + sVersion + " - White wins by a wide margin "  '" - ?ôΩ?ÅÆ‰∏??äº?Åó?ãù?Å°"
+
+    Else 
+
+      sScore = "B+R"  ' resigned by white
+
+      GraphicsWindow.Title = sProgram + " " + sVersion + " - Black wins by a wide margin "  '" - Èªí„ÅÆ‰∏??äº?Åó?ãù?Å°"
+
+    EndIf
+
+  Else
+
+    ' count up pass times if pass
+
+    If bPass Then
+
+      iPass = iPass + 1
+
+    Else
+
+      iPass = 0
+
+    EndIf
+
+    ' record game record
+
+    If bReplay = "False" Then
+
+      Rec_Record()
+
+    EndIf
+
+    ' show stone and process for capture
+
+    bShow = "True" ' show result
+
+    If bPass = "False" Then
+
+      DrawStone()
+
+      If bSound Then
+
+        Sound.PlayClickAndWait()
+
+      EndIf
+
+      ' remove stones if captured
+
+      RemoveStonesIfCaptured()
+
+      If iRemoved > 0 Then  
+
+        Shapes.SetText(oPrisoner[iColor], iPrisoner[iColor])
+
+      EndIf
+
+    EndIf
+
+    ' game end judgement
+
+    Judge()
+
+  EndIf
+
+EndSub
+
+'
+
+Sub RemoveStonesIfCaptured
+
+  ' Remove Stones If Captured
+
+  ' param iColor - stone color
+
+  ' param iX, iY - last move
+
+  ' param iBoard[][] - board
+
+  ' param iRo - number of ro (lines)
+
+  ' param iMove - number of moves
+
+  ' param bShow - to show used in RemoveUnit()
+
+  ' work iCTurn, iXTurn, iYTurn
+
+  ' work bEnclosed - enclosed
+
+  ' return iRemoved - number of removed stones
+
+  ' param/return iKo, iKX, iKY - ko
+
+  ' param/return iPrisoner[] - prisoner
+
+  iRemoved = 0
+
+  bEnclosed = "True"  ' enclosed from four direction
+
+  iCTurn = iColor
+
+  If iColor = BLACK Then
+
+    iColor = WHITE
+
+  ElseIf iColor = WHITE Then
+
+    iColor = BLACK
+
+  ElseIf iColor = SPACE Then
+
+    Goto lSkipRemove
+
+  EndIf
+
+  iXTurn = iX
+
+  iYTurn = iY
+
+  For iET = 1 To 4
+
+    iX = iXTurn + idX4[iET]
+
+    iY = iYTurn + idY4[iET]
+
+    If iBoard[iX][iY] = iCTurn Or iBoard[iX][iY] = SPACE Then
+
+      bEnclosed = "False"
+
+    EndIf
+
+    If iX >= 1 And iX <= iRo And iY >= 1 And iY <= iRo Then
+
+      InitLiberty()
+
+      CountLiberty()
+
+      If iLiberty = 0 Then
+
+        RemoveUnit()
+
+        iRemoved = iRemoved + iUnit
+
+        iRX = iX
+
+        iRY = iY
+
+        iPrisoner[iCTurn] = iPrisoner[iCTurn] + iUnit
+
+      EndIf
+
+    EndIf
+
+  EndFor  
+
+  iColor = iCTurn
+
+  iX = iXTurn
+
+  iY = iYTurn
+
+  If bEnclosed And iRemoved = 1 Then
+
+    iKo = iMove
+
+    iKX = iRX
+
+    iKY = iRY
+
+  EndIf
+
+  lSkipRemove:
+
+EndSub
+
+
+
+' ---------------------------------
+
+' Program
+
+' ---------------------------------
+
+Sub InitProgram
+
+  ' Initialize Program
+
+  ' return SPACE, BLACK, WHITE, OB - stone color
+
+  ' return UPPERA, UPPERZ, LOWERA, LOWERZ - character code
+
+  ' return CR, LF, TAB - character code
+
+  ' return iRo - number of ro (lines)
+
+  ' return iPass - pass times
+
+  ' return rCX, rCY - character width and height
+
+  ' return iMove - number of moves
+
+  ' return real rKomi - komi
+
+  ' return sBoardColor - board color
+
+  ' return sAlpha[] - alphabet for SGF game record
+
+  ' return sStone[] - name of stone
+
+  ' return sNew, sOpen, sPass - string: New, Open, Pass
+
+  ' return sReplay, sResign, sSave - string: Replay, Resign, Save
+
+  ' return bInProgram - program running
+
+  SPACE = 0 ' space
+
+  BLACK = 1 ' black
+
+  WHITE = 2 ' white
+
+  OB = 3    ' out of board
+
+  BANDW = 4 ' black and white used in CheckSpaceUnit() etc.
+
+  InitFigure() ' for debug
+
+  UPPERA = Text.GetCharacterCode("A")   ' character code of "A"
+
+  UPPERZ = Text.GetCharacterCode("Z")   ' character code of "Z"
+
+  LOWERA = Text.GetCharacterCode("a")   ' character code of "a"
+
+  LOWERZ = Text.GetCharacterCode("z")   ' character code of "z"
+
+  CR = 13 ' character code of carriage return
+
+  LF = 10 ' character code of line feed
+
+  TAB = 9 ' character code of tab
+
+  cCR = Text.GetCharacter(CR)
+
+  cLF = Text.GetCharacter(LF)
+
+  cTab = Text.GetCharacter(TAB)
+
+  sNL = cCR + cLF
+
+  iRo = 5
+
+  sPlayer[BLACK] = "Random"   ' default black player
+
+  If bAuto Then
+
+    sPlayer[WHITE] = "Random" ' default white player
+
+  Else
+
+    sPlayer[WHITE] = "Human"  ' default white player
+
+  EndIf
+
+  sSGF = "temp.sgf"           ' default SGF file name
+
+  rCX = 13.2
+
+  rCY = 22
+
+  If bDebug Then
+
+    Debug_DrawGrid()  ' display grid for graphics design
+
+  EndIf  
+
+  rKomi = 0.0
+
+  GraphicsWindow.FontSize = rCY
+
+  sBoardColor = GraphicsWindow.GetColorFromRGB(240, 200, 140)
+
+  iPass = 0
+
+  sStone[SPACE] = "SPACE"
+
+  sStone[BLACK] = "BLACK"
+
+  sStone[WHITE] = "WHITE"
+
+  sStone[OB] = "OB"
+
+  sGame = "Play"      '"ÂØæÂ?"
+
+  sOpen = "Open"      '"?ñã?Åè"
+
+  sIsNotExist = "not exists."               '"?ÅØÂ≠òÂú®?Åó?Åæ?Åõ?Çì??"
+
+  sIsNotGoFormat = "is not Go game record." '"?ÅØ?õ≤Á¢Å„ÅÆÊ£ãË≠ú?Åß?ÅØ?ÅÇ?Çä?Åæ?Åõ?Çì??"
+
+  sSave = "="         ' Windings save mark
+
+  sSave2 = "Save"     '"‰øùÂ≠ò"
+
+  sAlreadyExists = "already exists."        '"?ÅØ?Åô?Åß?Å´Â≠òÂú®?Åó?Åæ?Åô??"
+
+  sNew = "New"        '"?ñ∞Ë¶?"
+
+  sReplay = "4"       ' Windings replay mark
+
+  sPause = ";"        ' Windings pause mark
+
+  sPass = "Pass"      '"?Éë?Çπ"
+
+  sResign = "Resign"  '"?äï‰∫?"
+
+  GraphicsWindow.Title = sProgram + " " + sVersion
+
+  bInProgram = "True"
+
+  InitEffect()  ' Initialize effect area
+
+  Init4()       ' Initialize four direction
+
+EndSub
+
+
+
+Sub InitRoDepend
+
+  ' Initialize Variables If Ro (Number of Lines) Changed
+
+  ' work i
+
+  For i = 0 To iRo
+
+    sAlpha[i] = Text.GetSubText(" abcdefghijklmnopqrs", i + 1, 1)
+
+  EndFor
+
+  sAlpha[iRo + 1] = "" ' pass
+
+EndSub
+
+
+
+Sub InitControls
+
+  ' Initialize Controls
+
+  ' param real rCX, rCY - character width, character height
+
+  ' param idLX, idLY - distance between lines
+
+  ' param iSR - radius of stone
+
+  ' param iBX0, iBY0, iBX1, iBY1 - left, top, right and bottom of board
+
+  ' param sNew, sReplay, sPass, sResign - text for button
+
+  ' work iBHX, iBHY - position to display black prisoner
+
+  ' work iWHX, iWHX - position to display white prisoner
+
+  ' return oBlack - textbox for balck player name
+
+  ' return oWhite - textbox for white player name
+
+  ' return oPass, oResign - ÔºªPassÔº? ÔºªResignÔº? button 
+
+  ' return oSave, oReplay - ÔºªSaveÔº? ÔºªReplay] button
+
+  ' return oPrisoner[] - text for prisoner
+
+  ' return oSGF - textbox for SGF game record file name
+
+  ' return iBLX, iBLY - position of black turn lamp
+
+  ' return iWLX, iWLY - position of white turn lamp
+
+  GraphicsWindow.BackgroundColor = "Silver"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FillEllipse(iBX1 + rCX, iBY0 + idLY, iSR * 2, iSR * 2)
+
+  iBHX = iBX1 + rCX + iSR * 2.5
+
+  iBHY = iBY0 + rCY * 2.5
+
+  oPrisoner[BLACK] = Shapes.AddText(0)
+
+  Shapes.Move(oPrisoner[BLACK], iBHX, iBHY)
+
+  iBLX = iBHX + rCX * 5
+
+  iBLY = iBHY
+
+  bOn = "True"
+
+  iX = iBLX
+
+  iY = iBLY
+
+  DrawLamp()
+
+  oBlack = Controls.AddTextBox(iBX1 + rCX, iBY0)
+
+  Controls.SetTextBoxText(oBlack, sPlayer[BLACK])
+
+  oWhite = Controls.AddTextBox(iBX1 + rCX, iBY0 + idLY * iRo / 2)
+
+  Controls.SetTextBoxText(oWhite, sPlayer[WHITE])
+
+  oPass = Controls.AddButton(sPass, iBX1 + rCX, iBY0 + idLY * iRo)
+
+  oResign = Controls.AddButton(sResign, iBX1 + rCX * 6, iBY0 + idLY * iRo)
+
+  Controls.HideControl(oPass)
+
+  Controls.HideControl(oResign)
+
+  oSGF = Controls.AddTextBox(iBX1 + rCX, iBY0 + idLY * iRo)
+
+  Controls.SetTextBoxText(oSGF, sSGF)
+
+  oGame = Controls.AddButton(sGame, iBX1 + rCX, iBY0 + idLY * iRo + rCY * 2)
+
+  oOpen = Controls.AddButton(sOpen, iBX1 + rCX * 6, iBY0 + idLY * iRo + rCY * 2)
+
+  oNew = Controls.AddButton(sNew, iBX1 + rCX, iBY0 + idLY * iRo + rCY * 2)
+
+  Controls.HideControl(oNew)
+
+  GraphicsWindow.FontName = "Webdings"
+
+  oReplay = Controls.AddButton(sReplay, iBX1 + rCX * 6, iBY0 + idLY * iRo + rCY * 2)
+
+  GraphicsWindow.BrushColor = "Red"
+
+  oSave = Controls.AddButton(sSave, iBX1 + rCX * 9, iBY0 + idLY * iRo + rCY * 2)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontName = "Tahoma"
+
+  Controls.HideControl(oReplay)
+
+  Controls.HideControl(oSave)
+
+  iWHX = iBX1 + rCX + iSR * 2.5
+
+  iWHY = iBY0 + idLY * (iRo / 2) + rCY * 2.5
+
+  oPrisoner[WHITE] = Shapes.AddText(0)
+
+  Shapes.Move(oPrisoner[WHITE], iWHX, iWHY)
+
+  iWLX = iWHX + rCX * 5
+
+  iWLY = iWHY
+
+  bOn = "False"
+
+  iX = iWLX
+
+  iY = iWLY
+
+  DrawLamp()
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillEllipse(iBX1 + rCX, iBY0 + idLY * (iRo / 2 + 1), iSR * 2, iSR * 2)
+
+  Controls.TextTyped = OnTextTyped
+
+EndSub
+
+
+
+Sub ResetControls
+
+  ' Reste Contorls
+
+  ' param rCX, rCY - character width, height
+
+  ' param idLX, idLY - distance between lines
+
+  ' param iSR - radius of stone
+
+  ' param iBX0, iBY0, iBX1, iBY1 - left, top, right, bottom of board
+
+  ' param sNew, sReplay, sPass, sResign - text for button
+
+  ' work iBHX, iBHY - position for black prisoner
+
+  ' work iWHX, iWHX - position for white prisoner
+
+  ' return oBlack - textbox for black player name
+
+  ' return oWhite - textbox for white player name
+
+  ' return oPass, oResign - ÔºªPass] ÔºªResignÔº? button
+
+  ' return oSave, oReplay - ÔºªSaveÔº? ÔºªReplayÔº? button
+
+  ' return oPrisoner[] - text for prisoner
+
+  ' return oSGF - textbox for SGF game record file name
+
+  ' return iBLX, iBLY - position for black turn lamp
+
+  ' return iWLX, iWLY - position for white turn lamp
+
+  GraphicsWindow.BackgroundColor = "Silver"
+
+  idS = 3
+
+  GraphicsWindow.BrushColor = "#606060"
+
+  GraphicsWindow.FillEllipse(iBX1 + rCX * 2 + idS, iBY0 + idLY + idS, iSR * 2, iSR * 2)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FillEllipse(iBX1 + rCX * 2, iBY0 + idLY, iSR * 2, iSR * 2)
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  GraphicsWindow.FillEllipse(iBX1 + rCX * 2 + iSR / 2, iBY0 + idLY + iSR / 2, iSR / 2, iSR / 2)
+
+  iBHX = iBX1 + rCX * 2 + iSR * 2.5
+
+  iBHY = iBY0 + rCY * 2.5
+
+  Shapes.Move(oPrisoner[BLACK], iBHX, iBHY)
+
+  Shapes.ShowShape(oPrisoner[BLACK])
+
+  iBLX = iBHX + rCX * 6
+
+  iBLY = iBHY
+
+  bOn = "True"
+
+  iX = iBLX
+
+  iY = iBLY
+
+  DrawLamp()
+
+  Controls.Move(oBlack, iBX1 + rCX * 2, iBY0)
+
+  Controls.Move(oWhite, iBX1 + rCX * 2, iBY0 + idLY * iRo / 2)
+
+  Controls.ShowControl(oBlack)
+
+  Controls.ShowControl(oWhite)
+
+  Controls.Move(oPass, iBX1 + rCX * 2, iBY0 + idLY * iRo)
+
+  Controls.Move(oResign, iBX1 + rCX * 7, iBY0 + idLY * iRo)
+
+  Controls.HideControl(oPass)
+
+  Controls.HideControl(oResign)
+
+  Controls.Move(oSGF, iBX1 + rCX * 2, iBY0 + idLY * iRo)
+
+  Controls.ShowControl(oSGF)
+
+  Controls.Move(oGame, iBX1 + rCX * 2, iBY0 + idLY * iRo + rCY * 2)
+
+  Controls.Move(oOpen, iBX1 + rCX * 7, iBY0 + idLY * iRo + rCY * 2)
+
+  Controls.Move(oNew, iBX1 + rCX * 2, iBY0 + idLY * iRo + rCY * 2)
+
+  Controls.ShowControl(oGame)
+
+  Controls.ShowControl(oOpen)
+
+  Controls.HideControl(oNew)
+
+  Controls.Move(oReplay, iBX1 + rCX * 7, iBY0 + idLY * iRo + rCY * 2)
+
+  Controls.Move(oSave, iBX1 + rCX * 10, iBY0 + idLY * iRo + rCY * 2)
+
+  Controls.HideControl(oReplay)
+
+  Controls.HideControl(oSave)
+
+  iWHX = iBX1 + rCX * 2 + iSR * 2.5
+
+  iWHY = iBY0 + idLY * (iRo / 2) + rCY * 2.5
+
+  Shapes.Move(oPrisoner[WHITE], iWHX, iWHY)
+
+  Shapes.ShowShape(oPrisoner[WHITE])
+
+  iWLX = iWHX + rCX * 6
+
+  iWLY = iWHY
+
+  bOn = "False"
+
+  iX = iWLX
+
+  iY = iWLY
+
+  DrawLamp()
+
+  GraphicsWindow.BrushColor = "#606060"
+
+  GraphicsWindow.FillEllipse(iBX1 + rCX * 2 + idS, iBY0 + idLY * (iRo / 2 + 1) + idS, iSR * 2, iSR * 2)
+
+  rgb = GraphicsWindow.GetColorFromRGB(240, 240, 240)
+
+  GraphicsWindow.BrushColor = rgb
+
+  GraphicsWindow.FillEllipse(iBX1 + rCX * 2, iBY0 + idLY * (iRo / 2 + 1), iSR * 2, iSR * 2)
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillEllipse(iBX1 + rCX * 2 + iSR / 2, iBY0 + idLY * (iRo / 2 + 1) + iSR / 2, iSR / 2, iSR / 2)
+
+  Controls.TextTyped = OnTextTyped
+
+  Controls.HideControl(oSGF)
+
+  Controls.HideControl(oGame)
+
+  Controls.HideControl(oOpen)
+
+  Controls.ShowControl(oPass)
+
+  Controls.ShowControl(oResign)
+
+EndSub
+
+
+
+Sub DrawLamp
+
+  ' Draw Lamp
+
+  ' param iX, iY - position of lamp
+
+  ' param bOn - lamp on
+
+  sSavedColor = GraphicsWindow.BrushColor
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillRectangle(iX + 1, iY + 1, 21, 7)
+
+  GraphicsWindow.BrushColor = "DimGray"
+
+  GraphicsWindow.FillRectangle(iX - 2, iY - 2, 21, 7)
+
+  If bOn Then
+
+    GraphicsWindow.BrushColor = "Lime"
+
+  Else
+
+    GraphicsWindow.BrushColor = "Black"
+
+  EndIf
+
+  GraphicsWindow.FillRectangle(iX, iY, 20, 6)
+
+  GraphicsWindow.BrushColor = sSavedColor
+
+EndSub
+
+
+
+' ---------------------------------
+
+' AI (Artificial Intelligence)
+
+' ---------------------------------
+
+Sub CreateRdmArray
+
+  ' Create Random Space Array
+
+  ' param iBoard[][], iRo - board and number of ro (lines)
+
+  ' work iRdmSeq, iX, iY - random sequence, stone position
+
+  ' return iRdm[] - random space array
+
+  ClearRdmArray()
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If iBoard[iX][iY] = SPACE Then
+
+        iRdmSeq = (iY - 1) * iRo + iX
+
+        AddNumToRdmArray()
+
+      EndIf
+
+    EndFor    
+
+  EndFor
+
+EndSub
+
+
+
+Sub AddNumToRdmArray
+
+  ' Add Random Point to Random Space Array
+
+  ' param iRdmSeq
+
+  ' param/return iRdm[]
+
+  ' work iCnt, iRdmIdx
+
+  iRdmNum = Math.GetRandomNumber(iRdmSeq)
+
+  iRdmIdx = 0
+
+  For iCnt = 1 To iRdmNum - 1
+
+    iRdmIdx = iRdm[iRdmIdx]
+
+  EndFor
+
+  iRdm[iRdmSeq] = iRdm[iRdmIdx]
+
+  iRdm[iRdmIdx] = iRdmSeq
+
+EndSub
+
+
+
+Sub ClearRdmArray
+
+  ' Clear Random Space Array
+
+  ' return iRdm[]
+
+  iRdm[0] = 0
+
+EndSub
+
+
+
+Sub CheckPossiblePut
+
+  ' Check If Possible Move
+
+  ' param iColor - stone color to check
+
+  ' param iX, iY, iBoard[][] - check point and board
+
+  ' param iKo, iKX, iKY - number of moves and point for ko
+
+  ' param bEyes - save eyes (don't fill by self)
+
+  ' return bPossiblePut - possible move
+
+  bPossiblePut = "False"
+
+  If iBoard[iX][iY] <> SPACE Then
+
+    Goto lNotPossible ' stone already exists
+
+  EndIf
+
+  If iMove > 1 And iKo = iMove - 1 And iKX = iX And iKY = iY Then
+
+    Goto lNotPossible ' need ko-date
+
+  EndIf
+
+  CheckSuiside()      ' check suiside
+
+  If bSuiside Then
+
+    Goto lNotPossible
+
+  EndIf
+
+  If bEyes Then       ' save eyes
+
+    CheckMyEye()      ' check self eye
+
+    If bMyEye Then    ' don't move into eye (except point to fill ko)
+
+      If iMove = 1 Or iKo <> iMove - 2 Or iKX <> iX Or iKY <> iY Then
+
+        Goto lNotPossible
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  bPossiblePut = "True"
+
+  lNotPossible:
+
+EndSub
+
+
+
+Sub CheckSuiside
+
+  ' Check Suiside
+
+  ' param iColor - stone color
+
+  ' param iX, iY - check point
+
+  ' param iBoard[][] - board
+
+  ' param iRo, idX4[], idY4[] - number of ro (lines)?Åadjacent four points
+
+  ' work iXSave, iYSave, iCSave
+
+  ' return bSuiside - suiside move
+
+  bSuiside = "False"
+
+  iBoard[iX][iY] = iColor ' tempraly move
+
+  iXSave = iX
+
+  iYSave = iY
+
+  InitLiberty()
+
+  CountLiberty()          ' count liberty
+
+  If iLiberty = 0 Then    ' may be suiside
+
+    iCSave = iColor
+
+    iColor = 3 - iColor   ' opposite stone
+
+    For i = 1 To 4        ' if any stone adjacent can be captured
+
+      iX = iXSave + idX4[i]
+
+      iY = iYSave + idY4[i]
+
+      If iX >= 1 And iX <= iRo And iY >= 1 And iY <= iRo And iBoard[iX][iY] = iColor Then
+
+        InitLiberty()
+
+        CountLiberty()    ' count liberty
+
+        If iLiberty = 0 Then
+
+          Goto lNotSuiside
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+    bSuiside = "True"
+
+    lNotSuiside:
+
+    iColor = iCSave
+
+  EndIf
+
+  iX = iXSave
+
+  iY = iYSave
+
+  iBoard[iX][iY] = SPACE  ' restore
+
+EndSub
+
+
+
+Sub Random
+
+  ' Player | Next Move - Player Random (Computer)
+
+  ' param iRdm[] - random space array
+
+  ' param iMove - number of moves
+
+  ' work iLast, iXY - last move, next Move
+
+  ' return iX, iY - next move on board
+
+  ' return iColor - stone color
+
+  ' return iBoard[][] - board
+
+  ' return bPass - pass
+
+  ' return bResign - resign
+
+  bPass = "False"
+
+  bResign = "False"
+
+  iLast = 0
+
+  If iMove > iRo * iRo * 3 Then
+
+    Goto lPassRandom
+
+  EndIf
+
+  While iRdm[iLast] > 0
+
+    iXY = iRdm[iLast]
+
+    iX = Math.Remainder(iXY - 1, iRo) + 1
+
+    iY = Math.Floor((iXY - 1) / iRo) + 1
+
+    iColor = Math.Remainder((iMove - 1), 2) + 1
+
+    CheckPossiblePut()
+
+    If bPossiblePut Then
+
+      iBoard[iX][iY] = iColor
+
+      iRdm[iLast] = iRdm[iXY] ' remove a pointe from random space array
+
+      Goto lExitRandom
+
+    EndIf
+
+    iLast = iXY
+
+  EndWhile
+
+  lPassRandom:
+
+  bPass = "True"
+
+  lExitRandom:
+
+EndSub
+
+
+
+Sub RemoveRdmEntry
+
+  ' Remove a point iXY from Random Space Array (when last move iLast is unknown)
+
+  ' param iXY- index to remove entry
+
+  ' work iCP
+
+  iCPRRE = 0
+
+  While iRdm[iCPRRE] > 0
+
+    If iRdm[iCPRRE] = iXY Then
+
+      iRdm[iCPRRE] = iRdm[iXY] ' remove a point from random space array
+
+      Goto lRRE2Exit
+
+    EndIf
+
+    iCPRRE = iRdm[iCPRRE]
+
+  EndWhile  
+
+  lRRE2Exit:
+
+EndSub
+
+
+
+Sub Human
+
+  ' Player | Next Move by Human
+
+  ' param/return iRdm[] - random space array
+
+  ' param iMove - number of moves
+
+  ' work iMX, iMY - mouse coordinate
+
+  ' work bNotClicked - mouse / button not clicked
+
+  ' return iX, iY - next move on board
+
+  ' param/return iColor - stone color
+
+  ' return iBoard[][] - board
+
+  ' return bPass - pass
+
+  ' return bResign - resign
+
+  bPass = "False"
+
+  bResign = "False"
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  iColor = Math.Remainder((iMove - 1), 2) + 1
+
+  While "True"
+
+    bOutOfBoard = "True"
+
+    While bOutOfBoard
+
+      bNotClicked = "True"  
+
+      While bNotClicked
+
+        Program.Delay(200)
+
+      EndWhile
+
+      If bPass Or bResign Then
+
+        Goto lPossiblePut
+
+      EndIf  
+
+      GetPosition()
+
+    EndWhile
+
+    CheckPossiblePut()
+
+    If bPossiblePut Then
+
+      Goto lPossiblePut
+
+    EndIf
+
+    If bSound Then
+
+      Sound.PlayChimeAndWait()
+
+    EndIf
+
+  EndWhile  
+
+  lPossiblePut:
+
+  GraphicsWindow.MouseDown = DoNothing
+
+  Controls.ButtonClicked = DoNothing
+
+  If bPass = "False" And bResign = "False" Then
+
+    iBoard[iX][iY] = iColor
+
+    iXY = (iY - 1) * iRo + iX
+
+    RemoveRdmEntry()  ' remove a point from random space array
+
+  EndIf    
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  ' Mouse Down Event Handler
+
+  ' return iMX, iMY - mouse coordinate
+
+  ' return bNotClicked - mouse / button not clicked
+
+  iMX = GraphicsWindow.MouseX
+
+  iMY = GraphicsWindow.MouseY
+
+  bNotClicked = "False"  
+
+EndSub
+
+
+
+Sub OnButtonClicked
+
+  ' Button Clicked Event Handler
+
+  ' return bPass, bResign - pass, resign
+
+  ' return bNotClicked - mouse / button not clicked
+
+  If Controls.LastClickedButton = oResign Then
+
+    bResign = "True"
+
+    bNotClicked = "False"  
+
+  ElseIf Controls.LastClickedButton = oPass Then
+
+    bPass = "True"
+
+    bNotClicked = "False"  
+
+  EndIf  
+
+EndSub
+
+
+
+Sub GetPosition
+
+  ' Get Board Point from Mouse Clicked Coordinate
+
+  ' param iMX, iMY - mouse coodinate
+
+  ' return iX, iY - point on board
+
+  ' return bOutOfBoard - "True" if clicked out of board
+
+  iX = Math.Floor((iMX - iLX0 + idLX / 2) / idLX) + 1
+
+  iY = Math.Floor((iMY - iLY0 + idLY / 2) / idLY) + 1
+
+  If iX < 1 Or iX > iRo Or iY < 1 Or iY > iRo Then
+
+    bOutOfBoard = "True"
+
+  Else
+
+    bOutOfBoard = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub DoNothing
+
+  ' Do Nothing for Event
+
+EndSub
+
+
+
+Sub Replay
+
+  ' Player | Next Move by Game Record - Replay
+
+  ' param iMove - number of moves
+
+  ' param iRecord - game record
+
+  ' param iNumRec - number of moves in game record
+
+  ' return iX, iY - next move on board
+
+  ' return iColor - stone color
+
+  ' return iBoard[][] - board
+
+  ' return bPass - pass
+
+  ' return bResign - resign
+
+  If iMove > iNumRec Then
+
+    bResign = "True"
+
+  Else
+
+    iColor = iRecord[iMove]["turn"]
+
+    iX = iRecord[iMove]["x"]
+
+    iY = iRecord[iMove]["y"]
+
+    If iX = iRo + 1 Then
+
+      bPass = "True"
+
+    Else
+
+      iBoard[iX][iY] = iColor
+
+      bPass = "False"
+
+    EndIf
+
+  EndIf
+
+  Program.Delay(200)
+
+EndSub
+
+
+
+' ---------------------------------
+
+' Game
+
+' ---------------------------------
+
+Sub InputGameInfo
+
+  ' New Game Mode - Input Player Name (or Game Record Name)
+
+  ' return bShowMove - show number of moves
+
+  ' return bInGame - in game
+
+  ' return bReplay - replay mode
+
+  ' work bNotClicked
+
+  bShowMove = "False"
+
+  bInGame = "True"
+
+  bReplay = "False"
+
+  bResign = "False"
+
+  GraphicsWindow.Title = sProgram + " " + sVersion
+
+  Controls.ShowControl(oGame)
+
+  Controls.ShowControl(oOpen)
+
+  Controls.ShowControl(oSGF)
+
+  Controls.HideControl(oPass)
+
+  Controls.HideControl(oResign)
+
+  Controls.ButtonClicked = OnButtonClicked1
+
+  bNotClicked = "True"
+
+  If bAuto Then
+
+    bNotClicked = "False" ' for automatic game
+
+    bOpen = "False"       ' for automatic game
+
+  EndIf
+
+  While bNotClicked
+
+    Program.Delay(200)
+
+  EndWhile
+
+  Controls.HideControl(oGame)
+
+  Controls.HideControl(oOpen)
+
+  Controls.HideControl(oSGF)
+
+  Controls.ShowControl(oPass)
+
+  Controls.ShowControl(oResign)
+
+EndSub
+
+
+
+Sub OnTextTyped
+
+  ' TextBox Event Handler
+
+  ' return sPlayer[BLACK] - black player name
+
+  ' return sPlayer[WHITE] - white player name
+
+  ' return sSGF - SGF file name
+
+  If Controls.LastTypedTextBox = oBlack Then
+
+    sPlayer[BLACK] = Controls.GetTextBoxText(oBlack)
+
+  ElseIf Controls.LastTypedTextBox = oWhite Then
+
+    sPlayer[WHITE] = Controls.GetTextBoxText(oWhite)
+
+  ElseIf Controls.LastTypedTextBox = oSGF Then
+
+    sSGF = Controls.GetTextBoxText(oSGF)
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnButtonClicked1
+
+  ' Button Clicked Event for New Game Mode
+
+  ' return bNotClicked
+
+  ' return bOpen
+
+  If Controls.LastClickedButton = oGame Then
+
+    bNotClicked = "False"
+
+    bOpen = "False"
+
+  ElseIf Controls.LastClickedButton = oOpen Then
+
+    bNotClicked = "False"
+
+    bOpen = "True"  
+
+  EndIf
+
+EndSub
+
+
+
+Sub InputGameEndInfo
+
+  ' Game End Mode - Replay, Save or New Button Input
+
+  ' return bShowMove - show number of moves
+
+  ' return bInGame - in game
+
+  ' return bReplay - replay mode
+
+  ' return bSave - save
+
+  ' return bResign - resign
+
+  bShowMove = "True"
+
+  bInGame = "True"
+
+  bReplay = "False"
+
+  bSave = "False"
+
+  bResign = "False"
+
+  Controls.HideControl(oPass)
+
+  Controls.HideControl(oResign)
+
+  Controls.ShowControl(oNew)
+
+  Controls.ShowControl(oReplay)
+
+  Controls.ShowControl(oSave)
+
+  Controls.ShowControl(oSGF)
+
+  Controls.ButtonClicked = OnButtonClicked2
+
+  bNotClicked = "True"
+
+  If bAuto Then
+
+    bNotClicked = "False" ' for automatic game
+
+    bOpen = "False"       ' for automatic game
+
+    bSave = "False"       ' for automatic game
+
+    bReplay = "False"     ' for automatic game
+
+    bInGame = "False"     ' for automatic game
+
+  EndIf
+
+  While bNotClicked
+
+    Program.Delay(200)
+
+  EndWhile
+
+  Controls.HideControl(oNew)
+
+  Controls.HideControl(oReplay)
+
+  Controls.HideControl(oSave)
+
+  Controls.HideControl(oSGF)
+
+EndSub
+
+
+
+Sub OnButtonClicked2
+
+  ' Button Event Handler for Game End Mode
+
+  ' return bInGame - in game
+
+  ' return bReplay - replay mode
+
+  ' return bSave - Save
+
+  ' return bNotClicked
+
+  If Controls.LastClickedButton = oNew Then
+
+    bNotClicked = "False"
+
+    bSave = "False"
+
+    bReplay = "False"
+
+    bInGame = "False"
+
+  ElseIf Controls.LastClickedButton = oSave Then
+
+    bNotClicked = "False"
+
+    bSave = "True"
+
+    bReplay = "False"
+
+    bInGame = "True"
+
+  ElseIf Controls.LastClickedButton = oReplay Then
+
+    If iNumRec > 0 Then
+
+      bNotClicked = "False"
+
+      bReplay = "True"
+
+      bSave = "False"  
+
+      bInGame = "True"
+
+    Else
+
+      If bSound Then
+
+        Sound.PlayChimeAndWait()
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub RemoveUnit
+
+  ' Remove Unit
+
+  ' param iUnit, iUX[], iUY[] - unit
+
+  ' param bShow - show
+
+  ' work i, iX, iY - stone position
+
+  ' return iBoard[][] - board
+
+  For i = 1 To iUnit
+
+    iX = iUX[i]
+
+    iY = iUY[i]
+
+    iBoard[iX][iY] = SPACE
+
+    iRdmSeq = (iY - 1) * iRo + iX
+
+    AddNumToRdmArray()  ' add unit to random space array
+
+    If bShow Then
+
+      EraseStone()
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub InitLiberty
+
+  ' Initialization to prepare counting liberty
+
+  ' return iLiberty - number of liberty
+
+  ' return bNotChecked[][] - not checked point
+
+  ' return iUnit - number of stones in unit
+
+  ' work iXL, iYL
+
+  For iXL = 0 To iRo + 1
+
+    For iYL = 0 To iRo + 1
+
+      bNotChecked[iXL][iYL] = "True"
+
+    EndFor
+
+  EndFor
+
+  iLiberty = 0  
+
+  iUnit = 0
+
+EndSub
+
+
+
+Sub CountLiberty
+
+  ' Count Liberty in Unit
+
+  ' param iBoard[][] - board
+
+  ' param iColor - start point stone color in unit
+
+  ' param/return bNotChecked[][] - flag not checked point
+
+  ' param/return iX, iY - start point in unit
+
+  ' param/return iLiberty - number of liberty
+
+  ' work iXSave, iYSave, i
+
+  ' return iUX[], iUY[] - unit
+
+  ' return iUnit - number of stones in unit
+
+  Stack.PushValue("liberty", iXSave)
+
+  Stack.PushValue("liberty", iYSave)
+
+  Stack.PushValue("liberty", i)
+
+  iXSave = iX
+
+  iYSave = iY
+
+  If bNotChecked[iX][iY] Then
+
+    bNotChecked[iX][iY] = "False"
+
+    If iBoard[iX][iY] = SPACE Then
+
+      iLiberty = iLiberty + 1
+
+    ElseIf iBoard[iX][iY] = iColor Then
+
+      iUnit = iUnit + 1
+
+      iUX[iUnit] = iX
+
+      iUY[iUnit] = iY
+
+      For i = 1 To 4
+
+        iX = iXSave + idX4[i]
+
+        iY = iYSave + idY4[i]
+
+        CountLiberty()
+
+      EndFor
+
+    EndIf
+
+  EndIf
+
+  i = Stack.PopValue("liberty")  
+
+  iYSave = Stack.PopValue("liberty")
+
+  iXSave = Stack.PopValue("liberty")
+
+EndSub
+
+
+
+Sub CheckSpaceUnitInTerritory
+
+  ' Check Space Unit In Territory
+
+  ' param iTerritory[][] - territory
+
+  ' param/return bNotChecked[][] - not checked point flag
+
+  ' param/return iX, iY - start point in unit
+
+  ' param/return iColor - enclosing stones color
+
+  ' work iXSave, iYSave
+
+  ' return iUX[], iUY[] - unit
+
+  ' return iUnit - number of stones in unit
+
+  Stack.PushValue("space", iXSave)
+
+  Stack.PushValue("space", iYSave)
+
+  Stack.PushValue("space", i)
+
+  iXSave = iX
+
+  iYSave = iY
+
+  If bNotChecked[iX][iY] Then
+
+    bNotChecked[iX][iY] = "False"
+
+    If iTerritory[iX][iY] = SPACE Then
+
+      iUnit = iUnit + 1
+
+      iUX[iUnit] = iX
+
+      iUY[iUnit] = iY
+
+      For i = 1 To 4
+
+        iX = iXSave + idX4[i]
+
+        iY = iYSave + idY4[i]
+
+        CheckSpaceUnitInTerritory()
+
+      EndFor
+
+    ElseIf iTerritory[iX][iY] = BLACK Then
+
+      If iColor = SPACE Then
+
+        iColor = BLACK
+
+      ElseIf iColor = WHITE Then
+
+        iColor = BANDW
+
+      EndIf
+
+    ElseIf iTerritory[iX][iY] = WHITE Then
+
+      If iColor = SPACE Then
+
+        iColor = WHITE
+
+      ElseIf iColor = BLACK Then
+
+        iColor = BANDW
+
+      EndIf
+
+    EndIf
+
+  EndIf    
+
+  i = Stack.PopValue("space")
+
+  iYSave = Stack.PopValue("space")
+
+  iXSave = Stack.PopValue("space")
+
+EndSub
+
+
+
+Sub CheckSpaceUnit
+
+  ' Check Space Unit
+
+  ' param iBoard[][] - board
+
+  ' param/return bNotChecked[][] - not checked point flag
+
+  ' param/return iX, iY - start point in unit
+
+  ' param/return iColor - enclosing stones color (default = SPACE)
+
+  ' work iXSave, iYSave
+
+  ' return iUX[], iUY[] - unit
+
+  ' return iUnit - number of stones in unit
+
+  Stack.PushValue("space", iXSave)
+
+  Stack.PushValue("space", iYSave)
+
+  Stack.PushValue("space", i)
+
+  iXSave = iX
+
+  iYSave = iY
+
+  If bNotChecked[iX][iY] Then
+
+    bNotChecked[iX][iY] = "False"
+
+    If iBoard[iX][iY] = SPACE Then
+
+      iUnit = iUnit + 1
+
+      iUX[iUnit] = iX
+
+      iUY[iUnit] = iY
+
+      For i = 1 To 4
+
+        iX = iXSave + idX4[i]
+
+        iY = iYSave + idY4[i]
+
+        CheckSpaceUnit()
+
+      EndFor
+
+    ElseIf iBoard[iX][iY] = BLACK Then
+
+      If iColor = SPACE Then
+
+        iColor = BLACK
+
+      ElseIf iColor = WHITE Then
+
+        iColor = BANDW
+
+      EndIf
+
+    ElseIf iBoard[iX][iY] = WHITE Then
+
+      If iColor = SPACE Then
+
+        iColor = WHITE
+
+      ElseIf iColor = BLACK Then
+
+        iColor = BANDW
+
+      EndIf
+
+    EndIf
+
+  EndIf    
+
+  i = Stack.PopValue("space")
+
+  iYSave = Stack.PopValue("space")
+
+  iXSave = Stack.PopValue("space")
+
+EndSub
+
+
+
+Sub CheckMyEye
+
+  ' Check (Single) Self Eye
+
+  ' param iBoard[][] - board
+
+  ' param iX, iY - check point
+
+  ' param iColor - stone color
+
+  ' param idX4[], idY4[] - four direction
+
+  ' work iX1, iY1, iC1 - one of four adjacent stones
+
+  ' return bMyEye - is self eye
+
+  bMyEye = "False"
+
+  If iBoard[iX][iY] = SPACE Then
+
+    For i = 1 To 4
+
+      iX1 = iX + idX4[i]
+
+      iY1 = iY + idY4[i]
+
+      iC1 = iBoard[iX1][iY1]
+
+      If iC1 = 3 - iColor Or iC1 = SPACE Then ' opposite stone or space
+
+        Goto lNotMyEye
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  bMyEye = "True"
+
+  lNotMyEye:
+
+EndSub
+
+
+
+Sub CheckEye
+
+  ' Check (Single) Eye
+
+  ' param iBoard[][] - board
+
+  ' param iX, iY - check point
+
+  ' param idX4[], idY4[] - four direction
+
+  ' work iX1, iY1, iC1 - one of four adjacent stones
+
+  ' return iColor - stone color
+
+  If iBoard[iX][iY] = SPACE Then
+
+    iColor = SPACE
+
+    For i = 1 To 4
+
+      iX1 = iX + idX4[i]
+
+      iY1 = iY + idY4[i]
+
+      iC1 = iBoard[iX1][iY1]
+
+      If iC1 = SPACE Then
+
+        iColor = SPACE
+
+        Goto lCExit
+
+      ElseIf iC1 <> OB Then
+
+        If iColor = 3 - iC1 Then
+
+          iColor = SPACE
+
+          Goto lCExit
+
+        EndIf
+
+        iColor = iC1
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  lCExit:    
+
+EndSub
+
+
+
+Sub Judge
+
+  ' Game End Judgement
+
+  ' param iPass - pass times
+
+  ' param bShow - show result
+
+  ' return bInGame - in game
+
+  ' return sScore - score
+
+  bInGame = "True"
+
+  If iPass >= 2 Then
+
+    bInGame = "False"
+
+    CountScore()            ' judge win or lose
+
+    If bEasy = "False" Then
+
+      AdjustTerritory()     ' adjust territory
+
+    EndIf
+
+    iScore = iScore + rKomi ' calculate komi
+
+    If bShow Then
+
+      DrawTerritory()       ' draw territory
+
+      XDeadStones()         ' mark x on dead stones
+
+      If iScore > 0 Then
+
+        sScore = "B+" + iScore
+
+        GraphicsWindow.Title = sProgram + " " + sVersion + " - Black wins by " + iScore + " points"  '" - Èªí„ÅÆ" + iScore + "?õÆ?ãù?Å°"
+
+      ElseIf iScore < 0 Then
+
+        sScore = "W+" + (-iScore)
+
+        GraphicsWindow.Title = sProgram + " " + sVersion + " - White wins by " + iScore + " points"  '" - ?ôΩ?ÅÆ" + (-iScore) + "?õÆ?ãù?Å°"
+
+      Else  ' iScore = 0
+
+        sScore = "0"
+
+        GraphicsWindow.Title = sProgram + " " + sVersion + " - Draw (jigo)"  '" - Âºï„Åç?àÜ?ÅëÔºàÊåÅÁ¢ÅÔºâ"
+
+      EndIf
+
+    EndIf  
+
+  EndIf
+
+EndSub
+
+
+
+Sub CountScore
+
+  ' Judgement Win or Lose
+
+  ' param iPrisoner[] - number of prisoners
+
+  ' work iBlackScore, iWhiteScore - number of territory
+
+  ' return iTerritory[][] - territory
+
+  ' return iScore - returns black stones - white stones
+
+  EvalBoard()     ' recognize territory
+
+  iBlackScore = iBlackScore + iPrisoner[BLACK]  ' add prisoners
+
+  iWhiteScore = iWhiteScore + iPrisoner[WHITE]  ' add prisoners
+
+  iBlackScore = iBlackScore + iDead[WHITE]      ' add dead stones
+
+  iWhiteScore = iWhiteScore + iDead[BLACK]      ' add dead stones
+
+  iScore = iBlackScore - iWhiteScore
+
+EndSub
+
+
+
+Sub AdjustTerritory
+
+  ' Adjust Territory
+
+  ' param/return iTerritory[][] - territory
+
+  ' param/return iBlackScore, iWhiteScore - number of territory
+
+  ' return iScore - returns black stones - white stones
+
+  ' add space enclosed by one's stones to iTerritory[][]
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If iTerritory[iX][iY] = SPACE Then
+
+        InitLiberty()
+
+        iColor = SPACE
+
+        iXSave = iX
+
+        iYSave = iY
+
+        CheckSpaceUnitInTerritory()
+
+        iX = iXSave
+
+        iY = iYSave
+
+        If iColor = BLACK Then
+
+          For i = 1 To iUnit
+
+            iTerritory[iUX[i]][iUY[i]] = BLACK
+
+          EndFor
+
+          iBlackScore = iBlackScore + iUnit
+
+        ElseIf iColor = WHITE Then
+
+          For i = 1 To iUnit
+
+            iTerritory[iUX[i]][iUY[i]] = WHITE
+
+          EndFor
+
+          iWhiteScore = iWhiteScore + iUnit
+
+        EndIf    
+
+      EndIf    
+
+    EndFor  ' iX
+
+  EndFor  ' iY
+
+  iScore = iBlackScore - iWhiteScore
+
+EndSub
+
+
+
+Sub EvalBoard
+
+  ' Evaluate Board
+
+  ' work iX, iY, i - stone position, index of unit
+
+  ' work iBlackEffect[][] - black effective region
+
+  ' work iWhiteEffect[][] - white effective region
+
+  ' return iDead[], iDeadSum - number of dead stones
+
+  ' return iDX[], iDY[] - dead stones
+
+  ' return iTerritory[][] - territory
+
+  ' return  iBlackScore - black territory
+
+  ' return  iWhiteScore - white territory
+
+  iCSave = iColor
+
+  If bEasy Then
+
+    For iY = 1 To iRo
+
+      For iX = 1 To iRo
+
+        If iBoard[iX][iY] = SPACE Then
+
+          ' add single eye into score as territory
+
+          CheckEye()
+
+          If iColor = BLACK Then
+
+            iBlackScore = iBlackScore + 1
+
+          ElseIf iColor = WHITE Then
+
+            iWhiteScore = iWhiteScore + 1
+
+          EndIf
+
+        EndIf
+
+      EndFor  ' iX
+
+    EndFor  ' iY
+
+  Else
+
+    iDead[BLACK] = 0
+
+    iDead[WHITE] = 0
+
+    iDeadSum = 0
+
+    For iY = 1 To iRo
+
+      For iX = 1 To iRo
+
+        iBlackEffect[iX][iY] = 0
+
+        iWhiteEffect[iX][iY] = 0 
+
+        iTerritory[iX][iY] = SPACE
+
+      EndFor
+
+    EndFor
+
+    SaveBoard()
+
+    ' remove unit which iLiberty = 1 from iBoard[][], and momory as dead stones
+
+    For iY = 1 To iRo
+
+      For iX = 1 To iRo
+
+        If iBoard[iX][iY] <> SPACE Then
+
+          iColor = iBoard[iX][iY]
+
+          iXSave = iX
+
+          iYSave = iY
+
+          InitLiberty()
+
+          CountLiberty()
+
+          If iLiberty = 1 Then
+
+            For i = 1 To iUnit
+
+              iX = iUX[i]
+
+              iY = iUY[i]
+
+              iBoard[iX][iY] = SPACE
+
+              iDeadSum = iDeadSum + 1
+
+              iDX[iDeadSum] = iX
+
+              iDY[iDeadSum] = iY
+
+            EndFor
+
+            iDead[iColor] = iDead[iColor] + iUnit 
+
+          EndIf
+
+          iX = iXSave
+
+          iY = iYSave
+
+        EndIf
+
+      EndFor  ' iX
+
+    EndFor  ' iY
+
+    ' calculate stone effective region
+
+    For iY = 1 To iRo
+
+      For iX = 1 To iRo
+
+        If iBoard[iX][iY] = BLACK Then
+
+          SetBlackEffect()
+
+        ElseIf iBoard[iX][iY] = WHITE Then
+
+          SetWhiteEffect()
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    iBlackScore = 0 ' to count black territory
+
+    iWhiteScore = 0 ' to count white territory
+
+    For iY = 1 To iRo
+
+      For iX = 1 To iRo
+
+        If iBoard[iX][iY] = BLACK Then
+
+          iTerritory[iX][iY] = BLACK
+
+        ElseIf iBoard[iX][iY] = WHITE Then
+
+          iTerritory[iX][iY] = WHITE
+
+        Else
+
+          If iBlackEffect[iX][iY] > iWhiteEffect[iX][iY] Then
+
+            iTerritory[iX][iY] = BLACK
+
+            iBlackScore = iBlackScore + 1
+
+          ElseIf iBlackEffect[iX][iY] < iWhiteEffect[iX][iY] Then
+
+            iTerritory[iX][iY] = WHITE
+
+            iWhiteScore = iWhiteScore + 1
+
+          EndIf
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    RestoreBoard()
+
+  EndIf
+
+  iColor = iCSave
+
+EndSub
+
+
+
+Sub SaveBoard
+
+  ' Save Board for Evaluating Board
+
+  ' param iRo - number of ro (lines)
+
+  ' param iBoard[][] - board
+
+  ' work iX, iY - stone position
+
+  ' return iSaved[][] - saved board
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      iSaved[iX][iY] = iBoard[iX][iY]
+
+    EndFor
+
+  EndFor
+
+EndSub  
+
+
+
+Sub RestoreBoard
+
+  ' Restore Board for Evaluating Board
+
+  ' param iRo - number of ro (lines)
+
+  ' param iSaved[] - saved board
+
+  ' work iX, iY - stone position
+
+  ' return iBoard[] - (restored) board
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      iBoard[iX][iY] = iSaved[iX][iY]
+
+    EndFor
+
+  EndFor
+
+EndSub  
+
+
+
+Sub SaveGameProperties
+
+  ' Save Game Properties
+
+  ' param iKo, iKX, iKY - ko
+
+  ' param iPrisoner[] - prisoner
+
+  ' param iPass - pass times
+
+  ' return iSKo, iSKX, iSKY - saved ko
+
+  ' return iSPrisoner[] - saved prisoner
+
+  ' return iSPass - saved pass times
+
+  iSKo = iKo
+
+  iSKX = iKX
+
+  iSKY = iKY
+
+  iSPrisoner[BLACK] = iPrisoner[BLACK]
+
+  iSPrisoner[WHITE] = iPrisoner[WHITE]
+
+  iSPass = iPass
+
+EndSub
+
+
+
+Sub RestoreGameProperties
+
+  ' Restore Game Properties
+
+  ' param iSKo, iSKX, iSKY - saved ko
+
+  ' param iSPrisoner[] - saved prisoner
+
+  ' param iSPass - saved pass times
+
+  ' return iKo, iKX, iKY - ko
+
+  ' return iPrisoner[] - prisoner
+
+  ' return iPass - pass times
+
+  iKo = iSKo
+
+  iKX = iSKX
+
+  iKY = iSKY
+
+  iPrisoner[BLACK] = iSPrisoner[BLACK]
+
+  iPrisoner[WHITE] = iSPrisoner[WHITE]
+
+  iPass = iSPass
+
+EndSub
+
+
+
+Sub Init4
+
+  ' Initialize delta of four direction
+
+  ' return idX4[] - four delta of coordinate
+
+  idX4[1] =  1  ' right
+
+  idY4[1] =  0
+
+  idX4[2] =  0  ' up
+
+  idY4[2] = -1
+
+  idX4[3] = -1  ' left
+
+  idY4[3] =  0
+
+  idX4[4] =  0  ' down
+
+  idY4[4] =  1
+
+EndSub
+
+
+
+Sub InitEffect
+
+  ' Initialize Coodinate Delta for Effective Region (Distance 2)
+
+  ' return idXE[], idYE[] - coodinate delta for effective region
+
+  idXE[1] =  0  ' top most
+
+  idYE[1] = -2
+
+  idXE[2] = -1  ' left top
+
+  idYE[2] = -1
+
+  idXE[3] =  0  ' top
+
+  idYE[3] = -1
+
+  idXE[4] =  1  ' right top
+
+  idYE[4] = -1
+
+  idXE[5] = -2  ' left most
+
+  idYE[5] =  0
+
+  idXE[6] = -1  ' left
+
+  idYE[6] =  0
+
+  idXE[7] =  0  ' center
+
+  idYE[7] =  0
+
+  idXE[8] =  1  ' right
+
+  idYE[8] =  0
+
+  idXE[9] =  2  ' right most
+
+  idYE[9] =  0
+
+  idXE[10] = -1 ' left bottom
+
+  idYE[10] =  1 
+
+  idXE[11] =  0 ' bottom
+
+  idYE[11] =  1
+
+  idXE[12] =  1 ' right bottom
+
+  idYE[12] =  1
+
+  idXE[13] =  0 ' bottom most
+
+  idYE[13] =  2
+
+EndSub
+
+
+
+Sub SetBlackEffect
+
+  For i = 1 To 13
+
+    iXE = iX + idXE[i]
+
+    iYE = iY + idYE[i]
+
+    If iXE > 0 And iXE <= iRo And iYE > 0 And iYE <= iRo Then
+
+      iBlackEffect[iXE][iYE] = iBlackEffect[iXE][iYE] + 1
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+'
+
+Sub SetWhiteEffect
+
+  For i = 1 To 13
+
+    iXE = iX + idXE[i]
+
+    iYE = iY + idYE[i]
+
+    If iXE > 0 And iXE <= iRo And iYE > 0 And iYE <= iRo Then
+
+      iWhiteEffect[iXE][iYE] = iWhiteEffect[iXE][iYE] + 1
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub InitBoard
+
+  ' Initialize Board
+
+  ' param iRo - number of ro (lines)
+
+  ' param rCX - character width
+
+  ' param rCY - character height
+
+  ' work i, iX, iY - stone position
+
+  ' return iBoard[][] - board
+
+  ' return idLX, idLY - duration between lines
+
+  ' return iSR - radius of stone
+
+  ' return iLX0, iLY0, iLX1, iLY1 - left, top, right, bottom of lines
+
+  ' return iBX0, iBY0, iBX1, iBY1 - left, top, right, bottom of board
+
+  ' return iPrisoner[] - prisoner
+
+  For i = 0 To iRo + 1
+
+    iBoard[0][i] = OB
+
+    iBoard[iRo + 1][i] = OB
+
+    iBoard[i][0] = OB
+
+    iBoard[i][iRo + 1] = OB
+
+  EndFor
+
+  idLX = rCX * 3      ' duration between lines
+
+  iSR = idLX / 2 - 2  ' radius of stone
+
+  idLY = rCY * 2      ' duration between lines
+
+  iLX0 = rCX * 6.5    ' left end of line
+
+  iLY0 = rCY * 4.5    ' top end of line
+
+  iLX1 = iLX0 + idLX * (iRo - 1) ' right end of line
+
+  iLY1 = iLY0 + idLY * (iRo - 1) ' bottom end of line
+
+  If iRo > 9 Then
+
+    iBX0 = iLX0 - idLX * 2    ' left of board
+
+  Else
+
+    iBX0 = iLX0 - idLX * 1.5  ' left of board
+
+  EndIf
+
+  iBY0 = iLY0 - idLY * 1.5    ' top of board
+
+  iBX1 = iLX1 + idLX          ' right of board
+
+  iBY1 = iLY1 + idLY          ' bottom of board
+
+  idS = 3                     ' offset of shadow
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If oShadow[iX][iY] <> "" Then
+
+        Shapes.Remove(oShadow[iX][iY])
+
+      EndIf
+
+      If oStone[iX][iY] <> "" Then
+
+        Shapes.Remove(oStone[iX][iY])
+
+      EndIf
+
+      If oHiLite[iX][iY] <> "" Then
+
+        Shapes.Remove(oHiLite[iX][iY])
+
+      EndIf
+
+      If oMove[iX][iY] <> "" Then
+
+        Shapes.Remove(oMove[iX][iY])
+
+      EndIf
+
+      If oX1[iX][iY] <> "" Then
+
+        Shapes.Remove(oX1[iX][iY])
+
+      EndIf
+
+      If oX2[iX][iY] <> "" Then
+
+        Shapes.Remove(oX2[iX][iY])
+
+      EndIf
+
+      If oRect[iX][iY] <> "" Then
+
+        Shapes.Remove(oRect[iX][iY])
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  oShadow = ""            ' shadow shape
+
+  oStone = ""             ' stone shape
+
+  oHiLite = ""            ' stone high light shape
+
+  oMove = ""              ' stone shape
+
+  oX1 = ""                ' one of line in X for dead stone
+
+  oX2 = ""                ' one of line in X for dead stone
+
+  oRect = ""              ' territory rectangle
+
+  GraphicsWindow.PenWidth = 0
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      bd[x][y] = SPACE
+
+      iSX = iLX0 + (iX - 1) * idLX - iSR
+
+      iSY = iLY0 + (iY - 1) * idLY - iSR
+
+      GraphicsWindow.BrushColor = "Black" ' shadow color
+
+      oShadow[iX][iY] = Shapes.AddEllipse(2 * iSR, 2 * iSR)
+
+      Shapes.Move(oShadow[iX][iY], iSX + idS, iSY + idS)
+
+      Shapes.SetOpacity(oShadow[iX][iY], 50)
+
+      Shapes.HideShape(oShadow[iX][iY])
+
+    EndFor
+
+  EndFor
+
+  GraphicsWindow.PenWidth = 2
+
+EndSub
+
+
+
+Sub ClearBoard
+
+  ' Clear Board
+
+  ' param iRo - number of ro (lines)
+
+  ' work i, iX, iY - stone position
+
+  ' return iBoard[][] - board
+
+  ' return iPrisoner[] - prisoner
+
+  For iX = 1 To iRo
+
+    For iY = 1 To iRo
+
+      iBoard[iX][iY] = SPACE
+
+    EndFor
+
+  EndFor
+
+  iPrisoner[BLACK] = 0
+
+  iPrisoner[WHITE] = 0
+
+  Controls.SetTextBoxText(oPrisoner[BLACK], 0)
+
+  Controls.SetTextBoxText(oPrisoner[WHITE], 0)
+
+EndSub
+
+
+
+' ---------------------------------
+
+' Graphics
+
+' ---------------------------------
+
+Sub ShowBoard
+
+  ' Show Board
+
+  ' param idLX, idLY - duration between lines
+
+  ' param iSR - radius of stone
+
+  ' param iLX0, iLY0, iLX1, iLY1 - left, top, right, bottom of lines
+
+  ' param iBX0, iBY0, iBX1, iBY1 - left, top, right, bottom of board
+
+  ' work iX, iY - stone position
+
+  
+
+  ' fill board color
+
+  GraphicsWindow.BrushColor = sBoardColor
+
+  GraphicsWindow.FillRectangle(iBX0, iBY0, iBX1 - iBX0, iBY1 - iBY0)
+
+  
+
+  ' draw board shadow
+
+  iPW = GraphicsWindow.PenWidth
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.PenWidth = 0
+
+  idS = 10
+
+  If oSh1 <> "" Then
+
+    Shapes.Remove(oSh1)
+
+  EndIf
+
+  oSh1 = Shapes.AddTriangle(0, 0, 0, idS, idS, idS)
+
+  Shapes.SetOpacity(oSh1, 50)
+
+  Shapes.Move(oSh1, iBX1, iBY0)
+
+  If oSh2 <> "" Then
+
+    Shapes.Remove(oSh2)
+
+  EndIf
+
+  oSh2 = Shapes.AddTriangle(0, 0, idS, 0, idS, idS)
+
+  Shapes.SetOpacity(oSh2, 50)
+
+  Shapes.Move(oSh2, iBX0, iBY1)
+
+  If oSh3 <> "" Then
+
+    Shapes.Remove(oSh3)
+
+  EndIf
+
+  oSh3 = Shapes.AddRectangle(idS, iBY1 - iBY0)
+
+  Shapes.SetOpacity(oSh3, 50)
+
+  Shapes.Move(oSh3, iBX1, iBY0 + idS)
+
+  If oSh4 <> "" Then
+
+    Shapes.Remove(oSh4)
+
+  EndIf
+
+  oSh4 = Shapes.AddRectangle(iBX1 - iBX0 - idS, idS)
+
+  Shapes.SetOpacity(oSh4, 50)
+
+  Shapes.Move(oSh4, iBX0 + idS, iBY1)
+
+  
+
+  ' draw wood grain
+
+  rgb = GraphicsWindow.GetColorFromRGB(192, 153, 86) 
+
+  GraphicsWindow.PenColor = rgb   ' wood grain color
+
+  GraphicsWindow.PenWidth = 1
+
+  xc = iBX0 + Math.Floor((iBX1 - iBX0) * 5 / 7)  ' center of wood grain
+
+  yc = iBY0 + Math.Floor((iBY1 - iBY0) * 5 / 4)
+
+  For rw = 5 To 460 Step 5
+
+    xo = xc + rw
+
+    yo = yc
+
+    For theta = 0 To 2 * Math.Pi / 19 * 19 Step 2 * Math.Pi / 19
+
+      xw = xc + Math.Floor(rw * Math.Cos(theta))
+
+      yw = yc + 13 * Math.Floor(rw * Math.Sin(theta))
+
+      xw0 = xo
+
+      xw1 = xw
+
+      yw0 = yo
+
+      yw1 = yw
+
+      If (yw1 < iBY0) And (iBY0 < yw0) Then     ' clipping on top edge
+
+        xw1 = xw0 + Math.Floor((xw1 - xw0) * (iBY0 - yw0) / (yw1 - yw0))
+
+        yw1 = iBY0
+
+      ElseIf (yw0 < iBY0) And (iBY0 < yw1) Then ' clipping on top edge
+
+        xw0 = xw1 + Math.Floor((xw0 - xw1) * (iBY0 - yw1) / (yw0 - yw1))
+
+        yw0 = iBY0
+
+      EndIf    
+
+      If (yw1 < iBY1) And (iBY1 < yw0) Then     ' clipping on bottom edge
+
+        xw0 = xw1 + Math.Floor((xw0 - xw1) * (iBY1 - yw1) / (yw0 - yw1))
+
+        yw0 = iBY1
+
+      ElseIf (yw0 < iBY1) And (iBY1 < yw1) Then ' clipping on bottom edge
+
+        xw1 = xw0 + Math.Floor((xw1 - xw0) * (iBY1 - yw0) / (yw1 - yw0))
+
+        yw1 = iBY1
+
+      EndIf
+
+      If (xw1 < iBX0) And (iBX0 < xw0) Then     ' clipping on left edge
+
+        xw1 = iBX0
+
+        yw1 = yw0 + Math.Floor((yw1 - yw0) * (iBX0 - xw0) / (xw1 - xw0))
+
+      ElseIf (xw0 < iBX0) And (iBX0 < xw1) Then ' clipping on left edge
+
+        xw0 = iBX0
+
+        yw0 = yw1 + Math.Floor((yw0 - yw1) * (iBX0 - xw1) / (xw0 - xw1))
+
+      EndIf
+
+      If (xw1 < iBX1) And (iBX1 < xw0) Then     ' clipping on rigt edge
+
+        xw0 = iBX1
+
+        yw0 = yw1 + Math.Floor((yw0 - yw1) * (iBX1 - xw1) / (xw0 - xw1))
+
+      ElseIf (xw0 < iBX1) And (iBX1 < xw1) Then ' clipping on right edge
+
+        xw1 = iBX1
+
+        yw1 = yw0 + Math.Floor((yw1 - yw0) * (iBX1 - xw0) / (xw1 - xw0))
+
+      EndIf
+
+      If (iBX0 <= xw0) And (xw0 <= iBX1) And (iBX0 <= xw1) And (xw1 <= iBX1) And (iBY0 <= yw0) And (yw0 <= iBY1) And (iBY0 <= yw1) And (yw1 <= iBY1) Then
+
+        GraphicsWindow.DrawLine(xw0, yw0, xw1, yw1)
+
+      EndIf
+
+      xo = xw
+
+      yo = yw
+
+    EndFor
+
+  EndFor
+
+  
+
+  ' draw frame
+
+  GraphicsWindow.PenWidth = 4
+
+  GraphicsWindow.DrawRectangle(iLX0, iLY0, idLX * (iRo - 1), idLY * (iRo - 1))
+
+  GraphicsWindow.PenWidth = iPW
+
+  
+
+  ' draw lines
+
+  GraphicsWindow.PenColor = "Black"
+
+  For iX = iLX0 To iLX1 Step idLX
+
+    GraphicsWindow.DrawLine(iX, iLY0, iX, iLY1)
+
+  EndFor
+
+  For iY = iLY0 To iLY1 Step idLY
+
+    GraphicsWindow.DrawLine(iLX0, iY, iLX1, iY)
+
+  EndFor
+
+  
+
+  ' draw numbers
+
+  GraphicsWindow.BrushColor = "Black"
+
+  For iX = 1 To iRo
+
+    If iX < 10 Then
+
+      GraphicsWindow.DrawText(iLX0 + (iX - 1.2) * idLX, iLY0 - idLY - 3, iX)
+
+    Else
+
+      GraphicsWindow.DrawText(iLX0 + (iX - 1.2) * idLX - rCX / 2, iLY0 - idLY - 3, iX)
+
+    EndIf  
+
+  EndFor  
+
+  For iY = 1 To iRo
+
+    If iY < 10 Then
+
+      GraphicsWindow.DrawText(iLX0 - idLX, iLY0 + (iY - 1.25) * idLY - 3, iY)
+
+    Else
+
+      GraphicsWindow.DrawText(iLX0 - idLX - rCX, iLY0 + (iY - 1.25) * idLY - 3, iY)
+
+    EndIf  
+
+  EndFor  
+
+EndSub
+
+
+
+Sub DrawStone
+
+  ' Draw Stone
+
+  ' param iX, iY - stone position
+
+  ' param iColor - stone color
+
+  ' param bShowMove - show number of moves
+
+  ' param iMove - number of moves
+
+  ' param iLX0 - x coordinate of left most vertical line
+
+  ' param iLY0 - y coordinate of top most horizontal line
+
+  ' param idLX - distance between vertical lines
+
+  ' param idLY - distance between horizontal lines
+
+  ' param iSR - radius of stone
+
+  ' work iNX, iNY - coordinate for number of moves
+
+  ' work iND - digit count for number of moves
+
+  If iColor = WHITE Then
+
+    iStoneColor = GraphicsWindow.GetColorFromRGB(240, 240, 240)
+
+    iHiColor = "White"
+
+    iNumColor = "Black"
+
+  ElseIf iColor = BLACK Then
+
+    iStoneColor = "Black"
+
+    iHiColor = "Gray"
+
+    iNumColor = "White"
+
+  EndIf
+
+  If iColor = BLACK Or iColor = WHITE Then
+
+    Shapes.ShowShape(oShadow[iX][iY])
+
+    GraphicsWindow.PenWidth = 0
+
+    GraphicsWindow.BrushColor = iStoneColor
+
+    oStone[iX][iY] = Shapes.AddEllipse(2 * iSR, 2 * iSR)
+
+    iSX = iLX0 + (iX - 1) * idLX - iSR
+
+    iSY = iLY0 + (iY - 1) * idLY - iSR
+
+    Shapes.Move(oStone[iX][iY], iSX, iSY)
+
+    GraphicsWindow.BrushColor = iHiColor
+
+    oHilite[iX][iY] = Shapes.AddEllipse(iSR / 2, iSR / 2)
+
+    Shapes.Move(oHilite[iX][iY], iSX + iSR / 2, iSY + iSR / 2)
+
+    GraphicsWindow.PenWidth = 2
+
+    If bShowMove Then
+
+      rNY = rCY * 0.8
+
+      GraphicsWindow.FontSize = rNY
+
+      If iMove > 99 Then
+
+        iND = 3
+
+      ElseIf iMove > 9 Then
+
+        iND = 2
+
+      Else
+
+        iND = 1
+
+      EndIf
+
+      iNX = iLX0 + (iX - 1) * idLX - rNY * iND / 3
+
+      iNY = iLY0 + (iY - 1) * idLY - rNY / 2 - 2
+
+      GraphicsWindow.BrushColor = iNumColor
+
+      oMove[iX][iY] = Shapes.AddText(iMove)
+
+      Shapes.Move(oMove, iNX, iNY)
+
+      GraphicsWindow.FontSize = rCY
+
+    EndIf
+
+  EndIf  
+
+EndSub
+
+
+
+Sub EraseStone
+
+  ' Erase Stone
+
+  ' param iX, iY - stone position
+
+  Shapes.HideShape(oShadow[iX][iY])
+
+  If oStone[iX][iY] <> "" Then
+
+    Shapes.Remove(oStone[iX][iY])
+
+    Shapes.Remove(oHilite[iX][iY])
+
+    oStone[iX][iY] = ""
+
+    oHilite[iX][iY] = ""
+
+  EndIf
+
+  If oMove[iX][iY] <> "" Then
+
+    Shapes.Remove(oMove[iX][iY])
+
+    oMove[iX][iY] = ""
+
+  EndIf
+
+EndSub
+
+
+
+Sub XDeadStones
+
+  ' Mark X on Dead Stones
+
+  ' param iDeadSum, iDX[], iDY[] - dead stones
+
+  ' work iX, iY - stone position
+
+  ' work i, iPW, sPC
+
+  If iDeadSum > 0 Then
+
+    sPC = GraphicsWindow.PenColor
+
+    GraphicsWindow.PenColor = "Red"
+
+    iPW = GraphicsWindow.PenWidth
+
+    GraphicsWindow.PenWidth = 4
+
+    For i = 1 To iDeadSum
+
+      iX = iDX[i]
+
+      iY = iDY[i] 
+
+      oX1[iX][iY] = Shapes.AddLine(iLX0 + (iX - 1) * idLX - iSR / 2, iLY0 + (iY - 1) * idLY - iSR / 2, iLX0 + (iX - 1) * idLX + iSR / 2, iLY0 + (iY - 1) * idLY + iSR / 2)
+
+      oX2[iX][iY] = Shapes.AddLine(iLX0 + (iX - 1) * idLX + iSR / 2, iLY0 + (iY - 1) * idLY - iSR / 2, iLX0 + (iX - 1) * idLX - iSR / 2, iLY0 + (iY - 1) * idLY + iSR / 2)
+
+    EndFor  
+
+    GraphicsWindow.PenColor = sPC
+
+    GraphicsWindow.PenWidth = iPW
+
+  EndIf
+
+EndSub
+
+
+
+Sub DrawTerritory
+
+  ' Draw Rectangle on Territory
+
+  ' work iX, iY - stone position
+
+  ' param iBoard[][] - board
+
+  ' param iTerritory[][] - territory
+
+  ' param iLX0 - x coordinate of left most vertical line
+
+  ' param iLY0 - y coordinate of top most horizontal line
+
+  ' param idLX - distance between vertical lines
+
+  ' param idLY - distance between horizontal lines
+
+  ' param iSR - radius of stone
+
+  GraphicsWindow.PenWidth = 0
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If iBoard[iX][iY] = SPACE And iTerritory[iX][iY] = BLACK Then
+
+        GraphicsWindow.BrushColor = "Black"
+
+        oRect[iX][iY] = Shapes.AddRectangle(iSR, iSR)
+
+        Shapes.Move(oRect[iX][iY], iLX0 + (iX - 1) * idLX - iSR / 2, iLY0 + (iY - 1) * idLY - iSR / 2)
+
+      ElseIf iBoard[iX][iY] = SPACE And iTerritory[iX][iY] = WHITE Then
+
+        GraphicsWindow.BrushColor = "White"
+
+        oRect[iX][iY] = Shapes.AddRectangle(iSR, iSR)
+
+        Shapes.Move(oRect[iX][iY], iLX0 + (iX - 1) * idLX - iSR / 2, iLY0 + (iY - 1) * idLY - iSR / 2)
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  GraphicsWindow.PenWidth = 2
+
+EndSub
+
+
+
+' ---------------------------------
+
+' Game Record File
+
+' ---------------------------------
+
+Sub Rec_InitRecord
+
+  ' Game Record | Initialize
+
+  ' return iNumRec - number of moves in game record
+
+  iNumRec = 0
+
+EndSub
+
+
+
+Sub Rec_Record
+
+  ' Game Record | Record
+
+  ' param iX, iY - next move (on board)
+
+  ' param iColor - stone color
+
+  ' param bPass - pass
+
+  ' return iRecord[][] - game record
+
+  ' return iNumRec - number of moves in game record
+
+  iNumRec = iNumRec + 1
+
+  If bPass Then
+
+    iX = iRo + 1
+
+    iY = iRo + 1
+
+  EndIf
+
+  iRecord[iNumRec]["x"] = iX
+
+  iRecord[iNumRec]["y"] = iY
+
+  iRecord[iNumRec]["turn"] = iColor
+
+EndSub  
+
+
+
+Sub Rec_ReplayGame
+
+  ' Game Record | Replay Game
+
+  bShowMove = "True"
+
+  ClearBoard()    ' clear board
+
+  ShowBoard()     ' show board
+
+  Shapes.SetText(oPrisoner[BLACK], 0) ' clear prisoner
+
+  Shapes.SetText(oPrisoner[WHITE], 0) ' clear prisoner
+
+  iMove = 0       ' clear number of moves
+
+  bInGame = "True"
+
+  bReplay = "True"
+
+  While bInGame
+
+    '{
+
+    EachTurn()    ' black turn
+
+    If bInGame Then
+
+      EachTurn()  ' white turn
+
+    EndIf    
+
+    '}
+
+  EndWhile
+
+  bInGame = "True"
+
+EndSub      
+
+
+
+Sub Rec_WriteRecord
+
+  ' Game Record | Write File (Save)
+
+  ' param iNumRec - number of moves for game record
+
+  ' param iRecord[][] - game record
+
+  ' work i, iX, iY, iColor
+
+  ' work sBuf - buffer
+
+  sBuf = "" ' for Silverlight
+
+' The following line could be harmful and has been automatically commented.
+
+'   sBuf = File.ReadContents(sSGF)
+
+  If Text.GetLength(sBuf) > 0 Then
+
+    GraphicsWindow.ShowMessage("'" + sSGF + "'" + sAlreadyExists, sSave2)
+
+  Else
+
+    iSGFLine = 1
+
+    sBuf = sBuf + "(;GM[1]FF[1]SZ[" + iRo + "]PB[" + sPlayer[BLACK] + "]PW[" + sPlayer[WHITE] + "]RE[" + sScore + "]" + sNL
+
+    iSGFLine = 2
+
+    sBuf = sBuf + "DT[" + sDate + "]KM[0.0]RU[Japanese]" + sNL
+
+    iSGFLine = 3
+
+    sBuf = sBuf + "AP[" + sProgram + ":" + sVersion + "]CA[UTF-8]" + sNL
+
+    iSGFLine = 4
+
+    sLine = ""
+
+    For i = 1 To iNumRec
+
+      iX = iRecord[i]["x"]
+
+      iY = iRecord[i]["y"]
+
+      iColor = iRecord[i]["turn"]
+
+      If (iColor = BLACK) Then
+
+        sLine = sLine + ";B[" + sAlpha[iX] + sAlpha[iY] + "]"
+
+      ElseIf (iColor = WHITE) Then
+
+        sLine = sLine + ";W[" + sAlpha[iX] + sAlpha[iY] + "]"
+
+      EndIf  
+
+      If Math.Remainder(i, 10) = 0 Then
+
+        sBuf = sBuf + sLine + sNL
+
+        iSGFLine = iSGFLine + 1
+
+        sLine = ""
+
+      EndIf
+
+    EndFor
+
+    sBuf = sBuf + sLine + ")" + sNL
+
+    iSGFLine = iSGFLine + 1
+
+    sLine = ""
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteContents(sSGF, sBuf)
+
+  EndIf
+
+EndSub
+
+
+
+Sub Rec_ReadRecord
+
+  ' Read Game Record File (Open)
+
+  ' work sBuf - buffer
+
+  ' return iNumRec - number of moves for Game Record
+
+  ' return iRecord[][] - game record
+
+  ' our: bError - read error
+
+  Rec_InitRecord()
+
+  sBuf = ""         ' for Silverlight
+
+' The following line could be harmful and has been automatically commented.
+
+'   sBuf = File.ReadContents(sSGF)
+
+  iBufPtr = 1
+
+  iBufLen = Text.GetLength(sBuf)
+
+  If iBufLen = 0 Then
+
+    GraphicsWindow.ShowMessage("'" + sSGF + "'" + sIsNotExist, sOpen)
+
+    bMatched = "False"
+
+    bError = "True"
+
+  Else
+
+    SGF_ParseCollection()
+
+  EndIf    
+
+EndSub    
+
+
+
+Sub Rec_SaveGameDate
+
+  ' Save Date for Game Record
+
+  ' return sDate - date for SGF Game Record
+
+  sDate = Clock.Year + "-"
+
+  If Clock.Month <= 9 Then
+
+    sDate = sDate + "0"
+
+  EndIf
+
+  sDate = sDate + Clock.Month + "-"
+
+  If Clock.Day <= 9 Then
+
+    sDate = sDate + "0"
+
+  EndIf
+
+  sDate = sDate + Clock.Day
+
+EndSub
+
+
+
+Sub SGF_ParseCollection
+
+  ' Smart Game Format | Parse Collection
+
+  ' return bMatched - "True" if matched
+
+  SGF_ParseGameTree()
+
+  While bMatched
+
+    SGF_ParseSpace()
+
+    SGF_ParseGameTree()
+
+  EndWhile
+
+EndSub
+
+
+
+Sub SGF_ParseGameTree
+
+  ' Smart Game Format | Parse GameTree
+
+  ' return bMatched - "True" if matched
+
+  Stack.PushValue("gametree", iBufPtr)
+
+  cChar = "("
+
+  Lex_Char()
+
+  If bMatched = "False" Then
+
+    Goto lNotGameTree
+
+  EndIf
+
+  SGF_ParseSpace()
+
+  SGF_ParseSequence()
+
+  If bMatched = "False" Then
+
+    Goto lNotGameTree
+
+  EndIf
+
+  While bMatched
+
+    SGF_ParseSpace()
+
+    SGF_ParseGameTree()
+
+  EndWhile
+
+  SGF_ParseSpace()
+
+  cChar = ")"
+
+  Lex_Char()
+
+  lNotGameTree:
+
+  iSavedPtr = Stack.PopValue("gametree")
+
+  If bMatched = "False" Then
+
+    iBufPtr = iSavedPtr
+
+  EndIf
+
+EndSub
+
+
+
+Sub SGF_ParseSequence
+
+  ' Smart Game Format | Parse Sequence
+
+  ' return bMatched - "True" if matched
+
+  SGF_ParseNode()
+
+  While bMatched
+
+    SGF_ParseSpace()
+
+    SGF_ParseNode()
+
+  EndWhile
+
+EndSub
+
+
+
+Sub SGF_ParseNode
+
+  ' Smart Game Format | Parse Node
+
+  ' return bMatched - "True" if matched
+
+  bNode = "False"
+
+  cChar = ";"
+
+  Lex_Char()
+
+  If bMatched = "False" Then
+
+    Goto lNotNode
+
+  EndIf
+
+  While bMatched
+
+    SGF_ParseSpace()
+
+    SGF_ParseProperty()
+
+    If bMatched Then
+
+      bNode = "True"
+
+    EndIf
+
+  EndWhile
+
+  bMatched = bNode
+
+  lNotNode:
+
+EndSub
+
+
+
+Sub SGF_ParseProperty
+
+  ' Smart Game Format | Parse ID[value] - property property
+
+  ' return sID - given ID
+
+  ' return sValue - value of property
+
+  ' return bMatched - property if matched
+
+  ' return bError - parse error
+
+  ' TODO process if there is no "]"
+
+  bError = "False"
+
+  iSavedPtr = iBufPtr
+
+  SGF_ParseGame()     ' GM[1]
+
+  If bMatched Or bError Then
+
+    Goto lExitProperty
+
+  EndIf
+
+  SGF_ParseSize()     ' SZ[6]
+
+  If bMatched Then
+
+    Goto lExitProperty
+
+  EndIf
+
+  SGF_ParsePB()       ' PB[black player name]
+
+  If bMatched Then
+
+    Goto lExitProperty
+
+  EndIf
+
+  SGF_ParsePW()       ' PW[white player name]
+
+  If bMatched Then
+
+    Goto lExitProperty
+
+  EndIf
+
+  SGF_ParseHA()       ' HA[handy]
+
+  If bMatched Then
+
+    Goto lExitProperty
+
+  EndIf
+
+  SGF_ParseKomi()     ' KM[0.0]
+
+  If bMatched Then
+
+    Goto lExitProperty
+
+  EndIf
+
+  SGF_ParseBlack()    ' B[xy]
+
+  If bMatched Then
+
+    Goto lExitProperty
+
+  EndIf
+
+  SGF_ParseWhite()    ' W[xy]
+
+  If bMatched Then
+
+    Goto lExitProperty
+
+  EndIf
+
+  Lex_Upper()    ' other property ID[value]
+
+  If bMatched = "False" Then
+
+    Goto lExitProperty
+
+  EndIf
+
+  sID = c
+
+  Lex_Upper()
+
+  If bMatched Then
+
+    sID = sID + c
+
+  EndIf
+
+  cChar = "["
+
+  Lex_Char()
+
+  If bMatched = "False" Then
+
+    Goto lExitProperty
+
+  EndIf
+
+  iBROffset = Text.GetIndexOf(Text.GetSubTextToEnd(sBuf, iBufPtr), "]")
+
+  If iBROffset = 0 Then
+
+    bMatched = "False"
+
+  Else
+
+    bMatched = "True"
+
+    sValue = Text.GetSubText(sBuf, iBufPtr, iBROffset - 1)
+
+    iBufPtr = iBufPtr + iBROffset
+
+  EndIf
+
+  lExitProperty:
+
+  If bMatched = "False" Then
+
+    iBufPtr = iSavedPtr
+
+  EndIf
+
+EndSub
+
+
+
+Sub SGF_ParseSpace
+
+  ' Smart Game Format | Parse Space (blank, tab, carriage return, line feed etc.)
+
+  ' work bSpace
+
+  bSpace = "False"
+
+  bMatched = "True"
+
+  While bMatched
+
+    cChar = " "   ' blank
+
+    Lex_Char()
+
+    If bMatched Then
+
+      bSpace = "True"
+
+      Goto lWhiteSpace
+
+    EndIf
+
+    cChar = cTab  ' tab
+
+    Lex_Char()
+
+    If bMatched Then
+
+      bSpace = "True"
+
+      Goto lWhiteSpace
+
+    EndIf
+
+    cChar = cCR   ' carriage return
+
+    Lex_Char()
+
+    If bMatched Then
+
+      bSpace = "True"
+
+      Goto lWhiteSpace
+
+    EndIf
+
+    cChar = cLF   ' line feed
+
+    Lex_Char()
+
+    If bMatched Then
+
+      bSpace = "True"
+
+    EndIf
+
+    lWhiteSpace:
+
+  EndWhile
+
+  bMatched = bSpace
+
+EndSub
+
+
+
+Sub SGF_ParseGame
+
+  ' Smart Game Format | Parse GM[1] - game
+
+  sID = "GM"
+
+  SGF_ParseGivenProperty()
+
+  If bMatched Then
+
+    If sValue <> "1" Then
+
+      GraphicsWindow.ShowMessage("'" + sSGF + "'" + sIsNotGoFormat +" GM[" + sValue + "]", sOpen)
+
+      bMatched = "False"
+
+      bError = "True"
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub SGF_ParseSize
+
+  ' Smart Game Format | Parse SZ[6] - size
+
+  sID = "SZ"
+
+  SGF_ParseGivenProperty()
+
+  If bMatched Then
+
+    iValue = sValue
+
+    iRo = iValue
+
+    bNewRo = "True"
+
+  EndIf
+
+EndSub
+
+
+
+Sub SGF_ParsePB
+
+  ' Smart Game Format | Parse PB[black player name]
+
+  sID = "PB"
+
+  SGF_ParseGivenProperty()
+
+  If bMatched Then
+
+    sPlayer[BLACK] = sValue
+
+    Controls.SetTextBoxText(oBlack, sPlayer[BLACK])
+
+  EndIf
+
+EndSub
+
+
+
+Sub SGF_ParsePW
+
+  ' Smart Game Format | Parse PW[white player name]
+
+  sID = "PW"
+
+  SGF_ParseGivenProperty()
+
+  If bMatched Then
+
+    sPlayer[WHITE] = sValue
+
+    Controls.SetTextBoxText(oWhite, sPlayer[WHITE])
+
+  EndIf
+
+EndSub
+
+
+
+Sub SGF_ParseKomi
+
+  ' Smart Game Format | Parse KM[0.0] - komi
+
+  sID = "KM"
+
+  SGF_ParseGivenProperty()
+
+  If bMatched Then
+
+    rKomi = sValue
+
+  EndIf
+
+EndSub
+
+
+
+Sub SGF_ParseHA
+
+  ' Smart Game Format | Parse HA[0] - handicap stones
+
+  sID = "HA"
+
+  SGF_ParseGivenProperty()
+
+EndSub
+
+
+
+Sub SGF_ParseBlack
+
+  ' Smart Game Format | Parse B[xy] - black move
+
+  ' return bPass - pass
+
+  cChar = "B"
+
+  Lex_Char()
+
+  If bMatched Then
+
+    iColor = BLACK
+
+    SGF_ParsePoint()
+
+    If bMatched Then
+
+      iX = Text.GetIndexOf("abcdefghijklmnopqrst", cX)
+
+      iY = Text.GetIndexOf("abcdefghijklmnopqrst", cY)
+
+      If iX = 20 Then
+
+        bPass = "True"
+
+      Else
+
+        bPass = "False"
+
+      EndIf
+
+      Rec_Record()
+
+    Else
+
+      iBufPtr = iBufPtr - 1 ' back one for "B"
+
+    EndIf
+
+  EndIf    
+
+EndSub
+
+
+
+Sub SGF_ParseWhite
+
+  ' Smart Game Format | Parse W[xy] - white move
+
+  ' return bPass - pass
+
+  cChar = "W"
+
+  Lex_Char()
+
+  If bMatched Then
+
+    iColor = WHITE
+
+    SGF_ParsePoint()
+
+    If bMatched Then
+
+      iX = Text.GetIndexOf("abcdefghijklmnopqrst", cX)
+
+      iY = Text.GetIndexOf("abcdefghijklmnopqrst", cY)
+
+      If iX = 20 Then
+
+        bPass = "True"
+
+      Else
+
+        bPass = "False"
+
+      EndIf
+
+      Rec_Record()
+
+    Else
+
+      iBufPtr = iBufPtr - 1 ' back one for "W"
+
+    EndIf
+
+  EndIf    
+
+EndSub
+
+
+
+Sub SGF_ParsePoint
+
+  ' Smart Game Format | Parse [xy] - point
+
+  ' return character cX, cY
+
+  iSavedPtr = iBufPtr
+
+  cChar = "["
+
+  Lex_Char()
+
+  If bMatched = "False" Then
+
+    Goto lNotPoint
+
+  EndIf
+
+  Lex_Lower()
+
+  If bMatched = "False" Then
+
+    Goto lNotPoint
+
+  EndIf
+
+  cX = c
+
+  Lex_Lower()
+
+  If bMatched = "False" Then
+
+    Goto lNotPoint
+
+  EndIf
+
+  cY = c
+
+  cChar = "]"
+
+  Lex_Char()
+
+  lNotPoint:  
+
+  If bMatched = "False" Then
+
+    iBufPtr = iSavedPtr
+
+  EndIf
+
+EndSub
+
+
+
+Sub SGF_ParseGivenProperty
+
+  ' Smart Game Format | Parse ID[value] - property
+
+  ' param sID - given ID
+
+  ' return sValue - value of property
+
+  ' return bMatched - "True" if matched
+
+  SGF_ParseID()
+
+  If bMatched = "False" Then
+
+    Goto lNotGivenProperty
+
+  EndIf
+
+  cChar = "["
+
+  Lex_Char()
+
+  If bMatched Then
+
+    iBROffset = Text.GetIndexOf(Text.GetSubTextToEnd(sBuf, iBufPtr), "]")
+
+    If iBROffset = 0 Then
+
+      bMatched = "False"
+
+    Else
+
+      bMatched = "True"
+
+      sValue = Text.GetSubText(sBuf, iBufPtr, iBROffset - 1)
+
+      iBufPtr = iBufPtr + iBROffset
+
+    EndIf
+
+  EndIf
+
+  lNotGivenProperty:
+
+EndSub
+
+
+
+Sub SGF_ParseID
+
+  ' Smart Game Format | Parse ID
+
+  ' param sID
+
+  ' work iPtr
+
+  ' return bMatched - ID if matched
+
+  iPtrSaved = iBufPtr
+
+  For iPtr = 1 To Text.GetLength(sID)
+
+    cChar = Text.GetSubText(sID, iPtr, 1)
+
+    Lex_Char()
+
+    If bMatched = "False" Then
+
+      iBufPtr = iPtrSaved
+
+      Goto lNotID
+
+    EndIf
+
+  EndFor
+
+  lNotID:
+
+EndSub
+
+
+
+Sub Lex_Upper
+
+  ' Lexical Analysis | Upper Case Character
+
+  ' param sBuf - buffer
+
+  ' param/return iBufPtr - buffer pointer
+
+  ' return c - upper case character
+
+  ' return bMatched - "True" if matched
+
+  c = Text.GetSubText(sBuf, iBufPtr, 1)
+
+  iCode = Text.GetCharacterCode(c)
+
+  If iCode >= UPPERA And iCode <= UPPERZ Then
+
+    bMatched = "True"
+
+    iBufPtr = iBufPtr + 1
+
+  Else
+
+    bMatched = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Lower
+
+  ' Lexical Analysis | Lower Case Character
+
+  ' param sBuf - buffer
+
+  ' param/return iBufPtr - buffer pointer
+
+  ' return c - lower case character
+
+  ' return bMatched - "True" if matched
+
+  c = Text.GetSubText(sBuf, iBufPtr, 1)
+
+  iCode = Text.GetCharacterCode(c)
+
+  If iCode >= LOWERA And iCode <= LOWERZ Then
+
+    bMatched = "True"
+
+    iBufPtr = iBufPtr + 1
+
+  Else
+
+    bMatched = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Char
+
+  ' Lexical Analysis | Given Character
+
+  ' param character cChar - given character
+
+  ' param sBuf - buffer
+
+  ' param/return iBufPtr - buffer pointer
+
+  ' return bMatched - "True" if matched
+
+  c = Text.GetSubText(sBuf,iBufPtr, 1)
+
+  If c = cChar Then
+
+    bMatched = "True"
+
+    iBufPtr = iBufPtr + 1
+
+  Else
+
+    bMatched = "False"
+
+  EndIf
+
+EndSub
+
+
+
+' ---------------------------------
+
+' Debug
+
+' ---------------------------------
+
+Sub Debug_DrawGrid
+
+  ' Debug | Draw Grid for Graphics Design
+
+  cx = rCX
+
+  cy = rCY
+
+  GraphicsWindow.FontSize = cy
+
+  GraphicsWindow.FontName = "Courier New"
+
+  GraphicsWindow.BrushColor = "SlateBlue"
+
+  GraphicsWindow.PenColor = "Cyan"
+
+  GraphicsWindow.Clear()
+
+  x = 0
+
+  y = 0
+
+  sRuler = "----+----1----+----2----+----3----+----4----+----5----+----6----+----7----+----8"
+
+  GraphicsWindow.DrawText(x, y - 3, sRuler)
+
+  For i = 0 To 19
+
+    GraphicsWindow.DrawText(x, y - 3, i)
+
+    y = y + cy
+
+  EndFor  
+
+  w = GraphicsWindow.Width
+
+  h = GraphicsWindow.Height
+
+  sRange = w + "," + h + "  "
+
+  GraphicsWindow.DrawText(x + cx * 4, cy * 17 - 3, sRange)
+
+  For i = 0 To 624 Step cx
+
+    GraphicsWindow.DrawLine(i, 0, i, 443)
+
+  EndFor  
+
+  For i = 0 To 443 Step cy
+
+    GraphicsWindow.DrawLine(0, i, 624, i)
+
+  EndFor
+
+  GraphicsWindow.FontName = "Tahoma"
+
+EndSub  
+
+
+
+Sub Debug_DumpRecord
+
+  For i = 1 To iNumRec
+
+    TextWindow.WriteLine(sStone[iRecord[i]["turn"]] + "(" + iRecord[i]["x"] + "," + iRecord[i]["y"] + ")")
+
+  EndFor
+
+EndSub
+
+
+
+Sub Debug_DumpUnit
+
+  For i = 1 To iUnit
+
+    TextWindow.WriteLine("(" + iUX[i]+ "," + iUY[i] + ")")
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+
+
+Sub Debug_DumpPoint
+
+  TextWindow.Write("(" + iX + "," + iY + ")")
+
+EndSub
+
+
+
+Sub Debug_DumpNewLine
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+
+
+Sub Debug_DumpLiberty
+
+  TextWindow.WriteLine("iLiberty = " + iLiberty)
+
+EndSub
+
+
+
+Sub Debug_DumpColor
+
+  TextWindow.WriteLine("iColor = " + iColor)
+
+EndSub
+
+
+
+Sub Debug_DumpMove
+
+  TextWindow.Write(iMove)
+
+EndSub
+
+
+
+Sub Debug_DumpScore
+
+  TextWindow.WriteLine("iScore = " + iScore)
+
+EndSub
+
+
+
+Sub Debug_DumpEffect
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      TextWindow.Write(iBlackEffect[iX][iY] + " ")
+
+    EndFor
+
+    TextWindow.WriteLine("")
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      TextWindow.Write(iWhiteEffect[iX][iY] + " ")
+
+    EndFor
+
+    TextWindow.WriteLine("")
+
+  EndFor
+
+EndSub
+
+
+
+Sub InitFigure
+
+  sFigure[SPACE] = "+"
+
+  sFigure[BLACK] = "@"
+
+  sFigure[WHITE] = "O"
+
+  sFigure[OB] = "#"
+
+EndSub
+
+
+
+Sub Debug_DumpBoard
+
+  For iYDB = 1 To iRo
+
+    For iXDB = 1 To iRo
+
+      TextWindow.Write(sFigure[iBoard[iXDB][iYDB]])
+
+    EndFor
+
+    TextWindow.WriteLine("")
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+
+
+Sub Debug_DumpBoard2
+
+  ' Dump Board Including Out of Board
+
+  For iYDB = 0 To iRo + 1
+
+    For iXDB = 0 To iRo + 1
+
+      TextWindow.Write(sFigure[iBoard[iXDB][iYDB]])
+
+    EndFor
+
+    TextWindow.WriteLine("")
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+
+
+Sub StartClock
+
+  ' Start Clock
+
+  ' return iBeginTime
+
+  ' work iEms
+
+  iBeginTime = Clock.ElapsedMilliseconds
+
+  iEms = iBeginTime
+
+  TextWindow.Write("Start: ")
+
+  PrintClock()
+
+  TextWindow.Write(" ")
+
+EndSub
+
+
+
+Sub StopClock
+
+  ' Stop Clock
+
+  ' return iEndTime
+
+  ' work iEms
+
+  iEndTime = Clock.ElapsedMilliseconds
+
+  iEms = iEndTime
+
+  TextWindow.Write("Stop: ")
+
+  PrintClock()
+
+  TextWindow.Write(" ")
+
+EndSub
+
+
+
+Sub PrintTime
+
+  ' Print Time
+
+  ' param iBeginTime
+
+  ' param iEndTime
+
+  ' work iEms
+
+  iEms = iEndtime - iBeginTime
+
+  TextWindow.Write("Time: ")
+
+  PrintClock()
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+
+
+Sub PrintClock
+
+  ' Print Clock
+
+  ' param iEms
+
+  ' work iTime[]
+
+  ConvertEmsToTime()
+
+  TextWindow.Write(iTime["Hour"] + ":" + iTime["Munite"] + ":" + iTime["Second"])
+
+EndSub
+
+
+
+Sub ConvertEmsToTime
+
+  ' Convert Ems To Hour Minute Second
+
+  ' param iEms - elapsed milliseconds
+
+  ' work iHMSMs - hour minute second millisecond
+
+  ' work iMSMs - minute second millisecond
+
+  ' work iSMs - second millisecond
+
+  ' return iTime[] - hour minute second
+
+  iHMSMs = Math.Remainder(iEms, 24 * 60 * 60 * 1000)
+
+  iTime["Hour"] = Math.Floor(iHMSMs / (60 * 60 * 1000))
+
+  iMSMs = Math.Remainder(iHMSMs, 60 * 60 * 1000)
+
+  iTime["Munite"] = Math.Floor(iMSMs / (60 * 1000))
+
+  iSMs = Math.Remainder(iMSMs, 60 * 1000)
+
+  iTime["Second"] = Math.Floor(iSMs / 1000)
+
+EndSub
+
+
+
+Sub Debug_DumpRdmArray
+
+  iIdx = 0
+
+  iCntDR = 0
+
+  While iRdm[iIdx] > 0
+
+    If iRdm[iIdx] < 10 Then
+
+      TextWindow.Write(" ")
+
+    EndIf
+
+    TextWindow.Write(iRdm[iIdx] + " ")
+
+    iIdx = iRdm[iIdx]
+
+    iCntDR = iCntDR + 1
+
+    If iCntDR > 50 Then
+
+      TextWindow.WriteLine("")
+
+      TextWindow.WriteLine("Error: iRdm[>50] ?")
+
+      TextWindow.Read()
+
+    EndIf 
+
+  EndWhile
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+
+
+Sub Debug_DumpRdmArray2
+
+  For iYDR = 1 To iRo
+
+    For iXDR = 1 To iRo
+
+      sTemp[iXDR][iYDR] = "?"
+
+    EndFor
+
+  EndFor    
+
+  iIdx = 0
+
+  While iRdm[iIdx] > 0
+
+    iIdx = iRdm[iIdx]
+
+    iXDR = Math.Remainder(iIdx - 1, iRo) + 1
+
+    iYDR = Math.Floor((iIdx - 1) / iRo) + 1
+
+    sTemp[iXDR][iYDR] = "+"
+
+  EndWhile
+
+  For iYDR = 1 To iRo
+
+    For iXDR = 1 To iRo
+
+      TextWindow.Write(sTemp[iXDR][iYDR])
+
+    EndFor
+
+    TextWindow.WriteLine("")
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+
+
+Sub Debug_DumpRdmLast
+
+  TextWindow.WriteLine("iRdm[iLast(" + iLast + ")]=" + iRdm[iLast])
+
+EndSub
+
+
+
+Sub Debug_DumpRdmXY
+
+  TextWindow.WriteLine("iRdm[iXY(" + iXY + ")]=" + iRdm[iXY])
+
+EndSub
+
+
+
+Sub Debug_DumpKomi
+
+  TextWindow.Write(rKomi)
+
+EndSub
+
+  
+
+

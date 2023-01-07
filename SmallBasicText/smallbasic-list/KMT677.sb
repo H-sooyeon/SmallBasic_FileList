@@ -1,0 +1,287 @@
+' Form
+
+' Version 0.1a
+
+' Copyright © 2016 Nonki Takahashi.  The MIT License.
+
+' Last update 2016-01-30
+
+' Challenge 2016-01/02
+
+' 
+
+GraphicsWindow.Title = "Form 0.1a"
+
+CR = Text.GetCharacter(13)
+
+LF = Text.GetCharacter(10)
+
+filename = "Form01.sb"
+
+GetForm()
+
+ShowForm()
+
+'DrawGrids()
+
+Sub DrawGrids
+
+  dy = 100
+
+  dx = 100
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "#999999"
+
+  For y = dy To gh Step dy
+
+    GraphicsWindow.DrawLine(0, y, gw, y)
+
+  EndFor
+
+  For x = dx To gw Step dx
+
+    GraphicsWindow.DrawLine(x, 0, x, gh)
+
+  EndFor
+
+EndSub
+
+Sub ShowForm
+
+  ' param form - array of the form
+
+  ' param nForm - number of objects in the form
+
+  For i = 1 To nForm
+
+    frm = form[i]
+
+    If frm["func"] = "form" Then
+
+      ' func=form;bg=LightGray;gx=10;gy=10;gw=598;gh=428;
+
+      GraphicsWindow.BackgroundColor = frm["bg"]
+
+      GraphicsWindow.Left = frm["gx"]
+
+      GraphicsWindow.Top = frm["gy"]
+
+      gw = frm["gw"]
+
+      gh = frm["gh"]
+
+      GraphicsWindow.Width = gw
+
+      GraphicsWindow.Height = gh
+
+    ElseIf frm["func"] = "text" Then
+
+      ' func=text;text=Word;x=10;y=15;bc=Black;fn=Segoe UI;fs=12;fb=True;fi=False;
+
+      GraphicsWindow.FontName = frm["fn"]
+
+      GraphicsWindow.FontSize = frm["fs"]
+
+      GraphicsWindow.FontBold = frm["fb"]
+
+      GraphicsWindow.FontItalic = frm["fi"]
+
+      GraphicsWindow.BrushColor = frm["bc"]
+
+      frm["obj"] = Shapes.AddText(frm["text"])
+
+      Shapes.Move(frm["obj"], frm["x"], frm["y"])
+
+    ElseIf frm["func"] = "tbox" Then
+
+      ' func=tbox;x=50;y=12;width=140;height=22;bc=Black;fn=Segoe UI;fs=12;fb=True;fi=False;
+
+      GraphicsWindow.FontName = frm["fn"]
+
+      GraphicsWindow.FontSize = frm["fs"]
+
+      GraphicsWindow.FontBold = frm["fb"]
+
+      GraphicsWindow.FontItalic = frm["fi"]
+
+      GraphicsWindow.BrushColor = frm["bc"]
+
+      frm["obj"] = Controls.AddTextBox(frm["x"], frm["y"])
+
+      Controls.SetSize(frm["obj"], frm["width"], frm["height"])
+
+    ElseIf frm["func"] = "btn" Then
+
+      ' func=btn;caption=OK;x=200;y=10;width=28;height=26;bc=Black;fn=Segoe UI;fs=12;fb=True;fi=False;
+
+      GraphicsWindow.FontName = frm["fn"]
+
+      GraphicsWindow.FontSize = frm["fs"]
+
+      GraphicsWindow.FontBold = frm["fb"]
+
+      GraphicsWindow.FontItalic = frm["fi"]
+
+      GraphicsWindow.BrushColor = frm["bc"]
+
+      frm["obj"] = Controls.AddButton(frm["caption"], frm["x"], frm["y"])
+
+      Controls.SetSize(frm["obj"], frm["width"], frm["height"])
+
+    ElseIf frm["func"] = "rect" Then
+
+      ' func=rect;x=546;y=10;width=2;height=32;scale=2;pw=0;pc=Black;bc=#999999;
+
+      GraphicsWindow.PenWidth = frm["pw"]
+
+      GraphicsWindow.PenColor = frm["pc"]
+
+      GraphicsWindow.BrushColor = frm["bc"]
+
+      frm["obj"] = Shapes.AddRectangle(frm["width"], frm["height"])
+
+      Shapes.Move(frm["obj"], frm["x"], frm["y"])
+
+    ElseIf frm["func"] = "img" Then
+
+      ' func=img;src=Form.png;x=556;y=10;width=16;height=16;scale=2;
+
+      frm["obj"] = Shapes.AddImage(Program.Directory + "\" + frm["src"])
+
+      Shapes.Move(frm["obj"], frm["x"] + frm["width"] * (frm["scale"] - 1) / 2, frm["y"] + frm["height"] * (frm["scale"] - 1) / 2)
+
+      Shapes.Zoom(frm["obj"], frm["scale"], frm["scale"])
+
+    ElseIf frm["func"] = "mtbox" Then
+
+      ' func=mtbox;x=10;y=52;width=578;height=366;bc=Black;fn=Segoe UI;fs=12;fb=True;fi=False;
+
+      GraphicsWindow.FontName = frm["fn"]
+
+      GraphicsWindow.FontSize = frm["fs"]
+
+      GraphicsWindow.FontBold = frm["fb"]
+
+      GraphicsWindow.FontItalic = frm["fi"]
+
+      GraphicsWindow.BrushColor = frm["bc"]
+
+      frm["obj"] = Controls.AddMultiLineTextBox(frm["x"], frm["y"])
+
+      Controls.SetSize(frm["obj"], frm["width"], frm["height"])
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub GetForm
+
+  ' param filename - file name
+
+  ' return form - array for the form
+
+  folder = Program.Directory
+
+' The following line could be harmful and has been automatically commented.
+
+'   buf = File.ReadContents(folder + "\" + filename)
+
+  len = Text.GetLength(buf)
+
+  p = 1
+
+  nForm = 0
+
+  While p <= len
+
+    GetLine()
+
+    RemoveLeadingSpace()
+
+    If Text.StartsWith(line, "'") Then
+
+      func = Text.GetIndexOf(line, "func=")
+
+      If 0 < func Then
+
+        nForm = nForm + 1
+
+        form[nForm] = Text.GetSubTextToEnd(line, func)
+
+      EndIf
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+Sub RemoveLeadingSpace
+
+  ' param line - to remove leading space
+
+  ' return line - the result
+
+  Stack.PushValue("local", p)
+
+  p = 1
+
+  While Text.GetSubText(line, p, 1) = " "
+
+    p = p + 1
+
+  EndWhile
+
+  line = Text.GetSubTextToEnd(line, p)
+
+  p = Stack.PopValue("local")
+
+EndSub
+
+Sub GetLine
+
+  ' param p - pointer to buf
+
+  ' param buf - buffer
+
+  ' param len - length of the buffer
+
+  ' return line - current line
+
+  ' return p - updated pointer to next line in buf
+
+  If p <= len Then
+
+    nl = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), CR)
+
+    If 0 < nl Then
+
+      line = Text.GetSubText(buf, p, nl - 1)
+
+      p = p + nl
+
+    Else
+
+      line = Text.GetSubTextToEnd(buf, p)
+
+      p = len + 1
+
+    EndIf
+
+    If Text.GetSubText(buf, p, 1) = LF Then
+
+      p = p + 1
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+      
+
+

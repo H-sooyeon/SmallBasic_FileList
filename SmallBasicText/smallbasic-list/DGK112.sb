@@ -1,0 +1,301 @@
+' SmallBasic Version 1.2
+
+' Program: ID3Tags
+
+' Changelog: 
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/8a92bd86-e705-4687-863b-bfcf2cdb95b8/2-more-textwindow-questions
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev
+
+' Comment: see PJH128  from
+
+'  https://social.msdn.microsoft.com/Forums/en-US/d423e4d6-755e-4ec3-9690-2d75f485d070/looking-for-file-attributes-in-small-basic
+
+' Variables: 
+
+' ToDo: 
+
+' TW  ... to find out which F-key was pressed  -> OnGlobalKeyDown  event  (LDTextWindow.KeyDown)
+
+' TW ... look into a folder of .mp3 files and see each file-name, title, length, and other properties?
+
+' ================================================================================
+
+arrTypes = "1=mp3;2=m4a;3=wma;4=wav;"    ' audio file types to process       aiff, ape, flac, ogg   (3rd party)
+
+
+
+'' Get following tags for MP3s:  Album artist, #, Title, Album, Year, Genre, Length, Bit rate  (engl., with the ID#s:  217, 26, 21, 14, 15, 16, 27, 28)
+
+getTags = "1=Album artist;2=#;3=Title;4=Album;5=Year;6=Genre;7=Length;8=Bit rate;"       ' engl. W7,  "#=tagName;..."
+
+'de-DE' getTags = "1=Albuminterpret;2=Titelnummer;3=Titel;4=Album;5=Jahr;6=Genre;7=Länge;8=Bitrate;"    ' german W7
+
+
+
+'' ALTernative
+
+arrTags = "217=Album artist;26=#;21=Title;14=Album;15=Year;16=Genre;27=Length;28=Bit rate;"    ' engl. W7, "ID#=tagName;..."
+
+'de-DE' arrTags = "217=Albuminterpret;26=Titelnummer;21=Titel;14=Album;15=Jahr;16=Genre;27=Länge;28=Bitrate;"   ' german W7
+
+idcs = Array.GetAllIndices(arrTags) '' 1=217;2=26;3=21;4=14;5=15;6=16;7=27;8=28;
+
+
+
+lf = Text.GetCharacter(10)
+
+args = ""
+
+bLoop = "True"
+
+
+
+fc = TextWindow.ForegroundColor ' Green (10)
+
+LDTextWindow.SetColour(10, "Orange")  '"Plum")  '"LightBlue") ' "Pink")
+
+LDTextWindow.SetColours(10, 0)
+
+
+
+LDTextWindow.KeyDown = OnGlobalKeyDown
+
+
+
+
+
+While bLoop
+
+  TextWindow.ForegroundColor = 14 ' Yellow
+
+  TextWindow.WriteLine("* Drop any fso (file or folder) or paste (R-Click) an existing path HERE ... +{Return}."+ lf)
+
+  
+
+  TextWindow.ForegroundColor = fc
+
+  obj = TextWindow.Read()
+
+  obj = LDText.Replace(obj, Text.GetCharacter(34),"") ' remove quotes "
+
+  
+
+' The following line could be harmful and has been automatically commented.
+
+'   If LDFile.Exists(obj) Then                        '' is a file OR folder
+
+' The following line could be harmful and has been automatically commented.
+
+'     arrFiles = File.GetFiles(obj)
+
+    If Array.IsArray(arrFiles) Then                 '' is a NOT empty folder (empty folder returns "")
+
+      nFiles = Array.GetItemCount(arrFiles)
+
+      
+
+      TextWindow.ForegroundColor = 12 ' Red
+
+      TextWindow.WriteLine("* Selection is a FOLDER with "+ nFiles +" files.")
+
+      TextWindow.WriteLine("* Listing only"+ LDRegex.Replace(arrTypes, "(;|)\d\=|;"," ","") +"files:")
+
+      ListDirFiles()     '' perform actions for a selected FOLDER (eg. list/process/copy/rename ...  the contained files)
+
+      
+
+' The following line could be harmful and has been automatically commented.
+
+'     'ElseIf Text.ConvertToLowerCase(LDFile.GetExtension(obj)) = "mp3"  Then   '' is a .mp3 file,  ... or ...
+
+' The following line could be harmful and has been automatically commented.
+
+'     ElseIf Array.ContainsValue(arrTypes, Text.ConvertToLowerCase(LDFile.GetExtension(obj))) Then
+
+      'LDCall.Function("GetAllDetails", obj)
+
+      LDCall.Function("GetSelectedTags", obj)
+
+      LDCall.Function("GetSelectedTags_Alt", obj)   '' ALTernative
+
+      
+
+    Else                                            '' is NOT a desired audio file
+
+      TextWindow.ForegroundColor = 12 ' Red
+
+      TextWindow.WriteLine("* Selection is NOT from defined audio file type !!")
+
+      LDCall.Function("GetAllDetails", obj)
+
+    EndIf
+
+    TextWindow.WriteLine("")
+
+    obj = ""
+
+    
+
+  Else                                              '' any other input or empty folder to QUIT
+
+    ' Program.End()     ' ... or ...
+
+    bLoop = ""
+
+    TextWindow.WriteLine("")
+
+  EndIf
+
+  Program.Delay(100)
+
+EndWhile
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub GetAllDetails
+
+  TextWindow.ForegroundColor = 8  ' DarkGray
+
+  TextWindow.WriteLine("* ALL details:")  '
+
+  TextWindow.WriteLine("==============")  '
+
+  allDets = LDShell.GetAllDetailsFor(args[1])
+
+  allIdcs = Array.GetAllIndices(allDets)
+
+  For i = 1 To Array.GetItemCount(allIdcs)
+
+    TextWindow.WriteLine(i +". "+ allIdcs[i] +" = "+ allDets[allIdcs[i]])
+
+  EndFor
+
+EndSub
+
+
+
+Sub GetSelectedTags     ' by detail NAME in getTags
+
+  TextWindow.ForegroundColor = 11 ' Cyan
+
+  TextWindow.WriteLine("* SELECTED tags:")  '
+
+  TextWindow.WriteLine("================")  '
+
+  For i = 1 To Array.GetItemCount(getTags)
+
+    TextWindow.WriteLine(getTags[i] +" = "+ LDShell.GetDetail(args[1], getTags[i]))   ''eg. LDShell.GetDetail(obj, "Album artist")   ... or ...
+
+    'TextWindow.WriteLine(getTags[i] +" = "+ allDets[getTags[i]])      '' ... extract from allDets Array
+
+  EndFor
+
+EndSub
+
+
+
+Sub GetSelectedTags_Alt    ' by detail ID# in arrTags,  ALTernative
+
+  TextWindow.ForegroundColor = 3  ' DarkCyan
+
+  TextWindow.WriteLine("* SELECTED tags (Alt.):") '
+
+  TextWindow.WriteLine("=======================") '
+
+  For i = 1 To Array.GetItemCount(arrTags)  'idcs)
+
+    TextWindow.WriteLine(arrTags[idcs[i]] +" = "+ LDShell.GetDetail(args[1], idcs[i]))  ' eg. LDShell.GetDetail(obj, 217)  ... or ...
+
+    'TextWindow.WriteLine(arrTags[idcs[i]] +" = "+ allDets[arrTags[idcs[i]]])      '' ... extract from allDets Array
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub ListDirFiles   ' as paths or names, eg. all .mp3 and .m4a  audio files  (types from arrTypes)
+
+  For n = 1 To nFiles
+
+' The following line could be harmful and has been automatically commented.
+
+'     If Array.ContainsValue(arrTypes, Text.ConvertToLowerCase(LDFile.GetExtension(arrFiles[n]))) Then
+
+      '' List file(s)
+
+      TextWindow.ForegroundColor = fc
+
+      TextWindow.WriteLine(lf+ "Path: "+ arrFiles[n])
+
+      'TextWindow.WriteLine(lf+ "Name: "+ LDText.Replace(arrFiles[n], args[1]+"\",""))
+
+      
+
+      '' Show tags
+
+      LDCall.Function("GetSelectedTags", arrFiles[n])
+
+      LDCall.Function("GetSelectedTags_Alt", arrFiles[n])   ' ALTernative
+
+    Else        ' show NOTHING
+
+      'TextWindow.ForegroundColor = fc
+
+      'TextWindow.WriteLine(lf+ "Path: "+ arrFiles[n])
+
+      'LDCall.Function("GetAllDetails", arrFiles[n])
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+
+
+' //////////  EVENT  \\\\\\\\\\
+
+Sub OnGlobalKeyDown       ' eg. F1, F2, F3, ..., Fxx
+
+  lastKey = LDTextWindow.LastKey
+
+  If Text.StartsWith(lastKey, "F") And Text.GetLength(lastKey) > 1 Then
+
+    fnNo = Text.GetSubTextToEnd(lastKey, 2)
+
+    'TextWindow.WriteLine("Function key "+ fnNo +" pressed.")
+
+    
+
+    If fnNo = 1 Then
+
+      LDDialogs.Confirm("Drag&Drop any file or folder onto the TW or paste an existing path (R-Click) and press Return.", "Function key "+ fnNo +" pressed.")
+
+      
+
+    ElseIf fnNo = 2 Then
+
+      ' ...
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+

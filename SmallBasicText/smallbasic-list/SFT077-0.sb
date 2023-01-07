@@ -1,0 +1,435 @@
+' Cubic BÃ©zier Curve Edit Demo
+
+' Vesion 0.2
+
+' Copyright Â© 2018 Nonki Takahashi.  The MIT License.
+
+' Last update 2018-11-05
+
+' Program ID SFT077-0
+
+
+
+GraphicsWindow.Title = "Cubic BÃ©zier Curve Edit Demo 0.2"
+
+Init()
+
+AddPoints()
+
+For i = 0 To Array.GetItemCount(p) - 2 Step 3
+
+  DrawCurve()
+
+EndFor
+
+mouseDown = "False"
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.MouseUp = OnMouseUp
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+While "True"
+
+  If mouseDown Then
+
+    i = -1
+
+    For j = 0 To Array.GetItemCount(p) - 1
+
+      If (p[j]["x"] - r <= dx) And (dx <= p[j]["x"] + r) And (p[j]["y"] - r <= dy) And (dy <= p[j]["y"] + r) Then
+
+        i = j
+
+        j = Array.GetItemCount(p) - 1 ' exit For
+
+      EndIf
+
+    EndFor
+
+    If i <> -1 Then
+
+      While mouseDown
+
+        If mouseMove Then
+
+          IsCtrl()
+
+          If ctrl Then
+
+            p[i]["x"] = mx
+
+            p[i]["y"] = my
+
+            _p1 = p[i]
+
+            Shapes.Move(_p1["e"], _p1["x"] - r , _p1["y"] - r)
+
+          Else
+
+            ?”x = mx - p[i]["x"]
+
+            ?”y = my - p[i]["y"]
+
+            p[i]["x"] = mx
+
+            p[i]["y"] = my
+
+            _p1 = p[i]
+
+            Shapes.Move(_p1["e"], _p1["x"] - r , _p1["y"] - r)
+
+            If 0 < i Then
+
+              p[i - 1]["x"] = p[i - 1]["x"] + ?”x
+
+              p[i - 1]["y"] = p[i - 1]["y"] + ?”y
+
+              _p1 = p[i - 1]
+
+              Shapes.Move(_p1["e"], _p1["x"] - r , _p1["y"] - r)
+
+            EndIf
+
+            If i < Array.GetItemCount(p) - 1 Then
+
+              p[i + 1]["x"] = p[i + 1]["x"] + ?”x
+
+              p[i + 1]["y"] = p[i + 1]["y"] + ?”y
+
+              _p1 = p[i + 1]
+
+              Shapes.Move(_p1["e"], _p1["x"] - r , _p1["y"] - r)
+
+            EndIf
+
+          EndIf
+
+          AddControlLine()
+
+          mouseMove = "False"
+
+        Else
+
+          Program.Delay(100)
+
+        EndIf
+
+      EndWhile
+
+      _i = i
+
+      i = _i - Math.Remainder(_i, 3)
+
+      If i < Array.GetItemCount(p) - 1 Then
+
+        RemoveCurve()
+
+        DrawCurve()
+
+      EndIf
+
+      If (0 < i) And (i= _i) Then
+
+        i = i - 3
+
+        RemoveCurve()
+
+        DrawCurve()
+
+      EndIf
+
+    EndIf
+
+  Else
+
+    Program.Delay(100)
+
+  EndIf
+
+EndWhile
+
+
+
+Sub AddControlLine
+
+  ' param i - index of a point
+
+  GraphicsWindow.PenColor = "SteelBlue"
+
+  GraphicsWindow.PenWidth = 1
+
+  j = Math.Remainder(i, 3)
+
+  If j = 0 Then
+
+    If 0 < i Then
+
+      _p1 = p[i]
+
+      _p = p[i - 1]
+
+      k = i - 1
+
+      AddLine()
+
+    EndIf
+
+    If i < Array.GetItemCount(p) - 1 Then
+
+      _p1 = p[i]
+
+      _p = p[i + 1]
+
+      k = i + 1
+
+      AddLine()
+
+    EndIf
+
+  ElseIf j = 1 Then
+
+    _p1 = p[i - 1]
+
+    _p = p[i]
+
+    k = i
+
+    AddLine()
+
+  Else  ' j = 2
+
+    _p1 = p[i + 1]
+
+    _p = p[i]
+
+    k = i
+
+    AddLine()
+
+  EndIf
+
+EndSub
+
+
+
+Sub AddLine
+
+  ' param k - index of a control point
+
+  If c[k]["e"] <> "" Then
+
+    Shapes.Remove(c[k]["e"])
+
+  EndIf
+
+  c[k]["e"] = Shapes.AddLine(_p["x"], _p["y"], _p1["x"], _p1["y"])
+
+EndSub
+
+
+
+Sub AddPoints
+
+  For i = 0 To Array.GetItemCount(p) - 1
+
+    IsCtrl()
+
+    If ctrl Then
+
+      GraphicsWindow.PenWidth = 1
+
+      GraphicsWindow.BrushColor = "Transparent"
+
+      GraphicsWindow.PenColor = "Black"
+
+    Else
+
+      GraphicsWindow.PenWidth = 0
+
+      GraphicsWindow.BrushColor = "Black"
+
+    EndIf
+
+    p[i]["e"] = Shapes.AddEllipse(2 * r, 2 * r)
+
+    _p1 = p[i]
+
+    Shapes.Move(_p1["e"], _p1["x"] - r , _p1["y"] - r)
+
+  EndFor
+
+  For i = 0 To Array.GetItemCount(p) - 1
+
+    IsCtrl() 
+
+    If ctrl Then 
+
+      AddControlLine()
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub IsCtrl
+
+  ' param i - index of a point
+
+  If Math.Remainder(i, 3) = 0 Then
+
+    ctrl = "False"
+
+  Else
+
+    ctrl = "True"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Init
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  p[0] = "x=" + (gw * 1 / 6) + ";y=" + (gh * 3 / 4) + ";"
+
+  p[1] = "x=" + (gw * 1 / 6) + ";y=" + (gh * 2 / 4) + ";"
+
+  p[2] = "x=" + (gw * 2 / 6) + ";y=" + (gh * 1 / 4) + ";"
+
+  p[3] = "x=" + (gw * 3 / 6) + ";y=" + (gh * 1 / 4) + ";"
+
+  p[4] = "x=" + (gw * 4 / 6) + ";y=" + (gh * 1 / 4) + ";"
+
+  p[5] = "x=" + (gw * 5 / 6) + ";y=" + (gh * 2 / 4) + ";"
+
+  p[6] = "x=" + (gw * 5 / 6) + ";y=" + (gh * 3 / 4) + ";"
+
+  r = 4
+
+EndSub
+
+
+
+Sub CalcBt
+
+  ' param i - index of a start point
+
+  ' param t
+
+  ' return b[]
+
+  cood = "1=x;2=y;"
+
+  For j = 1 To Array.GetItemCount(cood)
+
+    a = cood[j]
+
+    b[a] = Math.Power(1 - t, 3) * p[i][a]
+
+    b[a] = b[a] + 3 * Math.Power(1 - t, 2) * t * p[i + 1][a]
+
+    b[a] = b[a] + 3 * (1 - t) * Math.Power(t, 2) * p[i + 2][a]
+
+    b[a] = b[a] + Math.Power(t, 3) * p[i + 3][a]
+
+  EndFor
+
+EndSub
+
+
+
+Sub DrawCurve
+
+  ' param i - index of a start point
+
+  GraphicsWindow.PenColor = "Gray"
+
+  GraphicsWindow.PenWidth = 2
+
+  ?”t = 1 / 32
+
+  nL = 0
+
+  For t = 0 To 1 Step ?”t
+
+    CalcBt()
+
+    If 0 < t Then
+
+      nL = nL + 1
+
+      l[nL] = Shapes.AddLine(_b["x"], _b["y"], b["x"], b["y"])
+
+    EndIf
+
+    _b = b
+
+  EndFor
+
+  curve[i] = l
+
+EndSub
+
+
+
+Sub RemoveCurve
+
+  ' param i - index of a start point
+
+  l = curve[i]
+
+  For j = 1 To nL
+
+    Shapes.Remove(l[j])
+
+  EndFor
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  mouseDown = "True"
+
+  dx = GraphicsWindow.MouseX
+
+  dy = GraphicsWindow.MouseY
+
+EndSub
+
+
+
+Sub OnMouseUp
+
+  mouseDown = "False"
+
+EndSub
+
+
+
+Sub OnMouseMove
+
+  mouseMove = "True"
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+EndSub
+
+

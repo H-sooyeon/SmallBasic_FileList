@@ -1,0 +1,251 @@
+GraphicsWindow.Height = 475
+
+GraphicsWindow.Width = 650
+
+GraphicsWindow.BrushColor = "Black"
+
+
+
+Target[1] = 23
+
+Target[2] = 30
+
+Target[3] = 30
+
+
+
+InputValue[1] = 80
+
+InputValue[2] = 24
+
+InputValue[3] = 60
+
+
+
+NumberGenomes = 50
+
+GenerationNum = 1
+
+MinError = 1000000
+
+
+
+
+
+
+
+FitnessText = Shapes.AddText("Fitness: ")
+
+Shapes.Move(FitnessText,100,380)
+
+MaxFitnessText = Shapes.AddText("Max Fitness: ")
+
+Shapes.Move(MaxFitnessText,100,400)
+
+GenerationText = Shapes.AddText("Generation: ")
+
+Shapes.Move(GenerationText,100,420)
+
+GenomeText = Shapes.AddText("Genome: ")
+
+Shapes.Move(GenomeText,100,440)
+
+
+
+For i = 1 To 3
+
+  For u = 1 To 3
+
+    Synapse[i][u][1] = Shapes.AddLine(125,(u*100)+25,325,(i*100)+25)
+
+    SynapseWeight[i][u][1] = Math.GetRandomNumber(10)/10
+
+  EndFor
+
+  For o = 1 To 3
+
+    Synapse[i][o][2] = Shapes.AddLine(525,(o*100)+25,325,(i*100)+25)
+
+    SynapseWeight[i][o][2] = Math.GetRandomNumber(10)/10
+
+  EndFor
+
+  NueronShape[i] = Shapes.AddEllipse(50,50)
+
+  Shapes.Move(NueronShape[i],300,i*100)
+
+  LDShapes.BrushColour(NueronShape[i],"Cyan")
+
+  NueronText[i] = Shapes.AddText("15")
+
+  Shapes.Move(NueronText[i],300+18,(i*100)+18)
+
+EndFor
+
+
+
+For i = 1 To 3
+
+  InputShape[i] = Shapes.AddEllipse(50,50)
+
+  Shapes.Move(InputShape[i],100,i*100)
+
+  LDShapes.BrushColour(InputShape[i],"Yellow")
+
+  InputText[i] = Shapes.AddText(InputValue[i])
+
+  Shapes.Move(InputText[i],100+18,(i*100)+18)
+
+EndFor
+
+
+
+For i = 1 To 3
+
+  OutputShape[i] = Shapes.AddEllipse(50,50)
+
+  Shapes.Move(OutputShape[i],500,(i*100))
+
+  LDShapes.BrushColour(OutputShape[i],"White")
+
+  OutputText[i] = Shapes.AddText("15")
+
+  Shapes.Move(OutputText[i],500+18,(i*100)+18)
+
+EndFor
+
+
+
+While MinError <> 0
+
+  Program.Delay(15)
+
+  OutputValue[1] = ""
+
+  OutputValue[2] = ""
+
+  NueronValue[1] = ""
+
+  NueronValue[2] = ""
+
+  NueronValue[3] = ""
+
+  GenomeNum = GenomeNum + 1
+
+   If GenomeNum > NumberGenomes Then
+
+     GenomeNum = 1
+
+     GenerationNum = GenerationNum + 1
+
+     SynapseWeight = SynapseData
+
+  EndIf
+
+
+
+  
+
+  For i = 1 To 3
+
+    For u = 1 To 3
+
+      CalculateError()
+
+      If CalcSynapse Then
+
+        SynapseWeight[i][u][1] =  Math.GetRandomNumber(10)/10
+
+      EndIf
+
+      LDShapes.PenWidth(Synapse[i][u][1],2+(SynapseWeight[i][u][1]*6))
+
+      NueronRawValue[i][u] = InputValue[u] * SynapseWeight[i][u][1]
+
+      NueronValue[i] = NueronValue[i] + NueronRawValue[i][u]
+
+    EndFor
+
+    NueronValue[i] = Math.Round(NueronValue[i] / 3)
+
+    For o = 1 To 3
+
+      CalculateError()
+
+      If CalcSynapse Then
+
+        SynapseWeight[i][o][2] = Math.GetRandomNumber(10)/10
+
+      EndIf
+
+      
+
+      LDShapes.PenWidth(Synapse[i][o][2],2+(SynapseWeight[i][o][2]*6))
+
+      OutputRawValue[i][o] = NueronValue[i] * SynapseWeight[i][o][2]
+
+      OutputValue[o] = OutputValue[o] + OutputRawValue[i][o]
+
+    EndFor
+
+    Shapes.SetText(NueronText[i],NueronValue[i])
+
+  EndFor
+
+  TotalError = ""
+
+  For r = 1 To 3
+
+    OutputValue[r] = Math.Round(OutputValue[r]/3)
+
+    Shapes.SetText(OutputText[r],OutputValue[r])
+
+    ErrorDist[r] = Math.Abs(OutputValue[r]-Target[r])
+
+    TotalError = TotalError + ErrorDist[r]
+
+  EndFor
+
+  If TotalError < MinError Then
+
+    MinError = TotalError
+
+    BestGenome = GenomeNum
+
+    SynapseData[BestGenome] = SynapseWeight
+
+    ErrorPercent = 100-((MinError/200)*100)
+
+    SynapseData = SynapseWeight
+
+  EndIf
+
+  Shapes.SetText(FitnessText, "Fitness: " + TotalError)
+
+  Shapes.SetText(MaxFitnessText, "MaxFitness: " + MinError)
+
+  Shapes.SetText(GenerationText, "Generation: " + GenerationNum)
+
+  Shapes.SetText(GenomeText, "Genome: " + GenomeNum)
+
+EndWhile
+
+
+
+Sub CalculateError
+
+  Rand = Math.GetRandomNumber(100)
+
+  If ErrorPercent < Rand Then
+
+    CalcSynapse = "True"
+
+  Else
+
+    CalcSynapse = "False"
+
+  EndIf
+
+EndSub
+
+

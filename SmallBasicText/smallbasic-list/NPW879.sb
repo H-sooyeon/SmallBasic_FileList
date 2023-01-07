@@ -1,0 +1,451 @@
+'Setup window
+
+gw = 800
+
+gh = 600
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+gw = gw+20 'Some funnies if we don't make these bigger than window?
+
+gh = gh+20
+
+GraphicsWindow.Top = 8
+
+GraphicsWindow.Left = 8
+
+GraphicsWindow.Title = "Shadows"
+
+GraphicsWindow.CanResize = "False"
+
+GraphicsWindow.BackgroundColor = "LightBlue"
+
+GraphicsWindow.FontSize = 40
+
+GraphicsWindow.DrawText(50,50,"Move the sun with the mouse")
+
+GraphicsWindow.DrawText(50,100,"Move the box with the arrow keys")
+
+Program.Delay(2000)
+
+GraphicsWindow.Clear()
+
+
+
+'Setup box and sun
+
+Srad = 10
+
+Brad = 25
+
+GraphicsWindow.PenWidth = 0
+
+GraphicsWindow.BrushColor = "Orange"
+
+sun = Shapes.AddEllipse(2*Srad,2*Srad)
+
+GraphicsWindow.BrushColor = "Blue"
+
+box = Shapes.AddRectangle(2*Brad,2*Brad)
+
+Sx = 100
+
+Sy = 100
+
+Bx = gw/2
+
+By = gh/2
+
+SxLast = 0
+
+SyLast = 0
+
+BxLast = 0
+
+ByLast = 0
+
+
+
+'Setup events
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+Left = 0
+
+Right = 0
+
+Up = 0
+
+Down = 0
+
+
+
+'Main loop
+
+While ("True")
+
+  UpdateShapes()
+
+  UpdateShadow()
+
+  Program.Delay(20)
+
+EndWhile
+
+
+
+'Update Sun and Box
+
+Sub UpdateShapes
+
+  If (Left = 1) Then
+
+    Bx = Bx-1
+
+    If (Bx < 0) Then
+
+      Bx = 0
+
+    EndIf
+
+  EndIf
+
+  If (Right = 1) Then
+
+    Bx = Bx+1
+
+    If (Bx > gw) Then
+
+      Bx = gw
+
+    EndIf
+
+  EndIf
+
+  If (Up = 1) Then
+
+    By = By-1
+
+    If (By < 0) Then
+
+      By = 0
+
+    EndIf
+
+  EndIf
+
+  If (Down = 1) Then
+
+    By = By+1
+
+    If (By > gh) Then
+
+      By = gh
+
+    EndIf
+
+  EndIf
+
+  Shapes.Move(box,Bx-Brad,By-Brad)
+
+  Shapes.Move(sun,Sx-Srad,Sy-Srad)
+
+EndSub
+
+
+
+Sub UpdateShadow
+
+  If (Sx <> SxLast Or Sy <> SyLast Or Bx <> BxLast Or By <> ByLast) Then
+
+    SxLast = Sx
+
+    SyLast = Sy
+
+    BxLast = Bx
+
+    ByLast = By
+
+    'Vector from sun to box centre
+
+    Vx = Bx-Sx
+
+    Vy = By-Sy
+
+    'Locate sun in possible segments
+
+    'Set the box corner coordinates to use and the face to draw shadow to
+
+    If (Math.Abs(Vx) < Brad And Math.Abs(Vy) < Brad) Then
+
+      'Sun inside box
+
+      Face = "None"
+
+    ElseIf (Math.Abs(Vx) < Brad And Vy > 0) Then
+
+      'Sun above box
+
+      C1x = Bx-Brad
+
+      C1y = By-Brad
+
+      C2x = Bx+Brad
+
+      C2y = By-Brad
+
+      Face = "Bottom"
+
+    ElseIf (Math.Abs(Vx) < Brad And Vy < 0) Then
+
+      'Sun below box
+
+      C1x = Bx-Brad
+
+      C1y = By+Brad
+
+      C2x = Bx+Brad
+
+      C2y = By+Brad
+
+      Face = "Top"
+
+    ElseIf (Math.Abs(Vy) < Brad And Vx > 0) Then
+
+      'Sun left of box
+
+      C1x = Bx-Brad
+
+      C1y = By-Brad
+
+      C2x = Bx-Brad
+
+      C2y = By+Brad
+
+      Face = "Right"
+
+    ElseIf (Math.Abs(Vy) < Brad And Vx < 0) Then
+
+      'Sun right of box
+
+      C1x = Bx+Brad
+
+      C1y = By-Brad
+
+      C2x = Bx+Brad
+
+      C2y = By+Brad
+
+      Face = "Left"
+
+    ElseIf (Vx < 0 And Vy < 0) Then
+
+      'Sun bottom right
+
+      C1x = Bx-Brad
+
+      C1y = By+Brad
+
+      C2x = Bx+Brad
+
+      C2y = By-Brad
+
+      Face = "Top"
+
+    ElseIf (Vx > 0 And Vy < 0) Then
+
+      'Sun bottom left
+
+      C1x = Bx-Brad
+
+      C1y = By-Brad
+
+      C2x = Bx+Brad
+
+      C2y = By+Brad
+
+      Face = "Top"
+
+    ElseIf (Vx < 0 And Vy > 0) Then
+
+      'Sun top right
+
+      C1x = Bx-Brad
+
+      C1y = By-Brad
+
+      C2x = Bx+Brad
+
+      C2y = By+Brad
+
+      Face = "Bottom"
+
+    ElseIf (Vx > 0 And Vy > 0) Then
+
+      'Sun top left
+
+      C1x = Bx-Brad
+
+      C1y = By+Brad
+
+      C2x = Bx+Brad
+
+      C2y = By-Brad
+
+      Face = "Bottom"
+
+    EndIf
+
+    'Set line equations
+
+    A1 = (Sy-C1y)/(Sx-C1x)
+
+    B1 = Sy-A1*Sx
+
+    A2 = (Sy-C2y)/(Sx-C2x)
+
+    B2 = Sy-A2*Sx
+
+    'Intersections with boundary
+
+    If (Face = "Top") Then
+
+      D1y = 0
+
+      D1x = (D1y-B1)/A1
+
+      D2y = 0
+
+      D2x = (D2y-B2)/A2
+
+    ElseIf (Face = "Bottom") Then
+
+      D1y = gh
+
+      D1x = (D1y-B1)/A1
+
+      D2y = gh
+
+      D2x = (D2y-B2)/A2
+
+    ElseIf (Face = "Left") Then
+
+      D1x = 0
+
+      D1y = A1*D1x+B1
+
+      D2x = 0
+
+      D2y = A2*D2x+B2
+
+    ElseIf (Face = "Right") Then
+
+      D1x = gw
+
+      D1y = A1*D1x+B1
+
+      D2x = gw
+
+      D2y = A2*D2x+B2
+
+    ElseIf (Face = "None") Then
+
+      D1x = Bx
+
+      D1y = By
+
+      D2x = Bx
+
+      D2y = By
+
+    EndIf
+
+    GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
+
+    GraphicsWindow.FillRectangle(0,0,gw,gh)
+
+    GraphicsWindow.BrushColor = "LightGray"
+
+    GraphicsWindow.FillTriangle(C1x,C1y,C2x,C2y,D1x,D1y)
+
+    GraphicsWindow.FillTriangle(C2x,C2y,D1x,D1y,D2x,D2y)
+
+  EndIf
+
+EndSub
+
+
+
+'Event control
+
+Sub OnMouseMove
+
+  'The small added terms prevent Sx=Bx etc
+
+  Sx = GraphicsWindow.MouseX+0.001
+
+  Sy = GraphicsWindow.MouseY+0.001
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  If (key = "Left") Then
+
+    Left = 1
+
+  ElseIf (key = "Right") Then
+
+    Right = 1
+
+  ElseIf (key = "Up") Then
+
+    Up = 1
+
+  ElseIf (key = "Down") Then
+
+    Down = 1
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  key = GraphicsWindow.LastKey
+
+  If (key = "Left") Then
+
+    Left = 0
+
+  ElseIf (key = "Right") Then
+
+    Right = 0
+
+  ElseIf (key = "Up") Then
+
+    Up = 0
+
+  ElseIf (key = "Down") Then
+
+    Down = 0
+
+  EndIf
+
+EndSub
+
+
+
+

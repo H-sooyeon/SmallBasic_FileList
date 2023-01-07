@@ -1,0 +1,755 @@
+' Level editor for Paddle Game
+
+
+
+True = "True"
+
+False = "False"
+
+
+
+UseLocalResources = False
+
+
+
+Rows = 16
+
+Columns = 11
+
+
+
+BlockWidth = 70
+
+BlockHeight = 30
+
+
+
+WindowWidth = 800
+
+WindowHeight = 600
+
+
+
+Left = 0
+
+Right = 1
+
+Top = 2
+
+Bottom = 3
+
+
+
+BlockNone = 0
+
+BlockBlue = 1
+
+BlockGreen = 2
+
+BlockOrange = 3
+
+BlockPurple = 4
+
+BlockBrown = 5
+
+
+
+ButtonWidth = 60
+
+ButtonHeight = 30
+
+
+
+' Resources
+
+LevelsFile = Program.Directory + "\levels.txt"
+
+If (UseLocalResources) Then
+
+  ImageDirectory = Program.Directory + "\img\"
+
+Else
+
+  ImageDirectory = "http://www.serdan.eu/downloads/smallbasic/paddlegame/"
+
+EndIf
+
+
+
+Main()
+
+
+
+Sub Main
+
+  AskForLevel()
+
+  InitVariables()
+
+  LoadGraphics()
+
+  InitGraphicsWindow()
+
+  AssignEvents()
+
+  DrawSaveButton()
+
+  DrawLoadButton()
+
+  DrawFillButton()
+
+  DrawClearButton()
+
+  InitSelectBlocks()
+
+  SelectBlueBlock()
+
+  CalcBlockRects()
+
+  DrawLevel()
+
+EndSub
+
+
+
+Sub AskForLevel
+
+  TextWindow.Write("Enter the level you want to edit: ")
+
+  selectedLevel = TextWindow.ReadNumber() - 1
+
+  If (selectedLevel < 0) Then
+
+    selectedLevel = 0
+
+  EndIf
+
+EndSub
+
+
+
+Sub InitGraphicsWindow
+
+  GraphicsWindow.Title = "Paddle Game Level Editor
+
+  GraphicsWindow.Width = WindowWidth - 2
+
+  GraphicsWindow.Height = WindowHeight - 2
+
+  GraphicsWindow.Left = (Desktop.Width - WindowWidth) / 2
+
+  GraphicsWindow.Top = (Desktop.Height - WindowHeight) / 2
+
+  GraphicsWindow.CanResize = False
+
+  
+
+  GraphicsWindow.DrawResizedImage(BackgroundImage, 0, 0, WindowWidth, WindowHeight)
+
+  GraphicsWindow.DrawRectangle(blockAreaLeft, blockAreaTop, blockAreaWidth, blockAreaHeight)
+
+EndSub
+
+
+
+Sub AssignEvents
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+EndSub
+
+
+
+Sub LoadGraphics
+
+  BackgroundImage = ImageList.LoadImage(ImageDirectory + "background.png")
+
+  
+
+  BlockImages[BlockBlue] = ImageList.LoadImage(ImageDirectory + "blue.png")
+
+  BlockImages[BlockGreen] = ImageList.LoadImage(ImageDirectory + "green.png")
+
+  BlockImages[BlockOrange] = ImageList.LoadImage(ImageDirectory + "orange.png")
+
+  BlockImages[BlockPurple] = ImageList.LoadImage(ImageDirectory + "purple.png")
+
+  BlockImages[BlockBrown] = ImageList.LoadImage(ImageDirectory + "brown.png")
+
+EndSub
+
+
+
+Sub InitVariables
+
+  blockAreaWidth = BlockWidth * Columns
+
+  blockAreaHeight = BlockHeight * Rows
+
+  blockAreaTop = 15
+
+  blockAreaLeft = (WindowWidth - blockAreaWidth) / 2
+
+  blockAreaRight = blockAreaLeft + blockAreaWidth
+
+  blockAreaBottom = blockAreaTop + blockAreaHeight
+
+  
+
+  params = 0
+
+EndSub
+
+
+
+Sub InitSelectBlocks
+
+  selectBlockBlue = Shapes.AddImage(BlockImages[BlockBlue])
+
+  selectBlockGreen = Shapes.AddImage(BlockImages[BlockGreen])
+
+  selectBlockOrange = Shapes.AddImage(BlockImages[BlockOrange])
+
+  selectBlockPurple = Shapes.AddImage(BlockImages[BlockPurple])
+
+  selectBlockBrown = Shapes.AddImage(BlockImages[BlockBrown])
+
+  
+
+  selectBlockBlueLeft = (WindowWidth - (BlockWidth * 5 + 40)) / 2
+
+  selectBlockBlueTop = (WindowHeight - blockAreaBottom - BlockHeight) / 2 + blockAreaBottom
+
+  selectBlockBlueRight = selectBlockBlueLeft + BlockWidth
+
+  selectBlockBlueBottom = selectBlockBlueTop + BlockHeight
+
+  
+
+  selectBlockGreenLeft = selectBlockBlueRight + 10
+
+  selectBlockGreenTop = selectBlockBlueTop
+
+  selectBlockGreenRight = selectBlockGreenLeft + BlockWidth
+
+  selectBlockGreenBottom = selectBlockGreenTop + BlockHeight
+
+  
+
+  selectBlockOrangeLeft = selectBlockGreenRight + 10
+
+  selectBlockOrangeTop = selectBlockBlueTop
+
+  selectBlockOrangeRight = selectBlockOrangeLeft + BlockWidth
+
+  selectBlockOrangeBottom = selectBlockOrangeTop + BlockHeight
+
+  
+
+  selectBlockPurpleLeft = selectBlockOrangeRight + 10
+
+  selectBlockPurpleTop = selectBlockBlueTop
+
+  selectBlockPurpleRight = selectBlockPurpleLeft + BlockWidth
+
+  selectBlockPurpleBottom = selectBlockPurpleTop + BlockHeight
+
+  
+
+  selectBlockBrownLeft = selectBlockPurpleRight + 10
+
+  selectBlockBrownTop = selectBlockBlueTop
+
+  selectBlockBrownRight = selectBlockBrownLeft + BlockWidth
+
+  selectBlockBrownBottom = selectBlockBrownTop + BlockHeight
+
+  
+
+  Shapes.Move(selectBlockBlue, selectBlockBlueLeft, selectBlockBlueTop)
+
+  Shapes.Move(selectBlockGreen, selectBlockGreenLeft, selectBlockGreenTop)
+
+  Shapes.Move(selectBlockOrange, selectBlockOrangeLeft, selectBlockOrangeTop)
+
+  Shapes.Move(selectBlockPurple, selectBlockPurpleLeft, selectBlockPurpleTop)
+
+  Shapes.Move(selectBlockBrown, selectBlockBrownLeft, selectBlockBrownTop)
+
+EndSub
+
+
+
+Sub CalcBlockRects
+
+  For r = 1 To Rows
+
+    For c = 1 To Columns
+
+      blocks[r][c][Left] = (c - 1) * BlockWidth + blockAreaLeft
+
+      blocks[r][c][Right] = blocks[r][c][Left] + BlockWidth
+
+      blocks[r][c][Top] = (r - 1) * BlockHeight + blockAreaTop
+
+      blocks[r][c][Bottom] = blocks[r][c][Top] + BlockHeight
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub DrawLevel
+
+  ClearLevel()
+
+  For r = 1 To Rows
+
+' The following line could be harmful and has been automatically commented.
+
+'     line = File.ReadLine(LevelsFile, Rows * selectedLevel + r)
+
+    For c = 1 To Columns
+
+      subText = Text.GetSubText(line, c, 1)
+
+      If (subText = "") Then
+
+        subText = BlockNone
+
+      EndIF
+
+      blockTypes[r][c] = subText
+
+      If (subText <> BlockNone) Then
+
+        blockShapes[r][c] = Shapes.AddImage(BlockImages[subText])
+
+        Shapes.Move(blockShapes[r][c], blocks[r][c][Left], blocks[r][c][Top])
+
+      EndIF
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub ClearLevel
+
+  For r = 1 To Rows
+
+    For c = 1 To Columns
+
+      blockTypes[r][c] = BlockNone
+
+      Shapes.Remove(blockShapes[r][c])
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub FillLevel
+
+  For r = 1 To Rows
+
+    For c = 1 To Columns
+
+      blockTypes[r][c] = selectedBlock
+
+      Shapes.Remove(blockShapes[r][c])
+
+      blockShapes[r][c] = Shapes.AddImage(BlockImages[selectedBlock])
+
+      Shapes.Move(blockShapes[r][c], blocks[r][c][Left], blocks[r][c][Top])
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub DrawSaveButton
+
+  saveLeft = 10
+
+  saveRight = saveLeft + ButtonWidth
+
+  saveTop = WindowHeight - 10 - ButtonHeight
+
+  saveBottom = saveTop + ButtonHeight
+
+  Stack.PushValue(params, saveLeft)
+
+  Stack.PushValue(params, saveTop)
+
+  Stack.PushValue(params, ButtonWidth)
+
+  Stack.PushValue(params, ButtonHeight)
+
+  DrawButton()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.DrawText(22, WindowHeight - 34, "Save")
+
+EndSub
+
+
+
+Sub DrawLoadButton
+
+  loadLeft = saveRight + 10
+
+  loadRight = loadLeft + ButtonWidth
+
+  loadTop = saveTop
+
+  loadBottom = saveBottom
+
+  Stack.PushValue(params, loadLeft)
+
+  Stack.PushValue(params, loadTop)
+
+  Stack.PushValue(params, ButtonWidth)
+
+  Stack.PushValue(params, ButtonHeight)
+
+  DrawButton()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.DrawText(loadLeft + 12, WindowHeight - 34, "Load")
+
+EndSub
+
+
+
+Sub DrawFillButton
+
+  fillRight = WindowWidth - 10
+
+  fillLeft = fillRight - ButtonWidth
+
+  fillTop = saveTop
+
+  fillBottom = saveBottom
+
+  Stack.PushValue(params, fillLeft)
+
+  Stack.PushValue(params, fillTop)
+
+  Stack.PushValue(params, ButtonWidth)
+
+  Stack.PushValue(params, ButtonHeight)
+
+  DrawButton()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.DrawText(fillLeft + 18, WindowHeight - 34, "Fill")
+
+EndSub
+
+
+
+Sub DrawClearButton
+
+  clearRight = fillLeft - 10
+
+  clearLeft = clearRight - ButtonWidth
+
+  clearTop = saveTop
+
+  clearBottom = clearTop + ButtonHeight
+
+  Stack.PushValue(params, clearLeft)
+
+  Stack.PushValue(params, clearTop)
+
+  Stack.PushValue(params, ButtonWidth)
+
+  Stack.PushValue(params, ButtonHeight)
+
+  DrawButton()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.DrawText(clearLeft + 12, WindowHeight - 34, "Clear")
+
+EndSub
+
+
+
+Sub DrawButton
+
+  paramHeight = Stack.PopValue(params)
+
+  paramWidth = Stack.PopValue(params)
+
+  paramY = Stack.PopValue(params)
+
+  paramX = Stack.PopValue(params)
+
+  minColor = 100
+
+  maxColor = 220
+
+  borderWidth = 6
+
+  colorStep = (maxColor - minColor) / borderWidth
+
+  For i = 0 To borderWidth - 1
+
+    GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(i * colorStep + minColor, i * colorStep + minColor, i * colorStep + minColor)
+
+    GraphicsWindow.FillRectangle(paramX + i, paramY + i, paramWidth - i * 2, paramHeight - i * 2)
+
+  EndFor
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  If (Mouse.IsLeftButtonDown) Then
+
+    
+
+    x = GraphicsWindow.MouseX
+
+    y = GraphicsWindow.MouseY
+
+    If ((x < saveLeft Or x > saveRight Or y < saveTop Or y > saveBottom) = False) Then
+
+      For r = 1 To Rows
+
+        line = ""
+
+        For c = 1 To Columns
+
+          line = Text.Append(line, blockTypes[r][c])
+
+        EndFor
+
+' The following line could be harmful and has been automatically commented.
+
+'         File.WriteLine(LevelsFile, selectedLevel * Rows + r, line)
+
+      EndFor
+
+      TextWindow.WriteLine("Saved")
+
+    ElseIF ((x < loadLeft Or x > loadRight Or y < loadTop Or y > loadBottom) = False) Then
+
+      AskForLevel()
+
+      DrawLevel()
+
+    ElseIf ((x < clearLeft Or x > clearRight Or y < clearTop Or y > clearBottom) = False) Then
+
+      ClearLevel()
+
+    ElseIf ((x < fillLeft Or x > fillRight Or y < fillTop Or y > fillBottom) = False) Then
+
+      FillLevel()
+
+    ElseIf ((x < selectBlockBlueLeft Or x > selectBlockBlueRight Or y < selectBlockBlueTop Or y > selectBlockBlueBottom) = False) Then
+
+      SelectBlueBlock()
+
+    ElseIf ((x < selectBlockGreenLeft Or x > selectBlockGreenRight Or y < selectBlockGreenTop Or y > selectBlockGreenBottom) = False) Then
+
+      SelectGreenBlock()
+
+    ElseIf ((x < selectBlockOrangeLeft Or x > selectBlockOrangeRight Or y < selectBlockOrangeTop Or y > selectBlockOrangeBottom) = False) Then
+
+      SelectOrangeBlock()
+
+    ElseIf ((x < selectBlockPurpleLeft Or x > selectBlockPurpleRight Or y < selectBlockPurpleTop Or y > selectBlockPurpleBottom) = False) Then
+
+      SelectPurpleBlock()
+
+    ElseIf ((x < selectBlockBrownLeft Or x > selectBlockBrownRight Or y < selectBlockBrownTop Or y > selectBlockBrownBottom) = False) Then
+
+      SelectBrownBlock()
+
+    Else
+
+      For r = 1 To Rows
+
+        For c = 1 To Columns
+
+          If ((x < blocks[r][c][Left] Or x > blocks[r][c][Right] Or y < blocks[r][c][Top] Or y > blocks[r][c][Bottom]) = False) Then
+
+            If (blockTypes[r][c] = BlockNone) Then
+
+              blockTypes[r][c] = selectedBlock
+
+              blockShapes[r][c] = Shapes.AddImage(BlockImages[selectedBlock])
+
+              Shapes.Move(blockShapes[r][c], blocks[r][c][Left], blocks[r][c][Top])
+
+            Else
+
+              blockTypes[r][c] = BlockNone
+
+              Shapes.Remove(blockShapes[r][c])
+
+            EndIf
+
+          EndIf
+
+        EndFor
+
+      EndFor
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  If (GraphicsWindow.LastKey = "Escape") Then
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+
+
+Sub SelectBlueBlock
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.DrawRectangle(selectBlockBlueLeft - 3, selectBlockBlueTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.DrawRectangle(selectBlockGreenLeft - 3, selectBlockGreenTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockOrangeLeft - 3, selectBlockOrangeTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockPurpleLeft - 3, selectBlockPurpleTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockBrownLeft - 3, selectBlockBrownTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  selectedBlock = BlockBlue
+
+EndSub
+
+Sub SelectGreenBlock
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.DrawRectangle(selectBlockGreenLeft - 3, selectBlockGreenTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.DrawRectangle(selectBlockBlueLeft - 3, selectBlockBlueTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockOrangeLeft - 3, selectBlockOrangeTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockPurpleLeft - 3, selectBlockPurpleTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockBrownLeft - 3, selectBlockBrownTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  selectedBlock = BlockGreen
+
+EndSub
+
+Sub SelectOrangeBlock
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.DrawRectangle(selectBlockOrangeLeft - 3, selectBlockOrangeTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.DrawRectangle(selectBlockBlueLeft - 3, selectBlockBlueTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockGreenLeft - 3, selectBlockGreenTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockPurpleLeft - 3, selectBlockPurpleTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockBrownLeft - 3, selectBlockBrownTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  selectedBlock = BlockOrange
+
+EndSub
+
+Sub SelectPurpleBlock
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.DrawRectangle(selectBlockPurpleLeft - 3, selectBlockPurpleTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.DrawRectangle(selectBlockBlueLeft - 3, selectBlockBlueTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockGreenLeft - 3, selectBlockGreenTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockOrangeLeft - 3, selectBlockOrangeTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockBrownLeft - 3, selectBlockBrownTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  selectedBlock = BlockPurple
+
+EndSub
+
+Sub SelectBrownBlock
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.DrawRectangle(selectBlockBrownLeft - 3, selectBlockBrownTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.DrawRectangle(selectBlockBlueLeft - 3, selectBlockBlueTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockGreenLeft - 3, selectBlockGreenTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockOrangeLeft - 3, selectBlockOrangeTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  GraphicsWindow.DrawRectangle(selectBlockPurpleLeft - 3, selectBlockPurpleTop - 3, BlockWidth + 6, BlockHeight + 6)
+
+  selectedBlock = BlockBrown
+
+EndSub
+
+
+
+
+
+
+
+

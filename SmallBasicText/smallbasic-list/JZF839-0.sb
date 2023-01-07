@@ -1,0 +1,573 @@
+'  Small Basic BrickClick '
+
+'    V1:  by Brian Broker with game ideas provided by Amanda Broker
+
+info[1] = "This is the classic game where your goal is to hit the bricks with a ball by using your paddle "
+
+info[1] = info[1] + "located near the bottom of the game window.  You get three balls to start the game and "
+
+info[1] = info[1] + "score points by hitting the bricks (scoring is described below).  When the last brick of "
+
+info[1] = info[1] + "a row is gone, a new row will be generated."
+
+info[2] = "Your paddle will shrink if you fail to hit any bricks, making it harder to hit the ball.  However, "
+
+info[2] = info[2] + "you can regrow your paddle every time you hit one or more bricks 15 consecutive times.  "
+
+info[2] = info[2] + "Your 'regrow' status will be shown as a progress bar above the bricks."
+
+info[3] = "Clicking the mouse button will either start the game, or launch your ball, or pause the game "
+
+info[3] = info[3] + "depending on the current state of the game."
+
+
+
+' Define gfx window attributes...
+
+GraphicsWindow.Hide()
+
+GraphicsWindow.Width = 751
+
+GraphicsWindow.Height = 500
+
+GraphicsWindow.Title = "Small Basic BrickClick"
+
+GraphicsWindow.CanResize = "False"
+
+GraphicsWindow.BackgroundColor = "Black"
+
+GraphicsWindow.Show()
+
+
+
+' Define mouse down (click) event...
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+
+
+' Shortcuts for faster/cleaner coding
+
+gw = GraphicsWindow.Width
+
+gh = GraphicsWindow.Height
+
+
+
+rowLength = Math.Floor(gw/50)
+
+
+
+Timer.Interval = 10
+
+Timer.Tick = OnTimerTick
+
+Timer.Pause()
+
+
+
+brickColors="1=Purple;2=Red;3=Orange;4=Yellow;5=Green;6=Blue"
+
+
+
+' ball movement info
+
+deltaX = 1
+
+deltaY = 2
+
+
+
+ShowInstructions()
+
+
+
+'========================================
+
+Sub InitializeGame
+
+  gameInPlay = "False"
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.MouseMove = OnMouseMove
+
+  
+
+  score = 0
+
+  UpdateScore()
+
+  GraphicsWindow.DrawText(10, 5, "Score:")
+
+
+
+  ballsRemaining = 3
+
+  UpdateBallsRemaining()
+
+  GraphicsWindow.DrawText(gw-135,5,"Balls remaining:")
+
+  
+
+  hitCount = 15
+
+  ' border of regrow bar
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.DrawRectangle(gw/2-61, 5, 122, 15)
+
+  UpdateGrowBar()
+
+
+
+  ' Initialize Paddle
+
+  pw = 100
+
+  updatePaddle()
+
+
+
+  ' Initialize Ball
+
+  GraphicsWindow.PenColor = "#80FFFFFF"
+
+  GraphicsWindow.BrushColor = "LightBlue"
+
+  ball = Shapes.AddEllipse(16, 16)
+
+  Shapes.Move(ball, -16, -16)
+
+  
+
+  newRowFlag = "False"
+
+  For r = 1 to 6
+
+    bricksInRow[r] = 0
+
+  EndFor
+
+  DrawBricks()
+
+EndSub
+
+'========================================
+
+Sub PlayGame
+
+  gameInPlay = "True"
+
+  ballsRemaining = ballsRemaining - 1
+
+  UpdateBallsRemaining()
+
+  Mouse.HideCursor()
+
+  pw = 100
+
+  updatePaddle()
+
+  hitCount = 15
+
+  UpdateGrowBar()
+
+  x = gw/2
+
+  y = gh/2
+
+  Shapes.Move(ball, x-8, y-8)
+
+  Sound.PlayBellRingAndWait()
+
+  
+
+  While (y < gh+8) 
+
+    x = x + deltaX
+
+    y = y + deltaY
+
+    
+
+    If (x >= gw-8 Or x <= 8) Then
+
+      deltaX = -deltaX
+
+      x = x + deltaX
+
+    EndIf
+
+    If (y <= 8) Then
+
+      deltaY = -deltaY
+
+    EndIf
+
+    
+
+    If (y+2*deltaY > 30 And Text.EndsWith(GraphicsWindow.GetPixel(x+2*deltaX,y+2*deltaY), "000000") = "False") Then
+
+      RemoveBrick()
+
+      deltaY = -deltaY
+
+    EndIf
+
+    
+
+    padX = Shapes.GetLeft(paddle)
+
+    If (y > gh-25 And x >= padX And x <= padX+pw) Then '  paddle has been hit
+
+      Sound.PlayClick()
+
+      If newRowFlag = "True" Then
+
+        DrawBricks()
+
+      EndIf
+
+      
+
+      y = gh-25 ' make sure ball doesn't get stuck in paddle
+
+      deltaY = -deltaY
+
+      
+
+      '  paddle logic
+
+      deltaX = (x-padX-hpw)/qpw
+
+      If brickClicked = "False" Then
+
+        hitCount = 0
+
+        ResetGrowBar()
+
+        pw = pw - 10
+
+        updatePaddle()
+
+      Else
+
+        If hitCount < 15 Then
+
+          hitCount = hitCount + 1
+
+          UpdateGrowBar()
+
+        EndIf
+
+        If hitCount = 15 And pw < 100 Then
+
+          pw = pw + 10
+
+          UpdatePaddle()
+
+          If pw < 100 Then
+
+            hitCount = 0
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+      'GraphicsWindow.Title = hitCount + " - " + pw
+
+      brickClicked = "False"
+
+    EndIf
+
+    
+
+    Shapes.Move(ball, x-8, y-8)
+
+    Program.Delay(5)
+
+    If gameInPlay = "Paused" Then
+
+      GraphicsWindow.ShowMessage("Game Paused...","Small Basic BrickClick")
+
+      gameInPlay = "True"
+
+    EndIf
+
+  EndWhile
+
+  Mouse.ShowCursor()
+
+  gameInPlay = "False"
+
+  If ballsRemaining = 0 Then
+
+    GameOver()
+
+  EndIf
+
+EndSub
+
+'========================================
+
+Sub updatePaddle
+
+  hpw = pw/2
+
+  qpw = pw/4
+
+  GraphicsWindow.PenColor = "#80FFFFFF"
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  Shapes.Remove(paddle)
+
+  paddle = Shapes.AddEllipse(pw, 15)
+
+  OnMouseMove() ' to update paddle
+
+EndSub
+
+'========================================
+
+Sub OnMouseMove
+
+  'debug:GraphicsWindow.Title = GraphicsWindow.MouseX + "," + GraphicsWindow.MouseY
+
+  'debug:GraphicsWindow.Title = GraphicsWindow.GetPixel(GraphicsWindow.MouseX, GraphicsWindow.MouseY)
+
+  Shapes.Move(paddle, GraphicsWindow.MouseX-hpw, gh-20)
+
+EndSub
+
+'========================================
+
+Sub OnMouseDown
+
+  If gameInPlay = "False" Then
+
+    brickClicked = "True"
+
+    Timer.Resume()
+
+  ElseIf gameInPlay = "Instructions" Then
+
+    InitializeGame()
+
+  Else
+
+    gameInPlay = "Paused"
+
+  EndIf
+
+    
+
+EndSub
+
+'========================================
+
+Sub OnTimerTick
+
+  Timer.Pause()
+
+  PlayGame()
+
+EndSub
+
+'========================================
+
+Sub UpdateScore
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FillRectangle(55, 5, 100, 18)
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.DrawText(60, 5, score)
+
+EndSub
+
+'========================================
+
+Sub UpdateBallsRemaining
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FillRectangle(gw-20, 5, 15, 18)
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.DrawText(gw-15, 5, ballsRemaining)
+
+EndSub
+
+'========================================
+
+Sub ResetGrowBar
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FillRectangle(gw/2-60, 6, 120, 13)
+
+EndSub
+
+'========================================
+
+Sub UpdateGrowBar
+
+  If hitCount <= 1 Then
+
+    ResetGrowBar()
+
+  EndIf
+
+  GraphicsWindow.BrushColor = "Lime"
+
+  GraphicsWindow.FillRectangle(gw/2-60, 6, 8*hitCount, 13)
+
+EndSub
+
+
+
+'========================================
+
+Sub DrawBricks
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "#80000000"
+
+  For i = 1 To Array.GetItemCount(brickColors)
+
+    If bricksInRow[i] = 0 Then
+
+      GraphicsWindow.BrushColor = brickColors[i]
+
+      For j = 0 To rowLength+1
+
+        GraphicsWindow.FillRectangle(j*50+1,i*15+15,49,14)
+
+        GraphicsWindow.DrawRectangle(j*50+2,i*15+16,47,12)
+
+      EndFor
+
+      bricksInRow[i] = rowLength
+
+    EndIf
+
+  EndFor
+
+  newRowFlag = "False"
+
+EndSub
+
+'========================================
+
+Sub RemoveBrick
+
+  Sound.PlayClick()
+
+  brickClicked = "True"
+
+  row = Math.Floor((y+2*deltaY-15)/15)
+
+  score = score+7-row
+
+  UpdateScore()
+
+  brickX = Math.Floor((x+2*deltaX)/50)*50+1
+
+  brickY = row*15+15
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FillRectangle(brickX,brickY,50,15)
+
+  bricksInRow[row] = bricksInRow[row]-1
+
+  If bricksInRow[row] = 0 Then
+
+    newRowFlag = "True"
+
+  EndIf
+
+EndSub
+
+'========================================
+
+Sub GameOver
+
+  ' todo:  make this UX better... (high scores and such)
+
+  Sound.PlayChime()
+
+  GraphicsWindow.ShowMessage("Game Over... Your final score is: " + score, "Small Basic BrickClick :: Game Over")
+
+  ShowInstructions()
+
+EndSub
+
+'========================================
+
+Sub ShowInstructions
+
+  gameInPlay = "Instructions"
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.BrushColor = "CornFlowerBlue"
+
+  GraphicsWindow.FontSize = 48
+
+  GraphicsWindow.DrawText(10,5,"Small Basic BrickClick...")
+
+  GraphicsWindow.BrushColor = "DeepSkyBlue"
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.DrawBoundText(50,70,gw-100,info[1])
+
+  GraphicsWindow.DrawBoundText(50,170,gw-100,info[2])
+
+  GraphicsWindow.DrawBoundText(50,270,gw-100,info[3])
+
+    
+
+  
+
+  GraphicsWindow.BrushColor = "CornFlowerBlue"
+
+  GraphicsWindow.FontSize = 28
+
+  GraphicsWindow.DrawText(25,320,"Scoring:")
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "#80000000"
+
+  GraphicsWindow.FontSize = 16
+
+  For i = 1 To Array.GetItemCount(brickColors)
+
+    GraphicsWindow.BrushColor = brickColors[i]
+
+    GraphicsWindow.FillRectangle(50+1,i*20+340,49,14)
+
+    GraphicsWindow.DrawRectangle(50+2,i*20+341,47,12)
+
+    GraphicsWindow.DrawText(110,i*20+337, "+ " + (7-i) + " points")
+
+  EndFor
+
+EndSub
+
+'========================================
+
+

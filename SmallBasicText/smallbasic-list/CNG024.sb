@@ -1,0 +1,371 @@
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+Game_Width = 1920
+
+Game_Height = 1000
+
+GraphicsWindow.Width = Game_Width
+
+GraphicsWindow.Height = Game_Height
+
+GraphicsWindow.Left = -6
+
+GraphicsWindow.Top = 0
+
+
+
+
+
+Ground = 800
+
+GraphicsWindow.DrawLine(0,Ground,Game_Width,Ground)
+
+
+
+Scroll_X = 0
+
+Scroll_Speed = 10
+
+
+
+Player_Width = 80
+
+Player_Height = 150
+
+Player_MaximumSpeed = 5
+
+Player_JumpSpeed = -25
+
+Player_OnScreen_X = Game_Width/2-Player_Width/2
+
+
+
+Gravitation = 50
+
+Gravitation_Acceleration = Gravitation/30
+
+
+
+Enemy_Amount = 30
+
+Enemy_Width = 50
+
+Enemy_Height = 100
+
+Enemy_Speed = 2
+
+Enemy_JumpSpeed = -20
+
+
+
+Background_Amount = 5
+
+'Background2=ImageList.LoadImage(Program.Directory+"\Background.png")
+
+'Background_Width = ImageList.GetWidthOfImage(Background2)
+
+'Background_Height = ImageList.GetHeightOfImage(Background2)
+
+Background_Width=400
+
+
+
+GraphicsWindow.PenWidth = 0
+
+For b = 1 to Background_Amount
+
+  graphicswindow.BrushColor=GraphicsWindow.GetColorFromRGB(Math.GetRandomNumber(255),Math.GetRandomNumber(255),Math.GetRandomNumber(255))
+
+  'Background[b] = Shapes.AddImage(Background2)
+
+  Background[b] = Shapes.AddTriangle(0,Background_Width,Background_Width,Background_Width,Background_Width/2,0)
+
+  Shapes.Move(Background[b],Background_Width*b-Scroll_X,0) '-Background_Width
+
+endfor
+
+
+
+GraphicsWindow.PenWidth = 5
+
+GraphicsWindow.BrushColor="Blue"
+
+Player = Shapes.AddRectangle(Player_Width,Player_Height)
+
+
+
+GraphicsWindow.PenWidth = 5
+
+GraphicsWindow.BrushColor="Red"
+
+For e = 1 to Enemy_Amount
+
+  Enemy[e] = Shapes.AddEllipse(Enemy_Width,Enemy_Height)
+
+  Enemy_X[e] = e*20
+
+  Jumpdelay[e] = Math.GetRandomNumber(50)
+
+  Enemy_WX[e] = Math.GetRandomNumber(8)-5
+
+  Enemy_X[e] = Game_Width/2
+
+  Enemy_PlayerDistance[e] = e*10
+
+endfor
+
+
+
+While "True"
+
+  Controls()
+
+  PlayerCode()
+
+  EnemyCode()
+
+  BackgroundCode()
+
+  Program.Delay(20)
+
+endwhile
+
+
+
+Sub OnKeyDown
+
+  Key = GraphicsWindow.LastKey
+
+  If (Key = "Left") Then
+
+    Left = 1
+
+  ElseIf (Key = "Right") Then
+
+    Right = 1
+
+  ElseIf (Key = "Up") Then
+
+    Jump = 1
+
+  ElseIf (Key = "Space") Then
+
+    Attack = 1
+
+  endif
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  Key = GraphicsWindow.LastKey
+
+  If (Key = "Left") Then
+
+    Left = 0
+
+  ElseIf (Key = "Right") Then
+
+    Right = 0
+
+  ElseIf (Key = "Up") Then
+
+    Jump = 0
+
+  ElseIf (Key = "Space") Then
+
+    Attack = 0
+
+  endif
+
+EndSub
+
+
+
+Sub Controls
+
+  Scroll_OldX = Scroll_X
+
+  If Left = 1 Then
+
+    Scroll_X = Scroll_X - Scroll_Speed
+
+    if Player_WX>Player_MaximumSpeed then
+
+      Player_WX = Player_WX - 0.5
+
+    endif
+
+  ElseIf Right = 1 Then
+
+    Scroll_X = Scroll_X + Scroll_Speed
+
+    If Player_WX<Player_MaximumSpeed Then
+
+      Player_WX = Player_WX + 0.5
+
+    endif
+
+  EndIf
+
+endsub
+
+
+
+Sub PlayerCode
+
+  'Player_X = Player_Left+Player_Width
+
+  Player_Bottom = Player_Y+Player_Height
+
+  Player_Left = Scroll_X+Game_Width/2-Player_Width/2 ' NOTE! Player_Left IS THE PLAYER POSITION IN THE WORLD! NOT  THE SCREEN!  !!!
+
+  Player_Right = Scroll_X+Game_Width/2+Player_Width/2
+
+  
+
+  if Player_Bottom >= Ground Then
+
+    If Jump = 1 Then
+
+      Player_WY = Player_JumpSpeed
+
+    else
+
+      Player_WY = 0
+
+    endif
+
+    Player_WX = Player_WX * 0.9
+
+  Else
+
+    If Player_WY < Gravitation Then
+
+      Player_WY = Player_WY + Gravitation_Acceleration
+
+    EndIf
+
+    Player_WX = Player_WX * 0.99
+
+  endif
+
+  Player_Y = Player_Y+Player_WY
+
+  Shapes.Move(Player,Player_OnScreen_X,Player_Y) ' NOTE! Player_OnScreen_X IS THE PLAYER POSITION ON THE SCREEN! NOT IN THE WORLD!!!
+
+endsub
+
+
+
+Sub EnemyCode
+
+  For e = 1 to Enemy_Amount
+
+    If Enemy_Bottom[e] >= Ground Then
+
+      If Enemy_X[e]+Enemy_PlayerDistance[e] < Player_Left Then
+
+        Enemy_WX[e] = 4
+
+      ElseIf Enemy_X[e]-Enemy_PlayerDistance[e] > Player_Right Then
+
+        Enemy_WX[e] = -4
+
+      ElseIf Enemy_X[e]+Enemy_PlayerDistance[e] >= Player_Left and Enemy_X[e]-Enemy_PlayerDistance[e] <= Player_Right Then
+
+        Enemy_WX[e] = 0
+
+      endif
+
+    endif
+
+    Enemy_X[e] = Enemy_X[e] + Enemy_WX[e] 'ALWAYS DO THIS
+
+    If Enemy_X[e]>=Scroll_X-Enemy_Width And Enemy_X[e]<=Scroll_X+Game_Width Then ' WHILE ON SCREEN
+
+      If Enemy_Bottom[e] < Ground and Enemy_WY[e]<Gravitation Then
+
+        Enemy_WY[e] = Enemy_WY[e]+Gravitation_Acceleration
+
+      ElseIf Enemy_Bottom[e] >= Ground Then
+
+        if Enemy_WY[e] > 0 Then
+
+          Enemy_WY[e] = 0
+
+        endif
+
+        'Jumpdelay[e] = Jumpdelay[e] + 0.5
+
+        'If Jumpdelay[e] >= 50 Then
+
+        '  Enemy_WY[e] = Enemy_JumpSpeed
+
+        '  'Enemy_WX[e] = Math.GetRandomNumber(8)-5
+
+        '  Jumpdelay[e] = Math.GetRandomNumber(50)
+
+        'endif
+
+      endif
+
+      
+
+      If Enemy_X[e] >= Player_Left and Enemy_X[e] <= Player_Left+Player_Width and Enemy_Bottom[e] >= Player_Y and Enemy_Y[e] <= Player_Bottom and Attack = 1 Then
+
+        Enemy_WY[e] = Enemy_JumpSpeed + math.GetRandomNumber(11)-6
+
+        Enemy_WX[e] = (Math.GetRandomNumber(21)-12)*3
+
+      endif
+
+      If e = Enemy_Amount Then
+
+        Attack = 0
+
+      endif
+
+      Enemy_Y[e] = Enemy_Y[e]+Enemy_WY[e]
+
+      Enemy_Bottom[e] = Enemy_Y[e] + Enemy_Height
+
+      Shapes.Move(Enemy[e],Enemy_X[e]-Scroll_X,Enemy_Y[e])
+
+    Else ' WHILE NOT ON SCREEN
+
+      If Enemy_Bottom[e] <> Ground Then
+
+        Enemy_Y[e] = Ground-Enemy_Height
+
+        Enemy_Bottom[e] = Ground
+
+      endif
+
+    endif
+
+  endfor
+
+EndSub
+
+
+
+Sub BackgroundCode
+
+  For b = 1 To Background_Amount
+
+    If Background_Width*b>=Scroll_X-Background_Width And Background_Width*b<=Scroll_X+Game_Width and Scroll_OldX <> Scroll_X Then ' and Scroll_OldX <> Scroll_X
+
+      Shapes.Move(Background[b],Background_Width*b-Scroll_X,0)
+
+    endif
+
+  endfor
+
+EndSub
+
+

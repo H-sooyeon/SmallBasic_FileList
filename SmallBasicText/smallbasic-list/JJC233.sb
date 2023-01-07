@@ -1,0 +1,841 @@
+' A program to demonstrate simple physics
+
+' This program uses a technique verlet integration: http://en.wikipedia.org/wiki/Verlet-Stoermer_integration
+
+
+
+' A system is built from particles (rendered as red round rings) and constraints (rendered as green or yellow lines)
+
+' A stick constraint can be used to build a stable square. A square has four particles (one in each corner) and we connect 
+
+' these corners with 5 stick constraints like this:
+
+' P1 - C1 - P2
+
+' | \             |
+
+' |   \           |
+
+' |     \         |
+
+' C4  C5    C2
+
+' |        \      |
+
+' |          \    |
+
+' |            \  |
+
+' P4 -C3 - P3
+
+' The constaints connects two particles and make sure that particles neither get closer or further away from eachother
+
+' We need the C5 constrain to prevent the box from collapsing 
+
+
+
+' Using these simple building blocks one can build suprisingly complex system that are behaves in way that feels natural
+
+
+
+particle_count = 0
+
+constraint_count = 0
+
+relax_count = 3
+
+
+
+gravity_x = 0.0
+
+gravity_y = 0.0
+
+
+
+box_min_x = -200.0
+
+box_min_y = -200.0
+
+box_max_x = 200.0
+
+box_max_y = 200.0
+
+
+
+
+
+particle_visual_size = 10
+
+
+
+init()
+
+
+
+GraphicsWindow.BackgroundColor = "Black"
+
+
+
+While(Mouse.IsRightButtonDown = "False")
+
+  
+
+  time_step()
+
+  
+
+  center_x = GraphicsWindow.Width / 2
+
+  center_y = GraphicsWindow.Height / 2  
+
+ 
+
+  GraphicsWindow.Clear()  
+
+  GraphicsWindow.BrushColor="Gray"
+
+  GraphicsWindow.DrawText(0,0 "Left Mouse Button - Invert Gravity, Right Mouse Button - Quit")
+
+  draw_constraints()
+
+  draw_particles()
+
+  'draw_box()
+
+  
+
+  if Mouse.IsLeftButtonDown Then
+
+    gravity_x = 0.02
+
+    gravity_y = -0.15
+
+  Else
+
+    gravity_x = 0.0
+
+    gravity_y = 0.15
+
+  EndIf
+
+  
+
+  
+
+  Program.Delay(20)   
+
+EndWhile
+
+
+
+Program.End()
+
+
+
+' initializes a sample system
+
+
+
+Sub init  
+
+  
+
+  make_particle()
+
+  particle_inverted_mass[pc] = 0.0
+
+  particle_x[pc] = -100
+
+  particle_y[pc] = -100
+
+  put_particle_to_rest()
+
+  
+
+  make_particle()
+
+  particle_inverted_mass[pc] = 0.0
+
+  particle_x[pc] = 100
+
+  particle_y[pc] = -100
+
+  put_particle_to_rest()
+
+  
+
+  make_box_mass = 24
+
+  make_box_center_x = -50
+
+  make_box_center_y = -50
+
+  make_box_width = 50
+
+  make_box_height = 50  
+
+  make_box()
+
+  
+
+  left_box_last_particle = pc
+
+  
+
+  make_chain_number_of_links = 4
+
+  make_chain_mass = 10
+
+  make_chain_left = 1
+
+  make_chain_right = left_box_last_particle - 3
+
+  make_chain_slack = 3
+
+  make_chain()
+
+  
+
+  make_box_mass = 24
+
+  make_box_center_x = 50
+
+  make_box_center_y = -50
+
+  make_box_width = 50
+
+  make_box_height = 50  
+
+  make_box()
+
+ 
+
+  right_box_last_particle = pc
+
+ 
+
+  make_chain_number_of_links = 4
+
+  make_chain_mass = 10
+
+  make_chain_left = 2
+
+  make_chain_right = right_box_last_particle - 2
+
+  make_chain_slack = 3
+
+  make_chain()
+
+  
+
+  make_box_mass = 24
+
+  make_box_center_x = 0
+
+  make_box_center_y = 50
+
+  make_box_width = 50
+
+  make_box_height = 50  
+
+  make_box()
+
+
+
+  middle_box_last_particle = pc
+
+
+
+  make_chain_number_of_links = 4
+
+  make_chain_mass = 10
+
+  make_chain_left = left_box_last_particle - 1
+
+  make_chain_right = middle_box_last_particle - 3
+
+  make_chain_slack = 1.2
+
+  make_chain()
+
+
+
+  make_chain_number_of_links = 4
+
+  make_chain_mass = 10
+
+  make_chain_left = right_box_last_particle
+
+  make_chain_right = middle_box_last_particle - 2
+
+  make_chain_slack = 1.2
+
+  make_chain()
+
+
+
+  
+
+EndSub
+
+
+
+' Some sub routines to help creating a system
+
+
+
+Sub make_particle
+
+  particle_count = particle_count + 1
+
+  pc = particle_count
+
+  particle_inverted_mass[pc] = 1
+
+  particle_x[pc] = 0
+
+  particle_y[pc] = 0
+
+  particle_old_x[pc] = 0
+
+  particle_old_y[pc] = 0
+
+EndSub
+
+
+
+Sub put_particle_to_rest
+
+  particle_old_x[pc] = particle_x[pc]
+
+  particle_old_y[pc] = particle_y[pc]
+
+EndSub
+
+
+
+Sub make_constraint
+
+  constraint_count = constraint_count + 1
+
+  cc = constraint_count
+
+  constraint_left[cc] = 0
+
+  constraint_right[cc] = 0
+
+  constraint_length[cc] = 1000000
+
+  constraint_is_stick[cc] = 0
+
+EndSub
+
+
+
+Sub make_chain
+
+  number_of_link_particles = make_chain_number_of_links
+
+  linkMass = make_chain_mass / number_of_link_particles
+
+  
+
+  start_x = particle_x[make_chain_left]
+
+  start_y = particle_y[make_chain_left]
+
+  delta_x = particle_x[make_chain_right] - start_x
+
+  delta_y = particle_y[make_chain_right] - start_y
+
+  
+
+  last_particle = particle_count 
+
+  
+
+  For i=1 To number_of_link_particles - 1
+
+    make_particle()
+
+    particle_inverted_mass[pc] = 1 / linkMass
+
+    particle_x[pc] = start_x + delta_x * i / number_of_link_particles
+
+    particle_y[pc] = start_y + delta_y * i / number_of_link_particles
+
+    put_particle_to_rest()
+
+  EndFor
+
+  
+
+  connect_particles_left = make_chain_left
+
+  connect_particles_right = last_particle + 1 
+
+  connect_particles_slack = make_chain_slack
+
+  connect_particles_is_stick = 0 
+
+  connect_particles()
+
+
+
+  For i=1 To make_chain_number_of_links - 2
+
+    connect_particles_left = last_particle + i
+
+    connect_particles_right = last_particle + i + 1
+
+    connect_particles_slack = make_chain_slack
+
+    connect_particles_is_stick = 0 
+
+    connect_particles()
+
+  EndFor
+
+  
+
+  connect_particles_left = last_particle + make_chain_number_of_links - 1
+
+  connect_particles_right = make_chain_right
+
+  connect_particles_slack = make_chain_slack
+
+  connect_particles_is_stick = 0 
+
+  connect_particles()
+
+EndSub
+
+
+
+Sub connect_particles
+
+  calculate_particle_distance_left = connect_particles_left
+
+  calculate_particle_distance_right = connect_particles_right
+
+  calculate_particle_distance()
+
+
+
+  make_constraint()
+
+  constraint_left[cc] = connect_particles_left
+
+  constraint_right[cc] = connect_particles_right        
+
+  constraint_length[cc] = connect_particles_slack * particle_distance
+
+  constraint_is_stick[cc] = connect_particles_is_stick
+
+
+
+  
+
+EndSub
+
+
+
+Sub make_box
+
+  
+
+  particle_mass = make_box_mass / 4
+
+  
+
+  last_particle = particle_count    
+
+  
+
+  make_particle()
+
+  particle_inverted_mass[pc] = 1 / particle_mass
+
+  particle_x[pc] = make_box_center_x - make_box_width / 2
+
+  particle_y[pc] = make_box_center_y - make_box_height / 2
+
+  put_particle_to_rest()
+
+ 
+
+  make_particle()
+
+  particle_inverted_mass[pc] = 1 / particle_mass
+
+  particle_x[pc] = make_box_center_x + make_box_width / 2
+
+  particle_y[pc] = make_box_center_y - make_box_height / 2
+
+  put_particle_to_rest()
+
+ 
+
+  make_particle()
+
+  particle_inverted_mass[pc] = 1 / particle_mass
+
+  particle_x[pc] = make_box_center_x + make_box_width / 2
+
+  particle_y[pc] = make_box_center_y + make_box_height / 2
+
+  put_particle_to_rest()
+
+ 
+
+  make_particle()
+
+  particle_inverted_mass[pc] = 1 / particle_mass
+
+  particle_x[pc] = make_box_center_x - make_box_width / 2
+
+  particle_y[pc] = make_box_center_y + make_box_height / 2
+
+  put_particle_to_rest()
+
+ 
+
+  connect_particles_left = last_particle + 1
+
+  connect_particles_right = last_particle + 2
+
+  connect_particles_slack = 1
+
+  connect_particles_is_stick = 1
+
+  connect_particles()
+
+
+
+  connect_particles_left = last_particle + 2
+
+  connect_particles_right = last_particle + 3
+
+  connect_particles_slack = 1
+
+  connect_particles_is_stick = 1
+
+  connect_particles()
+
+ 
+
+  connect_particles_left = last_particle + 3
+
+  connect_particles_right = last_particle + 4
+
+  connect_particles_slack = 1
+
+  connect_particles_is_stick = 1
+
+  connect_particles()
+
+  
+
+  connect_particles_left = last_particle + 4
+
+  connect_particles_right = last_particle + 1
+
+  connect_particles_slack = 1
+
+  connect_particles_is_stick = 1
+
+  connect_particles()
+
+
+
+  connect_particles_left = last_particle + 1
+
+  connect_particles_right = last_particle + 3
+
+  connect_particles_slack = 1
+
+  connect_particles_is_stick = 1
+
+  connect_particles()
+
+
+
+EndSub
+
+
+
+Sub calculate_particle_distance
+
+    left_x = particle_x[calculate_particle_distance_left]
+
+    left_y = particle_y[calculate_particle_distance_left]
+
+    
+
+    right_x = particle_x[calculate_particle_distance_right]
+
+    right_y = particle_y[calculate_particle_distance_right]
+
+    
+
+    delta_x = right_x - left_x
+
+    delta_y = right_y - left_y
+
+    
+
+    length_squared = delta_x * delta_x + delta_y * delta_y
+
+    length = Math.SquareRoot(length_squared)
+
+    
+
+    particle_distance = length    
+
+EndSub
+
+
+
+' Subroutines to help drawing system
+
+Sub draw_particles
+
+  GraphicsWindow.PenColor = "Red"
+
+  For i = 1 To particle_count
+
+    x = particle_x[i]
+
+    y = particle_y[i]
+
+    GraphicsWindow.DrawEllipse(x + center_x - particle_visual_size / 2, y + center_y - particle_visual_size / 2, particle_visual_size, particle_visual_size)
+
+  EndFor  
+
+EndSub
+
+
+
+Sub draw_box
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.DrawRectangle(box_min_x + center_x, box_min_y + center_y, box_max_x - box_min_x, box_max_y - box_min_y)  
+
+EndSub
+
+
+
+Sub draw_constraints
+
+  For i = 1 To constraint_count
+
+    left = constraint_left[i]
+
+    right = constraint_right[i]
+
+    If left > 0 And left <= particle_count And right > 0 And right <= particle_count Then
+
+      left_x = particle_x[left]
+
+      left_y = particle_y[left]
+
+      
+
+      right_x = particle_x[right]
+
+      right_y = particle_y[right]
+
+      
+
+      If constraint_is_stick[i] <> 0 Then
+
+        GraphicsWindow.PenColor = "Yellow"
+
+      Else
+
+        GraphicsWindow.PenColor = "Green"
+
+      EndIf
+
+      
+
+      
+
+      GraphicsWindow.DrawLine(left_x + center_x, left_y + center_y, right_x + center_x, right_y + center_y)
+
+    EndIf
+
+    
+
+  EndFor  
+
+EndSub
+
+
+
+'  time_step moves all particles forward in time
+
+Sub time_step
+
+  apply_inertia()
+
+  
+
+  For relax_iter=1 To relax_count
+
+    reduce_the_tension_in_the_system()
+
+    make_sure_particles_is_inside_box()       
+
+  EndFor  
+
+EndSub
+
+
+
+'  Gives particles inertia
+
+Sub apply_inertia
+
+  '  x' = x + (x - x_old) + gravity
+
+  For i = 1 To particle_count
+
+    
+
+    ' Inverted mass = 0 indicates that the particle is immoveable
+
+    inverted_mass = particle_inverted_mass[i]
+
+    
+
+    If inverted_mass > 0 Then
+
+      x = particle_x[i]
+
+      y = particle_y[i]
+
+      
+
+      new_x = x + x - particle_old_x[i] + gravity_x
+
+      new_y = y + y - particle_old_y[i] + gravity_y
+
+      
+
+      particle_old_x[i] = x
+
+      particle_old_y[i] = y
+
+      
+
+      particle_x[i] = new_x
+
+      particle_y[i] = new_y
+
+    EndIf
+
+  EndFor      
+
+EndSub
+
+
+
+'  This makes sure the particles never leave the box
+
+Sub make_sure_particles_is_inside_box
+
+  For i = 1 To particle_count   
+
+    particle_x[i] = Math.Min(Math.Max (particle_x[i], box_min_x), box_max_x)
+
+    particle_y[i] = Math.Min(Math.Max (particle_y[i], box_min_y), box_max_y)
+
+  EndFor       
+
+EndSub
+
+
+
+'  This makes sure that if stick constraint or rope constraint is tense we reduce tension by moving the particles closer or further away
+
+' from eachother
+
+Sub reduce_the_tension_in_the_system
+
+  For i = 1 To constraint_count   
+
+    left = constraint_left[i]
+
+    right = constraint_right[i]
+
+    If left > 0 And left <= particle_count And right > 0 And right <= particle_count Then
+
+                  
+
+      left_inverted_mass = particle_inverted_mass[left]
+
+      left_x = particle_x[left]
+
+      left_y = particle_y[left]
+
+      
+
+      right_inverted_mass = particle_inverted_mass[right]
+
+      right_x = particle_x[right]
+
+      right_y = particle_y[right]
+
+      
+
+      
+
+      delta_x = left_x - right_x
+
+      delta_y = left_y - right_y
+
+      
+
+      length_squared = delta_x * delta_x + delta_y * delta_y
+
+      length = Math.SquareRoot(length_squared)
+
+      
+
+      length_diff = length - constraint_length[i]
+
+  
+
+     
+
+      If constraint_is_stick[i] <> 0 or length_diff > 0 Then
+
+        scale = length_diff / (length * (left_inverted_mass + right_inverted_mass))
+
+        
+
+        particle_x[left] = left_x - left_inverted_mass * scale * delta_x
+
+        particle_y[left] = left_y - left_inverted_mass * scale * delta_y
+
+        
+
+        particle_x[right] = right_x + right_inverted_mass * scale * delta_x
+
+        particle_y[right] = right_y + right_inverted_mass * scale * delta_y
+
+      Endif
+
+      
+
+    EndIf
+
+  EndFor       
+
+EndSub
+
+
+
+

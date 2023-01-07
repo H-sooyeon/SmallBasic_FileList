@@ -1,0 +1,417 @@
+' SmallBasic Version 1.1
+
+' Program: KnobControl, RotaryControl
+
+' Changelog: 
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/555a3319-d001-41ee-8604-3478a4c336cf/challenge-of-the-month-octobernovember-2015
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev (Slider)
+
+' Comment: s. Marionette.sb (VTD423), DrehRegler.sb, Potentiometer.sb
+
+'  http://blogs.msdn.com/b/smallbasic/archive/2014/08/23/small-basic-physics-for-marionette-challenge.aspx
+
+'  http://social.msdn.microsoft.com/Forums/en-US/ba101263-563a-4733-aeeb-677ec69ce49c/the-big-challenge-recruiting-september-2014
+
+' Images: http://www.codeproject.com/Articles/2689/Rotary-Fader
+
+' Variables: For further use of a newValue get it from  'Sub UpdateView'
+
+'  ToDo: minVal/maxVal instead of  range;  minPos/maxPos (eg. 0째-270째 or 10째-380째)
+
+' --------------------------------------------------------------------------------
+
+'' Variables
+
+imgDir = Program.Directory + "\img\Knobs\"
+
+imgKnob = imgDir + "RotaryKnob.png"         ' 75x75 Pxl
+
+'imgKnob = ImageList.LoadImage("http://www.codeproject.com/KB/miscctrl/rotaryfadermfc/rotaryknob23a77x.jpg")
+
+
+
+'imgScale = imgDir + "RotaryKnobScale.jpg"   ' 151x151 Pxl
+
+imgScale = "http://www.codeproject.com/KB/miscctrl/rotaryfadermfc/rotaryscale22a151x.jpg"  ' or ImageList.LoadImage
+
+
+
+knobX = 100   ' Center knob
+
+knobY = 100   ' Center knob
+
+scale = 1     ' Zoom Knob (min= 0.5 .. 1 .. 2 =max)
+
+
+
+range = 360   ' eg.  100 [%], 256 [RGB], 360 [째], etc.  (starting from 0)
+
+unitRange = 360/range
+
+unit = "째"
+
+title = "[Range: 0 - " + range + unit + "]   Intern. Angle: "
+
+
+
+fontSize = 10
+
+pi = 3.14159
+
+angle = 0
+
+store = 0
+
+allowEvent = "True"  ' (dis)allow 'OnSliderChange' Event when actively setting .SliderValue
+
+scaleWH2 = ImageList.GetWidthOfImage(imgScale) / 2
+
+knobWH2 = ImageList.GetWidthOfImage(imgKnob) / 2
+
+
+
+BuildGUI()
+
+
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.MouseUp = OnMouseUp
+
+Controls.ButtonClicked = OnButtonClick
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+LDControls.SliderChanged = OnSliderChange
+
+
+
+While "True"
+
+  If mouseClick And knobOn = "" Then
+
+    MouseClickKnobOff()
+
+  EndIf
+
+  If mouseDown And knobOn Then
+
+    MouseDownKnobOn()
+
+  EndIf
+
+  
+
+  Program.Delay(20)
+
+EndWhile
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub MouseClickKnobOff
+
+  dX = GraphicsWindow.MouseX - knobX
+
+  dY = GraphicsWindow.MouseY - knobY
+
+  r = Math.SquareRoot(dX*dX + dY*dY)
+
+  If r <= knobWH2 Then
+
+    knobOn = "True"
+
+  EndIf
+
+  mouseClick = ""
+
+EndSub
+
+
+
+Sub MouseDownKnobOn
+
+  dX = GraphicsWindow.MouseX - knobX
+
+  dY = GraphicsWindow.MouseY - knobY
+
+  r = Math.SquareRoot(dX*dX + dY*dY)
+
+  'If Math.Abs(dX) > knobWH2 Or Math.Abs(dY) > knobWH2 Then
+
+  If r > knobWH2 Then
+
+    knobOn = ""
+
+  Else    ' ATan2 with 270째 offset and  neg. direction for y > 0
+
+    If dY = 0 Then
+
+      angle = pi/2
+
+      If dX < 0 Then
+
+        angle = angle + pi
+
+      EndIf
+
+    ElseIf dY < 0 Then
+
+      angle = Math.ArcTan(dX/dY) + pi
+
+    Else
+
+      angle = Math.ArcTan(dX/dY)
+
+    EndIf
+
+    angle = Math.Round(Math.GetDegrees(angle))
+
+    angle = Math.Remainder(360 - angle, 360)
+
+  EndIf
+
+  
+
+  UpdateView()
+
+  UpdateSlider()
+
+EndSub
+
+
+
+Sub UpdateView    '' Shows Angle in Title;  positions Knob;  calculates and shows 'view' value
+
+  GraphicsWindow.Title = title + angle
+
+  Shapes.Rotate(shpKnob, angle)
+
+  view = Math.Floor(angle / unitRange)
+
+  Shapes.SetText(shpLabel, view + unit)
+
+  
+
+  'newValue = view   '' Further use of newValue to set volume, speed, color, position etc.
+
+EndSub
+
+
+
+Sub UpdateSlider    '' PASSIVE only
+
+  allowEvent = ""   '' do NOT fire 'LDControls.SliderChanged' event from next line
+
+  LDControls.SliderValue(slider, view * 100 / range)
+
+  allowEvent = "True"
+
+EndSub
+
+
+
+
+
+Sub BuildGUI
+
+  GraphicsWindow.BackgroundColor = "#1D1D1D"
+
+  GraphicsWindow.DrawImage(imgScale, knobX-scaleWH2, knobY-scaleWH2)
+
+  
+
+  '' Shapes
+
+  shpKnob = Shapes.AddImage(imgKnob)
+
+  Shapes.Move(shpKnob, knobX-knobWH2, knobY-knobWH2)
+
+  If scale <> 1 Then
+
+    knobWH2 = scale * knobWH2
+
+    Shapes.Zoom(shpKnob, scale, scale)
+
+  EndIf
+
+  
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "Red"
+
+  shpDot = Shapes.AddEllipse(4,4)
+
+  Shapes.Move(shpDot, knobX-2, knobY+knobWH2-6)
+
+  
+
+  GraphicsWindow.FontSize = fontSize
+
+  GraphicsWindow.BrushColor = "Orange"
+
+  shpLabel = Shapes.AddText(angle + unit)
+
+  Shapes.Move(shpLabel, knobX-10, knobY-fontSize-5)
+
+  
+
+  GraphicsWindow.BrushColor = "#808FBC8B"
+
+  shpStore = Shapes.AddText("")
+
+  Shapes.Move(shpStore, knobX-10, knobY+scaleWH2+12)
+
+  
+
+  '' Buttons
+
+  GraphicsWindow.BrushColor = "Black"
+
+  btnReset = Controls.AddButton("Reset", knobX-24, 13)
+
+  btnStore = Controls.AddButton("Store", knobX-47, knobY+scaleWH2-12) ' "Get"
+
+  btnSet = Controls.AddButton("Set", knobX, knobY+scaleWH2-12)
+
+  For n = 1 To 3
+
+    Controls.SetSize("Button"+n, 48, 24)
+
+  EndFor
+
+  btnUp = Controls.AddButton("?뼯", 13, knobY-23)
+
+  btnDwn = Controls.AddButton("?뼹", 13, knobY)
+
+  
+
+  '' Slider
+
+  slider = LDControls.AddSlider(22, 2 * scaleWH2, "V")
+
+  Controls.Move(slider, knobX+scaleWH2 + 20, knobY-scaleWH2)
+
+  LDShapes.BrushShape(slider, LDShapes.BrushGradient("1=Red;2=Transparent;", "V"))
+
+EndSub
+
+
+
+
+
+' //////////  EVENTs  \\\\\\\\\\
+
+Sub OnMouseDown
+
+  mouseDown = "True"
+
+  mouseClick = "True"
+
+EndSub
+
+
+
+Sub OnMouseUp
+
+  mouseDown = ""
+
+  knobOn = ""
+
+EndSub
+
+
+
+Sub OnButtonClick
+
+  mouseDown = ""
+
+  knobOn = ""
+
+  lastBtn = Controls.LastClickedButton
+
+  
+
+  If lastBtn = btnReset Then
+
+    angle = 0
+
+  ElseIf lastBtn = btnStore Then
+
+    store = view
+
+    Shapes.SetText(shpStore, store)
+
+  ElseIf lastBtn = btnSet Then
+
+    view = store
+
+    angle = view * unitRange
+
+    
+
+  ElseIf lastBtn = btnDwn Then
+
+    view = Math.Remainder(range + view-1, range)
+
+    angle = view * unitRange
+
+  ElseIf lastBtn = btnUp Then
+
+    view = Math.Remainder(view+1, range)
+
+    angle = view * unitRange
+
+  EndIf
+
+  
+
+  UpdateView()
+
+  UpdateSlider()
+
+EndSub
+
+
+
+'' Event would also fire from method  LDControls.SliderValue (in Sub UpdateSlider) !!  DISALLOW that
+
+Sub OnSliderChange  '' only for ACTIVE manipulation on Slider (allowEvent = "True")
+
+  If LDControls.LastSlider = slider And allowEvent Then
+
+    view = Math.Remainder(Math.Floor(range * LDControls.SliderGetValue(slider)/100), range)
+
+    angle = view * unitRange
+
+    
+
+    UpdateView()
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  If GraphicsWindow.LastKey = "Escape" Then
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+

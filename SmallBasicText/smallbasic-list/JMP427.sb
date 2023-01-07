@@ -1,0 +1,299 @@
+' SmallBasic Version 1.0
+
+' Program: MP3Calc (Duration-Bitrate-Filesize) Engl.
+
+' Changelog: 02.15
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/41cb1901-a52c-474e-ad61-8ab3e5669c4e/challenge-of-the-month-february-2015
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: 
+
+' Comment: Size [Byte] = Duration [sec] * Bitrate [kbit/sec]  / 8 [bit/Byte] * 1024 [Byte/kByte]
+
+' 
+
+' Variables: 
+
+' ToDo: 
+
+' ================================================================================
+
+lf = Text.GetCharacter(10)
+
+lbl = "1=Duration [sec];2=Bitrate [kbit/sec];3=Size [Byte];"
+
+
+
+infoTxt = "MP3Calc Help  ?™ª?™¥?™«" +lf+lf
+
+infoTxt = infoTxt+ "Enter 2 values (leave the 3. TB empty for the result value to query) + <Calculate>." +lf
+
+infoTxt = infoTxt+ "?? 'Duration' may also be entered as [mm:ss] eg. 3:0 or 3:22." +lf+lf
+
+infoTxt = infoTxt+ "size [Byte] = duration [sec] * bitrate [kbit/sec]  / 8 [bit/Byte] * 1024 [Byte/kByte]" +lf
+
+infoTxt = infoTxt+ " (approx. results for constant bitrate)"
+
+
+
+gw = 215
+
+gh = 150
+
+BuildGUI()
+
+
+
+Controls.ButtonClicked = OnButtonClick
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+
+
+
+
+' //////////  EVENTs  \\\\\\\\\\
+
+Sub OnButtonClick
+
+  lastBtn = Controls.LastClickedButton
+
+  If lastBtn = btnClear Then
+
+    For n = 1 To 3
+
+      Controls.SetTextBoxText("TextBox"+n, "")
+
+    EndFor
+
+    shpTxt = ""
+
+  Else
+
+    If Controls.GetTextBoxText("TextBox1") = "" Then   '  duration = 8* size / bitrate / 1024
+
+      CalcDurat()
+
+      
+
+    ElseIf Controls.GetTextBoxText("TextBox2") = "" Then  ' bitrate = 8 * size / duration / 1024
+
+      CalcBitrate()
+
+      
+
+    ElseIf Controls.GetTextBoxText("TextBox3") = "" Then    ' size = duration * bitrate * 1024 / 8
+
+      CalcSize()
+
+      
+
+    Else
+
+      'ResetTB()
+
+    EndIf
+
+    
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  If Mouse.IsRightButtonDown Then
+
+    GraphicsWindow.ShowMessage(infoTxt, "MP3Calc Help")
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseMove
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  If mx > 90 And my > 10 And my < 110 Then
+
+    Shapes.Move(info, mx-80,my)
+
+    Shapes.SetText(info, shpTxt)
+
+  Else
+
+    Shapes.SetText(info, "")
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  If GraphicsWindow.LastKey = "Escape" Then
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+'' duration = 8* size / bitrate / 1024
+
+Sub CalcDurat
+
+  durat = Controls.GetTextBoxText("TextBox3") / Controls.GetTextBoxText("TextBox2") * 8/1024
+
+  Controls.SetTextBoxText("TextBox1", Math.Round(durat))
+
+  shpTxt = Text.Append(Math.Floor(durat/60) +":", Math.Remainder(durat,60) +" min")
+
+EndSub
+
+
+
+'' bitrate = 8 * size / duration / 1024
+
+Sub CalcBitrate
+
+  GetSecFromDurat()
+
+  bitrate = Controls.GetTextBoxText("TextBox3") / Controls.GetTextBoxText("TextBox1") * 8/1024
+
+  Controls.SetTextBoxText("TextBox2", Math.Round(bitrate))
+
+  shpTxt = bitrate + " kbps"
+
+EndSub
+
+
+
+'' size = duration * bitrate * 1024 / 8
+
+Sub CalcSize
+
+  GetSecFromDurat()
+
+  size = Controls.GetTextBoxText("TextBox1") * Controls.GetTextBoxText("TextBox2") * 1024/8
+
+  Controls.SetTextBoxText("TextBox3", Math.Round(size))
+
+  shpTxt = Text.Append(Math.Round(100*size/1024) / 100 +" kB; ", Math.Round(100*size/1024/1024) / 100 +" MB")
+
+EndSub
+
+
+
+
+
+Sub GetSecFromDurat
+
+  dur = Controls.GetTextBoxText("TextBox1")
+
+  sep = Text.GetIndexOf(dur, ":") ' separator : (in mm:ss)
+
+  If sep > 0 Then
+
+    durat = 60* Text.GetSubText(dur,1,sep-1) + Text.GetSubTextToEnd(dur,sep+1)  ' mm:ss  -> 60*mm + ss
+
+    Controls.SetTextBoxText("TextBox1", durat)
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub BuildGUI
+
+  GraphicsWindow.Left = Desktop.Width - gw - 7
+
+  GraphicsWindow.Top = Desktop.Height - gh - 90
+
+  GraphicsWindow.CanResize = ""
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Title = "MP3Calc [RMouse Help]"
+
+  GraphicsWindow.BackgroundColor = "MediumAquamarine"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  
+
+  For n = 1 To 3
+
+    Controls.AddTextBox(10, 10+35*(n-1))
+
+    Controls.SetSize("TextBox"+n, 80, 22)
+
+    GraphicsWindow.DrawText(100, 14+35*(n-1), lbl[n])
+
+  EndFor
+
+  
+
+  btnCalc = Controls.AddButton("Calculate", 10,10+35*3)
+
+  Controls.SetSize(btnCalc, 155,26)
+
+  
+
+  GraphicsWindow.BrushColor = "Red"
+
+  btnClear = Controls.AddButton("C", 175, 10+35*3)
+
+  Controls.SetSize(btnClear, 30,26)
+
+  
+
+  GraphicsWindow.FontSize = 9
+
+  info = Shapes.AddText("")
+
+  
+
+  GraphicsWindow.FontSize = 15
+
+EndSub
+
+
+
+Sub ResetTB
+
+  For n = 1 To 3
+
+    Controls.SetTextBoxText("TextBox"+n, "")  ' "?"
+
+  EndFor
+
+  shpTxt = ""
+
+EndSub
+
+

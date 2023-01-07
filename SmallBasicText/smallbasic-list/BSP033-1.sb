@@ -1,0 +1,435 @@
+' World Clock
+
+' Copyright (c) 2014 Nonki Takahashi.  The MIT License.
+
+' Version: 0.3b
+
+' Last update: 2014-11-18
+
+' Program ID: BSP033-1
+
+'
+
+GraphicsWindow.Title = "World Clock 0.3b"
+
+cityLocal = "Tokyo"
+
+city["Sydney"] ="local=+10;DST=+1;fromDST=10;toDST=3;"
+
+city["Tokyo"] = "local=+9;DST=0;"
+
+city["Kolkata"] = "local=+5.5;DST=0;"
+
+city["Colombo"] = "local=+5.5;DST=0;"
+
+city["Cairo"] = "local=+2;DST=+1;fromDST=5;toDST=9;"
+
+city["London"] = "local=0;DST=+1;fromDST=4;toDST=10;"
+
+city["Accra"] = "local=0;DST=0;"
+
+city["Rio de Janeiro"] = "local=-3;DST=+1;fromDST=11;toDST=2;"
+
+city["Buenos Aires"] = "local=-3;DST=0;"
+
+city["Seatle"] = "local=-8;DST=+1;fromDST=3;toDST=10;"
+
+bc = "#000000"
+
+colorMorning = "#CCCCCC"
+
+colorDay = "#EEEEEE"
+
+colorNight = "#666666"
+
+colorMidNight = "#333333"
+
+colorHourHand = "#FF9900"
+
+colorText = "#FFFFFF"
+
+gw = 598
+
+gh = 428
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.BackgroundColor = bc
+
+nCity = Array.GetItemCount(city)
+
+index = Array.GetAllIndices(city)
+
+deltaLocal = city[cityLocal]["local"]
+
+GraphicsWindow.FontName = "Trebuchet MS"
+
+width = Math.Floor((gw - 110) / 24)
+
+height = Math.Floor((gh - 60) / nCity)
+
+For i = 1 To nCity
+
+  CalcDST()
+
+  x = 10
+
+  y = 50 + (i - 1) * height
+
+  GraphicsWindow.BrushColor = colorText
+
+  GraphicsWindow.DrawText(x, y + height / 2 - 10, index[i])
+
+  x = 100
+
+  hourLocal = city[index[i]]["local"] * 1
+
+  If hourLocal < 0 Then
+
+    hourLocal = hourLocal + 24
+
+  EndIf
+
+  If 0 < hourLocal - Math.Floor(hourLocal) Then
+
+    half = "True"
+
+  Else
+
+    half = "False"
+
+  EndIf
+
+  For hourUTC = 0 To 23
+
+    hour = hourLocal
+
+    SetBandColor()
+
+    If (hourUTC = 0) And half Then
+
+      GraphicsWindow.FillRectangle(x, y + 10, width / 2 - 1, height - 20)
+
+      hour = hourLocal + 0.5
+
+      SetBandColor()
+
+      GraphicsWindow.FillRectangle(x + width / 2, y + 10, width - 1, height - 20)
+
+    ElseIf (hourUTC = 23) And half Then
+
+      hour = hourLocal + 0.5
+
+      SetBandColor()
+
+      GraphicsWindow.FillRectangle(x + width / 2, y + 10, width / 2 - 1, height - 20)
+
+    ElseIf half Then
+
+      hour = hourLocal + 0.5
+
+      SetBandColor()
+
+      GraphicsWindow.FillRectangle(x + width / 2, y + 10, width - 1, height - 20)
+
+    Else
+
+      GraphicsWindow.FillRectangle(x, y + 10, width - 1, height - 20)
+
+    EndIf
+
+    If half Then
+
+      hour = hourLocal + 0.5
+
+      SetHourColor()
+
+      GraphicsWindow.DrawText(x + width / 2, y + 10, Math.Floor(hour))
+
+    Else
+
+      hour = hourLocal
+
+      SetHourColor()
+
+      GraphicsWindow.DrawText(x, y + 10, hourLocal)
+
+    EndIf
+
+    x = x + width
+
+    hourLocal = hourLocal + 1
+
+    If 24 <= hourLocal Then
+
+      hourLocal = hourLocal - 24
+
+    EndIf
+
+  EndFor
+
+EndFor
+
+y = 60
+
+GraphicsWindow.PenColor = colorHourHand
+
+hourHand = Shapes.AddLine(0, 0, 0, nCity * height - 20)
+
+Shapes.SetOpacity(hourHand, 70)
+
+GraphicsWindow.BrushColor = colorText
+
+objCity = Shapes.Addtext("Local Time")
+
+Shapes.Move(objCity, 10, 10)
+
+GraphicsWindow.DrawText(gw / 2, 10, "UTC")
+
+Program.Delay(200)
+
+GraphicsWindow.FontSize = 30
+
+objLocal = Shapes.AddText("00:00")
+
+Shapes.Move(objLocal, 100, 10)
+
+objUTC = Shapes.AddText("00:00")
+
+Shapes.Move(objUTC, gw / 2 + 90, 10)
+
+GraphicsWindow.PenWidth = 0
+
+GraphicsWindow.BrushColor = "White"
+
+objBar = Shapes.AddRectangle(gw, height)
+
+Shapes.SetOpacity(objBar, 20)
+
+Shapes.HideShape(objBar)
+
+iCity = ""
+
+Timer.Interval = 500
+
+Timer.Tick = OnTick
+
+Sub CalcDST
+
+  ' param i
+
+  If 0 < city[index[i]]["DST"] Then
+
+    month = Clock.Month
+
+    If city[index[i]]["fromDST"] < city[index[i]]["toDST"] Then
+
+      If (city[index[i]]["fromDST"] <= month) And (month <= city[index[i]]["toDST"]) Then
+
+        city[index[i]]["local"] = city[index[i]]["local"] + city[index[i]]["DST"]
+
+      EndIf
+
+    Else
+
+      If ((1 <= month) And (month <= city[index[i]]["toDST"])) Or ((city[index[i]]["fromDST"] <= month) And (month <= 12)) Then
+
+        city[index[i]]["local"] = city[index[i]]["local"] + city[index[i]]["DST"]
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub GetTime
+
+  ' param hour, minute
+
+  ' return time - "hh:mm"
+
+  len = Text.GetLength(hour)
+
+  time = Text.Append(Text.GetSubTextToEnd("00", len + 1), hour)
+
+  time = time + ":"
+
+  len = Text.GetLength(minute)
+
+  time = time + Text.GetSubTextToEnd("00", len + 1) + minute
+
+EndSub
+
+Sub GetCity
+
+  ' get city from mouse pointer
+
+  my = GraphicsWindow.MouseY
+
+  i = Math.Floor((my - 50) / height + 1)
+
+  If 1 <= i And i <= nCity Then
+
+    iCity = index[i]
+
+  Else
+
+    iCity = ""
+
+  EndIf
+
+EndSub
+
+Sub OnTick
+
+  hourUTC = Clock.Hour - city[cityLocal]["local"]
+
+  If hourUTC < 0 Then
+
+    hourUTC = hourUTC + 24
+
+  EndIf
+
+  If 24 <= hourUTC Then
+
+    hourUTC = hourUTC - 24
+
+  EndIf
+
+  minute = Clock.Minute
+
+  hour = hourUTC
+
+  hourUTC = hourUTC + minute / 60
+
+  x = 100 + Math.Floor(hourUTC * width)
+
+  Shapes.Move(hourHand, x, y)
+
+  GetTime()
+
+  Shapes.SetText(objUTC, time)
+
+  GetCity()
+
+  If iCity = "" Then
+
+    Shapes.HideShape(objBar)
+
+    Shapes.SetText(objCity, "Local Time")
+
+    Shapes.SetText(objLocal, "00:00")
+
+  Else
+
+    _y = 50 + (i - 1) * height
+
+    Shapes.Move(objBar, 0, _y)
+
+    Shapes.ShowShape(objBar)
+
+    Shapes.SetText(objCity, iCity)
+
+    hour = hour + city[iCity]["local"]
+
+    If hour < 0 Then
+
+      hour = hour + 24
+
+    ElseIf 23 < hour Then
+
+      hour = hour - 24
+
+    EndIf
+
+    frac = hour - Math.Floor(hour)
+
+    If 0 < frac Then
+
+      minute = Math.Floor(minute + frac * 60)
+
+      hour = Math.Floor(hour - frac)
+
+      If 60 <= minute Then
+
+        minute = minute - 60
+
+        hour = hour + 1
+
+        If 23 < hour Then
+
+          hour = hour - 24
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+    GetTime()
+
+    Shapes.SetText(objLocal, time)
+
+  EndIf
+
+EndSub
+
+Sub SetBandColor
+
+  ' param hour
+
+  If 23 < hour Then
+
+    hour = hour - 24
+
+  EndIf
+
+  If 6 <= hour And hour < 12 Then
+
+    GraphicsWindow.BrushColor = colorMorning
+
+  ElseIf 12 <= hour And hour < 18 Then
+
+    GraphicsWindow.BrushColor = colorDay
+
+  ElseIf 18 <= hour Then
+
+    GraphicsWindow.BrushColor = colorNight
+
+  Else
+
+    GraphicsWindow.BrushColor = colorMidNight
+
+  EndIf
+
+EndSub
+
+Sub SetHourColor
+
+  ' param hour
+
+  If 23 < hour Then
+
+    hour = hour - 24
+
+  EndIf
+
+  If 6 <= hour And hour < 18 Then
+
+    GraphicsWindow.BrushColor = colorMidNight
+
+  Else
+
+    GraphicsWindow.BrushColor = colorDay
+
+  EndIf
+
+EndSub
+
+    
+
+

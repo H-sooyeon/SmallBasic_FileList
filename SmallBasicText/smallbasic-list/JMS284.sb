@@ -1,0 +1,345 @@
+' Soccer World Cup 0.1a
+
+' Copyright (c) 2014 Nonki Takahashi.  MIT License.
+
+' 0.1a 2014-06-18 Created.
+
+GraphicsWindow.BackgroundColor = "Green"
+
+gw = 598
+
+gh = 428
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.PenWidth = 0
+
+GraphicsWindow.BrushColor = "White"
+
+rBall = 10
+
+oBall = Shapes.AddEllipse(rBall * 2, rBall * 2)
+
+bx0 = gw / 2
+
+by0 = gh / 2 + 100
+
+bx = bx0
+
+by = by0
+
+vx = 0
+
+vy = 0
+
+Shapes.Move(oBall, bx - rBall, by - rBall)
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+dt = 1000 / 24
+
+Timer.Interval = dt
+
+Timer.Tick = OnTick
+
+While "True"
+
+  If move Then
+
+    x[1] = bx
+
+    y[1] = by
+
+    x[2] = mxLast
+
+    y[2] = myLast
+
+    x[3] = mx
+
+    y[3] = my
+
+    Math_CalcTriangleProperties()
+
+    d = ah
+
+    If d < rBall And my <= by + rBall And by + rBall < myLast Then
+
+      GraphicsWindow.MouseMove = DoNothing
+
+      vxLast = vx
+
+      vyLast = vy
+
+      vx = vx + (mx - mxLast) / (ems - emsLast) * 200
+
+      vy = vy + (my - myLast) / (ems - emsLast) * 200
+
+      If Math.Abs(vy) < 20 Then
+
+        GraphicsWindow.MouseMove = OnMouseMove
+
+      EndIf
+
+    EndIf
+
+    GraphicsWindow.Title = Math.Floor(vx) + "," + Math.Floor(vy)
+
+    mxLast = mx
+
+    myLast = my
+
+    emsLast = ems
+
+    move = "False"
+
+  EndIf
+
+  If tick Then
+
+    bx = bx + (vx + vxLast) * dt / 2000
+
+    by = by + (vy + vyLast) * dt / 2000
+
+    If bx < 0 Or gw < bx Or by < 0 Or gh < by Then
+
+      bx = bx0
+
+      by = by0
+
+      vx = 0
+
+      vy = 0
+
+      GraphicsWindow.MouseMove = OnMouseMove
+
+      mx = GraphicsWindow.MouseX
+
+      my = GraphicsWindow.MouseY
+
+      mx0 = bx
+
+      my0 = by + 50
+
+      Mouse.MouseX = Mouse.MouseX - mx + mx0
+
+      Mouse.MouseY = Mouse.MouseY - my + my0
+
+    EndIf 
+
+    Shapes.Move(oBall, bx - rBall, by - rBall)
+
+    vxLast = vx
+
+    vyLast = vy
+
+    tick = "False"
+
+  EndIf
+
+EndWhile
+
+Sub DoNothing
+
+EndSub
+
+Sub OnMouseMove
+
+  ems = Clock.ElapsedMilliseconds
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  move = "True"
+
+EndSub
+
+Sub OnTick
+
+  tick = "True"
+
+EndSub
+
+Sub Math_CalcJK
+
+  ' param i
+
+  ' return j, k
+
+  j = i + 1
+
+  If 3 < j Then
+
+    j = 1
+
+  EndIf
+
+  k = j + 1
+
+  If 3 < k Then
+
+    k = 1
+
+  EndIf
+
+EndSub
+
+Sub Math_CalcTriangleProperties
+
+  ' param x[1], y[1], x[2], y[2], x[3], y[3] - triangle ABC
+
+  ' return l[1], l[2], l[3] - length of edge a, b, c
+
+  ' return a[1], a[2], a[3] - angle A, B, C
+
+  ' return xh, yh - foot H of perpendicular AH
+
+  ' return ah - length of perpendicular AH
+
+  ' 1. calculate length of each edge a, b, c
+
+  For i = 1 To 3
+
+    Math_CalcJK()
+
+    l[i] = Math.SquareRoot(Math.Power(x[j] - x[k], 2) + Math.Power(y[j] - y[k], 2))
+
+  EndFor
+
+  ' 2. calculate angle ABC
+
+  cw = "True"
+
+  For i = 1 To 3
+
+    Math_CalcJK()
+
+    param["x"] = x[j] - x[i]
+
+    param["y"] = y[j] - y[i]
+
+    Math_CartesianToPolar()
+
+    aj = return["a"]
+
+    param["x"] = x[k] - x[i]
+
+    param["y"] = y[k] - y[i]
+
+    Math_CartesianToPolar()
+
+    ak = return["a"]
+
+    saved = ak
+
+    If ak < aj Then
+
+      ak = ak + 360
+
+    EndIf
+
+    a[i] = ak - aj
+
+    If 360 < a[i] Then
+
+      a[i] = a[i] - 360
+
+    EndIf
+
+    If 180 < a[i] Then
+
+      a[i] = 360 - a[i]
+
+      cw = "False"
+
+    EndIF
+
+  EndFor
+
+  ' 3. calculate foot H(xh, yh) of perpendicular AH
+
+  param["x"] = x[1] - x[3]
+
+  param["y"] = y[1] - y[3]
+
+  Math_CartesianToPolar()
+
+  param["r"] = return["r"] * Math.Cos(Math.GetRadians(a[3]))
+
+  If cw Then
+
+    param["a"] = return["a"] + a[3]
+
+  Else
+
+    param["a"] = return["a"] - a[3]
+
+  EndIf
+
+  Math_PolarToCartesian()
+
+  xh = x[3] + return["x"]
+
+  yh = y[3] + return["y"]
+
+  ' 4. calculate length of perpendicular AH
+
+  ah = Math.SquareRoot(Math.Power(xh - x[1], 2) + Math.Power(yh - y[1], 2))
+
+EndSub
+
+Sub Math_CartesianToPolar
+
+  ' Math | convert cartesian coodinate to polar coordinate
+
+  ' param x, y - cartesian coordinate
+
+  ' return r, a - polar coordinate
+
+  return["r"] = Math.SquareRoot(param["x"] * param["x"] + param["y"] * param["y"])
+
+  If param["x"] = 0 And 0 < param["y"] Then
+
+    return["a"] = 90 ' [degree]
+
+  ElseIf param["x"] = 0 And param["y"] < 0 Then
+
+    return["a"] = -90
+
+  Else
+
+    return["a"] = Math.ArcTan(param["y"] / param["x"]) * 180 / Math.Pi
+
+  EndIf
+
+  If param["x"] < 0 Then
+
+    return["a"] = return["a"] + 180
+
+  ElseIf 0 < param["x"] And param["y"] < 0 Then
+
+    return["a"] = return["a"] + 360
+
+  EndIf
+
+EndSub
+
+Sub Math_PolarToCartesian
+
+  ' Math | convert polar coodinate to cartesina coordinate
+
+  ' param r, a - polar coordinate
+
+  ' return x, y - cartesian coordinate
+
+  return["x"] = param["r"] * Math.Cos(param["a"] * Math.Pi / 180)
+
+  return["y"] = param["r"] * Math.Sin(param["a"] * Math.Pi / 180)
+
+EndSub
+
+  
+
+

@@ -1,0 +1,349 @@
+title = "Curves"
+
+ver = ""
+
+cc=0
+
+lsc=0
+
+nct=12
+
+Shapes.AddEllipse(2,2)
+
+LDDialogs.AddRightClickMenu(LDText.Split ("AllOFF NodesON NodesOFF LinesON LinesOFF"," "),"")
+
+LDDialogs.RightClickMenu =rmmn
+
+GraphicsWindow.KeyDown=kdd
+
+GraphicsWindow.Title = title + " " + ver + " - Quadratic Bezier Curve"
+
+Not = "False=True;True=False;"
+
+nth = "1=first;2=second;3=third;4=fourth;"
+
+Form()
+
+i=1
+
+while i < nct
+
+  msg = "Click "+ nth[i] + " point on the screen."
+
+  ShowInstruction()
+
+  GetPoint()
+
+  If FCKeyboard.IsControlPressed and i>2 Then
+
+    ox=px[i-2]
+
+    nx=px[i-1]
+
+    oy=py[i-2]
+
+    ny=py[i-1]
+
+    
+
+    aag= mathplus.GetDegrees ( MathPlus.ATan2(nx-ox,ny-oy)+Math.Pi/2)
+
+    If aag>180 Then
+
+      aag=aag-360
+
+    elseIf aag<-180 Then
+
+      aag=aag+360
+
+      
+
+    endif
+
+    aag=math.Round(aag)
+
+    '   rr=ldmath.Convert2Radial (px[i-1],py[i-1],px[i-2],py[i-2])  
+
+    dx=x-px[i-1]
+
+    dy=y-py[i-1]
+
+    dst=math.SquareRoot (dx*dx+dy*dy)
+
+    qq= LDMath.Convert2Cartesian (px[i-1],py[i-1],dst,aag-90 )
+
+    GraphicsWindow.Title=aag+" : "+dst
+
+    x=qq[1]
+
+    y=qq[2]
+
+  endif
+
+  ShowPoint()
+
+  px[i] = x
+
+  py[i] = y
+
+  i=i+1
+
+Endwhile
+
+msg = ""
+
+ShowInstruction()
+
+GraphicsWindow.PenColor = "Gray"
+
+For c=0 to nct-4 step 2
+
+  dpx[1]=px[1+c]
+
+  dpy[1]=py[1+c]
+
+  dpx[2]=px[2+c]
+
+  dpy[2]=py[2+c]
+
+  dpx[3]=px[3+c]
+
+  dpy[3]=py[3+c]
+
+  GraphicsWindow.PenColor="Gray
+
+  lsc=lsc+1
+
+  ls[lsc]=Shapes.AddLine (dpx[1], dpy[1], dpx[2], dpy[2])
+
+  lsc=lsc+1
+
+  ls[lsc]=Shapes.AddLine (dpx[2], dpy[2], dpx[3], dpy[3])
+
+  GraphicsWindow.PenColor="Red
+
+  DrawQuadraticBezier()
+
+endfor
+
+
+
+'---------------------------------subs---------------------------------****************************************
+
+Sub rmmn
+
+  lm= LDDialogs.LastRightClickMenuItem 
+
+  If lm=1 Then 
+
+    For x=1 To cc
+
+      Shapes.HideShape (cs[x])
+
+    EndFor
+
+    For x=1 To lsc
+
+      Shapes.HideShape (ls[x])
+
+    EndFor
+
+  elseIf lm=2 Then
+
+    For x=1 To cc
+
+      Shapes.ShowShape (cs[x])
+
+    EndFor 
+
+  elseIf lm=3 Then
+
+    For x=1 To cc
+
+      Shapes.HideShape (cs[x])
+
+    EndFor
+
+  elseIf lm=4 Then
+
+    For x=1 To lsc
+
+      Shapes.showShape (ls[x])
+
+    EndFor 
+
+  elseIf lm=5 Then
+
+    For x=1 To lsc
+
+      Shapes.HideShape (ls[x])
+
+    EndFor
+
+  endif
+
+EndSub 
+
+
+
+Sub kdd
+
+  lky=GraphicsWindow.LastKey 
+
+  GraphicsWindow.Title =lky
+
+  If lky="Back" Then
+
+    Shapes.Remove (cs[cc])
+
+    cc=cc-1
+
+    i=i-1
+
+    endif
+
+  EndSub 
+
+
+
+Sub Form
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.FontName = "Trebuchet MS"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 20
+
+  instruction = Shapes.AddText("")
+
+  Shapes.Move(instruction, 10, 10)
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+EndSub
+
+
+
+Sub DrawQuadraticBezier
+
+  ' param px, py - array of three control points for quadratic Bezier curve
+
+  For k = 0 To 1 Step 0.05
+
+    x1 = dpx[1] + k * (dpx[2] - dpx[1])
+
+    y1 = dpy[1] + k * (dpy[2] - dpy[1])
+
+    x2 = dpx[2] + k * (dpx[3] - dpx[2])
+
+    y2 = dpy[2] + k * (dpy[3] - dpy[2])
+
+    GraphicsWindow.PenColor = "Gray"
+
+    line = Shapes.AddLine(x1, y1, x2, y2)
+
+    x = x1 + k * (x2 - x1)
+
+    y = y1 + k * (y2 - y1)
+
+    If 0 < k Then
+
+      ff=ff+1
+
+      GraphicsWindow.PenColor = "Red
+
+      dline[ff] = Shapes.AddLine(_x, _y, x, y)
+
+    EndIf
+
+    _x = x  ' last x
+
+    _y = y  ' last y
+
+    msg = "k = " + k
+
+    ShowInstruction()
+
+    Program.Delay(30)
+
+    Shapes.Remove(line)
+
+  EndFor
+
+EndSub
+
+
+
+Sub GetPoint
+
+  ' return x, y - clicked point
+
+  mouseDown = "False"
+
+  While Not[mouseDown]
+
+    Program.Delay(300)
+
+  EndWhile
+
+  x = GraphicsWindow.MouseX
+
+  y = GraphicsWindow.MouseY
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  mouseDown = "True"
+
+EndSub
+
+
+
+Sub ShowInstruction
+
+  ' param msg - instruction message to show
+
+  Shapes.SetText(instruction, msg)
+
+EndSub
+
+
+
+Sub ShowPoint
+
+  cc=cc+1
+
+  cs[cc]=Shapes.AddEllipse(15,15)
+
+  LDShapes.Centre (cs[cc],x,y)
+
+  Shapes.SetOpacity (cs[cc],70)
+
+  If FCKeyboard.IsControlPressed  and cc>2 Then
+
+    LDShapes.BrushColour (cs[cc],"Brown")
+
+    
+
+  Else
+
+    LDShapes.BrushColour (cs[cc],"Blue")
+
+  EndIf 
+
+EndSub
+
+
+
+

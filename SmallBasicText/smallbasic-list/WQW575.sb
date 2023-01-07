@@ -1,0 +1,399 @@
+'***********************************************************
+
+'* Small Basic Browser wrtiten by Martin Menze 31.12.2012    *    
+
+'* Need the LitDev Extention                                                              *
+
+'*                                                                                                               *
+
+'*********************************************************** 
+
+Init()
+
+MainLoop = T
+
+While MainLoop = T
+
+  If OTT = T Then
+
+    OTT = F  
+
+    If OBPL = F Then 
+
+      LDCursors.Arrow()
+
+    EndIf 
+
+    ReactionTimer()
+
+  EndIf 
+
+  If OKD = T Then 
+
+    OKD = F
+
+    ReactionKeyPressing()
+
+  EndIf 
+
+  If OKU = T Then
+
+    OKU = F 
+
+    ReactionKeyPressing()
+
+  EndIf   
+
+  If OBC = T Then 
+
+    OBC = F 
+
+    ReactionButtonClicked()
+
+  EndIf 
+
+  If OLBIC = T Then 
+
+    OLBIC = F  
+
+    LDControls.BrowserSetURL(Browser, List[LDControls.LastListBoxIndex]) 
+
+    HistStatus = F
+
+    Controls.HideControl(LBHist)
+
+    Controls.ShowControl(Browser)
+
+  EndIf 
+
+  If OBPL = T Then 
+
+    OBPL = F
+
+    LDCursors.Wait()
+
+  EndIf 
+
+EndWhile 'MainLoop
+
+Program.End()
+
+
+
+'####################################################################################################################
+
+Sub Init 
+
+  'Constanten
+
+  T = "True"
+
+  F = "False"
+
+  S = "SUCCESS"
+
+  FF = "FAILED" 
+
+  
+
+  'Events
+
+  Timer.Interval = 500
+
+  Timer.Tick = OnTimerTicked 
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+  GraphicsWindow.KeyUp = OnKeyUp
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  LDControls.ListBoxItemChanged = OnListBoxItemChanged 
+
+  LDControls.BrowserPageLoaded = OnBrowserPageLoaded
+
+  
+
+  'Definition Program Window
+
+  GraphicsWindow.Title = "Small Basic Browser"
+
+  gh = Desktop.Height - 200
+
+  gw = Desktop.Width - 200
+
+  GraphicsWindow.Top = 0
+
+  GraphicsWindow.Left = 0
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Width = gw
+
+  gh2gw = gh/gw
+
+  ogh = gh
+
+  ogw = gw 
+
+  CBa = LDColours.LightGray 
+
+  GraphicsWindow.BackgroundColor = CBa
+
+  CBr = LDColours.Black 
+
+  GraphicsWindow.BrushColor = CBr 
+
+  
+
+  'Definition Browser
+
+  'Start Browser with URL www.google.de
+
+  URL = "www.google.de"
+
+  Browser = LDControls.AddBrowser(gw,gh-50,URL)
+
+  BrowserY = BrowserY + 50
+
+  Controls.Move(Browser, BrowserX, BrowserY)
+
+  
+
+  'Definition Controls 
+
+  Back = Controls.AddButton(" <- ",3,2)
+
+  Next = Controls.AddButton(" -> ",43,2)
+
+  TBUrl = Controls.AddTextBox(83,2)
+
+  Controls.SetTextBoxText(TBUrl, Url)
+
+  LDFocus.SetFocus(TBUrl)
+
+  Start = Controls.AddButton(" Go ",253,2)
+
+  Hist = Controls.AddButton("History",293,2)
+
+  HistStatus = F   
+
+EndSub 
+
+
+
+Sub ReactionTimer
+
+  gh = GraphicsWindow.Height
+
+  If ogh <> gh Then 
+
+    gw = gh / gh2gw
+
+    Controls.HideControl(Browser)
+
+    GraphicsWindow.Height = gh
+
+    GraphicsWindow.Width = gw
+
+    Controls.SetSize(Browser, gw, gh-50)
+
+    Controls.ShowControl(Browser)
+
+  EndIf 
+
+  If LDFocus.IsFocus(TBUrl) = F Then 
+
+    URL = LDControls.LastBrowserPage 
+
+    Controls.SetTextBoxText(TBUrl, URL)
+
+  EndIf 
+
+EndSub 'ReactionTimer
+
+
+
+Sub ReactionKeyPressing
+
+  LK = GraphicsWindow.LastKey 
+
+  If LK = "Left" Then 
+
+    BrowserX = BrowserX - 5
+
+    Controls.Move(Browser, BrowserX, BrowserY)
+
+  ElseIf LK = "Right" Then
+
+    BrowserX = BrowserX + 5
+
+    Controls.Move(Browser, BrowserX, BrowserY)
+
+  ElseIf LK = "Up" Then 
+
+    BrowserY = BrowserY - 5
+
+    Controls.Move(Browser, BrowserX, BrowserY)
+
+  ElseIf LK = "Down" Then 
+
+    BrowserY = BrowserY + 5
+
+    Controls.Move(Browser, BrowserX, BrowserY)
+
+  EndIf 
+
+EndSub 'ReactionKeyPressing
+
+
+
+Sub ReactionButtonClicked
+
+  LCB = Controls.LastClickedButton 
+
+  If LCB = Back Then 
+
+    LDControls.BrowserNavigate(Browser, "B")
+
+    URL= LDControls.LastBrowserPage 
+
+    Controls.SetTextBoxText(TBUrl, URL)
+
+  ElseIf LCB = Next Then 
+
+    LDControls.BrowserNavigate(Browser, "F")
+
+    URL= LDControls.LastBrowserPage 
+
+    Controls.SetTextBoxText(TBUrl, URL)
+
+  ElseIf LCB = Start Then
+
+    URL = Controls.GetTextBoxText(TBUrl)
+
+    LDControls.BrowserSetURL(Browser, URL)
+
+  ElseIf LCB = Hist Then
+
+    GetHistory()
+
+  EndIf 
+
+EndSub 'ReactionButtonClicked
+
+
+
+Sub GetHistory
+
+  If HistStatus = F Then 
+
+    HistStatus = T
+
+    AHist = ""
+
+    AHist = LDControls.BrowserHistory(Browser) 
+
+    BHC = Array.GetItemCount(AHist) 
+
+    If BHC < OBHC Then 
+
+      For i = 1 To BHC 
+
+        List[i] = AHist[i] 
+
+      EndFor 
+
+      For i = BHC + 1 To OBHC 
+
+        List[i] = "" 
+
+      EndFor  
+
+    ElseIf BHC = OBHC Then 
+
+      For i = 1 To BHC 
+
+        List[i] = AHist[i] 
+
+      EndFor 
+
+    ElseIf BHC > OBHC Then 
+
+      For i = 1 To BHC 
+
+        List[i] = AHist[i] 
+
+      EndFor 
+
+    EndIf
+
+    OBHC = BHC  
+
+    Controls.HideControl(Browser)
+
+    LBHist = LDControls.AddListBox(List,400,600) 
+
+    controls.Move(LBHist,293,30)
+
+  Else 
+
+    HistStatus = F
+
+    Controls.HideControl(LBHist)
+
+    Controls.ShowControl(Browser)
+
+  EndIf 
+
+EndSub 'GetHistory
+
+
+
+Sub OnTimerTicked
+
+  OTT = T 
+
+EndSub 
+
+
+
+Sub OnKeyDown
+
+  OKD = T
+
+EndSub 'OnKeyDown
+
+
+
+Sub OnKeyUp
+
+  OKU = T
+
+EndSub 'OnKeyUp
+
+
+
+Sub OnButtonClicked
+
+  OBC = T
+
+EndSub 'OnButtonClicked
+
+
+
+Sub OnListBoxItemChanged
+
+  OLBIC = T 
+
+EndSub 'OnListBoxItemChanged
+
+
+
+Sub OnBrowserPageLoaded
+
+  OBPL = T
+
+EndSub 'OnBrowserPageLoaded
+
+

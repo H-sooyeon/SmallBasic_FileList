@@ -1,0 +1,365 @@
+' If you are keen,  up the ShapeCount, lower the ShapeSize and lower the UpdateDelay
+
+ShapeCount = 20
+
+ShapeSize = 75
+
+UpdateDelay = 5000
+
+ScreenX = 800
+
+ScreenY = 600
+
+
+
+' /*   Option to auto size and delay  */
+
+'UpdateDelay = (ShapeCount * 1000) / 2
+
+'ShapeSize = Math.Round(ScreenX  * 2 / ShapeCount)
+
+
+
+ShowHelp()
+
+Init()
+
+Main()
+
+
+
+Sub Init
+
+  Score = 0
+
+  MatchCount = 0
+
+  InitScreen()
+
+  InitShapes()
+
+  Timer.Pause()
+
+  Timer.Interval = 1000
+
+  Timer.Tick = CountDown
+
+EndSub
+
+
+
+Sub InitScreen
+
+  GraphicsWindow.Title = "Click the matching shapes before they move!"
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.MouseUp = MouseUp
+
+  GraphicsWindow.Width = ScreenX
+
+  GraphicsWindow.Height = ScreenY
+
+EndSub
+
+
+
+Sub InitShapes
+
+  shapeCounter = ShapeCount
+
+  While shapeCounter > 0 ' Run this backwards to get Z-Order right
+
+      i = shapeCounter
+
+      RandomizeColor()
+
+      GraphicsWindow.BrushColor = RandomColor
+
+    If Math.Remainder(i,4) = 0 Then
+
+      shape1 = Shapes.AddEllipse(ShapeSize,ShapeSize)
+
+      shape2 = Shapes.AddEllipse(ShapeSize,ShapeSize)
+
+      shapeName = "Ellipse"
+
+    ElseIf Math.Remainder(i,2) = 0  Then
+
+      shape1 = Shapes.AddTriangle(ShapeSize/2,0,0,ShapeSize, ShapeSize,ShapeSize)
+
+      shape2 = Shapes.AddTriangle(ShapeSize/2,0,0,ShapeSize, ShapeSize,ShapeSize)
+
+      shapeName = "Triangle"
+
+    Else
+
+      shape1 = Shapes.AddRectangle(ShapeSize,ShapeSize)
+
+      shape2 = Shapes.AddRectangle(ShapeSize,ShapeSize)
+
+      shapeName = "Rectangle"
+
+    EndIf
+
+    shapes1[i] = shape1
+
+    shapes2[i] = shape2
+
+    shapeCounter = shapeCounter - 1
+
+  EndWHile
+
+EndSub
+
+
+
+Sub Main
+
+  While MatchCount < ShapeCount
+
+      Update()
+
+      FeedBack()
+
+      InitTimer()
+
+      Program.Delay(UpdateDelay + 1000)
+
+      EndTimer()
+
+    EndWhile
+
+EndSub
+
+
+
+Sub InitTimer
+
+   _timer = ""
+
+  Timer.Resume()
+
+EndSub
+
+
+
+Sub EndTimer
+
+  Timer.Pause()
+
+  Shapes.Remove(_tt)
+
+EndSub
+
+
+
+Sub CountDown
+
+  If MatchCount = ShapeCount Then
+
+      EndTimer()
+
+  Else
+
+    If _timer = "" then
+
+      _timer = UpdateDelay / 1000
+
+    Else
+
+      _timer = _timer - 1
+
+    EndIf
+
+    Shapes.Remove(_tt)
+
+    _tt = Shapes.AddText(_timer)
+
+    Shapes.Move(_tt, GraphicsWindow.Width - 20, 0)
+
+  EndIf    
+
+EndSub
+
+
+
+Sub Update
+
+  For x = 1 To Array.GetItemCount(shapes1)
+
+    delay = Math.GetRandomNumber(UpdateDelay * .5) ' we all move at our own pace
+
+    Shapes.Animate(shapes1[x], Math.GetRandomNumber(GraphicsWindow.Width - ShapeSize*2) + ShapeSize, Math.GetRandomNumber(GraphicsWindow.Height - ShapeSize - 20) + 20 ,delay)
+
+    Shapes.Animate(shapes2[x], Math.GetRandomNumber(GraphicsWindow.Width - ShapeSize*2) + ShapeSize, Math.GetRandomNumber(GraphicsWindow.Height - ShapeSize - 20) + 20,delay)
+
+  EndFor
+
+EndSub
+
+
+
+Sub MouseUp
+
+  stackCount = Stack.GetCount("theShapes")
+
+  mouseX = GraphicsWindow.MouseX
+
+  mouseY = GraphicsWindow.MouseY
+
+  For mouseUpIndex = 1 to Array.GetItemCount(shapes1)
+
+    aShape1 = shapes1[mouseUpIndex]
+
+    aShape2 = shapes2[mouseUpIndex]
+
+    If Shapes.GetLeft(aShape1) < mouseX and Shapes.GetLeft(aShape1) + ShapeSize > mouseX and Shapes.GetTop(aShape1) < mouseY and Shapes.GetTop(aShape1) + ShapeSize > mouseY Then
+
+        Shapes.Animate(aShape1,0,(stackCount * ShapeSize), UpdateDelay / 16)
+
+        Stack.PushValue("theShapes",mouseUpIndex)
+
+        Sound.PlayClick() 
+
+        mouseUpIndex = Array.GetItemCount(shapes1) ' Exit For
+
+    ElseIf Shapes.GetLeft(aShape2) < mouseX and Shapes.GetLeft(aShape2) + ShapeSize > mouseX and Shapes.GetTop(aShape2) < mouseY and Shapes.GetTop(aShape2) + ShapeSize > mouseY Then
+
+        Shapes.Animate(aShape2,0,(stackCount * ShapeSize), UpdateDelay / 16)
+
+        Stack.PushValue("theShapes",mouseUpIndex)
+
+        Sound.PlayClick() 
+
+        mouseUpIndex = Array.GetItemCount(shapes1) ' Exit For
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub FeedBack
+
+  _oldScore = Score
+
+  stackCount = Stack.GetCount("theShapes") 
+
+  While stackCount  > 0 
+
+    If Math.Remainder(stackCount,2) = 0 Then
+
+      mainShape1 = Stack.PopValue("theShapes")
+
+      mainShape2 = Stack.PopValue("theShapes")
+
+      If mainShape1 = mainShape2 then
+
+        Stack.PushValue("winners", shapes1[mainShape1]) 
+
+        Stack.PushValue("winners", shapes2[mainShape2])
+
+        Score = Score + 10 ' a match
+
+        MatchCount = MatchCount + 1
+
+      Else
+
+        Score = Score- 5 ' a mis-match
+
+      EndIf
+
+    Else
+
+      Stack.PopValue("theShapes") ' return to playing field
+
+    EndIf
+
+    ShowScore()
+
+    stackCount = Stack.GetCount("theShapes")
+
+  EndWhile
+
+  If Stack.GetCount("winners") > 0 Then
+
+    Sound.PlayChime()
+
+    Score = Score + ((Stack.GetCount("winners") / 2) - 1) * 5 ' multi bonus
+
+    ShowScore()
+
+    While Stack.GetCount("winners") > 0
+
+      _s = Stack.PopValue("winners")
+
+      Shapes.Animate(_s,0,-ShapeSize,250)
+
+      Program.Delay(250)
+
+      Shapes.Remove(_s)
+
+    EndWhile  
+
+  EndIf
+
+EndSub
+
+
+
+Sub ShowHelp
+
+  _msg = "Click as many matching shapes before time is up. Score 10 for a match and 15 for extra matches. Lose 5 for a mis-match."
+
+ GraphicsWindow.ShowMessage(_msg,"")    
+
+EndSub
+
+  
+
+Sub ShowScore
+
+  Shapes.Remove(sc)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  If MatchCount = ShapeCount Then
+
+    _msg = ", Well Done!"
+
+  Else
+
+    _msg = ", " + (ShapeCount - MatchCount) + " to go" 
+
+  EndIf
+
+  sc = Shapes.AddText("Score: " + Score + _msg )
+
+  Shapes.Move(sc,ShapeSize,0)
+
+EndSub
+
+  
+
+Sub RandomizeColor ' Random, but no repeats
+
+  rndColor = GraphicsWindow.GetRandomColor()
+
+  While Array.ContainsValue(randomColors,rndColor) = "True"
+
+    color = GraphicsWindow.GetRandomColor()
+
+  EndWhile
+
+  randomColors[Array.GetItemCount(randomColors) + 1] = rndColor
+
+  RandomColor = rndColor
+
+EndSub    
+
+  
+
+

@@ -1,0 +1,345 @@
+' SmallBasic Version 1.2
+
+' Program: LDChart
+
+' Changelog: 
+
+' Author: Pappa Lapub (LitDev sample)
+
+' Website: https://blogs.msdn.microsoft.com/smallbasic/2014/11/15/small-basic-chart-extension/
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev
+
+' Comment:  Problem with data/sector where a single value is > 50% (the more, the more deviant from circle)
+
+'  
+
+' Variables: 
+
+' ToDo: 
+
+' ================================================================================
+
+''2 vals:
+
+'test = "1=50;2=50;"   ' 50:50
+
+'test = "1=60;2=40;"   ' <> 50:50
+
+
+
+'' 3 vals:
+
+'test = "1=61;2=10;3=29;"  ' >> 50:50
+
+'test = "1=51;2=19;3=30;"  ' >  50:50
+
+'test = "1=50;2=20;3=30;"  ' 50:50
+
+'test = "1=49;2=21;3=30;"  ' < 50:50
+
+'test = "1=39;2=31;3=30;"  ' << 50:50
+
+
+
+'' more vals:
+
+'test = "1=50;2=5;3=10;4=15;5=20;"  ' = 50:50
+
+test = "1=10;2=5;3=10;4=15;5=60;"  ' >> 50:50
+
+
+
+
+
+w = 400
+
+h = 400
+
+lf = Text.GetCharacter(10)
+
+
+
+nDat = Array.GetItemCount(test)
+
+For i = 1 To nDat
+
+  val = test[i] ' Math.GetRandomNumber(10)
+
+  data["TestData "+ i] = val
+
+  sum = sum + val
+
+EndFor
+
+data = LDSort.ByValueWithIndex(data)
+
+idcs = Array.GetAllIndices(data)
+
+
+
+GraphicsWindow.Width = 2*w
+
+GraphicsWindow.Height = h
+
+GraphicsWindow.Title = "Click a Segment  ['D'..Data, DblClick..Explode, R-Click..Reset]"
+
+GraphicsWindow.FontBold = ""
+
+
+
+'' Chart1 left (Doughnut, else default)
+
+GraphicsWindow.BackgroundColor = "Black"
+
+GraphicsWindow.PenColor = "White"
+
+chart1 = LDChart.AddChart(w,h)
+
+LDChart.SetData(chart1, data)
+
+LDChart.Properties(chart1, "Doughnut", 1)
+
+LDShapes.SetShapeEvent(chart1)
+
+
+
+'' Chart2 right (Pie)
+
+ReverseData()
+
+GraphicsWindow.BackgroundColor = "White"
+
+GraphicsWindow.PenColor = "Red"
+
+chart2 = LDChart.AddChart(w,h)
+
+LDChart.SetData(chart2, data)
+
+LDChart.ColourMap(chart2, 0,0,0.6, "Lightness", 0.2,0.8, "")  '  , "DimGray")
+
+LDChart.Legend(chart2, 1.5, "Percent", "")
+
+Shapes.Move(chart2, w,0)
+
+LDShapes.SetShapeEvent(chart2)
+
+
+
+' MLTextBox/Label  bottom
+
+GraphicsWindow.BrushColor = "Red"
+
+tb = Controls.AddMultiLineTextBox(3*w/4, 3*h/4+1)   ' (w/2, 3*h/4+1)
+
+Controls.HideControl(tb)
+
+Controls.SetSize(tb, w/2,h/4)   ' (tb, w,h/4)
+
+LDShapes.BrushColour(tb, "Transparent")
+
+LDControls.TextBoxReadOnly(tb, "True")
+
+LDShapes.SetProperty(tb, "BorderThickness", "0,0,0,0")
+
+
+
+GetPercent()
+
+
+
+
+
+LDChart.ValueClicked = OnValueClicked
+
+'LDShapes.ShapeEvent = OnShapeEvent
+
+LDEvents.MouseDoubleClick = OnDoubleClick
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+
+
+
+
+' //////////////////  EVENTs  ///////////////////
+
+Sub OnValueClicked
+
+  lastChart = LDChart.LastChart
+
+  lastLbl = LDChart.LastLabel
+
+  
+
+  If high[lastChart][lastLbl] Then
+
+    LDChart.Highlight(lastChart, lastLbl, 0)
+
+    high[lastChart][lastLbl] = ""
+
+  Else
+
+    LDChart.Highlight(lastChart, lastLbl, 0.5)
+
+    high[lastChart][lastLbl] = "True"
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnShapeEvent
+
+  If LDShapes.LastEventType = "MouseLeave" Then ' Reduce all sectors
+
+    lastChart = LDShapes.LastEventShape
+
+    LDChart.Update(lastChart)      ' instantly
+
+    high[lastChart] = ""
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  If Mouse.IsRightButtonDown Then     ' Reduce all sectors
+
+    fract = 0
+
+    stat = ""
+
+    OpenClose()
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnDoubleClick     ' Expand all sectors
+
+  fract = 0.5
+
+  stat = "True"
+
+  OpenClose()
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  If lastKey = "Escape" Then
+
+    Program.End()
+
+  ElseIf lastKey = "D" Then
+
+    ShowData()
+
+  EndIf  
+
+EndSub
+
+
+
+
+
+' ////////////////////  SUBs  ////////////////////
+
+Sub GetPercent
+
+  'txt = ""
+
+  'perc = LDStatistics.Percent(data, 1)
+
+  For n = 1 To nDat
+
+    perc[n] = Math.Round(1000*data[idcs[n]]/sum)*0.1
+
+    txt = txt + idcs[n] +" = "+ data[idcs[n]] +"  ("+ perc[n] +" %)"+ lf
+
+  EndFor
+
+  Controls.SetTextBoxText(tb, txt)
+
+EndSub
+
+
+
+Sub ShowData
+
+  If isShow Then
+
+    Controls.HideControl(tb)
+
+  Else
+
+    Controls.ShowControl(tb)
+
+  EndIf
+
+  isShow = LDLogic.Not(isShow)
+
+EndSub
+
+
+
+Sub ReverseData
+
+  temp = data
+
+  For n = 1 To nDat
+
+    data[idcs[n]] = temp[idcs[nDat-n+1]]
+
+  EndFor
+
+  temp = ""
+
+EndSub
+
+
+
+Sub OpenClose
+
+  curShp = LDShapes.GetAllShapesAt(GraphicsWindow.MouseX, GraphicsWindow.MouseY)
+
+  lastChart = curShp[1]
+
+  'If fract = 0 Then
+
+  '  LDChart.Update(lastChart)    ' close instantly
+
+  '  high[lastChart] = ""
+
+  'Else
+
+  For n = 1 To nDat
+
+    LDChart.Highlight(lastChart, idcs[n], fract)  ' animated
+
+    high[lastChart][idcs[n]] = stat
+
+  EndFor
+
+  'EndIf
+
+EndSub
+
+
+
+

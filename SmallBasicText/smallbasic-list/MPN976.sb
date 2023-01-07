@@ -1,0 +1,203 @@
+InitializeWindow()
+
+StartSimulation()
+
+
+
+Sub InitializeWindow
+
+  'Create the height and width of the window
+
+  Height = 500
+
+  Width = 400
+
+  GraphicsWindow.CanResize = 0 'Make it unresizable so that you can't resize it
+
+  'to make some sky appear in the middle of a field
+
+  GraphicsWindow.Height = Height
+
+  GraphicsWindow.Width = Width
+
+  GraphicsWindow.BackgroundColor = "DarkBlue" 'Make it dark to give that wintry feeling
+
+  'Make some grass
+
+  GraphicsWindow.BrushColor = "Green" 
+
+  GraphicsWindow.FillRectangle(0,Height-200,Width,200)
+
+  'Make some clouds
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillEllipse(-30,-30,300,150)
+
+  GraphicsWindow.FillEllipse(200,-60,400,160)
+
+  'Mark some events
+
+  GraphicsWindow.MouseDown = MouseDown
+
+  GraphicsWindow.MouseMove = MouseMove
+
+EndSub
+
+Sub StartSimulation
+
+  GraphicsWindow.BrushColor = "White"
+
+  While 1 = 1
+
+    index = index + 1 'Add one to 'index' so that we don't keep overwriting the same variable
+
+    GraphicsWindow.FontSize = Math.GetRandomNumber(15)+10 'Make the font size
+
+    'some reasonable size for the next snowflake
+
+    Snowflake[index] = Shapes.AddText("*") 'Add the snowflake
+
+    'Make the X and Y for the snowflake
+
+    X[index] = Math.GetRandomNumber(Width+GraphicsWindow.FontSize)-GraphicsWindow.FontSize
+
+    Y[index] = Math.GetRandomNumber(240)+Height-220
+
+    'Move the snowflake to its X but not its Y so that we can animate it later with no slant
+
+    Shapes.Move(Snowflake[index] , X[index] , -40)
+
+    'Animate the snowflake
+
+    Shapes.Animate(Snowflake[index] , X[index] , Y[index] , (Math.GetRandomNumber(5)+5)*100)
+
+    'Create a delay so as to not crush the CPU
+
+    Program.Delay(20)
+
+  EndWhile
+
+EndSub
+
+  
+
+
+
+Sub MouseMove
+
+  MouseX = GraphicsWindow.MouseX
+
+  MouseY = GraphicsWindow.MouseY
+
+  If id = 3 Then 'Check to see if the user has clicked three times which would end the triangle
+
+    'Remove all lines
+
+    For i = 1 To 3
+
+      Shapes.Remove(Line[i])
+
+    EndFor
+
+    'Redraw them
+
+    Line[1] = Shapes.AddLine( Point ["1 : X"], Point ["1 : Y"] , Point ["2 : X"] , Point ["2 : Y"] )
+
+    Line[2] = Shapes.AddLine( Point ["2 : X"], Point ["2 : Y"] , Point ["3 : X"] , Point ["3 : Y"] )
+
+    Line[3] = Shapes.AddLine( Point ["1 : X"], Point ["1 : Y"] , Point ["3 : X"] , Point ["3 : Y"] )
+
+    'Make those events do nothing
+
+    GraphicsWindow.MouseMove = Nothing
+
+    GraphicsWindow.MouseDown = Nothing
+
+    'And start calculations!
+
+    'Pythagorean theorem to calculate the base's length
+
+    BaseLength = Math.SquareRoot( Math.Power(Point ["1 : X"]-Point ["2 : X"] , 2) + Math.Power(Point ["1 : Y"]-Point ["2 : Y"] , 2) )
+
+    'Find the average X for the 2 points to make it easier to find the height
+
+    CenterBaseX = ( Point ["1 : X"] + Point ["2 : X"] ) / 2
+
+    'Find the average Y for the 2 points to make it easier to find the height
+
+    CenterBaseY = ( Point ["1 : Y"] + Point ["2 : Y"] ) / 2
+
+    'Find the height (Thank you Pythagoras!)
+
+    TriangleHeight = Math.SquareRoot( Math.Power(CenterBaseX-Point ["3 : X"] , 2) + Math.Power(CenterBaseY-Point ["3 : Y"] , 2) )
+
+    'And find the area now! (round it to leave off that unneccesary 12 digits behind it)
+
+    Area = Math.Round(0.5 * BaseLength * TriangleHeight)
+
+    'Delay a bit
+
+    Program.Delay(100)
+
+    'Move the text window to a good area
+
+    TextWindow.Left = GraphicsWindow.Left + Width + 20
+
+    'Display the area
+
+    TextWindow.WriteLine("The area of the triangle you drew is "+Area+" square pixels.")
+
+  ElseIf id > 1 Then 'If the user has clicked more than once
+
+    'Remove the current line to redraw it
+
+    Shapes.Remove(Line[id])
+
+    'Add a line from the last X and the last Y to the current X and the current Y
+
+    Line[id] = Shapes.AddLine( Point [ (id-1) +" : X"] , Point [ (id-1) +" : Y"] , Point [ id +" : X"] , Point [ id +" : Y"] )
+
+  EndIf
+
+EndSub
+
+
+
+Sub Nothing
+
+EndSub
+
+
+
+Sub MouseDown
+
+  If id < 3 Then 'If the three points aren't already specified
+
+    id = id + 1 'Add one to the number of points
+
+    Point[id+" : X"] = MouseX 'Make that point's X
+
+    Point[id+" : Y"] = MouseY 'Make that point's Y
+
+    GraphicsWindow.BrushColor = "Gray" 'Make the ellipse gray
+
+    Ellipse[id] = Shapes.AddEllipse(20,20) 'Create an ellipse to make the current point stand
+
+    'out a little
+
+    Shapes.Move(Ellipse[id] , Point [id + " : X"] - 10 , Point [id + " : Y"] - 10) 'Move the ellipse
+
+    'to the current point and center it
+
+    GraphicsWindow.BrushColor = "White" 'Make the brush color white again so that the snowing
+
+    'simulation doesn't suddenly turn gray
+
+  EndIf
+
+EndSub
+
+
+
+

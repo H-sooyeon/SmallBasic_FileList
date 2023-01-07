@@ -1,0 +1,363 @@
+' Floating-point viewer with segment LED
+
+' Copyright (c) 2012 Nonki Takahashi.  All right reserved.
+
+'
+
+' History :
+
+' 0.1 2012/07/16 Created.
+
+' 
+
+GraphicsWindow.Title = "Floating-point viewer 0.1"
+
+GraphicsWindow.BackgroundColor = "Silver"
+
+nFrac = 6     ' number of fractional digits
+
+nExp = 2      ' number of exponential digits
+
+x = 10        ' left position for segment LED
+
+y = 10        ' top position for segment LED
+
+w = 30        ' width of one segment LED
+
+h = 60        ' height of segment LED
+
+nDigits = nFrac + nExp + 4 ' 3 for a decimal point, E and two signs
+
+GraphicsWindow.Width = 2 * x + nDigits * w
+
+GraphicsWindow.Height = 3 * y + h + 20  ' 20 means height of textbox
+
+GraphicsWindow.BrushColor = "Black"
+
+oNum = Controls.AddTextBox(x, 2 * y + h)
+
+InitLED()
+
+digits = Array.GetAllIndices(seg)
+
+Stack.PushValue("local", x)
+
+For i = 1 To nDigits
+
+  n = digits[i]
+
+  DrawLED()
+
+  x = x + w
+
+EndFor
+
+x = Stack.PopValue("local")
+
+typed = "False"
+
+
+
+Controls.TextTyped = OnTextTyped
+
+While "True"
+
+  If typed Then
+
+    typed = "False"
+
+    num = Controls.GetTextBoxText(oNum)
+
+    If Text.GetLength(num) > nDigits Then
+
+      Num2FP()
+
+      DrawFP()
+
+    Else
+
+      DrawNum()
+
+    EndIf
+
+  EndIf  
+
+EndWhile
+
+
+
+Sub OnTextTyped
+
+  typed = "True"
+
+EndSub
+
+
+
+Sub InitLED
+
+  ' return clrLED - colors for LED
+
+  ' return seg - table for number to segments
+
+  ' return segPos - each (relative) position of segment
+
+  ' return segNames - array of segment names
+
+  ' return nSegs - number of segments
+
+  clrLED = "Base=Black;On=Red;Off=#333333;"
+
+  seg[0] = "a=True;b=True;c=True;d=True;e=True;f=True;"
+
+  seg[1] = "b=True;c=True;"
+
+  seg[2] = "a=True;b=True;d=True;e=True;g=True;"
+
+  seg[3] = "a=True;b=True;c=True;d=True;g=True;"
+
+  seg[4] = "b=True;c=True;f=True;g=True;"
+
+  seg[5] = "a=True;c=True;d=True;f=True;g=True;"
+
+  seg[6] = "a=True;c=True;d=True;e=True;f=True;g=True;"
+
+  seg[7] = "a=True;b=True;c=True;f=True;"
+
+  seg[8] = "a=True;b=True;c=True;d=True;e=True;f=True;g=True;"
+
+  seg[9] = "a=True;b=True;c=True;d=True;f=True;g=True;"
+
+  seg["A"] = "a=True;b=True;c=True;e=True;f=True;g=True;"
+
+  seg["B"] = "c=True;d=True;e=True;f=True;g=True;"
+
+  seg["C"] = "a=True;d=True;e=True;f=True;"
+
+  seg["D"] = "b=True;c=True;d=True;e=True;g=True;"
+
+  seg["E"] = "a=True;d=True;e=True;f=True;g=True;"
+
+  seg["F"] = "a=True;e=True;f=True;g=True;"
+
+  seg["G"] = "a=True;c=True;d=True;e=True;f=True;"
+
+  seg["H"] = "b=True;c=True;e=True;f=True;g=True;"
+
+  seg["I"] = "c=True;"
+
+  seg["J"] = "b=True;c=True;d=True;"
+
+  seg["K"] = "a=True;c=True;e=True;f=True;g=True;"
+
+  seg["L"] = "d=True;e=True;f=True;"
+
+  seg["M"] = "a=True;b=True;c=True;e=True;f=True;h=True;"
+
+  seg["N"] = "a=True;b=True;c=True;e=True;f=True;"
+
+  seg["O"] = "c=True;d=True;e=True;g=True;"
+
+  seg["P"] = "a=True;b=True;e=True;f=True;g=True;"
+
+  seg["Q"] = "a=True;b=True;c=True;d=True;e=True;f=True;h=True;"
+
+  seg["R"] = "e=True;g=True;"
+
+  seg["S"] = "a=True;c=True;d=True;f=True;g=True;h=True;"
+
+  seg["T"] = "d=True;e=True;f=True;g=True;"
+
+  seg["U"] = "b=True;c=True;d=True;e=True;f=True;"
+
+  seg["V"] = "b=True;f=True;g=True;h=True;"
+
+  seg["W"] = "b=True;c=True;d=True;e=True;f=True;h=True"
+
+  seg["X"] = "b=True;c=True;e=True;f=True;g=True;h=True"
+
+  seg["Y"] = "b=True;c=True;d=True;f=True;g=True;"
+
+  seg["Z"] = "a=True;b=True;d=True;e=True;g=True;h=True"
+
+  seg["~"] = "a=True;"
+
+  seg["-"] = "g=True;"
+
+  seg["_"] = "d=True;"
+
+  seg["?"] = "a=True;b=True;g=True;h=True;"
+
+  seg["."] = "h=True;"
+
+  seg["!"] = "b=True;h=True;"
+
+  seg["/"] = "b=True;e=True;g=True;"
+
+  segPos["a"] = "x=0.2;y=0.05;w=0.6;h=0.05;"
+
+  segPos["b"] = "x=0.8;y=0.1;w=0.1;h=0.375;"
+
+  segPos["c"] = "x=0.8;y=0.525;w=0.1;h=0.375;"
+
+  segPos["d"] = "x=0.2;y=0.9;w=0.6;h=0.05;"
+
+  segPos["e"] = "x=0.1;y=0.525;w=0.1;h=0.375;"
+
+  segPos["f"] = "x=0.1;y=0.1;w=0.1;h=0.375;"
+
+  segPos["g"] = "x=0.2;y=0.475;w=0.6;h=0.05;"
+
+  segPos["h"] = "x=0.45;y=0.8;w=0.1;h=0.05;"
+
+  segNames = Array.GetAllIndices(segPos)
+
+  nSegs = Array.GetItemCount(segPos)
+
+EndSub
+
+
+
+Sub DrawLED
+
+  ' param x, y - position
+
+  ' param w, h - size
+
+  ' param n - number 0..9
+
+  Stack.PushValue("local", i)
+
+  GraphicsWindow.BrushColor = clrLED["Base"]
+
+  GraphicsWindow.FillRectangle(x, y, w, h)
+
+  GraphicsWindow.BrushColor = clrLED["Off"]
+
+  For i = 1 To nSegs
+
+    If seg[n][segNames[i]] Then
+
+      GraphicsWindow.BrushColor = clrLED["On"]
+
+    Else
+
+      GraphicsWindow.BrushColor = clrLED["Off"]
+
+    EndIf
+
+    xs = x + segPos[segNames[i]]["x"] * w
+
+    ys = y + segPos[segNames[i]]["y"] * h
+
+    ws = w * segPos[segNames[i]]["w"]
+
+    hs = h * segPos[segNames[i]]["h"]
+
+    GraphicsWindow.FillRectangle(xs, ys, ws, hs)
+
+  EndFor
+
+  i = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub DrawNum
+
+  ' param num
+
+  len = Text.GetLength(num)
+
+  If len > nDigits Then
+
+    num = "ERR1"  ' Error 1 : overflow
+
+    TextWindow.WriteLine("ERR2:len=" + len)
+
+    len = 4
+
+  EndIf
+
+  Stack.PushValue("local", x)
+
+  For i = 1 To len
+
+    n = Text.GetSubText(num, i, 1)
+
+    DrawLED()
+
+    x = x + w
+
+  EndFor
+
+  For i = len + 1 To nDigits
+
+    n = ""
+
+    DrawLED()
+
+    x = x + w
+
+  EndFor
+
+  x = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub DrawFP
+
+  ' param fp - floating point number
+
+  Stack.PushValue("local", num)
+
+  num = fp
+
+  DrawNum()
+
+  num = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Num2FP
+
+  ' param num
+
+  ' param nFrac
+
+  ' param nExp
+
+  ' return fp
+
+  numAbs = Math.Abs(num)
+
+  sign = num / numAbs
+
+  exp = Math.Floor(Math.Log(numAbs))
+
+  If Text.GetLength(Math.Abs(exp)) > nExp Then
+
+    fp = "ERR2"     ' Error 2 : exponential part overflow
+
+    TextWindow.WriteLine("ERR2:exp=" + exp)
+
+    Goto exit
+
+  EndIf
+
+  frac = Math.Floor(numAbs * Math.Power(10, nFrac - 1 - exp))
+
+  frac = frac / Math.Power(10, nFrac - 1)
+
+  fp = (sign * frac) + "E" + exp
+
+exit:
+
+EndSub
+
+

@@ -1,0 +1,843 @@
+fontsize = GraphicsWindow.FontSize
+
+begin()
+
+
+
+Sub begin
+
+  'highscore = 122
+
+  GraphicsWindow.Hide()
+
+  GraphicsWindow.CanResize = "False"
+
+  GraphicsWindow.Show()
+
+  GraphicsWindow.Width = 840
+
+  GraphicsWindow.Height = 360
+
+  GraphicsWindow.Title = "Jump"
+
+  GraphicsWindow.BackgroundColor = "Blue"
+
+  GraphicsWindow.BrushColor = "Orange"
+
+  GraphicsWindow.FillRectangle(0,300,860,60)
+
+  GraphicsWindow.BrushColor = "red"
+
+  GraphicsWindow.KeyDown = KeyDown
+
+  GraphicsWindow.KeyUp = KeyUp
+
+  Timer.Interval = 10
+
+  Timer.Tick = Tick
+
+  character = Shapes.AddEllipse(50,50)
+
+  GraphicsWindow.FontSize = fontsize
+
+  Shapes.Move(character, 0, GraphicsWindow.Height - 110)
+
+  addshadows()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  blocks_passed = Shapes.AddText("Blocks Passed: 0")
+
+  money_txt = Shapes.AddText("Money: $10.00")
+
+  Shapes.Move(money_txt, 120, 0)
+
+  explosives_txt = Shapes.AddText("Explosives: 0")
+
+  Shapes.Move(explosives_txt, 220, 0)
+
+  Controls.ButtonClicked = ButtonClicked
+
+  shop_btn = Controls.AddButton("Shop", GraphicsWindow.Width - 47, 5)
+
+  getnewblock()
+
+  x = 35
+
+  y = 250
+
+  space = 0
+
+  left = 0
+
+  speedrate = 1
+
+  moneyamount = 0.50
+
+  paused = "False"
+
+  health = 100
+
+  isusedexplosives = "False"
+
+  money = 10
+
+  istimefornewblock = "False"
+
+  newblockcount = 0
+
+EndSub
+
+
+
+Sub KeyDown
+
+  key = GraphicsWindow.LastKey
+
+  If key = "Space" Or key = "Up" Or key = "W" Then
+
+    continue = "True"
+
+    space = 1
+
+  EndIf
+
+  If key = "Right" Or key = "D" Then
+
+    right = 1
+
+  EndIf
+
+  If key = "Left" Or key = "A" Then
+
+    left2 = 1
+
+  EndIf
+
+  If key = "Down" Or key = "S" Then
+
+    shrink()
+
+  EndIf
+
+  If key = "F1" And explosivescount > 0 Then
+
+    useexplosives()
+
+  EndIf
+
+  If key = "Escape" Then
+
+    space = 0
+
+    isindown = "False"
+
+    isinmidjump = "False"
+
+    Shapes.Move(character, left, GraphicsWindow.Height - 110)
+
+    charposY = GraphicsWindow.Height - 110
+
+  EndIf
+
+EndSub
+
+
+
+Sub KeyUp
+
+  key2 = GraphicsWindow.LastKey
+
+  If key2 = "Left" Or key2 = "A" Then
+
+    left2 = 0
+
+  EndIf
+
+  If key2 = "Right" Or key2 = "D" Then
+
+    right = 0
+
+  EndIf
+
+  If key2 = "Down" Or key2 = "S" Then
+
+    unshrink()
+
+  EndIf
+
+  space = 0
+
+EndSub
+
+
+
+blockpos = GraphicsWindow.Width + 75
+
+blockpos2 = GraphicsWindow.Width + 75
+
+charposY = Shapes.GetTop(character)
+
+isindown = "False"
+
+While "True"
+
+  If paused = "False" Then
+
+    If space = 1 then
+
+      isinmidjump = "True"
+
+      space = 0
+
+    EndIf
+
+    If left2 = 1 Then
+
+      moveleft()
+
+    EndIf
+
+    If right = 1 Then
+
+      moveright()
+
+    EndIf
+
+    If isindown Then
+
+      movecharacterdown() 
+
+    EndIf
+
+    If isinmidjump Then
+
+      begincounting = "True"
+
+      movecharacter()
+
+    EndIf
+
+    moverectangle()
+
+    blockpos = blockpos - speedrate
+
+    blockpos2 = blockpos2 - speedrate
+
+    If blockpos < -75 Then
+
+      blocktype = blocktype + 1
+
+      If blocktype = 4 Then
+
+        blocktype = 1
+
+      EndIf
+
+      blockpos = GraphicsWindow.Width + 75
+
+      Shapes.Remove(block)
+
+      getnewblock()
+
+      Shapes.Move(block, blockpos, blockypos)
+
+      passed = passed + 1
+
+      money = money + moneyamount
+
+      Shapes.SetText(blocks_passed, "Blocks Passed: " + passed)
+
+      Shapes.SetText(money_txt, "Money: $" + money)
+
+    EndIf
+
+    getifhitblock()
+
+    Program.Delay(5)
+
+  EndIf
+
+EndWhile
+
+
+
+Sub moverectangle
+
+  Shapes.Move(block, blockpos, blockypos)
+
+EndSub
+
+
+
+Sub movecharacter
+
+  If continue Then
+
+    space = 0
+
+    getisatend()
+
+    count = count + 1
+
+    If isatend = "False" Then
+
+      charposY = charposY - 3
+
+    Else
+
+      charposY = charposY - 3
+
+    EndIf  
+
+    If isshrunk Then
+
+      charposY2 = charposY + 20
+
+    Else
+
+      charposY2 = charposY
+
+    EndIf
+
+    Shapes.Move(character, left, charposY2)
+
+    If charposY < 2 Then
+
+      count = 0
+
+      isinmidjump = "False"
+
+      isindown = "True"
+
+    EndIf
+
+    If count > 249 Then
+
+      count = 0
+
+      continue = "False"
+
+      count = 0
+
+      space = 0
+
+      KeyUp()
+
+      isatend = "False"
+
+      isinmidjump = "False"
+
+      isindown = "True"
+
+      'unstick()
+
+    EndIf
+
+  'Else
+
+  '  isindown = "True"
+
+  '  movecharacterdown()
+
+  EndIf
+
+EndSub
+
+
+
+Sub movecharacterdown
+
+  isinmidjump = "False"
+
+  space = 0
+
+  getisatend()
+
+  count = count + 1
+
+  If isatend = "False" Then
+
+    charposY = charposY + 3
+
+  Else
+
+    charposY = charposY + 2.5
+
+  EndIf
+
+  If isshrunk Then
+
+    charposY2 = charposY + 20
+
+  Else
+
+    charposY2 = charposY
+
+  EndIf
+
+  Shapes.Move(character, left, charposY2)
+
+  If charposY > GraphicsWindow.Height - 112 Then
+
+    isindown = "False"
+
+  EndIf
+
+  If count > 179 Then
+
+    count = 0
+
+    space = 0
+
+    KeyUp()
+
+    Shapes.Move(character, left, GraphicsWindow.Height - 110)
+
+    isatend = "False"
+
+    isindown = "False"
+
+    isinmidjump = "False"
+
+    begincounting = "False"
+
+    charposY2 = GraphicsWindow.Height - 110
+
+    charposY = GraphicsWindow.Height - 110
+
+  EndIf
+
+EndSub
+
+
+
+Sub getisatend
+
+  If Shapes.GetTop(character) < GraphicsWindow.Height - 210 Then
+
+    isatend = "True"
+
+  Else
+
+    isatend = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub moveright
+
+  If left < GraphicsWindow.Width - 50 Then
+
+    left = left + 5
+
+  EndIf
+
+  If isshrunk Then
+
+    charposY2 = charposY + 20
+
+  Else
+
+    charposY2 = charposY
+
+  EndIf
+
+  Shapes.Move(character, left, charposY2)
+
+EndSub
+
+
+
+Sub moveleft
+
+  If left > 0 Then
+
+    left = left - 5
+
+  EndIf  
+
+  If isshrunk Then
+
+    charposY2 = charposY + 20
+
+  Else
+
+    charposY2 = charposY
+
+  EndIf
+
+  Shapes.Move(character, left, charposY2)
+
+EndSub
+
+
+
+Sub shrink
+
+  isshrunk = "True"
+
+  Shapes.Remove(character)
+
+  GraphicsWindow.BrushColor = "Red"
+
+  character = Shapes.AddEllipse(50, 30)
+
+  Shapes.Move(character, left, charposY + 20)
+
+  shrinkshadows()
+
+EndSub
+
+
+
+Sub unshrink
+
+  isshrunk = "False"
+
+  GraphicsWindow.BrushColor = "Red"
+
+  Shapes.Remove(character)
+
+  character = Shapes.AddEllipse(50, 50)
+
+  Shapes.Move(character, left, charposY)
+
+  unshrinkshadows()
+
+EndSub
+
+
+
+Sub getifhitblock
+
+  getleft = Shapes.GetLeft(character)
+
+  getright = getleft + 50
+
+  gettop = Shapes.GetTop(character)
+
+  getbottom = gettop + 50
+
+  l = Shapes.GetLeft(block)
+
+  r = l + randomW
+
+  t = Shapes.GetTop(block)
+
+  b = t + randomY
+
+  If (getright > l) And (getleft < r) And  (getbottom > t) And (gettop < b) And isusedexplosives = "False" Then
+
+    health = health - 10
+
+    If health = 0 Then
+
+      health = 100
+
+      GraphicsWindow.BrushColor = "Black"
+
+      GraphicsWindow.FontSize = 50
+
+      GraphicsWindow.DrawText(100, 100, "YOU LOST!")
+
+      Program.Delay(1000)
+
+      restart()
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub getnewblock
+
+  GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
+
+  randomW = 0
+
+  randomY = 0
+
+  While randomW < 10
+
+    randomW = Math.GetRandomNumber(250)
+
+  EndWhile
+
+  While randomy < 50
+
+    randomY = Math.GetRandomNumber(200)
+
+  EndWhile
+
+  randomy2 = Math.GetRandomNumber(GraphicsWindow.Height - (randomY+120))
+
+  randomy2 = randomy2 + 150
+
+  blockypos = randomy2
+
+  block = Shapes.AddRectangle(randomW, randomY)
+
+  Shapes.Move(block, GraphicsWindow.Width + randomW, randomy2)
+
+EndSub
+
+
+
+Sub restart
+
+  Shapes.Remove(block)
+
+  Shapes.Remove(character)
+
+  GraphicsWindow.Clear()
+
+  Shapes.Remove(shop_btn)
+
+  left2 = 0
+
+  right = 0
+
+  space = 0
+
+  passed = 0
+
+  money = 0
+
+  blockpos2 = GraphicsWindow.Width
+
+  explosivescount = 0
+
+  isusedexplosives = "False"
+
+  blockpos = GraphicsWindow.Width
+
+  Shapes.SetText(blocks_passed, "Blocks Passed: 0")
+
+  begin()
+
+EndSub
+
+
+
+Sub ButtonClicked
+
+  buton = Controls.LastClickedButton
+
+  If buton = shop_btn Then
+
+    openshop()
+
+  ElseIf buton = exit_btn Then
+
+    closeshop()
+
+  ElseIf buton = buy_explosives Then
+
+    buyexplosives()
+
+  EndIf 
+
+EndSub
+
+
+
+Sub openshop
+
+  paused = "True"
+
+  Shapes.Remove(shop_btn)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  exit_btn = Controls.AddButton("Exit", GraphicsWindow.Width - 47, 5)
+
+  additems()
+
+EndSub
+
+
+
+Sub closeshop
+
+  Shapes.Remove(exit_btn)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  shop_btn = Controls.AddButton("Shop", GraphicsWindow.Width - 47, 5)
+
+  paused = "False"
+
+  Shapes.Remove(buy_explosives)
+
+EndSub
+
+
+
+Sub additems
+
+  buy_explosives = Controls.AddButton("Explosives: Removes the block in front of you. Stay away from the block or you'll be hurt. Good for 3 uses on any block. (key:F1). Cost: $5", 0, 100)
+
+EndSub
+
+
+
+Sub buyexplosives
+
+  If money > 4.5 Then
+
+    explosivescount = explosivescount + 3
+
+    money = money - 5
+
+    Shapes.SetText(money_txt, "Money: $" + money)
+
+    Shapes.SetText(explosives_txt, "Explosives: " + explosivescount)
+
+  EndIf
+
+EndSub
+
+
+
+Sub useexplosives
+
+  explosivescount = explosivescount - 1
+
+  Shapes.Remove(block)
+
+  Shapes.SetText(explosives_txt, "Explosives: " + explosivescount)
+
+  isusedexplosives="True"
+
+EndSub
+
+
+
+Sub addshadows
+
+  For i = 1 To 5
+
+    a_shadow[i] = Shapes.AddEllipse(50, 50)
+
+    Shapes.Move(a_shadow[i], Shapes.GetLeft(character), Shapes.GetTop(character))
+
+  EndFor
+
+  i = 0
+
+EndSub
+
+
+
+Sub moveshadows
+
+  i = i + 1
+
+  If i = 6 Then
+
+    i = 1
+
+  EndIf
+
+  Shapes.Move(a_shadow[i], Shapes.GetLeft(character), Shapes.GetTop(character))
+
+EndSub
+
+
+
+Sub Tick
+
+  moveshadows()
+
+EndSub
+
+
+
+Sub unstick
+
+  'For i = Shapes.GetTop(character) To GraphicsWindow.Height - 110
+
+  '  Shapes.Move(character, left, i)
+
+  '  charposY = 0
+
+  '  charposY2 = 0
+
+  '  Program.Delay(2)
+
+  '  moveshadows()
+
+  'EndFor
+
+EndSub
+
+
+
+Sub shrinkshadows
+
+'  For i = 1 To 5
+
+'    Shapes.Remove(a_shadow[i])
+
+'  EndFor
+
+'  GraphicsWindow.BrushColor = "Red"
+
+'  For i = 1 To 5
+
+'    a_shadow[i] = Shapes.AddEllipse(50, 30)
+
+'    Shapes.Move(a_shadow[i], Shapes.GetLeft(character), Shapes.GetTop(character))
+
+'  EndFor
+
+EndSub
+
+
+
+Sub unshrinkshadows
+
+'  For i = 1 To 5
+
+'    Shapes.Remove(a_shadow[i])
+
+'  EndFor
+
+'  GraphicsWindow.BrushColor = "Red"
+
+'  For i = 1 To 5
+
+'    a_shadow[i] = Shapes.AddEllipse(50, 50)
+
+'    Shapes.Move(a_shadow[i], Shapes.GetLeft(character), Shapes.GetTop(character))
+
+'  EndFor
+
+EndSub
+
+
+
+Sub loadgame
+
+' The following line could be harmful and has been automatically commented.
+
+'   'arrays = File.ReadContents(Program.Directory + "\game!.txt")
+
+  'health = arrays[1]
+
+  'money = arrays[2]
+
+  'Shapes.Move(character, arrays[3], arrays[4])
+
+EndSub
+
+  
+
+

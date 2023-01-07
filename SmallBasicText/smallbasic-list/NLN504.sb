@@ -1,0 +1,679 @@
+'Simple Database Utility
+
+' 07/2015
+
+'MartMen by GMX.de
+
+'Eventdefinition
+
+Controls.ButtonClicked = OnButtonClicked
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+LDControls.ListBoxItemChanged = OnListBoxItemChanged
+
+
+
+'Initialisation
+
+init()
+
+
+
+'Mainprogram
+
+While Mainloop = T
+
+  If OKU = T Then 
+
+    OKU = F
+
+    If FirstTime = T Then 
+
+      FirstTime = F
+
+      Controls.HideControl(mltb[1])
+
+    EndIf 
+
+    If GraphicsWindow.LastKey = "Return" Then 
+
+      Focus = LDFocus.GetFocus()
+
+      If Focus = tb[3] Then 
+
+        BeforeReaction()
+
+        StartCommand()
+
+        AfterReaction()
+
+      ElseIf Focus = tb[4] Then 
+
+        BeforeReaction()
+
+        StartSelect()
+
+        AfterReaction()
+
+      EndIf 
+
+    EndIf 
+
+  EndIf   
+
+  CheckButton()
+
+EndWhile 
+
+Program.End() 
+
+
+
+'________________________________________________________________________________________________________________
+
+
+
+Sub CheckButton
+
+  if OBC = T Then 
+
+    OBC = F
+
+    LCB = Controls.LastClickedButton 
+
+    BeforeReaction()
+
+    If LCB = bu[1] Then             'New databasse
+
+      Shapes.HideShape(sh[6])
+
+      Controls.ShowControl(tb[1])
+
+      NewDatabase()  
+
+      Controls.HideControl(tb[1])
+
+      Shapes.SetText(sh[6], datfile)
+
+      Shapes.ShowShape(sh[6])
+
+    ElseIf LCB = bu[2] Then         'Open database       
+
+      OpenDatabase()
+
+    ElseIf LCB = bu[3] Then         'Set table
+
+      SetTable()
+
+    ElseIf LCB = bu[4] Then         'Start command
+
+      StartCommand()
+
+    ElseIf LCB = bu[5] Then         'Start select       
+
+      StartSelect()
+
+    ElseIf LCB = bu[6] Then         'Show/Edit    
+
+      ShowEdit()
+
+    ElseIf LCB = bu[7] Then         'Save data
+
+      SaveData()
+
+    ElseIf LCB = bu[8] Then         'Exit
+
+      Mainloop = F 
+
+    EndIf
+
+    AfterReaction()
+
+  EndIf 
+
+  LCB = ""
+
+EndSub 'CheckButton
+
+
+
+Sub BeforeReaction
+
+  Shapes.SetText(sh[5], " ")
+
+  Controls.HideControl(listView)
+
+  Controls.HideControl(dataView)
+
+  If FirstTime = T Then 
+
+    FirstTime = F
+
+    Controls.HideControl(mltb[1])
+
+  EndIf 
+
+EndSub 'BeforeReaction
+
+
+
+Sub AfterReaction
+
+  For i = 1 To 4
+
+    Controls.SetTextBoxText(tb[i], "")
+
+  EndFor  
+
+EndSub 'AfterReaction
+
+
+
+Sub NewDatabase
+
+  FN = Controls.GetTextBoxText(tb[1])
+
+  If FN = "" Then
+
+    GraphicsWindow.ShowMessage("Please insert a database name.", "No database name")
+
+    LDFocus.SetFocus(tb[1])
+
+  Else 
+
+    datfile = path + FN + ".db"
+
+' The following line could be harmful and has been automatically commented.
+
+'     If LDFile.Exists(datfile) = T Then
+
+      GraphicsWindow.ShowMessage("Please insert a other database name or open this database.", "Database exist")
+
+      LDFocus.SetFocus(tb[1])
+
+    Else 
+
+      database = LDDataBase.ConnectSQLite(datFile)
+
+      Shapes.SetText(sh[5], "Database " + FN + ".db is open. Create a table and save it.")
+
+      LDFocus.SetFocus(tb[3])
+
+    EndIf
+
+  EndIf  
+
+EndSub 'NewDatabase
+
+
+
+Sub OpenDatabase
+
+  datfile = LDDialogs.OpenFile("db", path)
+
+  If datfile = "" Then
+
+    Shapes.SetText(sh[5], "No database selected.")
+
+  Else   
+
+    database = LDDataBase.ConnectSQLite(datFile)
+
+    Shapes.SetText(sh[6], datfile)
+
+    Shapes.SetText(sh[5], "Database " + datfile + " is open")
+
+    LDFocus.SetFocus(tb[4])
+
+  EndIf
+
+EndSub 'OpenDatabase
+
+
+
+Sub SetTable
+
+  ReadTab = LDDataBase.Query(database, "SELECT * FROM sqlite_master WHERE type='table'", listView, T)
+
+  index = 0
+
+  ii = Array.GetItemCount(ReadTab)
+
+  For i = 1 To ii
+
+    index = i
+
+    ARLBTab[i] = ReadTab[i]["name"]
+
+  EndFor 
+
+  If index = 0 Then  
+
+    GraphicsWindow.ShowMessage("No table in this databas.", "Empty database")
+
+    Controls.ShowControl(listView)
+
+    Shapes.SetText(sh[5], "No tabel was set.")
+
+  Else   
+
+    LDControls.ListBoxContent(LBTab, ARLBTab)
+
+    Controls.ShowControl(LBTab)
+
+    OLBIC = F 
+
+    LBLoop = T
+
+    While LBLoop = T
+
+      If OLBIC = T Then 
+
+        OLBIC = F 
+
+        LLB = LDControls.LastListBox 
+
+        If LLB = LBTab Then 
+
+          index = LDControls.ListBoxGetSelected(LBTab)
+
+          Tab = ARLBTab[Index]
+
+          Shapes.SetText(sh[7], Tab)
+
+          If Tab <> " " Then
+
+            Controls.HideControl(LBTab)
+
+            LBLoop = F
+
+          EndIf 
+
+        EndIf 
+
+      EndIf       
+
+    EndWhile 
+
+    Shapes.SetText(sh[5], "Tabel "+ Tab + "was set.")
+
+    LDFocus.SetFocus(tb[4])  
+
+  EndIf
+
+EndSub 'SetTable
+
+
+
+Sub StartCommand
+
+  InputCommand = Controls.GetTextBoxText(tb[3])
+
+  If InputCommand = "" Then 
+
+    GraphicsWindow.ShowMessage("Please insert a command.", "No command was input.")    
+
+    LDFocus.SetFocus(tb[3])
+
+  Else   
+
+    command = "BEGIN TRANSACTION;"
+
+    command = command + InputCommand 
+
+    command = command + "COMMIT;"
+
+    LDDataBase.Command(database,command)
+
+    Shapes.SetText(sh[5], "Command " + InputCommand + " was started.")
+
+    Controls.SetTextBoxText(tb[3], "")
+
+    LDFocus.SetFocus(tb[3])
+
+  EndIf   
+
+EndSub 'StartCommand
+
+
+
+Sub StartSelect    
+
+  InputSelect = Controls.GetTextBoxText(tb[4])
+
+  If InputSelect = "" Then 
+
+    GraphicsWindow.ShowMessage("Please insert a select.", "No select was input.")
+
+    LDFocus.SetFocus(tb[4])
+
+  Else 
+
+    If Mode = "show" Then 
+
+      LDDataBase.Query(database, InputSelect, listView, F)
+
+      Controls.ShowControl(listView)
+
+      LDFocus.SetFocus(tb[4])
+
+    Else 
+
+      LDDataBase.EditTable(database, Tab, dataView)
+
+      Controls.ShowControl(dataView)
+
+    EndIf 
+
+  EndIf 
+
+  LDFocus.SetFocus(tb[4])
+
+EndSub 'StartSelect
+
+
+
+Sub ShowEdit
+
+  If Mode = "show" Then 
+
+    Mode = "edit"
+
+    LDDataBase.EditTable(database, Tab, dataView)
+
+    Controls.ShowControl(dataView)
+
+  Else
+
+    Mode = "show"
+
+  EndIf 
+
+  Shapes.SetText(sh[5], "Edit the Tab: " + Tab + ".")
+
+EndSub 'ShowEdit
+
+
+
+Sub SaveData
+
+  LDDataBase.SaveTable(database, dataView) 
+
+EndSub 'SaveData
+
+
+
+Sub Init
+
+  GW = Desktop.Width - 80
+
+  GH = Desktop.Height - 70
+
+  TextWindow.Show()
+
+  TextWindow.WriteLine("Messages:")
+
+  TextWindow.Left = GW-600
+
+  TextWindow.Top = 0
+
+  GraphicsWindow.Show()
+
+  GraphicsWindow.Title = "SDU (Simple Database Utility)" 
+
+  GraphicsWindow.Top = 0
+
+  GraphicsWindow.Left = 0
+
+  GraphicsWindow.Width = GW
+
+  GraphicsWindow.Height = GH
+
+  'GraphicsWindow.FontName = "Consolas"
+
+  
+
+  T = "True"
+
+  F = "False"
+
+  Mainloop = T
+
+  OBC = F
+
+  OKU = F
+
+  FirstTime = T 
+
+  LCB = ""
+
+  Mode = "show"
+
+  
+
+  CR = Text.GetCharacter(13)
+
+  
+
+  sh[1] = Shapes.AddText("Database")
+
+  Shapes.Move(sh[1], 10, 7)
+
+  sh[2] = Shapes.AddText("Table")
+
+  Shapes.Move(sh[2], 10, 28)
+
+  sh[3] = Shapes.AddText("Command")
+
+  Shapes.Move(sh[3], 10, 53)
+
+  sh[4] = Shapes.AddText("Select")
+
+  Shapes.Move(sh[4], 10, 78)
+
+  sh[5] = Shapes.AddText(" ")
+
+  Shapes.Move(sh[5], 5, GH - 30)
+
+  sh[6] = Shapes.AddText("New database define or open a database")
+
+  Shapes.Move(sh[6],75,7)
+
+  sh[7] = Shapes.AddText("No table set")
+
+  Shapes.Move(sh[7], 75, 27)
+
+  
+
+  tb[1] = Controls.AddTextBox(75, 1)
+
+  Controls.HideControl(tb[1])
+
+  Controls.SetSize(tb[1], 200, 22)
+
+  'LDFocus.SetFocus(tb[1])
+
+  tb[2] = Controls.AddTextBox(75, 25)
+
+  Controls.HideControl(tb[2])
+
+  Controls.SetSize(tb[2], 200, 22)
+
+  tb[3] = Controls.AddTextBox(75, 50)
+
+  Controls.SetSize(tb[3], GW - 100, 22)
+
+  tb[4] = Controls.AddTextBox(75, 75)
+
+  Controls.SetSize(tb[4], GW - 100, 22)
+
+  
+
+  ARLBTab[1] = " "
+
+  LBTab = LDControls.AddListBox(ARLBTab, 300, 500)
+
+  Controls.HideControl(LBTab)
+
+  Controls.Move(LBTab, 100, 37)
+
+  
+
+  listView = LDDataBase.AddListView(GW - 10, GH - 180)
+
+  Controls.HideControl(listView)
+
+  Controls.Move(listView, 5, 105)
+
+  
+
+  
+
+  dataView = LDDataBase.AddDataView(GW - 10, GH - 180)
+
+  Controls.HideControl(dataView)
+
+  Controls.Move(dataView, 5, 105)
+
+  
+
+  mltb[1] = Controls.AddMultiLineTextBox(10, 105)
+
+  Controls.SetSize(mltb[1], GW - 20, GH - 180)
+
+  mltbtext = "- New database: Make a file for a new database and open it. After this please define one or more tables with command."
+
+  mltbtext = mltbtext + CR + "- Open database: Opend a exist database."
+
+  mltbtext = mltbtext + CR + "- Start command: The command you put in field Command perform the command."
+
+  mltbtext = mltbtext + CR + "- Start select: Select the data you define in field select."
+
+  mltbtext = mltbtext + CR + "- Show/Edit: Changed the mode of select data. It start with the show mode."
+
+  mltbtext = mltbtext + CR + "- Exit: Leave the program."
+
+  mltbtext = mltbtext + CR
+
+  mltbtext = mltbtext + CR + "SAMPLE:"
+
+  mltbtext = mltbtext + CR 
+
+  mltbtext = mltbtext + CR + "1. New database:"
+
+  mltbtext = mltbtext + CR + "Put in 'NAMES' for a database name in field Database. Use the button New database. A new database file was"
+
+  mltbtext = mltbtext + CR + "created in the same dirictory as the programm. The File is 'NAMES.db'"
+
+  mltbtext = mltbtext + CR 
+
+  mltbtext = mltbtext + CR + "2. Define a table:"
+
+  mltbtext = mltbtext + CR + "Put in field Command 'CREATE TABLE NAMES (First_name TEXT, Last_name TEXT);'. Use the button Start command."
+
+  mltbtext = mltbtext + CR + "Result: the table was created."
+
+  mltbtext = mltbtext + CR
+
+  mltbtext = mltbtext + CR + "3. Select data from the database:
+
+  mltbtext = mltbtext + CR + "Put in field Select 'SELECT * FROM NAMES'
+
+  mltbtext = mltbtext + CR + "Result: All data from table is showing. Because the table is new and has now entries."
+
+  mltbtext = mltbtext + CR
+
+  mltbtext = mltbtext + CR + "4. Fill the Table with data:
+
+  mltbtext = mltbtext + CR + "Use the button Show/Edit" 
+
+  mltbtext = mltbtext + CR + "The Edit mode is activated. Set the Cursor to the first fild an put in data.
+
+  mltbtext = mltbtext + CR 
+
+  mltbtext = mltbtext + CR + "5. Please fill some rows and use the button Save."
+
+  mltbtext = mltbtext + CR 
+
+  mltbtext = mltbtext + CR + "6. Please leave the program with button Exit and start it again."
+
+  mltbtext = mltbtext + CR 
+
+  mltbtext = mltbtext + CR + "7. Put in the same Name in field Database as by point 1. and use the button Open database."
+
+  mltbtext = mltbtext + CR 
+
+  mltbtext = mltbtext + CR + "8. Select the data see point 3."
+
+  mltbtext = mltbtext + CR + "Result: You see all data you has put in.
+
+  mltbtext = mltbtext + CR 
+
+  mltbtext = mltbtext + CR + "9. Select the row number 2 and clich right mouse taste. Use DELETE.
+
+  mltbtext = mltbtext + CR 
+
+  mltbtext = mltbtext + CR + "10. Use button Save and exit the program like point 6.
+
+  mltbtext = mltbtext + CR 
+
+  mltbtext = mltbtext + CR + "11. Start the program again and open the database (Point 7.).
+
+  mltbtext = mltbtext + CR 
+
+  mltbtext = mltbtext + CR + "12. Select the data (Point 3.).
+
+  mltbtext = mltbtext + CR + "Result: You see the data ob the table without the deleted row."
+
+  Controls.SetTextBoxText(mltb[1], mltbtext)
+
+  
+
+  bu[1] = Controls.AddButton("New database", 10, GH - 65)
+
+  bu[2] = Controls.AddButton("Open database", 130, GH - 65)
+
+  bu[3] = Controls.AddButton("Set table", 250, GH - 65)
+
+  bu[4] = Controls.AddButton("Start command", 370, GH - 65)
+
+  bu[5] = Controls.AddButton("Start select", 490, GH - 65)
+
+  bu[6] = Controls.AddButton("Show/Edit", 610, GH - 65)
+
+  bu[7] = Controls.AddButton("Save data", 730, GH - 65)
+
+  bu[8] = Controls.AddButton("Exit", 850, GH - 65)
+
+  
+
+  path = Program.Directory+"\"  
+
+EndSub 'Init
+
+
+
+Sub OnButtonClicked
+
+  OBC = T
+
+EndSub 'OnButtonClicked
+
+
+
+Sub OnKeyUp
+
+  OKU = T
+
+EndSub 'OnKeyUp
+
+
+
+Sub OnListBoxItemChanged
+
+  OLBIC = T
+
+EndSub 'OnListBoxItemChanged
+
+

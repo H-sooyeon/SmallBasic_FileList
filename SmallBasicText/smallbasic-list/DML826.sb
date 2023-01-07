@@ -1,0 +1,641 @@
+'****************************************************************
+
+'TIC TAC TOE
+
+'****************************************************************
+
+
+
+'****************************************************************
+
+' Some basic initialisation
+
+'****************************************************************
+
+
+
+'Create window
+
+gw = 600
+
+gh = gw 'A square window is good for this
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.Title = "Tic-Tac-Toe"
+
+GraphicsWindow.Left = (Desktop.Width-gw)/2 'Centre window in screen
+
+GraphicsWindow.Top = (Desktop.Height-gh)/2
+
+GraphicsWindow.BackgroundColor = "Blue"
+
+GraphicsWindow.PenWidth = 4
+
+GraphicsWindow.FontName = "Courier New" 'Fixed width font to make centering it easier
+
+textsize = 70
+
+GraphicsWindow.FontSize = textsize
+
+GraphicsWindow.FontBold = "True"
+
+'Zero scores
+
+Score[0] = 0 'Draws
+
+Score[1] = 0 'Human Wins
+
+Score[2] = 0 'Computer Wins
+
+gridSize = gw/3 '1/3 of window width for each square
+
+radius = 30 'Coin radius
+
+animateTime = 1000 'Coin animation time (ms) - Game play speed
+
+'Start mouse and key click events
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+
+
+'****************************************************************
+
+' Main Play Code
+
+'****************************************************************
+
+
+
+While ("True")
+
+  Initialise() 'New game setup
+
+  PlayGame() 'Play a game
+
+  Program.Delay(500+5*animateTime) 'Delay then start again
+
+EndWhile
+
+
+
+
+
+'****************************************************************
+
+' Subroutines
+
+'****************************************************************
+
+
+
+Sub Initialise
+
+  'Initialise variables
+
+  gamePlaying = "True" 'Flag that game is not ended (i.e. still playing)
+
+  'Randomly set starting player
+
+  iPlayer = Math.GetRandomNumber(2) '1 for human and 2 for computer
+
+  'Reset grid variables (effectively delete them)
+
+  grid = ""
+
+  coins = ""
+
+  
+
+  'Setup screen
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.BrushColor = "DeepPink"
+
+  If (iPlayer = 1) Then
+
+    textOutput = "Human"
+
+  ElseIf (iPlayer = 2) Then
+
+    textOutput = "Computer"
+
+  EndIf
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,0,textOutput)
+
+  textOutput = "to play first"
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,60,textOutput)
+
+  textOutput = "Set computer"
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,150,textOutput)
+
+  textOutput = "skill level"
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,210,textOutput)
+
+  textOutput = "1(very easy)"
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,300,textOutput)
+
+  textOutput = "2(easy)"
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,360,textOutput)
+
+  textOutput = "3(medium)"
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,420,textOutput)
+
+  textOutput = "4(hard)"
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,480,textOutput)
+
+  'Skill level for computer player (1-easy to 4-hard)
+
+  iSkill = 0
+
+  While (iSkill = 0)
+
+    Program.Delay(100) 'Wait for key to be pressed or mouse click and set skill level to start
+
+  EndWhile
+
+  Sound.PlayClickAndWait()
+
+  
+
+  'Game grid screen
+
+  GraphicsWindow.Clear()
+
+  'Draw the grid
+
+  GraphicsWindow.PenColor = "Orange"
+
+  For i = 1 To 2
+
+    GraphicsWindow.DrawLine(0,i*gridSize,gw,i*gridSize) 'Horizontal
+
+    GraphicsWindow.DrawLine(i*gridSize,0,i*gridSize,gh) 'Vertical
+
+  EndFor
+
+  GraphicsWindow.PenColor = "Black"
+
+EndSub
+
+
+
+Sub PlayGame
+
+  While (gamePlaying) 'Continue playing until game ends
+
+    If (iPlayer = 1) Then
+
+      
+
+      'Player move - only accept a click that that has not already been processed in an empty square
+
+      
+
+      If (iClick And grid[iGrid][jGrid] = "") Then 'player has clicked an empty square
+
+        grid[iGrid][jGrid] = "X"
+
+        DrawMove()
+
+        'Reset click and set iPlayer for computer to move
+
+        iClick = "False"
+
+        iPlayer = 2
+
+      EndIf
+
+    Else
+
+      
+
+      'Computer move
+
+      
+
+      If (iSkill > 1) Then
+
+        'Winning move check
+
+        For iGrid = 1 To 3
+
+          For jGrid = 1 To 3
+
+            If (grid[iGrid][jGrid] = "") Then 'computer has clicked an empty square
+
+              grid[iGrid][jGrid] = "O"
+
+              CheckWinner()
+
+              If (Winner > 0) then ' We have found a winning position
+
+                Goto finished
+
+              Else ' look for next possible winner - reset this square as empty
+
+                grid[iGrid][jGrid] = ""
+
+              EndIf
+
+            EndIf
+
+          EndFor
+
+        EndFor
+
+      EndIf
+
+      If (iSkill > 2) Then
+
+        'Blocking move check
+
+        For iGrid = 1 To 3
+
+          For jGrid = 1 To 3
+
+            If (grid[iGrid][jGrid] = "") Then 'computer has clicked an empty square
+
+              grid[iGrid][jGrid] = "X"
+
+              CheckWinner()
+
+              If (Winner > 0) then ' We have found a blocking position - the human would win in this square - so put the computer go here
+
+                grid[iGrid][jGrid] = "O"
+
+                Goto finished
+
+              Else ' look for next possible block
+
+                grid[iGrid][jGrid] = ""
+
+              EndIf
+
+            EndIf
+
+          EndFor
+
+        EndFor
+
+      EndIf
+
+      'To make the computer better always choose the centre, then corner squares if available
+
+      If (iSkill > 3) then
+
+        iGrid = 2
+
+        jGrid = 2      
+
+        If (grid[iGrid][jGrid] = "") Then 'computer has clicked empty centre square
+
+          grid[iGrid][jGrid] = "O"
+
+          Goto finished
+
+        EndIf
+
+        For iGrid = 1 To 3 Step 2
+
+          For jGrid = 1 To 3 Step 2
+
+            If (grid[iGrid][jGrid] = "") Then 'computer has clicked empty corner square
+
+              grid[iGrid][jGrid] = "O"
+
+              Goto finished
+
+            EndIf
+
+          EndFor
+
+        EndFor
+
+      EndIf
+
+      'Random move - only if we haven't already found a square
+
+      While ("True")
+
+        iGrid = Math.GetRandomNumber(3)
+
+        jGrid = Math.GetRandomNumber(3)
+
+        If (grid[iGrid][jGrid] = "") Then 'computer has clicked an empty square
+
+          grid[iGrid][jGrid] = "O"
+
+          Goto finished
+
+        EndIf
+
+      EndWhile
+
+      'We have found a place for the computer to go
+
+      finished:
+
+      'Draw computer move
+
+      DrawMove()
+
+      'Human player to move next
+
+      iPlayer = 1
+
+    EndIf
+
+    
+
+    'Check for winner or a draw
+
+    
+
+    CheckWinner()
+
+    'Winner found
+
+    If (Winner = 1) Then ' Human player win
+
+      textOutput = "You win"
+
+      gamePlaying = "False"
+
+    ElseIf (Winner = 2) Then 'Computer player win
+
+      textOutput = "You lose ha ha"
+
+      gamePlaying = "False"
+
+    Else
+
+      'Check for a tie
+
+      gamePlaying = "False"
+
+      For i = 1 To 3
+
+        For j = 1 To 3
+
+          If (grid[i][j] = "") Then
+
+            gamePlaying = "True" 'An empty square means the game is still going and therefore not a tie
+
+          EndIf
+
+        EndFor
+
+      EndFor
+
+      If (gamePlaying = "False") Then 'gamePlaying still false means all squares have been taken and the game is a draw
+
+        textOutput = "Draw"
+
+      EndIf
+
+    EndIf
+
+  EndWhile
+
+  
+
+  'Game ended - Transparent coins so scores are visible
+
+  For i = 1 To 3
+
+    For j = 1 To 3
+
+      Shapes.SetOpacity(coins[i][j],20)
+
+    EndFor
+
+  EndFor
+
+  'Output finishing text
+
+  GraphicsWindow.BrushColor = "DeepPink"
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,0,textOutput) 'Attempt to centralise text a bit
+
+  'Keep score Winner = 1 (Human) 2(Computer) 0(Draw)
+
+  Score[Winner] = Score[Winner]+1
+
+  textOutput = "Won "+Score[1]
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,200,textOutput)
+
+  textOutput = "Lost "+Score[2]
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,260,textOutput)
+
+  textOutput = "Drawn "+Score[0]
+
+  GraphicsWindow.DrawText((gw-Text.GetLength(textOutput)*textsize*0.6)/2,320,textOutput)
+
+EndSub
+
+
+
+Sub DrawMove
+
+  'x and y are the centre of square
+
+  x = (iGrid-0.5)*gridSize
+
+  y = (jGrid-0.5)*gridSize
+
+  'Set colour according to player
+
+  If (iPlayer = 1) Then
+
+    GraphicsWindow.BrushColor = "SpringGreen"
+
+  Else
+
+    GraphicsWindow.BrushColor = "Yellow"
+
+  EndIf
+
+  'Add a circle and position it randomly off screen
+
+  coins[iGrid][jGrid] = Shapes.AddEllipse(2*radius,2*radius)
+
+  angle = 0.001*Math.GetRandomNumber(1000)*2*Math.Pi
+
+  Shapes.Move(coins[iGrid][jGrid],gw*(0.5+Math.Cos(angle)),gh*(0.5+Math.Sin(angle)))
+
+  'Animate player coin to grid position
+
+  Shapes.Animate(coins[iGrid][jGrid],x-radius,y-radius,animateTime)
+
+  Sound.PlayClick() 'Play a click with each move
+
+  Program.Delay(animateTime) 'Wait for animation to finish
+
+EndSub
+
+
+
+Sub CheckWinner
+
+  'If Winner is set to 1 then the human player is the winner, if it is 2 then the winner is the computer
+
+  'If Winner remains 0, then no winner is found - we check for a draw inside Sub PlayGame after each move
+
+  Winner = 0
+
+  'Horizontal
+
+  For i = 1 To 3
+
+    If (grid[i][1] = "X" And grid[i][2] = "X" And grid[i][3] = "X") Then
+
+      Winner = 1
+
+    EndIf
+
+    If (grid[i][1] = "O" And grid[i][2] = "O" And grid[i][3] = "O") Then
+
+      Winner = 2
+
+    EndIf
+
+  EndFor
+
+  'Vertical
+
+  For i = 1 To 3
+
+    If (grid[1][i] = "X" And grid[2][i] = "X" And grid[3][i] = "X") Then
+
+      Winner = 1
+
+    EndIf
+
+    If (grid[1][i] = "O" And grid[2][i] = "O" And grid[3][i] = "O") Then
+
+      Winner = 2
+
+    EndIf
+
+  EndFor
+
+  'Diagonal
+
+  If (grid[1][1] = "X" And grid[2][2] = "X" And grid[3][3] = "X") Then
+
+    Winner = 1
+
+  EndIf
+
+  If (grid[1][1] = "O" And grid[2][2] = "O" And grid[3][3] = "O") Then
+
+    Winner = 2
+
+  EndIf
+
+  If (grid[1][3] = "X" And grid[2][2] = "X" And grid[3][1] = "X") Then
+
+    Winner = 1
+
+  EndIf
+
+  If (grid[1][3] = "O" And grid[2][2] = "O" And grid[3][1] = "O") Then
+
+    Winner = 2
+
+  EndIf
+
+EndSub
+
+
+
+'****************************************************************
+
+' Events
+
+'****************************************************************
+
+
+
+Sub OnMouseDown
+
+  'Mouse coordinates
+
+  xM = GraphicsWindow.MouseX
+
+  yM = GraphicsWindow.MouseY
+
+  If (iSkill = 0) Then
+
+    'Set skill level with mouse click over text
+
+    iSkill = 1 + Math.Floor((yM-300)/60)
+
+    If (iSkill < 1 Or iSkill > 4) Then
+
+      iSkill = 0
+
+    EndIf
+
+  Else
+
+    'Grid cell clicked
+
+    iGrid = 1 + Math.Floor(xM/gridSize)
+
+    jGrid = 1 + Math.Floor(yM/gridSize)
+
+    'Flag that a click has been made - this flag will be checked for and reset after the player move is made (so it is only made once)
+
+    iClick = "True" 
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  If (key = "D1") Then
+
+    iSkill = 1
+
+  ElseIf (key = "D2") Then
+
+    iSkill = 2
+
+  ElseIf (key = "D3") Then
+
+    iSkill = 3
+
+  ElseIf (key = "D4") Then
+
+    iSkill = 4
+
+  EndIf
+
+EndSub
+
+    
+
+

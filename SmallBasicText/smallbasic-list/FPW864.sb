@@ -1,0 +1,765 @@
+'Space Invader type game - no instructions - see the code!
+
+
+
+'Graphics window dimensions
+
+gw = Desktop.Width-16
+
+gh = Desktop.Height-100
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.Top = 0
+
+GraphicsWindow.Left = 0
+
+GraphicsWindow.CanResize = "False"
+
+
+
+'Load image and set it as a shape
+
+'eFighter = ImageList.LoadImage("http://mattjessee.webs.com/enemyFighter.gif")
+
+'eFighter = ImageList.LoadImage(Program.Directory+"/enemyFighter.png")
+
+eFighter = ImageList.LoadImage("http://7w7sng.bay.livefilestore.com/y1pB7u1Nqv2bS3zHfv5sFxYKxA7dOAmFD9VXIoslKqfW7hk2pKm8_5V9y6TkNe0nMsqVGSNApRigq4VyRex2qTdxNSmfAbYeycC/enemyFighter.png?psid=1")
+
+pFighter = ImageList.LoadImage("http://7w7sng.bay.livefilestore.com/y1p3G0f6UjNr07yNwAJ8YufTZVmYT6qPZSynFgqf1Gz0ZXGJe3tW9tS8EVLzisg-3m6x1KaHcjFfH67W8fi0vPovNjDzqgEYK5G/playerFighter.png?psid=1")
+
+lFighter = ImageList.LoadImage("http://7w7sng.bay.livefilestore.com/y1pMucrl8Ol3TObfQ6o85K-liyvBJ9eiRbw7D-49VOdv5BdqaJa8zKJ1XDUY10JgQx7lJx2j152nc_jBvWP98XsT0MTQKwmzs51/laserFighter.png?psid=1")
+
+fFighter = ImageList.LoadImage("http://7w7sng.bay.livefilestore.com/y1p7fQjTyUDcgJzRg5UQT1HTrGWEMKgwEymMtyTTukATRMIss404aaStlgkkJAkfiFE9r5MUYUinUkVEdOYnENCyv4CMa9iAlDE/freezeFighter.png?psid=1")
+
+iFighter = ImageList.LoadImage("http://public.bay.livefilestore.com/y1pRr1fcvyd_i07jyIWlK6cqca8WN9a5ENp2jD6scN5i_AI99u64Colea5_hMiPZKxaGAFfyLhmXYQOB6Lt92btdQ/invincibleFighter.png?psid=1")
+
+'Width and height of image - make these the half width etc because that is what we need later
+
+enemiesWidth = ImageList.GetWidthOfImage(eFighter)/2
+
+enemiesHeight = ImageList.GetHeightOfImage(eFighter)/2
+
+
+
+'Mouse firing event
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+
+
+'High score
+
+' The following line could be harmful and has been automatically commented.
+
+' highScore = File.ReadContents(Program.Directory+"\highScore.txt")
+
+
+
+'Basic parameters
+
+proximity = 20
+
+nbullet = 20
+
+bulletSpeed = 5
+
+
+
+Restart:
+
+
+
+numEnemies = 10
+
+speed = 1
+
+lives = 5
+
+score  = 0
+
+level = 0
+
+pause = 0
+
+
+
+NewLevel:
+
+
+
+GraphicsWindow.Clear() 'Deletes all shapes
+
+
+
+level = level+1
+
+GraphicsWindow.BackgroundColor = GraphicsWindow.GetRandomColor()
+
+'Change level parameters
+
+If (level > 1) Then
+
+  numEnemies = numEnemies+5
+
+  speed = speed+0.3
+
+EndIf
+
+
+
+'Basic variables
+
+fire = 0
+
+enemiesShot = 0
+
+nextBullet = 0
+
+
+
+'Create enemies
+
+For i = 1 To numEnemies
+
+  enemies[i] = Shapes.AddImage(eFighter)
+
+  Shapes.Zoom(enemies[i],1.2,1.2) 'a little bigger
+
+  'Initial Position
+
+  enemiesX[i] = enemiesWidth+Math.GetRandomNumber(gw-2*enemiesWidth)
+
+  enemiesY[i] = enemiesHeight+Math.GetRandomNumber(gh/2-2*enemiesHeight)
+
+  'Initial velocities
+
+  enemiesU[i] = (Math.GetRandomNumber(201)-101)/50*speed 'The horizontal speed
+
+  enemiesV[i] = (2+(Math.GetRandomNumber(201)-101)/50)*speed 'The vertical speed
+
+  enemiesOn[i] = 1
+
+EndFor
+
+
+
+'Create bullets
+
+GraphicsWindow.PenColor = "Red"
+
+GraphicsWindow.BrushColor = "Red"
+
+For i = 1 To nbullet
+
+  bullet[i] = Shapes.AddRectangle(4,10)
+
+  Shapes.HideShape(bullet[i])
+
+  bulletOn[i] = 0
+
+EndFor
+
+
+
+'Create laser
+
+GraphicsWindow.PenColor = "Yellow"
+
+GraphicsWindow.BrushColor = "Yellow"
+
+laser = Shapes.AddRectangle(4,gh)
+
+Shapes.HideShape(laser)
+
+laserOn = 0
+
+freezeOn = 0
+
+invincibleOn = 0
+
+
+
+'Create bubble - was a bubble before changed it to the images - used for extra special targets
+
+numBubble = 3 'laser=1 and freeze=2 and 3=invincible
+
+bubble[1] = Shapes.AddImage(lFighter)
+
+bubble[2] = Shapes.AddImage(fFighter)
+
+bubble[3] = Shapes.AddImage(iFighter)
+
+For i = 1 To numBubble
+
+  Shapes.Zoom(bubble[i],1.5,1.5) 'a little bigger
+
+  bubbleX[i] = Math.GetRandomNumber(gw)
+
+  bubbleY[i] = Math.GetRandomNumber(gh)
+
+  bubbleU[i] = (Math.GetRandomNumber(201)-101)/50*speed
+
+  bubbleV[i] = (Math.GetRandomNumber(201)-101)/50*speed
+
+  Shapes.Move(bubble[i],bubbleX[i]-enemiesWidth,bubbleY[i]-enemiesHeight)
+
+  bubbleOn[i] = 1
+
+EndFor
+
+
+
+'Create player and hide cursor
+
+player = Shapes.AddImage(pFighter)
+
+Shapes.Rotate(player,180)
+
+Shapes.Zoom(player,2,2)
+
+Mouse.HideCursor()
+
+
+
+While (lives > 0)
+
+  'Do nothing if in pause
+
+  While (pause = 1)
+
+    Program.Delay(100)
+
+  EndWhile
+
+  currentTime = Clock.ElapsedMilliseconds
+
+  If (freezeOn = 0) Then
+
+    For i = 1 To numEnemies
+
+      If (enemiesOn[i] = 1) Then
+
+        'Update the shape centre position based on velocity
+
+        enemiesX[i] = enemiesX[i]+enemiesU[i]
+
+        enemiesY[i] = enemiesY[i]+enemiesV[i]
+
+        'Bounce the shape when it his a side wall 
+
+        If (enemiesX[i] < enemiesWidth) Then
+
+          enemiesU[i] = -enemiesU[i]
+
+          enemiesX[i] = enemiesWidth
+
+        EndIf
+
+        If (enemiesX[i] > gw-enemiesWidth) Then
+
+          enemiesU[i] = -enemiesU[i]
+
+          enemiesX[i] = gw-enemiesWidth
+
+        EndIf
+
+        'Reimerge shape from top when it passes off the bottom or top
+
+        If (enemiesY[i] < 0) Then
+
+          enemiesY[i] = gh
+
+        EndIf
+
+        If (enemiesY[i] > gh) Then
+
+          enemiesY[i] = 0
+
+        EndIf
+
+        'The top left of the shapes are the coordinates requires - so the centre is at (enemiesX[0],enemiesY[0])
+
+        Shapes.Move(enemies[i], enemiesX[i]-enemiesWidth, enemiesY[i]-enemiesHeight)
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  'Move Player with mouse - use mouse coordinates so that it still records position if outside GraphicsWindow
+
+  xM = Mouse.MouseX
+
+  yM = Mouse.MouseY
+
+  If (yM >gh) Then 'Cannot hide off the bottom and keep firing
+
+    yM = gh
+
+  EndIf
+
+  'xM = GraphicsWindow.MouseX
+
+  'yM = GraphicsWindow.MouseY
+
+  Shapes.Move(player,xM-enemiesWidth,YM-enemiesWidth)
+
+  
+
+  'Create bullets - cycle through maximum of 20 bullets
+
+  If (fire = 1) Then
+
+    fire = 0
+
+    nextBullet = nextBullet+1
+
+    If (nextBullet > nbullet) Then
+
+      nextBullet = 1
+
+    EndIf
+
+    If (bulletOn[nextBullet] = 0) Then
+
+      Shapes.ShowShape(bullet[nextBullet])
+
+      bulletX[nextBullet] = xM
+
+      bulletY[nextBullet] = yM
+
+      bulletOn[nextBullet] = 1
+
+      score = score-1 'Loose a point for each shot fired
+
+    EndIf
+
+  EndIf
+
+  
+
+  'Update, move and delete bullets as they leave the top
+
+  For i = 1 To nbullet
+
+    If (bulletOn[i] = 1) Then
+
+      bulletY[i] = bulletY[i]-bulletSpeed
+
+      Shapes.Move(bullet[i],bulletX[i]-2,bulletY[i]-5)
+
+      If (bulletY[i] < 0) Then
+
+        bulletOn[i] = 0
+
+        Shapes.HideShape(bullet[i])
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  
+
+  'Update bubbles
+
+  For i = 1 To numBubble
+
+    If (bubbleOn[i] = 1) Then
+
+      bubbleX[i] = bubbleX[i]+bubbleU[i]
+
+      bubbleY[i] = bubbleY[i]+bubbleV[i]
+
+      If (bubbleX[i] < enemiesWidth) Then
+
+        bubbleU[i] = -bubbleU[i]
+
+        bubbleX[i] = enemiesWidth
+
+      EndIf
+
+      If (bubbleX[i] > gw-enemiesWidth) Then
+
+        bubbleU[i] = -bubbleU[i]
+
+        bubbleX[i] = gw-enemiesWidth
+
+      EndIf
+
+      If (bubbleY[i] < enemiesHeight) Then
+
+        bubbleV[i] = -bubbleV[i]
+
+        bubbleY[i] = enemiesHeight
+
+      EndIf
+
+      If (bubbleY[i] > gh-enemiesHeight) Then
+
+        bubbleV[i] = -bubbleV[i]
+
+        bubbleY[i] = gh-enemiesHeight
+
+      EndIf
+
+      Shapes.Move(bubble[i],bubbleX[i]-enemiesWidth,bubbleY[i]-enemiesHeight)
+
+    EndIf
+
+  EndFor
+
+  
+
+  'Update laser position and check for hits
+
+  If (laserOn = 1) Then
+
+    'Flash and move laser with player ship
+
+    flashLaser = 1-flashLaser
+
+    Shapes.SetOpacity(laser,60+40*flashLaser)
+
+    Shapes.Move(laser,xM-2,yM-gw/2)
+
+    For j = 1 To numEnemies
+
+      If (enemiesOn[j] = 1) Then
+
+        dx = Math.Abs(xM-enemiesX[j])
+
+        If (dx < proximity And yM > enemiesY[j]) Then
+
+          Shapes.HideShape(enemies[j])
+
+          enemiesOn[j] = 0
+
+          enemiesShot = enemiesShot+1
+
+          score = score+10 '10 points for a kill
+
+          Sound.PlayClick()
+
+        EndIf 
+
+      EndIf
+
+    EndFor
+
+    If (currentTime-laserStart > 2000) Then '2 sec laser
+
+      laserOn = 0
+
+      Shapes.HideShape(laser)
+
+    EndIf
+
+  EndIf
+
+  
+
+  'Update Freeze
+
+  If (freezeOn = 1) Then
+
+    If (currentTime-freezeStart > 3000) Then '3 sec freeze
+
+      freezeOn = 0
+
+    EndIf
+
+  EndIf
+
+  
+
+  'Update Invincibility
+
+  If (invincibleOn = 1) Then '5 sec invincible
+
+    If (currentTime-invincibleStart < 4500) Then 'Flash player
+
+      flashPlayer = 1-flashPlayer
+
+      Shapes.SetOpacity(player,20+40*flashPlayer)
+
+    ElseIf (currentTime-invincibleStart < 5000) Then '0.5 sec before vulnerable return opacity
+
+      Sound.PlayChimes() 'Doesn't do anything here?
+
+      Shapes.SetOpacity(player,100)
+
+    Else
+
+      invincibleOn = 0
+
+    EndIf
+
+  EndIf
+
+  
+
+  'Hit detection
+
+  For j = 1 To nbullet
+
+    If (bulletOn[j] = 1) Then
+
+      For i = 1 To numEnemies
+
+        If (enemiesOn[i] = 1) Then
+
+          dx = Math.Abs(bulletX[j]-enemiesX[i])
+
+          dy = Math.Abs(bulletY[j]-enemiesY[i])
+
+          If (dx < proximity And dy < proximity) Then
+
+            bulletOn[j] = 0
+
+            Shapes.HideShape(bullet[j])
+
+            killEnemy()
+
+            score = score+10 '10 points for a kill
+
+            Sound.PlayClick()
+
+          EndIf 
+
+        EndIf
+
+      EndFor
+
+      'Laser bubble
+
+      If (bubbleOn[1] = 1) Then
+
+        dx = Math.Abs(bulletX[j]-bubbleX[1])
+
+        dy = Math.Abs(bulletY[j]-bubbleY[1])
+
+        If (dx < proximity And dy < proximity) Then 
+
+          laserOn = 1
+
+          laserStart = currentTime
+
+          Shapes.ShowShape(laser)
+
+          Shapes.HideShape(bubble[1])
+
+          bubbleOn[1] = 0
+
+          score = score+20
+
+          Sound.PlayClick()
+
+        EndIf
+
+      EndIf
+
+      'Freeze bubble
+
+      If (bubbleOn[2] = 1) Then
+
+        dx = Math.Abs(bulletX[j]-bubbleX[2])
+
+        dy = Math.Abs(bulletY[j]-bubbleY[2])
+
+        If (dx < proximity And dy < proximity) Then 
+
+          freezeOn = 1
+
+          freezeStart = currentTime
+
+          Shapes.HideShape(bubble[2])
+
+          bubbleOn[2] = 0
+
+          score = score+20
+
+          Sound.PlayClick()
+
+        EndIf
+
+      EndIf
+
+      'Invincible bubble
+
+      If (bubbleOn[3] = 1) Then
+
+        dx = Math.Abs(bulletX[j]-bubbleX[3])
+
+        dy = Math.Abs(bulletY[j]-bubbleY[3])
+
+        If (dx < proximity And dy < proximity) Then 
+
+          invincibleOn = 1
+
+          invincibleStart = currentTime
+
+          Shapes.HideShape(bubble[3])
+
+          bubbleOn[3] = 0
+
+          score = score+20
+
+          Sound.PlayClick()
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  
+
+  'Crash detection
+
+  For i = 1 To numEnemies
+
+    If (enemiesOn[i] = 1) Then
+
+      dx = Math.Abs(xM-enemiesX[i])
+
+      dy = Math.Abs(yM-enemiesY[i])
+
+      If (dx < proximity And dy < proximity) Then
+
+        killEnemy()
+
+        If (invincibleOn = 0) Then
+
+          lives = lives-1
+
+          Sound.PlayBellRing()
+
+        Else
+
+          Sound.PlayClick()
+
+        EndIf
+
+      EndIf 
+
+    EndIf
+
+  EndFor
+
+  
+
+  'Output score
+
+  GraphicsWindow.Title = "Level "+level+" Lives "+lives+" Score "+score
+
+  
+
+  'Restart next level
+
+  If (enemiesShot = numEnemies) Then
+
+    Goto NewLevel
+
+  EndIf
+
+  
+
+  '10 ms delay corrected for time spend doing the program - smoother this way!
+
+  delay = 10-(Clock.ElapsedMilliseconds-currentTime)
+
+  If (delay > 0) Then
+
+    Program.Delay(delay) 'Small delay in the movement
+
+  EndIf
+
+EndWhile
+
+
+
+'End of game and restart after 5 sec
+
+
+
+If (score > highScore) Then
+
+  highScore = score
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(Program.Directory+"/highScore.txt",highScore)
+
+EndIf
+
+
+
+GraphicsWindow.BrushColor = "Red"
+
+GraphicsWindow.FontSize = 50
+
+GraphicsWindow.DrawText(50,50,"You got to level "+level)
+
+GraphicsWindow.DrawText(50,100,"Your score is "+score)
+
+GraphicsWindow.DrawText(50,150,"The high score is "+highScore)
+
+
+
+Program.Delay(5000)
+
+Goto Restart
+
+
+
+'Subroutines
+
+
+
+Sub OnMouseDown
+
+  fire = 1
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  If (key = "Space") Then
+
+    pause = 1-pause 'toggle pause
+
+  ElseIf (key = "Escape") Then
+
+    Program.End()
+
+  EndIF
+
+EndSub 
+
+
+
+Sub killEnemy
+
+  Shapes.HideShape(enemies[i])
+
+  enemiesOn[i] = 0
+
+  enemiesShot = enemiesShot+1
+
+EndSub
+
+

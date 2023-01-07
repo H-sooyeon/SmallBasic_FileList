@@ -1,0 +1,431 @@
+' Probability of Poker - Challenge 4 (April 2012)
+
+' Copyright (c) 2012 Nonki Takahashi
+
+
+
+defaultColor = TextWindow.ForegroundColor
+
+resultColor = "White"
+
+TextWindow.WriteLine("PROBABILITY OF GETTING 4 OF A KIND AND A FULL HOUSE")
+
+TextWindow.WriteLine("")
+
+
+
+N_KINDS = 13
+
+N_SUITS = 4
+
+
+
+TextWindow.WriteLine("BY CALCULATION:")
+
+
+
+' combination of 5 cards : nTry = (13*4)C5
+
+n = N_KINDS * N_SUITS
+
+r = 5
+
+Combination()
+
+nTry = ans
+
+TextWindow.WriteLine("5 cards combination = " + nTry)
+
+
+
+' combination of getting 4 of a kind : n4 = 13C1 * (12*4)C1
+
+n4 = N_KINDS * ((N_KINDS - 1) * N_SUITS)
+
+TextWindow.WriteLine("4 of a kind combination = " + n4)
+
+
+
+' combination of getting a full house : nFH = (13 C1 * 4C3) * (12C1 * 4C2)
+
+n = N_SUITS
+
+r = 3
+
+Combination()
+
+nFH = N_KINDS * ans
+
+n = N_SUITS
+
+r = 2
+
+Combination()
+
+nFH = nFH * (N_KINDS - 1) * ans
+
+TextWindow.WriteLine("full house combination = " + nFH)
+
+
+
+PrintResults()
+
+
+
+TextWindow.WriteLine("")
+
+TextWindow.WriteLine("BY SIMULATION:")
+
+
+
+suits[1]="S"                  ' Space
+
+suits[2]="D"                  ' Diamond
+
+suits[3]="H"                  ' Heart
+
+suits[4]="C"                  ' Clober
+
+nTry = Math.Round(nTry / 100) ' # try
+
+n4 = 0                        ' # 4 of a kind
+
+nFH = 0                       ' # full house
+
+For i = 1 To nTry
+
+  Pick5()
+
+  Sort()
+
+  Are4ofaKind()
+
+  If ans Then
+
+    TextWindow.Write(".")
+
+    n4 = n4 +1
+
+  EndIf
+
+  AreFullHouse()
+
+  If ans Then
+
+    TextWindow.Write(".")
+
+    nFH = nFH +1
+
+  EndIf
+
+EndFor
+
+TextWindow.WriteLine("")
+
+TextWindow.WriteLine("try count = " + nTry)
+
+TextWindow.WriteLine("4 of a kind count = " + n4)
+
+TextWindow.WriteLine("full house count = " + nFH)
+
+PrintResults()
+
+
+
+TextWindow.WriteLine("")
+
+' (end of program)
+
+
+
+' Print Results
+
+' param nTry
+
+' param n4
+
+' param nFH
+
+Sub PrintResults
+
+  TextWindow.ForegroundColor = resultColor
+
+  TextWindow.Write("4 of a kind probability = 1 / ")
+
+  TextWindow.Write((Math.Round(nTry / n4 * 100) / 100) + " = ")
+
+  TextWindow.WriteLine(Math.Round(n4 / nTry * 100000) / 100000)
+
+  TextWindow.Write("full house probability = 1 / ")
+
+  TextWindow.Write((Math.Round(nTry / nFH * 100) / 100) + " = ")
+
+  TextWindow.WriteLine(Math.Round(nFH / nTry * 100000) / 100000)
+
+  TextWindow.ForegroundColor = defaultColor
+
+EndSub
+
+
+
+' Print Cards (for debug)
+
+' param cards[5]
+
+' param n - # kinds
+
+' param nKinds[n] - # of ith kind
+
+' param kinds[n] - ith kind
+
+Sub PrintCards
+
+  Stack.PushValue("param", i)
+
+  For i = 1 To 5
+
+    TextWindow.Write(cards[i] + " ")
+
+  EndFor
+
+  TextWindow.Write(": ")
+
+  For i = 1 To n
+
+    If nKinds[i] > 1 Then
+
+      TextWindow.Write(Text.Append(kinds[i], "*") + nKinds[i] + " ")
+
+    Else
+
+      TextWindow.Write(kinds[i] + " ")
+
+    EndIf
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+  i = Stack.PopValue("param")
+
+EndSub
+
+' Random Card
+
+' return card
+
+Sub RandomCard
+
+  suit = Math.GetRandomNumber(N_SUITS)
+
+  kind = Math.GetRandomNumber(N_KINDS)
+
+  card = suits[suit] + kind
+
+EndSub  
+
+
+
+' Sort
+
+' param cards[5]
+
+' return n - # kinds
+
+' return nKinds[n] - # of ith kind
+
+' return kinds[n] - ith kind
+
+Sub Sort
+
+  Stack.PushValue("param", i)
+
+  Stack.PushValue("param", j)
+
+  n = 0
+
+  For i = 1 To 5
+
+    card = cards[i]
+
+    kind = Text.GetSubTextToEnd(card, 2)
+
+    same = "false"
+
+    For j = 1 To n
+
+      If kinds[j] = kind Then
+
+        same = "true"
+
+        nKinds[j] = nKinds[j] + 1
+
+        Goto breakS
+
+      EndIf
+
+    EndFor
+
+breakS:
+
+    If same = "false" Then
+
+      n = n + 1
+
+      kinds[n] = kind
+
+      nKinds[n] = 1
+
+    EndIf  
+
+  EndFor
+
+  j = Stack.PopValue("param")
+
+  i = Stack.PopValue("param")
+
+EndSub
+
+
+
+' Are 4 of a Kind
+
+' param n - # kinds
+
+' param nKinds[n] - # of ith kind
+
+' param kinds[n] - ith kind
+
+' return ans = "true" if cards[5] are 4 of a kind
+
+Sub Are4ofaKind
+
+  If n <> 2 Then
+
+    ans = "false" 
+
+  ElseIf nKinds[1] <> 4 And nKinds[2] <> 4 Then
+
+    ans = "false"
+
+  Else
+
+    ans = "true"
+
+  EndIf
+
+EndSub
+
+
+
+' Are Full House
+
+' param n - # kinds
+
+' param nKinds[n] - # of ith kind
+
+' param kinds[n] - ith kind
+
+' return ans = "true" if cards[5] are full house
+
+Sub AreFullHouse
+
+  If n <> 2 Then
+
+    ans = "false" 
+
+  ElseIf nKinds[1] <> 3 And nKinds[2] <> 3 Then
+
+    ans = "false"
+
+  Else
+
+    ans = "true"
+
+  EndIf
+
+EndSub
+
+
+
+' Pick 5 Cards
+
+' return cards[5]
+
+Sub Pick5
+
+  Stack.PushValue("param", i)
+
+  For i = 1 To 5
+
+    same = "true"
+
+    While same
+
+      RandomCard()
+
+      cards[i] = card
+
+      same = "false"
+
+      For j = 1 To i - 1
+
+        If cards[j] = card Then
+
+          same = "true"
+
+          Goto break
+
+        EndIf
+
+      EndFor
+
+break:
+
+    EndWhile
+
+  EndFor
+
+  i = Stack.PopValue("param")
+
+EndSub  
+
+
+
+' Combination nCr
+
+' param n
+
+' param r
+
+' return ans = nCr
+
+Sub Combination
+
+  Stack.PushValue("param", i)
+
+  If (n - r) < r Then
+
+    r = n - r
+
+  EndIf
+
+  ans = 1
+
+  For i = 0 To r - 1
+
+    ans = ans * (n - i)
+
+  EndFor
+
+  For i = 2 To r
+
+    ans = ans / i
+
+  EndFor
+
+  i = Stack.PopValue("param")
+
+EndSub
+
+

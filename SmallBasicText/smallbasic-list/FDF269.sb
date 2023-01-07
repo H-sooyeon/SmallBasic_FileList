@@ -1,0 +1,2111 @@
+'**************************************************************************
+
+' MUSICPLAYER: Play all MP3-Files in MusicPath and Subdirectories 
+
+' Microsoft Small Basic v0.8                                
+
+' Tested with Win XP, Vista and Win 7
+
+' Tested with 25,000 mp3-Files in 0ne Path
+
+' **************************************************************************
+
+' Before use, copy the DLL-File from the ZIP-File
+
+' http://cid-92f7df0e57232aba.skydrive.live.com/self.aspx/.Public/SmallBasic/MusicPlayTime/MusicPlayTime%20v0.8.zip
+
+'  in the Small Basic DLL-Directory 
+
+' Also this Program use the extention from Fermy Company
+
+' Veröffentlicht unter HMR773-0
+
+'**************************************************************************
+
+' Martin Menze  
+
+' Mail to martmen@gmx.de
+
+'**************************************************************************
+
+Event()           'Set Events Keybord, Mouse and Timer
+
+SetData()         'Set Variables
+
+ShowPlayer()      'Show the player graphic
+
+SearchAllMusic()  'Search all music in MusicPath (defination in SetData)
+
+DoLoop()          'Loop to playing music
+
+Program.End()     'End of Main
+
+'**************************************************************************
+
+Sub SetData
+
+  ' Play all MP3-Files in MusicPath and all subdirectories
+
+  MusicPath = "C:\Users\Public\Music\Alle Titel\"
+
+  'MusicPath = "C:\Users\Public\Music\Interpreten\"
+
+  GraphicsWindow.FontName = "Courier" 
+
+  GraphicsWindow.FontBold = "True"
+
+  DoNotFlickering = 30
+
+  N_Top = 0                    'X-position musicplayer
+
+  N_Left = 0                   'Y-position musicplayer
+
+  MusicplayerHeight = 105      'musicplayer height
+
+  MusicplayerWidth = 400       'musicplayer width
+
+  RandomStatus = 1             'Status Random is off
+
+  PauseStatus = 0              'Status Pause is off
+
+  StatusPushButtonRandom = 0   'Push Button Random is not pressing
+
+  StatusPushButtonPause = 0    'Push Button Pause is not pressing
+
+  StatusPushButtonPrevious = 0 'Push Button Previous File is not pressing
+
+  StatusPushButtonNext= 0      'Button 4 (next File) is not pressing
+
+  CounterCharacterDraw = 0     'Conter for the progress view bar
+
+  A_Top = N_Top
+
+  A_Left = N_Left
+
+  MusicplayerHeight = 105     
+
+  MusicplayerWidth = 400
+
+  A_MusicplayerHeight = 105     
+
+  A_MusicplayerWidth = 400
+
+  N_MusicplayerHeight = 105     
+
+  N_MusicplayerWidth = 400
+
+  X_Multi = Math.Floor(A_MusicplayerWidth / MusicplayerWidth)
+
+  Y_Multi = Math.Floor(A_MusicplayerHeight / MusicplayerHeight)
+
+  OX_Multi = X_Multi 
+
+  OY_Multi = Y_Multi  
+
+  XXX[0] = ""     'empty array
+
+  IC = 0
+
+EndSub 'SetData
+
+' **********************************************************************
+
+' *** Event-Sub's                                                                                                     ***
+
+' **********************************************************************
+
+
+
+Sub Event 'Set Events Keybord, Mouse and Timer
+
+' Key Events
+
+  GraphicsWindow.KeyDown = KeyDownEvent
+
+  KeyDownEvent = 0  
+
+' Mouse Events  
+
+  GraphicsWindow.MouseDown = OnMouseDownEvent
+
+  MouseDownEvent = 0
+
+GraphicsWindow.MouseUp = OnMouseUpEvent
+
+  MouseUpEvent = 0
+
+  GraphicsWindow.MouseMove = OnMouseMoveEvent
+
+  MouseMoveEvent = 0
+
+' Timer Event  
+
+  Timer.Tick = OnTimerInput
+
+EndSub 'Event
+
+
+
+Sub KeyDownEvent 
+
+  KeyDownEvent = 1
+
+EndSub 'KeyDownEvent
+
+
+
+Sub OnKeyDown 
+
+  LastKey = GraphicsWindow.LastKey
+
+  If LastKey = "F1" then
+
+    ZeigHilfe()
+
+  EndIf
+
+  If LastKey = "F2" then
+
+    SetSong()
+
+  EndIf 
+
+  If LastKey = "F3" then
+
+    SearchSong()
+
+  endif 
+
+  If LastKey = "F4" then
+
+    
+
+  endif 
+
+  If LastKey = "F5" then
+
+    
+
+  EndIf 
+
+  If LastKey = "F6" then
+
+    
+
+  EndIf 
+
+  If LastKey = "F7" then
+
+    
+
+  EndIf 
+
+  If LastKey = "F8" then
+
+    
+
+  EndIf 
+
+  If LastKey = "F9" then
+
+    
+
+  EndIf 
+
+  If LastKey = "F10" then
+
+    
+
+  EndIf 
+
+  If LastKey = "F11" then
+
+    
+
+  EndIf 
+
+  If LastKey = "F12" then
+
+    Index = IC + 1
+
+  endif
+
+EndSub  'OnKeyDown
+
+
+
+Sub ZeigHilfe
+
+  Ueber = "Beschreibung des Musicplayers"
+
+  ShowFenster()
+
+  HilfeSeite1()
+
+  TextWindow.Clear()
+
+  HilfeSeite2()
+
+  TextWindow.Hide()
+
+EndSub 'ZeigHilfe
+
+
+
+Sub HilfeSeite1
+
+  TextWindow.WriteLine ("Oben links wird das Datum ausgegeben an dem der Musicplayer gestartet wurde.")
+
+  TextWindow.WriteLine ("Unter dem Datum wird die Startzeit ausgegeben.")
+
+  TextWindow.WriteLine ("Darunter wird die Zeit ausgeben wann die Titelliste erstellt/eingelesen wurde.")
+
+  TextWindow.WriteLine ("Darunter steht bei neuer Erstellung der Titelliste die Anzahl der durchsuchten")
+
+  TextWindow.WriteLine ("Verzeichnisse. Darunter steht die Anzahl der vorhandene Titel.")
+
+  TextWindow.WriteLine ("Oben rechts wird die aktuelle Uhrzeit ausgegeben")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("Wärend des Einlesens/Suchens der Titel steht folgendes in den 3 Ausgabezeilen:")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("1. Zeile was zur Zeit passiert.")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("2. Zeile Ein Fortschrittsbalken, der weiterspringt, wenn der Balken darunter das")
+
+  TextWindow.WriteLine ("   Ende erreicht hat.")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("3. Zeile ein Fortschrittsbalken")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("Weiter eine Taste drücken.")
+
+  TextWindow.PauseWithoutMessage()
+
+EndSub 'HilfeSeite1 
+
+
+
+Sub HilfeSeite2
+
+  TextWindow.WriteLine ("Wärend des Abspielens der Stücke, wird in den 3 Zeilen folgendes angezeigt:")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("1. Zeile der Interpret des gerade abgespielten Stücks.")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("2. der Titel des gerade abgespielten Stücks.")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("3. Zeile die bereits abgespielte Zeit und die Länge des Stücks.")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("Folgende Funktionstasten werden verwendet:")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("F1 zeigt diese Hilfe an")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("F2 bitetet die Möglichkeit ein MP3-File per Dateiauswahlfenster auszuwählen.")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("F3 Wunschtitel abspielen")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("F12 Beendet das Programm ordnungsgemäß, d.h. falls noch die Titellänge ermittelt wurde, ")
+
+  TextWindow.WriteLine ("   wird dies gespeichert.")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("Mit der Maus können folgende Schaltflächen angeklickt werden:")
+
+  TextWindow.WriteLine ("Zufall     spielt die Musikstücke in einer zufälligen Reihenfolge ab.")
+
+  TextWindow.WriteLine ("Pause      hält das Abspielen an und führt es bei nochmaligem Anklicken fort.")
+
+  TextWindow.WriteLine ("Vorheriger spielt den in der Reihenfolge vorherigen Titel ab.") 
+
+  TextWindow.WriteLine ("           Dies gilt auch wenn Zufallsabspielen eingeschaltet ist")
+
+  TextWindow.WriteLine ("Nächster   spielt den nächsten Song in der Reihenfolge ab.")
+
+  TextWindow.WriteLine ("           Ist Zufallsabpielen an wird zufällig ein neuer Titel abgespielt")
+
+  TextWindow.WriteLine ("")
+
+  TextWindow.WriteLine ("Weiter eine Taste drücken.")
+
+  TextWindow.PauseWithoutMessage()
+
+EndSub 'HilfeSeite2
+
+
+
+Sub SearchSong
+
+  Ueber = "Musikwunsch"
+
+  ShowFenster()
+
+  TextWindow.WriteLine ("Bitte geben Sie Ihren Wunschtitel in folgender Form ein")
+
+  TextWindow.WriteLine ("Interpret - Titel")
+
+  TextWindow.Write (SichInterpret)
+
+  TextWindow.Write (" - ")
+
+  TextWindow.WriteLine (SichTitel) 
+
+  SuchSong = TextWindow.Read()
+
+  SuchSong = Text.Append (MusicPath, SuchSong)
+
+  LSS = Text.GetLength(SuchSong)
+
+  if Text.EndsWith(SuchSong, "*") = "True" Then
+
+    LSS = LSS - 1 
+
+  EndIf    
+
+  Suchsong = Text.GetSubText(Suchsong, 1, LSS)
+
+  SearchInArray()
+
+  If Gefunden = 1 Then 
+
+    TextWindow.Hide() 
+
+    PlaySong()
+
+  Else
+
+    TextWindow.Hide()
+
+  Endif   
+
+EndSub 'SearchSong    
+
+
+
+Sub ShowFenster
+
+  TextWindow.Title = Ueber
+
+  TextWindow.Left = 399
+
+  TextWindow.Top = 99
+
+  TextWindow.BackgroundColor = "DarkCyan"
+
+  TextWindow.ForegroundColor = "White"
+
+  TextWindow.Clear()
+
+  TextWindow.Show()
+
+endsub 'ShowFenster
+
+
+
+Sub SearchInArray
+
+  SichIndex = Index   
+
+  Index = 0
+
+  V1 = Text.ConvertToUpperCase(SuchSong)
+
+  BinarySearch()
+
+  FirstEntry()
+
+  If V2 = V1 Then 
+
+    Index = Links
+
+    StatusSetSong = 1
+
+    Gefunden = 1
+
+  Else 
+
+    Index = SichIndex
+
+    TextWindow.WriteLine("Song oder Interpret nicht gefunden!")
+
+  EndIf 
+
+EndSub 'SearchInArray
+
+
+
+Sub BinarySearch
+
+  Links = 1
+
+  Rechts = Array.GetItemCount(DN)
+
+  While Links <> Rechts 
+
+    Mitte = (Links + Rechts)
+
+    Mitte = Mitte / 2
+
+    Mitte = Math.Floor(Mitte)
+
+    V2 = Text.ConvertToUpperCase(Text.GetSubText(DN[Mitte], 1, LSS))
+
+    ErtsatzIfString()
+
+    If Val2 < Val1 Then 
+
+      Links = Mitte + 1
+
+    Else 
+
+      Rechts = Mitte
+
+    EndIf 
+
+  EndWhile 
+
+EndSub 'BinarySearch
+
+
+
+Sub FirstEntry
+
+  LLinks = Links - 1
+
+  While DN[LLinks] = DN[Links]
+
+    Links = LLinks
+
+    LLinks = Links - 1 
+
+  EndWhile   
+
+  Index = Links
+
+  If Index > 0 Then 
+
+    Links = Index
+
+    Index = 0
+
+  EndIf 
+
+  StatusSuche = 0
+
+  V2 = Text.ConvertToUpperCase(text.GetSubText(DN[Links], 1, LSS))
+
+EndSub 'FirstEntry
+
+
+
+Sub ErtsatzIfString
+
+  char = 0
+
+  Val1 = -1
+
+  Val2 = -1
+
+  vv1 = Text.GetLength(V1)
+
+  vv2 = Text.GetLength(V2)
+
+  While (Val1 = Val2 And char < vv1  And char < vv2 )
+
+    char = char+1
+
+    Val1 = Text.GetCharacterCode(Text.GetSubText(V1,char,1))
+
+    Val2 = Text.GetCharacterCode(Text.GetSubText(V2,char,1))
+
+  EndWhile
+
+EndSub 'ErtsatzIfString
+
+
+
+Sub SetSong
+
+  SuchSong = Dialogs.AskForFile()
+
+  If SuchSong <> "" Then 
+
+    SearchInArray()
+
+    PlaySong()
+
+  EndIf 
+
+EndSub 'SetSong 
+
+
+
+Sub OnMouseDownEvent
+
+  MouseDownEvent = 1
+
+EndSub  'OnMouseDownEvent
+
+
+
+Sub OnMouseDown
+
+  If Mouse.IsLeftButtonDown = "True" Then
+
+    IF MPY < 82 * Y_Multi Then
+
+      IF MPY > 62 * Y_Multi Then
+
+        CheckButton()
+
+      EndIf 
+
+    EndIf
+
+  EndIf
+
+  If Mouse.IsRightButtonDown = "True" Then
+
+   ' do nothing
+
+  Endif
+
+EndSub 'OnMouseDown
+
+
+
+Sub CheckButton
+
+  CheckRandomButton()
+
+  CheckPauseButton()
+
+  CheckPreviousButton()
+
+  CheckNextButton()
+
+  Timer.Resume()
+
+EndSub 'CheckButton
+
+
+
+Sub CheckRandomButton
+
+  X1 = 5 * X_Multi 
+
+  X2 = 26 * X_Multi 
+
+  If (MPX < X2 And MPX > X1) Then
+
+    ShowPushButtonRandomPressing()
+
+    StatusPushButtonRandom = 1
+
+    Sound.PlayClick()
+
+  EndIf     
+
+EndSub 'CheckRandomButton
+
+
+
+Sub CheckPauseButton
+
+ X1 = 65 * X_Multi 
+
+  X2 = 86 * X_Multi 
+
+  If (MPX < X2 And MPX > X1) Then
+
+    ShowPushButtonPausePressing()
+
+    StatusPushButtonPause = 1
+
+    Sound.PlayClick()
+
+  EndIf  
+
+EndSub 'CheckPauseButton
+
+
+
+Sub CheckPreviousButton
+
+  X1 = 125 * X_Multi 
+
+  X2 = 146 * X_Multi
+
+  If (MPX < X2 And MPX > X1) Then
+
+    ShowPushButtonPreviousPressing()
+
+    StatusPushButtonPrevious = 1
+
+    Sound.PlayClick()
+
+  EndIf 
+
+EndSub 'CheckPreviousButton
+
+
+
+Sub CheckNextButton
+
+  X1 = 185 * X_Multi 
+
+  X2 = 206 * X_Multi
+
+  If (MPX < X2 And MPX > X1) Then
+
+    ShowPushButtonNextPressing()
+
+    StatusPushButtonNext = 1
+
+    Sound.PlayClick()
+
+  EndIf 
+
+EndSub 'CheckNextButton
+
+  
+
+Sub ChangeRandomStatus
+
+  If RandomStatus = 1 Then
+
+    RandomStatus = 0
+
+    ShowRandomStatus()
+
+  Else 
+
+    RandomStatus = 1
+
+    ShowRandomStatus()
+
+  EndIf 
+
+EndSub 'ChangeRandomStatus
+
+
+
+Sub ChangePauseStatus
+
+  If PauseStatus = 0 Then 
+
+      PauseStatus = 1
+
+      Sound.Pause(LPath)
+
+      ShowPauseStatus()
+
+      timePlayed = Clock.ElapsedMilliseconds-start
+
+    Else
+
+      PauseStatus = 0
+
+      Sound.Play(LPath)
+
+      ShowPauseStatus()
+
+    EndIf
+
+EndSub  'ChangePauseStatus
+
+
+
+Sub OnMouseUpEvent
+
+  MouseUpEvent = 1
+
+EndSub  'OnMouseUpEvent
+
+
+
+Sub OnMouseUp
+
+  If StatusPushButtonRandom = 1 Then
+
+    StatusPushButtonRandom = 0   
+
+    ShowPushButtonRandom() 
+
+    ChangeRandomStatus()
+
+  EndIF
+
+  If StatusPushButtonPause = 1 Then
+
+    StatusPushButtonPause = 0
+
+    ShowPushButtonPause()
+
+    ChangePauseStatus()
+
+  EndIf 
+
+  If StatusPushButtonPrevious = 1 Then
+
+    ShowPushButtonPrevious()
+
+    Sound.Stop(LPath)
+
+    PlaySong()
+
+  EndIf 
+
+  If StatusPushButtonNext = 1 Then
+
+    StatusPushButtonNext = 0 
+
+    ShowPushButtonNext()
+
+    Sound.Stop(LPath)
+
+    PlaySong()
+
+  EndIf   
+
+EndSub 'OnMouseUp
+
+
+
+Sub ShowPushButtonRandom
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  X1 = 7 * X_Multi
+
+  X2 = 20 * X_Multi 
+
+  Y1 = 62 * Y_Multi 
+
+  Y2 = 20 * Y_Multi 
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "LightGray"
+
+  X1 = 9 * X_Multi
+
+  X2 = 16 * X_Multi 
+
+  Y1 = 64 * Y_Multi 
+
+  Y2 = 16 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Silver"
+
+  X1 = 11 * X_Multi
+
+  X2 = 12 * X_Multi 
+
+  Y1 = 66 * Y_Multi 
+
+  Y2 = 12 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  X1 = 15 * X_Multi 
+
+  Y1 = 67 * Y_Multi 
+
+  GraphicsWindow.DrawText(X1, Y1, "?")
+
+  Timer.Resume()
+
+EndSub  'ShowPushButtonRandom
+
+
+
+Sub ShowPushButtonRandomPressing
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  X1 = 9 * X_Multi
+
+  X2 = 16 * X_Multi 
+
+  Y1 = 64 * Y_Multi 
+
+  Y2 = 16 * Y_Multi  
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  X1 = 15 * X_Multi 
+
+  Y1 = 67 * Y_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, "?")
+
+  Timer.Resume()
+
+EndSub  'ShowPushButtonRandomPressing
+
+
+
+Sub ShowPushButtonPause
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  X1 = 67 * X_Multi
+
+  X2 = 20 * X_Multi 
+
+  Y1 = 62 * Y_Multi 
+
+  Y2 = 20 * Y_Multi 
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "LightGray"
+
+  X1 = 69 * X_Multi
+
+  X2 = 16 * X_Multi 
+
+  Y1 = 64 * Y_Multi 
+
+  Y2 = 16 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Silver"
+
+  X1 = 71 * X_Multi
+
+  X2 = 12 * X_Multi 
+
+  Y1 = 66 * Y_Multi 
+
+  Y2 = 12 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  X1 = 74 * X_Multi 
+
+  Y1 = 66 * Y_Multi 
+
+  GraphicsWindow.DrawText(X1, Y1, "||")
+
+  Timer.Resume()
+
+EndSub 'ShowPushButtonPause
+
+
+
+Sub ShowPushButtonPausePressing
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  X1 = 69 * X_Multi
+
+  X2 = 16 * X_Multi 
+
+  Y1 = 64 * Y_Multi 
+
+  Y2 = 16 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  X1 = 74 * X_Multi  
+
+  Y1 = 66 * Y_Multi 
+
+  GraphicsWindow.DrawText(X1, Y1, "||")
+
+  Timer.Resume()
+
+EndSub 'ShowPushButtonPausePressing
+
+
+
+Sub ShowPushButtonPrevious
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  X1 = 127 * X_Multi
+
+  X2 = 20 * X_Multi 
+
+  Y1 = 62 * Y_Multi 
+
+  Y2 = 20 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "LightGray"
+
+  X1 = 129 * X_Multi
+
+  X2 = 16 * X_Multi 
+
+  Y1 = 64 * Y_Multi 
+
+  Y2 = 16 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Silver"
+
+  X1 = 131 * X_Multi
+
+  X2 = 12 * X_Multi 
+
+  Y1 = 66 * Y_Multi 
+
+  Y2 = 12 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  X1 = 134 * X_Multi 
+
+  Y1 = 66 * Y_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, "<")
+
+  Timer.Resume()
+
+EndSub 'ShowPushButtonPrevious
+
+
+
+Sub ShowPushButtonPreviousPressing
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  X1 = 129 * X_Multi
+
+  X2 = 16 * X_Multi 
+
+  Y1 = 64 * Y_Multi 
+
+  Y2 = 16 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  X1 = 134 * X_Multi 
+
+  Y1 = 66 * Y_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, "<")
+
+  Timer.Resume()
+
+EndSub 'ShowPushButtonPreviousPressing
+
+
+
+Sub ShowPushButtonNext
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  X1 = 187 * X_Multi
+
+  X2 = 20 * X_Multi 
+
+  Y1 = 62 * Y_Multi 
+
+  Y2 = 20 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "LightGray"
+
+  X1 = 189 * X_Multi
+
+  X2 = 16 * X_Multi 
+
+  Y1 = 64 * Y_Multi 
+
+  Y2 = 16 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Silver"
+
+  X1 = 191 * X_Multi
+
+  X2 = 12 * X_Multi 
+
+  Y1 = 66 * Y_Multi 
+
+  Y2 = 12 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  X1 = 194 * X_Multi 
+
+  Y1 = 66 * Y_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, ">")
+
+  Timer.Resume()
+
+EndSub 'ShowPushButtonNext
+
+
+
+Sub ShowPushButtonNextPressing
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  X1 = 189 * X_Multi
+
+  X2 = 16 * X_Multi 
+
+  Y1 = 64 * Y_Multi 
+
+  Y2 = 16 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  X1 = 194 * X_Multi 
+
+  Y1 = 66 * Y_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, ">")
+
+  Timer.Resume()
+
+EndSub 'ShowPushButtonNextPressing
+
+
+
+Sub ShowRandomStatus
+
+  X1 = 38 * X_Multi
+
+  X2 = 20 * X_Multi 
+
+  Y1 = 52 * Y_Multi 
+
+  Y2 = 11 * Y_Multi  
+
+  Timer.Pause()
+
+  If RandomStatus = 1 Then
+
+    GraphicsWindow.BrushColor = "DarkCyan"
+
+    GraphicsWindow.FillRectangle(X1, Y1, X2, Y2)
+
+    GraphicsWindow.BrushColor = "Honeydew"
+
+    GraphicsWindow.DrawText(X1, Y1, "An")
+
+  Else 
+
+    GraphicsWindow.BrushColor = "DarkCyan"
+
+    GraphicsWindow.FillRectangle(X1, Y1, X2, Y2)
+
+    GraphicsWindow.BrushColor = "Honeydew"
+
+    GraphicsWindow.DrawText(X1, Y1, "Aus")
+
+  EndIf 
+
+  Timer.Resume()
+
+EndSub  'ShowRandomStatus 
+
+
+
+Sub ShowPauseStatus
+
+  X1 = 98 * X_Multi
+
+  X2 = 20 * X_Multi 
+
+  Y1 = 52 * Y_Multi 
+
+  Y2 = 11 * Y_Multi 
+
+  Timer.Pause()
+
+  If PauseStatus = 1 Then
+
+    GraphicsWindow.BrushColor = "DarkCyan"
+
+    GraphicsWindow.FillRectangle(X1, Y1, X2, Y2)
+
+    GraphicsWindow.BrushColor = "Honeydew"
+
+    GraphicsWindow.DrawText(X1, Y1, "An")
+
+  Else 
+
+    GraphicsWindow.BrushColor = "DarkCyan"
+
+    GraphicsWindow.FillRectangle(X1, Y1, X2, Y2)
+
+    GraphicsWindow.BrushColor = "Honeydew"
+
+    GraphicsWindow.DrawText(X1, Y1, "Aus")
+
+  Endif
+
+  Timer.Resume()
+
+EndSub 'ShowPauseStatus
+
+
+
+Sub OnMouseMoveEvent
+
+  MouseMoveEvent = 1
+
+EndSub  'OnMouseMoveEvent
+
+
+
+Sub OnMouseMove
+
+  MPX = GraphicsWindow.MouseX 
+
+  MPY = GraphicsWindow.MouseY
+
+Endsub 'OnMouseMove
+
+
+
+Sub OnTimerInput
+
+  SetPosition()
+
+  SetMulti()
+
+  ShowClock()
+
+  If playing = 0 Then
+
+    ShowWorkprogress()
+
+  EndIf 
+
+EndSub 'OnTimerInput
+
+
+
+Sub SetPosition
+
+  N_Top = GraphicsWindow.Top
+
+  N_Left = GraphicsWindow.Left 
+
+  GraphicsWindow.Top = N_Top
+
+  GraphicsWindow.Left = N_Left
+
+  A_Top = N_Top
+
+  A_Left = N_Left 
+
+EndSub 'SetPosition
+
+
+
+Sub SetMulti 
+
+  N_MusicplayerWidth = GraphicsWindow.Width
+
+  N_MusicplayerHeight = GraphicsWindow.Height
+
+  If  (A_MusicplayerWidth <> N_MusicplayerWidth or A_MusicplayerHeight <> N_MusicplayerHeight) Then 
+
+    X_Multi = (N_MusicplayerWidth / MusicplayerWidth)
+
+    Y_Multi = (N_MusicplayerHeight / MusicplayerHeight)
+
+    A_MusicplayerWidth = N_MusicplayerWidth
+
+    A_MusicplayerHeight = N_MusicplayerHeight
+
+    ShowPlayer()
+
+    ShowRow1()
+
+    ShowRow2()
+
+    ShowRow3()
+
+    ShowCounterFiles()
+
+  EndIf 
+
+EndSub 'SetMulti
+
+
+
+Sub ShowClock
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "DarkCyan"
+
+  X1 = 8 * X_Multi
+
+  X2 = 45 * X_Multi 
+
+  Y1 = 7 * Y_Multi 
+
+  Y2 = 11 * Y_Multi
+
+  GraphicsWindow.FillRectangle(X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  X1 = 9 * X_Multi
+
+  Y1 = 9 * Y_Multi 
+
+  GraphicsWindow.DrawText(X1, Y1, Clock.Date )
+
+  GraphicsWindow.BrushColor = "DarkCyan"
+
+  X1 = 8 * X_Multi
+
+  X2 = 45 * X_Multi 
+
+  Y1 = 20 * Y_Multi 
+
+  Y2 = 11 * Y_Multi
+
+  GraphicsWindow.FillRectangle(X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  X1 = 9 * X_Multi
+
+  Y1 = 22 * Y_Multi 
+
+  GraphicsWindow.DrawText(X1, Y1, Clock.Time)
+
+  Timer.Resume()
+
+  Program.Delay(DoNotFlickering)       
+
+EndSub 'ShowClock
+
+
+
+Sub ShowWorkProgress
+
+  Char1 = Char1 + "­­·"
+
+  Row3 = Char1
+
+  ShowRow3()
+
+  CounterCharacterDraw1 = CounterCharacterDraw1 + 1
+
+  If (CounterCharacterDraw1 > 120) Then
+
+    Char1 = ""
+
+    CounterCharacterDraw1 = 0
+
+    CounterCharacterDraw2 = CounterCharacterDraw2 + 1
+
+    Char2 = Char2 + "?��"
+
+    Row2 = Char2
+
+    ShowRow2()
+
+  EndIf 
+
+  If (CounterCharacterDraw2 > 37) Then
+
+    Char2 = ""
+
+    CounterCharacterDraw2 = 0
+
+  EndIf 
+
+EndSub 'ShowWorkProgress
+
+
+
+' ****************************************************************
+
+
+
+Sub SearchAllMusic
+
+  DN = ""
+
+  DL = ""
+
+  files = ""
+
+  dir = ""
+
+  subDir = ""
+
+  playing = 0
+
+  Row2 = ""
+
+  ShowRow2()
+
+  Row3 = ""
+
+  ShowRow3()
+
+  Timer.Interval = 600
+
+  ReadWriteSongData()
+
+  Index = 0 
+
+  ShowCounterFiles()
+
+  playing = 0
+
+EndSub 'SearchAllMusic
+
+
+
+Sub ReadWriteSongData
+
+  GetTitelliste()
+
+  GetTitelLength() 
+
+EndSub 'ReadWriteSongData
+
+
+
+Sub GetTitelliste
+
+  DateiName = Text.Append(MusicPath, "Titelliste.TXT")
+
+  Sicherung = Text.Append(MusicPath, "Titelliste.SIC")
+
+' The following line could be harmful and has been automatically commented.
+
+'   if File.CopyFile(DateiName, Sicherung) = "SUCCESS" Then
+
+    Row1 = "Lade Musikstücke aus Datei"
+
+    ShowRow1()
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.DeleteFile(Sicherung)
+
+' The following line could be harmful and has been automatically commented.
+
+'     DN = File.ReadContents(DateiName)
+
+  else
+
+    Row1 = "Suche Musikstücke aus Verzeichnis"
+
+    ShowRow1()
+
+    Stack.PushValue("DirStack", MusicPath)
+
+    i = 0
+
+    SearchDirectories()
+
+    DateiName = Text.Append(MusicPath, "Titelliste.TXT")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteContents(DateiName, DN) 
+
+  EndIf 
+
+EndSub 'GetTitelliste
+
+
+
+Sub SearchDirectories
+
+  While (Stack.GetCount("DirStack") > 0)
+
+      dir = Stack.PopValue("DirStack")
+
+      DirCounter = DirCounter + 1
+
+' The following line could be harmful and has been automatically commented.
+
+'       files = File.GetFiles(dir)
+
+      For i = 1 To Array.GetItemCount(files)
+
+        If Text.EndsWith(files[i],".mp3") Then  
+
+          DN[Array.GetItemCount(DN)+1] = files[i]
+
+        EndIf
+
+      EndFor
+
+' The following line could be harmful and has been automatically commented.
+
+'       subDir = File.GetDirectories(dir)
+
+      For i = 1 To Array.GetItemCount(subDir)
+
+        Stack.PushValue("DirStack",subDir[i])
+
+      EndFor
+
+    EndWhile
+
+EndSub 'SearchDirectories
+
+
+
+Sub GetTitelLength
+
+  DateiName = Text.Append(MusicPath, "Titellänge.TXT")
+
+  Sicherung = Text.Append(MusicPath, "Titellänge.SIC")
+
+' The following line could be harmful and has been automatically commented.
+
+'   if File.CopyFile(DateiName, Sicherung) = "SUCCESS" Then
+
+    Row1 = "Lade Musikstücke aus Datei"
+
+    ShowRow1()
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.DeleteFile(Sicherung)
+
+' The following line could be harmful and has been automatically commented.
+
+'     DL = File.ReadContents(DateiName)
+
+  else
+
+    Row1 = "Suche Musikstücke in Directories"
+
+    ShowRow1()
+
+    For i = 1 to Array.GetItemCount(DN)
+
+      LPath = DN[i]
+
+      SearchPlayLength()
+
+      If playLength < 99999999999 then
+
+        DL[i] = playLength 
+
+      EndIf       
+
+    EndFor   
+
+  endif 
+
+  DateiName = Text.Append(MusicPath, "Titellänge.TXT")
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(DateiName, DL)
+
+EndSub 'GetTitelLength
+
+
+
+Sub SearchPlayLength
+
+  Z = 0
+
+  playLength = 0
+
+  While playLength = 0
+
+' The following line could be harmful and has been automatically commented.
+
+'     playLength = MusicFile.PlayTime(LPath)
+
+    Z = Z + 1
+
+    If Z = 3 Then
+
+      playLength = 99999999999
+
+    EndIf
+
+  EndWhile 
+
+  GetTitel()
+
+  Row1 = i
+
+  Row1 = Text.Append(Row1, " / ")
+
+  Row1 = Text.Append(Row1, playLength)
+
+  Row1 = Text.Append(Row1, " ")
+
+  Row1 = Text.Append(Row1, Text.GetSubText(Titel, 1, Text.GetIndexOf(Titel, " - ")))
+
+  ShowRow1()
+
+EndSub 'SearchPlayLength
+
+
+
+Sub DoLoop
+
+  While IC >= Index
+
+    If (playing = 0) Then
+
+      PlaySong()
+
+    EndIf
+
+    If (PauseStatus = 1) Then
+
+      start = Clock.ElapsedMilliseconds-timePlayed
+
+    EndIf
+
+    ShowMusicTime()
+
+    If (playTime >= playLength) Then
+
+      playing = 0
+
+    EndIf
+
+    If (KeyDownEvent = 1) Then
+
+      OnKeyDown()
+
+      KeyDownEvent = 0
+
+    EndIf 
+
+    If (MouseDownEvent = 1) Then 
+
+      OnMouseDown()
+
+      MouseDownEvent = 0
+
+    EndIf 
+
+    If (MouseUpEvent = 1) Then 
+
+      OnMouseUp()
+
+      MouseUpEvent = 0
+
+    EndIf 
+
+    If (MouseMoveEvent = 1) Then 
+
+      OnMouseMove()
+
+      MouseMoveEvent = 0
+
+    EndIf 
+
+  EndWhile
+
+EndSub 'DoLoop
+
+
+
+Sub PlaySong
+
+  Sound.Stop(LPath)
+
+  If StatusSetSong = 0 then
+
+    If StatusPushButtonPrevious = 0 Then
+
+      If RandomStatus = 1 then
+
+        Index = Math.GetRandomNumber(IC)
+
+      Else
+
+        Index = Index + 1
+
+        If Index > IC then
+
+          Index = 1
+
+        Endif
+
+      EndIf  
+
+    Else 
+
+      StatusPushButtonPrevious = 0
+
+      Index = Index - 1
+
+      If Index < 1 Then 
+
+        Index = 1
+
+      Endif 
+
+    EndIf
+
+  EndIf 
+
+  StatusSetSong = 0
+
+  Write3RowsITT()
+
+  If PauseStatus = 0 then
+
+    Sound.Play(LPath)
+
+    playing = 1
+
+    start = Clock.ElapsedMilliseconds
+
+  EndIf 
+
+EndSub 'PlaySong
+
+
+
+Sub Write3RowsITT
+
+  LPath = DN[Index]
+
+  playLength = DL[Index]
+
+  GetTitel()
+
+  Row1 = Text.GetSubText(Titel, 1, Text.GetIndexOf(Titel, " - ")) 
+
+  SichInterpret = Row1
+
+  ShowRow1()
+
+  Row2 = Text.GetSubText(Titel, 3+Text.GetIndexOf(Titel, " - "), LE)
+
+  SichTitel = Row2
+
+  ShowRow2()
+
+EndSub 'Write3RowsITT
+
+
+
+Sub GetTitel
+
+  LE = Text.GetLength(LPath)
+
+  Stelle = LE 
+
+  von = 0
+
+  While Stelle > von
+
+    S = Text.GetSubText(LPath, Stelle, 1)
+
+    If S = "\" then 
+
+      von = Stelle + 1
+
+    EndIf
+
+    Stelle = Stelle - 1
+
+  EndWhile 
+
+  L = LE - von - 3
+
+  Titel = Text.GetSubText(LPath, von, L)
+
+EndSub 'GetTitel
+
+
+
+
+
+Sub ShowMusicTime
+
+  playTime = (Clock.ElapsedMilliseconds-start)/1000
+
+  min = Math.Floor(playTime/60)
+
+  timeDisplay = min+":"
+
+  sec = Math.Floor(Math.Remainder(playTime,60))
+
+  If (sec < 10) Then
+
+    timeDisplay = timeDisplay+"0"
+
+  EndIf
+
+  timeDisplay = timeDisplay+sec
+
+  lmin = Math.Floor(playLength/60)
+
+  LengthTime = lmin+":"
+
+  lsec = Math.Floor(Math.Remainder(playLength,60))
+
+  If (lsec < 10) Then
+
+    LengthTime = LengthTime+"0"
+
+  EndIf
+
+  LengthTime = LengthTime+lsec
+
+  remainderTime = playLength - playTime
+
+  Row3 = timeDisplay 
+
+  Row3= Text.Append(Row3, " / ")
+
+  Row3 = Text.Append(Row3, LengthTime)
+
+  ShowRow3()
+
+  SetPosition()
+
+  SetMulti()
+
+  ShowClock()
+
+EndSub 'ShowMusicTime
+
+  
+
+Sub ShowPlayer
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.Top = N_Top
+
+  GraphicsWindow.Left = N_Left
+
+  GraphicsWindow.CanResize = "True"
+
+  GraphicsWindow.Height = N_MusicplayerHeight
+
+  GraphicsWindow.Width = N_MusicplayerWidth
+
+  XY_Multi = (X_Multi + Y_Multi)
+
+  XY_Multi = XY_Multi / 3
+
+  GraphicsWindow.FontSize = 10 * XY_Multi 
+
+  GraphicsWindow.Title = "MUSICPLAYER                        "
+
+  Timer.Pause()
+
+  GraphicsWindow.BackgroundColor = "DarkGray"
+
+  GraphicsWindow.PenColor = "DarkSlateGray"
+
+  GraphicsWindow.PenWidth = 3 * XY_Multi
+
+  X1 = 0 * X_Multi
+
+  X2 = 400 * X_Multi 
+
+  Y1 = 0 * Y_Multi 
+
+  Y2 = 105 * Y_Multi
+
+  GraphicsWindow.DrawRectangle(X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "DimGray"
+
+  X1 = 5 * X_Multi
+
+  X2 = 51 * X_Multi 
+
+  Y1 = 5 * Y_Multi 
+
+  Y2 = 41 * Y_Multi 
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "DimGray"
+
+  X1 = 60 * X_Multi
+
+  X2 = 335 * X_Multi 
+
+  Y1 = 5 * Y_Multi 
+
+  Y2 = 41 * Y_Multi 
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "DimGray"
+
+  X1 = 5 * X_Multi
+
+  X2 = 390 * X_Multi 
+
+  Y1 = 50 * Y_Multi 
+
+  Y2 = 50 * Y_Multi
+
+  GraphicsWindow.FillRectangle (X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  GraphicsWindow.FontBold = "True"
+
+  X1 = 6 * X_Multi
+
+  Y1 = 52 * Y_Multi 
+
+  GraphicsWindow.DrawText(X1, Y1, "Zufall")
+
+  X1 = 66 * X_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, "Pause")
+
+  X1 = 126 * X_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, "Vorheriger")
+
+  X1 = 186 * X_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, "Nächster")
+
+  X1 = 280 * X_Multi
+
+  Y1 = 52 * Y_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, "F1 = Hilfe")
+
+  Y1 = 67 * Y_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, "F2 = MP3-Datei wählen")
+
+  Y1 = 77 * Y_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, "F3 = Spiel Wunschtitel")
+
+  Y1 = 92 * Y_Multi
+
+  GraphicsWindow.DrawText(X1, Y1, "F12= E N D E")
+
+  Timer.Resume()
+
+  ShowPushButtonRandom() 
+
+  ShowPushButtonPause()
+
+  ShowPushButtonPrevious()
+
+  ShowPushButtonNext()
+
+  ShowRandomStatus()
+
+  ShowPauseStatus()
+
+  ShowClock()
+
+EndSub  'ShowPlayer
+
+
+
+Sub ShowCounterFiles
+
+  IC = Array.GetItemCount(DN)
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "DarkCyan"
+
+  X1 = 8 * X_Multi
+
+  X2 = 45 * X_Multi 
+
+  Y1 = 33 * Y_Multi 
+
+  Y2 = 11 * Y_Multi
+
+  GraphicsWindow.FillRectangle(X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  X1 = 9 * X_Multi
+
+  Y1 = 35 * Y_Multi 
+
+  GraphicsWindow.DrawText(X1, Y1, IC)
+
+  Timer.Resume()
+
+EndSub 'ShowCounterFiles
+
+
+
+Sub ShowRow1
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "DarkCyan"
+
+  X1 = 63 * X_Multi
+
+  X2 = 330 * X_Multi 
+
+  Y1 = 7 * Y_Multi 
+
+  Y2 = 11 * Y_Multi
+
+  GraphicsWindow.FillRectangle(X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  X1 = 65 * X_Multi
+
+  Y1 = 9 * Y_Multi 
+
+  Row1 = Text.GetSubText(Row1, 1, 80)
+
+  GraphicsWindow.DrawText(X1, Y1, Row1)
+
+  Timer.Resume()
+
+EndSub 'ShowRow1 
+
+
+
+Sub ShowRow2
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "DarkCyan"
+
+  X1 = 63 * X_Multi
+
+  X2 = 330 * X_Multi 
+
+  Y1 = 20 * Y_Multi 
+
+  Y2 = 11 * Y_Multi
+
+  GraphicsWindow.FillRectangle(X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  X1 = 65 * X_Multi
+
+  Y1 = 22 * Y_Multi 
+
+  Row2 = Text.GetSubText(Row2, 1, 80)
+
+  GraphicsWindow.DrawText(X1, Y1, Row2)
+
+  Timer.Resume()
+
+EndSub 'ShowRow2
+
+
+
+Sub ShowRow3
+
+  Timer.Pause()
+
+  GraphicsWindow.BrushColor = "DarkCyan"
+
+  X1 = 63 * X_Multi
+
+  X2 = 330 * X_Multi 
+
+  Y1 = 33 * Y_Multi 
+
+  Y2 = 11 * Y_Multi
+
+  GraphicsWindow.FillRectangle(X1, Y1, X2, Y2)
+
+  GraphicsWindow.BrushColor = "Honeydew"
+
+  X1 = 65 * X_Multi
+
+  Y1 = 35 * Y_Multi 
+
+  Row3 = Text.GetSubText(Row3, 1, 80)
+
+  GraphicsWindow.DrawText(X1, Y1, Row3)
+
+  Timer.Resume()
+
+EndSub 'ShowRow3
+
+

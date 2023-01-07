@@ -1,0 +1,407 @@
+' Matrix operations
+
+' Copyright © 2020 Nonki Takahashi.  The MIT License.
+
+' Last update 2020-02-29
+
+
+
+Init()
+
+m[1][1] = 1
+
+m[2][2] = 1
+
+param = "name=M;rows=2;cols=2;"
+
+param["init"] = m
+
+Matrix_Init()
+
+Matrix_Dump()
+
+n[1][1] = 1
+
+n[1][2] = 2
+
+n[2][1] = 3
+
+n[2][2] = 4
+
+param = "name=N;rows=2;cols=2;"
+
+param["init"] = n
+
+Matrix_Init()
+
+Matrix_Dump()
+
+TextWindow.WriteLine("P = M × N")
+
+param = "name=P;name1=M;name2=N;"
+
+Matrix_Mul()
+
+Matrix_Dump()
+
+TextWindow.WriteLine("Q = N × N")
+
+param = "name=Q;name1=N;name2=N;"
+
+Matrix_Mul()
+
+Matrix_Dump()
+
+TextWindow.WriteLine("R = M + N")
+
+param = "name=R;name1=M;name2=N;"
+
+Matrix_Add()
+
+Matrix_Dump()
+
+
+
+Sub Format
+
+  ' format value as ##0.00
+
+  value = value * 1
+
+  dot = Text.GetIndexOf(value, DECIMAL)
+
+  If 0 < dot Then
+
+    value = Math.Round(value * 100) / 100
+
+  Else
+
+    value = Text.Append(value, ".")
+
+  EndIf
+
+  dot = Text.GetIndexOf(value, DECIMAL)
+
+  len = Text.GetLength(value)
+
+  If len < dot + 2 Then
+
+    value = Text.Append(value, Text.GetSubText("00", 1, dot + 2 - len))
+
+  EndIf
+
+  len = Text.GetLength(value)
+
+  If len < 6 Then
+
+    value = Text.Append(Text.GetSubText("  ", 1, 6 - len), value)
+
+  EndIf
+
+EndSub
+
+
+
+Sub Init
+
+  DECIMAL = "."
+
+  LF = Text.GetCharacter(10)
+
+  space = "  "
+
+  For l = 3 To 10
+
+    space = space + " "
+
+    sp[l] = space
+
+  EndFor
+
+EndSub
+
+
+
+Sub Matrix_Add
+
+  ' add two matrices
+
+  ' param["name"] - matrix name to return
+
+  ' param["name1"] - left matrix name
+
+  ' param["name2"] - right matrix name
+
+  name1 = param["name1"]
+
+  entry1 = matrix[name1]
+
+  cols1 = entry1["cols"]
+
+  rows1 = entry1["rows"]
+
+  name2 = param["name2"]
+
+  entry2 = matrix[name2]
+
+  cols2 = entry2["cols"]
+
+  rows2 = entry2["rows"]
+
+  If (cols1 = rows1) And (cols2 = rows2) Then
+
+    values1 = entry1["values"]
+
+    values2 = entry2["values"]
+
+    values = ""
+
+    For col = 1 To cols1
+
+      For row = 1 To rows1
+
+        values[row][col] = values1[row][col] + values2[row][col]
+
+      EndFor
+
+    EndFor
+
+    name = param["name"]
+
+    Stack.PushValue("local", param)
+
+    param = ""
+
+    param["name"] = name
+
+    param["cols"] = cols1
+
+    param["rows"] = rows1
+
+    param["init"] = values
+
+    Matrix_Init()
+
+    param = Stack.PopValue("local")
+
+  Else
+
+    TextWindow.ForegroundColor = "Red"
+
+    msg = "Error:"
+
+    If rows1 <> rows2 Then
+
+      msg = msg + LF + " Matrix " + name1 + " has " + rows1 + "rows,"
+
+      msg = msg + LF + " but matrix " + name2 + " has " + rows2 + "rows"
+
+    EndIf
+
+    If cols1 <> cols2 Then
+
+      msg = msg + LF + " Matrix " + name1 + " has " + cols1 + "columns,"
+
+      msg = msg + LF + " but matrix " + name2 + " has " + cols2 + "columns"
+
+    EndIf
+
+    TextWindow.WriteLine(msg)
+
+    TextWindow.ForegroundColor = "Gray"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Matrix_Dump
+
+  ' param["name"] - matrix name to set
+
+  name = param["name"]
+
+  entry = matrix[name]
+
+  rows = entry["rows"]
+
+  cols = entry["cols"]
+
+  values = entry["values"]
+
+  left = name + " = " 
+
+  For row = 1 To rows
+
+    TextWindow.Write(left)
+
+    If row = 1 Then
+
+      left = sp[Text.GetLength(left)]
+
+    EndIf
+
+    For col = 1 To cols
+
+      value = values[row][col]
+
+      Format()
+
+      TextWindow.Write(value)
+
+      If col < cols Then
+
+        TextWindow.Write(" ")
+
+      EndIf
+
+    EndFor
+
+    TextWindow.WriteLine("")
+
+  EndFor
+
+EndSub
+
+
+
+Sub Matrix_Init
+
+  ' param["name"] - matrix name to initialize
+
+  ' param["rows"] - number of rows
+
+  ' param["cols"] - number of columns
+
+  ' param["init"] - initial data array
+
+  name = param["name"]
+
+  rows = param["rows"]
+
+  cols = param["cols"]
+
+  init = param["init"]
+
+  _init = ""
+
+  _rows = Array.GetItemCount(init)
+
+  _row = Array.GetAllIndices(init)
+
+  For j = 1 To _rows
+
+    row = _row[j]
+
+    _cols = Array.GetItemCount(init[row])
+
+    _col = Array.GetAllIndices(init[row])
+
+    For i = 1 To _cols
+
+      col = _col[i]
+
+      _init[row][col] = init[row][col]
+
+    EndFor
+
+  EndFor
+
+  entry["rows"] = rows
+
+  entry["cols"] = cols
+
+  entry["values"] = _init
+
+  matrix[name] = entry
+
+EndSub
+
+
+
+Sub Matrix_Mul
+
+  ' multiply two matrices
+
+  ' param["name"] - matrix name to return
+
+  ' param["name1"] - left matrix name
+
+  ' param["name2"] - right matrix name
+
+  name1 = param["name1"]
+
+  entry1 = matrix[name1]
+
+  cols1 = entry1["cols"]
+
+  rows1 = entry1["rows"]
+
+  name2 = param["name2"]
+
+  entry2 = matrix[name2]
+
+  cols2 = entry2["cols"]
+
+  rows2 = entry2["rows"]
+
+  If cols1 = rows2 Then
+
+    values1 = entry1["values"]
+
+    values2 = entry2["values"]
+
+    values = ""
+
+    For col = 1 To cols2
+
+      For row = 1 To rows1
+
+        For i = 1 To cols1
+
+          values[row][col] = values[row][col] + values1[row][i] * values2[i][col]
+
+        EndFor
+
+      EndFor
+
+    EndFor
+
+    name = param["name"]
+
+    Stack.PushValue("local", param)
+
+    param = ""
+
+    param["name"] = name
+
+    param["cols"] = cols2
+
+    param["rows"] = rows1
+
+    param["init"] = values
+
+    Matrix_Init()
+
+    param = Stack.PopValue("local")
+
+  Else
+
+    TextWindow.ForegroundColor = "Red"
+
+    msg = "Error:"
+
+    msg = msg + LF + " Matrix " + name1 + " has " + cols1 + "columns,"
+
+    msg = msg + LF + " but matrix " + name2 + " has " + rows2 + "rows"
+
+    TextWindow.WriteLine(msg)
+
+    TextWindow.ForegroundColor = "Gray"
+
+  EndIf
+
+EndSub
+
+

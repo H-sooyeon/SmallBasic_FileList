@@ -1,0 +1,2455 @@
+'Small Basic Gorilla 1.0
+
+'NLQ667
+
+
+
+'setup subroutines to handle key events
+
+GraphicsWindow.KeyDown = DoKeyDown
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+
+
+GraphicsWindow.Title = "Small Basic Gorillas version 1.0"
+
+
+
+GetPath()
+
+GameInit()
+
+Intro()
+
+PlayGame()
+
+DoGameOver()
+
+
+
+'---------------------------------------------------------------------------
+
+Sub GetPath
+
+  'Be sure you store the images in the same directory as the program
+
+  Path = Program.Directory
+
+  'array to store filenames of the program directory.
+
+  'we can then check for the image files & if needed throw an error if we cannot find them.
+
+  'we could do the same for sound files, but if the sound is not found, the program ignores the sound.play command without major error
+
+  
+
+  FileArray = 12
+
+  
+
+  'check for images and load them
+
+' The following line could be harmful and has been automatically commented.
+
+' The following line could be harmful and has been automatically commented.
+
+' The following line could be harmful and has been automatically commented.
+
+' File.GetFiles(Path)
+
+  
+
+  FileArmsDown = "NotFound"
+
+  FileLeftUp = "NotFound"
+
+  FileRightUp = "NotFound"
+
+  FileVictory = "NotFound"
+
+    
+
+  For I = 1 to Array.GetItemCount(FileArray)
+
+    If (FileArmsDown = "NotFound") Then
+
+      If (Array.GetValue(FileArray,I) = Path + "\GorillaArmsDown.bmp") Then
+
+        FileArmsDown = "Found"
+
+      EndIf
+
+    EndIf
+
+    If (FileLeftUp = "NotFound") Then
+
+      If (Array.GetValue(FileArray,I) = Path + "\GorillaLeftUp.bmp") Then
+
+        FileLeftUp = "Found"
+
+      EndIf
+
+    EndIf
+
+    If (FileRightUp = "NotFound") Then
+
+      If (Array.GetValue(FileArray,I) = Path + "\GorillaRightUp.bmp") Then
+
+        FileRightUp = "Found"
+
+      EndIf
+
+    EndIf
+
+    If (FileVictory = "NotFound") Then
+
+      If (Array.GetValue(FileArray,I) = Path + "\GorillaVictory.bmp") Then
+
+        FileVictory = "Found"
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  If (FileArmsDown = "NotFound" Or FileLeftUp = "NotFound" Or FileRightUp = "NotFound" Or FileVictory = "NotFound") Then
+
+    GraphicsWindow.ShowMessage("Could not find image files.  Please place image files in the same directory as the Gorilla.exe program", "Error:")
+
+    Program.End()
+
+  EndIf
+
+      
+
+  'load gorilla images
+
+  GorillaArmsDown = ImageList.LoadImage(Path + "\GorillaArmsDown.bmp")
+
+  GorillaLeftUp = ImageList.LoadImage(Path + "\GorillaLeftUp.bmp")
+
+  GorillaRightUp = ImageList.LoadImage(Path + "\GorillaRightUp.bmp")
+
+  GorillaVictory = ImageList.LoadImage(Path + "\GorillaVictory.bmp")
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub GameInit
+
+  'used to set a decimal color to hex color, see FadeIn()
+
+  HexaDecimal = "0123456789ABCDEF"
+
+    
+
+  'graphics window stuff
+
+  GraphicsWindow.Width = 700
+
+  GraphicsWindow.Height = 500
+
+
+
+  'get the width and height so they are easier to type
+
+  ScrX = GraphicsWindow.Width
+
+  ScrY = GraphicsWindow.Height
+
+  
+
+  'find middle of window
+
+  MidScrX = ScrX / 2
+
+  MidScrY = ScrY / 2
+
+  
+
+  'sound
+
+  SoundOnOff = "On"
+
+  
+
+  'city stuff
+
+  Gravity = 9.8
+
+  GroundLevel = ScrY - 20
+
+  CityOffset = 20
+
+    
+
+  'each building has 5 to 20 floors with windows, each with a height of 15
+
+  FloorHeight = 15
+
+  
+
+  'size of the building's windows
+
+  WindowWidth = 4
+
+  WindowHeight = 6
+
+  
+
+  'offsets to correctly position the windows on the building
+
+  WindowWidthOffset = 3       
+
+  WindowHeightOffset = 4     
+
+    
+
+  'initiate arrays for the buildings
+
+  BuildingHeight = "BHeight"
+
+  BuildingWidth = "BWidth"
+
+  BuildingX = "X" 'this is a marker pointing to where the building is on the screen
+
+   
+
+  'these are the width and height of the gorilla images
+
+  GorillaWidth = 28
+
+  GorillaHeight = 29
+
+
+
+  'banana stuff
+
+  BananaSize = 4
+
+  'bananastate is a counter used to animate the banana
+
+  BananaState = 0
+
+    
+
+  'explosion stuff 
+
+  'this is the number of ellipses the explosion makes when blowing up the gorilla
+
+  NumExplosions = 24
+
+  
+
+  'Game stuff
+
+  'how many rounds to play
+
+  NumRounds = 3
+
+
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub RoundInit
+
+  
+
+  BuildingInit()    
+
+  'place the gorillas on the rooftop
+
+  'gorilla 1
+
+  Placement = Math.GetRandomNumber(3) + 1
+
+  G1X = Array.GetValue(BuildingX, Placement) - CityOffset + (Placement * 2) + (Array.GetValue(BuildingWidth, Placement) / 2 - GorillaWidth / 2)
+
+  G1Y = GroundLevel - (FloorHeight * Array.GetValue(BuildingHeight, Placement)) - GorillaHeight  - 1 
+
+
+
+  'gorilla 2    
+
+  Placement = Math.GetRandomNumber(3) 
+
+  G2X = Array.GetValue(BuildingX, NumBuildings - Placement) - CityOffset + (NumBuildings - Placement) * 2 + (Array.GetValue(BuildingWidth, NumBuildings - Placement) / 2 - GorillaWidth / 2)
+
+  G2Y = GroundLevel - (FloorHeight * Array.GetValue(BuildingHeight,(NumBuildings - Placement))) - GorillaHeight - 1
+
+  
+
+  ' 1 = gorilla 1 is throwing  2 = gorilla 2 is throwing  0 = no one is throwing
+
+  Throwing = 0
+
+  'reset sun
+
+  SunMouth = "Smile"
+
+  
+
+  'banana stuff
+
+  'BananaState is a flag to what frame the banana animation is on
+
+  BananaState = 0
+
+
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub BuildingInit
+
+  'I seperated the BuildingInit from RoundInit() to add a nice graphic to Intro()
+
+  
+
+  'there are 15 different heights, pick one and multipy it by size of each floor
+
+  'CitySize is a counter of the number of pixels used to draw the screen
+
+  'if CitySize is greater than the screensize then screen is full
+
+  CitySize = 0
+
+  
+
+  'how many buildings were we able to fit on the screen
+
+  'used also to place gorilla 2
+
+  NumBuildings = 0
+
+  While (CitySize <= ScrX - 10)
+
+    'this varies the size of the buildings from sizes 40, 50, 60
+
+    NewBuilding = Math.GetRandomNumber(9)
+
+    NumBuildings = NumBuildings + 1
+
+    If (NewBuilding < 2) Then
+
+      Array.SetValue(BuildingWidth, NumBuildings, 40)
+
+      Array.SetValue(BuildingX, NumBuildings, CitySize)
+
+      'the extra 2 is a offset so the buildings are not so close together
+
+      CitySize = CitySize + 42
+
+    ElseIf (NewBuilding >= 2 And NewBuilding <= 7) Then
+
+      Array.SetValue(BuildingWidth, NumBuildings, 50)
+
+      Array.SetValue(BuildingX, NumBuildings, CitySize)
+
+      'the extra 2 is a offset so the buildings are not so close together            
+
+      CitySize = CitySize + 52
+
+    ElseIf (NewBuilding > 7) Then
+
+      Array.SetValue(BuildingWidth, NumBuildings, 60)
+
+      Array.SetValue(BuildingX, NumBuildings, CitySize)
+
+      'the extra 2 is a offset so the buildings are not so close together
+
+      CitySize = CitySize + 62
+
+    EndIf
+
+    
+
+    'the original game made V slopes and peaks, I didn't bother with that yet
+
+    'add nice landscape later, until then
+
+    Array.SetValue(BuildingHeight, NumBuildings, Math.GetRandomNumber(15)+5)
+
+    'if the game is over, make a row of buildings to announce winner
+
+    If (GameOver = 1) Then
+
+      Array.SetValue(BuildingHeight, NumBuildings, 13)
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub DrawCity
+
+  'CitySize is now just used as a counter to draw the actual landscape
+
+  'I offset it by -20 so both sides of the screen would look similar
+
+  CitySize = 0 - CityOffset
+
+  For DC = 1 To NumBuildings
+
+    BW = Array.GetValue(BuildingWidth, DC)
+
+    BH = Array.GetValue(BuildingHeight, DC)
+
+    
+
+    'add a little color so everything doesn't look the same
+
+    BuildingColor = Math.GetRandomNumber(3)
+
+    If (BuildingColor = 1) Then
+
+      GraphicsWindow.BrushColor = "IndianRed"
+
+    ElseIf (BuildingColor = 2) Then
+
+      GraphicsWindow.BrushColor = "SpringGreen"
+
+    ElseIf (BuildingColor = 3) Then
+
+      GraphicsWindow.BrushColor = "Cyan"
+
+    EndIf
+
+    
+
+    'Draw the building
+
+    GraphicsWindow.FillRectangle(CitySize, GroundLevel - (FloorHeight * BH), BW, (FloorHeight * BH))
+
+    
+
+    'I added an outline to make the buildings look better
+
+    GraphicsWindow.PenColor = "RoyalBlue"
+
+    GraphicsWindow.DrawRectangle(CitySize, GroundLevel - (FloorHeight * BH), BW, (FloorHeight * BH))
+
+    
+
+    'as we draw each building we also draw the windows 
+
+    'the size of the building determines how many windows it has
+
+    WW = 0
+
+    WH = 0
+
+    For WH = 1 To BH - 1
+
+      For WW = 1 To BW / 10
+
+        'some lights are on and some are off
+
+        If (Math.GetRandomNumber(2) = 2) Then
+
+          GraphicsWindow.BrushColor = "Khaki"
+
+        Else
+
+          GraphicsWindow.BrushColor = "Grey"
+
+        EndIf
+
+        'draw the window
+
+        GraphicsWindow.FillRectangle(CitySize - 5 + (WW * WindowWidthOffset * 3), GroundLevel - 4 - (FloorHeight * WH), WindowWidth, WindowHeight)
+
+      EndFor
+
+    EndFor
+
+    CitySize = CitySize + 4 + Array.GetValue(BuildingWidth, DC)
+
+  EndFor
+
+  SetWind()
+
+EndSub    
+
+
+
+'---------------------------------------------------------------------------
+
+Sub SetWind
+
+  'this code is very similar to the original
+
+  'create wind
+
+  Wind = Math.GetRandomNumber(10) - 5
+
+  If (Math.GetRandomNumber(3) = 2) Then
+
+    If (Wind > 0) Then
+
+      Wind = Wind + Math.GetRandomNumber(10)
+
+    Else
+
+      Wind = Wind - Math.GetRandomNumber(10)
+
+    EndIf
+
+  EndIf
+
+  
+
+  'draw wind speed arrow below the city
+
+  GraphicsWindow.PenColor = "Red"
+
+  If (Wind <> 0) Then
+
+    WindLine = Wind * 3 * (ScrX / 320)
+
+    GraphicsWindow.DrawLine(MidScrX, ScrY - 10, MidScrX + WindLine, ScrY - 10)
+
+    If (Wind > 0) Then
+
+      ArrowDir = -4 
+
+    Else
+
+      ArrowDir = 4 
+
+    EndIf
+
+    GraphicsWindow.DrawLine(MidScrX + WindLine, ScrY - 10, MidScrX + WindLine + ArrowDir, ScrY - 10 - 4)
+
+    GraphicsWindow.DrawLine(MidScrX + WindLine, ScrY - 10, MidScrX + WindLine + ArrowDir, ScrY - 10 + 4)
+
+  Else
+
+    'if there's no wind tell them
+
+    GraphicsWindow.FontSize = 12
+
+    GraphicsWindow.BrushColor = "Red"
+
+    GraphicsWindow.DrawText(MidScrX - 24, ScrY - 18, "No Wind")
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub DrawBanana
+
+  'go to the next frame in the animation
+
+  BananaState = BananaState + 1
+
+  GraphicsWindow.BrushColor = "#FFFF00"
+
+  ' left pointing ( banana
+
+  If (BananaState = 1 ) Then
+
+    GraphicsWindow.FillRectangle(BananaX, BananaY, 2, 4)
+
+    GraphicsWindow.FillRectangle(BananaX + 2, BananaY - 2, 2, 8)
+
+    GraphicsWindow.FillRectangle(BananaX + 4, BananaY - 4, 2, 4)
+
+    GraphicsWindow.FillRectangle(BananaX + 4, BananaY + 4, 2, 4)
+
+  EndIf
+
+  'upward pointing ^ banana
+
+  If (BananaState = 2) Then
+
+    'rotate the banana the right way
+
+    If (Thrower = 1) Then
+
+      GraphicsWindow.FillRectangle(BananaX - 4, BananaY + 4, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX - 2, BananaY + 2, 8, 2)
+
+      GraphicsWindow.FillRectangle(BananaX, BananaY, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX + 4, BananaY + 4, 4, 2)
+
+    Else
+
+      GraphicsWindow.FillRectangle(BananaX - 4, BananaY - 2, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX + 4, BananaY - 2, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX - 2, BananaY, 8, 2)
+
+      GraphicsWindow.FillRectangle(BananaX, BananaY + 2, 4, 2)
+
+    EndIf            
+
+  EndIf
+
+  'right pointing ) banana
+
+  If (BananaState = 3) Then
+
+    GraphicsWindow.FillRectangle(BananaX - 2, BananaY - 4, 2, 4)
+
+    GraphicsWindow.FillRectangle(BananaX, BananaY - 2, 2, 8)
+
+    GraphicsWindow.FillRectangle(BananaX + 2, BananaY, 2, 4)
+
+    GraphicsWindow.FillRectangle(BananaX - 2, BananaY + 4, 2, 4)
+
+  EndIf
+
+  'downward pointing V banana
+
+  If (BananaState = 4) Then
+
+    'rotate the banana the right way
+
+    If (Thrower = 1) Then
+
+      GraphicsWindow.FillRectangle(BananaX - 4, BananaY - 2, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX + 4, BananaY - 2, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX - 2, BananaY, 8, 2)
+
+      GraphicsWindow.FillRectangle(BananaX, BananaY + 2, 4, 2)
+
+    Else
+
+      GraphicsWindow.FillRectangle(BananaX - 4, BananaY + 4, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX - 2, BananaY + 2, 8, 2)
+
+      GraphicsWindow.FillRectangle(BananaX, BananaY, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX + 4, BananaY + 4, 4, 2)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub EraseBanana
+
+  GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
+
+  If (BananaState = 1 ) Then
+
+    GraphicsWindow.FillRectangle(BananaX, BananaY, 2, 4)
+
+    GraphicsWindow.FillRectangle(BananaX + 2, BananaY - 2, 2, 8)
+
+    GraphicsWindow.FillRectangle(BananaX + 4, BananaY - 4, 2, 4)
+
+    GraphicsWindow.FillRectangle(BananaX + 4, BananaY + 4, 2, 4)
+
+  EndIf
+
+  'upward pointing ^ banana
+
+  If (BananaState = 2) Then
+
+    'rotate the banana the right way    
+
+    If (Thrower = 1) Then
+
+      GraphicsWindow.FillRectangle(BananaX - 4, BananaY + 4, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX - 2, BananaY + 2, 8, 2)
+
+      GraphicsWindow.FillRectangle(BananaX, BananaY, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX + 4, BananaY + 4, 4, 2)
+
+    Else
+
+      GraphicsWindow.FillRectangle(BananaX - 4, BananaY - 2, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX + 4, BananaY - 2, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX - 2, BananaY, 8, 2)
+
+      GraphicsWindow.FillRectangle(BananaX, BananaY + 2, 4, 2)
+
+    EndIf
+
+  EndIf
+
+  'right pointing ) banana
+
+  If (BananaState = 3) Then
+
+    GraphicsWindow.FillRectangle(BananaX - 2, BananaY - 4, 2, 4)
+
+    GraphicsWindow.FillRectangle(BananaX, BananaY - 2, 2, 8)
+
+    GraphicsWindow.FillRectangle(BananaX + 2, BananaY, 2, 4)
+
+    GraphicsWindow.FillRectangle(BananaX - 2, BananaY + 4, 2, 4)
+
+  EndIf
+
+  'downward pointing  V banana
+
+  If (BananaState = 4) Then
+
+    'rotate the banana the right way
+
+    If (Thrower = 1) Then
+
+      GraphicsWindow.FillRectangle(BananaX - 4, BananaY - 2, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX + 4, BananaY - 2, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX - 2, BananaY, 8, 2)
+
+      GraphicsWindow.FillRectangle(BananaX, BananaY + 2, 4, 2)
+
+    Else
+
+      GraphicsWindow.FillRectangle(BananaX - 4, BananaY + 4, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX - 2, BananaY + 2, 8, 2)
+
+      GraphicsWindow.FillRectangle(BananaX, BananaY, 4, 2)
+
+      GraphicsWindow.FillRectangle(BananaX + 4, BananaY + 4, 4, 2)
+
+    EndIf          
+
+    'the draw-erase cycle of the banana is complete so reset state to startover
+
+    BananaState = 0
+
+  EndIf
+
+  
+
+  'if banana is in the sun's air space then redraw sun
+
+  If (BananaUnderSun = "True") Then
+
+    DoSun()
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub DoMiniExplosion
+
+  'if the banana hits something other than the gorilla, just make a small explosion
+
+  
+
+  If (SoundOnOff = "On") Then
+
+    Sound.Play(Path + "\Explo Classic.wav")
+
+  EndIf
+
+  'erase the Banana
+
+  EraseBanana()
+
+  GraphicsWindow.BrushColor = "#B22222"
+
+  For C = 1 To NumExplosions - 5 
+
+    GraphicsWindow.FillEllipse(BananaX - C / 4, BananaY - C / 4, C , C)
+
+    Program.Delay(25)
+
+  EndFor
+
+  GraphicsWindow.BrushColor = "#0000FF"
+
+  'add 1 to cleanup explosion
+
+  For C = 1 To NumExplosions - 4
+
+    GraphicsWindow.FillEllipse(BananaX - C / 4, BananaY - C / 4, C, C)
+
+    Program.Delay(25)
+
+  EndFor
+
+  Sound.Stop(Path + "\Explo Classic.wav")
+
+  If (ShatterGlass = "True" And SoundOnOff = "On") Then
+
+    Sound.Play(Path + "\glass_shatter_c.wav")
+
+    Program.Delay(1100)
+
+    Sound.Stop(Path + "\glass_shatter_c.wav")
+
+    ShatterGlass = "False"
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub DoExplosion
+
+  If (SoundOnOff = "On") Then
+
+    Sound.Play(Path + "\bigboom.wav")
+
+  EndIf
+
+  GraphicsWindow.BrushColor = "#B22222"
+
+  For C = 1 To NumExplosions
+
+    GraphicsWindow.FillEllipse(BananaX - C , BananaY - C , C * 3 , C * 2)
+
+    Program.Delay(25)
+
+  EndFor
+
+  GraphicsWindow.BrushColor = "#0000FF"
+
+  'add 1 to cleanup explosion
+
+  For C = 1 To NumExplosions + 1
+
+    GraphicsWindow.FillEllipse(BananaX - C , BananaY - C , C * 3 , C * 2)
+
+    Program.Delay(25)
+
+  EndFor
+
+  Sound.Stop(Path + "\bigboom.wav")
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub DrawGorillas
+
+  'throwing is a flag that properly shows the gorilla images
+
+  
+
+  If (Throwing = 0) Then
+
+    'no one is throwing
+
+    GraphicsWindow.DrawImage(GorillaArmsDown, G1X, G1Y)
+
+    GraphicsWindow.DrawImage(GorillaArmsDown, G2X, G2Y)
+
+  ElseIf (Throwing = 1) Then
+
+    'gorilla 1 is throwing
+
+    GraphicsWindow.DrawImage(GorillaRightUp, G1X, G1Y)
+
+    GraphicsWindow.DrawImage(GorillaArmsDown, G2X, G2Y)
+
+  ElseIf (Throwing = 2) Then
+
+    'gorilla 2 is throwing
+
+    GraphicsWindow.DrawImage(GorillaArmsDown, G1X, G1Y)
+
+    GraphicsWindow.DrawImage(GorillaLeftUp, G2X, G2Y)
+
+  ElseIf (Throwing = 3) Then
+
+    'gorilla 1 won, raise his arms in victory
+
+    GraphicsWindow.DrawImage(GorillaVictory, G1X, G1Y)
+
+    GraphicsWindow.DrawImage(GorillaArmsDown, G2X, G2Y)
+
+  ElseIf (Throwing = 4) Then
+
+    'gorilla 2 won, raise his arms in victory
+
+    GraphicsWindow.DrawImage(GorillaArmsDown, G1X, G1Y)
+
+    GraphicsWindow.DrawImage(GorillaVictory, G2X, G2Y)
+
+  ElseIf (Throwing = 5) Then
+
+    'its a tie, raise one arm of each gorilla
+
+    GraphicsWindow.DrawImage(GorillaLeftUp, G1X, G1Y)
+
+    GraphicsWindow.DrawImage(GorillaRightUp, G2X, G2Y)
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub DoSun
+
+  'set position of sun
+
+  SunX = ScrX / 2 
+
+  SunY = 60
+
+    
+
+  'clear old sun
+
+  GraphicsWindow.BrushColor = "#0000FF"
+
+  GraphicsWindow.FillRectangle(SunX - 20, SunY - 20, 40, 40)
+
+    
+
+  'draw new sun
+
+  'body
+
+  GraphicsWindow.BrushColor = "#FFFF00"
+
+  GraphicsWindow.FillEllipse(SunX -15, SunY -15, 30, 30)
+
+      
+
+  'rays
+
+  GraphicsWindow.PenColor = "#FFFF00"
+
+  GraphicsWindow.DrawLine(SunX, SunY - 20, SunX, SunY + 20)
+
+  GraphicsWindow.DrawLine(SunX - 20, SunY, SunX + 20, SunY)
+
+   
+
+  GraphicsWindow.DrawLine(SunX - 14, SunY - 14, SunX + 14, SunY + 14)
+
+  GraphicsWindow.DrawLine(SunX - 14, SunY + 14, SunX + 14 , SunY - 14)
+
+  
+
+  GraphicsWindow.DrawLine(SunX - 8, SunY - 18, SunX + 8, SunY + 18)
+
+  GraphicsWindow.DrawLine(SunX - 8, SunY + 18, SunX + 8 , SunY - 18)
+
+  GraphicsWindow.DrawLine(SunX - 18, SunY - 8, SunX + 18, SunY + 8)
+
+  GraphicsWindow.DrawLine(SunX - 18, SunY + 8, SunX + 18 , SunY - 8)
+
+
+
+  'mouth
+
+  If (SunMouth = "Smile") Then
+
+    GraphicsWindow.PenColor = "#000000"
+
+    GraphicsWindow.DrawLine(SunX -6, SunY +4, SunX -5, SunY +7)
+
+    GraphicsWindow.DrawLine(SunX -4, SunY +7, SunX +4, SunY +7)
+
+    GraphicsWindow.DrawLine(SunX +5, SunY +7, SunX +6, SunY +4)
+
+  Else
+
+    'O mouth
+
+    GraphicsWindow.BrushColor = "#000000"
+
+    GraphicsWindow.FillEllipse(SunX -3, SunY + 3, 6, 6)
+
+  EndIf
+
+
+
+  'eyes
+
+  GraphicsWindow.BrushColor = "#000000"
+
+  GraphicsWindow.FillEllipse(SunX -6, SunY -5, 3, 3)
+
+  GraphicsWindow.FillEllipse(SunX +4, SunY -5, 3, 3)
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub Intro
+
+  'black background
+
+  GraphicsWindow.BackgroundColor = "#000000"
+
+  Y=1
+
+  X=1
+
+  
+
+  'display text
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.BrushColor = "#FFFFFF"
+
+  
+
+  'When a key is pressed fade the text to the background color
+
+  ColorDown = 100
+
+  For T = 1 To 9
+
+    GraphicsWindow.DrawText(MidScrX - 100, Y + 28, "Small Basic G O R I L L A S")
+
+    ColorDown = ColorDown - 10
+
+    String = "#" + ColorDown + ColorDown + ColorDown
+
+    GraphicsWindow.BrushColor = String
+
+    GraphicsWindow.DrawText(MidScrX - 220, Y + 56, "Your mission is to hit your opponent with the exploding")
+
+    GraphicsWindow.DrawText(MidScrX - 238, Y + 72, "banana by varing the angle and power of your throw, taking")
+
+    GraphicsWindow.DrawText(MidScrX - 215, Y + 88, "into account wind speed, gravity, and the city skyline.")
+
+    GraphicsWindow.DrawText(MidScrX - 245, Y + 104, "The wind speed is shown by a directional arrow at the bottom")
+
+    GraphicsWindow.DrawText(MidScrX - 210, Y + 120, "of the playing field, its length relative to its strength.")
+
+    GraphicsWindow.DrawText(MidScrX - 95, Y + 150, "To start, press any key")
+
+    If (T = 1) Then
+
+      BuildingInit()
+
+      DrawCity()
+
+      If (SoundOnOff = "On") Then
+
+        Sound.PlayAndWait(Path + "\computer_any_key.wav")
+
+      Endif
+
+      WaitForKeypress()
+
+    EndIf
+
+    Program.Delay(50)  
+
+  EndFor
+
+  GraphicsWindow.Clear()
+
+  Options()
+
+  FadeIn()
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub FadeIn
+
+  'fade in blue background
+
+  'background color should be black
+
+  For T = 1 To 15
+
+    HexColor = Text.GetSubText(HexaDecimal, T, 1) + "0"
+
+    String = "#0000" + HexColor
+
+    GraphicsWindow.BackgroundColor = String
+
+    Program.Delay(150)
+
+  EndFor
+
+  'we're not quite at the background color, just set it 
+
+  GraphicsWindow.BackgroundColor = "#0000FF"
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub UpdateGravityNumRounds
+
+  'clear old values
+
+  GraphicsWindow.BrushColor = "#000000"
+
+  GraphicsWindow.FillRectangle(X + 200, Y + 104, 170, 20)
+
+  GraphicsWindow.FillRectangle(X + 100, Y + 150, 270, 20)
+
+  
+
+  'draw new values
+
+  GraphicsWindow.BrushColor = "#FFFFFF"
+
+  GraphicsWindow.DrawText(X + 200, Y + 104, "Set Gravity (" + Gravity + ")")
+
+  GraphicsWindow.DrawText(X + 100, Y + 150, "Number of rounds to play (" + NumRounds + ")") 
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub DrawSoundButtons
+
+  'on
+
+  GraphicsWindow.DrawRectangle(380, 191, 50, 30)
+
+  If (SoundOnOff = "On") Then
+
+    GraphicsWindow.BrushColor = "#00FF00"
+
+  Else
+
+    GraphicsWindow.BrushColor = "#FFFFFF"
+
+  EndIf
+
+  GraphicsWindow.DrawText(393, 195, "On")
+
+
+
+  'off
+
+  GraphicsWindow.DrawRectangle(450, 191, 50, 30)
+
+  If (SoundOnOff = "Off") Then
+
+    GraphicsWindow.BrushColor = "#00FF00"
+
+  Else
+
+    GraphicsWindow.BrushColor = "#FFFFFF"
+
+  EndIf
+
+  GraphicsWindow.DrawText(462, 195, "Off")
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub Options
+
+  'flag for mouseclicks
+
+  SetOptions = "True"
+
+
+
+  'print some options
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.BrushColor = "#FFFFFF"
+
+  GraphicsWindow.DrawText(X + 115, Y + 56, "Use the arrow buttons to change the value for each option.")
+
+  UpdateGravityNumRounds()
+
+  GraphicsWindow.DrawText(X + 280, Y + 195, "Sound")
+
+  GraphicsWindow.DrawText(X + 218, Y + 320, "Press ESC while playing to exit.")
+
+  GraphicsWindow.DrawText(X + 130, Y + 370, "Sound files - wavsource.com - shockwave-sound.com")
+
+  GraphicsWindow.DrawText(X + 220, Y + 420, "Press any key to begin playing.")
+
+  
+
+  'draw boxes and arrows
+
+  GraphicsWindow.PenColor = "#FFFFFF"
+
+  GraphicsWindow.DrawRectangle(380, 99, 50, 30)
+
+  GraphicsWindow.DrawTriangle(405, 104, 425, 124, 385, 124)
+
+  
+
+  GraphicsWindow.DrawRectangle(450, 99, 50, 30)
+
+  GraphicsWindow.DrawTriangle(475, 124, 455, 104, 495, 104)
+
+  
+
+  GraphicsWindow.DrawRectangle(380, 145, 50, 30)
+
+  GraphicsWindow.DrawTriangle(405, 149, 425, 170, 385, 170)
+
+  
+
+  GraphicsWindow.DrawRectangle(450, 145, 50, 30)
+
+  GraphicsWindow.DrawTriangle(475, 170, 455, 149, 495, 149)
+
+  
+
+  'draw boxes for sound
+
+  DrawSoundButtons()  
+
+  WaitForKeypress()
+
+  GraphicsWindow.Clear()
+
+  SetOptions = "False"
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub UpdateAngleVelocity
+
+  If (Thrower = 1) Then
+
+    If (GetNumberVariable = "Angle") Then
+
+      GraphicsWindow.BrushColor = "#000000"
+
+      GraphicsWindow.FillRectangle(70, 40, 55, 20)
+
+      GraphicsWindow.BrushColor = "#FFFFFF"
+
+      GraphicsWindow.DrawText(70, 40, UserNumber)
+
+    Else
+
+      GraphicsWindow.BrushColor = "#000000"
+
+      GraphicsWindow.FillRectangle(90, 60, 35, 20)
+
+      GraphicsWindow.BrushColor = "#FFFFFF"
+
+      GraphicsWindow.DrawText(90, 60, UserNumber)
+
+    EndIf  
+
+  Else
+
+    If (GetNumberVariable = "Angle") Then
+
+      GraphicsWindow.BrushColor = "#000000"
+
+      GraphicsWindow.FillRectangle(ScrX - 70, 40, 55, 20)
+
+      GraphicsWindow.BrushColor = "#FFFFFF"
+
+      GraphicsWindow.DrawText(ScrX - 70, 40, UserNumber)
+
+    Else
+
+      GraphicsWindow.BrushColor = "#000000"
+
+      GraphicsWindow.FillRectangle(ScrX - 50, 60, 35, 20)
+
+      GraphicsWindow.BrushColor = "#FFFFFF"
+
+      GraphicsWindow.DrawText(ScrX - 50, 60, UserNumber)
+
+    EndIf  
+
+  EndIf    
+
+EndSub
+
+  
+
+'---------------------------------------------------------------------------
+
+Sub GetNumber
+
+  'set oldkey variable to "" to allow input from user
+
+  Key = ""
+
+  'reset usernumber to avoid errors
+
+  UserNumber = 0
+
+  While (Key <> "RETURN")
+
+    WaitForKeypress()
+
+    If (Key = "D0" Or Key = "NUMPAD0") Then
+
+      UserNumber = UserNumber * 10 + 0
+
+    ElseIf (Key = "D1" Or Key = "NUMPAD1") Then
+
+      UserNumber = UserNumber * 10 + 1
+
+    ElseIf (Key = "D2" Or Key = "NUMPAD2") Then
+
+      UserNumber = UserNumber * 10 + 2
+
+    ElseIf (Key = "D3" Or Key = "NUMPAD3") Then
+
+      UserNumber = UserNumber * 10 + 3
+
+    ElseIf (Key = "D4" Or Key = "NUMPAD4") Then
+
+      UserNumber = UserNumber * 10 + 4
+
+    ElseIf (Key = "D5" Or Key = "NUMPAD5") Then
+
+      UserNumber = UserNumber * 10 + 5
+
+    ElseIf (Key = "D6" Or Key = "NUMPAD6") Then
+
+      UserNumber = UserNumber * 10 + 6
+
+    ElseIf (Key = "D7" Or Key = "NUMPAD7") Then
+
+      UserNumber = UserNumber * 10 + 7
+
+    ElseIf (Key = "D8" Or Key = "NUMPAD8") Then
+
+      UserNumber = UserNumber * 10 + 8
+
+    ElseIf (Key = "D9" Or Key = "NUMPAD9") Then
+
+      UserNumber = UserNumber * 10 + 9
+
+    ElseIf (Key = "S") Then
+
+      ToggleSound()
+
+    ElseIf (Key = "ESCAPE") Then 
+
+      ConfirmQuit()
+
+    ElseIf (Key = "BACK") Then
+
+      UserNumber = Math.Floor(UserNumber / 10)
+
+    EndIf
+
+    UpdateAngleVelocity()
+
+  EndWhile
+
+  If (GetNumberVariable = "Angle") Then
+
+    Angle = UserNumber
+
+  ElseIf (GetNumberVariable = "Velocity") Then
+
+    Velocity = UserNumber
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub GetInputT
+
+  'get inputs from textwindow   --- used prior to getnumber code -- no longer used
+
+  TextWindow.WriteLine("Player " + Thrower + ":")
+
+  TextWindow.Write("Angle> ")
+
+  Angle = TextWindow.ReadNumber()
+
+  TextWindow.Write("Velocity> ")
+
+  Velocity = TextWindow.ReadNumber()
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub GetInput
+
+  'draw a box above the gorilla who is throwing 
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.BrushColor = "#000000"
+
+  GraphicsWindow.PenColor = "RoyalBlue"
+
+  If (Thrower = 1) Then
+
+    GraphicsWindow.FillRectangle(10, 15, 120, 72)
+
+    GraphicsWindow.DrawRectangle(10, 15, 120, 72)
+
+  Else
+
+    GraphicsWindow.FillRectangle(ScrX - 130, 15, 120, 72)
+
+    GraphicsWindow.drawRectangle(ScrX - 130, 15, 120, 72)
+
+  EndIf
+
+    
+
+  GraphicsWindow.BrushColor = "#FFFFFF"
+
+  If (Thrower = 1) Then
+
+    GraphicsWindow.DrawText(16, 20, "Player 1") 
+
+    GraphicsWindow.DrawText(16, 40, "Angle:")
+
+    GetNumberVariable = "Angle"
+
+    GetNumber()
+
+    GraphicsWindow.DrawText(70, 40, Angle)
+
+    GraphicsWindow.DrawText(16, 60, "Velocity:")
+
+    GetNumberVariable = "Velocity"
+
+    GetNumber()
+
+    GraphicsWindow.DrawText(90, 60, Velocity)
+
+  Else
+
+    GraphicsWindow.DrawText(ScrX - 124, 20, "Player 2") 
+
+    GraphicsWindow.DrawText(ScrX - 124, 40, "Angle:")
+
+    GetNumberVariable = "Angle"
+
+    GetNumber()
+
+    GraphicsWindow.DrawText(ScrX - 70, 40, Angle)
+
+    GraphicsWindow.DrawText(ScrX - 124, 60, "Velocity:")
+
+    GetNumberVariable = "Velocity"
+
+    GetNumber()
+
+    GraphicsWindow.DrawText(ScrX - 50, 60, Velocity)
+
+  EndIf    
+
+  Program.Delay(500)
+
+  GraphicsWindow.BrushColor = "#0000FF"
+
+  If (Thrower = 1) Then
+
+    GraphicsWindow.FillRectangle(9, 14, 122, 74)
+
+  Else
+
+    GraphicsWindow.FillRectangle(ScrX - 131, 14, 122, 74)
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub MoveShot
+
+  RadianAngle = Math.GetRadians(Angle)
+
+  InitXVel = Math.Round(Math.Cos(RadianAngle) * Velocity)
+
+  InitYVel = Math.Round(Math.Sin(RadianAngle) * Velocity)
+
+  If (Thrower = 1) Then
+
+    BananaStartX = G1X + GorillaWidth / 2
+
+    BananaStartY = G1Y - GorillaHeight - 15
+
+  Else
+
+    BananaStartX = G2X + GorillaWidth / 2
+
+    BananaStartY = G2Y - GorillaHeight - 15
+
+  EndIf
+
+  BananaX = Math.Round(BananaStartX + (InitXVel * T) + (0.5 * (Wind / 5) * (T *T)))
+
+  BananaY = Math.Round(BananaStartY + ((-1 * (InitYVel * T)) + (0.5 * Gravity * (T *T)) + (ScrY / 35 )))
+
+  If (BananaY < 1) Then 
+
+    BananaY = 0
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub DoShot
+
+  'GetInputT()  'old subroutine to accept input from a text window
+
+  GetInput()
+
+
+
+  'change gorilla 2 angle so its throw goes left and not right
+
+  If (Thrower = 2) Then 
+
+    Angle = 90 + (90 - Angle)
+
+  EndIf
+
+  OnScreen = "True"
+
+  WhatWasHit = "Nothing"
+
+  'time variable used in MoveShot()
+
+  T = 0.0
+
+  'Draw the Gorilla Throwing the Banana
+
+  If (Thrower = 1 ) Then
+
+    GraphicsWindow.DrawImage(GorillaRightUp, G1X, G1Y)
+
+  Else
+
+    GraphicsWindow.DrawImage(GorillaLeftUp, G2X, G2Y)
+
+  EndIf
+
+  Program.Delay(500)
+
+  'draw both gorillas with arms down
+
+  GraphicsWindow.DrawImage(GorillaArmsDown, G1X, G1Y)
+
+  GraphicsWindow.DrawImage(GorillaArmsDown, G2X, G2Y)
+
+  ' loop until we hit something or go off screen(left, right)
+
+  While (WhatWasHit = "Nothing")
+
+    'erase the old banana before we move it to a new position
+
+    If (OnScreen = "True") Then
+
+      EraseBanana()
+
+    EndIf
+
+    'advance time
+
+    T = T + 0.1
+
+    'move the banana to a new position
+
+    MoveShot()
+
+    'did we go off screen left or right
+
+    If (BananaX < 10 Or BananaX > ScrX - 10) Then
+
+      WhatWasHit = "OutOfBounds"
+
+      OnScreen = "False"
+
+      Goto ContactMade
+
+    EndIf
+
+    'did we throw the banana too high
+
+    If (BananaY < 10) Then
+
+      OnScreen = "False"
+
+    Else
+
+      OnScreen = "True"
+
+    EndIf
+
+    'if banana is not too high, draw it
+
+    If (OnScreen = "True" And BananaY >= 20) Then
+
+      DrawBanana()
+
+    EndIf        
+
+    'delay the program to see the banana movement    
+
+    Program.Delay(15)            
+
+    'check if banana is onscreen and goto Offscreen label if it is not to avoid targetinvocation errors
+
+    If (OnScreen = "False") Then
+
+      Goto OffScreen
+
+    EndIf
+
+
+
+    'check for collisions
+
+          
+
+    'did we hit the sun
+
+    BananaUnderSun = "False"
+
+    'SunHit <> "True" And  
+
+    If (BananaX >= SunX - 25 And BananaX <= SunX + 25 And BananaY >= SunY - 25 And BananaY <= SunY + 25) Then
+
+      If (SunMouth = "Smile" And SoundOnOff = "On") Then
+
+        Sound.Play(Path + "\ouch.wav")
+
+      Endif
+
+      'the sun is shocked it got hit
+
+      SunMouth = "O"
+
+      'DoSun()  'Sun is redrawn in erasebanana subroutine
+
+      SunHit = "True"
+
+      
+
+      BananaUnderSun = "True"
+
+      'contact made, but continue
+
+      'Goto ContactMade
+
+    EndIf
+
+
+
+    'did we hit a gorilla
+
+    'g1 location
+
+    If (BananaX + BananaSize >=  G1X And BananaX - BananaSize <=  G1X + GorillaWidth And BananaY + BananaSize >= G1Y And BananaY - BananaSize <= G1Y + GorillaHeight) Then
+
+      'if g2 hit g1 or g1 hit itself - g2 scores point
+
+      WhatWasHit = "Gorilla1"
+
+      GorillaHit = "True"
+
+      Dancer = 2
+
+      EraseBanana()            
+
+      'center the explosion on the gorilla
+
+      BananaX = G1X + GorillaWidth / 3 - 1
+
+      BananaY = G1Y + GorillaHeight / 2
+
+      DoExplosion()
+
+      G2Score = G2Score + 1
+
+      VictoryDance()
+
+      Goto ContactMade
+
+    EndIf
+
+    
+
+    'g2 location
+
+    If (BananaX + BananaSize >= G2X And BananaX - BananaSize <=  G2X + GorillaWidth / 2 And BananaY + BananaSize >= G2Y And BananaY - BananaSize <= G2Y + GorillaHeight / 2) Then
+
+      'if g1 hit g2 or g2 hit itself - g1 scores point
+
+      WhatWasHit = "Gorilla2"
+
+      GorillaHit = "True"
+
+      Dancer = 1
+
+      EraseBanana()
+
+      'center the explosion on the gorilla
+
+      BananaX = G2X + GorillaWidth / 2
+
+      BananaY = G2Y + GorillaHeight / 2
+
+      DoExplosion()
+
+      G1Score = G1Score + 1
+
+      VictoryDance()
+
+      Goto ContactMade
+
+    EndIf
+
+    
+
+    'did we hit anything else - ground, building 
+
+    'Grab the colors under banana and check for colors that will cause the banana to explode
+
+    'BananaPX1, BananaPY1, BananaPX2, BananaPY2 are used to capture a square directly under the banana, otherwise the bounding box would give false positives
+
+    If (BananaState = 1) Then
+
+      BananaPX1 = 0
+
+      BananaPY1 = -4
+
+      BananaPX2 = 5
+
+      BananaPY2 = 7
+
+    EndIf
+
+    If (BananaState = 2) Then
+
+      BananaPX1 = -4
+
+      BananaPY1 = 0
+
+      BananaPX2 = 7
+
+      BananaPY2 = -5
+
+    EndIf
+
+    If (BananaState = 3) Then
+
+      BananaPX1 = -2
+
+      BananaPY1 = -4
+
+      BananaPX2 = 3
+
+      BananaPY2 = 7
+
+    EndIf
+
+    If (BananaState = 4) Then
+
+      BananaPX1 = -4
+
+      BananaPY1 = -2
+
+      BananaPX2 = 7
+
+      BananaPY2 = 3
+
+    EndIf
+
+    For GUY = BananaY + BananaPY1 To BananaY + BananaPY2
+
+      For GUX = BananaX + BananaPX1 To BananaX + BananaPX2
+
+        CheckColor = GraphicsWindow.GetPixel(GUX, GUY)
+
+        If (CheckColor = "#00FFFF" Or CheckColor = "#CD5C5C" Or CheckColor = "#00FF7F" Or CheckColor = "#4169E1" Or CheckColor = "#F0E68C") Then
+
+          WhatWasHit = "Object"
+
+          DoMiniExplosion()
+
+          If (CheckColor = "Khaki" Or CheckColor = "Grey") Then
+
+            'shatter glass
+
+            ShatterGlass = "True"
+
+          EndIf
+
+          Goto ContactMade
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    OffScreen:
+
+  EndWhile
+
+ContactMade:
+
+Sound.Stop(Path + "\ouch.wav")
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub PlayGame
+
+  'don't always let player 1 throw first
+
+  Thrower = Math.GetRandomNumber(2)
+
+  G1Score = 0
+
+  G2Score = 0
+
+  For NR = 1 To NumRounds
+
+    GraphicsWindow.Clear()
+
+    RoundInit()
+
+    DrawCity()
+
+    DrawGorillas()
+
+    SunMouth = "Smile"
+
+    DoSun()
+
+    UpdateScore()
+
+    GorillaHit = "False"
+
+    While (GorillaHit = "False")
+
+      'since 3 - 1 = 2 and 3 - 2 = 1, this will swap the thrower and target
+
+      Thrower = 3 - Thrower
+
+      TargetGorilla = 3 - Thrower
+
+  
+
+      DoShot()
+
+            
+
+      'if the sun was hit on the previous shot reset to smile
+
+      'if sunhit then dosunhappy
+
+      If (SunMouth = "O") Then
+
+        SunMouth = "Smile"
+
+        SunHit = "False"
+
+        DoSun()
+
+      EndIf
+
+    EndWhile
+
+  EndFor
+
+  'wait a second before we clear the screen (in dogameover)
+
+  Program.Delay(1000)
+
+  DoGameOver()
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub UpdateScore
+
+  GraphicsWindow.FontSize = 12
+
+  GraphicsWindow.BrushColor = "#FFFFFF"
+
+  GraphicsWindow.DrawText(20, ScrY - 17, "Player 1")
+
+  GraphicsWindow.DrawText(Scrx - 70, ScrY - 17, "Player 2")
+
+  'drawtext score
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.BrushColor = "#0000FF"
+
+  GraphicsWindow.FillRectangle(MidScrX - 55, ScrY - 60, 125, 20)
+
+  GraphicsWindow.PenColor = "#4169E1"
+
+  GraphicsWindow.DrawRectangle(MidScrX - 55, ScrY - 60, 125, 20)
+
+  GraphicsWindow.BrushColor = "#FFFFFF"
+
+  ScoreLength = Text.GetLength(G1Score + "> Score <" + G2Score)
+
+  GraphicsWindow.DrawText(MidScrX - (ScoreLength * 4.5) + 5, ScrY - 60, G1Score + "> Score <" + G2Score)
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub VictoryDance
+
+  
+
+  UpdateScore()
+
+
+
+  'Dancer = who does victory dance
+
+  If (Dancer = 1) Then
+
+    VX = G1X
+
+    VY = G1Y
+
+  Else
+
+    VX = G2X
+
+    VY = G2Y
+
+  EndIf
+
+  If (SoundOnOff = "On") Then
+
+    Sound.Play(Path + "\monkey2.wav")
+
+  EndIf
+
+  For VD = 1 To 6
+
+    GraphicsWindow.DrawImage(GorillaLeftUp, VX, VY)
+
+    Program.Delay(200)
+
+    GraphicsWindow.DrawImage(GorillaRightUp, VX, VY)
+
+    Program.Delay(200)
+
+  EndFor
+
+  Sound.Stop(Path + "\monkey2.wav")
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub DoGameOver
+
+  
+
+  If (Key <> "Y" And SoundOnOff = "On") Then 
+
+    Sound.Play(Path + "\multi_ending.wav")
+
+  EndIf
+
+  
+
+  'clear screen to blue
+
+  GraphicsWindow.BackgroundColor = "#0000FF"
+
+  GraphicsWindow.Clear()
+
+  
+
+  'set gameover to 1, so that when we redraw the city, all the buildings are the same height
+
+  GameOver = 1
+
+  BuildingInit()
+
+  DrawCity()
+
+  
+
+  'place gorillas
+
+  G1X = MidScrX - 100
+
+  G2X = MidScrX + 100
+
+  G1Y = MidScrY + 5 
+
+  G2Y = MidScrY + 5
+
+
+
+  'both gorillas arms down
+
+  Throwing = 0
+
+  DrawGorillas()
+
+
+
+  'announce a winner
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.BrushColor = "#FFFFFF"
+
+  
+
+  GraphicsWindow.DrawText(MidScrX - 60, MidScrY - 100, "And the Winner is...")
+
+  Program.Delay(1500)
+
+  If (G1Score > G2Score) Then
+
+    GraphicsWindow.DrawText(MidScrX - 35, MidScrY - 75, "Player One!")
+
+    Throwing = 3
+
+  EndIf
+
+  If (G1Score < G2Score) Then
+
+    GraphicsWindow.DrawText(MidScrX - 34, MidScrY - 80, "Player Two!")
+
+    Throwing = 4
+
+  EndIf
+
+  If (G1Score = G2Score) Then
+
+    GraphicsWindow.DrawText(MidScrX - 30, MidScrY - 80, "Its a Tie!!")
+
+    Throwing = 5
+
+  EndIf
+
+    'draw the victorious gorilla
+
+  DrawGorillas()    
+
+  If (SoundOnOff = "On") Then
+
+    Program.Delay(2000)
+
+    Sound.Stop(Path + "\multi_ending.wav")
+
+    Sound.Play(Path + "\monkey2.wav")
+
+  EndIf
+
+  
+
+  Program.Delay(1500)
+
+  GraphicsWindow.DrawText(MidScrX - 34, MidScrY - 40, "Game Over")
+
+  Program.Delay(1500)
+
+  GraphicsWindow.DrawText(MidScrX - 75, MidScrY - 20, "Press any key to exit")
+
+  Sound.Stop(Path + "\monkey2.wav")
+
+  WaitForKeypress()
+
+  
+
+  Program.End()
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub ToggleSound
+
+  If (SoundOnOff = "On") Then
+
+    SoundOnOff = "Off"
+
+  Else
+
+    SoundOnOff = "On"
+
+  EndIf
+
+
+
+  'announce change
+
+  'GraphicsWindow.BrushColor = "#000000"
+
+  'GraphicsWindow.PenColor = "RoyalBlue"
+
+  
+
+  'GraphicsWindow.FillRectangle(MidScrX - 50, 80, 100, 20)
+
+  'GraphicsWindow.DrawRectangle(MidScrX - 50, 80, 100, 20)
+
+  
+
+  'GraphicsWindow.BrushColor = "#FFFFFF"
+
+  'GraphicsWindow.DrawText(MidScrX - 40, 80, "Sound " + SoundOnOff)
+
+  
+
+  'erase box and continue playing
+
+  'GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
+
+  'make a box slightly bigger to erase question
+
+  'GraphicsWindow.FillRectangle(MidScrX - 51, 79, 102, 22)
+
+
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub ConfirmQuit
+
+  
+
+  'ask user to confirm they want to quit
+
+  
+
+  'display question just under sun so we don't mess up any other graphics
+
+  GraphicsWindow.BrushColor = "#000000"
+
+  GraphicsWindow.PenColor = "RoyalBlue"
+
+  
+
+  GraphicsWindow.FillRectangle(MidScrX - 100, 80, 200, 40)
+
+  GraphicsWindow.DrawRectangle(MidScrX - 100, 80, 200, 40)
+
+  
+
+  GraphicsWindow.BrushColor = "#FFFFFF"
+
+  GraphicsWindow.DrawText(MidScrX - 20, 80, "Quit")
+
+  GraphicsWindow.DrawText(MidScrX - 75, 100, "Are you sure? Y/N")
+
+  If (SoundOnOff = "On") Then
+
+    'Sound.PlayAndWait(Path + "\homerquit.wav")
+
+    Sound.Play(Path + "\homerquit.wav")
+
+    Program.Delay(1)
+
+  EndIf
+
+  WaitForKeypress()
+
+  If (Key = "Y") Then
+
+    DoGameOver()
+
+  Else
+
+    'erase box and continue playing
+
+    GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
+
+    'make a box slightly bigger to erase question
+
+    GraphicsWindow.FillRectangle(MidScrX - 101, 79, 202, 42)
+
+  EndIf
+
+  Sound.Stop(Path + "\homerquit.wav")
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub Rect
+
+  'takes variable mousebox containing four arguements, left top right & bottom (in string format "################" - 4 four digit numbers together)
+
+  'and sets status variable mouseinside to true if mousex and mousey are inside
+
+  If (Text.GetLength(MouseBox) = 16) Then
+
+    Left = Text.GetSubText(MouseBox,1,4)
+
+    Top = Text.GetSubText(MouseBox,5,4)
+
+    Right = Text.GetSubText(MouseBox,9,4)
+
+    Bottom = Text.GetSubText(MouseBox,13,4)
+
+    
+
+    If (MouseX >= Left And MouseY >= Top And MouseX <= Right And MouseY <= Bottom) Then
+
+      MouseInside = "True"
+
+    Else
+
+      MouseInside = "False"
+
+    EndIf
+
+  Else
+
+    'mousebox string incorrect length
+
+    MouseInside = "False"
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub OnMouseDown
+
+  If (SetOptions = "True") Then
+
+    MouseX = GraphicsWindow.MouseX
+
+    MouseY = GraphicsWindow.MouseY
+
+    'gravity up .1
+
+    MouseBox = "0380009904300129"
+
+    Rect()
+
+    If (MouseInside = "True") Then
+
+      Gravity = Gravity + 0.1
+
+    EndIf
+
+    'gravity down .1
+
+    MouseBox = "0450009905000129"
+
+    Rect()
+
+    If (MouseInside = "True" And Gravity > 0.1) Then 
+
+      Gravity = Gravity - 0.1
+
+    EndIf
+
+    'number of rounds up 1
+
+    MouseBox = "0380014504300175"
+
+    Rect()
+
+    If (MouseInside = "True" And NumRounds < 18) Then
+
+      NumRounds = NumRounds + 1
+
+    EndIf
+
+    'number of rounds down 1
+
+    MouseBox = "0450014505000175"
+
+    Rect()
+
+    If (MouseInside = "True" And NumRounds > 1) Then
+
+      NumRounds = NumRounds - 1
+
+    EndIf
+
+    'sound on
+
+    MouseBox = "0380019104300221"
+
+    Rect()
+
+    If (MouseInside = "True") Then
+
+      SoundOnOff = "On"
+
+    EndIf
+
+    'sound off
+
+    MouseBox = "0450019105000221"
+
+    Rect()
+
+    If (MouseInside = "True") Then
+
+      SoundOnOff = "Off"
+
+    EndIf
+
+    DrawSoundButtons()
+
+    UpdateGravityNumRounds()
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub WaitForKeypress
+
+  'wait for the user to press a key
+
+  WaitingForKeypress = "Yes"
+
+  While (WaitingForKeypress = "Yes")
+
+    'do nothing   
+
+    'the checkkey subroutine will change waitingforkeypress to "no" when an event is triggered
+
+  EndWhile
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------
+
+Sub DoKeyDown
+
+  Key = GraphicsWindow.LastKey
+
+    'in case a user has caps lock on
+
+  Key = Text.ConvertToUpperCase(Key)
+
+  If (WaitingForKeypress = "Yes") Then
+
+    WaitingForKeypress = "No"
+
+  Else
+
+    'the sound can be changed at any time
+
+    If (Key = "S") Then
+
+      ToggleSound()
+
+    EndIf
+
+  EndIf 
+
+EndSub
+
+
+
+
+
+

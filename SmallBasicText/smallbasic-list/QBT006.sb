@@ -1,0 +1,3315 @@
+///*Berkeley Logo User Manual
+
+>>Here are the special features of this dialect of Logo:
+
+
+
+	Source file compatible among Unix, DOS, Windows, and Mac platforms.
+
+
+
+	Random-access arrays.
+
+
+
+	Variable number of inputs to user-defined procedures.
+
+
+
+	Mutators for list structure (dangerous).
+
+
+
+	Pause on error, and other improvements to error handling.
+
+
+
+	Comments and continuation lines; formatting is preserved when
+
+	procedure definitions are saved or edited.
+
+
+
+	Terrapin-style tokenization (e.g., [2+3] is a list with one member)
+
+	but LCSI-style syntax (no special forms except TO).  The best of
+
+	both worlds.
+
+
+
+	First-class instruction and expression templates (see APPLY).
+
+
+
+	Macros.
+
+
+
+
+
+///GETTER/SETTER VARIBLE SYNTAX
+
+
+
+>>Logo distinguishes PROCEDURES from VARIABLES.  A procedure is a set of
+
+instructions to carry out some computation; a variable is a named
+
+container that holds a data value such as a number, word, list, or array.
+
+
+
+In traditional Logo syntax, a non-numeric word typed without punctuation
+
+represents a request to invoke the procedure named by that word.  A word
+
+typed with a preceding quotation mark represents the word itself.  For
+
+example, in the instruction
+
+	PRINT FIRST "WORD
+
+the procedures named FIRST and PRINT are invoked, but the procedure
+
+named WORD is not invoked; the word W-O-R-D is the input to FIRST.
+
+
+
+What about variables?  There are two things one can do with a variable:
+
+give it a value, and find out its value.  To give a variable a value,
+
+Logo provides the primitive procedure MAKE, which requires two inputs:
+
+the name of the variable and the new value to be assigned.  The first
+
+input, the name of the variable, is just a word, and if (as is almost
+
+always the case) the programmer wants to assign a value to a specific
+
+variable whose name is known in advance, that input is quoted, just
+
+as any known specific word would be:
+
+	MAKE "MY.VAR FIRST "WORD
+
+gives the variable named MY.VAR the value W (the first letter of WORD).
+
+
+
+To find the value of a variable, Logo provides the primitive procedure
+
+THING, which takes a variable name as its input, and outputs the value
+
+of the accessible variable with that name.  Thus
+
+	PRINT THING "MY.VAR
+
+will print W (supposing the MAKE above has been done).  Since finding
+
+the value of a specific, known variable name is such a common operation,
+
+Logo also provides an abbreviated notation that combines THING with quote:
+
+	PRINT :MY.VAR
+
+The colon (which Logo old-timers pronounce "dots") replaces THING and "
+
+in the earlier version of the instruction.
+
+
+
+Newcomers to Logo often complain about the need for all this punctuation.
+
+In particular, Logo programmers who learned about dots and quotes without
+
+also learning about THING wonder why an instruction such as
+
+	MAKE "NEW.VAR :OLD.VAR
+
+uses two different punctuation marks to identify the two variables.
+
+(Having read the paragraphs above, you will understand that actually
+
+both variable names are quoted, but the procedure THING is invoked to
+
+find the value of OLD.VAR, since it's that value, not OLD.VAR's name,
+
+that MAKE needs to know.  It wouldn't make sense to ask for THING of
+
+NEW.VAR, since we haven't given NEW.VAR a value yet.)
+
+
+
+Although Logo's punctuation rules make sense once understood, they
+
+do form a barrier to entry for the Logo beginner.  Why, then, couldn't
+
+Logo be designed so that an unpunctuated word would represent a
+
+procedure if there is a procedure by that name, or a variable if
+
+there is a variable by that name?  Then we could say
+
+	PRINT MY.VAR
+
+and Logo would realize that MY.VAR is the name of a variable, not
+
+of a procedure.  The traditional reason not to use this convention
+
+is that Logo allows the same word to name a procedure and a variable
+
+at the same time.  This is most often important for words that name
+
+data types, as in the following procedure:
+
+	TO PLURAL :WORD
+
+	OUTPUT WORD :WORD "S
+
+	END
+
+Here the name WORD is a natural choice for the input to PLURAL, since
+
+it describes the kind of input that PLURAL expects.  Within the procedure,
+
+we use WORD to represent Logo's primitive procedure that combines two
+
+input words to form a new, longer word; we use :WORD to represent the
+
+variable containing the input, whatever actual word is given when
+
+PLURAL is invoked.
+
+	? PRINT PLURAL "COMPUTER
+
+	COMPUTERS
+
+
+
+However, if a Logo instruction includes an unquoted word that is *not*
+
+the name of a procedure, Logo could look for a variable of that name
+
+instead.  This would allow a "punctuationless" Logo, ** PROVIDED THAT
+
+USERS WHO WANT TO WORK WITHOUT COLONS FOR VARIABLES CHOOSE VARIABLE
+
+NAMES THAT ARE NOT ALSO PROCEDURE NAMES. **
+
+
+
+What about assigning a value to a variable?  Could we do without
+
+the quotation mark on MAKE's first input?  Alas, no.  Although the
+
+first input to MAKE is *usually* a constant, known variable name,
+
+sometimes it isn't, as in this example:
+
+	TO INCREMENT :VAR
+
+	MAKE :VAR (THING :VAR)+1	; Note: it's not "VAR here!
+
+	END
+
+
+
+	? MAKE "X 5
+
+	? INCREMENT "X
+
+	? PRINT :X
+
+	6
+
+The procedure INCREMENT takes a variable name as its input and
+
+changes the value of that variable.  In this example there are
+
+two variables; the variable whose name is VAR, and whose value
+
+is the word X; and the variable whose name is X and whose value
+
+changes from 5 to 6.  Suppose we changed the behavior of MAKE so
+
+that it took the word after MAKE as the name of the variable to
+
+change; we would be unable to write INCREMENT:
+
+	TO INCREMENT :VAR	; nonworking!
+
+	MAKE VAR (THING VAR)+1
+
+	END
+
+This would assign a new value to VAR, not to X.
+
+
+
+What we can do is to allow an *alternative* to MAKE, a "setter"
+
+procedure for a particular variable.  The notation will be
+
+	? SETFOO 7
+
+	? PRINT FOO
+
+	7
+
+SETFOO is a "setter procedure" that takes one input (in this case
+
+the input 7) and assigns its value to the variable named FOO.
+
+
+
+Berkeley Logo allows users to choose either the traditional notation,
+
+in which case the same name can be used both for a procedure and for
+
+a variable, or the getter/setter notation, in which variable FOO is
+
+set with SETFOO and examined with FOO, but the same name can't be
+
+used for procedure and variable.
+
+
+
+Here is how this choice is allowed:  Berkeley Logo uses traditional notation,
+
+with procedures distinct from variables.  However, if there is a variable
+
+named AllowGetSet whose value is TRUE (which there is, by default, when
+
+Logo starts up), then if a Logo instruction refers to a *nonexistent*
+
+procedure (so that the error message "I don't know how to ..." would result),
+
+Logo tries the following two steps:
+
+
+
+	1.  If the name is at least four characters long, and the first three
+
+	characters are the letters SET (upper or lower case), and if the name
+
+	is followed in the instruction by another value, and if the name
+
+	without the SET is the name of a variable that already exists, then
+
+	Logo will invoke MAKE with its first input being the name without the
+
+	SET, and its second input being the following value.
+
+
+
+	2.  If step 1's conditions are not met, but the name is the name of an
+
+	accessible variable, then Logo will invoke THING with that name as
+
+	input, to find the variable's value.
+
+
+
+Step 1 requires that the variable already exist so that misspellings of names
+
+of SETxxx primitives (e.g., SETHEADING) will still be caught, instead of
+
+silently creating a new variable.  The command GLOBAL can be used to create
+
+a variable without giving it a value.
+
+
+
+One final point:  The TO command in Logo has always been a special
+
+case; the rest of the line starting with TO is not evaluated as
+
+ordinary Logo expressions are.  In particular, the colons used to
+
+mark the names of inputs to the procedure do not cause THING to be
+
+invoked.  They are merely mnemonic aids, reminding the Logo user
+
+that these words are names of variables.  (Arguably, this nonstantard
+
+behavior of TO adds to Logo beginners' confusion about colons.)
+
+To a programmer using colonless variable references, the colons in
+
+the TO line are unnecessary and meaningless.  Berkeley Logo therefore
+
+makes the colons optional:
+
+	TO FOO :IN1 :IN2
+
+and
+
+	TO FOO IN1 IN2
+
+are both allowed.
+
+
+
+///TOKENIZATION
+
+
+
+>>Names of procedures, variables, and property lists are case-insensitive.  So
+
+are the special words END, TRUE, and FALSE.  Case of letters is preserved
+
+in everything you type, however.
+
+
+
+Within square brackets, words are delimited only by spaces and square
+
+brackets.  [2+3] is a list containing one word.  Note, however, that the
+
+Logo primitives that interpret such a list as a Logo instruction or
+
+expression (RUN, IF, etc.) reparse the list as if it had not been typed
+
+inside brackets.
+
+
+
+After a quotation mark outside square brackets, a word is delimited by
+
+a space, a square bracket, or a parenthesis.
+
+
+
+A word not after a quotation mark or inside square brackets is delimited
+
+by a space, a bracket, a parenthesis, or an infix operator +-*/=<>.  Note
+
+that words following colons are in this category.  Note that quote and
+
+colon are not delimiters.  Each infix operator character is a word in
+
+itself, except that the two-character sequences <= >= and <> (the latter
+
+meaning not-equal) with no intervening space are recognized as a single
+
+word.
+
+
+
+A word consisting of a question mark followed by a number (e.g., ?37),
+
+when runparsed (i.e., where a procedure name is expected), is treated
+
+as if it were the sequence
+
+
+
+	( ? 37 )
+
+
+
+making the number an input to the ? procedure.  (See the discussion of
+
+templates, below.)  This special treatment does not apply to words read
+
+as data, to words with a non-number following the question mark, or if
+
+the question mark is backslashed.
+
+
+
+A line (an instruction line or one read by READLIST or READWORD) can be
+
+continued onto the following line if its last character is a tilde (~).
+
+READWORD preserves the tilde and the newline; READLIST does not.
+
+
+
+Lines read with READRAWLINE are never continued.
+
+
+
+An instruction line or a line read by READLIST (but not by READWORD)
+
+is automatically continued to the next line, as if ended with a tilde,
+
+if there are unmatched brackets, parentheses, braces, or vertical bars
+
+pending.  However, it's an error if the continuation line contains
+
+only the word END; this is to prevent runaway procedure definitions.
+
+Lines eplicitly continued with a tilde avoid this restriction.
+
+
+
+If a line being typed interactively on the keyboard is continued, either
+
+with a tilde or automatically, Logo will display a tilde as a prompt
+
+character for the continuation line.
+
+
+
+A semicolon begins a comment in an instruction line.  Logo ignores
+
+characters from the semicolon to the end of the line.  A tilde as the
+
+last character still indicates a continuation line, but not a continuation
+
+of the comment.  For example, typing the instruction
+
+
+
+	print "abc;comment ~
+
+	def
+
+
+
+will print the word abcdef.  Semicolon has no special meaning in data
+
+lines read by READWORD or READLIST, but such a line can later be reparsed
+
+using RUNPARSE and then comments will be recognized.
+
+
+
+The two-character sequence #! at the beginning of a line also starts a
+
+comment.  Unix users can therefore write a file containing Logo commands,
+
+starting with the line
+
+
+
+	#! /usr/local/bin/logo
+
+
+
+(or wherever your Logo executable lives) and the file will be executable
+
+directly from the shell.
+
+
+
+To include an otherwise delimiting character (including semicolon or tilde)
+
+in a word, precede it with backslash (\).  If the last character of a line
+
+is a backslash, then the newline character following the backslash will be
+
+part of the last word on the line, and the line continues onto the following
+
+line.  To include a backslash in a word, use \\.  If the combination
+
+backslash-newline is entered at the terminal, Logo will issue a backslash as
+
+a prompt character for the continuation line.  All of this applies to data
+
+lines read with READWORD or READLIST as well as to instruction lines.
+
+
+
+A line read with READRAWLINE has no special quoting mechanism; both
+
+backslash and vertical bar (described below) are just ordinary characters.
+
+
+
+An alternative notation to include otherwise delimiting characters in words is
+
+to enclose a group of characters in vertical bars.  All characters between
+
+vertical bars are treated as if they were letters.  In data read with READWORD
+
+the vertical bars are preserved in the resulting word.  In data read with
+
+READLIST (or resulting from a PARSE or RUNPARSE of a word) the vertical bars
+
+do not appear explicitly; all potentially delimiting characters (including
+
+spaces, brackets, parentheses, and infix operators) appear unmarked, but
+
+tokenized as though they were letters.  Within vertical bars, backslash may
+
+still be used; the only characters that must be backslashed in this context
+
+are backslash and vertical bar themselves.
+
+
+
+Characters entered between vertical bars are forever special, even if the
+
+word or list containing them is later reparsed with PARSE or RUNPARSE.
+
+Characters typed after a backslash are treated somewhat differently:  When a
+
+quoted word containing a backslashed character is runparsed, the backslashed
+
+character loses its special quality and acts thereafter as if typed normally.
+
+This distinction is important only if you are building a Logo expression out
+
+of parts, to be RUN later, and want to use parentheses.  For example,
+
+
+
+	PRINT RUN (SE "\( 2 "+ 3 "\))
+
+
+
+will print 5, but
+
+
+
+	RUN (SE "MAKE ""|(| 2)
+
+
+
+will create a variable whose name is open-parenthesis.  (Each example would
+
+fail if vertical bars and backslashes were interchanged.)
+
+
+
+A character entered with backslash is EQUALP to the same character without the
+
+backslash, but can be distinguished by the VBARREDP predicate.  (However,
+
+VBARREDP returns TRUE only for characters for which special treatment is
+
+necessary: whitespace, parentheses, brackets, infix operators, backslash,
+
+vertical bar, tilde, quote, question mark, colon, and semicolon.)
+
+
+
+
+
+///DATA STRUCTURE PRIMITIVES
+
+
+
+**CONSTRUCTORS
+
+
+
+>>WORD word1 word2
+
+(WORD word1 word2 word3 ...)
+
+
+
+	outputs a word formed by concatenating its inputs.
+
+
+
+>>LIST thing1 thing2
+
+(LIST thing1 thing2 thing3 ...)
+
+
+
+	outputs a list whose members are its inputs, which can be any
+
+	Logo datum (word, list, or array).
+
+
+
+>>SENTENCE thing1 thing2
+
+SE thing1 thing2
+
+(SENTENCE thing1 thing2 thing3 ...)
+
+(SE thing1 thing2 thing3 ...)
+
+
+
+	outputs a list whose members are its inputs, if those inputs are
+
+	not lists, or the members of its inputs, if those inputs are lists.
+
+
+
+>>FPUT thing list
+
+
+
+	outputs a list equal to its second input with one extra member,
+
+	the first input, at the beginning.  If the second input is a word,
+
+	then the first input must be a one-letter word, and FPUT is
+
+	equivalent to WORD.
+
+
+
+>>LPUT thing list
+
+
+
+	outputs a list equal to its second input with one extra member,
+
+	the first input, at the end.  If the second input is a word,
+
+	then the first input must be a one-letter word, and LPUT is
+
+	equivalent to WORD with its inputs in the other order.
+
+
+
+>>ARRAY size
+
+(ARRAY size origin)
+
+
+
+	outputs an array of "size" members (must be a positive integer),
+
+	each of which initially is an empty list.  Array members can be
+
+	selected with ITEM and changed with SETITEM.  The first member of
+
+	the array is member number 1 unless an "origin" input (must be an
+
+	integer) is given, in which case the first member of the array has
+
+	that number as its index.  (Typically 0 is used as the origin if
+
+	anything.)  Arrays are printed by PRINT and friends, and can be
+
+	typed in, inside curly braces; indicate an origin with {a b c}@0.
+
+
+
+>>MDARRAY sizelist					(library procedure)
+
+(MDARRAY sizelist origin)
+
+
+
+	outputs a multi-dimensional array.  The first input must be a list
+
+	of one or more positive integers.  The second input, if present,
+
+	must be a single integer that applies to every dimension of the array.
+
+	Ex: (MDARRAY [3 5] 0) outputs a two-dimensional array whose members
+
+	range from [0 0] to [2 4].
+
+
+
+>>LISTTOARRAY list
+
+(LISTTOARRAY list origin)
+
+
+
+	outputs an array of the same size as the input list, whose members
+
+	are the members of the input list.
+
+
+
+>>ARRAYTOLIST array
+
+
+
+	outputs a list whose members are the members of the input array.
+
+	The first member of the output is the first member of the array,
+
+	regardless of the array's origin.
+
+
+
+>>COMBINE thing1 thing2					(library procedure)
+
+
+
+	if thing2 is a word, outputs WORD thing1 thing2.  If thing2 is a list,
+
+	outputs FPUT thing1 thing2.
+
+
+
+>>REVERSE list						(library procedure)
+
+
+
+	outputs a list whose members are the members of the input list, in
+
+	reverse order.
+
+
+
+>>GENSYM							(library procedure)
+
+
+
+	outputs a unique word each time it's invoked.  The words are of the
+
+	form G1, G2, etc.
+
+
+
+
+
+**SELECTORS
+
+
+
+>>FIRST thing
+
+
+
+	if the input is a word, outputs the first character of the word.
+
+	If the input is a list, outputs the first member of the list.
+
+	If the input is an array, outputs the origin of the array (that
+
+	is, the INDEX OF the first member of the array).
+
+
+
+>>FIRSTS list
+
+
+
+	outputs a list containing the FIRST of each member of the input
+
+	list.  It is an error if any member of the input list is empty.
+
+	(The input itself may be empty, in which case the output is also
+
+	empty.)  This could be written as
+
+
+
+		to firsts :list
+
+		output map "first :list
+
+		end
+
+
+
+	but is provided as a primitive in order to speed up the iteration
+
+	tools MAP, MAP.SE, and FOREACH.
+
+ 
+
+		to transpose :matrix
+
+		if emptyp first :matrix [op []]
+
+		op fput firsts :matrix transpose bfs :matrix
+
+		end
+
+
+
+>>LAST wordorlist
+
+
+
+	if the input is a word, outputs the last character of the word.
+
+	If the input is a list, outputs the last member of the list.
+
+
+
+>>BUTFIRST wordorlist
+
+BF wordorlist
+
+
+
+	if the input is a word, outputs a word containing all but the first
+
+	character of the input.  If the input is a list, outputs a list
+
+	containing all but the first member of the input.
+
+
+
+>>BUTFIRSTS list
+
+BFS list
+
+
+
+	outputs a list containing the BUTFIRST of each member of the input
+
+	list.  It is an error if any member of the input list is empty or an
+
+	array.  (The input itself may be empty, in which case the output is
+
+	also empty.)  This could be written as
+
+
+
+		to butfirsts :list
+
+		output map "butfirst :list
+
+		end
+
+
+
+	but is provided as a primitive in order to speed up the iteration
+
+	tools MAP, MAP.SE, and FOREACH.
+
+
+
+>>BUTLAST wordorlist
+
+BL wordorlist
+
+
+
+	if the input is a word, outputs a word containing all but the last
+
+	character of the input.  If the input is a list, outputs a list
+
+	containing all but the last member of the input.
+
+
+
+>>ITEM index thing
+
+
+
+	if the "thing" is a word, outputs the "index"th character of the
+
+	word.  If the "thing" is a list, outputs the "index"th member of
+
+	the list.  If the "thing" is an array, outputs the "index"th
+
+	member of the array.  "Index" starts at 1 for words and lists;
+
+	the starting index of an array is specified when the array is
+
+	created.
+
+
+
+>>MDITEM indexlist array					(library procedure)
+
+
+
+	outputs the member of the multidimensional "array" selected by
+
+	the list of numbers "indexlist".
+
+
+
+>>PICK list						(library procedure)
+
+
+
+	outputs a randomly chosen member of the input list.
+
+
+
+>>REMOVE thing list					(library procedure)
+
+
+
+	outputs a copy of "list" with every member equal to "thing" removed.
+
+
+
+>>REMDUP list						(library procedure)
+
+
+
+	outputs a copy of "list" with duplicate members removed.  If two or
+
+	more members of the input are equal, the rightmost of those members
+
+	is the one that remains in the output.
+
+
+
+>>QUOTED thing						(library procedure)
+
+
+
+	outputs its input, if a list; outputs its input with a quotation
+
+	mark prepended, if a word.
+
+
+
+
+
+**MUTATORS
+
+
+
+
+
+>>SETITEM index array value
+
+
+
+	command.  Replaces the "index"th member of "array" with the new
+
+	"value".  Ensures that the resulting array is not circular, i.e.,
+
+	"value" may not be a list or array that contains "array".
+
+
+
+>>MDSETITEM indexlist array value				(library procedure)
+
+
+
+	command.  Replaces the member of "array" chosen by "indexlist"
+
+	with the new "value".
+
+
+
+>>.SETFIRST list value
+
+
+
+	command.  Changes the first member of "list" to be "value".
+
+
+
+	WARNING:  Primitives whose names start with a period are DANGEROUS.
+
+	Their use by non-experts is not recommended.  The use of .SETFIRST can
+
+	lead to circular list structures, which will get some Logo primitives
+
+	into infinite loops, and to unexpected changes to other data
+
+	structures that share storage with the list being modified.
+
+
+
+>>.SETBF list value
+
+
+
+	command.  Changes the butfirst of "list" to be "value".
+
+
+
+	WARNING: Primitives whose names start with a period are DANGEROUS.
+
+	Their use by non-experts is not recommended.  The use of .SETBF can
+
+	lead to circular list structures, which will get some Logo primitives
+
+	into infinite loops; unexpected changes to other data structures that
+
+	share storage with the list being modified; or to Logo crashes and
+
+	coredumps if the butfirst of a list is not itself a list.
+
+
+
+>>.SETITEM index array value
+
+
+
+	command.  Changes the "index"th member of "array" to be "value",
+
+	like SETITEM, but without checking for circularity.
+
+
+
+	WARNING: Primitives whose names start with a period are DANGEROUS.
+
+	Their use by non-experts is not recommended.  The use of .SETITEM
+
+	can lead to circular arrays, which will get some Logo primitives into
+
+	infinite loops.
+
+
+
+>>PUSH stackname thing					(library procedure)
+
+
+
+	command.  Adds the "thing" to the stack that is the value of the
+
+	variable whose name is "stackname".  This variable must have a list
+
+	as its value; the initial value should be the empty list.  New
+
+	members are added at the front of the list.
+
+
+
+>>POP stackname						(library procedure)
+
+
+
+	outputs the most recently PUSHed member of the stack that is the
+
+	value of the variable whose name is "stackname" and removes that
+
+	member from the stack.
+
+
+
+>>QUEUE queuename thing					(library procedure)
+
+
+
+	command.  Adds the "thing" to the queue that is the value of the
+
+	variable whose name is "queuename".  This variable must have a list
+
+	as its value; the initial value should be the empty list.  New
+
+	members are added at the back of the list.
+
+
+
+>>DEQUEUE queuename					(library procedure)
+
+
+
+	outputs the least recently QUEUEd member of the queue that is the
+
+	value of the variable whose name is "queuename" and removes that
+
+	member from the queue.
+
+
+
+
+
+**PREDICATES
+
+
+
+>>WORDP thing
+
+WORD? thing
+
+
+
+	outputs TRUE if the input is a word, FALSE otherwise.
+
+
+
+>>LISTP thing
+
+LIST? thing
+
+
+
+	outputs TRUE if the input is a list, FALSE otherwise.
+
+
+
+>>ARRAYP thing
+
+ARRAY? thing
+
+
+
+	outputs TRUE if the input is an array, FALSE otherwise.
+
+
+
+>>EMPTYP thing
+
+EMPTY? thing
+
+
+
+	outputs TRUE if the input is the empty word or the empty list,
+
+	FALSE otherwise.
+
+
+
+>>EQUALP thing1 thing2
+
+EQUAL? thing1 thing2
+
+thing1 = thing2
+
+
+
+	outputs TRUE if the inputs are equal, FALSE otherwise.  Two numbers
+
+	are equal if they have the same numeric value.  Two non-numeric words
+
+	are equal if they contain the same characters in the same order.  If
+
+	there is a variable named CASEIGNOREDP whose value is TRUE, then an
+
+	upper case letter is considered the same as the corresponding lower
+
+	case letter.  (This is the case by default.)  Two lists are equal if
+
+	their members are equal.  An array is only equal to itself; two
+
+	separately created arrays are never equal even if their members are
+
+	equal.  (It is important to be able to know if two expressions have
+
+	the same array as their value because arrays are mutable; if, for
+
+	example, two variables have the same array as their values then
+
+	performing SETITEM on one of them will also change the other.)
+
+
+
+>>NOTEQUALP thing1 thing2
+
+NOTEQUAL? thing1 thing2
+
+thing1 <> thing2
+
+
+
+	outputs FALSE if the inputs are equal, TRUE otherwise.  See EQUALP
+
+	for the meaning of equality for different data types.
+
+
+
+>>BEFOREP word1 word2
+
+BEFORE? word1 word2
+
+
+
+	outputs TRUE if word1 comes before word2 in ASCII collating sequence
+
+	(for words of letters, in alphabetical order).  Case-sensitivity is
+
+	determined by the value of CASEIGNOREDP.  Note that if the inputs are
+
+	numbers, the result may not be the same as with LESSP; for example,
+
+	BEFOREP 3 12 is false because 3 collates after 1.
+
+
+
+>>.EQ thing1 thing2
+
+
+
+	outputs TRUE if its two inputs are the same datum, so that applying a
+
+	mutator to one will change the other as well.  Outputs FALSE otherwise,
+
+	even if the inputs are equal in value.
+
+	WARNING: Primitives whose names start with a period are DANGEROUS.
+
+	Their use by non-experts is not recommended.  The use of mutators
+
+	can lead to circular data structures, infinite loops, or Logo crashes.
+
+
+
+>>MEMBERP thing1 thing2
+
+MEMBER? thing1 thing2
+
+
+
+	if "thing2" is a list or an array, outputs TRUE if "thing1" is EQUALP
+
+	to a member of "thing2", FALSE otherwise.  If "thing2" is
+
+	a word, outputs TRUE if "thing1" is a one-character word EQUALP to a
+
+	character of "thing2", FALSE otherwise.
+
+
+
+>>SUBSTRINGP thing1 thing2
+
+SUBSTRING? thing1 thing2
+
+
+
+	if "thing1" or "thing2" is a list or an array, outputs FALSE.  If
+
+	"thing2" is a word, outputs TRUE if "thing1" is EQUALP to a
+
+	substring of "thing2", FALSE otherwise.
+
+
+
+>>NUMBERP thing
+
+NUMBER? thing
+
+
+
+	outputs TRUE if the input is a number, FALSE otherwise.
+
+
+
+>>VBARREDP char
+
+VBARRED? char
+
+BACKSLASHEDP char                               (library procedure)
+
+BACKSLASHED? char                               (library procedure)
+
+
+
+	outputs TRUE if the input character was originally entered into Logo
+
+	within vertical bars (|) to prevent its usual special syntactic
+
+	meaning, FALSE otherwise.  (Outputs TRUE only if the character is a
+
+	backslashed space, tab, newline, or one of ()[]+-*/=<>":;\~?| )
+
+
+
+	The names BACKSLASHEDP and BACKSLASHED? are included in the Logo
+
+	library for backward compatibility with the former names of this
+
+	primitive, although it does *not* output TRUE for characters
+
+	originally entered with backslashes.
+
+
+
+
+
+**QUERIES
+
+
+
+>>COUNT thing
+
+
+
+	outputs the number of characters in the input, if the input is a word;
+
+	outputs the number of members in the input, if it is a list
+
+	or an array.  (For an array, this may or may not be the index of the
+
+	last member, depending on the array's origin.)
+
+
+
+>>ASCII char
+
+
+
+	outputs the integer (between 0 and 255) that represents the input
+
+	character in the ASCII code.  Interprets control characters as
+
+	representing vbarred punctuation, and returns the character code
+
+	for the corresponding punctuation character without vertical bars.
+
+	(Compare RAWASCII.)
+
+
+
+>>RAWASCII char
+
+
+
+	outputs the integer (between 0 and 255) that represents the input
+
+	character in the ASCII code.  Interprets control characters as
+
+	representing themselves.  To find out the ASCII code of an arbitrary
+
+	keystroke, use RAWASCII RC.
+
+
+
+>>CHAR int
+
+
+
+	outputs the character represented in the ASCII code by the input,
+
+	which must be an integer between 0 and 255.
+
+
+
+>>MEMBER thing1 thing2
+
+
+
+	if "thing2" is a word or list and if MEMBERP with these inputs would
+
+	output TRUE, outputs the portion of "thing2" from the first instance
+
+	of "thing1" to the end.  If MEMBERP would output FALSE, outputs the
+
+	empty word or list according to the type of "thing2".  It is an error
+
+	for "thing2" to be an array.
+
+
+
+>>LOWERCASE word
+
+
+
+	outputs a copy of the input word, but with all uppercase letters
+
+	changed to the corresponding lowercase letter.
+
+
+
+>>UPPERCASE word
+
+
+
+	outputs a copy of the input word, but with all lowercase letters
+
+	changed to the corresponding uppercase letter.
+
+
+
+>>STANDOUT thing
+
+
+
+	outputs a word that, when printed, will appear like the input but
+
+	displayed in standout mode (boldface, reverse video, or whatever your
+
+	version does for standout).  The word contains machine-specific
+
+	magic characters at the beginning and end; in between is the printed
+
+	form (as if displayed using TYPE) of the input.  The output is always
+
+	a word, even if the input is of some other type, but it may include
+
+	spaces and other formatting characters.  Note: a word output by
+
+	STANDOUT while Logo is running on one machine will probably not have
+
+	the desired effect if printed on another type of machine.
+
+
+
+	In the Macintosh classic version, the way that standout works is
+
+	incompatible with the use of characters whose ASCII code is greater
+
+	than 127.  Therefore, you have a choice to make:  The instruction
+
+		CANINVERSE 0
+
+	disables standout, but enables the display of ASCII codes above 127,
+
+	and the instruction
+
+		CANINVERSE 1
+
+	restores the default situation in which standout is enabled and the
+
+	extra graphic characters cannot be printed.
+
+
+
+>>PARSE word
+
+
+
+	outputs the list that would result if the input word were entered
+
+	in response to a READLIST operation.  That is, PARSE READWORD has
+
+	the same value as READLIST for the same characters read.
+
+
+
+>>RUNPARSE wordorlist
+
+
+
+	outputs the list that would result if the input word or list were
+
+	entered as an instruction line; characters such as infix operators
+
+	and parentheses are separate members of the output.  Note that
+
+	sublists of a runparsed list are not themselves runparsed.
+
+
+
+
+
+///COMMUNICATION
+
+
+
+**TRANSMITTERS
+
+
+
+>>Note:  If there is a variable named PRINTDEPTHLIMIT with a nonnegative
+
+integer value, then complex list and array structures will be printed
+
+only to the allowed depth.  That is, members of members of... of members
+
+will be allowed only so far.  The members omitted because
+
+they are just past the depth limit are indicated by an ellipsis for each
+
+one, so a too-deep list of two members will print as [... ...].
+
+
+
+If there is a variable named PRINTWIDTHLIMIT with a nonnegative integer
+
+value, then only the first so many members of any array or
+
+list will be printed.  A single ellipsis replaces all missing data
+
+within the structure.  The width limit also applies to the number of
+
+characters printed in a word, except that a PRINTWIDTHLIMIT between 0 and 9
+
+will be treated as if it were 10 when applied to words.  This limit
+
+applies not only to the top-level printed datum but to any substructures
+
+within it.
+
+
+
+If there is a variable named FULLPRINTP whose value is TRUE, then words that
+
+were created using backslash or vertical bar (to include characters that
+
+would otherwise not be treated as part of a word) are printed with the
+
+backslashes or vertical bars shown, so that the printed result could be
+
+re-read by Logo to produce the same value.  If FULLPRINTP is TRUE then
+
+the empty word (however it was created) prints as ||.  (Otherwise it prints
+
+as nothing at all.)
+
+
+
+>>PRINT thing
+
+PR thing
+
+(PRINT thing1 thing2 ...)
+
+(PR thing1 thing2 ...)
+
+
+
+	command.  Prints the input or inputs to the current write stream
+
+	(initially the screen).  All the inputs are printed on a single
+
+	line, separated by spaces, ending with a newline.  If an input is a
+
+	list, square brackets are not printed around it, but brackets are
+
+	printed around sublists.  Braces are always printed around arrays.
+
+
+
+>>TYPE thing
+
+(TYPE thing1 thing2 ...)
+
+
+
+	command.  Prints the input or inputs like PRINT, except that no
+
+	newline character is printed at the end and multiple inputs are not
+
+	separated by spaces.  Note: printing to the terminal is ordinarily
+
+	"line buffered"; that is, the characters you print using TYPE will
+
+	not actually appear on the screen until either a newline character
+
+	is printed (for example, by PRINT or SHOW) or Logo tries to read
+
+	from the keyboard (either at the request of your program or after an
+
+	instruction prompt).  This buffering makes the program much faster
+
+	than it would be if each character appeared immediately, and in most
+
+	cases the effect is not disconcerting.  To accommodate programs that
+
+	do a lot of positioned text display using TYPE, Logo will force
+
+	printing whenever SETCURSOR is invoked.  This solves most buffering
+
+	problems.  Still, on occasion you may find it necessary to force the
+
+	buffered characters to be printed explicitly; this can be done using
+
+	the WAIT command.  WAIT 0 will force printing without actually
+
+	waiting.
+
+
+
+>>SHOW thing
+
+(SHOW thing1 thing2 ...)
+
+
+
+	command.  Prints the input or inputs like PRINT, except that
+
+	if an input is a list it is printed inside square brackets.
+
+
+
+
+
+**RECEIVERS
+
+
+
+>>READLIST
+
+RL
+
+
+
+	reads a line from the read stream (initially the keyboard) and
+
+	outputs that line as a list.  The line is separated into members as
+
+	though it were typed in square brackets in an instruction.  If the
+
+	read stream is a file, and the end of file is reached, READLIST
+
+	outputs the empty word (not the empty list).  READLIST processes
+
+	backslash, vertical bar, and tilde characters in the read stream;
+
+	the output list will not contain these characters but they will have
+
+	had their usual effect.  READLIST does not, however, treat semicolon
+
+	as a comment character.
+
+
+
+>>READWORD
+
+RW
+
+
+
+	reads a line from the read stream and outputs that line as a word.
+
+	The output is a single word even if the line contains spaces,
+
+	brackets, etc.  If the read stream is a file, and the end of file is
+
+	reached, READWORD outputs the empty list (not the empty word).
+
+	READWORD processes backslash, vertical bar, and tilde characters in
+
+	the read stream.  In the case of a tilde used for line continuation,
+
+	the output word DOES include the tilde and the newline characters, so
+
+	that the user program can tell exactly what the user entered.
+
+	Vertical bars in the line are also preserved in the output.
+
+	Backslash characters are not preserved in the output.
+
+
+
+>>READRAWLINE
+
+
+
+	reads a line from the read stream and outputs that line as a word.
+
+	The output is a single word even if the line contains spaces,
+
+	brackets, etc.  If the read stream is a file, and the end of file is
+
+	reached, READRAWLINE outputs the empty list (not the empty word).
+
+	READRAWLINE outputs the exact string of characters as they appear
+
+	in the line, with no special meaning for backslash, vertical bar,
+
+	tilde, or any other formatting characters.
+
+
+
+>>READCHAR
+
+RC
+
+
+
+	reads a single character from the read stream and outputs that
+
+	character as a word.  If the read stream is a file, and the end of
+
+	file is reached, READCHAR outputs the empty list (not the empty
+
+	word).  If the read stream is the keyboard, echoing is turned off
+
+	when READCHAR is invoked, and remains off until READLIST or READWORD
+
+	is invoked or a Logo prompt is printed.  Backslash, vertical bar,
+
+	and tilde characters have no special meaning in this context.
+
+
+
+>>READCHARS num
+
+RCS num
+
+
+
+	reads "num" characters from the read stream and outputs those
+
+	characters as a word.  If the read stream is a file, and the end of
+
+	file is reached, READCHARS outputs the empty list (not the empty
+
+	word).  If the read stream is a terminal, echoing is turned off
+
+	when READCHARS is invoked, and remains off until READLIST or READWORD
+
+	is invoked or a Logo prompt is printed.  Backslash, vertical bar,
+
+	and tilde characters have no special meaning in this context.
+
+
+
+
+
+
+
+**TERMINAL ACCESS
+
+
+
+>>KEYP/KEY?
+
+
+
+	predicate, outputs TRUE if there are characters waiting to be
+
+	read from the read stream.  If the read stream is a file, this
+
+	is equivalent to NOT EOFP.  If the read stream is the terminal,
+
+	then echoing is turned off and the terminal is set to CBREAK
+
+	(character at a time instead of line at a time) mode.  It
+
+	remains in this mode until some line-mode reading is requested
+
+	(e.g., READLIST).  The Unix operating system forgets about any
+
+	pending characters when it switches modes, so the first KEYP
+
+	invocation will always output FALSE.
+
+
+
+>>CLEARTEXT/CT
+
+
+
+	command.  Clears the text window.
+
+
+
+>>SETCURSOR vector
+
+
+
+	command.  The input is a list of two numbers, the x and y
+
+	coordinates of a text window position (origin in the upper left
+
+	corner, positive direction is southeast).  The text cursor
+
+	is moved to the requested position.  This command also forces
+
+	the immediate printing of any buffered characters.
+
+
+
+>>CURSOR
+
+
+
+	outputs a list containing the current x and y coordinates of
+
+	the text cursor.  Logo may get confused about the current
+
+	cursor position if, e.g., you type in a long line that wraps
+
+	around or your program prints escape codes that affect the
+
+	screen strangely.
+
+
+
+>>SETMARGINS vector
+
+
+
+	command.  The input must be a list of two numbers, as for
+
+	SETCURSOR.  The effect is to clear the screen and then arrange for
+
+	all further printing to be shifted down and to the right according
+
+	to the indicated margins.  Specifically, every time a newline
+
+	character is printed (explicitly or implicitly) Logo will type
+
+	x_margin spaces, and on every invocation of SETCURSOR the margins
+
+	will be added to the input x and y coordinates.  (CURSOR will report
+
+	the cursor position relative to the margins, so that this shift will
+
+	be invisible to Logo programs.)  The purpose of this command is to
+
+	accommodate the display of terminal screens in lecture halls with
+
+	inadequate TV monitors that miss the top and left edges of the
+
+	screen.
+
+
+
+>>SETTEXTCOLOR/SETTC foreground background
+
+
+
+	command (wxWidgets only).  The inputs are color numbers, or RGB color
+
+	lists, as for turtle graphics.  The foreground and background colors
+
+	for the textscreen/splitscreen text window are changed to the given
+
+	values.  The change affects text already printed as well as future
+
+	text printing; there is only one text color for the entire window.
+
+
+
+	command (non-wxWidgets Windows and DOS extended only).  The inputs are
+
+	color numbers, as for turtle graphics.  Future printing to the text
+
+	window will use the specified colors for foreground (the characters
+
+	printed) and background (the space under those characters).  Using
+
+	STANDOUT will revert to the default text window colors.  In the DOS
+
+	extended (ucblogo.exe) version, colors in textscreen mode are limited
+
+	to numbers 0-7, and the coloring applies only to text printed by the
+
+	program, not to the echoing of text typed by the user.  Neither
+
+	limitation applies to the text portion of splitscreen mode, which is
+
+	actually drawn as graphics internally.
+
+
+
+
+
+///ARITHMETIC
+
+
+
+**NUMERIC OPERATIONS
+
+
+
+>>SUM num1 num2
+
+(SUM num1 num2 num3 ...)
+
+num1 + num2
+
+
+
+	outputs the sum of its inputs.
+
+
+
+>>DIFFERENCE num1 num2
+
+num1 - num2
+
+
+
+	outputs the difference of its inputs.  Minus sign means infix
+
+	difference in ambiguous contexts (when preceded by a complete
+
+	expression), unless it is preceded by a space and followed
+
+	by a nonspace.  (See also MINUS.)
+
+
+
+>>MINUS num
+
+- num
+
+
+
+	outputs the negative of its input.  Minus sign means unary minus if
+
+	the previous token is an infix operator or open parenthesis, or it is
+
+	preceded by a space and followed by a nonspace.  There is a difference
+
+	in binding strength between the two forms:
+
+
+
+		MINUS 3 + 4	means	-(3+4)
+
+		- 3 + 4		means	(-3)+4
+
+
+
+>>PRODUCT num1 num2
+
+(PRODUCT num1 num2 num3 ...)
+
+num1 * num2
+
+
+
+	outputs the product of its inputs.
+
+
+
+>>QUOTIENT num1 num2
+
+(QUOTIENT num)
+
+num1 / num2
+
+
+
+	outputs the quotient of its inputs.  The quotient of two integers
+
+	is an integer if and only if the dividend is a multiple of the divisor.
+
+	(In other words, QUOTIENT 5 2 is 2.5, not 2, but QUOTIENT 4 2 is
+
+	2, not 2.0 -- it does the right thing.)  With a single input,
+
+	QUOTIENT outputs the reciprocal of the input.
+
+
+
+>>REMAINDER num1 num2
+
+
+
+	outputs the remainder on dividing "num1" by "num2"; both must be
+
+	integers and the result is an integer with the same sign as num1.
+
+
+
+>>MODULO num1 num2
+
+
+
+	outputs the remainder on dividing "num1" by "num2"; both must be
+
+	integers and the result is an integer with the same sign as num2.
+
+
+
+>>INT num
+
+
+
+	outputs its input with fractional part removed, i.e., an integer
+
+	with the same sign as the input, whose absolute value is the
+
+	largest integer less than or equal to the absolute value of
+
+	the input.
+
+
+
+>>ROUND num
+
+
+
+	outputs the nearest integer to the input.
+
+
+
+>>SQRT num
+
+
+
+	outputs the square root of the input, which must be nonnegative.
+
+
+
+>>POWER num1 num2
+
+
+
+	outputs "num1" to the "num2" power.  If num1 is negative, then
+
+	num2 must be an integer.
+
+
+
+>>EXP num
+
+
+
+	outputs e (2.718281828+) to the input power.
+
+
+
+>>LOG10 num
+
+
+
+	outputs the common logarithm of the input.
+
+
+
+>>LN num
+
+
+
+	outputs the natural logarithm of the input.
+
+
+
+>>SIN/RADSIN degrees/rads
+
+
+
+	outputs the sine of its input, which is taken in degr/rads
+
+
+
+>>COS/RADCOS degrees
+
+
+
+	outputs the cosine of its input, which is taken in degrees.
+
+
+
+>>ARCTAN num
+
+(ARCTAN x y)
+
+
+
+	outputs the arctangent, in degrees, of its input.  With two
+
+	inputs, outputs the arctangent of y/x, if x is nonzero, or
+
+	90 or -90 depending on the sign of y, if x is zero.
+
+
+
+>>RADARCTAN num
+
+(RADARCTAN x y)
+
+
+
+	outputs the arctangent, in radians, of its input.  With two
+
+	inputs, outputs the arctangent of y/x, if x is nonzero, or
+
+	pi/2 or -pi/2 depending on the sign of y, if x is zero.
+
+
+
+	The expression 2*(RADARCTAN 0 1) can be used to get the
+
+	value of pi.
+
+
+
+>>ISEQ from to						(library procedure)
+
+
+
+	outputs a list of the integers from FROM to TO, inclusive.
+
+
+
+		? show iseq 3 7
+
+		[3 4 5 6 7]
+
+		? show iseq 7 3
+
+		[7 6 5 4 3]
+
+
+
+>>RSEQ from to count					(library procedure)
+
+
+
+	outputs a list of COUNT equally spaced rational numbers
+
+	between FROM and TO, inclusive.
+
+
+
+		? show rseq 3 5 9
+
+		[3 3.25 3.5 3.75 4 4.25 4.5 4.75 5]
+
+		? show rseq 3 5 5
+
+		[3 3.5 4 4.5 5]
+
+
+
+
+
+**PREDICATES
+
+
+
+>>LESSP/LESS? num1 num2
+
+
+
+num1 < num2
+
+
+
+	outputs TRUE if its first input is strictly less than its second.
+
+
+
+>>GREATERP/GREATER? num1 num2
+
+
+
+num1 > num2
+
+
+
+	outputs TRUE if its first input is strictly greater than its second.
+
+
+
+>>LESSEQUALP num1 num2
+
+LESSEQUAL? num1 num2
+
+num1 <= num2
+
+
+
+	outputs TRUE if its first input is less than or equal to its second.
+
+
+
+>>GREATEREQUALP num1 num2
+
+GREATEREQUAL? num1 num2
+
+num1 >= num2
+
+
+
+	outputs TRUE if its first input is greater than or equal to its second.
+
+
+
+
+
+**RANDOM NUMBERS
+
+
+
+>>RANDOM num
+
+(RANDOM start end)
+
+
+
+	with one input, outputs a random nonnegative integer less than its
+
+	input, which must be a positive integer.
+
+
+
+	With two inputs, RANDOM outputs a random integer greater than or
+
+	equal to the first input, and less than or equal to the second
+
+	input.  Both inputs must be integers, and the first must be less
+
+	than the second.  (RANDOM 0 9) is equivalent to RANDOM 10;
+
+	(RANDOM 3 8) is equivalent to (RANDOM 6)+3.
+
+
+
+>>RERANDOM
+
+(RERANDOM seed)
+
+
+
+	command.  Makes the results of RANDOM reproducible.  Ordinarily
+
+	the sequence of random numbers is different each time Logo is
+
+	used.  If you need the same sequence of pseudo-random numbers
+
+	repeatedly, e.g. to debug a program, say RERANDOM before the
+
+	first invocation of RANDOM.  If you need more than one repeatable
+
+	sequence, you can give RERANDOM an integer input; each possible
+
+	input selects a unique sequence of numbers.
+
+
+
+
+
+**PRINT FORMATTING
+
+
+
+>>FORM num width precision
+
+
+
+	outputs a word containing a printable representation of "num",
+
+	possibly preceded by spaces (and therefore not a number for
+
+	purposes of performing arithmetic operations), with at least
+
+	"width" characters, including exactly "precision" digits after
+
+	the decimal point.  (If "precision" is 0 then there will be no
+
+	decimal point in the output.)
+
+
+
+	As a debugging feature, (FORM num -1 format) will print the
+
+	floating point "num" according to the C printf "format", to allow
+
+
+
+		to hex :num
+
+		op form :num -1 "|%08X %08X|
+
+		end
+
+
+
+	to allow finding out the exact result of floating point operations.
+
+	The precise format needed may be machine-dependent.
+
+
+
+
+
+**BITWISE OPERATIONS
+
+
+
+>>BITAND num1 num2
+
+(BITAND num1 num2 num3 ...)
+
+
+
+	outputs the bitwise AND of its inputs, which must be integers.
+
+
+
+>>BITOR num1 num2
+
+(BITOR num1 num2 num3 ...)
+
+
+
+	outputs the bitwise OR of its inputs, which must be integers.
+
+
+
+>>BITXOR num1 num2
+
+(BITXOR num1 num2 num3 ...)
+
+
+
+	outputs the bitwise EXCLUSIVE OR of its inputs, which must be
+
+	integers.
+
+
+
+>>BITNOT num
+
+
+
+	outputs the bitwise NOT of its input, which must be an integer.
+
+
+
+>>ASHIFT num1 num2
+
+
+
+	outputs "num1" arithmetic-shifted to the left by "num2" bits.
+
+	If num2 is negative, the shift is to the right with sign
+
+	extension.  The inputs must be integers.
+
+
+
+>>LSHIFT num1 num2
+
+
+
+	outputs "num1" logical-shifted to the left by "num2" bits.
+
+	If num2 is negative, the shift is to the right with zero fill.
+
+	The inputs must be integers.
+
+
+
+
+
+///LOGICAL OPERATIONS
+
+
+
+>>AND tf1 tf2
+
+(AND tf1 tf2 tf3 ...)
+
+
+
+	outputs TRUE if all inputs are TRUE, otherwise FALSE.  All inputs
+
+	must be TRUE or FALSE.  (Comparison is case-insensitive regardless
+
+	of the value of CASEIGNOREDP.  That is, "true" or "True" or "TRUE"
+
+	are all the same.)  An input can be a list, in which case it is
+
+	taken as an expression to run; that expression must produce a TRUE
+
+	or FALSE value.  List expressions are evaluated from left to right;
+
+	as soon as a FALSE value is found, the remaining inputs are not
+
+	examined.  Example:
+
+		MAKE "RESULT AND [NOT (:X = 0)] [(1 / :X) > .5]
+
+	to avoid the division by zero if the first part is false.
+
+
+
+>>OR tf1 tf2
+
+(OR tf1 tf2 tf3 ...)
+
+
+
+	outputs TRUE if any input is TRUE, otherwise FALSE.  All inputs
+
+	must be TRUE or FALSE.  (Comparison is case-insensitive regardless
+
+	of the value of CASEIGNOREDP.  That is, "true" or "True" or "TRUE"
+
+	are all the same.)  An input can be a list, in which case it is
+
+	taken as an expression to run; that expression must produce a TRUE
+
+	or FALSE value.  List expressions are evaluated from left to right;
+
+	as soon as a TRUE value is found, the remaining inputs are not
+
+	examined.  Example:
+
+		IF OR :X=0 [some.long.computation] [...]
+
+	to avoid the long computation if the first condition is met.
+
+
+
+>>NOT tf
+
+
+
+	outputs TRUE if the input is FALSE, and vice versa.  The input can be
+
+	a list, in which case it is taken as an expression to run; that
+
+	expression must produce a TRUE or FALSE value.
+
+
+
+
+
+///GRAPHICS
+
+
+
+>>Berkeley Logo provides traditional Logo turtle graphics with one turtle.
+
+Multiple turtles, dynamic turtles, and collision detection are not supported.
+
+This is the most hardware-dependent part of Logo; some features may exist
+
+on some machines but not others.  Nevertheless, the goal has been to make
+
+Logo programs as portable as possible, rather than to take fullest advantage
+
+of the capabilities of each machine.  In particular, Logo attempts to scale
+
+the screen so that turtle coordinates [-100 -100] and [100 100] fit on the
+
+graphics window, and so that the aspect ratio is 1:1.
+
+
+
+The center of the graphics window (which may or may not be the entire
+
+screen, depending on the machine used) is turtle location [0 0].  Positive
+
+X is to the right; positive Y is up.  Headings (angles) are measured in
+
+degrees clockwise from the positive Y axis.  (This differs from the common
+
+mathematical convention of measuring angles counterclockwise from the
+
+positive X axis.)  The turtle is represented as an isoceles triangle; the
+
+actual turtle position is at the midpoint of the base (the short side).
+
+However, the turtle is drawn one step behind its actual position, so that
+
+the display of the base of the turtle's triangle does not obscure a line
+
+drawn perpendicular to it (as would happen after drawing a square).
+
+
+
+Colors are, of course, hardware-dependent.  However, Logo provides partial
+
+hardware independence by interpreting color numbers 0 through 7 uniformly
+
+on all computers:
+
+
+
+	0  black	1  blue		2  green	3  cyan
+
+	4  red		5  magenta	6  yellow	7 white
+
+
+
+Where possible, Logo provides additional user-settable colors; how many
+
+are available depends on the hardware and operating system environment.
+
+If at least 16 colors are available, Logo tries to provide uniform
+
+initial settings for the colors 8-15:
+
+
+
+	 8  brown	 9  tan		10  forest	11  aqua
+
+	12  salmon	13  purple	14  orange	15  grey
+
+
+
+Logo begins with a black background and white pen.
+
+
+
+
+
+**TURTLE MOTION
+
+
+
+>>FORWARD/FD dist
+
+
+
+
+
+	moves the turtle forward, in the direction that it's facing, by
+
+	the specified distance (measured in turtle steps).
+
+
+
+>>BACK/BK dist
+
+
+
+	moves the turtle backward, i.e., exactly opposite to the direction
+
+	that it's facing, by the specified distance.  (The heading of the
+
+	turtle does not change.)
+
+
+
+>>LEFT/LT degrees
+
+
+
+	turns the turtle counterclockwise by the specified angle, measured
+
+	in degrees (1/360 of a circle).
+
+
+
+>>RIGHT/RT degrees
+
+
+
+	turns the turtle clockwise by the specified angle, measured in
+
+	degrees (1/360 of a circle).
+
+
+
+>>SETPOS pos
+
+
+
+	moves the turtle to an absolute position in the graphics window.  The
+
+	input is a list of two numbers, the X and Y coordinates.
+
+
+
+>>SETXY xcor ycor
+
+
+
+	moves the turtle to an absolute position in the graphics window.  The
+
+	two inputs are numbers, the X and Y coordinates.
+
+
+
+>>SETX xcor
+
+
+
+	moves the turtle horizontally from its old position to a new
+
+	absolute horizontal coordinate.  The input is the new X
+
+	coordinate.
+
+
+
+>>SETY ycor
+
+
+
+	moves the turtle vertically from its old position to a new
+
+	absolute vertical coordinate.  The input is the new Y
+
+	coordinate.
+
+
+
+>>SETHEADING/SETH degrees
+
+
+
+	turns the turtle to a new absolute heading.  The input is
+
+	a number, the heading in degrees clockwise from the positive
+
+	Y axis.
+
+
+
+>>HOME
+
+
+
+	moves the turtle to the center of the screen.  Equivalent to
+
+	SETPOS [0 0] SETHEADING 0.
+
+
+
+>>ARC angle radius
+
+
+
+	draws an arc of a circle, with the turtle at the center, with the
+
+	specified radius, starting at the turtle's heading and extending
+
+	clockwise through the specified angle.  The turtle does not move.
+
+
+
+**TURTLE MOTION QUERIES
+
+
+
+>>POS
+
+
+
+	outputs the turtle's current position, as a list of two
+
+	numbers, the X and Y coordinates.
+
+
+
+>>XCOR							(library procedure)
+
+
+
+	outputs a number, the turtle's X coordinate.
+
+
+
+>>YCOR							(library procedure)
+
+
+
+	outputs a number, the turtle's Y coordinate.
+
+
+
+>>HEADING
+
+
+
+	outputs a number, the turtle's heading in degrees.
+
+
+
+>>TOWARDS pos
+
+
+
+	outputs a number, the heading at which the turtle should be
+
+	facing so that it would point from its current position to
+
+	the position given as the input.
+
+
+
+>>SCRUNCH
+
+
+
+	outputs a list containing two numbers, the X and Y scrunch
+
+	factors, as used by SETSCRUNCH.  (But note that SETSCRUNCH
+
+	takes two numbers as inputs, not one list of numbers.)
+
+
+
+
+
+**TURTLE AND WINDOW CONTROL
+
+
+
+>>SHOWTURTLE/ST
+
+
+
+	makes the turtle visible.
+
+
+
+>>HIDETURTLE/HT
+
+
+
+	makes the turtle invisible.  It's a good idea to do this while
+
+	you're in the middle of a complicated drawing, because hiding
+
+	the turtle speeds up the drawing substantially.
+
+
+
+>>CLEAN
+
+
+
+	erases all lines that the turtle has drawn on the graphics window.
+
+	The turtle's state (position, heading, pen mode, etc.) is not
+
+	changed.
+
+
+
+>>CLEARSCREEN/CS
+
+
+
+	erases the graphics window and sends the turtle to its initial
+
+	position and heading.  Like HOME and CLEAN together.
+
+
+
+>>WRAP
+
+
+
+	tells the turtle to enter wrap mode:  From now on, if the turtle
+
+	is asked to move past the boundary of the graphics window, it
+
+	will "wrap around" and reappear at the opposite edge of the
+
+	window.  The top edge wraps to the bottom edge, while the left
+
+	edge wraps to the right edge.  (So the window is topologically
+
+	equivalent to a torus.)  This is the turtle's initial mode.
+
+	Compare WINDOW and FENCE.
+
+
+
+>>WINDOW
+
+
+
+	tells the turtle to enter window mode:  From now on, if the turtle
+
+	is asked to move past the boundary of the graphics window, it
+
+	will move offscreen.  The visible graphics window is considered
+
+	as just part of an infinite graphics plane; the turtle can be
+
+	anywhere on the plane.  (If you lose the turtle, HOME will bring
+
+	it back to the center of the window.)  Compare WRAP and FENCE.
+
+
+
+>>FENCE
+
+
+
+	tells the turtle to enter fence mode:  From now on, if the turtle
+
+	is asked to move past the boundary of the graphics window, it
+
+	will move as far as it can and then stop at the edge with an
+
+	"out of bounds" error message.  Compare WRAP and WINDOW.
+
+
+
+>>FILL
+
+
+
+	fills in a region of the graphics window containing the turtle
+
+	and bounded by lines that have been drawn earlier.  This is not
+
+	portable; it doesn't work for all machines, and may not work
+
+	exactly the same way on different machines.
+
+
+
+>>FILLED color instructions
+
+
+
+	runs the instructions, remembering all points visited by turtle
+
+	motion commands, starting *and ending* with the turtle's initial
+
+	position.  Then draws (ignoring penmode) the resulting polygon,
+
+	in the current pen color, filling the polygon with the given color,
+
+	which can be a color number or an RGB list.  The instruction list
+
+	cannot include another FILLED invocation.
+
+
+
+>>LABEL text
+
+
+
+	takes a word or list as input, and prints the input on the
+
+	graphics window, starting at the turtle's position.
+
+
+
+>>SETLABELHEIGHT height
+
+
+
+	command (wxWidgets only).  Takes a positive integer argument and tries
+
+	to set the font size so that the character height (including
+
+	descenders) is that many turtle steps.  This will be different from
+
+	the number of screen pixels if SETSCRUNCH has been used.  Also, note
+
+	that SETSCRUNCH changes the font size to try to preserve this height
+
+	in turtle steps.  Note that the query operation corresponding to this
+
+	command is LABELSIZE, not LABELHEIGHT, because it tells you the width
+
+	as well as the height of characters in the current font.
+
+
+
+>>TEXTSCREEN/TS
+
+
+
+	rearranges the size and position of windows to maximize the
+
+	space available in the text window (the window used for
+
+	interaction with Logo).  The details differ among machines.
+
+	Compare SPLITSCREEN and FULLSCREEN.
+
+
+
+>>FULLSCREEN/FS
+
+
+
+	rearranges the size and position of windows to maximize the space
+
+	available in the graphics window.  The details differ among machines.
+
+	Compare SPLITSCREEN and TEXTSCREEN.
+
+
+
+	Since there must be a text window to allow printing (including the
+
+	printing of the Logo prompt), Logo automatically switches from
+
+	fullscreen to splitscreen whenever anything is printed.
+
+
+
+	In the DOS version, switching from fullscreen to splitscreen loses the
+
+	part of the picture that's hidden by the text window.  [This design
+
+	decision follows from the scarcity of memory, so that the extra memory
+
+	to remember an invisible part of a drawing seems too expensive.]
+
+
+
+>>SPLITSCREEN/SS
+
+
+
+	rearranges the size and position of windows to allow some room for
+
+	text interaction while also keeping most of the graphics window
+
+	visible.  The details differ among machines.  Compare TEXTSCREEN
+
+	and FULLSCREEN.
+
+
+
+>>SETSCRUNCH xscale yscale
+
+
+
+	adjusts the aspect ratio and scaling of the graphics display.
+
+	After this command is used, all further turtle motion will be
+
+	adjusted by multiplying the horizontal and vertical extent of
+
+	the motion by the two numbers given as inputs.  For example,
+
+	after the instruction "SETSCRUNCH 2 1" motion at a heading of
+
+	45 degrees will move twice as far horizontally as vertically.
+
+	If your squares don't come out square, try this.  (Alternatively,
+
+	you can deliberately misadjust the aspect ratio to draw an ellipse.)
+
+
+
+	In wxWidgets only, SETSCRUNCH also changes the size of the text font
+
+	used for the LABEL command to try to keep the height of characters
+
+	scaled with the vertical turtle step size.
+
+
+
+	For all modern computers For DOS machines, the scale factors are
+
+	initially set according to what the hardware claims the aspect ratio
+
+	is, but the hardware sometimes lies.  For DOS, the values set by
+
+	SETSCRUNCH are remembered in a file (called SCRUNCH.DAT) and are
+
+	automatically put into effect when a Logo session begins.
+
+
+
+>>REFRESH
+
+
+
+	(command) tells Logo to remember the turtle's motions so that they
+
+	can be used for high-resolution printing (wxWidgets) or to refresh
+
+	the graphics window if it is moved, resized, or overlayed
+
+	(non-wxWidgets).  This is the default.
+
+
+
+>>NOREFRESH
+
+
+
+	(command) tells Logo not to remember the turtle's motions, which may
+
+	be useful to save time and memory if your program is interactive or
+
+	animated, rather than drawing a static picture you'll want to print
+
+	later (wxWidgets).  In non-wxWidgets versions, using NOREFRESH may
+
+	prevent Logo from restoring the graphics image after the window is
+
+	moved, resized, or overlayed.
+
+
+
+
+
+**TURTLE AND WINDOW QUERIES
+
+
+
+>>SHOWNP/SHOWN?
+
+
+
+	outputs TRUE if the turtle is shown (visible), FALSE if the
+
+	turtle is hidden.  See SHOWTURTLE and HIDETURTLE.
+
+
+
+>>SCREENMODE
+
+
+
+	outputs the word TEXTSCREEN, SPLITSCREEN, or FULLSCREEN depending
+
+	on the current screen mode.
+
+
+
+>>TURTLEMODE
+
+
+
+	outputs the word WRAP, FENCE, or WINDOW depending on the current
+
+	turtle mode.
+
+
+
+>>LABELSIZE
+
+
+
+	(wxWidgets only) outputs a list of two positive integers, the width
+
+	and height of characters displayed by LABEL measured in turtle steps
+
+	(which will be different from screen pixels if SETSCRUNCH has been
+
+	used).  There is no SETLABELSIZE because the width and height of a
+
+	font are not separately controllable, so the inverse of this operation
+
+	is SETLABELHEIGHT, which takes just one number for the desired height.
+
+
+
+
+
+**PEN AND BACKGROUND CONTROL
+
+
+
+>>The turtle carries a pen that can draw pictures.  At any time the pen
+
+can be UP (in which case moving the turtle does not change what's on the
+
+graphics screen) or DOWN (in which case the turtle leaves a trace).
+
+If the pen is down, it can operate in one of three modes: PAINT (so that it
+
+draws lines when the turtle moves), ERASE (so that it erases any lines
+
+that might have been drawn on or through that path earlier), or REVERSE
+
+(so that it inverts the status of each point along the turtle's path).
+
+
+
+>>PENDOWN/PD
+
+
+
+	sets the pen's position to DOWN, without changing its mode.
+
+
+
+>>PENUP/PU
+
+
+
+	sets the pen's position to UP, without changing its mode.
+
+
+
+>>PENPAINT/PPT
+
+
+
+	sets the pen's position to DOWN and mode to PAINT.
+
+
+
+>>PENERASE/PE
+
+
+
+	sets the pen's position to DOWN and mode to ERASE.
+
+
+
+>>PENREVERSE/PX
+
+
+
+	sets the pen's position to DOWN and mode to REVERSE.
+
+	(This may interact in system-dependent ways with use of color.)
+
+
+
+>>SETPENCOLOR/SETPC colornumber.or.rgblist
+
+
+
+	sets the pen color to the given number, which must be a nonnegative
+
+	integer.  There are initial assignments for the first 16 colors:
+
+
+
+	 0  black	 1  blue	 2  green	 3  cyan
+
+	 4  red		 5  magenta	 6  yellow	 7 white
+
+	 8  brown	 9  tan		10  forest	11  aqua
+
+	12  salmon	13  purple	14  orange	15  grey
+
+
+
+	but other colors can be assigned to numbers by the PALETTE command.
+
+	Alternatively, sets the pen color to the given RGB values (a list of
+
+	three nonnegative numbers less than 100 specifying the percent
+
+	saturation of red, green, and blue in the desired color).
+
+
+
+>>SETPALETTE colornumber rgblist
+
+
+
+	sets the actual color corresponding to a given number, if allowed by
+
+	the hardware and operating system.  Colornumber must be an integer
+
+	greater than or equal to 8.  (Logo tries to keep the first 8 colors
+
+	constant.)  The second input is a list of three nonnegative numbers
+
+	less than 100 specifying the percent saturation of red, green, and
+
+	blue in the desired color.
+
+
+
+>>SETPENSIZE size
+
+
+
+	sets the thickness of the pen.  The input is either a single positive
+
+	integer or a list of two positive integers (for horizontal and
+
+	vertical thickness).  Some versions pay no attention to the second
+
+	number, but always have a square pen.
+
+
+
+>>SETPENPATTERN pattern
+
+
+
+	sets hardware-dependent pen characteristics.  This command is
+
+	not guaranteed compatible between implementations on different
+
+	machines.
+
+
+
+>>SETPEN list						(library procedure)
+
+
+
+	sets the pen's position, mode, thickness, and hardware-dependent
+
+	characteristics according to the information in the input list, which
+
+	should be taken from an earlier invocation of PEN.
+
+
+
+>>SETBACKGROUND/SETBG colornumber.or.rgblist
+
+
+
+	set the screen background color by slot number or RGB values.
+
+	See SETPENCOLOR for details.
+
+
+
+
+
+**PEN QUERIES
+
+
+
+>>PENDOWNP/PENDOWN?
+
+
+
+	outputs TRUE if the pen is down, FALSE if it's up.
+
+
+
+>>PENMODE
+
+
+
+	outputs one of the words PAINT, ERASE, or REVERSE according to
+
+	the current pen mode.
+
+
+
+>>PENCOLOR/PC
+
+
+
+	outputs a color number, a nonnegative integer that is associated with
+
+	a particular color, or a list of RGB values if such a list was used as
+
+	the most recent input to SETPENCOLOR.  There are initial assignments
+
+	for the first 16 colors:
+
+
+
+	 0  black	 1  blue	 2  green	 3  cyan
+
+	 4  red		 5  magenta	 6  yellow	 7 white
+
+	 8  brown	 9  tan		10  forest	11  aqua
+
+	12  salmon	13  purple	14  orange	15  grey
+
+
+
+	but other colors can be assigned to numbers by the PALETTE command.
+
+
+
+>>PALETTE colornumber
+
+
+
+	outputs a list of three nonnegative numbers less than 100 specifying
+
+	the percent saturation of red, green, and blue in the color associated
+
+	with the given number.
+
+
+
+>>PENSIZE
+
+
+
+
+
+	outputs a list of two positive integers, specifying the horizontal
+
+	and vertical thickness of the turtle pen.  (In some implementations,
+
+	including wxWidgets, the two numbers are always equal.)
+
+
+
+>>PENPATTERN
+
+
+
+	outputs system-specific pen information.
+
+
+
+>>PEN							(library procedure)
+
+
+
+	outputs a list containing the pen's position, mode, thickness, and
+
+	hardware-specific characteristics, for use by SETPEN.
+
+
+
+>>BACKGROUND/BG
+
+
+
+	outputs the graphics background color, either as a slot number or
+
+	as an RGB list, whichever way it was set.  (See PENCOLOR.)
+
+
+
+
+
+
+
+
+
+
+
+

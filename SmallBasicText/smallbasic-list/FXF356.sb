@@ -1,0 +1,239 @@
+' SmallBasic Version 1.2
+
+' Program: TBAppend
+
+' Changelog: 
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/9f1034b2-f7ee-4674-bba2-c3bb90e869f7/multilinetextbox-add-lines
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev
+
+' Comment: https://msdn.microsoft.com/en-us/library/system.windows.controls.primitives.textboxbase.appendtext.aspx
+
+'  
+
+' Variables: 
+
+' ToDo: 
+
+' ================================================================================
+
+oldText = "Original Text in TextBox ..."
+
+newText = "This Text was APPENDED in Textbox."
+
+
+
+dbg = ""  '"True"
+
+GraphicsWindow.BrushColor = "Black"
+
+GraphicsWindow.FontBold = ""
+
+GraphicsWindow.FontSize = 11
+
+btn = Controls.AddButton("AppendText", 10,10)
+
+Shapes.Move(Shapes.AddText(newText +" (in next line)"), 100,20)
+
+
+
+'tb = Controls.AddTextBox(0,50)
+
+tb = Controls.AddMultiLineTextBox(0,50)
+
+Controls.SetSize(tb, GraphicsWindow.Width, GraphicsWindow.Height - 50)
+
+Controls.SetTextBoxText(tb, oldText)
+
+GraphicsWindow.Title = "Please WAIT ..."
+
+
+
+CSExt()
+
+CSComp()
+
+newText = lf + newText    ' Append newText in next next line
+
+
+
+
+
+Controls.ButtonClicked = OnButtonClick
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub CSExt
+
+  lf = Text.GetCharacter(10)
+
+  qu = Text.GetCharacter(34)
+
+  
+
+  cs = "using System;"+ lf
+
+  cs = cs +"using System.Collections.Generic;"+ lf
+
+  cs = cs +"using System.Windows;"+ lf
+
+  cs = cs +"using System.Windows.Controls;"+ lf
+
+  cs = cs +"using System.Reflection;"+ lf
+
+  cs = cs +"using Microsoft.SmallBasic.Library;"+ lf
+
+  cs = cs +"using Microsoft.SmallBasic.Library.Internal;"+ lf
+
+  cs = cs +"[SmallBasicType]"+ lf
+
+  cs = cs +"public static class SBControl {"+ lf
+
+  cs = cs +"  /// <summary>Appends a string to the contents of a (MultiLine)TextBox.</summary>"+ lf
+
+  cs = cs +"  /// <param name="+ qu +"shapeName"+ qu +">The name of the (MultiLine)TextBox.</param>"+ lf
+
+  cs = cs +"  /// <param name="+ qu +"text"+ qu +">The text to append.</param>"+ lf
+
+  cs = cs +"  /// <returns>"+ qu +"SUCCESS"+ qu +" on success, else "+ qu +"FAILED"+ qu +".</returns>"+ lf
+
+  cs = cs +"  public static Primitive TextBoxAppend(Primitive shapeName, Primitive text) {"+ lf
+
+  cs = cs +"    Type GraphicsWindowType = typeof(GraphicsWindow);"+ lf
+
+  cs = cs +"    Dictionary<string, UIElement> _objectsMap;"+ lf
+
+  cs = cs +"    UIElement obj;"+ lf
+
+  cs = cs +"    try {"+ lf
+
+  cs = cs +"      _objectsMap = (Dictionary<string, UIElement>)GraphicsWindowType.GetField("+ qu +"_objectsMap"+ qu +", BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.IgnoreCase).GetValue(null);"+ lf
+
+  cs = cs +"      if(!_objectsMap.TryGetValue((string)shapeName, out obj)) return "+ qu +"FAILED"+ qu +";"+ lf
+
+  cs = cs +"      InvokeHelperWithReturn ret = new InvokeHelperWithReturn(delegate {"+ lf
+
+  cs = cs +"        try {"+ lf
+
+  cs = cs +"          if(obj.GetType() == typeof(TextBox)) {"+ lf
+
+  cs = cs +"            TextBox tb = (TextBox)obj;"+ lf
+
+  cs = cs +"            tb.AppendText((string)text);"+ lf
+
+  cs = cs +"            return "+ qu +"SUCCESS"+ qu +"; }"+ lf
+
+  cs = cs +"          return "+ qu +"FAILED"+ qu +"; }"+ lf
+
+  cs = cs +"        catch { return "+ qu +"FAILED"+ qu +"; } });"+ lf
+
+  cs = cs +"      MethodInfo method = GraphicsWindowType.GetMethod("+ qu +"InvokeWithReturn"+ qu +", BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.IgnoreCase);"+ lf
+
+  cs = cs +"      return method.Invoke(null, new object[] { ret }).ToString(); }"+ lf
+
+  cs = cs +"    catch { return "+ qu +"FAILED"+ qu +"; } } }"+ lf
+
+  
+
+  If dbg Then
+
+    arrCS = LDText.Split(cs, lf)
+
+    For n = 1 To Array.GetItemCount(arrCS)
+
+      l = Text.GetSubTextToEnd(Text.Append("0",n), Text.GetLength(n)) ' 2 digits,  prefix with 0 for n<10 ("00" for 3 digits etc.)
+
+      TextWindow.WriteLine(l +": "+ arrCS[n])
+
+    EndFor
+
+  EndIf
+
+  
+
+' The following line could be harmful and has been automatically commented.
+
+'   'File.WriteContents(Program.Directory +"\SBControl-TextBoxAppend.cs", cs)
+
+EndSub
+
+
+
+Sub CSComp
+
+  resComp = LDInline.IncludeCS(cs, "","")
+
+  If dbg Then
+
+    TextWindow.WriteLine(lf +"Compiling: "+ resComp +lf)
+
+    If resComp <> "SUCCESS" Then
+
+      TextWindow.Pause()
+
+      Program.End()
+
+    EndIf
+
+  EndIf
+
+  GraphicsWindow.Title = "Ready, push the button ..."
+
+EndSub
+
+
+
+Sub CSCall
+
+  arg[1] = tb
+
+  arg[2] = newText
+
+  resRun = LDInline.Call("SBControl.TextBoxAppend", arg)
+
+  
+
+  If dbg Then
+
+    parm = ""
+
+    nArg = Array.GetItemCount(arg)
+
+    For n = 1 To nArg-1
+
+      parm = Text.Append(parm, qu+ arg[n] +qu +", ")
+
+    EndFor
+
+    parm = parm + arg[nArg]
+
+    TextWindow.WriteLine("Calling 'SBControl.TextBoxAppend("+ parm +")'")
+
+    TextWindow.WriteLine(resRun)
+
+  EndIf
+
+EndSub
+
+
+
+
+
+' //////////  EVENT  \\\\\\\\\\
+
+Sub OnButtonClick
+
+  CSCall()
+
+EndSub
+
+

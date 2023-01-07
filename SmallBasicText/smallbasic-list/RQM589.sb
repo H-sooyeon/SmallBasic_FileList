@@ -1,0 +1,353 @@
+' Sudoku
+
+' Version 0.1
+
+' Copyright © 2019 Nonki Takahashi.  The MIT License.
+
+
+
+GraphicsWindow.Title = "Sudoku"
+
+Init()
+
+While "True"
+
+  If buttonClicked Then
+
+    If (Controls.GetButtonCaption(btn) = "Solve") And (puzzle = "") Then
+
+      Solve()
+
+    ElseIf (Controls.GetButtonCaption(btn) = "New") Then
+
+      New()
+
+    EndIf
+
+    buttonClicked = "False"
+
+  EndIf
+
+  If keyUp Then
+
+    key = GraphicsWindow.LastKey
+
+    If (key = "Left") And (1 < col) Then
+
+      col = col - 1
+
+      Select()
+
+    ElseIf (key = "Right") And (col < 9) Then
+
+      col = col + 1
+
+      Select()
+
+    ElseIf (key = "Up") And (1 < row) Then
+
+      row = row - 1
+
+      Select()
+
+    ElseIf (key = "Down") And (row < 9) Then
+
+      row = row + 1
+
+      Select()
+
+    ElseIf (key = "Delete") Or (key = "Back") Then
+
+      Shapes.SetText(num[row][col], "")
+
+      sudoku[row][col] = ""
+
+    Else
+
+      n = Text.GetSubText(key, Text.GetLength(key), 1)
+
+      If (1 <= n) And (n <= 9) And (puzzle[row][col] = "") Then
+
+        Shapes.SetText(num[row][col], n)
+
+        sudoku[row][col] = n
+
+      EndIf
+
+    EndIf
+
+    keyUp = "False"
+
+  EndIf
+
+  If mouseDown Then
+
+    mx = GraphicsWindow.MouseX
+
+    my = GraphicsWindow.MouseY
+
+    mc = Math.Floor((mx - x0) / size) + 1
+
+    mr = Math.Floor((my - y0) / size) + 1
+
+    If (1 <= mc) And (mc <= 9) And (1 <= mr) And (mr <= 9) Then
+
+      col = mc
+
+      row = mr
+
+      Select()
+
+    EndIf
+
+    mouseDown = "False"
+
+  EndIf
+
+  Program.Delay(100)
+
+EndWhile
+
+
+
+Sub Init
+
+  gw = 400
+
+  gh = 400
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "SkyBlue"
+
+  size = 30
+
+  size9 = size * 9
+
+  x0 = (gw - size9) / 2
+
+  x1 = x0 + size9
+
+  y0 = (gh - size9) / 2 - size / 2
+
+  y1 = y0 + size9
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillRectangle(x0, y0, size9, size9)
+
+  pc = "Gray"
+
+  pw = 1
+
+  delta = size
+
+  Grid()
+
+  pc = "Black"
+
+  pw = 4
+
+  delta = size * 3
+
+  Grid()
+
+  GraphicsWindow.FontName = "Trebuchet MS"
+
+  GraphicsWindow.FontSize = size * 0.8
+
+  GraphicsWindow.BrushColor = "Black"
+
+  Numbers()
+
+  btn = Controls.AddButton("Solve", 10, gh - (size * 1.3 + 10))
+
+  GraphicsWindow.PenColor = "#99FF0000"
+
+  GraphicsWindow.BrushColor = "Transparent"
+
+  cell = Shapes.AddRectangle(size, size)
+
+  col = 1
+
+  row = 1
+
+  Select()
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+  GraphicsWindow.KeyUp = OnKeyUp
+
+  Controls.ButtonClicked = OnButtonClicked
+
+EndSub
+
+
+
+Sub Grid
+
+  GraphicsWindow.PenColor = pc
+
+  GraphicsWindow.PenWidth = pw
+
+  For x = x0 To x1 Step delta
+
+    GraphicsWindow.DrawLine(x, y0 - pw / 2, x, y0 + size9 + pw / 2)
+
+  EndFor
+
+  For y = y0 To y1 Step delta
+
+    GraphicsWindow.DrawLine(x0 - pw / 2, y, x0 + size9 + pw / 2, y)
+
+  EndFor
+
+EndSub
+
+
+
+Sub New
+
+  Stack.PushValue("local", row)
+
+  Stack.PushValue("local", col)
+
+  puzzle = ""
+
+  sudoku = ""
+
+  For row = 1 To 9
+
+    For col = 1 To 9
+
+      Shapes.Remove(num[row][col])
+
+    EndFor
+
+  EndFor
+
+  GraphicsWindow.BrushColor = "Black"
+
+  Numbers()
+
+  Controls.SetButtonCaption(btn, "Solve")
+
+  col = Stack.PopValue("local")
+
+  row = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Numbers
+
+  For row = 1 To 9
+
+    For col = 1 To 9
+
+      num[row][col] = Shapes.AddText("")
+
+      x = x0 + (col - 1) * size + size * 0.25
+
+      y = y0 + (row - 1) * size
+
+      Shapes.Move(num[row][col], x, y)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub OnButtonClicked
+
+  buttonClicked = "True"
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  keyUp = "True"
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  mouseDown = "True"
+
+EndSub
+
+
+
+Sub Select
+
+  ' param row, col - position to move cell
+
+  x = x0 + (col - 1) * size
+
+  y = y0 + (row - 1) * size
+
+  Shapes.Move(cell, x, y)
+
+EndSub
+
+
+
+Sub Solve
+
+  GraphicsWindow.BrushColor = "Blue"
+
+  Stack.PushValue("local", row)
+
+  Stack.PushValue("local", col)
+
+  For row = 1 To 9
+
+    For col = 1 To 9
+
+      n = sudoku[row][col]
+
+      If n = "" Then
+
+        Shapes.Remove(num[row][col])
+
+        num[row][col] = Shapes.AddText("")
+
+        x = x0 + (col - 1) * size + size * 0.25
+
+        y = y0 + (row - 1) * size
+
+        Shapes.Move(num[row][col], x, y)
+
+      Else
+
+        puzzle[row][col] = n
+
+        sudoku[row][col] = ""
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  col = Stack.PopValue("local")
+
+  row = Stack.PopValue("local")
+
+  Controls.SetButtonCaption(btn, "New")
+
+EndSub
+
+        
+
+

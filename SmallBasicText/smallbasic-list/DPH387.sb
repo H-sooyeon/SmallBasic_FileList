@@ -1,0 +1,287 @@
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+Game_Height=1000
+
+Game_Width=1000
+
+GraphicsWindow.Left=0
+
+GraphicsWindow.Width=game_Width
+
+GraphicsWindow.Height=game_Height
+
+
+
+Player=Shapes.AddImage(ImageList.LoadImage(Program.Directory+"\Warship.png"))
+
+Player_Cannon=Shapes.AddImage(ImageList.LoadImage(Program.Directory+"\WarshipCannon2.png"))
+
+Shapes.Move(Player,770,750)
+
+Player_X = shapes.GetLeft(Player)
+
+Player_y = shapes.GetTop(Player)
+
+Player_OldX=Player_X
+
+Player_OldY=Player_y
+
+shot=shapes.AddRectangle(5,5)
+
+Bullet_Speed=0.8
+
+Bullet_X=0
+
+Bullet_Y=0
+
+
+
+GraphicsWindow.PenWidth=0.1
+
+GraphicsWindow.BrushColor="Transparent"
+
+For w = 1 to 15
+
+  Wave[w]=Shapes.AddEllipse(25,25)
+
+  Shapes.Move(Wave[w],Player_X,Player_Y)
+
+  Wave_Zoom[w]=1-w/5
+
+endfor
+
+Wave_Amount=array.GetItemCount(Wave)
+
+
+
+While "True"
+
+  Waves()
+
+  Movement()
+
+  Boundaries()
+
+  Bullet()
+
+  Shapes.Rotate(Player,Player_Angle)
+
+  Player_CannonAngle2=Player_CannonAngle+Player_Angle
+
+  Shapes.Rotate(Player_Cannon,Player_CannonAngle2)
+
+  Shapes.Move(shot,Bullet_x,Bullet_y)
+
+  Program.Delay(1)
+
+endwhile
+
+
+
+Sub OnKeyDown'=======================ON KEY DOWN================================
+
+  Key = GraphicsWindow.LastKey
+
+  If (Key = "Left") Then
+
+    Left = 1
+
+  ElseIf (Key = "Right") Then
+
+    Right = 1
+
+  ElseIf (Key = "Up") Then
+
+    Up = 1
+
+  ElseIf (Key = "Down") Then
+
+    Down = 1
+
+  ElseIf (Key = "Space") Then
+
+    Bullet_Angle=Player_CannonAngle2
+
+    Bullet_X=Player_X+14
+
+    Bullet_Y=Player_Y+55
+
+  ElseIf (Key = "D") Then
+
+    Cannon_Right = 1
+
+  ElseIf (Key = "A") Then
+
+    Cannon_Left = 1
+
+  endif
+
+EndSub
+
+
+
+Sub OnKeyUp'=======================ON KEY UP================================
+
+  Key = GraphicsWindow.LastKey
+
+  If (Key = "Left") Then
+
+    Left = 0
+
+  ElseIf (Key = "Right") Then
+
+    Right = 0
+
+  ElseIf (Key = "Up") Then
+
+    Up = 0
+
+  ElseIf (Key = "Down") Then
+
+    Down = 0
+
+  ElseIf (Key = "D") Then
+
+    Cannon_Right = 0
+
+  ElseIf (Key = "A") Then
+
+    Cannon_Left = 0
+
+  endif
+
+EndSub
+
+
+
+Sub Movement
+
+  Player_Speed=Player_Speed*0.9988
+
+  If left = 1 then
+
+    Player_Angle=Player_Angle-0.1
+
+  ElseIf Right = 1 then
+
+    Player_Angle=Player_Angle+0.1
+
+  endif
+
+  If Cannon_left = 1 then
+
+    Player_CannonAngle=Player_CannonAngle-0.1
+
+  ElseIf Cannon_Right = 1 then
+
+    Player_CannonAngle=Player_CannonAngle+0.1
+
+  endif
+
+  If Player_Speed < -0.005 or Player_Speed > 0.005 then
+
+    Player_x = Math.Remainder(Player_X + (Math.Cos(Math.GetRadians(Player_Angle-90)) * Player_Speed) + Game_Width, Game_Width)
+
+    Player_y = Math.Remainder(Player_Y + (Math.Sin(Math.GetRadians(Player_Angle-90)) * Player_Speed) + Game_Height, Game_Height)
+
+    Shapes.Move(Player, Player_X, Player_Y)
+
+    Shapes.Move(Player_Cannon,Player_X+7,Player_Y+17)
+
+    Player_CannonAngle2=Player_CannonAngle+Player_Angle
+
+  endif
+
+  If Up = 1 and Player_Speed<0.5 then
+
+    Player_Speed=Player_Speed+0.001
+
+  ElseIf Down = 1 and Player_Speed>-0.3 then
+
+    Player_Speed=Player_Speed-0.001
+
+  endif
+
+endsub
+
+
+
+Sub Boundaries
+
+  If Player_X>Game_Width-40 Then
+
+    Player_X=Game_Width-40
+
+    Player_Speed=Player_Speed*0.99
+
+  ElseIf Player_X<10 Then
+
+    Player_X=10
+
+    Player_Speed=Player_Speed*0.99
+
+  endif
+
+  If Player_Y>Game_Height-40 Then
+
+    Player_Y=Game_Height-40
+
+    Player_Speed=Player_Speed*0.99
+
+  ElseIf Player_Y<10 Then
+
+    Player_Y=10
+
+    Player_Speed=Player_Speed*0.99
+
+  endif
+
+EndSub
+
+
+
+Sub Bullet
+
+  Bullet_x = Math.Remainder(Bullet_X + (Math.Cos(Math.GetRadians(Bullet_Angle-90)) * Bullet_Speed) + Game_Width, Game_Width)
+
+  Bullet_y = Math.Remainder(Bullet_Y + (Math.Sin(Math.GetRadians(Bullet_Angle-90)) * Bullet_Speed) + Game_Height, Game_Height)
+
+EndSub
+
+
+
+Sub Waves
+
+  If Wave_Delay>30 Then
+
+    For w = 1 To Wave_Amount
+
+      If Wave_Zoom[w] < 4 then
+
+        Shapes.Zoom(Wave[w],Wave_Zoom[w]*Player_Speed*2,Wave_Zoom[w]*Player_Speed*2)
+
+        Wave_Zoom[w]=Wave_Zoom[w]+0.1
+
+      else
+
+        Wave_Zoom[w]=1
+
+        Shapes.Move(Wave[w],Player_X,Player_Y)
+
+      endif
+
+      Wave_Delay=0
+
+    endfor
+
+  else
+
+    Wave_Delay=Wave_Delay+1
+
+  endif
+
+endsub
+
+

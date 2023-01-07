@@ -1,0 +1,503 @@
+' Light Beam 0.1
+
+' Rotate surfaces to hit a target by reflected light beam.
+
+' Copyright (c) 2012 Nonki Takahashi.  All rights reserved.
+
+' 
+
+' History:
+
+'  0.1 2013/01/29 Created.
+
+'
+
+title = "Light Beam 0.1"
+
+debug = "False"
+
+GraphicsWindow.Title = title
+
+gw = GraphicsWindow.Width
+
+gh = GraphicsWindow.Height
+
+maxlen = Math.SquareRoot(gw * gw + gh * gh)
+
+GraphicsWindow.BrushColor = "Gray"
+
+lightGun = Shapes.AddRectangle(20, 8)
+
+x1 = 30
+
+y1 = 400
+
+Shapes.Move(lightGun, x1 - 10, y1 - 4)
+
+Shapes.Rotate(lightGun, -15)
+
+mw = 100  ' mirror width
+
+mirror[1] = Shapes.AddRectangle(mw, 4)
+
+x[1] = 550
+
+y[1] = 280
+
+Shapes.Move(mirror[1], x[1] - mw / 2, y[1] - 2)
+
+angle[1] = 0
+
+mirror[2] = Shapes.AddRectangle(mw, 4)
+
+x[2] = 100
+
+y[2] = 100
+
+Shapes.Move(mirror[2], x[2] - mw / 2, y[2] - 2)
+
+angle[2] = 0
+
+tw = 20   ' target width
+
+target = Shapes.AddEllipse(tw, tw)
+
+GraphicsWindow.BrushColor = "Red"
+
+GraphicsWindow.PenColor = "Red"
+
+fire = Shapes.AddEllipse(tw, tw)
+
+xt = 580
+
+yt = 40
+
+Shapes.Move(target, xt - tw / 2, yt - tw / 2)
+
+Shapes.SetOpacity(fire, 0)
+
+Shapes.Move(fire, xt - tw / 2, yt - tw / 2)
+
+CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
+
+help = "[S] ROTATE MIRROR 2 ANTI-CLOCKWISE" + CRLF
+
+help = help + "[F] ROTATE MIRROR 2 CLOCKWISE" + CRLF
+
+help = help + "[J] ROTATE MIRROR 1 ANTI-CLOCKWISE" + CRLF
+
+help = help + "[L] ROTATE MIRROR 1 CLOCKWISE" + CRLF
+
+help = help + "[SPACE] SHOOT" + CRLF
+
+GraphicsWindow.BrushColor = "Black"
+
+instruction = Shapes.AddText(help)
+
+Shapes.Move(instruction, 340, 350)
+
+sin15 = Math.Sin(Math.GetRadians(-15))
+
+sin105 = Math.Sin(Math.GetRadians(-105))
+
+cos15 = Math.Cos(Math.GetRadians(-15))
+
+cos105 = Math.Cos(Math.GetRadians(-105))
+
+tan15 = Math.Tan(Math.GetRadians(-15))
+
+d[1] = ((y[1] - y1) / sin15 - (x[1] - x1) / cos15) / (cos105 / cos15 - sin105 / sin15)
+
+theta[1] = Math.GetDegrees(Math.ArcSin(2 * d[1] / mw))
+
+a1[1] = -15 - theta[1]
+
+a2[1] = -15 + theta[1]
+
+If debug Then
+
+  xr = mw / 2 * Math.Cos(Math.GetRadians(a1[1])) + x[1]
+
+  yr = mw / 2 * Math.Sin(Math.GetRadians(a1[1])) + y[1]
+
+  GraphicsWindow.BrushColor = "Red"
+
+  e1[1] = Shapes.AddEllipse(10, 10)
+
+  Shapes.Move(e1[1], xr - 5, yr - 5)
+
+  xr = mw / 2 * Math.Cos(Math.GetRadians(a2[1])) + x[1]
+
+  yr = mw / 2 * Math.Sin(Math.GetRadians(a2[1])) + y[1]
+
+  GraphicsWindow.BrushColor = "Blue"
+
+  e2[1] = Shapes.AddEllipse(10, 10)
+
+  Shapes.Move(e2[1], xr - 5, yr - 5)
+
+EndIf
+
+Timer.Interval = 500
+
+Timer.Tick = ClearBeam
+
+Timer.Pause()
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+Sub Shoot
+
+  If debug Then
+
+    GraphicsWindow.Title = title + " a1=" + a1[1] + " a2=" + a2[1] + " a=" + angle[1]
+
+  EndIf
+
+  hit = "False"
+
+  GraphicsWindow.PenColor = "Yellow"
+
+  If a1[1] < angle[1] And angle[1] < a2[1] Then
+
+    x2 = x1 + maxlen * cos15
+
+    y2 = y1 + maxlen * sin15
+
+    GraphicsWindow.DrawLine(x1, y1, x2, y2)
+
+  Else
+
+    tana = Math.Tan(Math.GetRadians(angle[1]))
+
+    x2 = (tan15 * x1 - tana * x[1] + y[1] - y1) / (tan15 - tana)
+
+    y2 = tan15 * (x2 - x1) + y1
+
+    GraphicsWindow.DrawLine(x1, y1, x2, y2)
+
+    r[1] = 2 * angle[1] + 15
+
+    sinr1 = Math.Sin(Math.GetRadians(r[1]))
+
+    sinr1_90 = Math.Sin(Math.GetRadians(r[1] - 90))
+
+    cosr1 = Math.Cos(Math.GetRadians(r[1]))
+
+    cosr1_90 = Math.Cos(Math.GetRadians(r[1] - 90))
+
+    tanr1 = Math.Tan(Math.GetRadians(r[1]))
+
+    d[2] = ((y[2] - y2) / sinr1 - (x[2] - x2) / cosr1) / (cosr1_90 / cosr1 - sinr1_90 / sinr1)
+
+    If debug Then
+
+      GraphicsWindow.Title = title + " d[2]=" + d[2]
+
+    EndIf
+
+    If Math.Abs(d[2]) <= mw / 2 Then
+
+      theta[2] = Math.GetDegrees(Math.ArcSin(2 * d[2] / mw))
+
+      a1[2] = r[1] - theta[2]
+
+      If a1[2] < -90 Then
+
+        a1[2] = a1[2] + 180
+
+      EndIf
+
+      If a1[2] >=90 Then
+
+        a1[2] = a1[2] - 180
+
+      EndIf
+
+      a2[2] = r[1] + theta[2]
+
+      If a2[2] < -90 Then
+
+        a2[2] = a2[2] + 180
+
+      EndIf
+
+      If a2[2] >=90 Then
+
+        a2[2] = a2[2] - 180
+
+      EndIf
+
+      If a2[2] < a1[2] Then
+
+        temp = a2[2]
+
+        a2[2] = a1[2]
+
+        a1[2] = temp
+
+      EndIf
+
+      If debug Then
+
+        xr = mw / 2 * Math.Cos(Math.GetRadians(a1[2])) + x[2]
+
+        yr = mw / 2 * Math.Sin(Math.GetRadians(a1[2])) + y[2]
+
+        If e1[2] = "" Then
+
+          GraphicsWindow.PenColor = "Black"
+
+          GraphicsWindow.BrushColor = "Red"
+
+          e1[2] = Shapes.AddEllipse(10, 10)
+
+          GraphicsWindow.PenColor = "Yellow"
+
+        EndIf
+
+        Shapes.ShowShape(e1[2])
+
+        Shapes.Move(e1[2], xr - 5, yr - 5)
+
+        xr = mw / 2 * Math.Cos(Math.GetRadians(a2[2])) + x[2]
+
+        yr = mw / 2 * Math.Sin(Math.GetRadians(a2[2])) + y[2]
+
+        If e2[2] = "" Then
+
+          GraphicsWindow.PenColor = "Black"
+
+          GraphicsWindow.BrushColor = "Blue"
+
+          e2[2] = Shapes.AddEllipse(10, 10)
+
+          GraphicsWindow.PenColor = "Yellow"
+
+        EndIf
+
+        Shapes.ShowShape(e2[2])
+
+        Shapes.Move(e2[2], xr - 5, yr - 5)
+
+        GraphicsWindow.Title = title + " a1=" + a1[2] + " a2=" + a2[2] + " a=" + angle[2]
+
+      EndIf
+
+      If a1[2] < 0 Or a2[2] < 0 Then
+
+        If a1[2] < angle[2] And angle[2] < a2[2] Then
+
+          reflect = "True"
+
+        Else
+
+          reflect = "False"
+
+        EndIf
+
+      Else
+
+        If a1[2] < angle[2] And angle[2] < a2[2] Then
+
+          reflect = "False"
+
+        Else
+
+          reflect = "True"
+
+        EndIf
+
+      EndIF  
+
+      If reflect Then
+
+        tana = Math.Tan(Math.GetRadians(angle[2]))
+
+        x3 = (tanr1 * x2 - tana * x[2] + y[2] - y2) / (tanr1 - tana)
+
+        y3 = tanr1 * (x3 - x2) + y2
+
+        GraphicsWindow.DrawLine(x2, y2, x3, y3)
+
+        r[2] = 2 * angle[2] - r[1]
+
+        x4 = x3 + maxlen * Math.Cos(Math.GetRadians(r[2]))
+
+        y4 = y3 + maxlen * Math.Sin(Math.GetRadians(r[2]))
+
+        GraphicsWindow.DrawLine(x3, y3, x4, y4)
+
+        a = y3 - y4
+
+        b = x4 - x3
+
+        c = -b * y3 - a * x3
+
+        dt = Math.Abs(a * xt + b * yt + c) / Math.SquareRoot(a * a + b * b)
+
+        If dt <= tw / 2 Then
+
+          hit = "True"
+
+        EndIf
+
+      Else
+
+        x3 = x2 + maxlen * Math.Cos(Math.GetRadians(r[1]))
+
+        y3 = y2 + maxlen * Math.Sin(Math.GetRadians(r[1]))
+
+        GraphicsWindow.DrawLine(x2, y2, x3, y3)
+
+        a = y2 - y3
+
+        b = x3 - x2
+
+        c = -b * y2 - a * x2
+
+        dt = Math.Abs(a * xt + b * yt + c) / Math.SquareRoot(a * a + b * b)
+
+        If dt <= tw / 2 Then
+
+          hit = "True"
+
+        EndIf
+
+      EndIf
+
+    Else
+
+      x3 = x2 + maxlen * Math.Cos(Math.GetRadians(r[1]))
+
+      y3 = y2 + maxlen * Math.Sin(Math.GetRadians(r[1]))
+
+      GraphicsWindow.DrawLine(x2, y2, x3, y3)
+
+      a = y2 - y3
+
+      b = x3 - x2
+
+      c = -b * y2 - a * x2
+
+      dt = Math.Abs(a * xt + b * yt + c) / Math.SquareRoot(a * a + b * b)
+
+      If dt <= tw / 2 Then
+
+        hit = "True"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  Timer.Resume()
+
+EndSub
+
+Sub ClearBeam
+
+  Timer.Pause()
+
+  If hit Then
+
+    Shapes.SetOpacity(fire, 50)
+
+    Sound.PlayBellRingAndWait()
+
+    Shapes.SetOpacity(fire, 0)
+
+  EndIf
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillRectangle(0, 0, gw, gh)
+
+EndSub
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  If key = "Space" Then
+
+    Shoot()
+
+  ElseIf key = "J" Then
+
+    angle[1] = angle[1] - 1
+
+    If angle[1] < -90 Then
+
+      angle[1] = 89
+
+    EndIf
+
+    Shapes.Rotate(mirror[1], angle[1])
+
+    If e1[2] <> "" Then
+
+      Shapes.HideShape(e1[2])
+
+    EndIf
+
+    If e2[2] <> "" Then
+
+      Shapes.HideShape(e2[2])
+
+    EndIf
+
+  ElseIf key = "L" Then
+
+    angle[1] = angle[1] + 1
+
+    If angle[1] >= 90 Then
+
+      angle[1] = -90
+
+    EndIf
+
+    Shapes.Rotate(mirror[1], angle[1])
+
+    If e1[2] <> "" Then
+
+      Shapes.HideShape(e1[2])
+
+    EndIf
+
+    If e2[2] <> "" Then
+
+      Shapes.HideShape(e2[2])
+
+    EndIf
+
+  ElseIf key = "S" Then
+
+    angle[2] = angle[2] - 1
+
+    If angle[2] < -90 Then
+
+      angle[2] = 89
+
+    EndIf
+
+    Shapes.Rotate(mirror[2], angle[2])
+
+  ElseIf key = "F" Then
+
+    angle[2] = angle[2] + 1
+
+    If angle[2] >= 90 Then
+
+      angle[2] = -90
+
+    EndIf
+
+    Shapes.Rotate(mirror[2], angle[2])
+
+  EndIf
+
+EndSub
+
+

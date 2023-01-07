@@ -1,0 +1,285 @@
+GraphicsWindow.Width = 640
+
+GraphicsWindow.Height = 480
+
+GraphicsWindow.CanResize = "False"
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.MouseUp = OnMouseUp
+
+Timer.Tick = OnTimerTick
+
+Timer.Interval = 50 ' This is how often the Timer.Tick subroutine will be called 30fps
+
+Timer.Pause()
+
+
+
+checkforvertical = 0
+
+gameover = 0
+
+score = 0
+
+t=0
+
+h=0
+
+x=0
+
+v=70 'Upward Velocity
+
+g=50 'Gravity
+
+ballsize = 56
+
+currentheight = 320
+
+windowheight = GraphicsWindow.Height
+
+rectanglewidth = 50
+
+gap = 200
+
+
+
+setup()
+
+
+
+ball=Shapes.AddEllipse(ballsize,ballsize)
+
+Shapes.Move(ball,200,320)
+
+
+
+'ball = Shapes.AddImage(Program.Directory+"/images/marioD.png")
+
+
+
+Timer.Resume()
+
+
+
+Sub setup
+
+  
+
+  checkforvertical = 0
+
+  rectanglex = 650   ' Set the rectangle to be at the right side of the screen
+
+  rectangleheight = Math.GetRandomNumber(windowheight)     ' Get a random y value to determine the height
+
+  
+
+  
+
+  If rectangleheight > 400 Then  ' If the height is too high, reset it to 380
+
+    rectangleheight = 380
+
+  EndIf
+
+  rectangley = windowheight - rectangleheight 
+
+  
+
+  ' '============================================================
+
+  'bug fix, by jibba jabba 19/2/14
+
+  '============================================================
+
+  rectangletop_height = Math.Max(5, windowheight-rectangleheight-gap)
+
+  
+
+  If rectangletop_height <= 0 Then
+
+    TextWindow.WriteLine("error")    
+
+  EndIf
+
+  '================================================================
+
+  
+
+  
+
+  rectangletop = Shapes.AddRectangle(25, rectangletop_height ) 
+
+  
+
+  Shapes.Move(rectangletop, 650,0)
+
+  
+
+  rectanglebottom = Shapes.AddRectangle(25,rectangleheight)
+
+  
+
+  Shapes.Move(rectanglebottom, 650, rectangley)
+
+  topboundry = Shapes.GetTop(rectanglebottom)-gap
+
+  bottomboundry = Shapes.GetTop(rectanglebottom) 
+
+  
+
+EndSub
+
+
+
+Sub OnTimerTick
+
+  If gameover=0 Then
+
+    t = t + .1
+
+    h = windowheight - (-1*.5*g*t*t+v*t+currentheight) 
+
+    rectanglex = rectanglex - 5
+
+    Shapes.Move(rectanglebottom, rectanglex, rectangley)
+
+    Shapes.Move(rectangletop, rectanglex, 0)
+
+    If rectanglex <= 0 Then 
+
+      rectanglex = 650   
+
+      Shapes.Remove(rectanglebottom)
+
+      Shapes.Remove(rectangletop)
+
+      setup()
+
+    EndIf
+
+  EndIf
+
+  
+
+  If h >= 475 And gameover=0 Then
+
+    gameover = 1
+
+    GraphicsWindow.ShowMessage("Game Over!  You hit the bottom!", "Game Over") 
+
+    Program.End()
+
+  ElseIf h<=-10 And gameover=0 Then
+
+    gameover = 1
+
+    GraphicsWindow.ShowMessage("Game Over!  You hit the top!", "Game Over")  
+
+    Program.End()
+
+  Else
+
+    collision()
+
+    Shapes.Move(ball,200,h) 
+
+  EndIf
+
+EndSub
+
+
+
+Sub collision
+
+  ballleftC = Shapes.GetLeft(ball)
+
+  ballrightC = Shapes.GetLeft(ball) + 25
+
+  rectangleleftC = Shapes.GetLeft(rectanglebottom)
+
+  rectanglerightC = Shapes.GetLeft(rectanglebottom)+25
+
+  balltop = Shapes.GetTop(ball)
+
+  ballbottom = Shapes.GetTop(ball) + ballsize
+
+  
+
+  If (ballrightC>rectangleleftC) AND (ballleftC<rectanglerightC) Then
+
+    checkforvertical = 1
+
+  Else
+
+    checkforvertical = 0
+
+  EndIf
+
+  If checkforvertical = 1 AND gameover = 0 Then
+
+    If balltop <= topboundry AND gameover = 0 Then
+
+      gameover = 1
+
+      GraphicsWindow.ShowMessage("Game Over!  You hit the top of the wall!", "Game Over") 
+
+      Program.End()     
+
+    ElseIf ballbottom >= bottomboundry AND (gameover = 0) Then
+
+      gameover = 1
+
+      GraphicsWindow.ShowMessage("Game Over!  You hit the bottom of the wall!", "Game Over") 
+
+      Program.End()
+
+    Else
+
+      checkforvertical = 0
+
+      'score = score + 1
+
+      'GraphicsWindow.Title="Score: " + score
+
+    EndIf   
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  'Shapes.Remove(ball)
+
+  ' ball=Shapes.AddImage(Program.Directory+"\images\marioD.png")
+
+  If Mouse.IsLeftButtonDown Then
+
+    currentheight = windowheight - h
+
+    Shapes.Move(ball, 200, h)
+
+    t=0
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+Sub OnMouseUp
+
+  'Shapes.Remove(ball)
+
+  ' ball=Shapes.AddImage(Program.Directory+"\images\marioU.png")
+
+  Shapes.Move(ball,200,h)
+
+EndSub
+
+

@@ -1,0 +1,413 @@
+' Wildcard
+
+' Copyright © 2014 Nonki Takahashi.  The MIT License.
+
+' Version 0.1
+
+' Last update 2014-11-18
+
+'
+
+TextWindow.Title = "Wildcard 0.1"
+
+Not = "False=True;True=False;"
+
+folder = Program.Directory
+
+TextWindow.WriteLine("[" + folder + "]")
+
+While "True"
+
+  TextWindow.WriteLine("")
+
+  TextWindow.Write("Path? ")
+
+  kw = Text.ConvertToLowerCase(TextWindow.Read())
+
+  TextWindow.WriteLine("")
+
+  ParseKeyword()
+
+  'DumpKwb()
+
+' The following line could be harmful and has been automatically commented.
+
+'   dirs = File.GetDirectories(folder)
+
+  len = Text.GetLength(folder + "\")
+
+  For i = 1 To Array.GetItemCount(dirs)
+
+    txtCase = Text.GetSubTextToEnd(dirs[i], len + 1)
+
+    txt = Text.ConvertToLowerCase(txtCase)
+
+    IsMatch()
+
+    If match Then
+
+      TextWindow.WriteLine("[" + txtCase + "]")
+
+    EndIf
+
+  EndFor
+
+' The following line could be harmful and has been automatically commented.
+
+'   files = File.GetFiles(folder)
+
+  For i = 1 To Array.GetItemCount(files)
+
+    txtCase = Text.GetSubTextToEnd(files[i], len + 1)
+
+    txt = Text.ConvertToLowerCase(txtCase)
+
+    IsMatch()
+
+    If match Then
+
+      TextWindow.WriteLine(txtCase)
+
+    EndIf
+
+  EndFor
+
+EndWhile
+
+Sub ParseKeyword
+
+  ' create array kwb (keyword block)
+
+  ' param kw - keyword including wildcard "*" or/and "?"
+
+  ' return kwb[][]
+
+  lKw = Text.GetLength(kw)
+
+  kwb = ""
+
+  iKwb = 1
+
+  iTx = ""
+
+  iITx = 0
+
+  For pKw = 1 To lKw
+
+    cKw = Text.GetSubText(kw, pKw, 1)
+
+    If kwb[iKwb] = "" Then
+
+      If cKw = "?" Then
+
+        kwb[iKwb]["wc"] = 1
+
+      ElseIf cKw = "*" Then
+
+        kwb[iKwb]["wc"] = "0+"
+
+      Else
+
+        kwb[iKwb]["tx"] = cKw
+
+        iITx = iITx + 1
+
+        iTx[iITx] = iKwb
+
+      EndIf
+
+    ElseIf kwb[iKwb]["wc"] <> "" Then
+
+      If cKw = "?" And Text.EndsWith(kwb[iKwb]["wc"], "+") Then
+
+        kwb[iKwb]["wc"] = Text.Append(Text.GetSubText(kwb[iKwb]["wc"], 1, Text.GetLength(kwb[iKwb]["wc"]) - 1) + 1, "+")
+
+      ElseIf cKw = "?" Then
+
+        kwb[iKwb]["wc"] = kwb[iKwb]["wc"] + 1
+
+      ElseIf cKw = "*" And Text.EndsWith(kwb[iKwb]["wc"], "+") Then
+
+      ElseIf cKw = "*" Then
+
+        kwb[iKwb]["wc"] = Text.Append(kwb[iKwb]["wc"], "+")
+
+      Else
+
+        iKwb = iKwb + 1
+
+        kwb[iKwb]["tx"] = cKw
+
+        iITx = iITx + 1
+
+        iTx[iITx] = iKwb
+
+      EndIf
+
+    Else
+
+      If cKw = "?" Then
+
+        iKwb = iKwb + 1
+
+        kwb[iKwb]["wc"] = 1
+
+      ElseIf cKw = "*" Then
+
+        iKwb = iKwb + 1
+
+        kwb[iKwb]["wc"] = "0+"
+
+      Else
+
+        kwb[iKwb]["tx"] = Text.Append(kwb[iKwb]["tx"], cKw)
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub DumpKwb
+
+  For i = 1 To Array.GetItemCount(kwb)
+
+    TextWindow.Write(kwb[i])
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine(iTx)
+
+EndSub
+
+Sub IsMatch
+
+  ' param txt - text to search
+
+  ' param kwb[][] - keyword block
+
+  ' return match - "True" if match
+
+  lTxt = Text.GetLength(txt)
+
+  lvl = 1
+
+  nTx = Array.GetItemCount(iTx)
+
+  nKwb = Array.GetItemCount(kwb)
+
+  ks = 1
+
+  If nTx = 0 Then
+
+    ke = 1
+
+  Else
+
+    ke = iTx[lvl] - 1
+
+  EndIf
+
+  GetTotalLength()
+
+  If nTx = 0 Then
+
+    If lTxt = l Or (extra And l < lTxt) Then
+
+      match = "True"
+
+    Else
+
+      match = "False"
+
+    EndIf
+
+  Else
+
+    pTxt = 1
+
+    Level()
+
+  EndIf
+
+EndSub
+
+Sub Level
+
+  ' param lvl - level (nth subtext)
+
+  ' param nTx - number of subtext
+
+  ' param pTxt - start index for text to search in this level 
+
+  ks = iTx[lvl] + 1
+
+  ke = nKwb
+
+  GetTotalLength()
+
+  For pTxt = pTxt To lTxt - l
+
+    IsMatchNext()
+
+    If match Then
+
+      pTxt = lTxt - l   ' break (found)
+
+    ElseIf pTxt < lTxt - l Then
+
+      If s = 0 Then
+
+        pTxt = lTxt - l ' break (not found)
+
+      Else
+
+        pTxt = s
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+Endsub
+
+Sub IsMatchNext
+
+  ' param lvl - current subtext index
+
+  ' param pTxt - start index to search
+
+  ' return match - "True" if match all trailing subtexts
+
+  ' return s - start index of matched next subtext
+
+  match = "True"
+
+  ks = iTx[lvl] - 1
+
+  ke = iTx[lvl] - 1
+
+  GetTotalLength()
+
+  pTxt = pTxt + l
+
+  s = Text.GetIndexOf(Text.GetSubTextToEnd(txt, pTxt), kwb[iTx[lvl]]["tx"])
+
+  If 0 < s And Not[extra] And (s <> 1) Then
+
+    s = 0
+
+  EndIf
+
+  If s = 0 Then
+
+    match = "False"
+
+  Else
+
+    ' caluculate matched subtext start and end indices
+
+    s = pTxt + s - 1
+
+    e = s + Text.GetLength(kwb[iTx[lvl]]["tx"]) - 1
+
+    If (iTx[lvl] = nKwb) And (e < lTxt) Then
+
+      match = "False"
+
+    ElseIf iTx[lvl] + 1 = nKwb Then
+
+      ' check last wildcard
+
+      ks = nKwb
+
+      ke = nKwb
+
+      GetTotalLength()
+
+      If e + l = lTxt Then 
+
+        ' match
+
+      ElseIf extra And (e + l < lTxt) Then 
+
+        ' match
+
+      Else
+
+        match = "False"
+
+      EndIf
+
+    ElseIf lvl < nTx Then
+
+      '  next level
+
+      Stack.PushValue("local", lvl)
+
+      Stack.PushValue("local", s)
+
+      lvl = lvl + 1
+
+      pTxt = e + 1
+
+      Level()
+
+      s = Stack.PopValue("local")
+
+      lvl = Stack.PopValue("local")
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub GetTotalLength
+
+  ' param ks - start index for kwb (keyword block)
+
+  ' param ke - end index for kwb (keyword block)
+
+  ' return l - total length from kwb[ks] to kwb[ke]
+
+  ' return extra - "True" if "*" included
+
+  l = 0
+
+  extra = "False"
+
+  For k = ks To ke
+
+    If Text.StartsWith(kwb[k], "wc") Then
+
+      If Text.EndsWith(kwb[k]["wc"], "+") Then
+
+        extra = "True"
+
+        l = l + Text.GetSubText(kwb[k]["wc"], 1, Text.GetLength(kwb[k]["wc"]) - 1)
+
+      Else
+
+        l = l + kwb[k]["wc"]
+
+      EndIf
+
+    Else
+
+      l = l + Text.GetLength(kwb[k]["tx"])
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+      
+
+

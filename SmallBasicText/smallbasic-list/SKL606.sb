@@ -1,0 +1,549 @@
+'  Challenge of the month  September 2013     Atari command game   By  NaochanON  
+
+
+
+GUI()
+
+GraphicsWindow.MouseMove=onmove
+
+GraphicsWindow.MouseDown=ondown
+
+
+
+While Game<>"End" And  Stage<11
+
+  Alarm()
+
+  bombNMBcheck()
+
+  bombmove()
+
+  missile_move()
+
+  missile_Hitcheck()
+
+  Bomb_attackcheck()
+
+  Program.Delay(30)
+
+endwhile
+
+endmessage()
+
+
+
+Sub Alarm
+
+  if math.Remainder(Math.Floor((Clock.ElapsedMilliseconds-t0)/1000),3)=0 Then    '   Alarm  every 3 second 
+
+    Sound.Stop(SAlarm)
+
+    Sound.Play(SAlarm)  
+
+  EndIf
+
+EndSub
+
+
+
+Sub bombNMBcheck
+
+  if LastBNMB<1 Then 
+
+    If BCNT=0 Then 
+
+      score=score+100
+
+      plusMSG="   Bonus   100points "
+
+      showscore()
+
+    EndIf
+
+    bombadd()
+
+  EndIf
+
+EndSub
+
+
+
+Sub bombmove
+
+  For L= 1 To BNMB
+
+    Shapes.Remove(sline[L])
+
+    GraphicsWindow.PenColor=color[2]
+
+    Shapes.Move(SBomb[L],Shapes.GetLeft(SBomb[L])+ddy[L]*math.Sin(BRangle[L]),Shapes.Gettop(SBomb[L])+ddy[L]*math.cos(BRangle[L]))
+
+    sline[L]= Shapes.AddLine(BXY0[L]["X"],BXY0[L]["Y"],Shapes.GetLeft(SBomb[L])+2, Shapes.Gettop(SBomb[L]))  '  Redraw the line
+
+  EndFor
+
+EndSub
+
+
+
+Sub missile_move
+
+  For i=start To MSCNT
+
+    Shapes.Move(missile[i],Shapes.GetLeft(missile[i])+10*math.Sin(Rangle[i]),Shapes.Gettop(missile[i])-10*math.cos(Rangle[i]))
+
+  EndFor
+
+EndSub
+
+
+
+Sub missile_Hitcheck
+
+  For i=start To MSCNT
+
+    For M=1 To BNMB
+
+      If  math.Abs(Shapes.GetLeft(missile[i])-Shapes.GetLeft(SBomb[M])-4)<10 And math.Abs(Shapes.Gettop(missile[i])-Shapes.Gettop(SBomb[M])-4)<5 Then 
+
+        EXNMB=EXNMB+1
+
+        showExplosion()
+
+        score=score+20
+
+        showscore()
+
+        Shapes.move(SBomb[M],500,-1500)     '  to  avoid  double count
+
+        Shapes.move(sline[M],500,-1500)
+
+        Shapes.move(missile[i],500,-1500)   '  to  avoid  double count
+
+        Sound.Stop(SBomber)
+
+        Sound.Play(SBomber) 
+
+        LastBNMB=LastBNMB-1
+
+        M=BNMB
+
+      EndIf
+
+    EndFor
+
+  endfor
+
+EndSub
+
+
+
+Sub Bomb_attackcheck
+
+  For M=1 To BNMB
+
+    If  Shapes.Gettop(SBomb[M])>575 Then    '  bomb reached to ground
+
+      Bomb_Explosion()  
+
+    Else
+
+      For P=1 To 6
+
+        If Math.abS(Shapes.GetLeft(SBomb[M])-(Shapes.GetLeft(BLDG[P][1])+22.5))<23 And Shapes.Gettop(SBomb[M])>570 Then 
+
+          score=score-60
+
+          plusMSG="   Minus   100points "
+
+          Bomb_Explosion()  
+
+          BLDCrash=BLDCrash+1
+
+          For Q=1 To 9
+
+            Shapes.move(BLDG[P][Q],-500,-1500) '  erase buildings   //  to  avoid  double count
+
+          endfor
+
+        EndIf
+
+      endfor 
+
+      If Math.abS(Shapes.GetLeft(SBomb[M])-(Shapes.GetLeft(Base)+25))<25 and Shapes.Gettop(SBomb[M])>570 then 
+
+        score=score-160
+
+        plusMSG="   Minus   200points "
+
+        Bomb_Explosion() 
+
+        Sound.Stop(SBomber2)
+
+        Sound.Play(SBomber2)
+
+        Shapes.Remove(Base)
+
+        Shapes.Remove(Canon)
+
+        BLDCrash=6
+
+      EndIf
+
+      If BLDCrash=6 then 
+
+        endmessage()
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub Bomb_Explosion
+
+  BCNT=BCNT+1
+
+  EXNMB=EXNMB+1
+
+  showExplosion()
+
+  Shapes.move(SBomb[M],500,-1500) '  to  avoid  double count
+
+  Shapes.move(sline[M],500,-1500) '  to  avoid  double count
+
+  LastBNMB=LastBNMB-1
+
+  score=score-40
+
+  showscore()
+
+  Sound.Stop(Sexplo)
+
+  Sound.Play(Sexplo) 
+
+EndSub
+
+
+
+Sub showExplosion
+
+  Shapes.SetOpacity(Exp[math.Floor(EXNMB)],100)    '  show  explosion
+
+  Shapes.Move(Exp[math.Floor(EXNMB)],Shapes.GetLeft(SBomb[M]),Shapes.GetTop(SBomb[M]))
+
+  EXPWH=2+math.GetRandomNumber(4)
+
+  Shapes.Rotate(Exp[math.Floor(EXNMB)],180/EXPWH)
+
+  For JJ=1 To 30
+
+    Shapes.Zoom(Exp[math.Floor(EXNMB)],1+jj/5,1+jj/EXPWH)
+
+    Program.Delay(5)
+
+  EndFor
+
+  Shapes.SetOpacity(Exp[math.Floor(EXNMB)],100*(1-jj/20))
+
+  If EXNMB=BNMB Then 
+
+    EXNMB=0
+
+  EndIf
+
+EndSub
+
+
+
+Sub showscore
+
+  Shapes.SetText(SSCore,Text.GetSubText((10000+score),2,4)+plusMSG)
+
+  If score<0 Then 
+
+    endmessage()
+
+    Shapes.SetText(SSCore,"********")
+
+  EndIf
+
+EndSub
+
+
+
+Sub bombadd
+
+  Stage=Stage+1
+
+  GraphicsWindow.Title=" Now  stage is ....  "+Stage
+
+  For k=1 To MSCNT
+
+    shapes.Remove(SBomb[k])
+
+    shapes.Remove(Sline[k])
+
+    Shapes.Remove(missile[k])
+
+  EndFor
+
+  plusMSG=""
+
+  BCNT=0
+
+  MSCNT=0
+
+  start=1
+
+  HT=""
+
+  color="1=Red;2=Yellow;3=Green;4=Blue;5=Lightcyan;6=White;7=Pink"
+
+  BNMB= 2+Math.GetRandomNumber(5)
+
+  GraphicsWindow.brushColor=color[BNMB]
+
+  GraphicsWindow.PenColor=color[BNMB]
+
+  For k=1 To BNMB
+
+    SBomb[k]=Shapes.AddEllipse(8,8)
+
+    Shapes.Move(SBomb[k],100+Math.GetRandomNumber(800),-5-Math.GetRandomNumber(100)) 
+
+    BRangle[k]=Math.GetRadians(15-math.GetRandomNumber(30)) 
+
+    BXY0[k]="X="+Shapes.GetLeft(SBomb[k])+";Y="+Shapes.Gettop(SBomb[K])   '   start position
+
+    DDY[k]=1+Stage/3 +Math.GetRandomNumber(100)/100   ' Stage/3.... speed up 
+
+  EndFor
+
+  LastBNMB=BNMB  
+
+EndSub
+
+
+
+Sub onmove
+
+  MX=GraphicsWindow.MouseX
+
+  MY=GraphicsWindow.MouseY
+
+  Shapes.Move(Mark,MX,MY)
+
+  angle= math.GetDegrees(Math.ArcTan((MX+10-500)/(575-(MY+10))))  
+
+  Shapes.Rotate(canon,angle)
+
+EndSub
+
+
+
+Sub ondown
+
+  If Mouse.IsLeftButtonDown Then 
+
+    If (Clock.ElapsedMilliseconds-t0)>200 Then 
+
+      MSCNT=MSCNT+1
+
+      GraphicsWindow.PenColor=GraphicsWindow.GetRandomColor()
+
+      missile[MSCNT]=Shapes.AddEllipse(6,6)                       '  Missile 
+
+      Rangle[MSCNT]=Math.GetRadians(angle)
+
+      Shapes.Move(missile[MSCNT],500+40*Math.Sin(Rangle[MSCNT])-2,575-40*Math.cos(Rangle[MSCNT])-2)
+
+      Sound.Stop(SMissile)
+
+      Sound.Play(SMissile) 
+
+      t0= Clock.ElapsedMilliseconds
+
+    endif
+
+  EndIf  
+
+EndSub
+
+
+
+Sub endmessage
+
+  Game="End"
+
+  Shapes.Animate(Endmsg,700,200,2000)
+
+endsub
+
+
+
+Sub GUI
+
+  GraphicsWindow.Hide()
+
+  GraphicsWindow.Width=1100
+
+  GraphicsWindow.Height=620
+
+  GraphicsWindow.BackgroundColor="black"
+
+  '-------------------------------------------------------------------
+
+  Mouse.HideCursor()
+
+  SAlarm=program.Directory+"\Alarm.mp3" 
+
+  Sexplo=program.Directory+"\Bomb.mp3"
+
+  SBomber=program.Directory+"\Bomb.mp3"
+
+  SBomber2=program.Directory+"\Bigbang.wav"
+
+  SMissile=program.Directory+"\Missile.mp3"'
+
+  '-------------------------------------------------------------------
+
+  GraphicsWindow.BrushColor="white"
+
+  GraphicsWindow.PenColor="Yellow"
+
+  For J=1 To 6
+
+    For i=1 To 9
+
+      DY=35+Math.GetRandomNumber(40)
+
+      BLDG[j][i]=Shapes.AddRectangle(5,DY)                '  Buildings 
+
+      BXY="X="+(100+(j-1)*150+(i-1)*5)+";Y="+(600-DY)
+
+      Shapes.Move(BLDG[j][i],BXY["X"],BXY["Y"])
+
+    EndFor
+
+  EndFor
+
+  '-------------------------------------------------------------------
+
+  GraphicsWindow.BrushColor="Red"
+
+  GraphicsWindow.PenColor="Red"
+
+  canon=Shapes.AddRectangle(6,80)                 '  Canon
+
+  Shapes.Move(canon,497,540)
+
+  GraphicsWindow.BrushColor="Darkgreen"
+
+  GraphicsWindow.PenColor="Darkgreen"
+
+  base= Shapes.AddEllipse(50,50)                  '   Canon base 
+
+  Shapes.Move(base,475,550)
+
+  '-------------------------------------------------------------------
+
+  GraphicsWindow.BrushColor="Black"
+
+  GraphicsWindow.PenColor="Black"
+
+  mask= Shapes.AddRectangle(1000,200)             '  only mask
+
+  Shapes.Move(mask,0,575)
+
+  '-------------------------------------------------------------------
+
+  GraphicsWindow.BrushColor="white"
+
+  GraphicsWindow.FontSize=20
+
+  Mark= Shapes.AddText("+")                      '   target mark
+
+  Shapes.Move(Mark,500,150)
+
+  '-------------------------------------------------------------------
+
+  MSG= Shapes.AddText("Score:")                  '   message
+
+  Shapes.Move(MSG,400,580)
+
+  GraphicsWindow.BrushColor="Red"
+
+  Sscore= Shapes.AddText("00000")                 '  Score 
+
+  Shapes.Move(Sscore,470,580)
+
+  '-------------------------------------------------------------------
+
+  GraphicsWindow.BrushColor="Yellow"
+
+  GraphicsWindow.PenColor="Yellow"
+
+  GraphicsWindow.FontSize=30
+
+  For j=1 To 7
+
+    Exp[j]= Shapes.AddEllipse(10,10)               '  Explosion 
+
+    Shapes.Move(Exp[j],500,-500) 
+
+    Plane[j]= Shapes.AddText(Text.GetCharacter(2*16*16*16+7*16*16+0*16+8))  '   Unicode  2709
+
+    Shapes.Move(Plane[j],-300+j*10,-20+20*j)
+
+  EndFor
+
+  Endmsg= Shapes.AddText(" The End !!!!")
+
+  Shapes.Move(Endmsg,-500,200)
+
+  '-------------------------------------------------------------------
+
+  CRLF= Text.GetCharacter(13)+Text.GetCharacter(10)
+
+  HelpMSG="Play 10 stages."+CRLF+"IF missile hits a bomb, +20 point"+CRLF +"IF all bombs are hit without bomb explosion, bonus point +100"+CRLF
+
+  HelpMSG=HelpMSG+"IF Building is bombed, minus 100 points"+CRLF+"IF score becomes <=0 , Game END "+CRLF
+
+  HelpMSG=HelpMSG+"IF all buildings are bombed, Game END "+CRLF+"IF your canon is bombed, Game END "
+
+  SHelp=Shapes.AddText(HelpMSG)
+
+  Shapes.Move(SHelp,300,200)
+
+  '-------------------------------------------------------------------
+
+  GraphicsWindow.Show()
+
+  Sound.PlayAndWait(SAlarm)  
+
+  For j=1 To 7
+
+    Shapes.Animate(Plane[j],1200+100*j,100+15*j,5500)
+
+  endfor 
+
+  Program.Delay(6000)
+
+  Shapes.remove(SHelp)
+
+  start=1
+
+  Game="Start"
+
+  t0=clock.ElapsedMilliseconds
+
+EndSub
+
+
+
+

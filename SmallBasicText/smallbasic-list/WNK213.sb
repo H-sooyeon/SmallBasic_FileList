@@ -1,0 +1,591 @@
+' vCAL - visual Calendar
+
+' Copyright ¬© 1986-2016 Nonki  Takahashi.  The MIT License.
+
+
+
+' History:
+
+'  0.5 2016-01-13 Supported holidays and graphics.
+
+'  0.4 2015-12-27 Supported quoter, removed Goto, bug fixed.
+
+'  0.3 2012-07-28 Rewrote for Sundial. (123 lines, published as MTW971)
+
+'  0.2 2011-05-03 Rewrote for Edo clock. (123 lines)
+
+'  0.1 2010-02-08 Converted to Small Basic Program. (107 lines)
+
+'  0.0 1986-??-?? Created as F-BASIC program.
+
+
+
+' Reference:
+
+' [1] H.SASAKI: IBM-JX 1st. step ?Éö?Éº?Éë?Éº?ÇΩ?Éï?Éà?ÅÆÊ•Ω„Åó?Åø?ñπ (Â≠??†î, 1985)
+
+
+
+' Main
+
+GraphicsWindow.Title = "vCAL - visual Calendar 0.5"
+
+debug = "False"
+
+Not = "True=False;False=True;"
+
+AMP = "&"
+
+CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
+
+LT = "<"
+
+WQ = Text.GetCharacter(34)
+
+Form()
+
+Cal_Init()
+
+CalcBorder()
+
+year = 2016
+
+If Math.Remainder(year, 4) = 0 And Math.Remainder(year, 100) > 0 Or Math.Remainder(year, 400) = 0 Then
+
+  dom[2] = 29
+
+Endif
+
+nol = Math.Floor((year - 1) / 4) - Math.Floor((year - 1) / 100) + Math.Floor((year - 1) / 400)  ' number of leap year
+
+woy = Math.Remainder((year + nol), 7)  ' week of year
+
+GraphicsWindow.BrushColor = "Black"
+
+For col = 1 To 3
+
+  PrintColumn()
+
+EndFor
+
+MarkHolidays()
+
+MarkToday()
+
+GraphicsWindow.PenWidth = 1
+
+GraphicsWindow.PenColor = "#FF0000"
+
+GraphicsWindow.BrushColor = "#00FFFFFF"
+
+mark = Shapes.AddRectangle(dx, dy)
+
+mouseMoved = "False"
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+While "True"
+
+  If mouseMove Then
+
+    x = mx
+
+    y = my
+
+    Pos2Date()
+
+    If date <> "" Then
+
+      Date2Pos()
+
+      Shapes.Move(mark, x, y)
+
+    EndIf
+
+    mouseMove = "False"
+
+  EndIf
+
+  If mouseDown Then
+
+    x = mx
+
+    y = my
+
+    Pos2Date()
+
+    If Array.ContainsIndex(holiday, date) Then
+
+      GraphicsWindow.ShowMessage(holiday[date], date)
+
+    EndIf
+
+    mouseDown = "False"
+
+  EndIf
+
+EndWhile
+
+' Subroutines
+
+Sub MarkHolidays
+
+  nHoliday = Array.GetItemCount(holiday)
+
+  dates = Array.GetAllIndices(holiday)
+
+  GraphicsWindow.BrushColor = "#80FF0000"
+
+  For i = 1 To nHoliday
+
+    date = dates[i]
+
+    Date2Pos()
+
+    GraphicsWindow.FillRectangle(x, y, dx, dy)
+
+  EndFor
+
+EndSub
+
+Sub MarkToday
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "#0000FF"
+
+  date = 2016
+
+  month = Clock.Month
+
+  If month < 10 Then
+
+    mm = Text.Append(0, month)
+
+  Else
+
+    mm = month
+
+  EndIf
+
+  date = Text.Append(date, mm)
+
+  day = Clock.Day
+
+  If day < 10 Then
+
+    dd = Text.Append(0, day)
+
+  Else
+
+    dd = day
+
+  EndIf
+
+  date = Text.Append(date, dd)
+
+  Date2Pos()
+
+  GraphicsWindow.DrawRectangle(x, y, dx, dy)
+
+EndSub
+
+Sub CalcBorder
+
+  If debug Then
+
+    GraphicsWindow.PenColor = "LightGray"
+
+  EndIf
+
+  _y1 = 0
+
+  _y2 = gh
+
+  dx = 19.85
+
+  For col = 1 To 3
+
+    x1[col] = x0 + (col - 1) * cw
+
+    x2[col] = x0 + (col - 1) * cw + 7 * dx
+
+    If debug Then
+
+      For x = x1[col] To x2[col]  Step dx
+
+        GraphicsWindow.DrawLine(x, _y1, x, _y2)
+
+      EndFor
+
+    EndIf
+
+  EndFor
+
+  _x1 = 0
+
+  _x2 = gw
+
+  dy = 10.55
+
+  rh = dy * 9
+
+  For row = 1 To 4
+
+    y1[row] = y0 + (row - 1) * rh + 3 * dy
+
+    y2[row] = y0 + (row - 1) * rh + 9 * dy
+
+    If debug Then
+
+      For y = y1[row] To y2[row]  Step dy
+
+        GraphicsWindow.DrawLine(_x1, y, _x2, y)
+
+      EndFor
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub Date2Pos
+
+  ' param date - 2016mmdd
+
+  ' return x, y - left top position of the date
+
+  month = Text.GetSubText(date, 5, 2) * 1
+
+  day = Text.GetSubText(date, 7, 2) * 1
+
+  row = Math.Remainder(month - 1, 4) + 1
+
+  col = Math.Floor((month - 1) / 4) + 1
+
+  dow = Math.Remainder(day + d1ow[month] - 1, 7)
+
+  week = Math.Floor((day + d1ow[month] - 1) / 7) + 1
+
+  x = x1[col] + dow * dx
+
+  y = y1[row] + (week - 1) * dy
+
+  If debug Then
+
+    TextWindow.WriteLine("month=" + month)
+
+    TextWindow.WriteLine("day=" + day)
+
+    TextWindow.WriteLine("row=" + row)
+
+    TextWindow.WriteLine("col=" + col)
+
+    TextWindow.WriteLine("dow=" + dow)
+
+    TextWindow.WriteLine("week=" + week)
+
+    TextWindow.WriteLine("d1ow=" + d1ow[month])
+
+    TextWindow.Pause()
+
+  EndIf
+
+EndSub
+
+Sub Pos2Date
+
+  ' param x, y - position of the date
+
+  ' return date - 2016mmdd
+
+  date = 2016
+
+  mcol = 0  ' mouse column
+
+  For col = 1 To 3
+
+    If x1[col] < x And x < x2[col] Then
+
+      mcol = col
+
+      col = 3 ' exit for
+
+    EndIf
+
+  EndFor
+
+  mrow = 0  ' mouse row
+
+  For row = 1 To 4
+
+    If y1[row] < y And y < y2[row] Then
+
+      mrow = row
+
+      row = 4 ' exit for
+
+    EndIf
+
+  EndFor
+
+  If 0 < mcol And 0 < mrow Then
+
+    month = mrow + (mcol - 1) * 4
+
+    week = Math.Floor((my - y1[mrow]) / dy) + 1
+
+    dow = Math.Floor((mx - x1[mcol]) / dx)
+
+    If month < 10 Then
+
+      mm = Text.Append(0, month)
+
+    Else
+
+      mm = month
+
+    EndIf
+
+    date = Text.Append(date, mm)
+
+    day = (week - 2) * 7 + (7 - d1ow[month]) + dow + 1
+
+    If day < 1 Then
+
+      date = ""
+
+    ElseIf day < 10 Then
+
+      dd = Text.Append(0, day)
+
+      date = Text.Append(date, dd)
+
+    ElseIf day <= dom[month] Then
+
+      dd = day
+
+      date = Text.Append(date, dd)
+
+    Else
+
+      date = ""
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub PrintColumn
+
+  ' param col - column 
+
+  doy = 0  ' days of year
+
+  nom = 1  ' number of month
+
+  m0 = 1 + (col - 1) * 4
+
+  m1 = 4 + (col - 1) * 4
+
+  buf = ""
+
+  For m = m0 To m1
+
+    While nom < m
+
+      doy = doy + dom[nom]
+
+      nom = nom + 1
+
+    EndWhile
+
+    Cal_PrintMonth()
+
+  EndFor
+
+  GraphicsWindow.DrawText(x0 + (col - 1 ) * cw, y0, buf)
+
+Endsub
+
+Sub Form
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "White"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontName = "Consolas"
+
+  GraphicsWindow.FontSize = 9
+
+  x0 = 26
+
+  y0 = 20
+
+  cw = 200  ' column width
+
+EndSub
+
+Sub OnMouseDown
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  mouseDown = "True"
+
+EndSub
+
+Sub OnMouseMove
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  mouseMove = "True"
+
+EndSub
+
+Sub Cal_Init
+
+  ' Calender | Initialize days of month
+
+  dom = "1=31;2=28;3=31;4=30;5=31;6=30;7=31;8=31;9=30;10=31;11=30;12=31;"
+
+  name = "1=January;2=February;3=March;4=April;5=May;6=June;7=July;"
+
+  name = name + "8=August;9=September;10=October;11=November;12=December;"
+
+  week = "0=Sunday;1=Monday;2=Tuesday;3=Wednesday;4=Thursday;5=Friday;"
+
+  week = week + "6=Saturday;"
+
+  holiday[20160101] = "New Year's Day"
+
+  holiday[20160111] = "Coming of Age Day"
+
+  holiday[20160211] = "Foundation Day"
+
+  holiday[20160320] = "Vernal Equinox Day"
+
+  holiday[20160321] = "substitute holiday"
+
+  holiday[20160429] = "Showa Day"
+
+  holiday[20160503] = "Constitution Memorial Day"
+
+  holiday[20160504] = "Greenery Day"
+
+  holiday[20160505] = "Children's Day"
+
+  holiday[20160718] = "Marine Day"
+
+  holiday[20160811] = "Mountain Day"
+
+  holiday[20160919] = "Respect for the Aged Day"
+
+  holiday[20160922] = "Autumnal Equinox Day"
+
+  holiday[20161010] = "Health and Sports Day"
+
+  holiday[20161103] = "Culture Day"
+
+  holiday[20161123] = "Labor Thanksgiving Day"
+
+  holiday[20161223] = "The Emperor's Birthday"
+
+EndSub
+
+Sub Cal_PrintMonth
+
+  ' Calender | Print month
+
+  ' param year - year
+
+  ' param m - month
+
+  ' param doy - days of year
+
+  ' param woy - week of year
+
+  w = Math.Remainder((doy + woy), 7)
+
+  buf = buf + "         "
+
+  n = Math.Ceiling((9 - Text.GetLength(name[m])) / 2)
+
+  buf = buf + Text.GetSubText("         ", 1, n)
+
+  buf = buf + Text.ConvertToUpperCase(name[m]) + CRLF
+
+  buf = buf + CRLF
+
+  buf = buf + "SUN MON TUE WED THU FRI SAT" + CRLF
+
+  wom = 0
+
+  While wom < w
+
+    buf = buf + "    "
+
+    wom = wom + 1
+
+  EndWhile
+
+  d1ow[m] = wom ' day of the week for the first day of the month
+
+  nw = 0        ' number of weeks in the month
+
+  For day = 1 To dom[m]
+
+    If day < 10 Then
+
+      buf = buf + "  " + day + " "
+
+    Else
+
+      buf = buf + " " + day + " "
+
+    EndIf
+
+    If Math.Remainder(wom, 7) = 6 Then
+
+      nw = nw + 1
+
+      buf = buf + CRLF
+
+    EndIf
+
+    wom = wom + 1
+
+  EndFor
+
+  If Math.Remainder(wom, 7) > 0 Then
+
+    nw = nw + 1
+
+    buf = buf + CRLF
+
+  EndIf
+
+  If nw < 6 Then
+
+    buf = buf + CRLF
+
+  EndIf
+
+EndSub
+
+

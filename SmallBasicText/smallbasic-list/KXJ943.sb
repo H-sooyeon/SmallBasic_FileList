@@ -1,0 +1,173 @@
+Sub init
+
+  Mouse.HideCursor()
+
+  
+
+  width = Desktop.Width
+
+  height = Desktop.Height
+
+  
+
+  GraphicsWindow.BackgroundColor = "black"
+
+  GraphicsWindow.BrushColor = "white"
+
+  GraphicsWindow.Height = height
+
+  GraphicsWindow.Width = width
+
+  GraphicsWindow.Top = 0
+
+  GraphicsWindow.Left = -8
+
+  
+
+  G = 0.5 'https://en.wikipedia.org/wiki/Gravitational_constant you can read about this
+
+  T = 0.25 'this is time. if you make value bigger that simulation work faster
+
+  count = 50 'this is object count
+
+EndSub
+
+
+
+init()
+
+
+
+createRandomMap()
+
+
+
+While "true"
+
+  If Mouse.IsLeftButtonDown = "true" Then
+
+    GraphicsWindow.Clear()
+
+    
+
+    For cellN = 1 To count
+
+      Shapes.Remove(cell[cellN]["shape"])
+
+    EndFor
+
+    
+
+    createRandomMap()
+
+    
+
+    init()
+
+  EndIf
+
+  
+
+  For cellN = 1 To count
+
+    For cellN2 = cellN+1 To count 'Only need to consider pairs of bodies
+
+      dx = cellX[cellN2]-cellX[cellN]
+
+      dy = cellY[cellN2]-cellY[cellN]
+
+      r = Math.SquareRoot(dx*dx+dy*dy)
+
+      dx = dx/r 'Normalise (hoping separation isn't exactly 0)
+
+      dy = dy/r
+
+      r = Math.Max(cellR[cellN]+cellR[cellN2],r) 'Prevent distance from falling below sum of radii causing unphysical accelerations
+
+      r2 = r*r
+
+      
+
+      ax = G * dx / r2
+
+      ay = G * dy / r2
+
+      
+
+      'Force on a by b Fab = G.Ma.Mb/r/r in direction b->a
+
+      'Force on b by a Fba = -Fab (i.e. same force in oppisite direction)
+
+      'Acceleration on a = Fab/Ma = G.Mb/r/r in direction b->a
+
+      'Acceleration on b = Fba/Mb = G.Ma/r/r in direction a->b
+
+      
+
+      'Velocity = old velocity + T*acceleration (update all of these before changing position, since position is part of the acceleration calcs)
+
+      
+
+      cellVX[cellN] = cellVX[cellN] + T * ax * cellM[cellN2]
+
+      cellVY[cellN] = cellVY[cellN] + T * ay * cellM[cellN2]
+
+      cellVX[cellN2] = cellVX[cellN2] - T * ax * cellM[cellN]
+
+      cellVY[cellN2] = cellVY[cellN2] - T * ay * cellM[cellN]
+
+    EndFor
+
+  EndFor
+
+  
+
+  For cellN = 1 To count
+
+    cellX[cellN] = cellX[cellN] + T * cellVX[cellN]
+
+    cellY[cellN] = cellY[cellN] + T * cellVY[cellN]
+
+    
+
+    Shapes.Move(cell[cellN], cellX[cellN], cellY[cellN])
+
+  EndFor
+
+  
+
+  Program.Delay(1)
+
+EndWhile
+
+
+
+Sub createRandomMap
+
+  For cellN = 1 To count
+
+    cellX[cellN] = Math.GetRandomNumber(width/2)+width/4
+
+    cellY[cellN] = Math.GetRandomNumber(height/2)+height/4
+
+    
+
+    cellM[cellN] = Math.GetRandomNumber(10000) + 10
+
+    cellR[cellN] = cellM[cellN] / 1000 + 10
+
+    
+
+    cellVX[cellN] = (Math.GetRandomNumber(3) - 2) * Math.GetRandomNumber(11)
+
+    cellVY[cellN] = (Math.GetRandomNumber(3) - 2) * Math.GetRandomNumber(11)
+
+    
+
+    cell[cellN] = Shapes.AddEllipse(cellR[cellN], cellR[cellN])
+
+  EndFor
+
+EndSub
+
+

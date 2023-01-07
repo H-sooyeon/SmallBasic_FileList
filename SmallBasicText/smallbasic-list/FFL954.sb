@@ -1,0 +1,3041 @@
+'Pizza Delivery Programte
+
+TextWindow.WriteLine("If you want to play normal press 1. If you wnat to play hard press 2.")
+
+level = TextWindow.Read()
+
+If level= 1 then
+
+Goto normal
+
+endif
+
+
+
+If level = 2 then 
+
+Goto Hard 
+
+endif
+
+
+
+
+
+normal: 
+
+InitializeProgram()
+
+
+
+Sub InitializeProgram
+
+  'graphics window
+
+  GraphicsWindow.Width = 715
+
+  GraphicsWindow.Height = 520
+
+  GraphicsWindow.Title = "Pizza Delivery"
+
+  'draw new delivery grid
+
+  DrawGrid()
+
+  'draw clock and sales
+
+  GraphicsWindow.BrushColor="Blue"
+
+  GraphicsWindow.FillRectangle(505,5,100,60)
+
+  GraphicsWindow.FillRectangle(610,5,100,60)
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.FontBold = "false"
+
+  GraphicsWindow.DrawText(510,5,"Time")
+
+  GraphicsWindow.DrawText(615,5,"Sales")
+
+  ClockTime = "6:00"
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.FontBold = "false"
+
+  TimeDisplay = Shapes.AddText(ClockTime)
+
+  Shapes.Move(TimeDisplay,535,30)
+
+  TotalSales = 0
+
+  'format as $0.00
+
+  Amount = TotalSales
+
+  FormatAmount()
+
+  SalesDisplay = Shapes.AddText(AmountText)
+
+  Shapes.Move(SalesDisplay,620,30)
+
+  'draw message area
+
+  GraphicsWindow.BrushColor = "LightYellow"
+
+  GraphicsWindow.FillRectangle(505,190,205,50)
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.DrawRectangle(505,190,205,50)
+
+  GraphicsWindow.DrawRectangle(505,70,205,120)
+
+  'draw pizza oven
+
+  DrawBlueOven()
+
+  'add pizza button
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 16
+
+  addpizzabutton = Controls.AddButton("Add Pizza",510,380)
+
+  Controls.SetSize(addpizzabutton,95,33)
+
+  'bake pizza button
+
+  bakepizzabutton = Controls.AddButton("Bake Pizza",610,380)
+
+  Controls.SetSize(bakepizzabutton,95,33)
+
+  'draw pizza loading boxes
+
+  GraphicsWindow.BrushColor = "Blue"
+
+  GraphicsWindow.FillRectangle(505,420,70,60)
+
+  GraphicsWindow.FillRectangle(580,420,130,60)
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  GraphicsWindow.DrawText(510,420,"Baked")
+
+  GraphicsWindow.DrawText(585,420,"Pizzas in Car")
+
+  pizzasready = 0
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FontSize = 20
+
+  pizzasreadydisplay = Shapes.AddText(pizzasready)
+
+  Shapes.Move(pizzasreadydisplay,535,445)
+
+  pizzasincar = 0
+
+  pizzasincardisplay = Shapes.AddText(pizzasincar)
+
+  Shapes.Move(pizzasincardisplay, 615,445)
+
+  'load button
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 16
+
+  loadbutton = Controls.AddButton("Load",660,445)
+
+  Controls.SetSize(loadbutton,45,33)
+
+  'start/pause button
+
+  startpausebutton = Controls.AddButton("Start Game",505,485)
+
+  Controls.SetSize(startpausebutton,110,33)
+
+  'exit/stop button
+
+  exitstopbutton = Controls.AddButton("Exit",620,485)
+
+  Controls.SetSize(exitstopbutton,90,33)
+
+  Controls.HideControl(addpizzabutton)
+
+  Controls.HideControl(bakepizzabutton)
+
+  Controls.HideControl(loadbutton)
+
+  gamestatus = "Stopped"
+
+  'game variables
+
+  pizzasreadymax = 25
+
+  pizzasbakingmax = 8
+
+  bakingtime = 10
+
+  pizzaimage = "http://www.littleriverhouseofpizza.com/images/pizza.jpg"
+
+  pizzasincarmax = 10
+
+  hcarimage = ""
+
+  vcarimage = ""
+
+  ordermaxtime = 60
+
+  orderlatetime = 30
+
+  netsoldpizza = 10
+
+  netlatepizza = 5
+
+  costmissedpizza = 10
+
+  pizzacost = 3
+
+  mileagecost = .1
+
+  Timer.Interval = 500
+
+  Timer.Pause()
+
+  Timer.Tick = timerticksub
+
+  clockticksmax = 6
+
+  Controls.ButtonClicked = buttonclickedsub
+
+  GraphicsWindow.MouseDown = mousedownsub
+
+EndSub
+
+
+
+Sub drawgrid
+
+  GraphicsWindow.BrushColor = "SteelBlue"
+
+  GraphicsWindow.FillRectangle(0,0,500,520)
+
+  'gridr is row, gridc is column; build one row at a time
+
+  gridw = 22
+
+  GraphicsWindow.FontBold = "false"
+
+  GraphicsWindow.FontSize = 16
+
+  For gridr = 0  To 20
+
+    For gridc = 0 To 20
+
+      deliverygridx[gridr][gridc] = 10 +gridc *gridw
+
+      deliverygridy[gridr][gridc] = 20 +gridr *gridw
+
+      pizzas[gridr][gridc] = 0
+
+      pizzatime[gridr][gridc] = 0
+
+      If gridr = 0 Then
+
+        If gridc <> 0 Then
+
+          'column letters
+
+          GraphicsWindow.BrushColor = "Yellow"
+
+          GraphicsWindow.DrawText(deliverygridx[gridr][gridc] + 5, deliverygridy[gridr][gridc], Text.GetCharacter(gridc +64))
+
+        EndIf
+
+      ElseIf gridc = 0 then
+
+        If gridr <> 0 then
+
+          'row numbers
+
+          GraphicsWindow.BrushColor = "Yellow"
+
+          GraphicsWindow.DrawText(deliverygridx[gridr][gridc], deliverygridy[gridr][gridc],gridr)
+
+        EndIf
+
+      Else
+
+        deliverygridcolor[gridr][gridc] = "White"
+
+        deliverygridtext[gridr][gridc] = ""
+
+        drawgridsquare()
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub drawgridsquare
+
+  GraphicsWindow.BrushColor = deliverygridcolor[gridr][gridc]
+
+  GraphicsWindow.FillRectangle(deliverygridx[gridr][gridc], deliverygridy[gridr][gridc], gridw, gridw)
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.DrawRectangle(deliverygridx[gridr][gridc], deliverygridy[gridr][gridc], gridw, gridw)
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.DrawText(deliverygridx[gridr][gridc]+6, deliverygridy[gridr][gridc]+1, deliverygridtext[gridr][gridc])
+
+EndSub
+
+
+
+Sub formatamount
+
+  dollars = Math.Floor(amount)
+
+  cents = Math.Floor(100*(Amount-dollars))
+
+  AmountText = "$" + dollars +"."
+
+  If cents = 0 Then
+
+    AmountText = AmountText + "00"
+
+  ElseIf cents <10 then
+
+    AmountText= AmountText + "0" + cents
+
+  Else
+
+    AmountText = AmountText + cents
+
+  EndIf
+
+EndSub
+
+
+
+Sub DrawBlueOven
+
+  'draw pizza oven
+
+  GraphicsWindow.BrushColor = "Blue"
+
+  GraphicsWindow.FillRectangle(505,245,205,170)
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  GraphicsWindow.DrawText(510,245,"Oven Off")
+
+EndSub
+
+
+
+Sub TimerTickSub 
+
+  'clock update
+
+  clockticks = clockticks +1
+
+  If clockticks >= clockticksmax Then
+
+    clockticks = 0
+
+    clockminute = clockminute +1
+
+    If clockminute > 59 Then
+
+      clockminute = 0
+
+      clockhour = clockhour +1
+
+      If clockhour = 11 Then
+
+        ClockTime = "11:00"
+
+        Shapes.SetText(TimeDisplay, clocktime)
+
+        stopgame()
+
+      EndIf
+
+    EndIf
+
+    clocktime=""
+
+    ClockTime = Text.Append(clocktime, clockhour)
+
+    If clockminute <10 Then
+
+      ClockTime = ClockTime +":0" + clockminute
+
+    Else
+
+      ClockTime = ClockTime +":"+clockminute
+
+    EndIf
+
+    Shapes.SetText(TimeDisplay, clocktime)
+
+    'pizzas in oven
+
+    If ovengoing Then
+
+      bakingminutesleft = bakingminutesleft -1
+
+      If bakingminutesleft = 0 Then
+
+        ovengoing = "false"
+
+        pizzasready = pizzasready + pizzasbaking
+
+        If pizzasready > pizzasreadymax Then
+
+          pizzasready = pizzasreadymax
+
+        EndIf
+
+        Shapes.SetText(pizzasreadydisplay , pizzasready )
+
+        DrawBlueOven()
+
+        pizzasbaking = 0
+
+        Controls.ShowControl(addpizzabutton)
+
+        addpizzavisible = "true"
+
+        Controls.ShowControl(bakepizzabutton)
+
+        bakepizzavisible = "true"
+
+      EndIf
+
+    EndIf
+
+    'check for late orders - check if first is expired
+
+    clockminutes = clockminute + 60 * clockhour
+
+    If numberorders <>0 Then
+
+      For i = 1 To numberorders
+
+        s = order[i]
+
+        gridr = Text.GetSubText(s,9,2)
+
+        If Text.GetSubText(gridr, 1,1) = " " Then
+
+          gridr = Text.GetSubTextToEnd(gridr, 2)
+
+        EndIf
+
+        gridc = Text.GetCharacterCode(Text.GetSubText(s,12,1))-64
+
+        If (i = 1 And (clockminutes - pizzatime[gridr][gridc]) >= ordermaxtime) Then
+
+          deliverygridcolor[gridr][gridc] = "White"
+
+          deliverygridtext[gridr][gridc] = ""
+
+          drawgridsquare()
+
+          misseddeliveries = misseddeliveries + pizzas[gridr][gridc]
+
+          pizzas[gridr][gridc] = 0
+
+          'remove top item
+
+          itemtoremove = 1
+
+          removeitem()
+
+        ElseIf clockminutes - pizzatime[gridr][gridc] >= orderlatetime then
+
+          deliverygridcolor[gridr][gridc] = "DarkRed"
+
+          drawgridsquare()
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+  EndIf
+
+  'phone update
+
+  phoneticks = phoneticks +1
+
+  If phoneticks >= phoneticksmax Then
+
+    phoneticks = 0
+
+    If clockhour = 10 And clockminute >=30 Then
+
+      Goto leavephone
+
+    EndIf
+
+    getlocation:
+
+    gridr = Math.GetRandomNumber(20)
+
+    gridc = Math.GetRandomNumber(20)
+
+    If pizzas[gridr][gridc] <>0 Then
+
+      Goto getlocation
+
+    EndIf
+
+    p = Math.GetRandomNumber(100)
+
+    If p>=1 And p<=30 Then
+
+      pizzas[gridr][gridc] = 1
+
+    ElseIf p>=31 and p<=50 then
+
+      pizzas[gridr][gridc] = 2
+
+    ElseIf p>=51 and p<=70 then
+
+      pizzas[gridr][gridc] = 3
+
+    ElseIf p>=71 and p<=85 then
+
+      pizzas[gridr][gridc] = 4
+
+    Else
+
+      pizzas[gridr][gridc] = 5
+
+    EndIf
+
+    pizzatime[gridr][gridc] = clockminute + 60 * clockhour
+
+    'build string listing order
+
+    numberorders = numberorders +1
+
+    orderstring = ClockTime + " l "
+
+    If clockhour < 10 Then
+
+      orderstring = " " + orderstring
+
+    EndIf
+
+    If gridr <10 Then
+
+      orderstring = orderstring + " "
+
+    EndIf
+
+    orderstring = orderstring + gridr + " "
+
+    orderstring = orderstring + Text.GetCharacter(gridc +64) + " -> " + pizzas[gridr][gridc] + " pizza(s)"
+
+    order[numberorders] = orderstring
+
+    displayorders()
+
+    'print new order on grid
+
+    deliverygridcolor[gridr][gridc] = "DarkGreen"
+
+    deliverygridtext[gridr][gridc] = pizzas[gridr][gridc]
+
+    drawgridsquare()
+
+    phoneticksmax = Math.GetRandomNumber(7) * clockticksmax
+
+  EndIf
+
+  leavephone:
+
+  'car update - updated each tick
+
+  If carmoving Then
+
+    'replace what is there
+
+    gridr = carr
+
+    gridc = carc
+
+    drawgridsquare()
+
+    'move vertically first
+
+    If deltar <>0 Then
+
+      mileage = mileage +1
+
+      carimage = vcarimage
+
+      If deltar > 0 Then
+
+        carr = carr +1
+
+      Else
+
+        carr = carr -1
+
+      EndIf
+
+      deltar = deliveryr - carr
+
+    Else
+
+      mileage = mileage +1
+
+      carimage = hcarimage
+
+      If deltac > 0 Then
+
+        carc = carc +1
+
+      Else
+
+        carc = carc -1
+
+      EndIf
+
+      delatc = deliveryc - carc
+
+    EndIf
+
+    GraphicsWindow.DrawRectangle(deliverygridx[carr][carc] + 3, deliverygridy[carr][carc]+3,20,20)
+
+    If carr = deliveryr And carc = deliveryc Then
+
+      carmoving = "false"
+
+      If carr = pizzar And carc = pizzac Then
+
+        message1 = "Car at Pizza Parlor:"
+
+        message2 = carr + " " + Text.GetCharacter(carc + 64)
+
+        displaymessage()
+
+        gridr = carr
+
+        gridc = carc
+
+        drawgridsquare()
+
+        pizzasincar = 0
+
+        Shapes.SetText(pizzasincardisplay, pizzasincar)
+
+        Controls.ShowControl(loadbutton)
+
+        loadvisible = "true"
+
+      Else
+
+        'check delivery status
+
+        message1 = "Car at " + carr + " " + Text.GetCharacter(carc + 64)
+
+        If pizzas[carr][carc] = 0 Then
+
+          message2 = "No Pizza Wanted"
+
+          displaymessage()
+
+        Else 
+
+          If pizzas[carr][carc] > pizzasincar Then
+
+            message2 = "Not Enough Pizzas"
+
+            displaymessage()
+
+          Else
+
+            message2 = "Delivered " + pizzas[carr][carc] + " Pizza(s)"
+
+            'see if on time
+
+            If ((clockminute + 60 * clockhour) - pizzatime[carr][carc] <= orderlatetime) Then
+
+              message2 = message2 + ": On-Time"
+
+              TotalSales = TotalSales + pizzas[carr][carc]* netsoldpizza
+
+              pizzasontime = pizzasontime + pizzas[carr][carc]
+
+            Else
+
+              message2 = message2 + ": Late!"
+
+              TotalSales = TotalSales + pizzas[carr][carc]* netlatepizza
+
+              pizzaslate = pizzaslate + pizzas[carr][carc]
+
+            EndIf
+
+            Amount = TotalSales
+
+            formatamount()
+
+            Shapes.SetText(SalesDisplay, AmountText)
+
+            displaymessage()
+
+            pizzasincar = pizzasincar - pizzas[carr][carc]
+
+            Shapes.SetText(pizzasincardisplay, pizzasincar)
+
+            pizzas[carr][carc]=0
+
+            deliverygridcolor[carr][carc] = "White"
+
+            deliverygridtext[carr][carc] =""
+
+            gridr =carr
+
+            gridc = carc
+
+            drawgridsquare()
+
+            'GraphicsWindow.DrawResizedImage(carimage, deliverygridx[carr][carc]+3, deliverygridy[carr][carc]+3,20,20)
+
+            'remove from list
+
+            For itemtoremove = 1 To numberorders
+
+              s = order[itemtoremove]
+
+              r = Text.GetSubText(s,9,2)
+
+              If Text.GetSubText(r,1,1) = " " Then
+
+                r = Text.GetSubTextToEnd(r,2)
+
+              EndIf
+
+              c = Text.GetCharacterCode(Text.GetSubText(s,12,1))-64
+
+              If r = deliveryr And c = deliveryc Then
+
+                Goto foundorder
+
+              EndIf
+
+            EndFor
+
+            foundorder:
+
+            'remove itemtoremove from orders
+
+            removeitem()
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Buttonclickedsub
+
+  b = Controls.LastClickedButton
+
+  If b = startpausebutton Then
+
+    'start, stop, pause button
+
+    startpausebuttonclick()
+
+  ElseIf b = exitstopbutton then
+
+    'exit stop button
+
+    exitstopbuttonclick()
+
+  elseif b = addpizzabutton then
+
+    'add pizza button
+
+    addpizzabuttonclick()
+
+  elseif b = bakepizzabutton then
+
+    'bake pizza button
+
+    bakepizzabuttonclick()
+
+  elseif b = loadbutton then
+
+    'load car button
+
+    loadbuttonclick()
+
+  EndIf
+
+EndSub
+
+
+
+sub startpausebuttonclick
+
+  If gamestatus = "Stopped" Then
+
+    gamestatus = "Playing"
+
+    Controls.SetButtonCaption(startpausebutton, "Pause Game")
+
+    Controls.SetButtonCaption(exitstopbutton, "Stop Game")
+
+    'initialize clock
+
+    clockhour = 6
+
+    clockminute = 0
+
+    ClockTime = "6:00"
+
+    Shapes.SetText(TimeDisplay, clocktime)
+
+    clockticks = 0
+
+    'initialize phone
+
+    phoneticks = 0
+
+    phoneticksmax = Math.GetRandomNumber(7) * clockticksmax
+
+    'new grid
+
+    drawgrid()
+
+    'clear order area
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.FillRectangle(510,75,190,110)
+
+    numberorders = 0
+
+    'clear pizza oven
+
+    GraphicsWindow.BrushColor = "Blue"
+
+    GraphicsWindow.FillRectangle(507,270,200,100)
+
+    pizzasbaking = 0
+
+    Controls.ShowControl(addpizzabutton)
+
+    addpizzavisible = "true"
+
+    Controls.ShowControl(bakepizzabutton)
+
+    bakepizzavisible = "true"
+
+    pizzasready = pizzasbakingmax
+
+    totalpizzasbaked = pizzasready
+
+    Shapes.SetText(pizzasreadydisplay,pizzasready)
+
+    pizzasincar = 0
+
+    Shapes.SetText(pizzasincardisplay, pizzasincar)
+
+    Controls.ShowControl(loadbutton)
+
+    loadvisible = "true"
+
+    'initialize pizza parlor and car location
+
+    pizzar = 1+Math.GetRandomNumber(18)
+
+    pizzac = 1+Math.GetRandomNumber(18)
+
+    deliverygridcolor[pizzar][pizzac] = "Black"
+
+    deliverygridtext[pizzar][pizzac] = "X"
+
+    pizzas[pizzar][pizzac] = -1
+
+    gridr = pizzar
+
+    gridc = pizzac
+
+    drawgridsquare()
+
+    carr = pizzar
+
+    carc = pizzac
+
+    mileage=0
+
+    message1 = "Car at Pizza Parlor:"
+
+    message2=carr + " " + Text.GetCharacter(carc + 64)
+
+    displaymessage()
+
+    carmoving="false"
+
+    pizzasontime=0
+
+    pizzaslate=0
+
+    misseddeliveries=0
+
+    totalsales=0
+
+    amount=totalsales
+
+    formatamount()
+
+    Shapes.SetText(SalesDisplay, AmountText)
+
+    Timer.Resume()
+
+  ElseIf gamestatus = "Playing" then
+
+    gamestatus = "Paused"
+
+    Timer.Pause()
+
+    Controls.SetButtonCaption(startpausebutton, "Restart Game")
+
+    Controls.HideControl(exitstopbutton)
+
+    Controls.HideControl(addpizzabutton)
+
+    Controls.HideControl(bakepizzabutton)
+
+    Controls.HideControl(loadbutton)
+
+  Else
+
+    'game restarted
+
+    gamestatus = "Playing"
+
+    Controls.SetButtonCaption(startpausebutton, "Pause Game")
+
+    Controls.ShowControl(exitstopbutton)
+
+    'show other buttons if they were showing before
+
+    If addpizzavisible Then
+
+      Controls.ShowControl(addpizzabutton)
+
+    EndIf
+
+    If bakepizzavisible Then
+
+      Controls.ShowControl(bakepizzabutton)
+
+    EndIf
+
+    If loadvisible Then
+
+      Controls.ShowControl(loadbutton)
+
+    EndIf
+
+    Timer.Resume()
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exitstopbuttonclick
+
+  If gamestatus = "Playing" Then
+
+    stopgame()
+
+  Else
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+
+
+Sub stopgame
+
+  gamestatus = "Stopped"
+
+  Timer.Pause()
+
+  Controls.SetButtonCaption(startpausebutton, "Start Game")
+
+  Controls.SetButtonCaption(exitstopbutton, "Exit")
+
+  'hide other buttons
+
+  Controls.HideControl(addpizzabutton)
+
+  Controls.HideControl(bakepizzabutton)
+
+  Controls.HideControl(loadbutton)
+
+  ovengoing = "false"
+
+  DrawBlueOven()
+
+  carmoving = "false"
+
+  salesresults()
+
+EndSub
+
+
+
+Sub displayorders
+
+  'display oldest five orders
+
+  'print orders - clear first
+
+  GraphicsWindow.BrushColor= "White"
+
+  GraphicsWindow.FillRectangle(510,75,190,110)
+
+  y = 80
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 14
+
+  For k = 1 To 5
+
+    If k <=numberorders Then
+
+      GraphicsWindow.DrawText(525, y, order[k])
+
+      y = y +20
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub addpizzabuttonclick
+
+  pizzasbaking = pizzasbaking +1
+
+  If pizzasbaking <5 Then
+
+    pizzax = 507 + (pizzasbaking -1) *50
+
+    pizzay = 270
+
+  Else
+
+    pizzax = 507 + (pizzasbaking -5)*50
+
+    pizzay = 320
+
+  EndIf
+
+  GraphicsWindow.DrawResizedImage(pizzaimage, pizzax, pizzay, 50,50)
+
+  If pizzasbaking = pizzasbakingmax Then
+
+    Controls.HideControl(addpizzabutton)
+
+    addpizzavisible = "false"
+
+  EndIf
+
+EndSub
+
+
+
+Sub bakepizzabuttonclick
+
+  If pizzasbaking = 0 Then
+
+    Goto leavebakepizzabutton
+
+  EndIf
+
+  'redraw red oven
+
+GraphicsWindow.BrushColor = "Red"  
+
+GraphicsWindow.FillRectangle(505,245,205,170)
+
+For i = 1 To pizzasbaking 
+
+  If i <5 Then
+
+    pizzax = 507 +(i-1)*50
+
+    pizzay = 270
+
+  Else
+
+    pizzax = 507+(i-5)*50
+
+    pizzay = 320
+
+  EndIf
+
+  GraphicsWindow.DrawResizedImage(pizzaimage, pizzax, pizzay, 50,50)
+
+EndFor
+
+Controls.HideControl(addpizzabutton)
+
+addpizzavisible= "false"
+
+Controls.HideControl(bakepizzabutton)
+
+bakepizzavisible = "false"
+
+hout = clockhour
+
+mount = clockminute + bakingtime
+
+If mout >59 Then
+
+  mout = mout -60
+
+  hout = hout +1
+
+EndIf
+
+GraphicsWindow.BrushColor = "Yellow"
+
+GraphicsWindow.FontSize = 20
+
+oventext = "Pizza(s) Out at " + hout + ":"
+
+If mout <10 Then
+
+  oventext = oventext + "0"
+
+EndIf
+
+oventext = oventext + mout
+
+GraphicsWindow.DrawText(510,245,oventext)
+
+bakingminutesleft = bakingtime
+
+ovengoing = "true"
+
+leavebakepizzabutton:
+
+EndSub
+
+
+
+Sub loadbuttonclick
+
+  If pizzasready = 0 Then
+
+    Goto leaveloadcarbutton
+
+  EndIf
+
+  If pizzasready > pizzasincarmax Then
+
+    pizzasincar = pizzasincar + pizzasincarmax
+
+    pizzasready = pizzasready - pizzasincarmax
+
+  Else
+
+    pizzasincar = pizzasincar + pizzasready
+
+    pizzasready = 0
+
+  EndIf
+
+  Shapes.SetText(pizzasreadydisplay, pizzasready)
+
+  Shapes.SetText(pizzasincardisplay, pizzasincar)
+
+  Controls.HideControl(loadbutton)
+
+  loadvisible = "false"
+
+  leaveloadcarbutton:
+
+EndSub
+
+
+
+Sub displaymessage
+
+  'clear first
+
+  GraphicsWindow.BrushColor = "LightYellow"
+
+  GraphicsWindow.FillRectangle(505,190,205,50)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.DrawText(510,195,message1)
+
+  GraphicsWindow.DrawText(510,215,message2)
+
+EndSub
+
+
+
+Sub mousedownsub
+
+  x = GraphicsWindow.MouseX
+
+  y = GraphicsWindow.MouseY
+
+  If gamestatus = "Playing" Then
+
+    If carmoving = "false" And loadvisible = "false" Then
+
+      deliveryr = 1 +Math.Floor((y- deliverygridy[1][1])/ gridw)
+
+      deliveryc = 1+ Math.Floor((x- deliverygridx[1][1])/ gridw)
+
+      If deliveryr<1 Or deliveryr > 20 Or deliveryc <1 Or deliveryc>20 Then
+
+        Goto leavemousedownsub
+
+      EndIf
+
+      deltar = deliveryr - carr
+
+      deltac = deliveryc - carc
+
+      If deltar <> 0 Or deltac <> 0  Then
+
+        message1 = "Car Goung to:"
+
+        message2 = deliveryr + " " + Text.GetCharacter(deliveryc+ 64)
+
+        displaymessage()
+
+        carmoving = "true"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  leavemousedownsub:
+
+EndSub
+
+
+
+Sub removeitem
+
+  'remove itemtoremove from orders
+
+  If itemtoremove <> numberorders And numberorders <> 1 Then
+
+    For j = itemtoremove To numberorders -1
+
+      order[j] = order[j+1]
+
+    EndFor
+
+  EndIf
+
+  numberorders = numberorders -1
+
+  displayorders()
+
+EndSub
+
+
+
+Sub salesresults
+
+  GraphicsWindow.Hide()
+
+  TextWindow.Show()
+
+  TextWindow.BackgroundColor = "White"
+
+  TextWindow.ForegroundColor = "Black"
+
+  TextWindow.Clear()
+
+  TextWindow.Title = "Pizza Delivery Sales Results"
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.CursorTop = 2
+
+  TextWindow.WriteLine("Pizza Delivery Sales Results:")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.WriteLine("Start Time: 6:00     Stop Time: " + ClockTime)
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.WriteLine("------------------------------------------")
+
+  TextWindow.WriteLine("")
+
+  'sales
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.WriteLine("Sales:")
+
+  TextWindow.WriteLine("")
+
+  'on time pizzas
+
+  t = pizzasontime + " On Time Deliveries"
+
+  TextWindow.CursorLeft = 25 - Text.GetLength(t)
+
+  TextWindow.Write(t)
+
+  Amount = pizzasontime * netsoldpizza
+
+  formatamount()
+
+  TextWindow.CursorLeft = 35 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  'total sales
+
+  TextWindow.WriteLine("")
+
+  TextWindow.CursorLeft  =14 
+
+  TextWindow.Write("Total Sales")
+
+  Amount = TotalSales
+
+  formatamount()
+
+  TextWindow.CursorLeft = 35 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  'costs
+
+  TextWindow.CursorLeft = 40
+
+  TextWindow.CursorTop = 7
+
+  TextWindow.WriteLine("Costs:")
+
+  TextWindow.WriteLine("")
+
+  'pizzas baked
+
+  t = totalpizzasbaked + " Pizzas Baked"
+
+  TextWindow.CursorLeft = 60 - Text.GetLength(t)
+
+  TextWindow.Write(t)
+
+  Amount = totalpizzasbaked * pizzacost
+
+  formatamount()
+
+  TextWindow.CursorLeft = 70 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  'mileage
+
+  t = mileage + " Units Driven"
+
+  TextWindow.CursorLeft = 60 - Text.GetLength(t)
+
+  TextWindow.Write(t)
+
+  Amount = mileage * mileagecost
+
+  formatamount()
+
+  TextWindow.CursorLeft = 70 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  'missed deliveries
+
+  t = misseddeliveries + " Missed Deliveries"
+
+  TextWindow.CursorLeft = 60 - Text.GetLength(t)
+
+  TextWindow.Write(t)
+
+  Amount = misseddeliveries * costmissedpizza
+
+  formatamount()
+
+  TextWindow.CursorLeft = 70 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  'total costs
+
+  TextWindow.WriteLine("")
+
+  TextWindow.CursorLeft = 49
+
+  TextWindow.Write("Total Costs")
+
+  costs = totalpizzasbaked * pizzacost + mileage * mileagecost + misseddeliveries * costmissedpizza
+
+  Amount = costs
+
+  formatamount()
+
+  TextWindow.CursorLeft = 70 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  TextWindow.WriteLine("")
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.WriteLine("----------------------------------------------")
+
+  TextWindow.WriteLine("")
+
+  Amount = TotalSales - costs
+
+  formatamount()
+
+  TextWindow.CursorLeft = 10
+
+  TextWindow.Write("Total Profits: " + AmountText)
+
+  If clockhour > 6 Then
+
+    'only show hourly profits if been selling for more than one hour
+
+    Amount = (TotalSales - costs) / (clockhour - 6 + clockminute / 60)
+
+    formatamount()
+
+    TextWindow.CursorLeft = 40
+
+    TextWindow.Write("Hourly Profits: " + AmountText)
+
+  EndIf
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.CursorTop = 23
+
+  TextWindow.Write("Press Enter to Return to Pizza Delivery")
+
+  t = TextWindow.Read()
+
+  TextWindow.Hide()
+
+  GraphicsWindow.Show()
+
+EndSub
+
+  
+
+  
+
+  
+
+  
+
+Hard:
+
+
+
+InitializeProgram()
+
+
+
+Sub InitializeProgram2
+
+  'graphics window
+
+  GraphicsWindow.Width = 715
+
+  GraphicsWindow.Height = 520
+
+  GraphicsWindow.Title = "Pizza Delivery"
+
+  'draw new delivery grid
+
+  DrawGrid()
+
+  'draw clock and sales
+
+  GraphicsWindow.BrushColor="Blue"
+
+  GraphicsWindow.FillRectangle(505,5,100,60)
+
+  GraphicsWindow.FillRectangle(610,5,100,60)
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.FontBold = "false"
+
+  GraphicsWindow.DrawText(510,5,"Time")
+
+  GraphicsWindow.DrawText(615,5,"Sales")
+
+  ClockTime = "6:00"
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.FontBold = "false"
+
+  TimeDisplay = Shapes.AddText(ClockTime)
+
+  Shapes.Move(TimeDisplay,535,30)
+
+  TotalSales = 0
+
+  'format as $0.00
+
+  Amount = TotalSales
+
+  FormatAmount()
+
+  SalesDisplay = Shapes.AddText(AmountText)
+
+  Shapes.Move(SalesDisplay,620,30)
+
+  'draw message area
+
+  GraphicsWindow.BrushColor = "LightYellow"
+
+  GraphicsWindow.FillRectangle(505,190,205,50)
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.DrawRectangle(505,190,205,50)
+
+  GraphicsWindow.DrawRectangle(505,70,205,120)
+
+  'draw pizza oven
+
+  DrawBlueOven()
+
+  'add pizza button
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 16
+
+  addpizzabutton = Controls.AddButton("Add Pizza",510,380)
+
+  Controls.SetSize(addpizzabutton,95,33)
+
+  'bake pizza button
+
+  bakepizzabutton = Controls.AddButton("Bake Pizza",610,380)
+
+  Controls.SetSize(bakepizzabutton,95,33)
+
+  'draw pizza loading boxes
+
+  GraphicsWindow.BrushColor = "Blue"
+
+  GraphicsWindow.FillRectangle(505,420,70,60)
+
+  GraphicsWindow.FillRectangle(580,420,130,60)
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  GraphicsWindow.DrawText(510,420,"Baked")
+
+  GraphicsWindow.DrawText(585,420,"Pizzas in Car")
+
+  pizzasready = 0
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FontSize = 20
+
+  pizzasreadydisplay = Shapes.AddText(pizzasready)
+
+  Shapes.Move(pizzasreadydisplay,535,445)
+
+  pizzasincar = 0
+
+  pizzasincardisplay = Shapes.AddText(pizzasincar)
+
+  Shapes.Move(pizzasincardisplay, 615,445)
+
+  'load button
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 16
+
+  loadbutton = Controls.AddButton("Load",660,445)
+
+  Controls.SetSize(loadbutton,45,33)
+
+  'start/pause button
+
+  startpausebutton = Controls.AddButton("Start Game",505,485)
+
+  Controls.SetSize(startpausebutton,110,33)
+
+  'exit/stop button
+
+  exitstopbutton = Controls.AddButton("Exit",620,485)
+
+  Controls.SetSize(exitstopbutton,90,33)
+
+  Controls.HideControl(addpizzabutton)
+
+  Controls.HideControl(bakepizzabutton)
+
+  Controls.HideControl(loadbutton)
+
+  gamestatus = "Stopped"
+
+  'game variables
+
+  pizzasreadymax = 10
+
+  pizzasbakingmax = 8
+
+  bakingtime = 10
+
+  pizzaimage = "http://www.littleriverhouseofpizza.com/images/pizza.jpg"
+
+  pizzasincarmax = 6
+
+  hcarimage = ""
+
+  vcarimage = ""
+
+  ordermaxtime = 30
+
+  orderlatetime = 
+
+  netsoldpizza = 10
+
+  netlatepizza = 5
+
+  costmissedpizza = 15
+
+  pizzacost = 8.5
+
+  mileagecost = .55
+
+  Timer.Interval = 500
+
+  Timer.Pause()
+
+  Timer.Tick = timerticksub2
+
+  clockticksmax = 6
+
+  Controls.ButtonClicked = buttonclickedsub2
+
+  GraphicsWindow.MouseDown = mousedownsub2
+
+EndSub
+
+
+
+Sub drawgrid2
+
+  GraphicsWindow.BrushColor = "SteelBlue"
+
+  GraphicsWindow.FillRectangle(0,0,500,520)
+
+  'gridr is row, gridc is column; build one row at a time
+
+  gridw = 22
+
+  GraphicsWindow.FontBold = "false"
+
+  GraphicsWindow.FontSize = 16
+
+  For gridr = 0  To 20
+
+    For gridc = 0 To 20
+
+      deliverygridx[gridr][gridc] = 10 +gridc *gridw
+
+      deliverygridy[gridr][gridc] = 20 +gridr *gridw
+
+      pizzas[gridr][gridc] = 0
+
+      pizzatime[gridr][gridc] = 0
+
+      If gridr = 0 Then
+
+        If gridc <> 0 Then
+
+          'column letters
+
+          GraphicsWindow.BrushColor = "Yellow"
+
+          GraphicsWindow.DrawText(deliverygridx[gridr][gridc] + 5, deliverygridy[gridr][gridc], Text.GetCharacter(gridc +64))
+
+        EndIf
+
+      ElseIf gridc = 0 then
+
+        If gridr <> 0 then
+
+          'row numbers
+
+          GraphicsWindow.BrushColor = "Yellow"
+
+          GraphicsWindow.DrawText(deliverygridx[gridr][gridc], deliverygridy[gridr][gridc],gridr)
+
+        EndIf
+
+      Else
+
+        deliverygridcolor[gridr][gridc] = "White"
+
+        deliverygridtext[gridr][gridc] = ""
+
+        drawgridsquare()
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub drawgridsquare2
+
+  GraphicsWindow.BrushColor = deliverygridcolor[gridr][gridc]
+
+  GraphicsWindow.FillRectangle(deliverygridx[gridr][gridc], deliverygridy[gridr][gridc], gridw, gridw)
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.DrawRectangle(deliverygridx[gridr][gridc], deliverygridy[gridr][gridc], gridw, gridw)
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.DrawText(deliverygridx[gridr][gridc]+6, deliverygridy[gridr][gridc]+1, deliverygridtext[gridr][gridc])
+
+EndSub
+
+
+
+Sub formatamount2
+
+  dollars = Math.Floor(amount)
+
+  cents = Math.Floor(100*(Amount-dollars))
+
+  AmountText = "$" + dollars +"."
+
+  If cents = 0 Then
+
+    AmountText = AmountText + "00"
+
+  ElseIf cents <10 then
+
+    AmountText= AmountText + "0" + cents
+
+  Else
+
+    AmountText = AmountText + cents
+
+  EndIf
+
+EndSub
+
+
+
+Sub DrawBlueOven2
+
+  'draw pizza oven
+
+  GraphicsWindow.BrushColor = "Blue"
+
+  GraphicsWindow.FillRectangle(505,245,205,170)
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  GraphicsWindow.DrawText(510,245,"Oven Off")
+
+EndSub
+
+
+
+Sub TimerTickSub2 
+
+  'clock update
+
+  clockticks = clockticks +1
+
+  If clockticks >= clockticksmax Then
+
+    clockticks = 0
+
+    clockminute = clockminute +1
+
+    If clockminute > 59 Then
+
+      clockminute = 0
+
+      clockhour = clockhour +1
+
+      If clockhour = 11 Then
+
+        ClockTime = "11:00"
+
+        Shapes.SetText(TimeDisplay, clocktime)
+
+        stopgame()
+
+      EndIf
+
+    EndIf
+
+    clocktime=""
+
+    ClockTime = Text.Append(clocktime, clockhour)
+
+    If clockminute <10 Then
+
+      ClockTime = ClockTime +":0" + clockminute
+
+    Else
+
+      ClockTime = ClockTime +":"+clockminute
+
+    EndIf
+
+    Shapes.SetText(TimeDisplay, clocktime)
+
+    'pizzas in oven
+
+    If ovengoing Then
+
+      bakingminutesleft = bakingminutesleft -1
+
+      If bakingminutesleft = 0 Then
+
+        ovengoing = "false"
+
+        pizzasready = pizzasready + pizzasbaking
+
+        If pizzasready > pizzasreadymax Then
+
+          pizzasready = pizzasreadymax
+
+        EndIf
+
+        Shapes.SetText(pizzasreadydisplay , pizzasready )
+
+        DrawBlueOven()
+
+        pizzasbaking = 0
+
+        Controls.ShowControl(addpizzabutton)
+
+        addpizzavisible = "true"
+
+        Controls.ShowControl(bakepizzabutton)
+
+        bakepizzavisible = "true"
+
+      EndIf
+
+    EndIf
+
+    'check for late orders - check if first is expired
+
+    clockminutes = clockminute + 60 * clockhour
+
+    If numberorders <>0 Then
+
+      For i = 1 To numberorders
+
+        s = order[i]
+
+        gridr = Text.GetSubText(s,9,2)
+
+        If Text.GetSubText(gridr, 1,1) = " " Then
+
+          gridr = Text.GetSubTextToEnd(gridr, 2)
+
+        EndIf
+
+        gridc = Text.GetCharacterCode(Text.GetSubText(s,12,1))-64
+
+        If (i = 1 And (clockminutes - pizzatime[gridr][gridc]) >= ordermaxtime) Then
+
+          deliverygridcolor[gridr][gridc] = "White"
+
+          deliverygridtext[gridr][gridc] = ""
+
+          drawgridsquare()
+
+          misseddeliveries = misseddeliveries + pizzas[gridr][gridc]
+
+          pizzas[gridr][gridc] = 0
+
+          'remove top item
+
+          itemtoremove = 1
+
+          removeitem()
+
+        ElseIf clockminutes - pizzatime[gridr][gridc] >= orderlatetime then
+
+          deliverygridcolor[gridr][gridc] = "DarkRed"
+
+          drawgridsquare()
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+  EndIf
+
+  'phone update
+
+  phoneticks = phoneticks +1
+
+  If phoneticks >= phoneticksmax Then
+
+    phoneticks = 0
+
+    If clockhour = 10 And clockminute >=30 Then
+
+      Goto leavephone
+
+    EndIf
+
+    getlocation2:
+
+    gridr = Math.GetRandomNumber(20)
+
+    gridc = Math.GetRandomNumber(20)
+
+    If pizzas[gridr][gridc] <>0 Then
+
+      Goto getlocation
+
+    EndIf
+
+    p = Math.GetRandomNumber(100)
+
+    If p>=1 And p<=30 Then
+
+      pizzas[gridr][gridc] = 1
+
+    ElseIf p>=31 and p<=50 then
+
+      pizzas[gridr][gridc] = 2
+
+    ElseIf p>=51 and p<=70 then
+
+      pizzas[gridr][gridc] = 3
+
+    ElseIf p>=71 and p<=85 then
+
+      pizzas[gridr][gridc] = 4
+
+    Else
+
+      pizzas[gridr][gridc] = 5
+
+    EndIf
+
+    pizzatime[gridr][gridc] = clockminute + 60 * clockhour
+
+    'build string listing order
+
+    numberorders = numberorders +1
+
+    orderstring = ClockTime + " l "
+
+    If clockhour < 10 Then
+
+      orderstring = " " + orderstring
+
+    EndIf
+
+    If gridr <10 Then
+
+      orderstring = orderstring + " "
+
+    EndIf
+
+    orderstring = orderstring + gridr + " "
+
+    orderstring = orderstring + Text.GetCharacter(gridc +64) + " -> " + pizzas[gridr][gridc] + " pizza(s)"
+
+    order[numberorders] = orderstring
+
+    displayorders()
+
+    'print new order on grid
+
+    deliverygridcolor[gridr][gridc] = "DarkGreen"
+
+    deliverygridtext[gridr][gridc] = pizzas[gridr][gridc]
+
+    drawgridsquare()
+
+    phoneticksmax = Math.GetRandomNumber(7) * clockticksmax
+
+  EndIf
+
+  leavephone2:
+
+  'car update - updated each tick
+
+  If carmoving Then
+
+    'replace what is there
+
+    gridr = carr
+
+    gridc = carc
+
+    drawgridsquare()
+
+    'move vertically first
+
+    If deltar <>0 Then
+
+      mileage = mileage +1
+
+      carimage = vcarimage
+
+      If deltar > 0 Then
+
+        carr = carr +1
+
+      Else
+
+        carr = carr -1
+
+      EndIf
+
+      deltar = deliveryr - carr
+
+    Else
+
+      mileage = mileage +1
+
+      carimage = hcarimage
+
+      If deltac > 0 Then
+
+        carc = carc +1
+
+      Else
+
+        carc = carc -1
+
+      EndIf
+
+      delatc = deliveryc - carc
+
+    EndIf
+
+    GraphicsWindow.DrawRectangle(deliverygridx[carr][carc] + 3, deliverygridy[carr][carc]+3,20,20)
+
+    If carr = deliveryr And carc = deliveryc Then
+
+      carmoving = "false"
+
+      If carr = pizzar And carc = pizzac Then
+
+        message1 = "Car at Pizza Parlor:"
+
+        message2 = carr + " " + Text.GetCharacter(carc + 64)
+
+        displaymessage()
+
+        gridr = carr
+
+        gridc = carc
+
+        drawgridsquare()
+
+        pizzasincar = 0
+
+        Shapes.SetText(pizzasincardisplay, pizzasincar)
+
+        Controls.ShowControl(loadbutton)
+
+        loadvisible = "true"
+
+      Else
+
+        'check delivery status
+
+        message1 = "Car at " + carr + " " + Text.GetCharacter(carc + 64)
+
+        If pizzas[carr][carc] = 0 Then
+
+          message2 = "No Pizza Wanted"
+
+          displaymessage()
+
+        Else 
+
+          If pizzas[carr][carc] > pizzasincar Then
+
+            message2 = "Not Enough Pizzas"
+
+            displaymessage()
+
+          Else
+
+            message2 = "Delivered " + pizzas[carr][carc] + " Pizza(s)"
+
+            'see if on time
+
+            If ((clockminute + 60 * clockhour) - pizzatime[carr][carc] <= orderlatetime) Then
+
+              message2 = message2 + ": On-Time"
+
+              TotalSales = TotalSales + pizzas[carr][carc]* netsoldpizza
+
+              pizzasontime = pizzasontime + pizzas[carr][carc]
+
+            Else
+
+              message2 = message2 + ": Late!"
+
+              TotalSales = TotalSales + pizzas[carr][carc]* netlatepizza
+
+              pizzaslate = pizzaslate + pizzas[carr][carc]
+
+            EndIf
+
+            Amount = TotalSales
+
+            formatamount()
+
+            Shapes.SetText(SalesDisplay, AmountText)
+
+            displaymessage()
+
+            pizzasincar = pizzasincar - pizzas[carr][carc]
+
+            Shapes.SetText(pizzasincardisplay, pizzasincar)
+
+            pizzas[carr][carc]=0
+
+            deliverygridcolor[carr][carc] = "White"
+
+            deliverygridtext[carr][carc] =""
+
+            gridr =carr
+
+            gridc = carc
+
+            drawgridsquare()
+
+            'GraphicsWindow.DrawResizedImage(carimage, deliverygridx[carr][carc]+3, deliverygridy[carr][carc]+3,20,20)
+
+            'remove from list
+
+            For itemtoremove = 1 To numberorders
+
+              s = order[itemtoremove]
+
+              r = Text.GetSubText(s,9,2)
+
+              If Text.GetSubText(r,1,1) = " " Then
+
+                r = Text.GetSubTextToEnd(r,2)
+
+              EndIf
+
+              c = Text.GetCharacterCode(Text.GetSubText(s,12,1))-64
+
+              If r = deliveryr And c = deliveryc Then
+
+                Goto foundorder2
+
+              EndIf
+
+            EndFor
+
+            foundorder2:
+
+            'remove itemtoremove from orders
+
+            removeitem()
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Buttonclickedsub2
+
+  b = Controls.LastClickedButton
+
+  If b = startpausebutton Then
+
+    'start, stop, pause button
+
+    startpausebuttonclick()
+
+  ElseIf b = exitstopbutton then
+
+    'exit stop button
+
+    exitstopbuttonclick()
+
+  elseif b = addpizzabutton then
+
+    'add pizza button
+
+    addpizzabuttonclick()
+
+  elseif b = bakepizzabutton then
+
+    'bake pizza button
+
+    bakepizzabuttonclick()
+
+  elseif b = loadbutton then
+
+    'load car button
+
+    loadbuttonclick()
+
+  EndIf
+
+EndSub
+
+
+
+sub startpausebuttonclick2
+
+  If gamestatus = "Stopped" Then
+
+    gamestatus = "Playing"
+
+    Controls.SetButtonCaption(startpausebutton, "Pause Game")
+
+    Controls.SetButtonCaption(exitstopbutton, "Stop Game")
+
+    'initialize clock
+
+    clockhour = 6
+
+    clockminute = 0
+
+    ClockTime = "6:00"
+
+    Shapes.SetText(TimeDisplay, clocktime)
+
+    clockticks = 0
+
+    'initialize phone
+
+    phoneticks = 0
+
+    phoneticksmax = Math.GetRandomNumber(7) * clockticksmax
+
+    'new grid
+
+    drawgrid()
+
+    'clear order area
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.FillRectangle(510,75,190,110)
+
+    numberorders = 0
+
+    'clear pizza oven
+
+    GraphicsWindow.BrushColor = "Blue"
+
+    GraphicsWindow.FillRectangle(507,270,200,100)
+
+    pizzasbaking = 0
+
+    Controls.ShowControl(addpizzabutton)
+
+    addpizzavisible = "true"
+
+    Controls.ShowControl(bakepizzabutton)
+
+    bakepizzavisible = "true"
+
+    pizzasready = pizzasbakingmax
+
+    totalpizzasbaked = pizzasready
+
+    Shapes.SetText(pizzasreadydisplay,pizzasready)
+
+    pizzasincar = 0
+
+    Shapes.SetText(pizzasincardisplay, pizzasincar)
+
+    Controls.ShowControl(loadbutton)
+
+    loadvisible = "true"
+
+    'initialize pizza parlor and car location
+
+    pizzar = 1+Math.GetRandomNumber(18)
+
+    pizzac = 1+Math.GetRandomNumber(18)
+
+    deliverygridcolor[pizzar][pizzac] = "Black"
+
+    deliverygridtext[pizzar][pizzac] = "X"
+
+    pizzas[pizzar][pizzac] = -1
+
+    gridr = pizzar
+
+    gridc = pizzac
+
+    drawgridsquare()
+
+    carr = pizzar
+
+    carc = pizzac
+
+    mileage=0
+
+    message1 = "Car at Pizza Parlor:"
+
+    message2=carr + " " + Text.GetCharacter(carc + 64)
+
+    displaymessage()
+
+    carmoving="false"
+
+    pizzasontime=0
+
+    pizzaslate=0
+
+    misseddeliveries=0
+
+    totalsales=0
+
+    amount=totalsales
+
+    formatamount()
+
+    Shapes.SetText(SalesDisplay, AmountText)
+
+    Timer.Resume()
+
+  ElseIf gamestatus = "Playing" then
+
+    gamestatus = "Paused"
+
+    Timer.Pause()
+
+    Controls.SetButtonCaption(startpausebutton, "Restart Game")
+
+    Controls.HideControl(exitstopbutton)
+
+    Controls.HideControl(addpizzabutton)
+
+    Controls.HideControl(bakepizzabutton)
+
+    Controls.HideControl(loadbutton)
+
+  Else
+
+    'game restarted
+
+    gamestatus = "Playing"
+
+    Controls.SetButtonCaption(startpausebutton, "Pause Game")
+
+    Controls.ShowControl(exitstopbutton)
+
+    'show other buttons if they were showing before
+
+    If addpizzavisible Then
+
+      Controls.ShowControl(addpizzabutton)
+
+    EndIf
+
+    If bakepizzavisible Then
+
+      Controls.ShowControl(bakepizzabutton)
+
+    EndIf
+
+    If loadvisible Then
+
+      Controls.ShowControl(loadbutton)
+
+    EndIf
+
+    Timer.Resume()
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exitstopbuttonclick2
+
+  If gamestatus = "Playing" Then
+
+    stopgame()
+
+  Else
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+
+
+Sub stopgame2
+
+  gamestatus = "Stopped"
+
+  Timer.Pause()
+
+  Controls.SetButtonCaption(startpausebutton, "Start Game")
+
+  Controls.SetButtonCaption(exitstopbutton, "Exit")
+
+  'hide other buttons
+
+  Controls.HideControl(addpizzabutton)
+
+  Controls.HideControl(bakepizzabutton)
+
+  Controls.HideControl(loadbutton)
+
+  ovengoing = "false"
+
+  DrawBlueOven()
+
+  carmoving = "false"
+
+  salesresults()
+
+EndSub
+
+
+
+Sub displayorders2
+
+  'display oldest five orders
+
+  'print orders - clear first
+
+  GraphicsWindow.BrushColor= "White"
+
+  GraphicsWindow.FillRectangle(510,75,190,110)
+
+  y = 80
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 14
+
+  For k = 1 To 5
+
+    If k <=numberorders Then
+
+      GraphicsWindow.DrawText(525, y, order[k])
+
+      y = y +20
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub addpizzabuttonclick2
+
+  pizzasbaking = pizzasbaking +1
+
+  If pizzasbaking <5 Then
+
+    pizzax = 507 + (pizzasbaking -1) *50
+
+    pizzay = 270
+
+  Else
+
+    pizzax = 507 + (pizzasbaking -5)*50
+
+    pizzay = 320
+
+  EndIf
+
+  GraphicsWindow.DrawResizedImage(pizzaimage, pizzax, pizzay, 50,50)
+
+  If pizzasbaking = pizzasbakingmax Then
+
+    Controls.HideControl(addpizzabutton)
+
+    addpizzavisible = "false"
+
+  EndIf
+
+EndSub
+
+
+
+Sub bakepizzabuttonclick2
+
+  If pizzasbaking = 0 Then
+
+    Goto leavebakepizzabutton
+
+  EndIf
+
+  'redraw red oven
+
+GraphicsWindow.BrushColor = "Red"  
+
+GraphicsWindow.FillRectangle(505,245,205,170)
+
+For i = 1 To pizzasbaking 
+
+  If i <5 Then
+
+    pizzax = 507 +(i-1)*50
+
+    pizzay = 270
+
+  Else
+
+    pizzax = 507+(i-5)*50
+
+    pizzay = 320
+
+  EndIf
+
+  GraphicsWindow.DrawResizedImage(pizzaimage, pizzax, pizzay, 50,50)
+
+EndFor
+
+Controls.HideControl(addpizzabutton)
+
+addpizzavisible= "false"
+
+Controls.HideControl(bakepizzabutton)
+
+bakepizzavisible = "false"
+
+hout = clockhour
+
+mount = clockminute + bakingtime
+
+If mout >59 Then
+
+  mout = mout -60
+
+  hout = hout +1
+
+EndIf
+
+GraphicsWindow.BrushColor = "Yellow"
+
+GraphicsWindow.FontSize = 20
+
+oventext = "Pizza(s) Out at " + hout + ":"
+
+If mout <10 Then
+
+  oventext = oventext + "0"
+
+EndIf
+
+oventext = oventext + mout
+
+GraphicsWindow.DrawText(510,245,oventext)
+
+bakingminutesleft = bakingtime
+
+ovengoing = "true"
+
+leavebakepizzabutton2:
+
+EndSub
+
+
+
+Sub loadbuttonclick2
+
+  If pizzasready = 0 Then
+
+    Goto leaveloadcarbutton
+
+  EndIf
+
+  If pizzasready > pizzasincarmax Then
+
+    pizzasincar = pizzasincar + pizzasincarmax
+
+    pizzasready = pizzasready - pizzasincarmax
+
+  Else
+
+    pizzasincar = pizzasincar + pizzasready
+
+    pizzasready = 0
+
+  EndIf
+
+  Shapes.SetText(pizzasreadydisplay, pizzasready)
+
+  Shapes.SetText(pizzasincardisplay, pizzasincar)
+
+  Controls.HideControl(loadbutton)
+
+  loadvisible = "false"
+
+  leaveloadcarbutton2:
+
+EndSub
+
+
+
+Sub displaymessage2
+
+  'clear first
+
+  GraphicsWindow.BrushColor = "LightYellow"
+
+  GraphicsWindow.FillRectangle(505,190,205,50)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.DrawText(510,195,message1)
+
+  GraphicsWindow.DrawText(510,215,message2)
+
+EndSub
+
+
+
+Sub mousedownsub2
+
+  x = GraphicsWindow.MouseX
+
+  y = GraphicsWindow.MouseY
+
+  If gamestatus = "Playing" Then
+
+    If carmoving = "false" And loadvisible = "false" Then
+
+      deliveryr = 1 +Math.Floor((y- deliverygridy[1][1])/ gridw)
+
+      deliveryc = 1+ Math.Floor((x- deliverygridx[1][1])/ gridw)
+
+      If deliveryr<1 Or deliveryr > 20 Or deliveryc <1 Or deliveryc>20 Then
+
+        Goto leavemousedownsub
+
+      EndIf
+
+      deltar = deliveryr - carr
+
+      deltac = deliveryc - carc
+
+      If deltar <> 0 Or deltac <> 0  Then
+
+        message1 = "Car Goung to:"
+
+        message2 = deliveryr + " " + Text.GetCharacter(deliveryc+ 64)
+
+        displaymessage()
+
+        carmoving = "true"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  leavemousedownsub2:
+
+EndSub
+
+
+
+Sub removeitem2
+
+  'remove itemtoremove from orders
+
+  If itemtoremove <> numberorders And numberorders <> 1 Then
+
+    For j = itemtoremove To numberorders -1
+
+      order[j] = order[j+1]
+
+    EndFor
+
+  EndIf
+
+  numberorders = numberorders -1
+
+  displayorders()
+
+EndSub
+
+
+
+
+
+
+
+
+
+
+
+Sub salesresults2
+
+  GraphicsWindow.Hide()
+
+  TextWindow.Show()
+
+  TextWindow.BackgroundColor = "White"
+
+  TextWindow.ForegroundColor = "Black"
+
+  TextWindow.Clear()
+
+  TextWindow.Title = "Pizza Delivery Sales Results"
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.CursorTop = 2
+
+  TextWindow.WriteLine("Pizza Delivery Sales Results:")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.WriteLine("Start Time: 6:00     Stop Time: " + ClockTime)
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.WriteLine("------------------------------------------")
+
+  TextWindow.WriteLine("")
+
+  'sales
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.WriteLine("Sales:")
+
+  TextWindow.WriteLine("")
+
+  'on time pizzas
+
+  t = pizzasontime + " On Time Deliveries"
+
+  TextWindow.CursorLeft = 25 - Text.GetLength(t)
+
+  TextWindow.Write(t)
+
+  Amount = pizzasontime * netsoldpizza
+
+  formatamount()
+
+  TextWindow.CursorLeft = 35 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  'total sales
+
+  TextWindow.WriteLine("")
+
+  TextWindow.CursorLeft  =14 
+
+  TextWindow.Write("Total Sales")
+
+  Amount = TotalSales
+
+  formatamount()
+
+  TextWindow.CursorLeft = 35 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  'costs
+
+  TextWindow.CursorLeft = 40
+
+  TextWindow.CursorTop = 7
+
+  TextWindow.WriteLine("Costs:")
+
+  TextWindow.WriteLine("")
+
+  'pizzas baked
+
+  t = totalpizzasbaked + " Pizzas Baked"
+
+  TextWindow.CursorLeft = 60 - Text.GetLength(t)
+
+  TextWindow.Write(t)
+
+  Amount = totalpizzasbaked * pizzacost
+
+  formatamount()
+
+  TextWindow.CursorLeft = 70 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  'mileage
+
+  t = mileage + " Units Driven"
+
+  TextWindow.CursorLeft = 60 - Text.GetLength(t)
+
+  TextWindow.Write(t)
+
+  Amount = mileage * mileagecost
+
+  formatamount()
+
+  TextWindow.CursorLeft = 70 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  'missed deliveries
+
+  t = misseddeliveries + " Missed Deliveries"
+
+  TextWindow.CursorLeft = 60 - Text.GetLength(t)
+
+  TextWindow.Write(t)
+
+  Amount = misseddeliveries * costmissedpizza
+
+  formatamount()
+
+  TextWindow.CursorLeft = 70 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  'total costs
+
+  TextWindow.WriteLine("")
+
+  TextWindow.CursorLeft = 49
+
+  TextWindow.Write("Total Costs")
+
+  costs = totalpizzasbaked * pizzacost + mileage * mileagecost + misseddeliveries * costmissedpizza
+
+  Amount = costs
+
+  formatamount()
+
+  TextWindow.CursorLeft = 70 - Text.GetLength(AmountText)
+
+  TextWindow.WriteLine(AmountText)
+
+  TextWindow.WriteLine("")
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.WriteLine("----------------------------------------------")
+
+  TextWindow.WriteLine("")
+
+  Amount = TotalSales - costs
+
+  formatamount()
+
+  TextWindow.CursorLeft = 10
+
+  TextWindow.Write("Total Profits: " + AmountText)
+
+  If clockhour > 6 Then
+
+    'only show hourly profits if been selling for more than one hour
+
+    Amount = (TotalSales - costs) / (clockhour - 6 + clockminute / 60)
+
+    formatamount()
+
+    TextWindow.CursorLeft = 40
+
+    TextWindow.Write("Hourly Profits: " + AmountText)
+
+  EndIf
+
+  TextWindow.CursorLeft = 2
+
+  TextWindow.CursorTop = 23
+
+  TextWindow.Write("Press Enter to Return to Pizza Delivery")
+
+  t = TextWindow.Read()
+
+  TextWindow.Hide()
+
+  GraphicsWindow.Show()
+
+EndSub
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+

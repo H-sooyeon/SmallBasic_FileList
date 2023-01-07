@@ -1,0 +1,325 @@
+' SmallBasic Version 1.2
+
+' Program: GradientIcons (+SBOverlay)
+
+' Changelog: 15.11, 15.12
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/ca8db35c-abc7-4a9f-9e92-a1e4ae7c4ea4/colors-shapes-and-brushes
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev  >= v1.2.2.0
+
+' Comment: GWIcon mit Gradient
+
+' 
+
+' Variables: 
+
+' ToDo: 
+
+' ================================================================================
+
+w = 48  ' 32     '' width=height  for a single image
+
+'gradCols = "1=DarkViolet;2=Indigo;3=Blue;4=Lime;5=Yellow;6=Orange;7=Red;"
+
+gradCols = "1=White;2=Black;"  '1=Transparent;          '' B/W  only
+
+nCols = Array.GetItemCount(gradCols)
+
+
+
+icoSB = "http://litdev.co.uk/images/AppIcon_32.png"   '' 24x24 Pxl
+
+'icoSB = Program.Directory + "\AppIcon.png"     '' small image for the SB Overlay, also in SB.exe
+
+imgSB = ImageList.LoadImage(icoSB)            '' Load into ImageList for later use ...
+
+LDImage.Resize(imgSB, w/2,w/2)                '' ... and resize there
+
+
+
+'GraphicsWindow.CanResize = ""
+
+GraphicsWindow.Width = 8 * w + 128
+
+GraphicsWindow.Height = 4 * w ' 370
+
+GraphicsWindow.Title = "Select an image from the collection by MouseClick"
+
+GraphicsWindow.PenWidth = 0     '' with(out) border
+
+
+
+CrossGradientBG()
+
+
+
+y = 0       ' 1. Line:  Gradients only
+
+GradientCollection()
+
+
+
+y = w       ' 2. Line: Gradients + SBOverlays
+
+GradientCollection()
+
+SBOverlayLine()
+
+
+
+ReverseCols()
+
+y = 2*w     ' 3. Line: Rev. Gradients only
+
+GradientCollection()
+
+
+
+y = 3*w     ' 4. Line: Rev. Gradients + SBOverlays
+
+GradientCollection()
+
+SBOverlayLine()
+
+
+
+
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+
+
+
+
+' //////////  EVENTs  \\\\\\\\\\
+
+Sub OnMouseDown
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  
+
+  If mx < 5*w And my < 4*w Then ' ev. limit to Mouse.IsLeftButtonDown
+
+    GraphicsWindow.Title = "Press <S> key to save the selection ("+ w +"x"+ w +") to png file ..."
+
+    selX = w * Math.Floor(mx/w)
+
+    selY = w * Math.Floor(my/w)
+
+    shot = LDGraphicsWindow.Capture("","")
+
+    LDImage.Crop(shot, selX,selY, w,w)
+
+    
+
+    GraphicsWindow.DrawImage(shot, 6*w,0)
+
+    GraphicsWindow.DrawResizedImage(shot, 8*w,0, 128,128)
+
+    'SetAsCursor()      '' temp. set selected image as cursor
+
+    'ElseIf curSet Then
+
+    '  LDCursors.Arrow()
+
+    '  curSet = ""
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  
+
+  If lastKey = "Escape" Then      ' Exit
+
+    Program.End()
+
+    
+
+  ElseIf lastKey = "S" And shot <> "" Then  ' Save via Dialog
+
+    savePath = LDDialogs.SaveFile("png", "")
+
+    If savePath <> "" Then
+
+      LDImage.SaveAs(shot, savePath)
+
+      GraphicsWindow.Title = savePath + "  SAVED !"
+
+      LDGraphicsWindow.Icon = savePath
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub GradientCollection
+
+  arrOrient = "1=H;2=V;3=DU;4=DD;5=R;"
+
+  nOrient = Array.GetItemCount(arrOrient)
+
+  
+
+  For n = 1 To nOrient
+
+    shpRect = Shapes.AddRectangle(w,w)
+
+    LDShapes.BrushShape(shpRect, LDShapes.BrushGradient(gradCols, arrOrient[n]))
+
+    Shapes.Move(shpRect, w*(n-1), y)
+
+  EndFor
+
+EndSub
+
+
+
+Sub ReverseCols
+
+  For n = nCols To 1 Step -1
+
+    revCols[Array.GetItemCount(revCols) + 1] = gradCols[n]
+
+  EndFor
+
+  gradCols = revCols
+
+  revCols = ""
+
+EndSub
+
+
+
+Sub SBOverlayLine
+
+  For n = 1 To nOrient
+
+    shpSB = Shapes.AddImage(imgSB)
+
+    Shapes.Move(shpSB, w*(n-1), y+w/2)
+
+  EndFor
+
+EndSub
+
+
+
+'' lower image should fill its whole area (no 32bitARGB transparency here when saved) 
+
+Sub SBOverlay   ' single image
+
+  shpSB = Shapes.AddImage(imgSB)
+
+  Shapes.Move(shpSB, 0,w/2)
+
+EndSub
+
+
+
+Sub CrossGradientBG   ' s. Theremin.sb
+
+  gradVert = "1=White;2=Red;"       ' "1=Red;2=White;"
+
+  gradHorz = "1=#FFFFFF;2=#00008B;" ' "1=#00008B;2=#FFFFFF;"
+
+  opac = 50
+
+  
+
+  brushVert = LDShapes.BrushGradient(gradVert, "V")
+
+  brushHorz = LDShapes.BrushGradient(gradHorz, "H")
+
+  
+
+  LDGraphicsWindow.BackgroundBrush(brushVert)
+
+  
+
+  '' Create an image shape of what is seen and set 50% transparent, ...
+
+  imgVert = LDGraphicsWindow.Capture("","")
+
+  shpVert = Shapes.AddImage(imgVert)
+
+  Shapes.SetOpacity(shpVert, opac)
+
+  
+
+  '' ... underneath set background to the 2nd gradient
+
+  LDGraphicsWindow.BackgroundBrush(brushHorz)   ' dynamically, also after resized
+
+  
+
+  '' Create a final image of what is seen and ev. clean up the rest
+
+  imgBoth = LDGraphicsWindow.Capture("","")
+
+  LDImage.Remove(imgVert)
+
+  Shapes.Remove(shpVert)
+
+  
+
+  '' Set the final background image ...
+
+  'LDGraphicsWindow.BackgroundImage(imgBoth)    ' dynamically, also after resized
+
+  
+
+  '' ... or DrawImage to fill the background
+
+  'LDGraphicsWindow.BackgroundImage(0)     ' ev. first remove the previous BackgroundBrush
+
+  GraphicsWindow.DrawImage(imgBoth, 0,0)
+
+EndSub
+
+
+
+'' ------- deactivated ---------
+
+Sub SetAsCursor
+
+  curShot = LDImage.Copy(shot)
+
+  LDImage.Resize(curShot, w/2,w/2)
+
+  cur = LDCursors.CreateCursor(curShot, w/4,w/4)
+
+  ''cur = LDCursors.CreateCursor(shot, w/2-1, w/2-1)  ' alternative in original size
+
+  LDCursors.SetUserCursor(cur)
+
+  curSet = "True"
+
+EndSub
+
+  
+
+

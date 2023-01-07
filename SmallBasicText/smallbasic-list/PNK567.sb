@@ -1,0 +1,307 @@
+' SmallBasic Version 1.1
+
+' Program: AverageRGB
+
+' Changelog: 
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/eec42e5f-54fc-4351-a734-59995427d87d/averaging-colours
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev
+
+' Comment: s. GWLoupe.sb Mod
+
+'  
+
+' Variables: 
+
+' ToDo: 
+
+' ================================================================================
+
+dX = 10   ' inner square width = 21
+
+dY = 10   ' inner quare height = 21
+
+dW = 2*dX+1
+
+dH = 2*dY+1
+
+title = "Average ("+ dW +"x"+ dH +" region) RGB: "
+
+
+
+gw = GraphicsWindow.Width
+
+gh = GraphicsWindow.Height
+
+LDGraphicsWindow.TopMost = "True"
+
+LDControls.AllowDrop("Background")
+
+
+
+LDControls.FileDropped = OnFileDropped
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+
+
+Loop:
+
+While dropped
+
+  If moved And mx >= dx And mx < imgW-dx And my >= dy And my < imgH-dy Then
+
+    bg = LDImage.Copy(img)
+
+    LDImage.Crop(bg, mx-dx,my-dy, dW,dH)
+
+    VarStat()
+
+    LDImage.Remove(bg)
+
+    moved = ""
+
+  Else
+
+    Program.Delay(20)
+
+  EndIf
+
+EndWhile
+
+Program.Delay(50)
+
+Goto Loop
+
+
+
+''  For a specified region in the image, define region dimensions here + crop it (else whole image is used)
+
+'Region()
+
+
+
+''Get average per Histogram or Statistic
+
+'VarHist()
+
+'VarStat()
+
+
+
+red = Math.Round(red)
+
+green = Math.Round(green)
+
+blue = Math.Round(blue)
+
+
+
+'' Output in GW or TW
+
+GWOut()
+
+'TWOut()
+
+
+
+' ////////// EVENTs  \\\\\\\\\\
+
+Sub OnFileDropped
+
+  dropped = "True"
+
+  'GraphicsWindow.BackgroundColor = "White"
+
+  GraphicsWindow.Clear()
+
+  files = LDControls.LastDropFiles
+
+  pic = files[1]
+
+  img = ImageList.LoadImage(pic)
+
+  imgW = ImageList.GetWidthOfImage(img)
+
+  imgH = ImageList.GetHeightOfImage(img)
+
+  'BestFitSize()
+
+  GraphicsWindow.DrawImage(img, 0,0)
+
+  'GraphicsWindow.BackgroundColor = "White"
+
+  
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "Red"
+
+  GraphicsWindow.BrushColor = "Transparent"
+
+  frame = Shapes.AddRectangle(dW+2, dH+2)
+
+EndSub
+
+
+
+Sub OnMouseMove
+
+  moved = "True"
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY  
+
+  Shapes.Move(frame, mx-dX-1, my-dy-1)
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  If GraphicsWindow.LastKey = "Escape" Then
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub BestFitSize
+
+  imgW = ImageList.GetWidthOfImage(img)
+
+  imgH = ImageList.GetHeightOfImage(img)
+
+  'largestRatio = Math.Max(imgW/gw, imgH/gh)
+
+  'resizeW = imgW/largestRatio
+
+  'resizeH = imgH/largestRatio
+
+  'GraphicsWindow.DrawResizedImage(img, 0,0, resizeW,resizeH)
+
+  GraphicsWindow.DrawImage(img, 0,0)
+
+  GraphicsWindow.BackgroundColor = "White"
+
+EndSub
+
+
+
+'' select/crop partial image
+
+Sub Region
+
+  regX = 0
+
+  regY = 0
+
+  regW = regW
+
+  regH = regH
+
+  LDImage.Crop(img, regX,regY, regW,regH)
+
+EndSub
+
+
+
+
+
+'' GetAverageRGB
+
+Sub VarHist
+
+  nPxls = regW * regH
+
+  hist = LDImage.Histogram(img)
+
+  arrRed = hist[1]
+
+  arrGreen = hist[2]
+
+  arrBlue = hist[3]
+
+  
+
+  For n = 0 To 255
+
+    red = red + n*arrRed[n] ' /nPxls
+
+    green = green + n*arrGreen[n] ' /nPxls
+
+    blue = blue + n*arrBlue[n]  ' /nPxls
+
+  EndFor
+
+  red = red / nPxls
+
+  green = green / nPxls
+
+  blue = blue / nPxls
+
+EndSub
+
+
+
+Sub VarStat
+
+  stat = LDImage.Statistics(bg)
+
+  red = Math.Round(stat["Mean"][1])
+
+  green = Math.Round(stat["Mean"][2])
+
+  blue = Math.Round(stat["Mean"][3])
+
+  avHex = GraphicsWindow.GetColorFromRGB(red, green, blue)
+
+  GraphicsWindow.BackgroundColor = avHex
+
+  GraphicsWindow.Title = title + red +","+ green +","+ blue +" | Hex: "+ avHex
+
+EndSub
+
+
+
+
+
+'' Output
+
+Sub TWOut
+
+  TextWindow.WriteLine("Average RGB (whole image): " + red +","+ green +","+ blue)
+
+EndSub
+
+
+
+Sub GWOut
+
+  avHex = GraphicsWindow.GetColorFromRGB(red, green, blue)
+
+  GraphicsWindow.BackgroundColor = avHex
+
+  GraphicsWindow.DrawImage(img, 0,0)
+
+  GraphicsWindow.Title = "Average (region)  RGB:" + red +","+ green +","+ blue +" | Hex: "+ avHex
+
+EndSub
+
+

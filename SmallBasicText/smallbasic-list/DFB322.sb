@@ -1,0 +1,285 @@
+sqldatabasepath = Program.Directory + "\SQL Lite DATABASE.db" 
+
+database =  LDDataBase.ConnectSQLite(sqldatabasepath) 
+
+sql = "DROP TABLE IF EXISTS URL;CREATE TABLE URL (ID Integer,URL Text,ORIGINATOR TEXT);"
+
+RUN_SQL()
+
+
+
+url = "http://cnn.com" 
+
+TextWindow.Clear()
+
+TextWindow.ForegroundColor = "WHITE"
+
+TextWindow.Write("URL:") 
+
+url =  TextWindow.Read()
+
+If Text.StartsWith(url,"http://") = "False" and Text.StartsWith(url,"https://") = "False" then 
+
+  TextWindow.WriteLine("ERROR! URL INVALID! AUTO CORRECTING ....") 
+
+  url = "http://" + url 
+
+endif 
+
+
+
+idmaster = 0 
+
+TextWindow.Title = "Web Crawler" 
+
+
+
+LDUtilities.ShowErrors = "False" 
+
+LDEvents.Error = error 
+
+
+
+While 1 = 1 
+
+  GetRobots()
+
+  Fetch()
+
+endwhile 
+
+
+
+Sub GetRobots
+
+  TextWindow.ForegroundColor = "WHITE" 
+
+  baseurl = Text.GetSubTextToEnd(url,Text.GetIndexOf(url,"//")+2)
+
+  baseurl = Text.GetSubText(baseurl,1,Text.GetIndexOf(baseurl,".")+3) 
+
+  robotsurl = "http://"+baseurl +"/robots.txt" 
+
+  
+
+  TextWindow.WriteLine(robotsurl) 
+
+  
+
+  TextWindow.WriteLine("DOWNLOADING FILE ...") 
+
+' The following line could be harmful and has been automatically commented.
+
+'   path = File.GetTemporaryFilePath()
+
+  LDNetwork.DownloadFile(path,robotsurl) 
+
+' The following line could be harmful and has been automatically commented.
+
+'   cnts =   File.ReadContents(path) 
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.DeleteFile(path)
+
+  
+
+  TextWindow.WriteLine("PARSING ...") 
+
+  string ="User-Agent: *"
+
+  cnts =  Text.ConvertToLowerCase(cnts)
+
+  string = Text.ConvertToLowerCase(string) 
+
+  
+
+  cnts = Text.GetSubTextToEnd(cnts,Text.GetIndexOf(cnts,string) + Text.GetLength(string))
+
+' The following line could be harmful and has been automatically commented.
+
+'   path = File.GetTemporaryFilePath()
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(path,cnts)
+
+' The following line could be harmful and has been automatically commented.
+
+'   lines = LDFile.Length(path) 
+
+  data = "" 
+
+  For xyz = 1 To lines
+
+' The following line could be harmful and has been automatically commented.
+
+'     linedata = File.ReadLine(path,xyz) 
+
+    If ( Text.StartsWith(linedata,"#") = "True" ) Or ( Text.StartsWith(linedata," #") = "True" )  Then 'Ignore Line Command 
+
+    Else 
+
+      data = data + linedata + Text.GetCharacter(10)
+
+    EndIf 
+
+  EndFor 
+
+' The following line could be harmful and has been automatically commented.
+
+'  ' File.WriteContents(path,data) 
+
+ ' LDProcess.Start(path,"") 
+
+  Program.Delay(100)
+
+  Robots()
+
+EndSub
+
+
+
+Sub Robots
+
+  TextWindow.WriteLine("PARSING STAGE 2") 
+
+  string2 = "Disallow:"
+
+  TextWindow.ForegroundColor = "RED"
+
+' The following line could be harmful and has been automatically commented.
+
+'   lines = LDFile.Length(path) 
+
+  For xyz = 1 To lines
+
+' The following line could be harmful and has been automatically commented.
+
+'     linedata = File.ReadLine(path,xyz)     
+
+    If ( Text.StartsWith(linedata,string2) = "True" )  Then 'Dissalow 
+
+      disallowedurl = Text.GetSubTextToEnd(linedata,Text.GetLength(string2))
+
+      
+
+      TextWindow.WriteLine(disallowedurl) 
+
+    EndIf 
+
+  EndFor 
+
+  TextWindow.Pause()
+
+EndSub
+
+
+
+Sub Fetch
+
+  TextWindow.ForegroundColor = "WHITE" 
+
+  TextWindow.WriteLine("FETCHING DATA") 
+
+  contents =  Network.GetWebPageContents(url) 
+
+  TextWindow.WriteLine("FINISHED FETCH" ) 
+
+  TextWindow.ForegroundColor = "GREEN" 
+
+  Sort()
+
+EndSub
+
+
+
+Sub Sort
+
+  sql = "" 
+
+  TextWindow.Title = "SORT " + url 
+
+  index =  LDText.FindAll(contents,"<a href=") 
+
+  For i = 1 To Array.GetItemCount(index) 
+
+    contentssub =  Text.GetSubTextToEnd(contents,index[i]+9) 
+
+    index2 =  Text.GetIndexOf(contentssub,Text.GetCharacter(34) ) 
+
+    urldata = Text.GetSubText(contentssub,1,index2-1) 
+
+    indexofperiod =  Text.GetIndexOf(urldata,"." ) 
+
+    If indexofperiod = 0 Then
+
+      urldata=  Text.Append(url,urldata) 
+
+    EndIf 
+
+    
+
+    querycode  = "SELECT * FROM URL WHERE URL ='" + urldata +"';" 
+
+    return =  LDDataBase.Query(database, querycode , "","True" ) 
+
+    If return = "" Then 'Unique URLs ONLY 
+
+      TextWindow.WriteLine(urldata) 
+
+      id = id + 1 
+
+      sql = sql +  "INSERT INTO URL(ID,URL,ORIGINATOR)  VALUES('"+id+"','"+urldata+"','"+url+"');" 
+
+    EndIf 
+
+  EndFor
+
+  RUN_SQL()
+
+  idmaster = idmaster + 1 
+
+  Query()
+
+EndSub
+
+
+
+Sub RUN_SQL
+
+  TextWindow.ForegroundColor = "YELLOW"
+
+  TextWindow.WriteLine("WRITING DATA") 
+
+  updated =  LDDataBase.Command(database,sql)
+
+  TextWindow.WriteLine("UPDATED " + updated + " rows of data!" )  
+
+EndSub
+
+
+
+Sub Query
+
+  querydata =  LDDataBase.Query(database,"SELECT URL FROM URL WHERE ID='" + idmaster +"';","","True") 
+
+  TextWindow.WriteLine(querydata[1]["URL"])  
+
+  url =  querydata[1]["URL"]
+
+EndSub
+
+
+
+Sub Error
+
+  TextWindow.ForegroundColor = "RED" 
+
+  TextWindow.WriteLine(  LDEvents.LastError ) 
+
+  TextWindow.Pause()
+
+EndSub
+
+

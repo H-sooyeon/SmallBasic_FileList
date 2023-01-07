@@ -1,0 +1,181 @@
+'Circling Marquee - Rotating letters around a center point with compensating letter rotation to keep letters pointing towards center -- Compliments of codingCat aka Matthew L. Parets - No rights resevered as long as no money is earned
+
+
+
+
+
+'The message to be displayed
+
+message = "To Understand Recurson One Must First Undestand Recursion "
+
+spcJmp = 6          'Angle jump for spaces (spaces do not take up the same space as letters)
+
+radious = 275       'Size of the circle
+
+angleOffset = 90    'Angle rotation past vertical to start the first letter (90 = all letters point towards the center)
+
+rotationSpeed = 0.125   'Angle change between steps in rotation 
+
+
+
+frameLength = 45    'Number of milleseconds between animation frames
+
+
+
+'The look and feel of the letters 
+
+GraphicsWindow.FontSize = 40
+
+GraphicsWindow.FontBold = "True"
+
+GraphicsWindow.BackgroundColor = "Black"
+
+GraphicsWindow.BrushColor = "White"
+
+GraphicsWindow.Width = 600
+
+GraphicsWindow.Height = 600
+
+GraphicsWindow.Show()
+
+
+
+'--- Everything from this point is calculated --------------------------------------------------
+
+
+
+CountSpaces()                                   'How many spaces are their between letters
+
+barCnt = Text.GetLength(message) - spcCnt       'Number of letters to create shapes from
+
+angleStep = (360 - (spcCnt * spcJmp)) / barCnt  'Amount of space (angle count) between letters
+
+CreateLetterShapes()                            'One shape per letter, no shapes for the spaces
+
+
+
+centerx = GraphicsWindow.Width/2 - 15           'Find the center of the circle - offset will need to be nudged with different sized letters
+
+centery = GraphicsWindow.Height/2 - 20
+
+pos = 1                                         'Start with the first letter
+
+framestart = Clock.ElapsedMilliseconds          'Start the clock
+
+
+
+'--- Main Program Loop -----------------------------------------------------------------------
+
+While "True"
+
+  'Update position around the circle
+
+  angle[pos] = angle[pos] + rotationSpeed
+
+  angle[pos] = Math.Remainder(angle[pos],360)
+
+  
+
+  'calcuate x/y based on angle around the circle
+
+  radAngle = Math.GetRadians(angle[pos])
+
+  x = Math.Cos(radAngle) * radious + centerx
+
+  y = Math.Sin(radAngle) * radious + centery
+
+  
+
+  Shapes.Rotate(bar[pos],angle[pos] + angleOffset)  'Rotate to match position
+
+  Shapes.Move(bar[pos],x,y)                    'Change the position
+
+  
+
+  pos = pos + 1                                ' Next letter please
+
+  If pos > barCnt Then                         'Reached the end? start over
+
+    frameDelay()                               'Wait a tick or two between moves
+
+    pos = 1
+
+  EndIf
+
+EndWhile
+
+
+
+Sub CountSpaces
+
+  spcCnt = 0
+
+  For i = 1 to Text.GetLength(message)
+
+    If Text.GetSubText(message,i,1) = " " Then
+
+      spcCnt = spcCnt + 1
+
+    EndIf
+
+  endfor
+
+EndSub
+
+
+
+Sub CreateLetterShapes
+
+  baseAngle = 1
+
+  pos = 1
+
+  For i = 1 To Text.GetLength(message)
+
+    If Text.GetSubText(message,i,1) <> " " then 'If its not a space
+
+      baseAngle = baseAngle + angleStep         'update the angle to match its position around the circle
+
+      bar[pos] = Shapes.AddText(Text.GetSubText(message,i,1)) 'Create the letter as a shape
+
+      angle[pos] = baseAngle                    'Store the shapes angle
+
+      radAngle = Math.GetRadians(angle[pos])    'Calculate its position around the circle based on the angle
+
+      x = Math.Cos(radAngle) * radious + centerx  
+
+      y = Math.Sin(radAngle) * radious + centery
+
+      Shapes.Rotate(bar[pos],angle[pos])        'Rotate the shape to match
+
+      Shapes.Move(bar[pos],x,y)                 'Place the shape on the circle
+
+      
+
+      pos = pos + 1                             'Next letter please
+
+    Else
+
+      baseAngle = baseAngle + spcJmp            'Don't create a shape if it's a space - Micro adjust space for space
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub frameDelay
+
+  'Precise frame timing. More exact that program.delay
+
+  While Clock.ElapsedMilliseconds - framestart < frameLength
+
+  EndWhile
+
+  framestart = Clock.ElapsedMilliseconds
+
+EndSub
+
+

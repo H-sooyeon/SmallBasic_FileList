@@ -1,0 +1,437 @@
+'==========================================
+
+'INITIALISE
+
+'==========================================
+
+Initialise()
+
+
+
+'==========================================
+
+'MAIN GAME LOOP
+
+'==========================================
+
+start:
+
+playing = "True"
+
+
+
+While (playing)
+
+  start = Clock.ElapsedMilliseconds
+
+  speed = speed+0.01
+
+  
+
+  If (start-musicLast > 70000) Then
+
+    Sound.Stop(music)
+
+    Sound.Play(music)
+
+    musicLast = start
+
+  EndIf
+
+  
+
+  MoveLanes()
+
+  MoveCars()
+
+  CrashCheck()
+
+  score = score+speed/100
+
+  Shapes.SetText(scoreBox,"Score "+Math.Floor(score)+" Crashes "+crashes)
+
+  If (crashes = 5) Then
+
+    playing = "False"
+
+  EndIf
+
+  
+
+  delay = 20-(Clock.ElapsedMilliseconds-start)
+
+  If (delay > 0) Then
+
+    Program.Delay(delay)
+
+  EndIf
+
+EndWhile
+
+
+
+newGAme()
+
+Goto start
+
+
+
+'==========================================
+
+'SUBROUTINES
+
+'==========================================
+
+Sub Initialise
+
+  laneWidth = 100
+
+  gw = 5*laneWidth
+
+  gh = 700
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Top = 0
+
+  GraphicsWindow.Left = (Desktop.Width-gw)/2
+
+  GraphicsWindow.Title = "Car Lane Changer"
+
+  GraphicsWindow.BackgroundColor = "LightGray"
+
+  
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.PenWidth = 0
+
+  For i = 1 To 4
+
+    For j = 1 To 8
+
+      lane[i][j] = Shapes.AddRectangle(6,100)
+
+      Shapes.Move(lane[i][j],laneWidth*i-3,200*j-100)
+
+    EndFor
+
+  EndFor
+
+  
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = laneWidth/2
+
+  loading = Shapes.AddText("Loading...")
+
+  Shapes.Move(loading,gw/4,gh/2-100)
+
+  
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+  
+
+  Timer.Interval = 1000
+
+  Timer.Tick = OnTick
+
+  While (music = "")
+
+  EndWhile
+
+  
+
+  speed = 10
+
+  score = 0
+
+  crashes = 0
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  scoreBox = Shapes.AddText("")
+
+  Shapes.Move(scoreBox,gw/2-100,0)
+
+  CR = Text.GetCharacter(10)  
+
+  Shapes.Remove(loading)
+
+EndSub
+
+
+
+Sub GetResources
+
+  For res = 1 To 8
+
+    resources[res] = "car"+res+".png"
+
+  EndFor
+
+  resources[9] = "backgroundMusic.mp3"
+
+  resources[10] = "crashSound.mp3"
+
+  
+
+  path = Program.Directory+"/"
+
+  web = "http://litdev.co.uk/game_images/"
+
+' The following line could be harmful and has been automatically commented.
+
+'   files = File.GetFiles(path)
+
+  For res = 1 To Array.GetItemCount(resources)
+
+    If (Array.ContainsValue(files,path+resources[res]) = "False") Then
+
+      tempFile = Network.DownloadFile(web+resources[res])
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.CopyFile(tempFile,path+resources[res])
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.DeleteFile(tempFile)
+
+    EndIf
+
+    If (Text.EndsWith(resources[res],"png")) Then
+
+      image = ImageList.LoadImage(web+"car"+res+".png")
+
+      carWidth[res] = ImageList.GetWidthOfImage(image)
+
+      carHeight[res] = ImageList.GetHeightOfImage(image)
+
+      cars[res] = Shapes.AddImage(image)
+
+      If (res = 1) Then
+
+        carLane[res] = 3
+
+        carY[res] = gh-carHeight[res]
+
+      Else
+
+        carLane[res] = Math.GetRandomNumber(5)
+
+        carY[res] = gh
+
+      EndIf
+
+      Shapes.Move(cars[res],-carWidth[res]/2+laneWidth*(carLane[res]-0.5),carY[res])
+
+    EndIf
+
+  EndFor
+
+  music = path+resources[9]
+
+  crash = path+resources[10]
+
+EndSub
+
+
+
+Sub MoveLanes
+
+  laneY = laneY+speed
+
+  If (laneY > 200) Then
+
+    laneY = laneY-200
+
+  EndIf
+
+  For i = 1 To 4
+
+    For j = 1 To 8
+
+      Shapes.Move(lane[i][j],laneWidth*i-3,laneY+200*j-500)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub MoveCars
+
+  For i = 2 To 8
+
+    carY[i] = carY[i]+speed/2
+
+    If (carY[i] > gh) Then
+
+      carLane[i] = Math.GetRandomNumber(5)
+
+      carY[i] = -Math.GetRandomNumber(2500)
+
+      For j = 2 To 8
+
+        If (i <> j And carLane[i] = carLane[j]) Then
+
+          carY[i] = Math.Min(carY[i],carY[j]-800)
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+    Shapes.Move(cars[i],-carWidth[i]/2+laneWidth*(carLane[i]-0.5),carY[i])
+
+  EndFor
+
+  Shapes.Animate(cars[1],-carWidth[1]/2+laneWidth*(carLane[1]-0.5),carY[1],50)
+
+EndSub
+
+
+
+Sub CrashCheck
+
+  For i = 2 To 8
+
+    If (carLane[i] = carLane[1] And carY[i]+carHeight[i] > gh-carHeight[1]) Then
+
+      Sound.Stop(crash)
+
+      Sound.Play(crash)
+
+      carY[i] = gh
+
+      speed = 10
+
+      crashes = crashes+1
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub newGame
+
+  score = Math.Floor(score)
+
+' The following line could be harmful and has been automatically commented.
+
+'   highscore = File.ReadContents(File.GetSettingsFilePath())
+
+  If (score > highscore) Then
+
+    highscore = score
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteContents(File.GetSettingsFilePath(),highscore)
+
+  EndIf
+
+  
+
+  Program.Delay(500)
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  GraphicsWindow.FontSize = 20
+
+  message = Shapes.AddText("      Your Score is "+score+CR+"      High Score is "+highscore+CR+"(Press a key to play again)")
+
+  Shapes.Move(message,gw/2-130,gh/4)
+
+  Shapes.Animate(message,gw/2-130,gh/2,1000)
+
+  
+
+  keys = ""
+
+  While (keys = "")
+
+    Program.Delay(100)
+
+  EndWhile
+
+  Shapes.Remove(message)
+
+  speed = 10
+
+  score = 0
+
+  crashes = 0
+
+  For i = 2 To 8
+
+    carY[i] = gh
+
+  EndFor
+
+EndSub
+
+
+
+'==========================================
+
+'EVENTS
+
+'==========================================
+
+Sub OnTick
+
+  Timer.Pause()
+
+  GetResources()
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  keys[key] = "True"
+
+  If (key = "Left" And carLane[1] > 1) Then
+
+    carLane[1] = carLane[1]-1
+
+  ElseIf (key = "Right" And carLane[1] < 5) Then
+
+    carLane[1] = carLane[1]+1
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  key = GraphicsWindow.LastKey
+
+  keys[key] = ""
+
+EndSub
+
+
+
+
+
+

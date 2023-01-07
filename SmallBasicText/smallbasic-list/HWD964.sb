@@ -1,0 +1,645 @@
+' Color slider 0.2
+
+' Copyright (c) 2012-2014 Nonki Takahashi.  MIT License.
+
+'
+
+' History:
+
+'  0.2 2014-07-10 Simple pop-up version. ()
+
+'  0.1 2012-06-23 Created.
+
+'
+
+GraphicsWindow.Title = "Color Slider 0.2"
+
+GraphicsWindow.BackgroundColor = "LightGray"
+
+While "True"
+
+  bgBackup = GraphicsWindow.BackgroundColor
+
+  color = bgBackup
+
+  Control_ColorSlider()
+
+  If color = "" Then
+
+    GraphicsWindow.BackgroundColor = bgBackup
+
+  EndIf
+
+  GraphicsWindow.BrushColor = "Black"
+
+  btn = Controls.AddButton("Color", 10, 10)
+
+  notClicked = "True"
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  While notClicked
+
+    Program.Delay(200)
+
+  EndWhile
+
+  Controls.Remove(btn)
+
+EndWhile
+
+Sub OnButtonClicked
+
+  notClicked = "False"
+
+EndSub
+
+Sub Control_CallBack
+
+  ' param color
+
+  GraphicsWindow.BackgroundColor = color
+
+EndSub
+
+Sub Control_ColorSlider
+
+  ' param color - initial color
+
+  ' return color
+
+  gw = GraphicsWindow.Width
+
+  gh = GraphicsWindow.Height
+
+  Stack.PushValue("local", GraphicsWindow.PenWidth)
+
+  Stack.PushValue("local", GraphicsWindow.BrushColor)
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "White"
+
+  oPopup = Shapes.AddRectangle(500, 200)
+
+  x = (gw - 500) / 2
+
+  y = (gh - 200) / 2
+
+  Shapes.Move(oPopup, x, y)
+
+  Shapes.SetOpacity(oPopup, 80)
+
+  GraphicsWindow.BrushColor = Stack.PopValue("local")
+
+  GraphicsWindow.PenWidth = Stack.PopValue("local")
+
+  width = 256
+
+  colorBar = "LightGray"
+
+  min = 0
+
+  max = 255
+
+  left = x + 40
+
+  ' add red slider
+
+  top = y + 40
+
+  caption = "R"
+
+  Control_AddSlider()
+
+  oRed = oSlider
+
+  hex = Text.GetSubText(color, 2, 2)
+
+  Math_Hex2Dec()
+
+  level = dec
+
+  Control_MoveSlider()
+
+  ' add green slider
+
+  top = y + 70
+
+  caption = "G"
+
+  Control_AddSlider()
+
+  oGreen = oSlider
+
+  hex = Text.GetSubText(color, 4, 2)
+
+  Math_Hex2Dec()
+
+  level = dec
+
+  Control_MoveSlider()
+
+  ' add blue slider
+
+  top = y + 100
+
+  caption = "B"
+
+  Control_AddSlider()
+
+  oBlue = oSlider
+
+  hex = Text.GetSubText(color, 6, 2)
+
+  Math_Hex2Dec()
+
+  level = dec
+
+  Control_MoveSlider()
+
+  ' add text box
+
+  GraphicsWindow.BrushColor = "Black"
+
+  oColor = Controls.AddTextBox(left, y + 150)
+
+  ' add OK button
+
+  oOK = Controls.AddButton("OK", x + 360, y + 150)
+
+  ' add Cancel button
+
+  oCancel = Controls.AddButton("Cancel", x + 400, y + 150)
+
+  ' draw color rectangle
+
+  Control_GetColor()
+
+  Control_ShowColor()
+
+  x = x + 360
+
+  y = y + 30
+
+  width = 100 
+
+  height = 100
+
+  Control_DrawColorRect()
+
+  sliderMoved = "False"
+
+  GraphicsWindow.MouseUp = Control_OnMouseUp
+
+  GraphicsWindow.MouseDown = Control_OnMouseDown
+
+  Controls.ButtonClicked = Control_OnButtonClicked
+
+  notClicked = "True"
+
+  While notClicked
+
+    If sliderMoved Then
+
+      oSlider = oClicked
+
+      Control_GetMouseLevel()
+
+      Control_MoveSlider()
+
+      Control_GetColor()
+
+      Control_ShowColor()
+
+      Control_DrawColorRect()
+
+      Control_CallBack()
+
+      sliderMoved = "False"
+
+    Else
+
+      Program.Delay(200)
+
+    EndIf
+
+  EndWhile
+
+  Controls.Remove(oOK)
+
+  Controls.Remove(oCancel)
+
+  Controls.Remove(oColor)
+
+  Shapes.Remove(oColorRect)
+
+  oSlider = oRed
+
+  Control_RemoveSlider()
+
+  oSlider = oGreen
+
+  Control_RemoveSlider()
+
+  oSlider = oBlue
+
+  Control_RemoveSlider()
+
+  Shapes.Remove(oPopup)
+
+EndSub
+
+Sub Control_ShowColor
+
+  ' param oColor
+
+  ' param color
+
+  Controls.SetTextBoxText(oColor, color)
+
+EndSub
+
+Sub Control_OnButtonClicked
+
+  If Controls.LastClickedButton = oCancel Then
+
+    color = ""
+
+  EndIf
+
+  notClicked = "False"
+
+EndSub
+
+Sub Control_DrawColorRect
+
+  ' param color - color of rectangle
+
+  ' param x, y - position of rectangle
+
+  ' param width, height - size of rectangle
+
+  ' return oColorRect - shape of the color rectangle
+
+  Stack.PushValue("local", GraphicsWindow.BrushColor)
+
+  Stack.PushValue("local", GraphicsWindow.PenColor)
+
+  If oColorRect <> "" Then
+
+    Shapes.Remove(oColorRect)
+
+  EndIf
+
+  GraphicsWindow.BrushColor = color
+
+  GraphicsWindow.PenColor = "Gray"
+
+  oColorRect = Shapes.AddRectangle(width, height)
+
+  Shapes.Move(oColorRect, x, y)
+
+  GraphicsWindow.PenColor = Stack.PopValue("local")
+
+  GraphicsWindow.BrushColor = Stack.PopValue("local")
+
+EndSub
+
+Sub Control_OnMouseDown
+
+  ' return oClicked - clicked slider
+
+  xMouse = GraphicsWindow.MouseX
+
+  yMouse = GraphicsWindow.MouseY
+
+  oClicked = ""
+
+  For i = 1 To numSlider
+
+    oSlider = "Slider" + i
+
+    Control_CheckSliderClicked()
+
+  EndFor
+
+EndSub
+
+Sub Control_CheckSliderClicked
+
+  ' param oSlider
+
+  ' return oClicked - clicked slider
+
+  x2 = prop[oSlider + ".x2"]
+
+  x3 = prop[oSlider + ".x3"]
+
+  y2 = prop[oSlider + ".y2"]
+
+  y3 = prop[oSlider + ".y3"]
+
+  If x2 <= xMouse And xMouse <= x3 And y2 <= yMouse And yMouse <= y3 Then
+
+    GraphicsWindow.MouseMove = Control_OnMouseMove
+
+    oClicked = oSlider
+
+  EndIf
+
+EndSub
+
+
+
+Sub Control_OnMouseUp
+
+  GraphicsWindow.MouseMove = Control_DoNothing
+
+EndSub
+
+
+
+Sub Control_OnMouseMove
+
+  sliderMoved = "True"
+
+  xMouse = GraphicsWindow.MouseX
+
+  x0 = prop[oClicked + ".x0"]
+
+  x1 = prop[oClicked + ".x1"]
+
+  If xMouse < x0 Then
+
+    xMouse = x0
+
+  EndIf
+
+  If x1 < xMouse Then
+
+    xMouse = x1
+
+  EndIf
+
+EndSub
+
+Sub Control_DoNothing
+
+EndSub
+
+Sub Control_GetColor
+
+  ' return color
+
+  oSlider = oRed
+
+  Control_GetLevel()
+
+  red = level
+
+  oSlider = oGreen
+
+  Control_GetLevel()
+
+  green = level
+
+  oSlider = oBlue
+
+  Control_GetLevel()
+
+  blue = level
+
+  color = GraphicsWindow.GetColorFromRGB(red, green, blue)
+
+EndSub
+
+Sub Control_RemoveSlider
+
+  ' param oSlider
+
+  Shapes.Remove(prop[oSlider + ".caption"])
+
+  Shapes.Remove(prop[oSlider + ".slit"])
+
+  Shapes.Remove(prop[oSlider + ".bar"])
+
+  Shapes.Remove(prop[oSlider + ".box"])
+
+  Shapes.Remove(prop[oSlider + ".value"])
+
+  index = Array.GetAllIndices(prop)
+
+  num = Array.GetItemCount(prop)
+
+  For i = 1 To num
+
+    If Text.StartsWith(index[i], oSlider) Then
+
+      prop[index[i]] = ""
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub Control_AddSlider
+
+  ' param width
+
+  ' param colorBar
+
+  ' param caption
+
+  ' param min, max
+
+  ' param left, top
+
+  ' return oSlider
+
+  numSlider = numSlider + 1
+
+  oSlider = "Slider" + numSlider
+
+  ' add shapes for slider
+
+  GraphicsWindow.BrushColor = "DimGray"
+
+  prop[oSlider + ".text"] = caption
+
+  prop[oSlider + ".caption"] = Shapes.AddText(caption)
+
+  GraphicsWindow.PenColor = "Gray"
+
+  GraphicsWindow.BrushColor = "DimGray"
+
+  prop[oSlider + ".slit"] = Shapes.AddRectangle(width, 10)
+
+  GraphicsWindow.BrushColor = colorBar
+
+  GraphicsWindow.PenColor = "Gray"
+
+  level = Math.Floor((min + max) / 2)
+
+  prop[oSlider + ".level"] = level
+
+  mag = (level - min) / (max - min)
+
+  prop[oSlider + ".bar"] = Shapes.AddRectangle(Math.Floor(width * mag), 10)
+
+  GraphicsWindow.PenColor = "Gray"
+
+  GraphicsWindow.BrushColor = "LightGray"
+
+  prop[oSlider + ".box"] = Shapes.AddRectangle(10, 18)
+
+  prop[oSlider + ".min"] = min
+
+  prop[oSlider + ".max"] = max
+
+  GraphicsWindow.BrushColor = "DimGray"
+
+  prop[oSlider + ".value"] = Shapes.AddText(level)
+
+  ' move shapes for slider
+
+  len = Text.GetLength(caption)
+
+  Shapes.Move(prop[oSlider + ".caption"], left - (len * 5 + 10), top + 1)
+
+  Shapes.Move(prop[oSlider + ".slit"], left, top + 4)
+
+  prop[oSlider + ".x0"] = left
+
+  prop[oSlider + ".x1"] = left + width
+
+  prop[oSlider + ".y0"] = top
+
+  Shapes.Move(prop[oSlider + ".bar"], left, top + 4)
+
+  Shapes.Move(prop[oSlider + ".box"], left + Math.Floor(width * mag) - 5, top)
+
+  Shapes.Move(prop[oSlider + ".value"], left + width + 6, top + 1)
+
+  prop[oSlider + ".x2"] = left + Math.Floor(width * mag) - 5
+
+  prop[oSlider + ".x3"] = left + Math.Floor(width * mag) - 5 + 10
+
+  prop[oSlider + ".y2"] = top
+
+  prop[oSlider + ".y3"] = top + 18
+
+EndSub
+
+Sub Control_MoveSlider
+
+  ' param oSlider
+
+  ' param level
+
+  Stack.PushValue("local", width)
+
+  x0 = prop[oSlider + ".x0"]
+
+  x1 = prop[oSlider + ".x1"]
+
+  y0 = prop[oSlider + ".y0"]
+
+  width = x1 - x0
+
+  prop[oSlider + ".level"] = level
+
+  Shapes.SetText(prop[oSlider + ".value"], level)
+
+  ' remove and add bar again
+
+  Shapes.Remove(prop[oSlider + ".bar"])
+
+  GraphicsWindow.BrushColor = colorBar
+
+  GraphicsWindow.PenColor = "Gray"
+
+  min = prop[oSlider + ".min"]
+
+  max = prop[oSlider + ".max"]
+
+  mag = (level - min) / (max - min)
+
+  prop[oSlider + ".bar"] = Shapes.AddRectangle(Math.Floor(width * mag), 10)
+
+  Shapes.Move(prop[oSlider + ".bar"], x0, y0 + 4)
+
+  ' remove and add box again
+
+  Shapes.Remove(prop[oSlider + ".box"])
+
+  GraphicsWindow.PenColor = "Gray"
+
+  GraphicsWindow.BrushColor = "LightGray"
+
+  prop[oSlider + ".box"] = Shapes.AddRectangle(10, 18)
+
+  Shapes.Move(prop[oSlider + ".box"], x0 + Math.Floor(width * mag) - 5, y0)
+
+  prop[oSlider + ".x2"] = x0 + Math.Floor(width * mag) - 5
+
+  prop[oSlider + ".x3"] = x0 + Math.Floor(width * mag) - 5 + 10
+
+  prop[oSlider + ".y2"] = y0
+
+  prop[oSlider + ".y3"] = y0 + 18
+
+  width = Stack.PopValue("local")
+
+EndSub
+
+Sub Control_GetMouseLevel
+
+  ' param oSlider
+
+  ' return level
+
+  x0 = prop[oSlider + ".x0"]
+
+  x1 = prop[oSlider + ".x1"]
+
+  max = prop[oSlider + ".max"]
+
+  min = prop[oSlider + ".min"]
+
+  level = min + Math.Floor((max - min) * (xMouse - x0) / (x1 - x0))
+
+EndSub
+
+Sub Control_GetLevel
+
+  ' param oSlider
+
+  ' return level
+
+  level = prop[oSlider + ".level"]
+
+EndSub
+
+Sub Math_Hex2Dec
+
+  ' Math | Convert hexadecimal to decimal
+
+  ' param hex - hexadecimal text
+
+  ' return dec - decimal number
+
+  dec = 0
+
+  iLen = Text.GetLength(hex)
+
+  For iPtr = 1 To iLen
+
+    dec = dec * 16 + Text.GetIndexOf("0123456789ABCDEF", Text.GetSubText(hex, iPtr, 1)) - 1
+
+  EndFor
+
+EndSub
+
+

@@ -1,0 +1,179 @@
+GraphicsWindow.Title = "Challenge of the Month - May 2013 | Community Suggestion 2"
+
+xc = GraphicsWindow.Width / 2
+
+yc = GraphicsWindow.Height / 2
+
+r = yc * 0.8
+
+rocket[1] = "shape=triangle;x=-30;y=-65;x1=0;y1=30;x2=60;y2=30;x3=30;y3=0;pw=0;pc=#000000;bc=#ffffff;"
+
+rocket[2] = "shape=triangle;x=-20;y=15;x1=0;y1=40;x2=40;y2=40;x3=20;y3=0;pw=0;pc=#000000;bc=#333333;"
+
+rocket[3] = "shape=rectangle;x=-30;y=-35;width=60;height=70;pw=0;pc=#000000;bc=#cccccc;"
+
+GraphicsWindow.BackgroundColor = "#000000"
+
+GraphicsWindow.BrushColor = "#3333ff"
+
+DrawStars()
+
+d = (r * 0.6) * 2
+
+GraphicsWindow.FillEllipse(xc - d / 2, yc - d / 2, d, d)
+
+a = 0
+
+AddRocket()
+
+a = 360
+
+Timer.Interval = 1000 / 24
+
+Timer.Tick = OnTick
+
+Sub DrawStars
+
+  For i = 1 To 100
+
+    x = Math.GetRandomNumber(GraphicsWindow.Width)
+
+    y = Math.GetRandomNumber(GraphicsWindow.Height)
+
+    GraphicsWindow.SetPixel(x, y, "#ffffff")
+
+  EndFor
+
+EndSub
+
+Sub OnTick
+
+  sec = Clock.Second + Clock.Millisecond / 1000
+
+  a = 270 - sec * 6
+
+  MoveRocket()
+
+EndSub
+
+Sub AddRocket
+
+  ' param a - angle
+
+  ' param r - radius of orbit
+
+  Stack.PushValue("local", r)
+
+  rad = Math.GetRadians(a)
+
+  x0 = xc + r * Math.Cos(rad)
+
+  y0 = yc + r * Math.Sin(rad)
+
+  nShapes = Array.GetItemCount(rocket)
+
+  index = Array.GetAllIndices(rocket)
+
+  For i = 1 To nShapes
+
+    GraphicsWindow.PenWidth = rocket[index[i]]["pw"]
+
+    GraphicsWindow.PenColor = rocket[index[i]]["pc"]
+
+    GraphicsWindow.BrushColor = rocket[index[i]]["bc"]
+
+    If rocket[index[i]]["shape"] = "rectangle" Then
+
+      obj[i] = Shapes.AddRectangle(rocket[index[i]]["width"], rocket[index[i]]["height"])
+
+    ElseIf rocket[index[i]]["shape"] = "triangle" Then
+
+      rocket[index[i]]["width"] = rocket[index[i]]["x2"] - rocket[index[i]]["x1"]
+
+      rocket[index[i]]["height"] = rocket[index[i]]["y1"] - rocket[index[i]]["y3"]
+
+      obj[i] = Shapes.AddTriangle(rocket[index[i]]["x1"], rocket[index[i]]["y1"], rocket[index[i]]["x2"], rocket[index[i]]["y2"], rocket[index[i]]["x3"], rocket[index[i]]["y3"])
+
+    EndIf
+
+    x = x0 + rocket[index[i]]["x"]
+
+    y = y0 + rocket[index[i]]["y"]
+
+    Shapes.Move(obj[i], x, y)
+
+    x = x - xc + rocket[index[i]]["width"] / 2
+
+    y = y - yc + rocket[index[i]]["height"] / 2
+
+    Math_CartesianToPolar()
+
+    rocket[index[i]]["r"] = r
+
+    rocket[index[i]]["a"] = a
+
+  EndFor
+
+  r = Stack.PopValue("local")
+
+EndSub
+
+Sub MoveRocket
+
+  ' param a - angle
+
+  ' param r - radius of orbit
+
+  For i = 1 To nShapes
+
+    rad = Math.GetRadians(a + rocket[index[i]]["a"])
+
+    x = xc + rocket[index[i]]["r"] * Math.Cos(rad) - rocket[index[i]]["width"] / 2
+
+    y = yc + rocket[index[i]]["r"] * Math.Sin(rad) - rocket[index[i]]["height"] / 2
+
+    Shapes.Rotate(obj[i], a)
+
+    Shapes.Move(obj[i], x, y)
+
+  EndFor
+
+EndSub
+
+Sub Math_CartesianToPolar
+
+  ' Math | convert cartesian coodinate to polar coordinate
+
+  ' param x, y - cartesian coordinate
+
+  ' return r, a - polar coordinate
+
+  r = Math.SquareRoot(x * x + y * y)
+
+  If x = 0 And y > 0 Then
+
+    a = 90 ' [degree]
+
+  ElseIf x = 0 And y < 0 Then
+
+    a = -90
+
+  Else
+
+    a = Math.ArcTan(y / x) * 180 / Math.Pi
+
+  EndIf
+
+  If x < 0 Then
+
+    a = a + 180
+
+  ElseIf x > 0 And y < 0 Then
+
+    a = a + 360
+
+  EndIf
+
+EndSub
+
+

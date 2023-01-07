@@ -1,0 +1,637 @@
+'  Submarine Game       2013/09/16       by        NaochanON
+
+
+
+GraphicsWindow.KeyDown=onkeydown
+
+GUI()
+
+
+
+While Ship_Num>0 And getmarine<Number
+
+  shapes.SetText(smsg," Ship remains "+Ship_Num+"     Submarine  remains.... "+(Number-getmarine))
+
+  Babble_Move()
+
+  Ship_Dropmine()
+
+  move_mine()
+
+  submarine_moving()
+
+  SubMarine_bomb()
+
+  move_bomb()
+
+  Program.Delay(100)
+
+endwhile
+
+End_message()
+
+
+
+Sub Ship_Dropmine
+
+  If throw_mine="true" Then 
+
+    Mine_CNT=Mine_CNT+1
+
+    If Mine_CNT>MNMB Then 
+
+      Mine_CNT=Mine_CNT-MNMB
+
+    EndIf
+
+    Shapes.Move(smine[Mine_CNT],SHX+20,155)
+
+    throw_mine="false"
+
+    Sound.Stop(sound[2])
+
+    Sound.Play(sound[2])
+
+  EndIf
+
+EndSub
+
+
+
+sub Submarine_moving 
+
+  bomb="false"
+
+  Shapes.Move(submarine[1],Shapes.GetLeft(submarine[1])-ddx,Shapes.GetTop(submarine[1])+ddy)   '  body 
+
+  Shapes.Move(submarine[2],Shapes.GetLeft(submarine[1])+30,Shapes.GetTop(submarine[1])-8)      '  
+
+  SLX=Shapes.GetLeft(submarine[1])              '   submarine  X-position
+
+  SLY=Shapes.Gettop(submarine[1])               '   submarine  Y-position
+
+  If SLX<-150 or SLX>1300 Then                  '   Left turn   
+
+    change_position() 
+
+  EndIf
+
+  If Math.Abs(SLX-SHX)<40 Or Math.GetRandomNumber(20)=3 Then 
+
+    bomb="true"
+
+    Program.Delay(10)
+
+  EndIf
+
+EndSub
+
+
+
+Sub SubMarine_bomb                 
+
+  If bomb="true" Then 
+
+    Bomb_CNT=Bomb_CNT+1
+
+    If Bomb_CNT>BNMB Then 
+
+      Bomb_CNT=Bomb_CNT-BNMB
+
+      accDY=accDy+2
+
+    EndIf
+
+    Shapes.Move(sbmb[Bomb_CNT],SLX+40,SLY-8-3)   '   shoot  bombs 
+
+    Sound.Stop(sound[3])
+
+    Sound.Play(sound[3])
+
+  EndIf
+
+endsub
+
+
+
+Sub move_mine
+
+  If Mine_CNT>0 Then 
+
+    PM2=-PM2
+
+    For K=1 To MNMB
+
+      Shapes.Move(smine[K],Shapes.GetLeft(smine[k]),Shapes.Gettop(smine[K])+10)
+
+      Shapes.Rotate(smine[K],45*PM2)      '  bomb swings 
+
+      Submarine_attacked()       
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub move_bomb
+
+  If Bomb_CNT>0 Then 
+
+    PM=-PM
+
+    For i=1 To BNMB
+
+      Shapes.Move(sbmb[i],Shapes.GetLeft(sbmb[i]),Shapes.Gettop(sbmb[i])-(8+accDy))
+
+      Shapes.Rotate(sbmb[i],45*PM)            '  bomb swings 
+
+      If 135<Shapes.Gettop(sbmb[i])  and Shapes.Gettop(sbmb[i])<165 Then 
+
+        hit_check()
+
+        If hit="true" then 
+
+          i=BNMB
+
+        EndIf
+
+        crash()
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub hit_check
+
+  If Shapes.GetLeft(ship[1])-5<Shapes.GetLeft(sbmb[i]) and Shapes.GetLeft(sbmb[i])<Shapes.GetLeft(ship[1])+85  Then  
+
+    Ship_Num=Ship_Num-1
+
+    hit="true"
+
+  EndIf
+
+EndSub
+
+
+
+Sub crash             '   ship is bombed  ' 
+
+  If hit="true" Then 
+
+    Looseship=Looseship+1
+
+    Sound.Stop(sound[4])
+
+    Sound.Play(sound[4])
+
+    explosion2()
+
+    Program.Delay(1000)
+
+    dx=100+Math.GetRandomNumber(200)
+
+    move_ship()                            '  goto  next initial position
+
+    dx=0
+
+    hit="false"
+
+  EndIf
+
+EndSub
+
+
+
+Sub escape
+
+  If math.Abs(SMX+10-SLX-40)<50+math.Abs(ddx) And -10<(SLY-SMY) and (SLY-SMY)<15 Then 
+
+   Temp=ddx
+
+    ddx=-3*ddx
+
+    ddy=5
+
+    Submarine_moving()
+
+    ddx=-Temp
+
+    ddy=0
+
+  EndIf
+
+EndSub
+
+
+
+Sub Submarine_attacked
+
+  mineattack="false"
+
+  SMX=Shapes.GetLeft(smine[k])     '   mine  X-position
+
+  SMY=Shapes.GetTop(smine[k])      '   mine  Y-position 
+
+  escape()
+
+  If math.Abs(SLX+40-SMX-10)<50 and SLY<=SMY and SMY<=SLY+20  Then 
+
+    mineattack="true" 
+
+    getmarine=getmarine+1
+
+    Sound.Stop(sound[5])
+
+    Sound.Play(sound[5])
+
+    explosion()
+
+    Shapes.Move(smine[Mine_CNT],-500,-500)
+
+    Shapes.Move( submarine[1],-100,Shapes.GetTop(submarine[1]))   '  body 
+
+    Shapes.Move( submarine[2],Shapes.GetLeft(submarine[1])+30,Shapes.GetTop(submarine[1])-8) '  
+
+    Program.Delay(1000) 
+
+  EndIf
+
+  If 600<SMY Then 
+
+    Shapes.Move(smine[K],-500,-20)
+
+  EndIf
+
+EndSub
+
+
+
+Sub explosion
+
+  Shapes.SetOpacity(Exp[1][getmarine],100)    '  show  explosion  at submarine
+
+  Shapes.Move(Exp[1][getmarine],Shapes.GetLeft(submarine[1])+20,Shapes.GetTop(submarine[1]))
+
+  EXPWH=2+math.GetRandomNumber(4)
+
+  Shapes.Rotate(Exp[1][getmarine],180/EXPWH)
+
+  For JJ=1 To 30
+
+    Shapes.Zoom(Exp[1][getmarine],1+jj/5,1+jj/EXPWH)
+
+    Program.Delay(10)
+
+  EndFor
+
+  Shapes.SetOpacity(Exp[1][getmarine],100*(1-jj/30))
+
+endsub
+
+
+
+Sub explosion2
+
+  Shapes.SetOpacity(Exp[2][Looseship],100)    '  show  explosion  at ship
+
+  Shapes.Move(Exp[2][Looseship],Shapes.GetLeft(ship[1])+30,Shapes.GetTop(ship[1]))
+
+  EXPWH=2+math.GetRandomNumber(4)
+
+  Shapes.Rotate(Exp[2][Looseship],180/EXPWH)
+
+  For JJ=1 To 30
+
+    Shapes.Zoom(Exp[2][Looseship],1+jj/2.5,1+jj/EXPWH)
+
+    Program.Delay(10)
+
+  EndFor
+
+  Shapes.SetOpacity(Exp[2][Looseship],100*(1-jj/30))
+
+endsub
+
+
+
+Sub change_position
+
+  Shapes.Move(submarine[1],SLX+2*ddx,350+Math.GetRandomNumber(200))   '  body 
+
+  Shapes.Move(submarine[2],SLX+30,SLY-8) '  
+
+  nextddx=ddx+Math.GetRandomNumber(10)/10
+
+  If nextddx=0 Then 
+
+    nextddx=ddx
+
+  EndIf
+
+  ddx=-(nextddx) 
+
+EndSub
+
+
+
+Sub onkeydown
+
+  Key= text.GetCharacterCode(GraphicsWindow.LastKey)
+
+  If Math.Abs((key-79)/3)=1 Then 
+
+    dx=(key-79)                        '  right  82    Left  76
+
+    move_ship()
+
+  ElseIf key=83 then                   ' Space=83
+
+    throw_mine="true"
+
+  EndIf
+
+EndSub
+
+
+
+Sub move_ship                          '  ship  position 
+
+  Shapes.Move(ship[1],Shapes.GetLeft(ship[1])+dx,135)
+
+  Shapes.Move(ship[2],Shapes.GetLeft(ship[1])-8,135)
+
+  Shapes.Move(ship[3],Shapes.GetLeft(ship[1])+80,135)
+
+  Shapes.Move(ship[4],Shapes.GetLeft(ship[1])+20,125)
+
+  SHX=Shapes.GetLeft(ship[1])          '  Ship  X-position
+
+EndSub
+
+
+
+Sub Hide_bomb                          '  Submarine bombs
+
+  BNMB=20
+
+  For j=1 To BNMB
+
+    color=GraphicsWindow.GetRandomColor()
+
+    GraphicsWindow.BrushColor=color
+
+    GraphicsWindow.PenColor=color
+
+    sbmb[j]= Shapes.AddRectangle(20,8)
+
+    Shapes.Move(sbmb[j],-200,1000)
+
+  EndFor
+
+EndSub 
+
+
+
+Sub Hide_mine                          '  mines
+
+  MNMB=15
+
+  For K=1 To MNMB
+
+    GraphicsWindow.BrushColor="Red"
+
+    GraphicsWindow.PenColor="Red"
+
+    smine[K]= Shapes.AddRectangle(20,8)
+
+    Shapes.Move(smine[K],-500,-20)
+
+  EndFor
+
+EndSub 
+
+
+
+Sub End_message
+
+  If Ship_Num=0 then 
+
+    Shapes.SetText(smsg," --- Game  End  -----")
+
+  else
+
+    Shapes.SetText(smsg," Congratulation !!!   You Win !!")
+
+  endif
+
+  Shapes.Move(smsg,-500,80)
+
+  Shapes.Animate(smsg,600,80,5000)
+
+  Sound.PlayAndWait(sound[1])
+
+  Sound.PlayAndWait(sound[1])
+
+EndSub
+
+
+
+Sub babble
+
+  GraphicsWindow.BrushColor="White"
+
+  GraphicsWindow.penColor="White"
+
+  For i=1 To 10
+
+    For j=1 To 20
+
+      DR= 4+Math.GetRandomNumber(5)
+
+      BBL[i][j]=Shapes.AddEllipse(DR,DR)
+
+      Shapes.Move(BBL[i][j],150*(i-1)+math.GetRandomNumber(90),700+5*math.GetRandomNumber(150))    
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub Babble_Move
+
+  For Bi=1 To 10
+
+    For Bj=1 To 20
+
+      Shapes.Move(BBL[Bi][Bj], Shapes.GetLeft(BBL[Bi][Bj]) , Shapes.Gettop(BBL[Bi][Bj])-Math.GetRandomNumber(3) )  
+
+      If Shapes.Gettop(BBL[Bi][Bj])<150 Then
+
+        Shapes.Move(BBL[Bi][Bj], Shapes.GetLeft(BBL[Bi][Bj]) ,700+5*math.GetRandomNumber(150)) 
+
+      endif 
+
+    EndFor
+
+  EndFor
+
+endsub 
+
+
+
+Sub GUI
+
+  GraphicsWindow.Title="Submarine Attack Game"
+
+  GraphicsWindow.CanResize="False"
+
+  GraphicsWindow.Width=1250
+
+  GraphicsWindow.Height=700
+
+  GraphicsWindow.Top=20
+
+  GraphicsWindow.Left=50
+
+  GraphicsWindow.BackgroundColor="Blue"
+
+  GraphicsWindow.BrushColor="Lightcyan"
+
+  GraphicsWindow.penColor="Lightcyan"
+
+  For j=1 To 10
+
+    rect[j]=shapes.addRectangle(1250,50)
+
+    Shapes.Move(rect[j],0,150+50*(j-1))
+
+    Shapes.SetOpacity(rect[j],100-10*j)
+
+  endfor
+
+  '----------------------------------------------------------------------------------------
+
+  babble()              '  babble 
+
+  hide_mine()           '   mine
+
+  Hide_bomb()           '   bombs  for submarine
+
+  '----------------------------------------------------------------------------------------
+
+  GraphicsWindow.BrushColor="lightblue"
+
+  GraphicsWindow.penColor="lightblue"
+
+  shapes.addRectangle(1250,150)
+
+  '----------------------------------------------------------------------------------------
+
+  GraphicsWindow.BrushColor="SlateGray"
+
+  GraphicsWindow.PenColor="Darkgreen"
+
+  submarine[1]= Shapes.AddEllipse(80,20)
+
+  submarine[2]= Shapes.AddRectangle(15,10)
+
+  stXY="X=920;Y=520"
+
+  Shapes.Move( submarine[1],stXY["X"],stXY["Y"])
+
+  Shapes.Move( submarine[2],Shapes.GetLeft(submarine[1])+40,Shapes.GetTop(submarine[1])-8)
+
+  ddx=15     '   moving speed   
+
+  PM=1       '   moving direction    +1;Left   -1;Right 
+
+  '----------------------------------------------------------------------------------------
+
+  GraphicsWindow.BrushColor="Green"
+
+  GraphicsWindow.PenColor="Green"
+
+  ship[1]=Shapes.AddRectangle(80,20)
+
+  ship[2]=Shapes.AddTriangle(0,0,10,0,10,18)
+
+  ship[3]=Shapes.AddTriangle(0,0,0,18,10,0)
+
+  ship[4]=Shapes.AddRectangle(20,15)
+
+  dx=math.GetRandomNumber(500)
+
+  move_ship()           '   initial  ship  position
+
+  Number=10             '  initial  ship number // submarine number 
+
+  Ship_Num=Number       '   initial ship   counts
+
+  hit="false"
+
+  dx=0                  '  ship X-direction shift
+
+  PM2=1                 '  moving direction    +1;Left   -1;Right 
+
+  '----------------------------------------------------------------------------------------
+
+  GraphicsWindow.BrushColor="Red"
+
+  GraphicsWindow.FontSize=25
+
+  smsg= Shapes.AddText(" Move ..... Aarrow keys ,  Mine drop ......  Space key")
+
+  Shapes.Move(smsg,50,5)
+
+  '----------------------------------------------------------------------------------------
+
+  sound[1]= program.Directory+"\MarineAlarm.mp3" 
+
+  sound[2]= Program.Directory+"\ShipShoot.mp3" 
+
+  sound[3]= Program.Directory+"\SubMarineshoot.mp3" 
+
+  sound[4]= Program.Directory+"\ShipExplosion.mp3"
+
+  sound[5]= Program.Directory+"\SubmarineExplosion.mp3"
+
+  Sound.PlayAndWait(sound[1])
+
+  '----------------------------------------------------------------------------------------
+
+  color="1=Yellow;2=Orange"
+
+  For i=1 To 2
+
+    For j=1 To Number
+
+      GraphicsWindow.BrushColor=color[i]
+
+      GraphicsWindow.PenColor=color[i]
+
+      Exp[i][j]= Shapes.AddText("?˜…")               '  Explosion 
+
+      Shapes.Move(Exp[i][j],500,-500) 
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+

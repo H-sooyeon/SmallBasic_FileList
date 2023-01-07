@@ -1,0 +1,323 @@
+'invader = Shapes.AddImage("http://i61.tinypic.com/othfeo.png")
+
+
+
+'Space
+
+GraphicsWindow.DrawImage("http://i58.tinypic.com/t66qeg.png",0,0)
+
+
+
+'Initialize Window
+
+gw = 700
+
+gh = 500
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+keyLeft = 0
+
+keyRight = 0
+
+keyUp = 0
+
+keyDown = 0
+
+keySpace = 0
+
+Createmissiles()
+
+
+
+'Initialize player
+
+player = Shapes.AddImage("http://i57.tinypic.com/1e7xtz.png")
+
+GraphicsWindow.DrawImage(player,300,300)
+
+playerX = 100
+
+playerY = 100
+
+speed = 3
+
+Shapes.Move(player,playerX-25,playerY-25)
+
+
+
+'Main loop - just move the player
+
+While gw = 700
+
+  processKey()
+
+  Shapes.Move(player,playerX-25,playerY-25)
+
+  Program.Delay(10)
+
+EndWhile
+
+
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  If (lastKey = "Left") Then
+
+    keyLeft = 1
+
+  ElseIf (lastKey = "Right") Then
+
+    keyRight = 1
+
+  ElseIf (lastKey = "Up") Then
+
+    keyUp = 1
+
+  ElseIf (lastKey = "Down") Then
+
+    keyDown = 1
+
+  ElseIf (lastKey = "Space") Then
+
+    keySpace = 1
+
+  EndIf 
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  lastKey = GraphicsWindow.LastKey
+
+  If (lastKey = "Left") Then
+
+    keyLeft = 0
+
+  ElseIf (lastKey = "Right") Then
+
+    keyRight = 0
+
+  ElseIf (lastKey = "Up") Then
+
+    keyUp = 0
+
+  ElseIf (lastKey = "Down") Then
+
+    keyDown = 0
+
+  ElseIf (lastKey = "Space") Then
+
+    keySpace = 0
+
+  EndIf 
+
+EndSub
+
+
+
+Sub processKey
+
+  If (keyLeft = 1) Then
+
+    playerX = playerX-speed
+
+  EndIf 
+
+  If (keyRight = 1) Then
+
+    playerX = playerX+speed
+
+  EndIf 
+
+  If (keyUp = 1) Then
+
+    playerY = playerY-speed
+
+  EndIf 
+
+  If (keyDown = 1) Then
+
+    playerY = playerY+speed
+
+  EndIf
+
+  If (keySpace = 1) Then  
+
+    spaceDown = "True"
+
+    While ("True")
+
+      start = Clock.ElapsedMilliseconds
+
+      
+
+      If spaceDown = "True" Then
+
+        FireMissile()
+
+        spaceDown = "False"
+
+      EndIf
+
+      Updatemissiles()
+
+      
+
+      delay = 20 - (Clock.ElapsedMilliseconds - start)
+
+      If (delay > 0) Then
+
+        Program.Delay(delay)
+
+      EndIf
+
+    EndWhile
+
+  EndIf
+
+  
+
+  'Check for hitting edges
+
+  If (playerX < 0) Then
+
+    playerX = 0
+
+  EndIf
+
+  If (playerX > gw) Then
+
+    playerX = gw
+
+  EndIf
+
+  If (playerY < 0) Then
+
+    playerY = 0
+
+  EndIf
+
+  If (playerY > gh) Then
+
+    playerY = gh
+
+  EndIf
+
+EndSub
+
+
+
+Sub Createmissiles
+
+  missileImage = ImageList.LoadImage("http://i61.tinypic.com/vxn1xy.png")
+
+  'missile dimensions we use the half width and height
+
+  missileWidth = ImageList.GetWidthOfImage(missileImage)/2
+
+  missileHeight = ImageList.GetHeightOfImage(missileImage)/2
+
+  nummissile = 20
+
+  For i = 1 To nummissile
+
+    missileData["image"] = Shapes.AddImage(missileImage)
+
+    missileData["Xpos"] = missileWidth + Math.GetRandomNumber(gw-2*missileWidth)
+
+    missileData["Ypos"] = gh-missileHeight
+
+    missileData["Xvel"] = 0
+
+    missileData["Yvel"] = -5
+
+    missileData["Status"] = 0
+
+    Shapes.HideShape(missileData["image"])
+
+    missiles[i] = missileData
+
+  EndFor
+
+EndSub
+
+
+
+Sub Updatemissiles
+
+  For i = 1 To nummissile
+
+    missileData = missiles[i] 'get current missile array
+
+    If (missileData["Status"] = 1) Then
+
+      'Reposition missile center
+
+      missileData["Xpos"] = missileData["Xpos"] + missileData["Xvel"]
+
+      missileData["Ypos"] = missileData["Ypos"] + missileData["Yvel"]    
+
+      'Move missile center
+
+      Shapes.Move(missileData["image"],missileData["Xpos"]-missileWidth,missileData["Ypos"]-missileHeight)
+
+      'missile finished with
+
+      If (missileData["Ypos"] < -missileHeight) Then
+
+        missileData["Status"] = 0
+
+        Shapes.HideShape(missileData["image"])
+
+      EndIf
+
+      missiles[i] = missileData 'save updated missile array (it may have been modified)
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub FireMissile
+
+  For i = 1 To nummissile
+
+    missileData = missiles[i] 'get current missile array
+
+    If (missileData["Status"] = 0) Then
+
+      missileData["Status"] = 1
+
+      Shapes.ShowShape(missileData["image"])
+
+      missileData["Xpos"] = playerX + 12
+
+      missileData["Ypos"] = playerY - 65
+
+      missiles[i] = missileData 'save updated missile array (it may have been modified)
+
+      i = nummissile 'End loop
+
+    EndIf
+
+  EndFor
+
+EndSub 
+
+

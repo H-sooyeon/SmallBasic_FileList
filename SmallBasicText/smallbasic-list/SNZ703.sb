@@ -1,0 +1,331 @@
+' Breakout
+
+' Version 0.1a
+
+' Copyright © 2016 Nonki Takahashi.  The MIT License.
+
+
+
+GraphicsWindow.Title = "Breakout 0.1a"
+
+Form()
+
+Main()
+
+
+
+Sub Form
+
+  gw = 480
+
+  gh = 600
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  GraphicsWindow.PenWidth = 0
+
+  InitBricks()
+
+  InitPaddle()
+
+  InitBall()
+
+  Timer.Interval = 50   ' 0.05 [sec]
+
+  Timer.Tick = OnTick
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+EndSub
+
+
+
+Sub Main
+
+  While "True"
+
+    If keyDown Then
+
+      key = GraphicsWindow.LastKey
+
+      If key = "Left" Then
+
+        If 20 < Shapes.GetLeft(paddle) Then
+
+          Shapes.Move(paddle, Shapes.GetLeft(paddle) - 20, Shapes.GetTop(paddle))
+
+        EndIf
+
+      ElseIf key = "Right" Then
+
+        If Shapes.GetLeft(paddle) + width < gw - 20 Then
+
+          Shapes.Move(paddle, Shapes.GetLeft(paddle) + 20, Shapes.GetTop(paddle))
+
+        EndIf
+
+      EndIf
+
+      keyDown = "False"
+
+    EndIf
+
+    If tick Then
+
+      UpdateBall()
+
+      tick = "Flase"
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+
+
+Sub InitBricks
+
+  nBrick = 0
+
+  width = 60
+
+  height = 20
+
+  nRow = 5
+
+  nCol = 7
+
+  gap = 5
+
+  color = "1=Red;2=Yellow;3=Lime;4=Blue;5=Magenta;"
+
+  x0 = (gw - (width * nCol) - (gap * (nCol - 1))) / 2
+
+  y0 = height * 3
+
+  y = y0
+
+  For row = 1 To nRow
+
+    x = x0
+
+    GraphicsWindow.BrushColor = color[row]
+
+    For col = 1 To nCol
+
+      nBrick = nBrick + 1
+
+      brick[nBrick] = Shapes.AddRectangle(width, height)
+
+      Shapes.Move(brick[nBrick], x, y)
+
+      x = x + width + gap
+
+    EndFor
+
+    y = y + height + gap
+
+  EndFor
+
+EndSub
+
+
+
+Sub InitPaddle
+
+  GraphicsWindow.BrushColor = "White"
+
+  paddle = Shapes.AddRectangle(width, height)
+
+  x = (gw - width) / 2
+
+  y = gh - height * 4
+
+  Shapes.Move(paddle, x, y)
+
+EndSub
+
+
+
+Sub InitBall
+
+  If ball = "" Then
+
+    GraphicsWindow.BrushColor = "White"
+
+    ball = Shapes.AddEllipse(height, height)
+
+  EndIf
+
+  x = (gw - height) / 2
+
+  y = y0 + (height + gap) * nRow
+
+  angle = Math.GetRandomNumber(91) - 46
+
+  _a = Math.GetRadians(angle)
+
+  v = 15
+
+  vx = -v * Math.Sin(_a)
+
+  vy = v * Math.Cos(_a)
+
+  Shapes.Move(ball, x, y)
+
+EndSub
+
+
+
+Sub UpdateBall
+
+  x = x + vx
+
+  out = "False"
+
+  If (vx < 0) And (x < 0) Then
+
+    vx = -vx
+
+    x = -x
+
+  ElseIf (0 < vx) And (gw < x + height) Then
+
+    vx = -vx
+
+    dx = x + height - gw  
+
+    x = gw - dx - height
+
+  EndIf
+
+  y = y + vy
+
+  If (vy < 0) And (y < 0) Then
+
+    vy = -vy
+
+    y = -y
+
+  ElseIf (y0 <= y + height) And (y <= y0 + height * nRow + gap * (nRow -1)) Then
+
+    nBrick = Array.GetItemCount(brick)
+
+    index = Array.GetAllIndices(brick)
+
+    For i = nBrick To 1 Step -1
+
+      If brick[index[i]] <> "" Then
+
+        x1 = Shapes.GetLeft(brick[index[i]])
+
+        x2 = x1 + width
+
+        y1 = Shapes.GetTop(brick[index[i]])
+
+        y2 = y1 + height
+
+        If x1 <= x + height And x <= x2 And y1 <= y + height And y <= y2 Then
+
+          If 0 < vy Then
+
+            vy = -vy
+
+            dy = y + height - y1
+
+            y = y1 - dy - height
+
+          ElseIf vy < 0 Then
+
+            vy = -vy
+
+            dy = y2 - y  
+
+            y = y2 + dy
+
+          EndIf
+
+          Shapes.Remove(brick[index[i]])
+
+          brick[index[i]] = ""
+
+          If brick = "" Then
+
+            clear = "True"
+
+            i = nBrick  ' exit For
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  ElseIf (Shapes.GetTop(paddle) <= y + height) And (y <= Shapes.GetTop(paddle) + height) Then
+
+    If (Shapes.GetLeft(paddle) <= x + height) And (x <= Shapes.GetLeft(paddle) + width) And (0 < vy) Then
+
+      vy = -vy
+
+      dy = y + height - Shapes.GetTop(paddle)  
+
+      y = Shapes.GetTop(paddle) - dy - height
+
+    EndIf
+
+  ElseIf gh < y Then
+
+    out = "True"
+
+  EndIf
+
+  If out Then
+
+    Program.Delay(2000)
+
+    InitBall()
+
+  ElseIf clear Then
+
+    Program.Delay(2000)
+
+    InitBricks()
+
+    InitBall()
+
+    clear = "False"
+
+  Else
+
+    Shapes.Move(ball, x, y)
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  keyDown = "True"
+
+EndSub
+
+
+
+Sub OnTick
+
+  tick = "True"
+
+EndSub
+
+  
+
+

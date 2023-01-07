@@ -1,0 +1,1135 @@
+version = "version 1.0b - 11/18/12 - Daddyo"
+
+
+
+' To see what Kepler's about, check out http://kepler.nasa.gov/ 
+
+'
+
+' This software lets you see the light intensity of a particular star observed by the
+
+' Kepler space telescope, which stays focused on thousands of individual stars for years.
+
+' If a planet gets in front of a star, the star will dim by a tiny amount, and will be seen here.
+
+' A huge amount of data is observed since a light sample is taken every minute.
+
+' You must download and process these observations to be read into this software, 
+
+'  SEE END OF THIS FILE FOR DETAILS ON MAKING INPUT FILES ETC.
+
+'
+
+' See example of found Earth like planet in http://arxiv.org/ftp/arxiv/papers/1112/1112.1640.pdf
+
+'  see section 2.3.1.1 to see what the light curve is shaped like.
+
+'
+
+' Manuals on Kepler instrument & data
+
+' http://archive.stsci.edu/kepler/manuals/archive_manual.pdf
+
+' http://archive.stsci.edu/kepler/manuals/KSCI-19033-001.pdf
+
+' http://archive.stsci.edu/kepler/manuals/
+
+'  see page 21 of the manual to get info on the light flux we're plotting
+
+'
+
+' Note: sometimes a file will not be fully compensated for errors by NASA and you'll see wavy lines all over.
+
+'             You can verify this is the case by using fv.exe and look at the LIGHTCURVE header to inspect the variable
+
+'             PDCSAPFL = 0, if not zero then not fully compensated.  One of the Kepler 22 files is this way.
+
+'
+
+' To do:
+
+' Auto pan so we can watch with pressing spacebar stops it
+
+
+
+' IMPORTANT: Change this to point to where you keep your exported .txt files relative to this Kepler.exe
+
+pathToDataFiles = "\K22\"
+
+
+
+false = "False"
+
+true = "True"
+
+
+
+debug = false ' Debugging window output
+
+
+
+' Initialize variables
+
+rowSize = 50 ' Characters per line of input file text, including carriage return 
+
+filterType = 2  ' Heavy filter, needed for K-22 since a small Earth-size planet
+
+zoom = 16       ' Initial horizontal scale 
+
+zoomMax = 64
+
+overlap = 20    ' Points overlapped when panning screens
+
+windowWidth = 1000
+
+windowHeight = 500
+
+
+
+' Keypress flags
+
+leftKeyPressed = false
+
+rightKeyPressed = false
+
+upKeyPressed = false
+
+downKeyPressed = false
+
+quitKeyPressed = false 
+
+filterKeyPressed = false
+
+shiftKeyPressed = false 
+
+
+
+' Key controls
+
+leftKey  = "Left"
+
+rightKey = "Right"
+
+upKey = "Up"
+
+downKey = "Down"
+
+quitKey = "Escape"
+
+filterKey = "F"
+
+leftShiftKey = "LeftShift"
+
+rightShiftKey = "RightShift"
+
+
+
+' Init graphics display
+
+GraphicsWindow.BackgroundColor = "black"
+
+GraphicsWindow.Title = "Kepler Space Telescope Planet Search with Microsoft Small Basic - Check out kepler.nasa.gov
+
+GraphicsWindow.Show()
+
+GraphicsWindow.Width = windowWidth
+
+GraphicsWindow.Height = windowHeight
+
+GraphicsWindow.BrushColor = "LightGreen"
+
+
+
+' Center it on desktop
+
+GraphicsWindow.Left = Desktop.Width / 2 - GraphicsWindow.Width / 2
+
+GraphicsWindow.Top = Desktop.Height / 2 - GraphicsWindow.Height / 2
+
+
+
+' Set up event handler functions for keypresses
+
+GraphicsWindow.KeyDown = OnKeyDown 
+
+GraphicsWindow.KeyUp = OnKeyUp 
+
+
+
+scale = 160000  ' Good vertical scale for K-22, might be too much for large jupiter type planets or double-stars?
+
+
+
+LoadFiles()
+
+fileNum = 1
+
+GraphicsWindow.Show()
+
+PreprocessFile()
+
+
+
+' Skip headers in file
+
+charIndex = 1 + rowSize * 3
+
+PlotData()
+
+MainLoop()  ' Main program loop
+
+Program.End()
+
+
+
+Sub MainLoop
+
+  While quitKeyPressed = false
+
+    If leftKeyPressed = true Then
+
+      leftKeyPressed = false 
+
+      ' Pan left a whole file (about a month of data normally)
+
+      If shiftKeyPressed = true Then
+
+        If fileNum > 1 Then
+
+          fileNum = fileNum - 1
+
+        EndIf
+
+        PreprocessFile()
+
+        charIndex = 1 + rowSize * 3
+
+        If debug = true Then
+
+          TextWindow.WriteLine("File pan left")
+
+        EndIf 
+
+      Else ' Pan left a screenful 
+
+        ' If at start of file then we can go to the previous file 
+
+        If charIndex = 1 + rowSize * 3 Then
+
+         ' If there's no more files to the left
+
+          If fileNum < 2 Then
+
+            charIndex = 1 + rowSize * 3     ' Go to start of file, past header 
+
+            Sound.PlayBellRing()
+
+          Else
+
+            ' More files can be read
+
+            fileNum = fileNum - 1
+
+            PreprocessFile()
+
+            
+
+            ' Go to near end of the file
+
+            charIndex = 1 + Text.GetLength(fileText[fileNum]) - windowWidth * rowSize * zoom
+
+            If charIndex < 1 + rowSize * 3 Then
+
+              charIndex = 1 + rowSize * 3
+
+            EndIf 
+
+          
+
+          EndIf
+
+        Else ' Move left almost a full screen
+
+          charIndex = charIndex - (windowWidth - overlap) * rowSize * zoom
+
+          If charIndex < 1 + rowSize * 3 Then ' If went into header of file
+
+            charIndex = 1 + rowSize * 3
+
+          EndIf 
+
+        EndIf 
+
+      EndIf
+
+      PlotData()
+
+      
+
+    ElseIf rightKeyPressed = true Then
+
+      rightKeyPressed = false 
+
+      ' Pan right a whole file (about a month normally)
+
+      If shiftKeyPressed = true Then
+
+        If fileNum < Array.GetItemCount(fileNames) Then
+
+          fileNum = fileNum + 1
+
+        EndIf
+
+        PreprocessFile()
+
+        charIndex = 1 + rowSize * 3
+
+        PlotData()
+
+        If debug = true Then
+
+          TextWindow.WriteLine("File pan right")
+
+        EndIf 
+
+      Else ' Pan right nearly a screenful
+
+        charIndex = charIndex + (windowWidth - overlap) * rowSize * zoom
+
+        If charIndex >= Text.GetLength(fileText[fileNum]) Then
+
+          If fileNum < Array.GetItemCount(fileNames) Then
+
+            fileNum = fileNum + 1
+
+            PreprocessFile()
+
+            charIndex = 1 + rowSize * 3
+
+            
+
+            PlotData()
+
+          Else ' No files left
+
+            charIndex = charIndex - (windowWidth - overlap) * rowSize * zoom ' Back to where we were
+
+            Sound.PlayBellRing()
+
+          EndIf 
+
+        Else
+
+          PlotData()
+
+        EndIf 
+
+      EndIf
+
+    ElseIf downKeyPressed = true Then
+
+      downKeyPressed = false 
+
+      ' Zoom in
+
+      zoom = zoom * 2
+
+      If zoom > zoomMax Then
+
+        zoom = zoomMax
+
+      EndIf
+
+      PlotData()
+
+    ElseIf upKeyPressed = true Then
+
+      upKeyPressed = false 
+
+      ' Zoom out
+
+      zoom = zoom / 2
+
+      If zoom < 1 Then
+
+        zoom = 1
+
+      EndIf
+
+      PlotData()
+
+    ElseIf filterKeyPressed = true Then
+
+      filterKeyPressed = false 
+
+      ' Change data filtering
+
+      filterType = filterType + 1
+
+      If filterType > 2 Then
+
+        filterType = 0
+
+      EndIf
+
+      
+
+      PlotData()
+
+    EndIf
+
+    
+
+    ' See if window resized
+
+    If GraphicsWindow.Width <> windowWidth Or GraphicsWindow.Height <> windowHeight Then
+
+      windowWidth = GraphicsWindow.Width
+
+      windowHeight = GraphicsWindow.Height
+
+      PlotData()
+
+    EndIf
+
+     
+
+  EndWhile 
+
+EndSub 
+
+
+
+Sub LoadFiles
+
+  ' Note this assumes we read in files in alphanumerical order - seems to work but if not then we need a sorting function
+
+  'TextWindow.WriteLine(Program.Directory)
+
+  dir = Text.Append (Program.Directory , pathToDataFiles)
+
+  If debug = true Then
+
+    TextWindow.WriteLine(Text.Append ("Loading Short Baseline Files in ", dir))
+
+  EndIf
+
+' The following line could be harmful and has been automatically commented.
+
+'   fileNames = File.GetFiles(dir)
+
+  
+
+  For fileNum = 1 To Array.GetItemCount(fileNames)
+
+    If debug = true Then
+
+      TextWindow.WriteLine(fileNames[fileNum])
+
+    EndIf 
+
+    
+
+' The following line could be harmful and has been automatically commented.
+
+'     fileText[fileNum] = File.ReadContents(fileNames[fileNum])
+
+  EndFor 
+
+  
+
+  If debug = true Then
+
+    TextWindow.WriteLine(Text.Append(Text.Append ("Found ", Array.GetItemCount(fileNames)), " File(s)"))
+
+  EndIf 
+
+EndSub 
+
+
+
+' Go through entire file once and get the average value of the light intensity.
+
+' Used later to plot data centered on screen no matter what the average value is
+
+Sub PreprocessFile
+
+  If debug = true Then
+
+    TextWindow.WriteLine(Text.Append("Preprocessing ", fileNum))
+
+  EndIf
+
+  
+
+  quality = "start reading stuff"
+
+  
+
+  ' Read day reference also validate it's a proper file
+
+  charIndex = 1 + rowSize * 2
+
+  dayReference = Text.GetSubText(fileText[fileNum], charIndex + 1, 3) 
+
+  If dayReference <> "BJD" Then
+
+    quality = ""
+
+    averageFlux = 88888888  ' Make up some number just so we dont divide by zero and also show no information on plots
+
+    TextWindow.WriteLine(Text.Append("Invalid file found: ", fileNames[fileNum]))
+
+  EndIf
+
+
+
+  dayReference = Text.GetSubText(fileText[fileNum], charIndex + 6, 8)
+
+    
+
+  ' Skip headers
+
+  charIndex = 1 + rowSize * 3
+
+  
+
+  averageFlux = 0
+
+  samples = 0
+
+  
+
+  While quality <> ""
+
+    
+
+    day = Text.GetSubText(fileText[fileNum], charIndex, 14) 
+
+    ' This retrieves entire flux but in unreadable scientific notation, so have to convert its parts to decimal
+
+    flux = Text.GetSubText(fileText[fileNum], charIndex + 15, 15)  
+
+    quality = Text.GetSubText(fileText[fileNum], charIndex + 32, 17) 
+
+    
+
+    If Text.IsSubText(day, "NULL") Or Text.IsSubText(flux, "NULL") Or quality <> "0000000000000000" Then
+
+      ' Unusable data
+
+    Else  
+
+      decimal = Text.GetSubText(flux, 1, 10)
+
+      exponent = Text.GetSubText(flux, 13, 3)
+
+      ' decimal times the quantity of 10 to the power of the exponent
+
+      flux = decimal * Math.Power(10, exponent)
+
+      averageFlux = averageFlux + flux 
+
+      samples = samples + 1
+
+    EndIf
+
+    
+
+    charIndex = charIndex + rowSize
+
+  EndWhile 
+
+  
+
+  ' Compute the average flux for the file
+
+  If samples > 0 Then
+
+    averageFlux = averageFlux / samples
+
+  EndIf 
+
+
+
+EndSub
+
+
+
+Sub PlotData
+
+  GraphicsWindow.Clear()
+
+  
+
+  ' Draw centerline, makes a nice reference for "flatness"
+
+  GraphicsWindow.PenColor = "DarkBlue"
+
+  GraphicsWindow.DrawLine(0, windowHeight / 2, windowWidth, windowHeight / 2)
+
+  
+
+  firstDayShown = false 
+
+  dayPlotCounter = 0
+
+  
+
+  color = GraphicsWindow.GetColorFromRGB (255,255,100)
+
+  
+
+  quality = "start reading stuff"
+
+
+
+  samples = 1
+
+  charIndexTemp = charIndex ' Preserve our character index into the file
+
+  
+
+  While quality <> "" And samples < windowWidth * zoom
+
+    
+
+    day = Text.GetSubText(fileText[fileNum], charIndexTemp, 14) 
+
+    flux = Text.GetSubText(fileText[fileNum], charIndexTemp + 15, 15)  
+
+    quality = Text.GetSubText(fileText[fileNum], charIndexTemp + 32, 17) 
+
+    
+
+    If Text.IsSubText(day, "NULL") Or Text.IsSubText(flux, "NULL") Or quality <> "0000000000000000" Then
+
+      ' Unusable data
+
+    Else  
+
+      decimal = Text.GetSubText(flux, 1, 10)
+
+      exponent = Text.GetSubText(flux, 13, 3)
+
+      flux = decimal * Math.Power(10, exponent)
+
+      samples = samples + 1
+
+      
+
+      If filterType = 1 Then
+
+        ' Put the flux in 5 variables for a simple average (probably alot faster than a simpler array[] for-loop due to SB slow arrays)
+
+        f5 = f4
+
+        f4 = f3
+
+        f3 = f2
+
+        f2 = f1 
+
+        f1 = flux
+
+        
+
+        ' Average
+
+        f = (f1+f2+f3+f4+f5)/5
+
+        
+
+        If samples < 5 Then
+
+          c = "Black"
+
+        Else
+
+          c = color
+
+        EndIf 
+
+        offset = 2  ' Displayed sample offset due to filtering, 1/2 the filter length.  Makes displayed time stamps accurate
+
+      ElseIf filterType = 2 Then
+
+        ' Put the flux in 30 variables for an average
+
+        f30 = f29
+
+        f29 = f28
+
+        f28 = f27
+
+        f27 = f26
+
+        f26 = f25
+
+        f25 = f24
+
+        f24 = f23
+
+        f23 = f22
+
+        f22 = f21
+
+        f21 = f20
+
+        f20 = f19
+
+        f19 = f18
+
+        f18 = f17
+
+        f17 = f16
+
+        f16 = f15
+
+        f15 = f14
+
+        f14 = f13
+
+        f13 = f12
+
+        f12 = f11
+
+        f11 = f10
+
+        f10 = f9
+
+        f9 = f8
+
+        f8 = f7
+
+        f7 = f6
+
+        f6 = f5
+
+        f5 = f4
+
+        f4 = f3
+
+        f3 = f2
+
+        f2 = f1 
+
+        f1 = flux
+
+        
+
+        ' Average
+
+        f = (f1+f2+f3+f4+f5+f6+f7+f8+f9+f10+f11+f12+f13+f14+f15+f16+f17+f18+f19+f20+f21+f22+f23+f24+f25+f26+f27+f28+f29+f30)/30
+
+        
+
+        If samples < 30 Then
+
+          c = "Black"
+
+        Else
+
+          c = color
+
+        EndIf 
+
+        
+
+        offset = 15
+
+      Else
+
+        ' No averaging, raw data displayed which isn't good enough for Earth type planets
+
+        f = flux
+
+        c = color
+
+        offset = 0
+
+      EndIf
+
+      
+
+      ' Plot the light intensity
+
+      GraphicsWindow.SetPixel(samples / zoom, windowHeight / 2 - scale * (f / averageFlux - 1), c)
+
+      
+
+      ' Print day and time of day in hours
+
+      timeOfDayHours = 24 * (day - Math.Floor(day))
+
+      
+
+      ' If sample is the closest minute to the hour then print it (within 1/60th = 0.017 of an hour = 1 minute)
+
+      If Math.Abs(timeOfDayHours - Math.Floor(timeOfDayHours)) < 0.017 Then
+
+        dayPlotCounter = dayPlotCounter + 1
+
+        
+
+        ' Skip plotting days if zoomed - else display is too crowded
+
+        If dayPlotCounter = zoom Then
+
+          dayPlotCounter = 0
+
+          GraphicsWindow.DrawText((samples - offset) / zoom, windowHeight - 20, Text.Append(Text.Append(Math.Floor(day), ":"), Math.Floor(timeOfDayHours)))
+
+          
+
+          ' Show reference day to displayed day, and first full Julian day
+
+          If firstDayShown = false Then
+
+            GraphicsWindow.DrawText((samples - offset) / zoom, windowHeight - 60, Text.Append(dayReference + Math.Floor(day), " Full Julian Day"))
+
+            GraphicsWindow.DrawText((samples - offset) / zoom - 4, windowHeight - 40, Text.Append(dayReference, " Reference Julian Day", ))
+
+            
+
+            firstDayShown = true 
+
+          EndIf
+
+        EndIf 
+
+      EndIf 
+
+    EndIf
+
+    
+
+    charIndexTemp = charIndexTemp + rowSize
+
+  EndWhile 
+
+  
+
+  ' Show zoom value
+
+  GraphicsWindow.DrawText(windowWidth - 110, windowHeight - 80, Text.Append(Text.Append("Zoom - ", zoomMax / zoom), "x"))
+
+
+
+  ' Show filter value
+
+  If filterType = 0 Then
+
+    filterText = "None"
+
+  ElseIf filterType = 1 Then
+
+    filterText = "Medium"
+
+  ElseIf filterType = 2 Then
+
+    filterText = "High"
+
+  Else
+
+    filterText = "Unknown"
+
+  EndIf
+
+  
+
+  GraphicsWindow.DrawText(windowWidth - 110, windowHeight - 60, Text.Append("Filter  - ", filterText))
+
+  
+
+  ' Show file number
+
+  GraphicsWindow.DrawText(windowWidth - 110, windowHeight - 40, Text.Append(Text.Append(Text.Append("File     - ", fileNum), "/"), Array.GetItemCount(fileNames)))
+
+  
+
+  ' Show an arrow on left of plot to show there's more data to be seen,
+
+  ' since software may show partial plot if at end of one file
+
+  If (samples < windowWidth * zoom - 1) And (fileNum <> Array.GetItemCount(fileNames)) Then
+
+    GraphicsWindow.PenColor = "Red"
+
+    GraphicsWindow.DrawLine(samples / zoom + 5, windowHeight / 2 - 5, samples / zoom + 12, windowHeight / 2)
+
+    GraphicsWindow.DrawLine(samples / zoom + 5, windowHeight / 2 + 5, samples / zoom + 12, windowHeight / 2)
+
+    GraphicsWindow.DrawLine(samples / zoom + 5, windowHeight / 2 + 5, samples / zoom + 5, windowHeight / 2 - 5)
+
+  EndIf
+
+  
+
+  ' Show help
+
+  GraphicsWindow.DrawText(windowWidth - 220, 10, "keys:  arrows, shift-arrows, f, esc")
+
+   
+
+EndSub
+
+
+
+' Read key event
+
+' Note that key priority is remembered in case both up/down pressed 
+
+' we will do what the last key press indicates.
+
+' Also note that this is an event handler, so key presses can
+
+' interrupt code running elsewhere at any time, must be careful not to 
+
+' change variables etc that could affect code undesireably.
+
+Sub OnKeyDown
+
+  
+
+  If(GraphicsWindow.LastKey = rightKey) Then
+
+    rightKeyPressed = true 
+
+  endif 
+
+
+
+  If(GraphicsWindow.LastKey = leftKey) Then
+
+    leftKeyPressed = true
+
+  EndIf 
+
+  
+
+  If(GraphicsWindow.LastKey = upKey) Then
+
+    upKeyPressed = true
+
+  EndIf 
+
+    
+
+  If(GraphicsWindow.LastKey = downKey) Then
+
+    downKeyPressed = true 
+
+  EndIf 
+
+
+
+  If GraphicsWindow.LastKey = quitKey Then
+
+    quitKeyPressed = true
+
+  EndIf 
+
+  
+
+  If GraphicsWindow.LastKey = filterKey Then
+
+    filterKeyPressed = true
+
+  EndIf 
+
+  
+
+  If (GraphicsWindow.LastKey = leftShiftKey) Or (GraphicsWindow.LastKey = rightShiftKey) Then
+
+    shiftKeyPressed = true
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+' Run on key release, see note above
+
+Sub OnKeyUp
+
+
+
+  if GraphicsWindow.LastKey = rightKey Then
+
+    rightKeyPressed = false
+
+  EndIf 
+
+  
+
+  if GraphicsWindow.LastKey = leftKey Then
+
+    leftKeyPressed = false
+
+  EndIf 
+
+
+
+  if GraphicsWindow.LastKey = upKey Then
+
+    upKeyPressed = false
+
+  EndIf 
+
+  
+
+  if GraphicsWindow.LastKey = downKey Then
+
+    downKeyPressed = false
+
+  EndIf 
+
+  
+
+  If GraphicsWindow.LastKey = filterKey Then
+
+    filterKeyPressed = false
+
+  EndIf 
+
+  
+
+  If (GraphicsWindow.LastKey = leftShiftKey) Or (GraphicsWindow.LastKey = rightShiftKey) Then
+
+    shiftKeyPressed = false
+
+  EndIf
+
+  
+
+  'TextWindow.WriteLine( GraphicsWindow.LastKey)
+
+EndSub 
+
+
+
+
+
+' ***** Steps to get data for a particular star observed by Kepler *****
+
+
+
+' Register with email, you need to see their emails to get a password and directory of your files you request 
+
+' (other personal info can be faked).  WARNING!  Do not abuse their server for excessive file use!
+
+'      http://archive.stsci.edu/registration/
+
+
+
+' Download .fits format file editor, IMPORTANT NOTE: install in the default "c:\fv" directory or it won't work due to a bug!
+
+'      http://heasarc.gsfc.nasa.gov/docs/software/ftools/fv/			
+
+
+
+' Search for data sets you want, just enter the kepler ID such as "10593626" for Kepler 22-b 
+
+'      http://archive.stsci.edu/kepler/data_search/search.php
+
+
+
+' From the resulting list only select the slc files (no clc, tpl, or tps class files, although this software might work already with long baseline files)
+
+
+
+' Click submit
+
+
+
+' Again only select slc class files (no clc, tpl, or tps class files) and again click submit. 
+
+
+
+' Wait for email saying complete, go to link in email.  IE browser permits FTP file transfers.
+
+
+
+' Might want to enter in URL your username and password, something like 
+
+'      ftp://username:password@stdatu.stsci.edu/stage/username/somefolder
+
+
+
+' Download all the "*_slc.fits" files and open in the installed .fits file editor (FV.exe) launched from the desktop.
+
+
+
+' Open each file, in the window that opens click in the LIGHTCURVE row the Select button on the far right.  
+
+
+
+' Click "Clear All" and check TIME, PDCSAP_FLUX, and SAP_QUALITY.  Click "Display Table".  In the 
+
+' dialog box click Save, which will automatically put a .txt file extension on the output file.
+
+
+
+' A new window will pop up, click on the "Fixed Width Columns" option, then click the Save button to 
+
+' complete.  This makes it fast & easy to import into SB.
+
+
+
+' In the new window that pops up click the File menu, "Export as Text" menu.
+
+
+
+' Repeat by closing all extraneous windows and open the next file to process.
+
+
+
+' Process the resulting file using this software, which throws out all records that have "NULL" or non-zero quality.  
+
+
+
+' For the star Kepler 22 planet candidate K-22b, you are looking for a dip in light of around 7 hours like bottom curve plot on page 36 of 
+
+'     http://arxiv.org/ftp/arxiv/papers/1112/1112.1640.pdf
+
+
+
+' Note day field in file is days with fractional days after the decimal point, since a start day of 
+
+' 2454833 (can be found by looking at the header of the .fits file LIGHTCURVE row) for star K-22.
+
+
+
+' Note above pdf at the end says transits occur at BJD time 2454966.69775 (just before public data 
+
+' output or maybe modified processing?), BJD2455256.55988, and BJD2455546.42440 lasting 7 hours
+
+' Equivalent day is 423 and 713 relative in stripped files shown with this software
+
+
+
+' Note: Randomly picking a star to analyze and finding a planet would be extremely rare since 
+
+' the planet would have to luckily be orbiting in the same plane as the telescope.  But...if you wrote software to
+
+' pore through lots of stars, maybe automatically, you might have a chance.  Your best bet is to find candidate 
+
+' stars that NASA found to have possible planets, and see if there's other planets around that star since they would be in similar 
+
+' orbital planes but could be harder to detect, sometimes where humans might do a better job picking them out.
+
+
+
+' There must certainly be other uses for this data, like looking at solar flares from lightyears away
+
+
+
+' Now name your planet!
+
+
+
+

@@ -1,0 +1,817 @@
+' Color Gradations 0.3
+
+' Copyright (c) 2013 Nonki Takahashi.  All rights reserved.
+
+'
+
+' History:
+
+'  0.3 23/03/2013 Completed. (VFP128-1)
+
+'  0.2b 20/03/2013 Supported angle <= 45 [degree]. (VFP128-0)
+
+'  0.1b 07/03/2013 Created but not implemented angle yet. (VFP128)
+
+'
+
+GraphicsWindow.Title = "Color Gradations 0.3"
+
+Colors_Init()
+
+percent = "1=0;2=70;3=100;"
+
+name= "1=Cyan;2=Navy;3=Indigo;"
+
+GraphicsWindow.BrushColor = "Black"
+
+abox = Controls.AddTextBox(10, 10)
+
+Controls.SetTextBoxText(abox, 45)
+
+Controls.SetSize(abox, 40, 22)
+
+For i = 1 To 3
+
+  pbox[i] = Controls.AddTextBox(10, 10 + i * 30)
+
+  Controls.SetTextBoxText(pbox[i], percent[i])
+
+  Controls.SetSize(pbox[i], 40, 22)
+
+  nbox[i] = Controls.AddTextBox(60, 10 + i * 30)
+
+  Controls.SetTextBoxText(nbox[i], name[i])
+
+EndFor
+
+Controls.AddButton("Paint", 10, 130)
+
+OnButtonClicked()
+
+Controls.ButtonClicked = OnButtonClicked
+
+Sub OnButtonClicked
+
+  param = "x=0;y=0;"
+
+  param["width"] = GraphicsWindow.Width
+
+  param["height"] = GraphicsWindow.Height
+
+  angle = Controls.GetTextBoxText(abox)
+
+  angle = Math.Remainder(angle, 360)
+
+  If angle < 0 Then
+
+    angle = 360 + angle
+
+  EndIf
+
+  param["angle"] = angle
+
+  For i = 1 To 3
+
+    percent[i] = Controls.GetTextBoxText(pbox[i])
+
+    name[i] = Controls.GetTextBoxText(nbox[i])
+
+  EndFor
+
+  Paint()
+
+EndSub
+
+Sub Paint
+
+  For i = 1 To 3
+
+    p = percent[i]
+
+    n = name[i]
+
+    param[p] = n
+
+  EndFor
+
+  FillLinearGradientRectangle()
+
+EndSub
+
+Sub FillLinearGradientRectangle
+
+  ' param["x"], param["y"] - position of the rectangle
+
+  ' param["width"], param["height"] - size of the rectangle
+
+  ' param["angle"] - angle of gradient
+
+  ' param["0"]..param["100"] - 0% to 100% colors
+
+  x0 = param["x"]
+
+  y0 = param["y"]
+
+  width = param["width"]
+
+  height = param["height"]
+
+  angle = param["angle"]
+
+  n = Array.GetItemCount(param)
+
+  index = Array.GetAllIndices(param)
+
+  color = ""
+
+  For i = 1 To n
+
+    If index[i] + 0 = index[i] And 0 <= index[i] And index[i] <= 100 Then
+
+      color[index[i]] = param[index[i]]
+
+    EndIf
+
+  EndFor
+
+  If color[0] = "" Then
+
+    color[0] = GraphicsWindow.BrushColor
+
+  EndIf
+
+  If color[100] = "" Then
+
+    color[100] = GraphicsWindow.BrushColor
+
+  EndIf
+
+  n = Array.GetItemCount(color)
+
+  index = Array.GetAllIndices(color)
+
+  a45 = Math.Remainder(angle, 45)
+
+  If 0 <= angle And angle < 45 Then
+
+    w45 = width
+
+    h45 = height
+
+  ElseIf 45 <= angle And angle < 90 Then
+
+    w45 = height
+
+    h45 = width
+
+    a45 = 45 - a45
+
+  ElseIf 90 <= angle And angle < 135 Then
+
+    w45 = height
+
+    h45 = width
+
+  ElseIf 135 <= angle And angle < 180 Then
+
+    w45 = width
+
+    h45 = height
+
+    a45 = 45 - a45
+
+  ElseIf 180 <= angle And angle < 225 Then
+
+    w45 = width
+
+    h45 = height
+
+  ElseIf 225 <= angle And angle < 270 Then
+
+    w45 = height
+
+    h45 = width
+
+    a45 = 45 - a45
+
+  ElseIf 270 <= angle And angle < 315 Then
+
+    w45 = height
+
+    h45 = width
+
+  ElseIf 315 <= angle And angle < 360 Then
+
+    w45 = width
+
+    h45 = height
+
+    a45 = 45 - a45
+
+  EndIf
+
+  If a45 = 0 Then
+
+    For x = 0 To w45
+
+      percent = Math.Floor(x * 100 / w45)
+
+      Color_PercentToRGB()
+
+      x1 = x
+
+      y1 = 0
+
+      x2 = x
+
+      y2 = h45
+
+      DrawLine()
+
+    EndFor
+
+  ElseIf 0 < a45 And a45 <= 45 Then
+
+    tan = Math.Tan(Math.GetRadians(a45))
+
+    If h45 <= w45 Then
+
+      dx = Math.Floor(h45 * tan)
+
+      For x = 0 To dx
+
+        percent = Math.Floor(x * 100 / (w45 + dx))
+
+        Color_PercentToRGB()
+
+        x1 = x
+
+        y1 = 0
+
+        x2 = 0
+
+        y2 = Math.Floor(x / tan)
+
+        DrawLine()
+
+      EndFor
+
+      For x = dx To w45
+
+        percent = Math.Floor(x * 100 / (w45 + dx))
+
+        Color_PercentToRGB()
+
+        x1 = x
+
+        y1 = 0
+
+        x2 = x - dx
+
+        y2 = h45
+
+        DrawLine()
+
+      EndFor
+
+      For x = w45 To w45 + dx
+
+        percent = Math.Floor(x * 100 / (w45 + dx))
+
+        Color_PercentToRGB()
+
+        x1 = x - dx
+
+        y1 = h45
+
+        x2 = w45
+
+        y2 = Math.Floor((x - w45) / tan)
+
+        DrawLine()
+
+      EndFor
+
+    Else  ' width < height
+
+      dx = Math.Floor(h45 * tan - w45)
+
+      dy = Math.Floor(w45 / tan)
+
+      For x = 0 To w45
+
+        percent = Math.Floor(x * 100 / (2 * w45 + dx))
+
+        Color_PercentToRGB()
+
+        x1 = x
+
+        y1 = 0
+
+        x2 = 0
+
+        y2 = Math.Floor(x / tan)
+
+        DrawLine()
+
+      EndFor
+
+      For x = 0 To dx
+
+        percent = Math.Floor((x + w45) * 100 / (2 * w45 + dx))
+
+        Color_PercentToRGB()
+
+        x1 = w45
+
+        y1 = Math.Floor(x / tan)
+
+        x2 = 0
+
+        y2 = y1 + dy
+
+        DrawLine()
+
+      EndFor
+
+      dy = h45 - Math.Floor(w45 / tan)
+
+      For x = 0 To w45
+
+        percent = Math.Floor((x + w45 + dx) * 100 / (2 * w45 + dx))
+
+        Color_PercentToRGB()
+
+        x1 = x
+
+        y1 = h45
+
+        x2 = w45
+
+        y2 = dy + Math.Floor(x / tan)
+
+        DrawLine()
+
+      EndFor
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub DrawLine
+
+  ' param r, g, b - red, green blue
+
+  ' param angle
+
+  ' param x1, y1, x2, y2 - edges of line
+
+  GraphicsWindow.PenColor = GraphicsWindow.GetColorFromRGB(r, g, b)
+
+  If 0 <= angle And angle < 45 Then
+
+    GraphicsWindow.DrawLine(x1 + x0, y1 + y0, x2 + x0, y2 + y0)
+
+  ElseIf 45 <= angle And angle < 90 Then
+
+    GraphicsWindow.DrawLine(y1 + x0, x1 + y0, y2 + x0, x2 + y0)
+
+  ElseIf 90 <= angle And angle < 135 Then
+
+    GraphicsWindow.DrawLine(-y1 + x0 + width, x1 + y0, -y2 + x0 + width, x2 + y0)
+
+  ElseIf 135 <= angle And angle < 180 Then
+
+    GraphicsWindow.DrawLine(-x1 + x0 + width, y1 + y0, -x2 + x0 + width, y2 + y0)
+
+  ElseIf 180 <= angle And angle < 225 Then
+
+    GraphicsWindow.DrawLine(-x1 + x0 + width, -y1 + y0 + height, -x2 + x0 + width, -y2 + y0 + height)
+
+  ElseIf 225 <= angle And angle < 270 Then
+
+    GraphicsWindow.DrawLine(-y1 + x0 + width, -x1 + y0 + height, -y2 + x0 + width, -x2 + y0 + height)
+
+  ElseIf 270 <= angle And angle < 315 Then
+
+    GraphicsWindow.DrawLine(y1 + x0, -x1 + y0 + height, y2 + x0, -x2 + y0 + height)
+
+  ElseIf 315 <= angle And angle < 360 Then
+
+    GraphicsWindow.DrawLine(x1 + x0, -y1 + y0 + height, x2 + x0, -y2 + y0 + height)
+
+  EndIf
+
+EndSub
+
+Sub Color_PercentToRGB
+
+  ' Color | Convert Percent to RGB
+
+  ' param percent - percent
+
+  ' param color[] - color table indexed percent
+
+  ' param n - item count of color[]
+
+  ' param index[] - all indices of color[]
+
+  For i = 1 To n
+
+    p1 = index[i]
+
+    If index[i] = percent Then
+
+      p2 = index[i]
+
+      i = n + 1 ' break
+
+    ElseIf index[i] < percent And percent < index[i + 1] Then
+
+      p2 = index[i + 1]
+
+      i = n + 1 ' break
+
+    EndIf  
+
+  EndFor
+
+  c = color[p1]
+
+  Color_ColorToRGB()
+
+  If p1 <> p2 Then
+
+    r1 = r
+
+    g1 = g
+
+    b1 = b
+
+    c = color[p2]
+
+    Color_ColorToRGB()
+
+    r2 = r
+
+    g2 = g
+
+    b2 = b
+
+    r = Math.Floor(r1 + (r2 - r1) * (percent - p1) / (p2 - p1))
+
+    g = Math.Floor(g1 + (g2 - g1) * (percent - p1) / (p2 - p1))
+
+    b = Math.Floor(b1 + (b2 - b1) * (percent - p1) / (p2 - p1))
+
+  EndIf
+
+EndSub
+
+Sub Color_ColorToRGB
+
+  ' Color | Convert Color to RGB
+
+  ' param c - color
+
+  ' returns r, g, b - red, green and blue values
+
+  If Text.StartsWith(c, "#") Then
+
+    c = Text.ConvertToUpperCase(c)
+
+  Else
+
+    c = Text.ConvertToLowerCase(c)
+
+    c = colors[c]
+
+  EndIf
+
+  sHex = Text.GetSubText(c, 2, 2)
+
+  Math_Hex2Dec()
+
+  r = iDec
+
+  sHex = Text.GetSubText(c, 4, 2)
+
+  Math_Hex2Dec()
+
+  g = iDec
+
+  sHex = Text.GetSubText(c, 6, 2)
+
+  Math_Hex2Dec()
+
+  b = iDec
+
+EndSub
+
+Sub Math_Hex2Dec
+
+  ' Math | Convert hexadecimal to decimal
+
+  ' param sHex
+
+  ' returns iDec
+
+  iDec = 0
+
+  iLen = Text.GetLength(sHex)
+
+  For iPtr = 1 To iLen
+
+    iDec = iDec * 16 + Text.GetIndexOf("0123456789ABCDEF", Text.GetSubText(sHex, iPtr, 1)) - 1
+
+  EndFor
+
+EndSub
+
+Sub Colors_Init
+
+  colors["aliceblue"]="#F0F8FF"
+
+  colors["antiquewhite"]="#FAEBD7"
+
+  colors["aqua"]="#00FFFF"
+
+  colors["aquamarine"]="#7FFFD4"
+
+  colors["azure"]="#F0FFFF"
+
+  colors["beige"]="#F5F5DC"
+
+  colors["bisque"]="#FFE4C4"
+
+  colors["black"]="#000000"
+
+  colors["blanchedalmond"]="#FFEBCD"
+
+  colors["blue"]="#0000FF"
+
+  colors["blueviolet"]="#8A2BE2"
+
+  colors["brown"]="#A52A2A"
+
+  colors["burlywood"]="#DEB887"
+
+  colors["cadetblue"]="#5F9EA0"
+
+  colors["chartreuse"]="#7FFF00"
+
+  colors["chocolate"]="#D2691E"
+
+  colors["coral"]="#FF7F50"
+
+  colors["cornflowerblue"]="#6495ED"
+
+  colors["cornsilk"]="#FFF8DC"
+
+  colors["crimson"]="#DC143C"
+
+  colors["cyan"]="#00FFFF"
+
+  colors["darkblue"]="#00008B"
+
+  colors["darkcyan"]="#008B8B"
+
+  colors["darkgoldenrod"]="#B8860B"
+
+  colors["darkgray"]="#A9A9A9"
+
+  colors["darkgreen"]="#006400"
+
+  colors["darkkhaki"]="#BDB76B"
+
+  colors["darkmagenta"]="#8B008B"
+
+  colors["darkolivegreen"]="#556B2F"
+
+  colors["darkorange"]="#FF8C00"
+
+  colors["darkorchid"]="#9932CC"
+
+  colors["darkred"]="#8B0000"
+
+  colors["darksalmon"]="#E9967A"
+
+  colors["darkseagreen"]="#8FBC8F"
+
+  colors["darkslateblue"]="#483D8B"
+
+  colors["darkslategray"]="#2F4F4F"
+
+  colors["darkturquoise"]="#00CED1"
+
+  colors["darkviolet"]="#9400D3"
+
+  colors["deeppink"]="#FF1493"
+
+  colors["deepskyblue"]="#00BFFF"
+
+  colors["dimgray"]="#696969"
+
+  colors["dodgerblue"]="#1E90FF"
+
+  colors["firebrick"]="#B22222"
+
+  colors["floralwhite"]="#FFFAF0"
+
+  colors["forestgreen"]="#228B22"
+
+  colors["fuchsia"]="#FF00FF"
+
+  colors["gainsboro"]="#DCDCDC"
+
+  colors["ghostwhite"]="#F8F8FF"
+
+  colors["gold"]="#FFD700"
+
+  colors["goldenrod"]="#DAA520"
+
+  colors["gray"]="#808080"
+
+  colors["green"]="#008000"
+
+  colors["greenyellow"]="#ADFF2F"
+
+  colors["honeydew"]="#F0FFF0"
+
+  colors["hotpink"]="#FF69B4"
+
+  colors["indianred"]="#CD5C5C"
+
+  colors["indigo"]="#4B0082"
+
+  colors["ivory"]="#FFFFF0"
+
+  colors["khaki"]="#F0E68C"
+
+  colors["lavender"]="#E6E6FA"
+
+  colors["lavenderblush"]="#FFF0F5"
+
+  colors["lawngreen"]="#7CFC00"
+
+  colors["lemonchiffon"]="#FFFACD"
+
+  colors["lightblue"]="#ADD8E6"
+
+  colors["lightcoral"]="#F08080"
+
+  colors["lightcyan"]="#E0FFFF"
+
+  colors["lightgoldenrodyellow"]="#FAFAD2"
+
+  colors["lightgray"]="#D3D3D3"
+
+  colors["lightgreen"]="#90EE90"
+
+  colors["lightpink"]="#FFB6C1"
+
+  colors["lightsalmon"]="#FFA07A"
+
+  colors["lightseagreen"]="#20B2AA"
+
+  colors["lightskyblue"]="#87CEFA"
+
+  colors["lightslategray"]="#778899"
+
+  colors["lightsteelblue"]="#B0C4DE"
+
+  colors["lightyellow"]="#FFFFE0"
+
+  colors["lime"]="#00FF00"
+
+  colors["limegreen"]="#32CD32"
+
+  colors["linen"]="#FAF0E6"
+
+  colors["magenta"]="#FF00FF"
+
+  colors["maroon"]="#800000"
+
+  colors["mediumaquamarine"]="#66CDAA"
+
+  colors["mediumblue"]="#0000CD"
+
+  colors["mediumorchid"]="#BA55D3"
+
+  colors["mediumpurple"]="#9370DB"
+
+  colors["mediumseagreen"]="#3CB371"
+
+  colors["mediumslateblue"]="#7B68EE"
+
+  colors["mediumspringgreen"]="#00FA9A"
+
+  colors["mediumturquoise"]="#48D1CC"
+
+  colors["mediumvioletred"]="#C71585"
+
+  colors["midnightblue"]="#191970"
+
+  colors["mintcream"]="#F5FFFA"
+
+  colors["mistyrose"]="#FFE4E1"
+
+  colors["moccasin"]="#FFE4B5"
+
+  colors["navajowhite"]="#FFDEAD"
+
+  colors["navy"]="#000080"
+
+  colors["oldlace"]="#FDF5E6"
+
+  colors["olive"]="#808000"
+
+  colors["olivedrab"]="#6B8E23"
+
+  colors["orange"]="#FFA500"
+
+  colors["orangered"]="#FF4500"
+
+  colors["orchid"]="#DA70D6"
+
+  colors["palegoldenrod"]="#EEE8AA"
+
+  colors["palegreen"]="#98FB98"
+
+  colors["paleturquoise"]="#AFEEEE"
+
+  colors["palevioletred"]="#DB7093"
+
+  colors["papayawhip"]="#FFEFD5"
+
+  colors["peachpuff"]="#FFDAB9"
+
+  colors["peru"]="#CD853F"
+
+  colors["pink"]="#FFC0CB"
+
+  colors["plum"]="#DDA0DD"
+
+  colors["powderblue"]="#B0E0E6"
+
+  colors["purple"]="#800080"
+
+  colors["red"]="#FF0000"
+
+  colors["rosybrown"]="#BC8F8F"
+
+  colors["royalblue"]="#4169E1"
+
+  colors["saddlebrown"]="#8B4513"
+
+  colors["salmon"]="#FA8072"
+
+  colors["sandybrown"]="#F4A460"
+
+  colors["seagreen"]="#2E8B57"
+
+  colors["seashell"]="#FFF5EE"
+
+  colors["sienna"]="#A0522D"
+
+  colors["silver"]="#C0C0C0"
+
+  colors["skyblue"]="#87CEEB"
+
+  colors["slateblue"]="#6A5ACD"
+
+  colors["slategray"]="#708090"
+
+  colors["snow"]="#FFFAFA"
+
+  colors["springgreen"]="#00FF7F"
+
+  colors["steelblue"]="#4682B4"
+
+  colors["tan"]="#D2B48C"
+
+  colors["teal"]="#008080"
+
+  colors["thistle"]="#D8BFD8"
+
+  colors["tomato"]="#FF6347"
+
+  colors["turquoise"]="#40E0D0"
+
+  colors["violet"]="#EE82EE"
+
+  colors["wheat"]="#F5DEB3"
+
+  colors["white"]="#FFFFFF"
+
+  colors["whitesmoke"]="#F5F5F5"
+
+  colors["yellow"]="#FFFF00"
+
+  colors["yellowgreen"]="#9ACD32"
+
+EndSub
+
+

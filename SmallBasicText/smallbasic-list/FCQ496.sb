@@ -1,0 +1,247 @@
+' SmallBasic Version 1.2
+
+' Program: MouseClicks
+
+' Changelog: 
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/775229e2-3fa5-46f3-a7ba-17e7ba1ac6fc/a-progamme-to-auto-click-every-after-40seconds
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev
+
+' Comment: Clicks everywhere on screen, not limited to GW
+
+'  
+
+' Variables: 
+
+' ToDo: 
+
+' ================================================================================
+
+intv = 10 ' auto click every ? seconds
+
+dbg = ""  ' "True"
+
+
+
+GraphicsWindow.Title = "Please WAIT ..."
+
+GraphicsWindow.BrushColor = "Red"
+
+GraphicsWindow.FontBold = ""
+
+GraphicsWindow.FontSize = 20
+
+shp = Shapes.AddText("")
+
+
+
+CSExt()
+
+CSComp()
+
+
+
+' Place mouse into GW center
+
+Mouse.MouseX = GraphicsWindow.Left + GraphicsWindow.Width/2 + 8   ' gwX: 312
+
+Mouse.MouseY = GraphicsWindow.Top + GraphicsWindow.Height/2 + 30  ' gwY: 221
+
+
+
+Timer.Interval = intv * 1000
+
+Timer.Tick = OnTimerTick
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.MouseDown = OnMouseDown        ' I.)
+
+'LDEvents.MouseDoubleClick = OnDoubleMouseDown ' II.)
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub CSExt
+
+  lf = Text.GetCharacter(10)
+
+  qu = Text.GetCharacter(34)
+
+
+
+  cs = cs +"using System;"+ lf
+
+  cs = cs +"using System.Runtime.InteropServices;"+ lf
+
+  cs = cs +"using System.Threading;"+ lf
+
+  cs = cs +"using Microsoft.SmallBasic.Library;"+ lf
+
+  cs = cs +"[SmallBasicType]"+ lf
+
+  cs = cs +"public static class SBMouse {"+ lf
+
+  cs = cs +"  // https://msdn.microsoft.com/en-us/library/windows/desktop/ms646260.aspx	"+ lf
+
+  cs = cs +"  // http://www.pinvoke.net/default.aspx/user32/mouse_event.html"+ lf
+
+  cs = cs +"  [DllImport("+ qu +"user32.dll"+ qu +")]"+ lf
+
+  cs = cs +"  private static extern void mouse_event(uint dwFlags, int dx, int dy, uint dwData, int dwExtraInfo);"+ lf
+
+  cs = cs +"  /// <summary>Clicks the left mouse button (Down+Up).</summary>"+ lf
+
+  cs = cs +"  public static void LeftClick() {"+ lf
+
+  cs = cs +"    SBMouse.mouse_event(6, 0,0, 0, 0); }"+ lf    ' 6 = 2 | 4
+
+  cs = cs +"  /// <summary>Clicks the middle mouse button (Down+Up).</summary>"+ lf
+
+  cs = cs +"  public static void MiddleClick() {"+ lf
+
+  cs = cs +"    SBMouse.mouse_event(96, 0,0, 0, 0); }"+ lf   ' 96 = 32 | 64
+
+  cs = cs +"  /// <summary>Clicks the right mouse button (Down+Up).</summary>"+ lf
+
+  cs = cs +"  public static void RightClick() {"+ lf
+
+  cs = cs +"    SBMouse.mouse_event(24, 0,0, 0, 0); }"+ lf   ' 24 = 8 | 16
+
+  cs = cs +"  /// <summary>Doubleclicks the left mouse button (100 ms delay).</summary>"+ lf
+
+  cs = cs +"  public static void DoubleClickL() {"+ lf
+
+  cs = cs +"    SBMouse.mouse_event(6, 0,0, 0, 0);"+ lf      ' 6 = 2 | 4
+
+  cs = cs +"    Thread.Sleep(100);"+ lf
+
+  cs = cs +"    SBMouse.mouse_event(6, 0,0, 0, 0); } }"+ lf  ' 6 = 2 | 4
+
+
+
+  If dbg Then
+
+    arrCS = LDText.Split(cs, lf)
+
+    For n = 1 To Array.GetItemCount(arrCS)
+
+      l = Text.GetSubTextToEnd(Text.Append("0",n), Text.GetLength(n)) ' 2 digits,  prefix with 0 for n<10 ("00" for 3 digits etc.)
+
+      TextWindow.WriteLine(l +": "+ arrCS[n])
+
+    EndFor
+
+  EndIf
+
+' The following line could be harmful and has been automatically commented.
+
+'   'File.WriteContents(Program.Directory +"\MouseClicks-SBMouse.cs", cs)
+
+EndSub
+
+
+
+Sub CSComp
+
+  resComp = LDInline.IncludeCS(cs, "","")
+
+  If dbg Then
+
+    TextWindow.WriteLine(lf +"Compiling: "+ resComp +lf)
+
+    If resComp <> "SUCCESS" Then
+
+      TextWindow.Pause()
+
+      Program.End()
+
+    EndIf
+
+  EndIf
+
+  GraphicsWindow.Title = "Ready, L-Click fires every "+ intv +" sec   [Esc .. Exit]"
+
+EndSub
+
+
+
+
+
+' //////////  EVENTs  \\\\\\\\\\
+
+Sub OnTimerTick
+
+  LDInline.Call("SBMouse.LeftClick", "")      ' I.)
+
+  'LDInline.Call("SBMouse.DoubleClickL", "")   ' II.)
+
+EndSub
+
+
+
+Sub OnMouseDown       ' Single click I.)
+
+  If Mouse.IsLeftButtonDown Then
+
+    mx = GraphicsWindow.MouseX
+
+    my = GraphicsWindow.MouseY
+
+    'Sound.PlayClick()
+
+    GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
+
+    GraphicsWindow.FillEllipse(mx-2,my-2, 5,5)
+
+    Shapes.SetText(shp, "L-Click @  "+ mx +"|"+ my)
+
+    LDShapes.AnimateOpacity(shp, 8000, 0.5)
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnDoubleMouseDown   ' Testing Doubleclick II.)
+
+  If Mouse.IsLeftButtonDown Then
+
+    mx = GraphicsWindow.MouseX
+
+    my = GraphicsWindow.MouseY
+
+    GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
+
+    GraphicsWindow.FillEllipse(mx-5,my-5, 10,10)
+
+    Shapes.SetText(shp, "L-DoubleClick @  "+ mx +"|"+ my)
+
+    LDShapes.AnimateOpacity(shp, 8000, 0.5)
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  If GraphicsWindow.LastKey = "Escape" Then
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+

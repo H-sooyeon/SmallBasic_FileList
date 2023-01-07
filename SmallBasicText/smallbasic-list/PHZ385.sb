@@ -1,0 +1,363 @@
+AskForNumPlayers()
+
+Variables()
+
+InitializeBoard()
+
+InitializePlayers()
+
+'-----------------------------------------------------------------------------------------------------------
+
+'----------------------AskForNumPlayers-------------------------------------------------------------
+
+'-----------------------------------------------------------------------------------------------------------
+
+Sub AskForNumPlayers
+
+  TextWindow.Title = "The Farming Game"
+
+  TextWindow.Write("Enter the number of players from 2 to 6: ")
+
+  numplayers = TextWindow.ReadNumber()
+
+  While numplayers > 6 Or numplayers < 2
+
+    TextWindow.Clear()
+
+    TextWindow.Write("That is more than or less than the range of players."+Text.GetCharacter(10)+"Enter the number of players from 2 to 6: ")
+
+    numplayers = TextWindow.ReadNumber()
+
+  EndWhile
+
+  TextWindow.Hide()
+
+EndSub
+
+'-----------------------------------------------------------------------------------------------------------
+
+'----------------------Variables-------------------------------------------------------------------------
+
+'----------------------------------------------------------------------------------------------------------
+
+Sub Variables
+
+  player["size"] = 10
+
+  color = "1=Red;2=Blue;3=Yellow;4=Green;5=White;6=Brown" 'The colors of players
+
+  sq["size"] = 30 'the squares' size
+
+  dicesize = sq["size"]*1.5
+
+  sqnum = 0 'the square number now
+
+  gw = 13*sq["size"] 'GraphicsWindow.Width. It's 13 x the square size because 
+
+  'The Farming Game is 13 squares across.
+
+  gh = 13*sq["size"] 'GraphicsWindow.Height. Same reason as above.
+
+  y = 0 'In the first for loop for initializing the board, it doesn't know what to 
+
+  'put as the y, so this NEEDS to be here.
+
+  playerturn = 1
+
+  For i = 1 To numplayers
+
+    hayacres[i] = 10
+
+    grainacres[i] = 10
+
+    fruitacres[i] = 0
+
+    cows[i] = 0
+
+    cash[i] = 5000
+
+    loans[i] = 5000
+
+    playx[i] = Math.GetRandomNumber(sq["size"]-player["size"])
+
+    playy[i] = Math.GetRandomNumber(sq["size"]-player["size"])
+
+    playersq[i] = 1
+
+  EndFor
+
+EndSub
+
+'-----------------------------------------------------------------------------------------------------------
+
+'---------------------InitializeBoard--------------------------------------------------------------------
+
+'-----------------------------------------------------------------------------------------------------------
+
+Sub InitializeBoard
+
+  GraphicsWindow.BackgroundColor = "Khaki"
+
+  GraphicsWindow.Width = gw-2 'It needs to be the graphics window width - 2
+
+  'because when you make it unresizable, it expands just the slightest bit.
+
+  GraphicsWindow.Height = gh+131 'The graphics window height needs to be
+
+  '+131 because it needs the -2 and +133 for the 'infobox.'
+
+  GraphicsWindow.CanResize = 0
+
+  GraphicsWindow.MouseDown = MouseDown
+
+  GraphicsWindow.MouseUp = MouseUp
+
+  GraphicsWindow.KeyDown = KeyDown
+
+  Controls.TextTyped = TextTyped
+
+  GraphicsWindow.BrushColor = "Beige"
+
+  dice = Shapes.AddRectangle(dicesize,dicesize)
+
+  dicex = gw/2-dicesize/2
+
+  dicey = gh/2-dicesize/2
+
+  Shapes.Move(dice,dicex,dicey)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = dicesize-4
+
+  dicenum = Shapes.AddText(Math.GetRandomNumber(6))
+
+  Shapes.Move(dicenum,dicex+2,dicey+2)
+
+  GraphicsWindow.FontSize = 13 'Make it small but readable.
+
+  infobox = Controls.AddMultiLineTextBox(0,gh)
+
+  Controls.SetSize(infobox,gw,133)
+
+  Controls.SetTextBoxText(infobox,"Turn: Player "+playerturn+Text.GetCharacter(10)+"Cash: "+cash[playerturn]+Text.GetCharacter(10)+"Loans: "+loans[playerturn]+Text.GetCharacter(10)+"Hay acreage: "+hayacres[playerturn]+Text.GetCharacter(10)+"Grain acreage: "+grainacres[playerturn]+Text.GetCharacter(10)+"Fruit acreage: "+fruitacres[playerturn]+Text.GetCharacter(10)+"Cows: "+cows[playerturn]+Text.GetCharacter(10)+"Square on: "+playersq[playerturn])
+
+  GraphicsWindow.BrushColor = "Lime"
+
+  For x = 0 To gw-sq["size"] Step sq["size"] 'The x where the squares will go.
+
+    CheckIfBorder() 'Only place squares IF it's on a border.
+
+    currentx = x 'the current x
+
+  EndFor
+
+  x = currentx 'This also MUST be here because I think as soon as the for loops
+
+  'are done, the variable gets deleted.
+
+  For y = sq["size"] To gh-sq["size"] Step sq["size"] 'The y where squares will go.
+
+    CheckIfBorder()'Same as above 'CheckIfBorder' reason.
+
+    currenty = y 'the current y
+
+  EndFor
+
+  y = currenty 'Same reason as above 'x = currentx.'
+
+  For x = gw-(2*sq["size"]) To 0 Step -sq["size"]'The x where the squares will go.
+
+    CheckIfBorder()'Same as above 'CheckIfBorder' reason.
+
+    currentx = x 'the current x
+
+  EndFor
+
+  x = currentx 'Same reason as above 'y = currenty.'
+
+  For y = gh-(2*sq["size"]) To sq["size"] Step -sq["size"]'The y where squares will go.
+
+    CheckIfBorder()'Same as above 'CheckIfBorder' reason.
+
+  EndFor
+
+EndSub
+
+'-----------------------------------------------------------------------------------------------------------
+
+'------------------CheckIfBorder-----------------------------------------------------------------------
+
+'----------------------------------------------------------------------------------------------------------
+
+Sub CheckIfBorder
+
+  If x = 0 Or x = gw-sq["size"] Or y = 0 Or y = gh-sq["size"] Then
+
+    sqnum = sqnum + 1
+
+    sq[sqnum]["tile"] = Shapes.AddRectangle(sq["size"],sq["size"])
+
+    sq[sqnum]["x"] = x
+
+    sq[sqnum]["y"] = y
+
+    Shapes.Move(sq[sqnum]["tile"],sq[sqnum]["x"],sq[sqnum]["y"])
+
+  EndIf
+
+EndSub
+
+'----------------------------------------------------------------------------------------------------------
+
+'-----------------InitializePlayers---------------------------------------------------------------------
+
+'----------------------------------------------------------------------------------------------------------
+
+Sub InitializePlayers
+
+  For i = 1 To numplayers
+
+    GraphicsWindow.BrushColor = color[i]
+
+    player[i] = Shapes.AddRectangle(player["size"],player["size"])
+
+    Shapes.Move(player[i],playx[i],playy[i])
+
+  EndFor
+
+EndSub
+
+'-----------------------------------------------------------------------------------------------------------
+
+'----------------MouseDown--------------------------------------------------------------------------
+
+'----------------------------------------------------------------------------------------------------------
+
+Sub MouseDown
+
+  down = 1
+
+  mx = GraphicsWindow.MouseX 
+
+  my = GraphicsWindow.MouseY
+
+  If mx > dicex And my > dicey And mx < dicex+dicesize And my < dicey+dicesize Then
+
+    MovePlayers()
+
+  EndIf
+
+EndSub
+
+'-----------------------------------------------------------------------------------------------------------
+
+'-----------------MouseUp-------------------------------------------------------------------------------
+
+'-----------------------------------------------------------------------------------------------------------
+
+Sub MouseUp
+
+  down = 0
+
+EndSub
+
+'-------------------------------------------------------------------------------------------------------------
+
+'-----------------TextTyped------------------------------------------------------------------------------
+
+'------------------------------------------------------------------------------------------------------------
+
+Sub TextTyped
+
+  'Every time someone types something in 'infobox,' it changes it back to
+
+  'what it was before stuff got typed into it, so that you can't erase that
+
+  'information.
+
+  Controls.SetTextBoxText(infobox,"Turn: Player "+playerturn+Text.GetCharacter(10)+"Cash: "+cash[playerturn]+Text.GetCharacter(10)+"Loans: "+loans[playerturn]+Text.GetCharacter(10)+"Hay acreage: "+hayacres[playerturn]+Text.GetCharacter(10)+"Grain acreage: "+grainacres[playerturn]+Text.GetCharacter(10)+"Fruit acreage: "+fruitacres[playerturn]+Text.GetCharacter(10)+"Cows: "+cows[playerturn]+Text.GetCharacter(10)+"Square on: "+playersq[playerturn])
+
+EndSub
+
+'-------------------------------------------------------------------------------------------------------------
+
+'-----------------MovePlayers----------------------------------------------------------------------------
+
+'-------------------------------------------------------------------------------------------------------------
+
+Sub MovePlayers
+
+  dicex = Math.GetRandomNumber(dicesize*3)+gw/4
+
+  dicey = Math.GetRandomNumber(dicesize*3)+gh/4
+
+  Shapes.Remove(dicenum)
+
+  GraphicsWindow.FontSize = dicesize-4
+
+  GraphicsWindow.BrushColor = "Black"
+
+  num = Math.GetRandomNumber(6)
+
+  dicenum = Shapes.AddText(num)
+
+  Shapes.Move(dicenum,dicex-2,dicey-2)
+
+  Shapes.Move(dice,dicex,dicey)
+
+  angle = Math.GetRandomNumber(360)-180
+
+  Shapes.Rotate(dicenum,angle)
+
+  Shapes.Rotate(dice,angle)
+
+  If playersq[playerturn]+num > 48 Then
+
+    num = playersq[playerturn]+num-48
+
+    playersq[playerturn] = num
+
+  Else
+
+    playersq[playerturn] = playersq[playerturn]+num
+
+  EndIf
+
+  playx[playerturn] = sq[playersq[playerturn]]["x"]+Math.GetRandomNumber(sq["size"]-player["size"])
+
+  playy[playerturn] = sq[playersq[playerturn]]["y"]+Math.GetRandomNumber(sq["size"]-player["size"])
+
+  Shapes.Animate(player[playerturn],playx[playerturn],playy[playerturn],Math.GetRandomNumber(10)*100)
+
+  If playerturn = numplayers Then
+
+    playerturn = 0
+
+  EndIf
+
+  playerturn = playerturn + 1
+
+  Controls.SetTextBoxText(infobox,"Turn: Player "+playerturn+Text.GetCharacter(10)+"Cash: "+cash[playerturn]+Text.GetCharacter(10)+"Loans: "+loans[playerturn]+Text.GetCharacter(10)+"Hay acreage: "+hayacres[playerturn]+Text.GetCharacter(10)+"Grain acreage: "+grainacres[playerturn]+Text.GetCharacter(10)+"Fruit acreage: "+fruitacres[playerturn]+Text.GetCharacter(10)+"Cows: "+cows[playerturn]+Text.GetCharacter(10)+"Square on: "+playersq[playerturn])
+
+EndSub
+
+'-------------------------------------------------------------------------------------------------------------
+
+'---------------KeyDown----------------------------------------------------------------------------------
+
+'--------------------------------------------------------------------------------------------------------------
+
+Sub KeyDown
+
+  key = GraphicsWindow.LastKey
+
+  If key = "Space" Then
+
+    MovePlayers()
+
+  EndIf
+
+EndSub
+
+

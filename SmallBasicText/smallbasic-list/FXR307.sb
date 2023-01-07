@@ -1,0 +1,203 @@
+'***************************************************************************************
+
+'Method 1 - Explicitly draw the laser
+
+'***************************************************************************************
+
+
+
+'Setup parameters (length of beam is number of cycles*pixels per cycle nc*ppc)
+
+deg2rad = Math.pi/180 'degrees to radians conversion
+
+amp = 20 'amplitude (height of beam) 
+
+ppc = 40 'pixels per cycle (wavelength in pixelas)
+
+offset = 180 'offset angle 0 to 360 for start of wave
+
+freq = 2*Math.pi/ppc
+
+ofs = offset*deg2rad
+
+x = GraphicsWindow.Width/2 'start x coord
+
+y = GraphicsWindow.Height/2 'start y coord
+
+nc = 7 ' number of full cycles (number of wavelengths)
+
+ps = 5 ' pixels per draw step (resolution-speed)
+
+lw = 3 'line width
+
+ang = 0 'angle of beam (clockwise from horizontal)
+
+
+
+'Background colour
+
+GraphicsWindow.BackgroundColor = "LightBlue"
+
+
+
+'Draw laser explicitly - requires clear of screen to redraw it
+
+For ang = 0 To 360 Step 1
+
+  GraphicsWindow.Clear()
+
+  DrawLaser()
+
+  Program.Delay(10)
+
+EndFor
+
+
+
+'***************************************************************************************
+
+'Method 2 - Use an image of the laser with transparency generated using Paint.NET (free)
+
+'***************************************************************************************
+
+
+
+'Some blobs to show laser image transparency
+
+GraphicsWindow.Clear()
+
+For i = 1 To 100
+
+  GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
+
+  size = Math.GetRandomNumber(100)
+
+  GraphicsWindow.FillEllipse(Math.GetRandomNumber(2*x),Math.GetRandomNumber(2*y),size,size)
+
+EndFor
+
+'Load image and get its dimensions'
+
+'I called it a lazer not laser at first - of course it is Light Amplification by Stimulated Emission of Radiation
+
+image = ImageList.LoadImage("http://7yh1oq.bay.livefilestore.com/y1pqXimKOPwYx_zCfsRCt8I0p6AnwqEWafWcEQOqxVAbDCUxlm73-5IrCaP0N-blmYNEFx2Hx3qvsUXZGpjSANYSA/lazer.png")
+
+'image = ImageList.LoadImage(Program.Directory+"\lazer.png")
+
+laserX = ImageList.GetWidthOfImage(image)/2
+
+laserY = ImageList.GetHeightOfImage(image)/2
+
+laser = Shapes.AddImage(image)
+
+
+
+'Draw laser using image - the image has transparent regions so will show over background and can be deleted easily and is faster
+
+For ang = 0 To 360 Step 1
+
+  ImageLaser()
+
+  Program.Delay(10)
+
+EndFor
+
+
+
+'***************************************************************************************
+
+' Subroutines
+
+'***************************************************************************************
+
+
+
+Sub DrawLaser
+
+  'Sine and Cosine of laser angle - minus sign for clockwise rotation
+
+  Cang = Math.Cos(-ang*deg2rad)
+
+  Sang = Math.Sin(-ang*deg2rad)
+
+  'Colours, width and centre line etc
+
+  GraphicsWindow.PenWidth = lw
+
+  GraphicsWindow.PenColor = "Blue"
+
+  GraphicsWindow.DrawLine(x,y,x+nc*ppc*Cang,y-nc*ppc*Sang)
+
+  GraphicsWindow.PenColor = "Purple"
+
+  'Draw sine waves - set first point (i=0) first for both waves
+
+  'dx and dy are relative to the start point (x,y), and are rotated before translating to (x,y) origin
+
+  dx = 0
+
+  dy = lw+amp*(1-Math.Cos(ofs+0*freq))/2
+
+  Ax0 = x+dx*Cang+dy*Sang
+
+  Ay0 = y-dx*Sang+dy*Cang
+
+  Bx0 = x+dx*Cang-dy*Sang
+
+  By0 = y-dx*Sang-dy*Cang
+
+  For i = ps To nc*ppc Step ps
+
+    'Set coordinates for end of line segment
+
+    dx = i
+
+    dy = lw+amp*(1-Math.Cos(ofs+i*freq))/2
+
+    Ax1 = x+dx*Cang+dy*Sang
+
+    Ay1 = y-dx*Sang+dy*Cang
+
+    Bx1 = x+dx*Cang-dy*Sang
+
+    By1 = y-dx*Sang-dy*Cang
+
+    'Draw line segments
+
+    GraphicsWindow.DrawLine(Ax0,Ay0,Ax1,Ay1)
+
+    GraphicsWindow.DrawLine(Bx0,By0,Bx1,By1)
+
+    'Set end point as next start point
+
+    Ax0 = Ax1
+
+    Ay0 = Ay1
+
+    Bx0 = Bx1
+
+    By0 = By1
+
+  EndFor
+
+EndSub
+
+
+
+Sub ImageLaser
+
+  'Sine and Cosine of laser angle - minus sign for clockwise rotation
+
+  Cang = Math.Cos(-ang*deg2rad)
+
+  Sang = Math.Sin(-ang*deg2rad)
+
+  'Move and rotate image - the move is need because the rotation is done at the shape centre
+
+  Shapes.Move(laser,x-laserX+laserX*Cang,y-laserY-laserX*Sang)
+
+  Shapes.Rotate(laser,ang)
+
+EndSub
+
+

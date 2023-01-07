@@ -1,0 +1,675 @@
+' Convert Shapes To PowerPoint VBA 0.1
+
+' Copyright (c) 2014 Nonki Takahashi.  MIT License.
+
+' Update: 2014-07-12
+
+' Program ID:
+
+'
+
+CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
+
+WQ = Text.GetCharacter(34)
+
+Not = "False=True;True=False;"
+
+type = "rect=msoShapeRectangle;ell=msoShapeOVal;tri=msoShapeIsoscelesTriangle;"
+
+Form()
+
+Sighter_Init()
+
+iMin = 1
+
+iMax = 4
+
+Shapes_ToPptVBA()
+
+GraphicsWindow.Title = "Sighter"
+
+ShowVBA()
+
+Duck_Init()
+
+iMin = 5
+
+iMax = 14
+
+Shapes_ToPptVBA()
+
+GraphicsWindow.Title = "Duck"
+
+ShowVBA()
+
+Sub Form
+
+  GraphicsWindow.BackgroundColor = "LightGray"
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BrushColor = "Black" ' for font color
+
+  tbox = Controls.AddMultiLineTextBox(10, 10)
+
+  Controls.SetSize(tbox, gw - 20, gh - 60)
+
+  btn = Controls.AddButton("OK", gw - 40, gh - 40)
+
+  clicked = "False"
+
+  Controls.ButtonClicked = OnButtonClicked
+
+EndSub
+
+Sub OnButtonClicked
+
+  clicked = "True"
+
+EndSub
+
+Sub ShowVBA
+
+  Controls.SetTextBoxText(tbox, vba)
+
+  clicked = "False"
+
+  While Not[clicked]
+
+    Program.Delay(200)
+
+  EndWhile
+
+EndSub
+
+Sub Shapes_ToPptVBA
+
+  ' Shapes | Convert shapes to PowerPoint VBA
+
+  ' param shape - shapes array
+
+  ' param iMin, iMax - index for shapes array
+
+  ' return vba
+
+  vba = "Sub DrawShape()" + CRLF
+
+  vba = vba + "'" + CRLF
+
+  vba = vba + "' DrawShape" + CRLF
+
+  vba = vba + "'" + CRLF
+
+  vba = vba + "    s = 100 / 211" + CRLF
+
+  vba = vba + "    Set myDocument = ActivePresentation.Slides(2)" + CRLF
+
+  For i = iMin To iMax
+
+    shi = shape[i]
+
+    vba = vba + "' shape[" + i + "]=" + WQ + shi + WQ + CRLF
+
+    If shi["func"] = "line" Then
+
+      vba = vba + "    With myDocument.Shapes.AddConnector("
+
+      vba = vba + "msoConnectorStraight, _" + CRLF
+
+      vba = vba + "        "
+
+      vba = vba + (shi["x"] + shi["x1"]) + " * s, "
+
+      vba = vba + (shi["y"] + shi["y1"]) + " * s, "
+
+      vba = vba + (shi["x"] + shi["x2"]) + " * s, "
+
+      vba = vba + (shi["y"] + shi["y2"]) + " * s)" + CRLF
+
+    ElseIf Text.IsSubText("rect|ell|tri", shi["func"]) Then
+
+      vba = vba + "    With myDocument.Shapes.AddShape("
+
+      vba = vba + type[shi["func"]] + ", _" + CRLF
+
+      vba = vba + "        "
+
+      vba = vba + shi["x"] + " * s, "
+
+      vba = vba + shi["y"] + " * s, "
+
+      If shi["func"] = "tri" Then
+
+        vba = vba + shi["x3"] + " * s, "
+
+        vba = vba + shi["y3"] + " * s)" + CRLF
+
+      Else
+
+        vba = vba + shi["width"] + " * s, "
+
+        vba = vba + shi["height"] + " * s)" + CRLF
+
+      EndIf
+
+    EndIf
+
+    If shi["pc"] <> "" Then
+
+      vba = vba + "        "
+
+      vba = vba + ".Line.ForeColor.RGB = RGB("
+
+      c = shi["pc"]
+
+      Color_ColorToARGB()
+
+      vba = vba + r + ", "
+
+      vba = vba + g + ", "
+
+      vba = vba + b + ")" + CRLF
+
+      If a <> 255 Then
+
+        t = Math.Round((255 - a) / 255 * 100) / 100
+
+        vba = vba + "        "
+
+        vba = vba + ".Line.Transparency = " + t + CRLF
+
+      EndIf
+
+    EndIF
+
+    If shi["pw"] = "0" Then
+
+      vba = vba + "        "
+
+      vba = vba + ".Line.Visible = msoFalse" + CRLF
+
+    Else
+
+      vba = vba + "        "
+
+      vba = vba + ".Line.Visible = msoTrue" + CRLF
+
+      pt = shi["pw"] * 1.2
+
+      vba = vba + "        "
+
+      vba = vba + ".Line.Weight = " + pt + " * s" + CRLF
+
+    EndIF
+
+    If shi["bc"] <> "" Then
+
+      vba = vba + "        "
+
+      vba = vba + ".Fill.ForeColor.RGB = RGB("
+
+      c = shi["bc"]
+
+      Color_ColorToARGB()
+
+      vba = vba + r + ", "
+
+      vba = vba + g + ", "
+
+      vba = vba + b + ")" + CRLF
+
+      If a <> 255 Then
+
+        t = Math.Round((255 - a) / 255 * 100) / 100
+
+        vba = vba + "        "
+
+        vba = vba + ".Fill.Transparency = " + t + CRLF
+
+      EndIf
+
+    EndIF
+
+    If shi["angle"] <> "" Then
+
+        vba = vba + "        "
+
+        vba = vba + ".IncrementRotation " + shi["angle"] + CRLF
+
+    EndIf
+
+    vba = vba + "    End With" + CRLF
+
+  EndFor
+
+  vba = vba + "End Sub" + CRLF
+
+EndSub
+
+Sub Sighter_Init
+
+  ' Shapes | Initialize shapes data
+
+  ' return shX, shY - current position of shapes
+
+  ' return shape - array of shapes
+
+  shX = 250 ' x offset
+
+  shY = 200 ' y offset
+
+  shape[1] = "func=ell;x=0;y=0;width=80;height=80;bc=#005AC3CD;pc=#FFFFFF;pw=2;"
+
+  shape[2] = "func=ell;x=20;y=20;width=40;height=40;bc=#005AC3CD;pc=#FFFFFF;pw=2;"
+
+  shape[3] = "func=line;x=1;y=40;x1=0;y1=0;x2=80;y2=0;pc=#FFFFFF;pw=2;"
+
+  shape[4] = "func=line;x=41;y=0;x1=0;y1=0;x2=0;y2=80;pc=#FFFFFF;pw=2;"
+
+EndSub
+
+Sub Duck_Init
+
+  ' Shapes | Initialize shapes data
+
+  ' return shX, shY - current position of shapes
+
+  ' return shape - array of shapes
+
+  shX = 194 ' x offset
+
+  shY = 150 ' y offset
+
+  shape[5] = "func=tri;x=153;y=41;x1=47;y1=0;x2=0;y2=22;x3=95;y3=22;bc=#CD845A;pw=0;"
+
+  shape[6] = "func=ell;x=118;y=0;width=91;height=73;bc=#CDBE5A;pw=0;"
+
+  shape[7] = "func=line;x=172;y=36;x1=0;y1=0;x2=22;y2=0;pc=#000000;pw=2;"
+
+  shape[8] = "func=ell;x=172;y=25;width=22;height=22;bc=#000000;pw=0;"
+
+  shape[9] = "func=tri;x=132;y=58;x1=31;y1=0;x2=0;y2=45;x3=62;y3=45;bc=#CDBE5A;pw=0;"
+
+  shape[10] = "func=tri;x=0;y=80;x1=37;y1=0;x2=0;y2=32;x3=75;y3=32;angle=178;bc=#CDBE5A;pw=0;"
+
+  shape[11] = "func=line;x=91;y=134;x1=0;y1=0;x2=0;y2=38;pc=#CD845A;pw=8;"
+
+  shape[12] = "func=ell;x=33;y=72;width=164;height=82;bc=#CDBE5A;pw=0;"
+
+  shape[13] = "func=tri;x=58;y=180;x1=46;y1=0;x2=0;y2=14;x3=93;y3=14;bc=#CD845A;pw=0;"
+
+  shape[14] = "func=line;x=90;y=169;x1=0;y1=0;x2=14;y2=15;pc=#CD845A;pw=8;"
+
+EndSub
+
+Sub Color_ColorToARGB
+
+  ' Color | Convert Color to RGB
+
+  ' param c - color
+
+  ' returns a, r, g, b - alpha, red, green and blue values
+
+  If Text.StartsWith(c, "#") Then
+
+    c = Text.ConvertToUpperCase(c)
+
+  Else
+
+    c = Text.ConvertToLowerCase(c)
+
+    c = colors[c]
+
+  EndIf
+
+  If Text.GetLength(c) = 7 Then
+
+    iR = 2
+
+    a = 255
+
+  ElseIf Text.GetLength(c) = 9 Then
+
+    iR = 4
+
+    hex = Text.GetSubText(c, 2, 2)
+
+    Math_Hex2Dec()
+
+    a = dec
+
+  EndIf
+
+  hex = Text.GetSubText(c, iR, 2)
+
+  Math_Hex2Dec()
+
+  r = dec
+
+  hex = Text.GetSubText(c, iR + 2, 2)
+
+  Math_Hex2Dec()
+
+  g = dec
+
+  hex = Text.GetSubText(c, iR + 4, 2)
+
+  Math_Hex2Dec()
+
+  b = dec
+
+EndSub
+
+Sub Colors_Init
+
+  colors["aliceblue"]="#F0F8FF"
+
+  colors["antiquewhite"]="#FAEBD7"
+
+  colors["aqua"]="#00FFFF"
+
+  colors["aquamarine"]="#7FFFD4"
+
+  colors["azure"]="#F0FFFF"
+
+  colors["beige"]="#F5F5DC"
+
+  colors["bisque"]="#FFE4C4"
+
+  colors["black"]="#000000"
+
+  colors["blanchedalmond"]="#FFEBCD"
+
+  colors["blue"]="#0000FF"
+
+  colors["blueviolet"]="#8A2BE2"
+
+  colors["brown"]="#A52A2A"
+
+  colors["burlywood"]="#DEB887"
+
+  colors["cadetblue"]="#5F9EA0"
+
+  colors["chartreuse"]="#7FFF00"
+
+  colors["chocolate"]="#D2691E"
+
+  colors["coral"]="#FF7F50"
+
+  colors["cornflowerblue"]="#6495ED"
+
+  colors["cornsilk"]="#FFF8DC"
+
+  colors["crimson"]="#DC143C"
+
+  colors["cyan"]="#00FFFF"
+
+  colors["darkblue"]="#00008B"
+
+  colors["darkcyan"]="#008B8B"
+
+  colors["darkgoldenrod"]="#B8860B"
+
+  colors["darkgray"]="#A9A9A9"
+
+  colors["darkgreen"]="#006400"
+
+  colors["darkkhaki"]="#BDB76B"
+
+  colors["darkmagenta"]="#8B008B"
+
+  colors["darkolivegreen"]="#556B2F"
+
+  colors["darkorange"]="#FF8C00"
+
+  colors["darkorchid"]="#9932CC"
+
+  colors["darkred"]="#8B0000"
+
+  colors["darksalmon"]="#E9967A"
+
+  colors["darkseagreen"]="#8FBC8F"
+
+  colors["darkslateblue"]="#483D8B"
+
+  colors["darkslategray"]="#2F4F4F"
+
+  colors["darkturquoise"]="#00CED1"
+
+  colors["darkviolet"]="#9400D3"
+
+  colors["deeppink"]="#FF1493"
+
+  colors["deepskyblue"]="#00BFFF"
+
+  colors["dimgray"]="#696969"
+
+  colors["dodgerblue"]="#1E90FF"
+
+  colors["firebrick"]="#B22222"
+
+  colors["floralwhite"]="#FFFAF0"
+
+  colors["forestgreen"]="#228B22"
+
+  colors["fuchsia"]="#FF00FF"
+
+  colors["gainsboro"]="#DCDCDC"
+
+  colors["ghostwhite"]="#F8F8FF"
+
+  colors["gold"]="#FFD700"
+
+  colors["goldenrod"]="#DAA520"
+
+  colors["gray"]="#808080"
+
+  colors["green"]="#008000"
+
+  colors["greenyellow"]="#ADFF2F"
+
+  colors["honeydew"]="#F0FFF0"
+
+  colors["hotpink"]="#FF69B4"
+
+  colors["indianred"]="#CD5C5C"
+
+  colors["indigo"]="#4B0082"
+
+  colors["ivory"]="#FFFFF0"
+
+  colors["khaki"]="#F0E68C"
+
+  colors["lavender"]="#E6E6FA"
+
+  colors["lavenderblush"]="#FFF0F5"
+
+  colors["lawngreen"]="#7CFC00"
+
+  colors["lemonchiffon"]="#FFFACD"
+
+  colors["lightblue"]="#ADD8E6"
+
+  colors["lightcoral"]="#F08080"
+
+  colors["lightcyan"]="#E0FFFF"
+
+  colors["lightgoldenrodyellow"]="#FAFAD2"
+
+  colors["lightgray"]="#D3D3D3"
+
+  colors["lightgreen"]="#90EE90"
+
+  colors["lightpink"]="#FFB6C1"
+
+  colors["lightsalmon"]="#FFA07A"
+
+  colors["lightseagreen"]="#20B2AA"
+
+  colors["lightskyblue"]="#87CEFA"
+
+  colors["lightslategray"]="#778899"
+
+  colors["lightsteelblue"]="#B0C4DE"
+
+  colors["lightyellow"]="#FFFFE0"
+
+  colors["lime"]="#00FF00"
+
+  colors["limegreen"]="#32CD32"
+
+  colors["linen"]="#FAF0E6"
+
+  colors["magenta"]="#FF00FF"
+
+  colors["maroon"]="#800000"
+
+  colors["mediumaquamarine"]="#66CDAA"
+
+  colors["mediumblue"]="#0000CD"
+
+  colors["mediumorchid"]="#BA55D3"
+
+  colors["mediumpurple"]="#9370DB"
+
+  colors["mediumseagreen"]="#3CB371"
+
+  colors["mediumslateblue"]="#7B68EE"
+
+  colors["mediumspringgreen"]="#00FA9A"
+
+  colors["mediumturquoise"]="#48D1CC"
+
+  colors["mediumvioletred"]="#C71585"
+
+  colors["midnightblue"]="#191970"
+
+  colors["mintcream"]="#F5FFFA"
+
+  colors["mistyrose"]="#FFE4E1"
+
+  colors["moccasin"]="#FFE4B5"
+
+  colors["navajowhite"]="#FFDEAD"
+
+  colors["navy"]="#000080"
+
+  colors["oldlace"]="#FDF5E6"
+
+  colors["olive"]="#808000"
+
+  colors["olivedrab"]="#6B8E23"
+
+  colors["orange"]="#FFA500"
+
+  colors["orangered"]="#FF4500"
+
+  colors["orchid"]="#DA70D6"
+
+  colors["palegoldenrod"]="#EEE8AA"
+
+  colors["palegreen"]="#98FB98"
+
+  colors["paleturquoise"]="#AFEEEE"
+
+  colors["palevioletred"]="#DB7093"
+
+  colors["papayawhip"]="#FFEFD5"
+
+  colors["peachpuff"]="#FFDAB9"
+
+  colors["peru"]="#CD853F"
+
+  colors["pink"]="#FFC0CB"
+
+  colors["plum"]="#DDA0DD"
+
+  colors["powderblue"]="#B0E0E6"
+
+  colors["purple"]="#800080"
+
+  colors["red"]="#FF0000"
+
+  colors["rosybrown"]="#BC8F8F"
+
+  colors["royalblue"]="#4169E1"
+
+  colors["saddlebrown"]="#8B4513"
+
+  colors["salmon"]="#FA8072"
+
+  colors["sandybrown"]="#F4A460"
+
+  colors["seagreen"]="#2E8B57"
+
+  colors["seashell"]="#FFF5EE"
+
+  colors["sienna"]="#A0522D"
+
+  colors["silver"]="#C0C0C0"
+
+  colors["skyblue"]="#87CEEB"
+
+  colors["slateblue"]="#6A5ACD"
+
+  colors["slategray"]="#708090"
+
+  colors["snow"]="#FFFAFA"
+
+  colors["springgreen"]="#00FF7F"
+
+  colors["steelblue"]="#4682B4"
+
+  colors["tan"]="#D2B48C"
+
+  colors["teal"]="#008080"
+
+  colors["thistle"]="#D8BFD8"
+
+  colors["tomato"]="#FF6347"
+
+  colors["turquoise"]="#40E0D0"
+
+  colors["violet"]="#EE82EE"
+
+  colors["wheat"]="#F5DEB3"
+
+  colors["white"]="#FFFFFF"
+
+  colors["whitesmoke"]="#F5F5F5"
+
+  colors["yellow"]="#FFFF00"
+
+  colors["yellowgreen"]="#9ACD32"
+
+EndSub
+
+Sub Math_Hex2Dec
+
+  ' Math | Convert hexadecimal to decimal
+
+  ' param hex
+
+  ' returns dec
+
+  dec = 0
+
+  iLen = Text.GetLength(hex)
+
+  For iPtr = 1 To iLen
+
+    dec = dec * 16 + Text.GetIndexOf("0123456789ABCDEF", Text.GetSubText(hex, iPtr, 1)) - 1
+
+  EndFor
+
+EndSub
+
+    
+
+

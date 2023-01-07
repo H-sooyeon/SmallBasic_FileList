@@ -1,0 +1,933 @@
+' Space and Rocket (TB3)
+
+' Version 0.2
+
+' Copyright © 2019 Nonki Takahashi.  The MIT License.
+
+' Program ID RWN229-0
+
+
+
+GraphicsWindow.Title = "Space and Rocket"
+
+bg = "#000022"
+
+GraphicsWindow.BackgroundColor = bg
+
+gw = 598
+
+gh = 428
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+SB_Workaround()
+
+DrawGalaxy()
+
+DrawStars()
+
+' initialize shapes for TB3
+
+Shapes_Init_TB3()
+
+angle = 0
+
+scale = 0.8
+
+name = "TB3"
+
+Group_Add()
+
+i = nGroup
+
+cx = ""
+
+cy = ""
+
+angle = 60
+
+Group_Rotate()
+
+
+
+Sub DrawGalaxy
+
+  ox = 0
+
+  oy = gh
+
+  For i = 1 To 200
+
+    rand = Math.GetRandomNumber(3)
+
+    If rand = 1 Then
+
+      GraphicsWindow.BrushColor = "#01FF0099"
+
+    ElseIf rand = 2 Then
+
+      GraphicsWindow.BrushColor = "#0100FF99"
+
+    ElseIf rand = 3 Then
+
+      GraphicsWindow.BrushColor = "#010000FF"
+
+    EndIf
+
+    rx = Math.GetRandomNumber(gw / 4) + gw * 3 / 4
+
+    ry = Math.GetRandomNumber(gh / 4) + gh * 3 / 4
+
+    a = Math.GetRandomNumber(100) - 1
+
+    _a = Math.GetRadians(a)
+
+    x = ox + rx * Math.Sin(_a)
+
+    y = oy - ry * Math.Cos(_a)
+
+    s = Math.GetRandomNumber(gh / 2)
+
+    GraphicsWindow.FillEllipse(x - s / 2 , y - s / 2 , s, s)
+
+  EndFor
+
+EndSub
+
+
+
+Sub DrawStars
+
+  For i = 1 To 500
+
+    h = Text.GetSubText("456789ABCDEF", Math.GetRandomNumber(12), 1)
+
+    GraphicsWindow.BrushColor = "#" + h + h + "FFFFFF"
+
+    x = Math.GetRandomNumber(gw) - 1
+
+    y = Math.GetRandomNumber(gh) - 1
+
+    s = Math.GetRandomNumber(3)
+
+    GraphicsWindow.FillEllipse(x, y, s, s)
+
+  EndFor
+
+EndSub
+
+
+
+Sub Group_Add
+
+  ' Group | add shapes To a group
+
+  ' param name - group name
+
+  ' param shX, shY, origin of shape array
+
+  ' param scale - scale of group
+
+  ' param shape[] - shape array
+
+  ' param nGroup - number of group
+
+  ' return nGroup - updated number of group
+
+  ' return group - group array
+
+  Stack.PushValue("local", i)
+
+  Stack.PushValue("local", x)
+
+  Stack.PushValue("local", y)
+
+  nGroup = nGroup + 1
+
+  grp = ""
+
+  grp["name"] = name
+
+  grp["x"] = shX
+
+  grp["y"] = shY
+
+  grp["angle"] = 0
+
+  grp["dir"] = 1
+
+  Shapes_CalcWidthAndHeight()
+
+  grp["width"] = shWidth
+
+  grp["height"] = shHeight
+
+  s = scale
+
+  grp["scale"] = s
+
+  For i = 1 To Array.GetItemCount(shape)
+
+    shp = shape[i]
+
+    GraphicsWindow.PenWidth = shp["pw"] * s
+
+    If shp["pw"] > 0 Then
+
+      GraphicsWindow.PenColor = shp["pc"]
+
+    EndIf
+
+    If Text.IsSubText("rect|ell|tri|text|btn", shp["func"]) Then
+
+      GraphicsWindow.BrushColor = shp["bc"]
+
+    EndIf
+
+    If Text.IsSubText("text|btn", shp["func"]) Then
+
+      If silverlight Then
+
+        fs = Math.Floor(shp["fs"] * 0.9)
+
+      Else
+
+        fs = shp["fs"]
+
+      EndIf
+
+      GraphicsWindow.FontSize = fs * s
+
+      GraphicsWindow.FontName = shp["fn"]
+
+      If shp["fb"] = "False" Then
+
+        GraphicsWindow.FontBold = "False"
+
+      Else
+
+        GraphicsWindow.FontBold = "True"
+
+      EndIf
+
+    EndIf
+
+    If shp["func"] = "rect" Then
+
+      shp["obj"] = Shapes.AddRectangle(shp["width"] * s, shp["height"] * s)
+
+    ElseIf shp["func"] = "ell" Then
+
+      shp["obj"] = Shapes.AddEllipse(shp["width"] * s, shp["height"] * s)
+
+    ElseIf shp["func"] = "tri" Then
+
+      shp["obj"] = Shapes.AddTriangle(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s, shp["x3"] * s, shp["y3"] * s)
+
+      shp["width"] = shp["x3"] - shp["x2"]
+
+      shp["height"] = shp["y2"] - shp["y1"]
+
+    ElseIf shp["func"] = "line" Then
+
+      shp["obj"] = Shapes.AddLine(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s)
+
+      shp["width"] = Math.Max(shp["x1"], shp["x2"]) - Math.Min(shp["x1"], shp["x2"])
+
+      shp["height"] = Math.Max(shp["y1"], shp["y2"]) - Math.Min(shp["y1"], shp["y2"])
+
+    ElseIf shp["func"] = "text" Then
+
+      shp["obj"] = Shapes.AddText(shp["text"])
+
+      shp["width"] = shp["fs"] * 0.6 * Text.GetLength(shp["text"])
+
+      shp["height"] = shp["fs"]
+
+    EndIf
+
+    param["x"] = shp["x"]
+
+    param["y"] = shp["y"]
+
+    param["cx"] = shWidth / 2
+
+    param["cy"] = shHeight / 2
+
+    param["width"] = shp["width"]
+
+    param["height"] = shp["height"]
+
+    param["scale"] = s
+
+    param["angle"] = 0
+
+    Shapes_CalcRotateZoomPos()
+
+    shp["rx"] = x
+
+    shp["ry"] = y
+
+    If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
+
+      alpha = Math.GetRadians(shp["angle"])
+
+      SB_RotateWorkaround()
+
+      shp["wx"] = x
+
+      shp["wy"] = y
+
+    EndIf
+
+    If shp["func"] = "btn" Then
+
+      shp["obj"] = Controls.AddButton(shp["caption"], shX + x, shY + y)
+
+    Else
+
+      Shapes.Move(shp["obj"], shX + x, shY + y)
+
+    EndIf
+
+    If Text.IsSubText("rect|ell|tri|text", shp["func"]) And (shp["angle"] <> 0) And (shp["angle"] <> "") Then
+
+      Shapes.Rotate(shp["obj"], shp["angle"])
+
+    EndIf
+
+    shape[i] = shp
+
+  EndFor
+
+  grp["shape"] = shape
+
+  group[nGroup] = grp
+
+  y = Stack.PopValue("local")
+
+  x = Stack.PopValue("local")
+
+  i = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Group_Move
+
+  ' Group | Move a group
+
+  ' param group[i] - group To move
+
+  ' param x, y - position To move
+
+  ' return group[i] - updated group
+
+  Stack.PushValue("local", j)
+
+  grp = group[i]
+
+  s = grp["scale"]
+
+  grp["x"] = x
+
+  grp["y"] = y
+
+  shape = grp["shape"]
+
+  n = Array.GetItemCount(shape)
+
+  For j = 1 To n
+
+    shp = shape[j]
+
+    If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
+
+      _x = shp["wx"]
+
+      _y = shp["wy"]
+
+    Else
+
+      _x = shp["rx"]
+
+      _y = shp["ry"]
+
+    EndIf
+
+    Shapes.Move(shp["obj"], grp["x"] + _x, grp["y"] + _y)
+
+  EndFor
+
+  group[i] = grp
+
+  j = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Group_Rotate
+
+  ' Group | Rotate a group
+
+  ' param group[i] - group To move
+
+  ' param cx, cy - rotation center (If given)
+
+  ' param angle - To rotate
+
+  Stack.PushValue("local", x)
+
+  Stack.PushValue("local", y)
+
+  Stack.PushValue("local", n)
+
+  grp = group[i]
+
+  shape = grp["shape"]
+
+  moved = "False"
+
+  If cx <> "" Then
+
+    moved = "True"
+
+  Else
+
+    cx = ""   ' to avoid syntax error
+
+  EndIf
+
+  If cy <> "" Then
+
+    moved = "True"
+
+  Else
+
+    cy = ""   ' to avoid syntax error
+
+  EndIf
+
+  If moved Then
+
+    param["x"] = grp["x"]
+
+    param["y"] = grp["y"]
+
+    param["cx"] = cx
+
+    param["cy"] = cy
+
+    param["width"] = grp["width"]
+
+    param["height"] = grp["height"]
+
+    param["scale"] = 1
+
+    param["angle"] = angle
+
+    Shapes_CalcRotateZoomPos()
+
+    grp["x"] = x
+
+    grp["y"] = y
+
+  EndIf
+
+  param["cx"] = grp["width"] / 2
+
+  param["cy"] = grp["height"] / 2
+
+  param["scale"] = grp["scale"]
+
+  grp["angle"] = grp["angle"] + angle
+
+  param["angle"] = grp["angle"]
+
+  n = Array.GetItemCount(shape)
+
+  Stack.PushValue("local", i)
+
+  For i = 1 To n
+
+    shp = shape[i]
+
+    param["x"] = shp["x"]
+
+    param["y"] = shp["y"]
+
+    param["width"] = shp["width"]
+
+    param["height"] = shp["height"]
+
+    Shapes_CalcRotateZoomPos()
+
+    shp["rx"] = x
+
+    shp["ry"] = y
+
+    If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
+
+      alpha = Math.GetRadians(shp["angle"] + grp["angle"])
+
+      SB_RotateWorkAround()
+
+      shp["wx"] = x
+
+      shp["wy"] = y
+
+    EndIf
+
+    Shapes.Move(shp["obj"], grp["x"] + x, grp["y"] + y)
+
+    Shapes.Rotate(shp["obj"], shp["angle"] + grp["angle"])
+
+    shape[i] = shp
+
+  EndFor
+
+  i = Stack.PopValue("local")
+
+  grp["shape"] = shape
+
+  group[i] = grp
+
+  n = Stack.PopValue("local")
+
+  y = Stack.PopValue("local")
+
+  x = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Math_CartesianToPolar
+
+  ' Math | convert cartesian coodinate to polar coordinate
+
+  ' param x, y - cartesian coordinate
+
+  ' return r, a - polar coordinate
+
+  r = Math.SquareRoot(x * x + y * y)
+
+  If x = 0 And y > 0 Then
+
+    a = 90 ' [degree]
+
+  ElseIf x = 0 And y < 0 Then
+
+    a = -90
+
+  ElseIf x = 0 Then
+
+    a = 0
+
+  Else
+
+    a = Math.ArcTan(y / x) * 180 / Math.Pi
+
+  EndIf
+
+  If x < 0 Then
+
+    a = a + 180
+
+  ElseIf x > 0 And y < 0 Then
+
+    a = a + 360
+
+  EndIf
+
+EndSub
+
+
+
+Sub SB_RotateWorkaround
+
+  ' Small Basic | rotate workaround for Silverlight
+
+  ' param shp - current shape
+
+  ' param x, y - original coordinate
+
+  ' param alpha - angle [radian]
+
+  ' returns x, y - workaround coordinate
+
+  If shp["func"] = "tri" Then
+
+    x1 = -Math.Floor(shp["x3"] / 2)
+
+    y1 = -Math.Floor(shp["y3"] / 2)
+
+  ElseIf shp["func"] = "line" Then
+
+    x1 = -Math.Floor(Math.Abs(shp["x1"] - shp["x2"]) / 2)
+
+    y1 = -Math.Floor(Math.Abs(shp["y1"] - shp["y2"]) / 2)
+
+  EndIf
+
+  ox = x - x1
+
+  oy = y - y1
+
+  x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
+
+  y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
+
+EndSub
+
+
+
+Sub SB_Workaround
+
+  ' Small Basic | workaround for Silverlight
+
+  ' returns silverlight - "True" if in remote
+
+  color = GraphicsWindow.GetPixel(0, 0)
+
+  If Text.GetLength(color) > 7 Then
+
+    silverlight = "True"
+
+    msWait = 300
+
+  Else
+
+    silverlight = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Shapes_CalcRotateZoomPos
+
+  ' Shapes | calculate position for rotated and zoomed shape
+
+  ' param["x"], param["y"] - position of a shape
+
+  ' param["width"], param["height"] - size of a shape
+
+  ' param ["cx"], param["cy"] - center of rotation
+
+  ' param ["angle"] - rotate angle
+
+  ' param ["scale"] - zoom scale
+
+  ' return x, y - rotated position of a shape
+
+  _cx = param["x"] + param["width"] / 2
+
+  _cy = param["y"] + param["height"] / 2
+
+  x = _cx - param["cx"]
+
+  y = _cy - param["cy"]
+
+  Math_CartesianToPolar()
+
+  a = a + param["angle"]
+
+  x = r * Math.Cos(a * Math.Pi / 180) * param["scale"]
+
+  y = r * Math.Sin(a * Math.Pi / 180) * param["scale"]
+
+  _cx = x + param["cx"]
+
+  _cy = y + param["cy"]
+
+  x = _cx - param["width"] / 2 * param["scale"]
+
+  y = _cy - param["height"] / 2 * param["scale"]
+
+EndSub
+
+
+
+Sub Shapes_CalcWidthAndHeight
+
+  ' Shapes | calculate total width and height of shapes
+
+  ' param shape[] - shape array
+
+  ' return shWidth, shHeight - total size of shapes
+
+  For i = 1 To Array.GetItemCount(shape)
+
+    shp = shape[i]
+
+    If shp["func"] = "tri" Or shp["func"] = "line" Then
+
+      xmin = shp["x1"]
+
+      xmax = shp["x1"]
+
+      ymin = shp["y1"]
+
+      ymax = shp["y1"]
+
+      If shp["x2"] < xmin Then
+
+        xmin = shp["x2"]
+
+      EndIf
+
+      If xmax < shp["x2"] Then
+
+        xmax = shp["x2"]
+
+      EndIf
+
+      If shp["y2"] < ymin Then
+
+        ymin = shp["y2"]
+
+      EndIf
+
+      If ymax < shp["y2"] Then
+
+        ymax = shp["y2"]
+
+      EndIf
+
+      If shp["func"] = "tri" Then
+
+        If shp["x3"] < xmin Then
+
+          xmin = shp["x3"]
+
+        EndIf
+
+        If xmax < shp["x3"] Then
+
+          xmax = shp["x3"]
+
+        EndIf
+
+        If shp["y3"] < ymin Then
+
+          ymin = shp["y3"]
+
+        EndIf
+
+        If ymax < shp["y3"] Then
+
+          ymax = shp["y3"]
+
+        EndIf
+
+      EndIf
+
+      shp["width"] = xmax - xmin
+
+      shp["height"] = ymax - ymin
+
+    EndIf
+
+    If i = 1 Then
+
+      shWidth = shp["x"] + shp["width"]
+
+      shHeight = shp["y"] + shp["height"]
+
+    Else
+
+      If shWidth < shp["x"] + shp["width"] Then
+
+        shWidth = shp["x"] + shp["width"]
+
+      EndIf
+
+      If shHeight < shp["y"] + shp["height"] Then
+
+        shHeight = shp["y"] + shp["height"]
+
+      EndIf
+
+    EndIf
+
+    shape[i] = shp
+
+  EndFor
+
+EndSub
+
+
+
+Sub Shapes_Init_TB3
+
+  ' Shapes | initialize shapes data
+
+  ' return shX, shY - current position of shapes
+
+  ' return shape - array of shapes
+
+  shX = 249 ' x offset
+
+  shY = 50.74 ' y offset
+
+  shape = ""
+
+  shape[1] = "func=ell;x=35;y=26.92;width=30;height=130;pw=0;bc=OrangeRed;"
+
+  shape[2] = "func=tri;x=39.39;y=0.00;x1=10.6;y1=0;x2=0;y2=45.96;x3=21.21;y3=45.96;pw=0;bc=OrangeRed;"
+
+  shape[3] = "func=rect;x=35;y=91.92;width=30;height=160;pw=0;bc=OrangeRed;"
+
+  shape[4] = "func=ell;x=42;y=276.92;width=10;height=40;pw=0;bc=OrangeRed;"
+
+  shape[5] = "func=tri;x=43.46;y=268.64;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;pw=0;bc=OrangeRed;"
+
+  shape[6] = "func=tri;x=43.46;y=311.06;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;angle=180;pw=0;bc=OrangeRed;"
+
+  shape[7] = "func=rect;x=47;y=283.92;width=6;height=40;pw=0;bc=OrangeRed;"
+
+  shape[8] = "func=ell;x=48;y=276.92;width=10;height=40;pw=0;bc=OrangeRed;"
+
+  shape[9] = "func=tri;x=49.46;y=268.64;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;pw=0;bc=OrangeRed;"
+
+  shape[10] = "func=tri;x=49.46;y=311.06;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;angle=180;pw=0;bc=OrangeRed;"
+
+  shape[11] = "func=tri;x=44;y=316.92;x1=2;y1=0;x2=0;y2=8;x3=4;y3=8;angle=180;pw=0;bc=#DDDDDD;"
+
+  shape[12] = "func=rect;x=46;y=316.92;width=8;height=8;angle=180;pw=0;bc=#DDDDDD;"
+
+  shape[13] = "func=tri;x=52;y=316.92;x1=2;y1=0;x2=0;y2=8;x3=4;y3=8;angle=180;pw=0;bc=#DDDDDD;"
+
+  shape[14] = "func=rect;x=30;y=91.92;width=40;height=10;pw=0;bc=White;"
+
+  shape[15] = "func=ell;x=25;y=291.92;width=50;height=20;pw=0;bc=Gray;"
+
+  shape[16] = "func=rect;x=25;y=251.92;width=50;height=50;pw=0;bc=OrangeRed;"
+
+  shape[17] = "func=tri;x=25;y=231.92;x1=10;y1=0;x2=0;y2=20;x3=20;y3=20;pw=0;bc=OrangeRed;"
+
+  shape[18] = "func=tri;x=55;y=231.92;x1=10;y1=0;x2=0;y2=20;x3=20;y3=20;pw=0;bc=OrangeRed;"
+
+  shape[19] = "func=rect;x=65;y=279.92;width=30;height=20;angle=30;pw=0;bc=OrangeRed;"
+
+  shape[20] = "func=rect;x=5;y=279.92;width=30;height=20;angle=-30;pw=0;bc=OrangeRed;"
+
+  shape[21] = "func=ell;x=0;y=276.92;width=10;height=40;pw=0;bc=OrangeRed;"
+
+  shape[22] = "func=tri;x=1.46;y=268.64;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;pw=0;bc=OrangeRed;"
+
+  shape[23] = "func=tri;x=1.46;y=311.06;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;angle=180;pw=0;bc=OrangeRed;"
+
+  shape[24] = "func=ell;x=6;y=276.92;width=10;height=40;pw=0;bc=OrangeRed;"
+
+  shape[25] = "func=tri;x=7.46;y=268.64;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;pw=0;bc=OrangeRed;"
+
+  shape[26] = "func=tri;x=7.46;y=311.06;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;angle=180;pw=0;bc=OrangeRed;"
+
+  shape[27] = "func=ell;x=90;y=276.92;width=10;height=40;pw=0;bc=OrangeRed;"
+
+  shape[28] = "func=tri;x=91.46;y=268.64;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;pw=0;bc=OrangeRed;"
+
+  shape[29] = "func=tri;x=91.46;y=311.06;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;angle=180;pw=0;bc=OrangeRed;"
+
+  shape[30] = "func=ell;x=84;y=276.92;width=10;height=40;pw=0;bc=OrangeRed;"
+
+  shape[31] = "func=tri;x=85.46;y=268.64;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;pw=0;bc=OrangeRed;"
+
+  shape[32] = "func=tri;x=85.46;y=311.06;x1=3.53;y1=0;x2=0;y2=14.14;x3=7.07;y3=14.14;angle=180;pw=0;bc=OrangeRed;"
+
+  shape[33] = "func=line;x=8;y=171.92;x1=0;y1=0;x2=0;y2=150;pw=4;pc=OrangeRed;"
+
+  shape[34] = "func=line;x=92;y=171.92;x1=0;y1=0;x2=0;y2=150;pw=4;pc=OrangeRed;"
+
+  shape[35] = "func=line;x=7.92;y=135.77;x1=32.14;y1=0;x2=0.00;y2=38.3;pw=4;pc=OrangeRed;"
+
+  shape[36] = "func=line;x=59.92;y=135.77;x1=0.00;y1=0;x2=32.14;y2=38.3;pw=4;pc=OrangeRed;"
+
+  shape[37] = "func=tri;x=18;y=119.92;x1=5;y1=0;x2=0;y2=60;x3=10;y3=60;angle=-144;pw=0;bc=OrangeRed;"
+
+  shape[38] = "func=tri;x=72;y=119.92;x1=5;y1=0;x2=0;y2=60;x3=10;y3=60;angle=144;pw=0;bc=OrangeRed;"
+
+  shape[39] = "func=tri;x=2;y=269.92;x1=2;y1=0;x2=0;y2=8;x3=4;y3=8;pw=0;bc=White;"
+
+  shape[40] = "func=rect;x=4;y=269.92;width=8;height=8;pw=0;bc=White;"
+
+  shape[41] = "func=tri;x=10;y=269.92;x1=2;y1=0;x2=0;y2=8;x3=4;y3=8;pw=0;bc=White;"
+
+  shape[42] = "func=tri;x=2;y=316.92;x1=2;y1=0;x2=0;y2=8;x3=4;y3=8;angle=180;pw=0;bc=White;"
+
+  shape[43] = "func=rect;x=4;y=316.92;width=8;height=8;angle=180;pw=0;bc=White;"
+
+  shape[44] = "func=tri;x=10;y=316.92;x1=2;y1=0;x2=0;y2=8;x3=4;y3=8;angle=180;pw=0;bc=White;"
+
+  shape[45] = "func=tri;x=86;y=269.92;x1=2;y1=0;x2=0;y2=8;x3=4;y3=8;pw=0;bc=White;"
+
+  shape[46] = "func=rect;x=88;y=269.92;width=8;height=8;pw=0;bc=White;"
+
+  shape[47] = "func=tri;x=94;y=269.92;x1=2;y1=0;x2=0;y2=8;x3=4;y3=8;pw=0;bc=White;"
+
+  shape[48] = "func=tri;x=86;y=316.92;x1=2;y1=0;x2=0;y2=8;x3=4;y3=8;angle=180;pw=0;bc=White;"
+
+  shape[49] = "func=rect;x=88;y=316.92;width=8;height=8;angle=180;pw=0;bc=White;"
+
+  shape[50] = "func=tri;x=94;y=316.92;x1=2;y1=0;x2=0;y2=8;x3=4;y3=8;angle=180;pw=0;bc=White;"
+
+  shape[51] = "func=tri;x=30;y=176.92;x1=5;y1=0;x2=0;y2=10;x3=10;y3=10;pw=0;bc=Gray;"
+
+  shape[52] = "func=rect;x=35;y=176.92;width=30;height=10;pw=0;bc=Gray;"
+
+  shape[53] = "func=tri;x=60;y=176.92;x1=5;y1=0;x2=0;y2=10;x3=10;y3=10;pw=0;bc=Gray;"
+
+  shape[54] = "func=tri;x=20;y=186.92;x1=10;y1=0;x2=0;y2=35;x3=20;y3=35;pw=0;bc=DimGray;"
+
+  shape[55] = "func=rect;x=30;y=186.92;width=40;height=35;pw=0;bc=DimGray;"
+
+  shape[56] = "func=tri;x=60;y=186.92;x1=10;y1=0;x2=0;y2=35;x3=20;y3=35;pw=0;bc=DimGray;"
+
+  shape[57] = "func=tri;x=20;y=221.92;x1=15;y1=0;x2=0;y2=5;x3=30;y3=5;angle=180;pw=0;bc=DimGray;"
+
+  shape[58] = "func=rect;x=35;y=221.92;width=30;height=5;angle=180;pw=0;bc=DimGray;"
+
+  shape[59] = "func=tri;x=50;y=221.92;x1=15;y1=0;x2=0;y2=5;x3=30;y3=5;angle=180;pw=0;bc=DimGray;"
+
+  shape[60] = "func=line;x=21.01;y=186.91;x1=9.66;y1=0.00;x2=0.00;y2=35.00;pw=2;pc=Gray;"
+
+  shape[61] = "func=line;x=28.77;y=186.91;x1=7.08;y1=0.00;x2=0.00;y2=35.00;pw=2;pc=Gray;"
+
+  shape[62] = "func=line;x=42.23;y=186.91;x1=2.58;y1=0.00;x2=0;y2=35.00;pw=2;pc=Gray;"
+
+  shape[63] = "func=line;x=55.17;y=186.91;x1=0;y1=0.00;x2=2.58;y2=35.00;pw=2;pc=Gray;"
+
+  shape[64] = "func=line;x=64.13;y=186.91;x1=0.00;y1=0.00;x2=7.08;y2=35.00;pw=2;pc=Gray;"
+
+  shape[65] = "func=line;x=69.31;y=186.91;x1=0;y1=0.00;x2=9.65;y2=35.00;pw=2;pc=Gray;"
+
+  shape[66] = "func=line;x=32;y=126.92;x1=0;y1=0;x2=0;y2=13;pw=2;pc=Gray;"
+
+  shape[67] = "func=line;x=27;y=135.92;x1=0;y1=0;x2=0;y2=11;pw=2;pc=Gray;"
+
+  shape[68] = "func=line;x=22;y=144.92;x1=0;y1=0;x2=0;y2=9;pw=2;pc=Gray;"
+
+  shape[69] = "func=line;x=17;y=153.92;x1=0;y1=0;x2=0;y2=7;pw=2;pc=Gray;"
+
+  shape[70] = "func=line;x=12;y=162.92;x1=0;y1=0;x2=0;y2=5;pw=2;pc=Gray;"
+
+  shape[71] = "func=line;x=68;y=126.92;x1=0;y1=0;x2=0;y2=13;pw=2;pc=Gray;"
+
+  shape[72] = "func=line;x=73;y=135.92;x1=0;y1=0;x2=0;y2=11;pw=2;pc=Gray;"
+
+  shape[73] = "func=line;x=78;y=144.92;x1=0;y1=0;x2=0;y2=9;pw=2;pc=Gray;"
+
+  shape[74] = "func=line;x=83;y=153.92;x1=0;y1=0;x2=0;y2=7;pw=2;pc=Gray;"
+
+  shape[75] = "func=line;x=88;y=162.92;x1=0;y1=0;x2=0;y2=5;pw=2;pc=Gray;"
+
+EndSub
+
+

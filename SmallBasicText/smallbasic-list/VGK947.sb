@@ -1,0 +1,285 @@
+' SmallBasic Version 1.0
+
+' Funktion: Downloader
+
+' Autor: Pappa Lapub
+
+' Herkunft: 
+
+' ImportURL: 
+
+' Extension: LitDev, Data
+
+' Kommentar:   Zielpfad Vorgabe: C:\Temp\
+
+' Demo DLUrl zB.   http://www.nirsoft.net/utils/batteryinfoview.zip       117507 Bytes, 114.8 KB  /  Mon, 20 May 2013 09:03:44
+
+' --------------------------------------------------------------------------------
+
+CmdLine()
+
+'GWInit()
+
+
+
+Controls.ButtonClicked = BeiKnopfDruck
+
+Controls.TextTyped = BeiTextEingabe
+
+
+
+' ---- SUBs --------------------------------------------------------------
+
+Sub CmdLine
+
+  If Program.ArgumentCount > 0 Then
+
+    URL = Program.GetArgument(1)
+
+    UrlTest()
+
+    If URL = "" Then
+
+      Program.End()
+
+    Else
+
+      TOut = "True"
+
+      Save()
+
+      Program.End()
+
+    EndIf 
+
+  Else 
+
+    GWInit()
+
+  EndIf
+
+EndSub
+
+
+
+Sub GWInit
+
+  GraphicsWindow.Width = 400
+
+  GraphicsWindow.Height = 90
+
+  GraphicsWindow.BackgroundColor = "Aquamarine"  
+
+  URLText = Controls.AddTextBox(10,10)
+
+  Controls.SetSize(URLText, 380, 24)
+
+  DLKnopf = Controls.AddButton("Download", 10,50)
+
+  LDDialogs.ToolTip(DLKnopf,"DateiURL beginnend mit http://")
+
+  SaveIn = Controls.AddButton("Speichern in..",155,50)
+
+  Zurück = Controls.AddButton("Bereinigen",310,50)
+
+  SaveFile = ""
+
+EndSub
+
+
+
+Sub BeiKnopfDruck
+
+  If Controls.LastClickedButton = DLKnopf Then
+
+    UrlTest()
+
+    'TmpFile = Network.DownloadFile(URL)
+
+    If URL <> "" Then
+
+      TOut = "True"
+
+      Save()
+
+    EndIf
+
+  ElseIf Controls.LastClickedButton = Zurück Then
+
+    Controls.SetTextBoxText(URLText,"")
+
+  ElseIf Controls.LastClickedButton = SaveIn Then
+
+    If FilePlus.FileExists(SaveFile) Then
+
+      EndPfad = LDDialogs.GetFolder("C:\Temp")
+
+      If EndPfad <> "" Then
+
+        FilePlus.MoveFile(SaveFile,EndPfad)
+
+        EndIf
+
+      EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub BeiTextEingabe
+
+  If Controls.LastTypedTextBox = URLText Then
+
+    URL = Controls.GetTextBoxText(URLText)
+
+  EndIf
+
+EndSub
+
+
+
+Sub UrlTest
+
+  If Text.GetSubText(Text.ConvertToLowerCase(URL), 1, 7) <> "http://" Then
+
+    'GraphicsWindow.ShowMessage("Falsche Webdateiadresse: " + URL + " Muss mit http:// beginnen.", "Fehler") 
+
+    Dialogs.ShowMessageBox("Falsche Webdateiadresse: " + URL + ". Muss mit http:// beginnen.", "Fehler","OK","Information")
+
+    URL = ""
+
+    If URL = "" Then
+
+      Controls.SetTextBoxText(URLText,"")
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+' Dateiadresse URL herunterladen, diese wird aber als tmpDatei gespeichert
+
+
+
+Sub Save
+
+  If TOut Then
+
+  'URL = "http://www.nirsoft.net/utils/batteryinfoview.zip"   ' zB. kleine Datei
+
+  TmpPfad = "C:\Temp\"
+
+  TmpFile = Network.DownloadFile(URL)
+
+  
+
+  Timer.Interval = 30000
+
+  Timer.Tick = OnTimeOut
+
+  
+
+  If (TmpFile <> "") And (FilePlus.FileExists(TmpFile)) Then
+
+    Dialogs.ShowMessageBox("Download abgeschlossen.", "Fertig", "OK","Information")
+
+  Else
+
+    TOut = "False"
+
+  EndIf
+
+  
+
+  ' diese Datei wird gespeichert als tmpDatei namens
+
+  'TextWindow.WriteLine(TmpFile)
+
+  
+
+  ' Ermittle den Filename OHNE den Ordnerpfad (also den Pfad abspalten)
+
+  
+
+  FileName = URL
+
+  Pos = Text.GetIndexOf(FileName,"/")
+
+  While (Pos > 0)
+
+    FileName = Text.GetSubTextToEnd(FileName,Pos+1)
+
+    Pos = Text.GetIndexOf(FileName,"/")
+
+  EndWhile
+
+  
+
+  'zu speichernde Datei als Pfad+Name festlegen auf den richtigen Namen kopieren
+
+  ' vorher ev. noch überprüfen ob eh keine andere Savefile schon existiert die dabei überschrieben wird
+
+  SaveFile = TmpPfad + FileName
+
+  FileExt = FilePlus.GetFileExtension(SaveFile)
+
+  BaseName = Text.GetSubText(SaveFile,1,Text.GetLength(SaveFile) - Text.GetLength(FileExt))
+
+  Num = 0
+
+  While FilePlus.FileExists(SaveFile)
+
+    Num = Num + 1
+
+    SaveFile = BaseName + "_" + Num + FileExt
+
+  EndWhile
+
+  'TextWindow.WriteLine(SaveFile)
+
+  
+
+' The following line could be harmful and has been automatically commented.
+
+'   'File.CopyFile(TmpFile,SaveFile)
+
+  FilePlus.MoveFile(TmpFile,SaveFile)
+
+  TOut = "False"
+
+  ' und die tmpDatei löschen (vorher ev. noch prüfen ob die kopierte Savefile EH wirklich existiert)
+
+' The following line could be harmful and has been automatically commented.
+
+'   'File.DeleteFile(TmpFile)
+
+  EndIf
+
+EndSub
+
+
+
+'--------------------------------------------
+
+
+
+Sub OnTimeOut
+
+  If TmpFile = "" Then
+
+    TOut = "False"
+
+    Dialogs.ShowMessageBox("Downloadversuch abgebrochen. Überprüfe Verbindung!", "Verbindungsfehler", "OK", "Error")
+
+  EndIf
+
+EndSub
+
+  
+
+

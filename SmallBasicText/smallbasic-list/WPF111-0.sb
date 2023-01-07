@@ -1,0 +1,377 @@
+'  get all thread titles in the Small Basic Forum     and save them .   made by NaochanON    2016/04/28
+
+'  Currently  4046 (2016/04/26) threads are there.  (3 threads are sticky.   so  there are 4043 threads) 
+
+'  Creator name also showed and saved as a csv file. 
+
+'  "Get" button clicke.   ......   Firstly it takes about 5 min to get all thread list from internet.
+
+'    if  list exists in a file, list is loaded from the file and added in the Listbox.
+
+'  "Search" button clicked ...   if you input some search word and click search button, titles with its wor are listed up.
+
+'   If a title  is clicked ...   Internet explorer (Edge) shows its contents.  
+
+'   you need Litdev extension 
+
+' 2016-05-04 WhTurner; added creation date to listing
+
+
+
+Controls.ButtonClicked=Onclicked
+
+GUI()
+
+get_Allconts()                           '  get  total thread  numbers and max Page number 
+
+Show_list()
+
+LDControls.ListBoxItemChanged = OnListBoxItemChanged
+
+
+
+Sub OnListBoxItemChanged
+
+  _thread=list[LDControls.LastListBoxIndex]
+
+  threadname=text.GetSubTextToEnd(_thread,Text.GetIndexOf(_thread,",")+2)
+
+  LDProcess.Start(head+threadname+tail,"") 
+
+EndSub 
+
+
+
+Sub Onclicked
+
+  nm= Controls.GetButtonCaption(Controls.LastClickedButton)
+
+  If nm= "Get"  Then 
+
+    Listup() '
+
+  ElseIf nm="Search" then 
+
+    Search_Threads()
+
+  elseif text.IsSubText(nm,"Show") then 
+
+    List= OriginalList
+
+    box[2]=LDControls.AddListBox(List,1170,650)
+
+    Shapes.Move(box[2],10,35)
+
+  EndIf
+
+EndSub
+
+
+
+Sub get_Allconts
+
+  Shapes.SetText(msg,"Wait ......   Now searching total thread numbers ")
+
+  RD= Network.GetWebPageContents(url0)
+
+  itp= Text.GetIndexOf(RD,"itemSpan")              '   >Items 1 to 20 of 4043</span>
+
+  _RD= Text.GetSubText(RD,itp,100)
+
+  ofP= Text.GetIndexOf(_RD,"of")
+
+  endP= Text.GetIndexOf(_RD,"</span")
+
+  Allconts= Text.GetSubText(_RD,ofP+3,endP-ofP-3)  '  <----   4043  and   sticky thread=3 --> 4046 
+
+  MaxPage=math.Ceiling((Allconts+3)/20)            '  <-----  math.ceiling(4046/20) = 203
+
+  GraphicsWindow.Title="Small basic forum threads list.  Now threads are .... "+(Allconts+3) +" titles (include sticky threads)." 
+
+EndSub
+
+
+
+Sub Show_list
+
+  ' The following line could be harmful and has been automatically commented.
+
+' The following line could be harmful and has been automatically commented.
+
+'   RD= File.ReadContents(path)
+
+  If RD<>"" Then 
+
+    ' The following line could be harmful and has been automatically commented.
+
+' The following line could be harmful and has been automatically commented.
+
+'     List= LDFile.ReadToArray(path)                 '  if   list  already exists
+
+    box[2]=LDControls.AddListBox(List,1170,650)
+
+    Shapes.Move(box[2],10,35)
+
+    OriginalList=List
+
+  Else 
+
+    Shapes.SetText(msg,"File not exists.   Push Get button  ")
+
+  endif
+
+EndSub
+
+
+
+Sub ListUp    'JW na drukken "get" maak nieuwe file
+
+  ' The following line could be harmful and has been automatically commented.
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.DeleteFile(path)
+
+  NN=0 
+
+  List=""
+
+  Flist=Ldarray.Create(Allconts)               ' make an ldarray for file 
+
+  RD= Network.GetWebPageContents(url0)         ' Head page
+
+  each_threads()
+
+  For i=2 to MaxPage                           '  if Maxpage=203 ,   it takes about 5 min  (myPC)
+
+    RD= Network.GetWebPageContents(url+i)
+
+    each_threads()
+
+  endfor
+
+  LDArray.Save(FList,path)                     '  save List to file
+
+  box[2]=LDControls.AddListBox(List,1170,650)  '  add the list to Listbox// List is small basic array 
+
+  shapes.Move(box[2],10,35)
+
+  Shapes.SetText(msg,"  ") 
+
+  OriginalList=List
+
+EndSub
+
+
+
+Sub each_threads
+
+  threadP="0=allThreadsContainer;1=threadsnippet;2=href="
+
+  stp0= Text.GetIndexOf(RD,threadP[0])              '   allThreadsContainer
+
+  RD= Text.GetSubTextToEnd(RD,stp0+1)
+
+  stP1= Text.GetIndexOf(RD,threadP[1])              '   threadsnippet
+
+  RD= Text.GetSubTextToEnd(RD,stp1+1)
+
+  While stP1>0
+
+    stP2= Text.GetIndexOf(RD,threadP[2])            '   href=
+
+    RD= Text.GetSubTextToEnd(RD,stp2+1)
+
+    title= Text.GetSubText(RD,1,500) 
+
+    stp3= Text.GetIndexOf(title,"?forum=smallbasic")
+
+    _title=text.GetSubTextToEnd(Text.GetSubText(title,6,stp3-6),Hlen+1)  ' thread  TitlWPF111e 
+
+    '------------------------------------------------------------------------- 
+
+    NameStP= Text.GetIndexOf(RD,"Created by")
+
+    nameRD=  Text.GetSubText(RD,NameStP,600)    'WhT ============== 500 > 600
+
+    creaDate()    '  added WhTurner ==============
+
+    stp4= Text.GetIndexOf(nameRD,"<span>")
+
+    stp5= Text.GetIndexOf(nameRD,"- </span>")
+
+    _name=  Text.GetSubText(nameRD,stp4+6,stp5-stp4-7)  '  Creator   Name 
+
+    If Text.IsSubText(_name,"&#") Then                  '  control code 
+
+      _name=text.GetSubText(_name,1,1)+"*****"
+
+    EndIf
+
+    '------------------------------------------------------------------------- 
+
+    NN=NN+1
+
+    List[NN]=_name+" ["+creDat+"] , "+_title        'WhT  added  [creDat]
+
+    LDArray.SetValue(FList,NN,List[NN])
+
+    Shapes.SetText(msg,"Now Loading ..........     "+NN+" /"+Allconts) 
+
+    stP1= Text.GetIndexOf(RD,threadP[1])            '   threadsnippet
+
+    RD= Text.GetSubTextToEnd(RD,stp1+1)
+
+  EndWhile
+
+EndSub
+
+
+
+Sub Search_Threads
+
+  SelectedList=""
+
+  MM=0
+
+  ' The following line could be harmful and has been automatically commented.
+
+' The following line could be harmful and has been automatically commented.
+
+'   RD= File.ReadContents(path)
+
+  word= text.ConvertToLowerCase(Controls.GetTextBoxText(box[1]))
+
+  crP= Text.GetIndexOf(RD,CRLF)
+
+  While crP>0
+
+    _thread= Text.GetSubText(RD,1,crp-1)
+
+    If Text.IsSubText(text.ConvertToLowerCase(_thread),word) Then 
+
+      MM=MM+1
+
+      Selectedlist[MM]=_thread
+
+    EndIf
+
+    RD= Text.GetSubTextToEnd(RD,crP+2)
+
+    crP= Text.GetIndexOf(RD,CRLF)
+
+  EndWhile
+
+  box[2]=LDControls.AddListBox(SelectedList,1170,650)
+
+  Shapes.Move(box[2],10,35)
+
+  List=selectedlist
+
+EndSub
+
+
+
+Sub GUI
+
+  path= Program.Directory+"\forumpage.txt"
+
+  GraphicsWindow.Width=1200
+
+  GraphicsWindow.Height=700
+
+  GraphicsWindow.BackgroundColor="#C7DC68"
+
+  GraphicsWindow.BrushColor="Navy"
+
+  GraphicsWindow.DrawText(15,15,"Get all thread titles")
+
+  Controls.AddButton("Get",200,10)
+
+  Controls.AddButton("Show original",260,10)
+
+  GraphicsWindow.DrawText(430,15,"Search word")
+
+  box[1]=Controls.AddTextBox(520,10)
+
+  Controls.SetSize(box[1],160,25)
+
+  Controls.AddButton("Search",700,10)
+
+  '------------------------------------------------------------------------- 
+
+  GraphicsWindow.BrushColor="Red"
+
+  GraphicsWindow.FontSize=22
+
+  msg= Shapes.AddText(" ")
+
+  Shapes.Move(msg,200,200)
+
+  GraphicsWindow.BrushColor="Navy"
+
+  GraphicsWindow.FontSize=12
+
+  '------------------------------------------------------------------------- 
+
+  CRLF= Text.GetCharacter(13)+Text.GetCharacter(10)
+
+  head="https://social.msdn.microsoft.com/Forums/en-US/"
+
+  Hlen= Text.GetLength(head)
+
+  tail="?forum=smallbasic"
+
+  url0="https://social.msdn.microsoft.com/Forums/en-US/home?forum=smallbasic"  ' <--  head page   
+
+  url="https://social.msdn.microsoft.com/Forums/en-US/home?forum=smallbasic&sort=lastpostdesc&brandIgnore=true&page=" ' +203   
+
+  creaInit()    ' use today for topics less then 24 hours old,  added WhTurner
+
+EndSub
+
+
+
+
+
+Sub creaDate  '  reads creationdate of topic
+
+  crePt= Text.GetIndexOf(nameRD,"timeago")
+
+  _TIME=text.GetSubTextToEnd(nameRD,crePt)    
+
+  crePt= Text.GetIndexOf(_TIME,",")
+
+  If crePt>0 then   'date
+
+    _TIME= Text.GetSubText(_TIME,crePt+3,20)
+
+    creMo=Text.GetIndexOf("Xanebarprayunulugepctovec",Text.GetSubText(_TIME,1,2))*50
+
+    crePt= Text.GetIndexOf(_TIME,",")
+
+    creDy=Text.GetSubText(_TIME,crePt-2,2)   
+
+    creYr=Text.GetSubText(_TIME,crePt+2,4)*10000
+
+    creDat=creYr+creMo+creDy
+
+    creDat=Text.GetSubTextToEnd(creDat,3)
+
+  Else  ' hours ago
+
+    creDat=curDate
+
+  EndIf
+
+EndSub
+
+Sub creaInit   ' make string for today
+
+  curDate=Clock.Year*10000
+
+  curDate=Text.GetSubTextToEnd(curDate+100*clock.Month+Clock.Day,3)
+
+EndSub
+
+

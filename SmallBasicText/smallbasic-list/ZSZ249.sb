@@ -1,0 +1,249 @@
+Initialise()
+
+
+
+'------------------------------------------------
+
+'GAME LOOP
+
+'------------------------------------------------
+
+
+
+While ("True")
+
+  start = Clock.ElapsedMilliseconds
+
+  
+
+  Update()
+
+  
+
+  'A delay up to 20 ms (50 fps) depending on time spent doing work preparing frame update
+
+  delay = 20 - (Clock.ElapsedMilliseconds - start)
+
+  If (delay > 0) Then
+
+    Program.Delay(delay)
+
+  EndIf
+
+EndWhile
+
+
+
+'------------------------------------------------
+
+'SUBROUTINES
+
+'------------------------------------------------
+
+
+
+Sub Initialise
+
+  'Create elements for main screen
+
+  clockText = Shapes.AddText(Clock.Time)
+
+  Shapes.Move(clockText,10,10)
+
+  Controls.SetSize(clockText,100,20)
+
+  alarmButton  = Controls.AddButton("Set Alarm", 10 ,35)
+
+  
+
+  'Create alarm set elements
+
+  hourText = Shapes.AddText("Hour")
+
+  Shapes.Move(hourText,10,70)
+
+  hourEntry = Controls.AddTextBox(60,70)
+
+  Controls.SetSize(hourEntry,30,20)
+
+  Shapes.HideShape(hourText)
+
+  Shapes.HideShape(hourEntry)
+
+  
+
+  minuteText = Shapes.AddText("Minute")
+
+  Shapes.Move(minuteText,10,100)
+
+  minuteEntry = Controls.AddTextBox(60,100)
+
+  Controls.SetSize(minuteEntry,30,20)
+
+  Shapes.HideShape(minuteText)
+
+  Shapes.HideShape(minuteEntry)
+
+  
+
+  doneButton  = Controls.AddButton("Done", 10 ,35)
+
+  Shapes.HideShape(doneButton)
+
+  
+
+  'Register events
+
+  Controls.ButtonClicked = OnButtonClicked 
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+  GraphicsWindow.KeyUp = OnKeyUp
+
+  Timer.Interval = 0
+
+  Timer.Tick = OnTick
+
+  Timer.Pause()
+
+EndSub
+
+
+
+Sub Update
+
+  If (setAlarm = 1) Then
+
+    Shapes.ShowShape(hourText)
+
+    Shapes.ShowShape(hourEntry)
+
+    Shapes.ShowShape(minuteText)
+
+    Shapes.ShowShape(minuteEntry)
+
+    Shapes.ShowShape(doneButton)
+
+    Shapes.HideShape(alarmButton)
+
+    setAlarm = 0
+
+  ElseIf (setDone = 1) Then
+
+    hourAlarm = Controls.GetTextBoxText(hourEntry)
+
+    minuteAlarm = Controls.GetTextBoxText(minuteEntry)   
+
+    Shapes.HideShape(hourText)
+
+    Shapes.HideShape(hourEntry)
+
+    Shapes.HideShape(minuteText)
+
+    Shapes.HideShape(minuteEntry)
+
+    Shapes.HideShape(doneButton)
+
+    Shapes.ShowShape(alarmButton)
+
+    setDone = 0
+
+  EndIf
+
+  
+
+  If (Clock.Hour = hourAlarm And Clock.Minute = minuteAlarm) Then
+
+    If (startAlarm = "") Then
+
+      startAlarm = Clock.ElapsedMilliseconds
+
+      hourAlarm = ""
+
+      minuteAlarm = ""
+
+      Timer.Resume()
+
+    EndIf
+
+  EndIf
+
+  
+
+  If (keys["Space"]) Then
+
+    startAlarm = ""
+
+  EndIf
+
+  
+
+  Shapes.SetText(clockText, Clock.Time)
+
+EndSub
+
+
+
+'------------------------------------------------
+
+'EVENT SUBROUTINES
+
+'------------------------------------------------
+
+
+
+Sub OnButtonClicked
+
+  button = Controls.LastClickedButton
+
+  If (button = alarmButton) Then
+
+    setAlarm = 1
+
+  ElseIf (button = doneButton) Then
+
+    setDone = 1
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnTick
+
+  Timer.Pause()   
+
+  While (startAlarm <> "" And Clock.ElapsedMilliseconds-startAlarm < 30000)
+
+    LDSound.Beep()
+
+    Program.Delay(250)
+
+  EndWhile
+
+  startAlarm = ""   
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  keys[key] = "True"
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  key = GraphicsWindow.LastKey
+
+  keys[key] = ""
+
+EndSub
+
+

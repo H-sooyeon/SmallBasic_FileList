@@ -1,0 +1,2307 @@
+args=0
+
+wInitVars()   
+
+
+
+Timer.Interval = 1000 ' one tick per second
+
+Timer.Tick = OnTimerTick
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+
+
+TextWindow.WriteLine("Started - ok.")
+
+TextWindow.Left=800
+
+GraphicsWindow.Left=10
+
+GraphicsWindow.Top=50
+
+Sub OnTimerTick
+
+  
+
+  If wMovingNow = 0 Then
+
+    If wnewgame = 1 Then
+
+      wside = -wside
+
+      wFEN = wStartFEN
+
+      wSetFEN()         'set starting position
+
+      TextWindow.WriteLine("NEW GAME")
+
+      wCleaCurs()
+
+      wDrawBoard()
+
+    Else
+
+      If wtakeback = 1 Then
+
+        wDoTakeBack()     'take back move
+
+        TextWindow.WriteLine("TAKEBACK")
+
+        wCleaCurs()
+
+        wDrawBoard()
+
+      Else
+
+        
+
+        'Automatic gameplay mode
+
+        If (wauto = 1 Or wturn <> wside) Then
+
+          If wGameOver = 0 and wMovingNow = 0 Then
+
+            wMovingNow = 1    ' to disable event
+
+            wGetNextMoves()   ' Next moves list
+
+            
+
+            'wDispNextMoves()
+
+            
+
+            If wmc>0 Then
+
+              wdepth = 1
+
+              wScanNextMoves()  'Scan them and calculate best evaluation
+
+              
+
+              'TextWindow.WriteLine(wmove)
+
+              
+
+              wDoMove()
+
+              
+
+              wmovedX = wmvhist[whist][3] 'lastmove
+
+              wmovedY = wmvhist[whist][4]
+
+              
+
+              'next tick will read status
+
+            Else
+
+              'what's the status on board?
+
+              wLocateKingPos()
+
+              wIsCheck()
+
+              If wcheck = 1 Then
+
+                wmvhist[whist][8]="#"   'checkmate
+
+                wResult = Text.GetSubText("1-0,0-1", 1+((wturn+1)*2), 3)
+
+              Else
+
+                wResult = "{Stalemate} 1/2-1/2"
+
+              EndIf
+
+              TextWindow.WriteLine("GAME OVER!")
+
+              wGameOver = 1
+
+            EndIf
+
+            
+
+            wGetFEN()
+
+            TextWindow.WriteLine("FEN:" + wFEN)
+
+            
+
+            wHistToPgn()
+
+            TextWindow.WriteLine("PGN:" + wpgn)
+
+            
+
+            wDrawBoard()
+
+            wMovingNow = 0
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub wCleaCurs
+
+  wdragX = 0  ' mouse cursor on board
+
+  wdragY = 0
+
+  wmovedX = 0 'lastmove
+
+  wmovedY = 0
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  If Mouse.IsLeftButtonDown Then
+
+    'If button pressed
+
+    wmX = GraphicsWindow.MouseX  'windowed X
+
+    wmY = GraphicsWindow.MouseY   'windowed Y
+
+    If 1=2 Then
+
+      
+
+    Else
+
+      If wauto = 0 and wMovingNow = 0 Then     ' If auto-mode is off
+
+        If wturn = wside Then   ' If our move then allow mouse control
+
+          wMovingNow = 1    ' disable events
+
+          wmatX = Math.Floor((wmX)/54) + 1
+
+          wmatY = 9 - Math.Floor((wmY+54)/54)
+
+          If wside<0 Then
+
+            wmatX = 9-wmatX
+
+            wmatY = 9-wmatY
+
+          EndIf
+
+          If wmatX>=1 And wmatX<=8 And wmatY>=1 And wmatY<=8 Then
+
+            wGetNextMoves()   ' Next moves list
+
+            'wDispNextMoves()
+
+            For wi = 1 To wmc
+
+              If wmatX = wmv[wi][1] and wmatY = wmv[wi][2] Then
+
+                wdragX = wmatX
+
+                wdragY = wmatY
+
+              EndIf
+
+              If wdragX > 0 Then  ' drag if there is a move from square
+
+                If wmatX = wmv[wi][3] and wmatY = wmv[wi][4] Then
+
+                  If wdragX = wmv[wi][1] and wdragY = wmv[wi][2] Then
+
+                    wFormateMove()
+
+                    wDoMove()
+
+                    wCleaCurs()
+
+                    wmovedX = wmatX
+
+                    wmovedY = wmatY
+
+                  EndIf
+
+                EndIf
+
+              EndIf
+
+            EndFor
+
+            wDrawBoard()  'and redraw cursors
+
+          EndIf
+
+          wMovingNow = 0
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub wInitVars
+
+  
+
+  wStartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+
+  
+
+  ' position for checkmate in one move
+
+  'wStartFEN = "7k/Q7/5K2/8/8/8/8/8 w - - 1 1"
+
+  
+
+  wpEv[1]=100
+
+  wpEv[2]=280
+
+  wpEv[3]=300
+
+  wpEv[4]=500
+
+  wpEv[5]=900
+
+  wpEv[6]=9999
+
+  
+
+  wpPtY[1]=8
+
+  wpPtY[2]=7
+
+  wpPtY[3]=4
+
+  wpPtY[4]=2
+
+  wpPtY[5]=5
+
+  wpPtY[6]=1
+
+  
+
+  'pictures of pieces on inernet
+
+  'wImgSrc = "http://chessforeva.appspot.com/d_img/"
+
+  wLoadImages()        'Load them into memory (takes time once)
+
+  
+
+  wauto = 0   'Set autogame on - presentation mode
+
+  'wAutoPlay()
+
+  
+
+  wdragX = 0  ' mouse cursor on board
+
+  wdragY = 0
+
+  wmovedX = 0 ' to see the last move on board
+
+  wmovedY = 0
+
+  
+
+  wside = ((Math.GetRandomNumber(2)-1)*2)-1     'random white=1, black = -1
+
+  
+
+  wMovingNow = 0
+
+  wtakeback = 0
+
+  wnewgame = 1  'This will set all other variables on timer tick
+
+  OnTimerTick()   'And process it
+
+EndSub
+
+
+
+Sub wSetFEN'------------------------------------------------- sets position from FEN
+
+  
+
+  wq = 1
+
+  For wx = 1 To 8
+
+    For wy = 1 To 8
+
+      wB[wx][wy] = " "
+
+    EndFor
+
+  EndFor
+
+  
+
+  'flags For current position
+
+  wfl[1][1] = 0 'wK castling
+
+  wfl[1][2] = 0 'wQ castling
+
+  wfl[2][1] = 0 'bK castling
+
+  wfl[2][2] = 0 'bQ castling
+
+  wfl[3] = 0  'enpassant column
+
+  
+
+  wMvNr = 0  'move number
+
+  
+
+  wx = 1
+
+  wy = 8
+
+  wn = 0
+
+  For wi=1 To Text.GetLength(wFEN)
+
+    wc = Text.GetSubText(wFEN,wi,1)
+
+    If wc=" "  Then
+
+      wq = wq+1
+
+    Else
+
+      
+
+      If wq = 1 Then    ' reading board
+
+        If Text.IsSubText("PNBRQKpnbrqk", wc) Then
+
+          wB[wx][wy] = wc
+
+          wx = wx + 1
+
+        Else
+
+          If wc="/" Then
+
+            wy = wy-1
+
+            wx = 1
+
+          Else
+
+            wn = Text.GetIndexOf("0123456789", wc)-1
+
+            wx = wx + wn
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+      
+
+      If wq = 2 Then    ' reading turn info
+
+        If wc = "w" Then
+
+          wturn = 1
+
+        Else
+
+          wturn = -1
+
+        EndIf
+
+      EndIf
+
+      
+
+      If wq = 3 Then    ' reading castling info
+
+        If wc="K" Then
+
+          wfl[1][1] = 1
+
+        EndIf
+
+        If wc="Q" Then
+
+          wfl[1][2] = 1
+
+        EndIf
+
+        If wc="k" Then
+
+          wfl[2][1] = 1
+
+        EndIf
+
+        If wc="q" Then
+
+          wfl[2][2] = 1
+
+        EndIf
+
+      EndIf
+
+      
+
+      If wq = 4 Then    ' reading en-passant info
+
+        wn = Text.GetIndexOf("abcdefgh", wc)
+
+        If wn>0 Then
+
+          wfl[3] = wn
+
+        EndIf
+
+      EndIf
+
+      ' ignore 50-move info
+
+      If wq = 6 Then    ' reading move number
+
+        wMvNr = (wMvNr * 10) + (Text.GetIndexOf("0123456789", wc)-1)
+
+      EndIf
+
+      
+
+    EndIf
+
+  EndFor
+
+  
+
+  ' prepares for new game
+
+  whist = 0
+
+  wGameOver = 0
+
+  wMovingNow = 0
+
+  wResult = ""
+
+  wnewgame = 0
+
+  
+
+  wLocateKingPos()
+
+  wIsCheck()
+
+EndSub
+
+
+
+Sub wGetFEN'------------------------------------------------- gets FEN from position
+
+  wFEN = ""
+
+  wq = 0
+
+  For wy = 8 To 1 Step -1
+
+    For wx = 1 To 8
+
+      wc = wB[wx][wy]
+
+      If wc = " " Then
+
+        wq = wq+1
+
+      Else
+
+        If wq>0 Then
+
+          wFEN = wFEN + Text.GetSubText("12345678",wq,1)
+
+          wq = 0
+
+        EndIf
+
+        wFEN = wFEN + wc
+
+      EndIf
+
+    EndFor
+
+    If wq>0 Then
+
+      wFEN = wFEN + Text.GetSubText("12345678",wq,1)
+
+      wq = 0
+
+    EndIf
+
+    If wy>1 Then
+
+      wFEN = wFEN + "/"
+
+    EndIf
+
+  EndFor
+
+  wFEN = wFEN + " "
+
+  
+
+  If wturn>0 Then     '  turn
+
+    wFEN = wFEN + "w"
+
+  Else
+
+    wFEN = wFEN + "b"
+
+  EndIf
+
+  wFEN = wFEN + " "
+
+  
+
+  wc = ""    '  castling info
+
+  If wfl[1][1]>0 Then
+
+    wc=wc+"K"
+
+  EndIf
+
+  If wfl[1][2]>0 Then
+
+    wc=wc+"Q"
+
+  EndIf
+
+  If wfl[2][1]>0 Then
+
+    wc=wc+"k"
+
+  EndIf
+
+  If wfl[2][2]>0 Then
+
+    wc=wc+"q"
+
+  EndIf
+
+  If Text.GetLength(wc) = 0 Then
+
+    wc = "-"
+
+  EndIf
+
+  wFEN = wFEN + wc + " "
+
+  
+
+  If wfl[3]>0 Then    ' en-passant info
+
+    wc = Text.GetSubText("abcdefgh", wfl[3],1)
+
+    If wturn>0 Then
+
+      wc = wc + "6"
+
+    Else
+
+      wc = wc + "3"
+
+    EndIf
+
+  Else
+
+    wc = "-"
+
+  EndIf
+
+  wFEN = wFEN + wc + " 0 " + (wMvNr)
+
+  
+
+EndSub
+
+
+
+Sub wDispNextMoves'----------------------------- displays to screen next legal moves
+
+  Stack.PushValue("p",wmove)
+
+  wout = ""
+
+  For wi = 1 To wmc
+
+    wFormateMove()
+
+    wout = wout + wmove + ";"
+
+  EndFor
+
+  TextWindow.WriteLine(wout)
+
+  wmove = Stack.PopValue("p")
+
+EndSub
+
+
+
+Sub wFormateMove
+
+  wmove = ""
+
+  wmove = wmove + Text.GetSubText("abcdefgh", wmv[wi][1],1)
+
+  wmove = wmove + Text.GetSubText("12345678", wmv[wi][2],1)
+
+  wmove = wmove + Text.GetSubText("abcdefgh", wmv[wi][3],1)
+
+  wmove = wmove + Text.GetSubText("12345678", wmv[wi][4],1)
+
+  wmove = wmove + wmv[wi][5]
+
+EndSub
+
+
+
+Sub wHistToPgn  '-- convert saved history to normal chess game notation format (pgn)
+
+  wpgn = ""
+
+  For wi = 1 To whist
+
+    If Math.Remainder(wi,2)>0 Then
+
+      wpgn = wpgn + ((wi+1)/2) + "."
+
+    EndIf
+
+    wc = wmvhist[wi][6]
+
+    If Text.IsSubText(wc,"0-") Then
+
+      wpgn = wpgn + wc
+
+    Else
+
+      If wc <> "p" Then
+
+        wpgn = wpgn + wc  'piece
+
+      EndIf
+
+      wpgn = wpgn + Text.GetSubText("abcdefgh",wmvhist[wi][1],1)
+
+      wpgn = wpgn + Text.GetSubText("12345678",wmvhist[wi][2],1)
+
+      wpgn = wpgn + wmvhist[wi][7]  ' goes to
+
+      wpgn = wpgn + Text.GetSubText("abcdefgh",wmvhist[wi][3],1)
+
+      wpgn = wpgn + Text.GetSubText("12345678",wmvhist[wi][4],1)
+
+      wpgn = wpgn + wmvhist[wi][5]  'promotes
+
+      wpgn = wpgn + wmvhist[wi][8]  'check
+
+    EndIf
+
+    wpgn = wpgn + " "
+
+  EndFor
+
+  wpgn = wpgn + wResult
+
+EndSub
+
+
+
+Sub wGetNextMoves'---- genereates array of all current legal moves that are possible
+
+  
+
+  Stack.PushValue("p",wmove)
+
+  wmove = ""
+
+  
+
+  While wmc > 0
+
+    Array.RemoveValue(wmv,wmc)
+
+    wmc = wmc-1
+
+  EndWhile
+
+  
+
+  For wx = 1 To 8
+
+    For wy = 1 To 8
+
+      If wB[wx][wy]<>" " Then
+
+        wn = Text.GetIndexOf(" PNBRQKpnbrqk", wB[wx][wy])-1
+
+        wenm = Text.GetSubText( "pnbrqkPNBRQK", wn-Math.Remainder(wn-1,6), 6 )
+
+        If wturn<0 Then
+
+          wn = wn - 6 ' the same for both sides
+
+        EndIf
+
+        If wn = 1 Then
+
+          wGenNpawn()
+
+        EndIf
+
+        If wn = 2 Then
+
+          wGenNknight()
+
+        EndIf
+
+        If wn = 3 Or wn = 5 Then
+
+          wGenNbishop()
+
+        EndIf
+
+        If wn = 4 Or wn = 5 Then
+
+          wGenNrook()
+
+        EndIf
+
+        If wn = 6 Then
+
+          wGenNking()
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  wmove = Stack.PopValue("p")
+
+  
+
+EndSub
+
+
+
+Sub wGenNpawn' -------------------------------------------------------- Pawn's moves
+
+  wdy = wturn
+
+  If wB[wx][wy+wdy] = " " Then  'go square forward
+
+    wdx = 0
+
+    wAddMoveV()
+
+    wdy = wdy+wturn       ' try 2nd square forward
+
+    If Math.Remainder(wy-wdy,9)=0 Then  ' 2,7 horiz.
+
+      If wB[wx][wy+wdy] = " " Then
+
+        wAddMoveV()
+
+      EndIf
+
+    EndIf
+
+    wdy = wdy-wturn
+
+  EndIf
+
+  
+
+  For wdx = -1 To 1 Step 2    ' try to capture
+
+    If wx+wdx>0 and wx+wdx<9 Then
+
+      If Text.IsSubText( wenm, wB[wx+wdx][wy+wdy] ) Then
+
+        wAddMoveV()
+
+      Else
+
+        If wx+wdx= wfl[3] Then
+
+          If Math.Remainder(wy-(5*wdy),11)=0 Then '4, 5 horiz.
+
+            If wB[wx+wdx][wy+wdy] = " " Then
+
+              If Text.IsSubText( wenm, wB[wx+wdx][wy] ) Then
+
+                wAddMoveV() ' en-passant
+
+              EndIf
+
+            EndIf
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub wGenNknight'----------------------------------------------------- Knight's moves
+
+  For wdx = -2 To 2
+
+    If wx+wdx>0 and wx+wdx<9 Then
+
+      For wdy = -2 To 2
+
+        If wy+wdy>0 and wy+wdy<9 Then
+
+          If Math.Abs(wdx)+ Math.Abs(wdy)=3 Then  'all 2+1 combinations
+
+            If Text.IsSubText( " "+wenm, wB[wx+wdx][wy+wdy] ) Then
+
+              wAddMoveV()
+
+            EndIf
+
+          EndIf
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub wGenNbishop'--------------------------------------- Bishop's (and queen's) moves
+
+  For wdi1 = -1 To 1 Step 2
+
+    For wdi2 = -1 To 1 Step 2
+
+      wdx = 0
+
+      wdy = 0
+
+      For wdi3 = 1 To 7
+
+        wdx = wdx + wdi1 ' diognals
+
+        wdy = wdy + wdi2
+
+        If wx+wdx<1 or wx+wdx>8 or wy+wdy<1 or wy+wdy>8 Then
+
+          wdi3 = 9
+
+        Else
+
+          If Text.IsSubText( " "+wenm, wB[wx+wdx][wy+wdy] ) Then
+
+            wAddMoveV()
+
+          EndIf
+
+          If wB[wx+wdx][wy+wdy]<>" " Then
+
+            wdi3 = 9
+
+          EndIf
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub wGenNrook'------------------------------------------- Rook's (and queen's) moves
+
+  For wdi1 = -1 To 1
+
+    For wdi2 = -1 To 1
+
+      If Math.Abs(wdi1)+ Math.Abs(wdi2)=1 Then   ' verticals and horizontals
+
+        wdx = 0
+
+        wdy = 0
+
+        For wdi3 = 1 To 7
+
+          wdx = wdx + wdi1
+
+          wdy = wdy + wdi2
+
+          If wx+wdx<1 or wx+wdx>8 or wy+wdy<1 or wy+wdy>8 Then
+
+            wdi3 = 9
+
+          Else
+
+            If Text.IsSubText( " "+wenm, wB[wx+wdx][wy+wdy] ) Then
+
+              wAddMoveV()
+
+            EndIf
+
+            If wB[wx+wdx][wy+wdy]<>" " Then
+
+              wdi3 = 9
+
+            EndIf
+
+          EndIf
+
+        EndFor
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub wGenNking'--------------------------------------------------------- King's moves
+
+  For wdj1 = -1 To 1
+
+    If wx+wdj1>0 and wx+wdj1<9 Then
+
+      For wdj2 = -1 To 1
+
+        If wy+wdj2>0 and wy+wdj2<9 Then
+
+          If wdj1<>0 or wdj2<>0 Then
+
+            If Text.IsSubText( " "+wenm, wB[wx+wdj1][wy+wdj2] ) Then
+
+              wx = wx + wdj1
+
+              wy = wy + wdj2
+
+              wisCheck()
+
+              wx = wx - wdj1
+
+              wy = wy - wdj2
+
+              If wcheck = 0 Then
+
+                wdx = wdj1
+
+                wdy = wdj2
+
+                wAddMove()
+
+              EndIf
+
+            EndIf
+
+          EndIf
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+  EndFor
+
+  
+
+  'Add castling moves, If no check and castling possible
+
+  
+
+  wdj1 = 1+((1-wturn)/2)   '1,2 - for castling flags
+
+  wdj11 = ((wdj1-1)*7)+1  '1,8 - king's line
+
+  wcheck = -9
+
+  If (wfl[wdj1][1]+wfl[wdj1][2])>0 Then
+
+    wdj3 = 0
+
+    For wdj2 = -1 To 1 Step 2
+
+      wdj22 = wdj2*2
+
+      wdj3 = wdj3 + 1
+
+      If wfl[wdj1][wdj3]>0 Then   ' castling flag allows
+
+        wdj42 = 3- ((wdj2+1)/2)
+
+        For wdj4 = 1 To wdj42
+
+          If wB[5+(wdj2*wdj4)][wdj11]<>" " Then  'squares empty
+
+            wdj4 = 9
+
+          EndIf
+
+        EndFor
+
+        If wdj4<5 Then
+
+          If wcheck = -9 Then
+
+            wisCheck()
+
+          EndIf
+
+          If wcheck = 0 Then
+
+            For wdj4 = 1 To 2
+
+              wx = wx + wdj2
+
+              If wcheck = 0 Then
+
+                wisCheck()
+
+              EndIf
+
+            EndFor
+
+            wx = wx-wdj22
+
+          EndIf
+
+          If wcheck = 0 Then
+
+            wdy = 0
+
+            wdx =wdj22
+
+            wAddMove()
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+Sub wLocateKingPos' -------------------- Locate king position before check detection
+
+  wx = 1
+
+  wy = 1
+
+  wc2 = Text.GetSubText("k-K",wturn+2,1)
+
+  While wy<9 and wB[wx][wy]<>wc2
+
+    wx = wx+1
+
+    If wx>8 Then
+
+      wx = 1
+
+      wy = wy + 1
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+
+
+Sub wIsCheck' ----------------------------- Detects If king's square is under attack
+
+  wcheck = 0
+
+  For wdi1 = -1 To 1
+
+    For wdi2 = -1 To 1
+
+      If wdi1<>0 Or wdi2<>0 Then
+
+        wdx = 0
+
+        wdy = 0
+
+        For wdi3 = 1 To 7
+
+          wdx = wdx + wdi1 ' diognals, verticals and horizontals
+
+          wdy = wdy + wdi2
+
+          If wx+wdx<1 or wx+wdx>8 or wy+wdy<1 or wy+wdy>8 Then
+
+            wdi3 = 9
+
+          Else
+
+            wn = Text.GetIndexOf(" PNBRQKpnbrqk", wB[wx+wdx][wy+wdy])-1
+
+            If wn<>0 Then
+
+              wn = wn - ((wturn+1) * 3)
+
+              If wn = 1 Then 'oponent's pawn
+
+                If Math.Abs(wdx) = 1 and wdy = wturn Then
+
+                  wcheck = 1
+
+                EndIf
+
+              Else
+
+                If wn = 3 Then 'oponent's bishop
+
+                  If Math.Abs(wdi1) + Math.Abs(wdi2) = 2 Then
+
+                    wcheck = 1
+
+                  EndIf
+
+                Else
+
+                  If wn = 4 Then 'oponent's rook
+
+                    If Math.Abs(wdi1) + Math.Abs(wdi2) = 1 Then
+
+                      wcheck = 1
+
+                    EndIf
+
+                  Else
+
+                    If wn = 5 Then 'oponent's queen
+
+                      wcheck = 1
+
+                    Else
+
+                      If wn = 6 Then 'oponent's king
+
+                        If Math.Abs(wdx)<2 and Math.Abs(wdy) < 2 Then
+
+                          wcheck = 1
+
+                        EndIf
+
+                      EndIf
+
+                    EndIf
+
+                  EndIf
+
+                EndIf
+
+              EndIf
+
+              If wcheck Then
+
+                GraphicsWindow.ShowMessage("Check!" "Chess")
+
+                wdi1 = 9
+
+                wdi2 = 9
+
+              EndIf
+
+              wdi3 = 9
+
+            EndIf
+
+          EndIf
+
+        EndFor
+
+        
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  
+
+  If wcheck = 0 Then    'maybe oponent's knight's check
+
+    For wdx = -2 To 2
+
+      If wx+wdx>0 and wx+wdx<9 Then
+
+        For wdy = -2 To 2
+
+          If wy+wdy>0 and wy+wdy<9 Then
+
+            If Math.Abs(wdx) + Math.Abs(wdy) = 3 Then
+
+              wn = Text.GetIndexOf(" PNBRQKpnbrqk", wB[wx+wdx][wy+wdy])-1
+
+              If wn>1 Then
+
+                wn = wn - ((wturn+1) * 3)
+
+                If wn = 2 Then 'oponent's knight
+
+                  wcheck = 1
+
+                  wdx = 9
+
+                  wdy = 9
+
+                EndIf
+
+              EndIf
+
+            EndIf
+
+          EndIf
+
+        EndFor
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub wAddMoveV'------ add and verify king's threat before put this move into the list (heavy, but proper)
+
+  
+
+  Stack.PushValue( "q", wcheck )
+
+  
+
+  Stack.PushValue( "q", wB )
+
+  Stack.PushValue( "q", wx )
+
+  Stack.PushValue( "q", wy )
+
+  Stack.PushValue( "q", wdx )
+
+  Stack.PushValue( "q", wdy )
+
+  Stack.PushValue( "q", wdi1 )
+
+  Stack.PushValue( "q", wdi2 )
+
+  Stack.PushValue( "q", wdi3 )
+
+  Stack.PushValue( "q", wn )
+
+  
+
+  wB[wx+wdx][wy+wdy] = wB[wx][wy]
+
+  wB[wx][wy] = " "
+
+  
+
+  wLocateKingPos()
+
+  wIsCheck()
+
+  
+
+  wn = Stack.PopValue("q")
+
+  wdi3 = Stack.PopValue("q")
+
+  wdi2 = Stack.PopValue("q")
+
+  wdi1 = Stack.PopValue("q")
+
+  wdy = Stack.PopValue("q")
+
+  wdx = Stack.PopValue("q")
+
+  wy = Stack.PopValue("q")
+
+  wx = Stack.PopValue("q")
+
+  wB = Stack.PopValue("q")
+
+  
+
+  If wcheck = 0 Then
+
+    wAddMove()
+
+  EndIf
+
+  
+
+  wcheck = Stack.PopValue("q")
+
+EndSub
+
+
+
+Sub wAddMove'--------------------------------------- add this legal move to the list
+
+  wmc = wmc + 1
+
+  wmv[wmc][1] = wx
+
+  wmv[wmc][2] = wy
+
+  wmv[wmc][3] = wx+wdx
+
+  wmv[wmc][4] = wy+wdy
+
+  wmv[wmc][5] = ""
+
+EndSub
+
+
+
+Sub wScanNextMoves'-------------- Checking all generated moves, searches best answer (max. depth level 2)
+
+  
+
+  For wmi = 1 To wmc
+
+    
+
+    wPush()
+
+    
+
+    wMovePiece()
+
+    
+
+    If wdepth = 1 Then
+
+      
+
+      wEi = wmi
+
+      wEv[wEi][1] = wE + (Math.GetRandomNumber(9)-5)
+
+      wdepth = wdepth + 1
+
+      wGetNextMoves()     ' Oponent's move
+
+      If wmc > 0 Then
+
+        wScanNextMoves()
+
+      Else
+
+        wLocateKingPos()
+
+        wIsCheck()
+
+        wEv[wEi][1] = 99999 * (-wturn) * (1+wcheck)  ' go this case, or stalemate
+
+        wEv[wEi][2] = 0
+
+      EndIf
+
+      wdepth = wdepth - 1
+
+      wE = wEv[wEi][1]+wEv[wEi][2]  ' Our move+ and oponent's answer- = evaluation
+
+    Else
+
+      If wdepth = 2 Then
+
+        
+
+        wEvN = 0
+
+        If wmi = 1 Then
+
+          wEvN = 1
+
+        Else
+
+          If wturn>0 Then
+
+            If wEv[wEi][2] > wE Then
+
+              wEvN = 1      ' seems strongest answer
+
+            EndIf
+
+          Else
+
+            If wEv[wEi][2] < wE Then
+
+              wEvN = 1      ' seems strongest answer
+
+            EndIf
+
+          EndIf
+
+        EndIf
+
+        If wEvN>0 Then
+
+          wEv[wEi][2] = wE
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+    
+
+    wPop()
+
+    
+
+    If wdepth = 1 Then
+
+      wEvN = 0
+
+      If wmi = 1 Then
+
+        wEvN = 1
+
+      Else
+
+        If wturn>0 Then
+
+          If wEvb < wE Then
+
+            wEvN = 1      ' seems better after all, if we are white
+
+          EndIf
+
+        Else
+
+          If wEvb > wE Then
+
+            wEvN = 1      'seems better after all, if we are black
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+      If wEvN>0 Then
+
+        wEvb = wE
+
+        wi = wEi
+
+        wFormateMove()    'wmove contains the best move
+
+      EndIf
+
+    EndIf
+
+    
+
+  EndFor
+
+  
+
+EndSub
+
+
+
+Sub wDoMove'----------------------- - Process move from the list for normal notation ("e2e4")
+
+  wGetNextMoves()
+
+  For wmi = 1 To wmc
+
+    If wmv[wmi][1] = Text.GetIndexOf("abcdefgh", Text.GetSubText(wmove,1,1) ) Then
+
+      If wmv[wmi][2] = Text.GetIndexOf("12345678", Text.GetSubText(wmove,2,1) ) Then
+
+        If wmv[wmi][3] = Text.GetIndexOf("abcdefgh", Text.GetSubText(wmove,3,1) ) Then
+
+          If wmv[wmi][4] = Text.GetIndexOf("12345678", Text.GetSubText(wmove,4,1) ) Then
+
+            wdepth = 0
+
+            'save to history
+
+            whist = whist + 1
+
+            wmvhist[whist][1] = wmv[wmi][1] ' from
+
+            wmvhist[whist][2] = wmv[wmi][2]
+
+            wmvhist[whist][3] = wmv[wmi][3] ' to
+
+            wmvhist[whist][4] = wmv[wmi][4]
+
+            wmvhist[whist][5] = wmv[wmi][5] 'promo
+
+            wmvhist[whist][6] = ""  ' piece, or 0-0, or 0-0-0
+
+            wmvhist[whist][7] = "-" ' move, capture
+
+            wmvhist[whist][8] = ""  'check
+
+            wmvhist[whist][9] = wmove 'save move text
+
+            wMovePiece()
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub wMovePiece'--------------- Moving piece on board and counting eval. improvements (+=white, -=black)
+
+  wE = 0
+
+  wfl[3] = 0
+
+  wn = Text.GetIndexOf(" PNBRQKpnbrqk", wB[wmv[wmi][3]][wmv[wmi][4]])-1
+
+  If wn>0 Then
+
+    If wturn>0 Then
+
+      wn = wn - 6
+
+    EndIf
+
+    If wn>0 And wn<7 Then
+
+      wE = wE + (wturn * wpEv[wn])  ' Got points by capturing enemy's piece
+
+      If wdepth = 0 Then  'save to history
+
+        wmvhist[whist][7] = "x"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  wn = Text.GetIndexOf(" PNBRQKpnbrqk", wB[wmv[wmi][1]][wmv[wmi][2]])-1
+
+  If wn>0 Then
+
+    If wturn<0 Then
+
+      wn = wn - 6
+
+    EndIf
+
+    
+
+    If wdepth = 0 Then  'save to history
+
+      wmvhist[whist][6] = Text.GetSubText("pNBRQK",wn,1)  ' piece
+
+    EndIf
+
+    
+
+    ' Moving piece's evaluations
+
+    If wn = 1 Then
+
+      If wmv[wmi][1]<>wmv[wmi][3] and wB[wmv[wmi][3]][wmv[wmi][4]] = " " Then
+
+        wB[wmv[wmi][3]][wmv[wmi][2]] = " "  'en-passant
+
+        wE = wE + (wturn * wpEv[1])
+
+        If wdepth = 0 Then  'save to history
+
+          wmvhist[whist][7] = "x"
+
+        EndIf
+
+      Else
+
+        If Math.Abs( wmv[wmi][4]-wmv[wmi][2] ) = 2 Then
+
+          wfl[3] = wmv[wmi][1]  'remember enpassant column
+
+        EndIf
+
+      EndIf
+
+      For wdi1 = 1 To 8 Step 7
+
+        If wmv[wmi][4] = wdi1 Then       'promoted to queen
+
+          If Text.GetLength(wmove)>4 Then
+
+            wdi2 = Text.GetIndexOf("nbrq",Text.GetSubText(wmove,5,1)) ' given
+
+          Else
+
+            wdi2 = 4  'queen
+
+          EndIf
+
+          wmv[wmi][5]= Text.GetSubText("nbrq",wdi2,1)
+
+          If wdepth = 0 Then  'save to history
+
+            wmvhist[whist][5] = "=" + wmv[wmi][5]
+
+          EndIf
+
+          wB[wmv[wmi][1]][wmv[wmi][2]] = Text.GetSubText("-nbrq---NBRQ", wdi1+wdi2,1)
+
+          wE = wE + (wturn * (wpEv[5]-wpEv[1]))
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+    If wn = 2 or wn = 3 Then 'knight or bishop
+
+      'should attack king
+
+    EndIf
+
+    If wn = 5 Then  'queen
+
+      'should attack king
+
+    EndIf
+
+    
+
+    If wn = 6 Then   'king
+
+      'If it is a castling or move away from e1,e8
+
+      If wmv[wmi][1] = 5 Then
+
+        wdi3 = wmv[wmi][3]-wmv[wmi][1]
+
+        wdj1 = 1+((1-wturn)/2)   '1,2 - for castling flags
+
+        If Math.Abs(wdi3)>1 Then
+
+          wdi2 = wmv[wmi][2]              '1,8 - castling
+
+          wdi4 = 1+(7*((wdi3+2)/4))  '1,8  Rook
+
+          wB[5+(wdi3/2)][wdi2] = wB[wdi4][wdi2]
+
+          wB[wdi4][wdi2] = " "
+
+          wE = wE + (200 * wturn)   ' castle If possible
+
+          If wdepth = 0 Then  'save to history
+
+            wdi4 = 5-(((wdi3+2)/4)*2)  '5,3 length
+
+            wmvhist[whist][6] = Text.GetSubText("0-0-0",1,wdi4)
+
+          EndIf
+
+        Else
+
+          If (wfl[wdj1][1]+wfl[wdj1][2])>0 Then
+
+            wE = wE - (200 * wturn)
+
+          EndIf
+
+        EndIf
+
+        wfl[wdj1][1] = 0
+
+        wfl[wdj1][2] = 0
+
+      EndIf
+
+    EndIf
+
+    
+
+    ' add points for y-position (attack forward)
+
+    wE = wE + ((wmv[wmi][4] - wmv[wmi][2]) * wpPtY[wn])
+
+    ' add points for x-position (center)
+
+    wE = wE + (wturn * (18 - Math.Abs(9 - (2*wmv[wmi][3]))))
+
+    
+
+    wB[wmv[wmi][3]][wmv[wmi][4]] = wB[wmv[wmi][1]][wmv[wmi][2]]
+
+    wB[wmv[wmi][1]][wmv[wmi][2]] = " "
+
+    
+
+    'If rook moved or was captured
+
+    For wdj1 = 1 To 8 Step 7    'a,h
+
+      wdj22 = 2-((wdj1-1)/7)   '1,2
+
+      For wdj2 = 1 To 8 Step 7  '1,8
+
+        wdj11 = 1+((wdj2-1)/7)  '1,2
+
+        wdj23 = (wdj11*2)-3  '1,-1
+
+        wdj24 = 0
+
+        If (wmv[wmi][1] = wdj1 and wmv[wmi][2] = wdj2) Then
+
+          wdj24 = 1
+
+        EndIf
+
+        If (wdj24 = 0) And  (wmv[wmi][3] = wdj1 and wmv[wmi][4] = wdj2) Then
+
+          wdj24 = 1
+
+        EndIf
+
+        If wdj24 = 1 and wfl[wdj11][wdj22] > 0 Then
+
+          wfl[wdj11][wdj22] = 0
+
+          wE = wE + (80 * wdj23)   ' penalty for lost castling
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    
+
+  EndIf
+
+  
+
+  ' motivate center, knights,bishops
+
+  If wMvNr<10 Then
+
+    wdj23 = 8-(((wturn+1)/2)*7)  '1,8
+
+    For wdj1 = 2 To 7
+
+      If Math.Abs(9 - wdj1)>1 and Text.IsSubText("NBnb", wB[wdj1][wdj23]) Then
+
+        wE = wE - (wturn * (5*wMvNr)) ' penalty for long sitting in back
+
+      EndIf
+
+    EndFor
+
+    If wMvNr<8 Then
+
+      For wdj1 = 4 To 5
+
+        If Text.IsSubText("pP",wB[wdj1][wdj23+wturn]) Then
+
+          wE = wE - (wturn * 60) ' penalty for not taking the center
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+  EndIf
+
+  
+
+  wturn = -wturn
+
+  If wturn>0 Then
+
+    wMvNr = wMvNr + 1   ' increase move-counter
+
+  EndIf
+
+  
+
+  wLocateKingPos()
+
+  wIsCheck()
+
+  If wcheck>0 Then    ' Add extra points for check
+
+    wE = wE - (50 * wturn)
+
+    If wdepth = 0 Then  'save to history
+
+      wmvhist[whist][8] = "+"  'check
+
+    EndIf
+
+    
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+Sub wPush'------------------------------------------- Save current position in stack
+
+  Stack.PushValue("p", wfl)
+
+  Stack.PushValue("p", wturn)
+
+  Stack.PushValue("p", wMvNr)
+
+  Stack.PushValue("p", wmv)
+
+  Stack.PushValue("p", wmc)
+
+  Stack.PushValue("p", wmi)
+
+  Stack.PushValue("p", wB)
+
+  Stack.PushValue("p", wmove)
+
+EndSub
+
+
+
+Sub wPop'----------------------------------------------- Restore position from stack
+
+  wmove = Stack.PopValue("p")
+
+  wB = Stack.PopValue("p")
+
+  wmi = Stack.PopValue("p")
+
+  wmc = Stack.PopValue("p")
+
+  wmv = Stack.PopValue("p")
+
+  wMvNr = Stack.PopValue("p")
+
+  wturn = Stack.PopValue("p")
+
+  wfl = Stack.PopValue("p")
+
+EndSub
+
+
+
+Sub wDoTakeBack'------------------------- reproduces all moves till current position
+
+  wtbh = whist - 2
+
+  If wtbh >= 0 Then
+
+    wFEN = wStartFEN
+
+    wSetFEN()                 'set starting position
+
+    For wtbi = 1 To wtbh     'do movements
+
+      wmove = wmvhist[wtbi][9]
+
+      wDoMove()
+
+    EndFor
+
+    For wtbi = 1 To 2     'remove 2 movements
+
+      Array.RemoveValue(wmvhist,wtbh+1)
+
+    EndFor
+
+  EndIf
+
+  wtakeback = 0
+
+EndSub
+
+
+
+Sub wLoadImages
+
+  wGrH = (54*8)
+
+  wGrW = (54*8) + (92)
+
+  GraphicsWindow.Title = "SB Chess presentation"
+
+  GraphicsWindow.Height = wGrH
+
+  GraphicsWindow.Width = wGrW
+
+  'GraphicsWindow.DrawBoundText(wGrW/2.2,wGrH/2.2, 100, "Loading...")
+
+  
+
+  wImgPc[1][2] = LDCall.Function2("mkfig" "b" "p") 'bp
+
+  wImgPc[2][2] = LDCall.Function2("mkfig" "b" "n") 'bn
+
+  wImgPc[3][2] = LDCall.Function2("mkfig" "b" "b") 'bb
+
+  wImgPc[4][2] = LDCall.Function2("mkfig" "b" "r") 'br
+
+  wImgPc[5][2] = LDCall.Function2("mkfig" "b" "q") 'bq
+
+  wImgPc[6][2] = LDCall.Function2("mkfig" "b" "k") 'bk
+
+  
+
+  wImgPc[1][1] = LDCall.Function2("mkfig" "w" "p") 'wp
+
+  wImgPc[2][1] = LDCall.Function2("mkfig" "w" "n") 'wn
+
+  wImgPc[3][1] = LDCall.Function2("mkfig" "w" "b") 'wb
+
+  wImgPc[4][1] = LDCall.Function2("mkfig" "w" "r") 'wr
+
+  wImgPc[5][1] = LDCall.Function2("mkfig" "w" "q") 'wq
+
+  wImgPc[6][1] = LDCall.Function2("mkfig" "w" "k") 'wk
+
+  
+
+  'And also draw buttons
+
+  GraphicsWindow.BackgroundColor = "#30C8CF"
+
+  Stack.PushValue("g",GraphicsWindow.BrushColor)
+
+  GraphicsWindow.FontSize=14
+
+  GraphicsWindow.BrushColor = "#0000FF"
+
+  Controls.AddButton("NewGam" (54*8)+15,60)
+
+  cb=ldControls.AddCheckBox("AutoPlay")
+
+  LDControls.CheckBoxChanged=chbc
+
+  Controls.Move(CB 54*8+15,110)
+
+  Controls.AddButton("Undo" (54*8)+15,160)
+
+  
+
+  GraphicsWindow.BrushColor = Stack.PopValue("g")
+
+  cuu=Shapes.AddEllipse(50 50)
+
+  LDShapes.BrushColour(cuu "#99ffffff")
+
+  LDShapes.PenWidth(cuu 0)
+
+  LDEffect.DropShadow(cuu "color=darkblue")
+
+  Controls.ButtonClicked=bcc
+
+  'LDShapes.PenColour(cuu "red")
+
+EndSub
+
+
+
+Sub chbc
+
+  If LDControls.CheckBoxGetState(cb) Then
+
+    wauto = 1   'auto game on/off
+
+  Else
+
+    wauto=0
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+Sub bcc
+
+  lbb=Controls.LastClickedButton
+
+  If Text.EndsWith(lbb "1") Then
+
+    wnewgame = 1
+
+    
+
+  Else
+
+    wtakeback = 1
+
+  EndIf
+
+  wCleaCurs()
+
+EndSub
+
+
+
+Sub mkfig
+
+  GraphicsWindow.BrushColor="white
+
+  GraphicsWindow.FillRectangle(0 0 100 100)
+
+  GraphicsWindow.FontName="SEGOE UI"
+
+  GraphicsWindow.FontSize=45
+
+  clr["b"]="#0000A0
+
+  clr["w"]="darkred
+
+  chf = "P=265F;N=265E;B=265D;R=265C;Q=265B;K=265A
+
+  GraphicsWindow.FontBold="true
+
+  
+
+  GraphicsWindow.BrushColor="#eeffff
+
+  GraphicsWindow.DrawText(2, -7 text.GetCharacter(LDMath.Base2Decimal( chf[args[2]] 16)))
+
+  GraphicsWindow.FontBold="false
+
+  GraphicsWindow.BrushColor=clr[args[1]]
+
+  GraphicsWindow.DrawText(2, -7 text.GetCharacter(LDMath.Base2Decimal( chf[args[2]] 16)))
+
+  Program.Delay(55)
+
+  cc=ldGraphicsWindow.Capture("" "false")
+
+  Program.Delay(99)
+
+  LDImage.ReplaceColour(cc "#FFFFFF" "#000000" 5)
+
+  LDImage.MakeTransparent(cc "#000000")
+
+  LDImage.Crop(cc 0 0 70 70)
+
+  GraphicsWindow.FontSize=14
+
+  return=cc
+
+  
+
+EndSub
+
+
+
+Sub wDrawBoard
+
+  ss=LDShapes.GetAllShapes()
+
+  For xs=1 To Array.GetItemCount(ss)
+
+    If Text.StartsWith(ss[xs] "I")  Then
+
+      
+
+      Shapes.Remove(ss[xs])
+
+    EndIf
+
+  EndFor
+
+  
+
+  For wdi1 = 1 To 8
+
+    For wdi2 = 1 To 8
+
+      wdi11 = (wdi1-1)
+
+      wdi22 = (8-wdi2)
+
+      If wside<0 Then
+
+        wdi11 = 7-wdi11
+
+        wdi22 = 7-wdi22
+
+      EndIf
+
+      'Board squares
+
+      wi = 7+((1-Math.Remainder(wdi1+wdi2,2))*14)
+
+      Stack.PushValue("g",GraphicsWindow.BrushColor)
+
+      GraphicsWindow.BrushColor = Text.GetSubText("white:#E7CEA5,black:#A57B5A",wi,7)
+
+      GraphicsWindow.FillRectangle(wdi11*54, wdi22*54, 54, 54)
+
+      
+
+      wc = wB[wdi1][wdi2] 'Pieces on board
+
+      If wc <> " " Then
+
+        wi = Text.GetIndexOf("pnbrqkPNBRQK", wc)
+
+        wn = 2
+
+        wc2 = "color=gray"
+
+        If wi > 6 Then
+
+          wi = wi - 6
+
+          wn = 1
+
+          wc2 = "Color=white"
+
+        EndIf
+
+        
+
+        GraphicsWindow.BrushColor = wc2
+
+        ss=Shapes.AddImage(wImgPc[wi][wn])
+
+        LDEffect.DropShadow(ss wc2)
+
+        shapes.Move(ss wdi11*54, wdi22*54)
+
+        GraphicsWindow.BrushColor = Stack.PopValue("g")
+
+      EndIf
+
+      
+
+      ' cursor for mouse drags
+
+      If wdi1 = wdragX And wdi2 = wdragY Then
+
+        wc2 = "#FF0000"   ' red
+
+        wDrawCursor()
+
+      EndIf
+
+      ' last move  on board
+
+      If wdi1 = wmovedX And wdi2 = wmovedY Then
+
+        wc2 = "#0000FF"   ' blue
+
+        wDrawCursor()
+
+      EndIf
+
+      
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub wDrawCursor
+
+  LDShapes.ZIndex(cuu, -1)
+
+  Shapes.Move(cuu (wdi11*54)+1, (wdi22*54)+1)
+
+EndSub
+
+

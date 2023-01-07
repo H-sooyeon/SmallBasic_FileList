@@ -1,0 +1,689 @@
+'SBJump - A cheap knock off of Doodle Jump written in SmallBasic
+
+'Original Concept and Programming by Zock - Import Code: PGR013
+
+'Current version by codingCat aka Matthew L. Parets
+
+'As the game progresses the platforms get smaller. 
+
+'After a round at 15 pixels they reset to fifty and the game speeds up.
+
+'Controls = Left, Right and Up keys
+
+
+
+
+
+flag = 0
+
+
+
+Initialize()
+
+SetupTitleCrawl()
+
+
+
+'Main Program Loop
+
+While exiting <> "True"
+
+  LevelSet()
+
+  GeneratePlatforms()
+
+  frameStart = Clock.ElapsedMilliseconds
+
+  
+
+  'Game Loop
+
+  While gameOver <> "True"
+
+    OpeningTitleCrawl()
+
+    MoveBall()
+
+    Bounce()
+
+    KeyCheck()
+
+    UpdateScore()
+
+    
+
+    'Reached the top - Next Level
+
+    If y <= -5 Then
+
+      LevelUp()
+
+      LevelSet()
+
+      GeneratePlatforms()
+
+    EndIf
+
+    
+
+    FrameDelay()
+
+  endwhile
+
+  
+
+  CreditCrawl()
+
+  Initialize()
+
+endwhile
+
+
+
+Program.End()
+
+
+
+'----------------------------------------------------------------------------------
+
+'Subroutines
+
+'----------------------------------------------------------------------------------
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub FrameDelay
+
+  'Loop will continue until delay has been reached. Because frameStart
+
+  'is set at the end of the last frame delay, the frames should be constantly
+
+  'the same regardless of the processing in each individual frame. 
+
+  '(ie shorter delays when more pressing is done)
+
+  While Clock.ElapsedMilliseconds - frameStart < delay
+
+  EndWhile
+
+  frameStart = Clock.ElapsedMilliseconds
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub Bounce
+
+  'Check for bottom of window, bounce if new game, otherwise game over
+
+  If (y > GraphicsWindow.height) Then
+
+    If (start = "True") then
+
+      dY = -3.2
+
+      Sound.PlayClick()
+
+    Else
+
+      Sound.PlayBellRing()
+
+      gameOver = "True"
+
+    EndIf
+
+  EndIf
+
+  
+
+  'Check to see if a bounce at a platform has occured
+
+  If dy > 0 Then 'If moving downward (allows passing through platform on the way up.
+
+    For ii = 1 To lineCnt 'check each platform
+
+      'if... in the middle of a platform (left to right), AND on a platform (up and down) - adjusted for speed
+
+      If (x+5 > linex[ii] and x < linex[ii]+(linesize-5)) and (y+5 > liney[ii]-(dy/2) And y+5 < liney[ii]+(dy/2)) then
+
+        dy = -3.2 'Reverse the direction
+
+        Sound.PlayClick()
+
+        score = score + 130
+
+        GraphicsWindow.Title = "L: " + level + "  S: " + score
+
+        start = "False" 'Once a platform is hit, the bottom of off limits
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub KeyCheck
+
+  'Check for changes based on user controls
+
+  key = GraphicsWindow.LastKey
+
+  If (key = "Right") Then
+
+    flag = 1
+
+    dx = 1
+
+  ElseIf (key = "Left") Then
+
+    flag = 1
+
+    dx = -1
+
+  ElseIf (key = "Up") Then
+
+    flag = 1
+
+    dx = 0
+
+  ElseIf key = "Escape" then
+
+    gameOver = "True"
+
+    exiting = "True"
+
+  EndIf
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub Initialize
+
+  GraphicsWindow.Clear()
+
+  'Initial Setup
+
+  lineCnt = 11
+
+  linesize = 50
+
+  start = "True"
+
+  multiplier = 2
+
+  delay = 15
+
+  score = 0
+
+  level = 1
+
+  msgCnt = 0
+
+  dx = 0
+
+  
+
+  'Setup the window
+
+  GraphicsWindow.Height = 600
+
+  GraphicsWindow.Title = "SBJump"
+
+  GraphicsWindow.Width = (20*10) + (linesize + 10)
+
+  GraphicsWindow.BackgroundColor = "blue"
+
+  GraphicsWindow.Top = Desktop.Height / 2 - GraphicsWindow.Height / 2 - 50
+
+  GraphicsWindow.left = Desktop.Width / 2 - GraphicsWindow.Width / 2
+
+  GraphicsWindow.BrushColor = "black"
+
+  GraphicsWindow.fillRectangle(0,GraphicsWindow.Height-3,GraphicsWindow.Width,3)
+
+  
+
+  x = GraphicsWindow.Width / 2
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub GeneratePlatforms
+
+  'First platform copied from top platform after first level
+
+  If start = "False" then
+
+    lastx = linex[1]
+
+    lasty = liney[1]
+
+  endif
+
+  
+
+  'Randomly generate the platforms. 
+
+  platlevl = 75
+
+  For ii = 1 to lineCnt
+
+    linex[ii] = (Math.GetRandomNumber(20) * 10)
+
+    liney[ii] = platlevl + ((Math.GetRandomNumber(2) * 10) - 10)
+
+    platlevl = platlevl + 50
+
+  endfor
+
+  'Start at the bottom
+
+  If start = "False" then 'top becomes bottom
+
+    linex[lineCnt] = lastx
+
+    y = GraphicsWindow.Height - (GraphicsWindow.Height - liney[lineCnt]) 
+
+  Else
+
+    y = GraphicsWindow.Height - 1
+
+  endif
+
+  For i = 1 to lineCnt
+
+    GraphicsWindow.DrawLine(linex[i],liney[i],linex[i]+linesize,liney[i])
+
+  endfor
+
+  Sound.PlayChimes()
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub LevelSet
+
+  'Setup for the start of a new level
+
+  gameOver = "False"
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.BrushColor = "red"
+
+  ball = Shapes.AddEllipse(10,10)
+
+  GraphicsWindow.PenWidth = 2
+
+  dy = -3.2
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub LevelUp
+
+  'Set up for next level 
+
+  'Multiply score, decrese the platform size, increase the speed
+
+  score = score * multiplier
+
+  level = level + 1
+
+  GraphicsWindow.Title = "L: " + level + "  S: " + score
+
+  'Shrink the platform size
+
+  If linesize > 15 then
+
+    linesize = linesize - 5
+
+  Else
+
+    'Speed the game up
+
+    linesize = 50
+
+    If delay > 1 then
+
+      delay = delay - 2
+
+    endif
+
+  endif
+
+  GraphicsWindow.Clear()
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub MoveBall
+
+  'Update the location of the ball based on user input and 
+
+  'current volocity
+
+  x = x + dx
+
+  y = y + dy
+
+  Shapes.Move(ball, x,y)
+
+  'Wrap past the edges
+
+  If x > GraphicsWindow.Width Then 
+
+    x = 0
+
+  EndIf
+
+  If x < 0 Then 
+
+    x = GraphicsWindow.Width
+
+  EndIf
+
+  dy = dy + 0.05 'Increase the downward speed
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub UpdateScore
+
+  'Update the score
+
+  If Math.Remainder(score,100) = 0 then
+
+    GraphicsWindow.Title = "L: " + level + "  S: " + score
+
+  EndIf
+
+  score = score - 1
+
+  If score < 0 Then
+
+    score = 0 
+
+  EndIf
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub CreditCrawl
+
+  'A WAY overly complicated way of creating the score and credit crawl
+
+  'because smallbasic lacks the option of multiple statements on one line,
+
+  'or brace notation for loading arrays.
+
+  'I hate lots of lines doing nothing but loading array indices.   :-)
+
+  GraphicsWindow.BackgroundColor = "White"
+
+  msgCnt = 0
+
+  GraphicsWindow.BrushColor = "white"
+
+  msgPos = 1
+
+  messages = "Score`30`Level Reached`30`Game Over`39`Press <Enter> for New Game``No Rights Reserved  ;-)``Product Parets Programming``codingCat and Zock``Programming by``Idea by Zock``SBJump``"
+
+  While msgPos < Text.GetLength(messages)
+
+    msgCnt = msgCnt + 1
+
+    If msgCnt = 1 or msgCnt = 3 then
+
+      msgCnt = msgCnt + 1
+
+    endif
+
+    messages = Text.GetSubTextToEnd(messages,msgPos)
+
+    msgPos = Text.GetIndexOf(messages,"`")
+
+    msgNxt = Text.GetSubText(messages,1,msgPos - 1)
+
+    If Text.GetSubText(messages,msgPos+1,1) <> "`" then 
+
+      GraphicsWindow.FontSize = Text.GetSubText(messages,msgPos+1,2)
+
+      msgPos = msgPos + 2
+
+    Else
+
+      GraphicsWindow.FontSize = 15
+
+    EndIf
+
+    msgPos = msgPos + 2
+
+    shps[msgCnt] = Shapes.AddText(msgNxt)
+
+  EndWhile
+
+  
+
+  GraphicsWindow.FontSize = 30
+
+  shps[3] = Shapes.AddText(level) 'This games max level
+
+  shps[1] = Shapes.AddText(score) 'This games score
+
+  
+
+  'Initial Credit Locations
+
+  goy = msgCnt * -50
+
+  For i = 1 To msgCnt
+
+    Shapes.Move(shps[i], 25, goy)
+
+    goy = goy + 50
+
+  EndFor
+
+  'flash the background to make the white to hide the shape build seem on purpose
+
+  For i = 1 To 10
+
+    GraphicsWindow.BackgroundColor = GraphicsWindow.GetRandomColor()
+
+    Program.Delay(50)
+
+  EndFor
+
+  GraphicsWindow.BackgroundColor = "blue"
+
+  
+
+  'Crawl the Scores and Credits
+
+  While GraphicsWindow.LastKey <> "Return" And GraphicsWindow.LastKey <> "Escape"
+
+    goy = goy + 1
+
+    'Wrap at the edge of the screen
+
+    If goy > GraphicsWindow.Height + (GraphicsWindow.Height + (5 * 50)) Then
+
+      goy = 0
+
+    EndIf
+
+    For i = 1 To msgCnt
+
+      shpy = 20
+
+      shpyOff = GraphicsWindow.Height
+
+      If i < 6 Then
+
+        shpy = 50
+
+        shpyOff = 0
+
+      EndIf
+
+      Shapes.Move(shps[i], 25, goy - (i * shpy) - shpyOff)
+
+    EndFor
+
+    
+
+    Program.Delay(15)
+
+  EndWhile
+
+  If GraphicsWindow.LastKey = "Escape" Then
+
+    exiting = "True"
+
+  EndIf
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub SetupTitleCrawl
+
+  'A slightly simplified version of the credit clawl
+
+  GraphicsWindow.BackgroundColor = "White"
+
+  msgCnt = 0
+
+  GraphicsWindow.BrushColor = "white"
+
+  msgPos = 1
+
+  messages = "Keys: Left, Right, Up -- <Escape> to exit`10`SBJump`50'"
+
+  While msgPos < Text.GetLength(messages)
+
+    msgCnt = msgCnt + 1
+
+    messages = Text.GetSubTextToEnd(messages,msgPos)
+
+    msgPos = Text.GetIndexOf(messages,"`")
+
+    msgNxt = Text.GetSubText(messages,1,msgPos - 1)
+
+    GraphicsWindow.FontSize = Text.GetSubText(messages,msgPos+1,2)
+
+    msgPos = msgPos + 4
+
+    shps[msgCnt] = Shapes.AddText(msgNxt)
+
+  EndWhile
+
+  
+
+  'Initial Credit Locations
+
+  goy = msgCnt * -65
+
+  For i = 1 To msgCnt
+
+    Shapes.Move(shps[i], 25, goy)
+
+    goy = goy + 65
+
+  EndFor
+
+  'flash the background to make the white to hide the shape build seem on purpose
+
+  For i = 1 To 10
+
+    GraphicsWindow.BackgroundColor = GraphicsWindow.GetRandomColor()
+
+    Program.Delay(5)
+
+  EndFor
+
+  GraphicsWindow.BackgroundColor = "blue"
+
+EndSub
+
+
+
+'----------------------------------------------------------------------------------
+
+Sub OpeningTitleCrawl
+
+  If flag = 0 then
+
+    'Crawl the Scores and Credits
+
+    goy = goy + 1
+
+    'Wrap at the edge of the screen
+
+    If goy > GraphicsWindow.Height + (msgCnt * 50) + 50 Then
+
+      goy = 0
+
+    EndIf
+
+    For i = 1 To msgCnt
+
+      shpy = 65
+
+      shpyOff = 0
+
+      Shapes.Move(shps[i], 25, goy - (i * shpy) - shpyOff)
+
+    EndFor
+
+  Else
+
+    If flag = 1 Then 
+
+      For i = 1 To msgCnt
+
+        Shapes.HideShape(shps[i])
+
+      EndFor
+
+    EndIf  
+
+  EndIf
+
+EndSub
+
+

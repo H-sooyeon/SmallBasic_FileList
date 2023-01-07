@@ -1,0 +1,507 @@
+' Game Clock 0.2b
+
+' Copyright (c) 2014 Nonki Takahashi.
+
+'
+
+' Lisence:
+
+'  The MIT Lisence (MIT)
+
+'  http://en.wikipedia.org/wiki/MIT_License
+
+'
+
+' History:
+
+'  0.2b 2014-04-21 Supported Fischer and hourglass mode. (VSC113-0)
+
+'  0.1a 2014-04-19 Created. (VSC113)
+
+' 
+
+title = "Game Clock 0.2b"
+
+debug = "False"
+
+Init()
+
+While "True"
+
+  SelectMode()
+
+  Game()
+
+  Wait()
+
+EndWhile
+
+Sub Game
+
+  GraphicsWindow.BackgroundColor = "#333333"
+
+  GraphicsWindow.BrushColor = "DarkSeaGreen"
+
+  cx[1] = 20
+
+  cy[1] = 20
+
+  cw[1] = (gw - 60) / 2
+
+  ch[1] = gh - 100
+
+  GraphicsWindow.FillRectangle(cx[1], cy[1], cw[1], ch[1])
+
+  cx[2] = gw / 2 + 10
+
+  cy[2] = 20
+
+  cw[2] = (gw - 60) / 2
+
+  ch[2] = gh - 100
+
+  GraphicsWindow.FillRectangle(cx[2], cy[2], cw[2], ch[2])
+
+  atime[1] = atime
+
+  atime[2] = atime[1]
+
+  For i = 1 To 2
+
+    _time = atime[i]
+
+    TimeToMillisecond()
+
+    ms[i] = _ms
+
+  EndFor
+
+  _time = delay
+
+  TimeToMillisecond()
+
+  delayms = _ms
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontName = "Courier New"
+
+  fs = 50
+
+  GraphicsWindow.FontSize = fs
+
+  For i = 1 To 2
+
+    otime[i] = Shapes.AddText(atime[i])
+
+    If i = 1 Then
+
+      x = 34
+
+    Else
+
+      x = gw / 2 + 24
+
+    EndIf
+
+    y = (gh - 80 - fs) / 2
+
+    Shapes.Move(otime[i], x, y)
+
+  EndFor
+
+  GraphicsWindow.FontSize = 30
+
+  GraphicsWindow.FontName = "Arial"
+
+  bpause = Controls.AddButton("Pause", 20, gh - 70)
+
+  Controls.SetSize(bpause, gw - 40, 50)
+
+  ingame = "True"
+
+  clicked = "False"
+
+  turn = 0
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+  ticked = "False"
+
+  Timer.Interval = 1000
+
+  Timer.Tick = OnTick
+
+  While ingame
+
+    If clicked Then
+
+      For i = 1 To 2
+
+        cx1 = cx[i] + cw[i]
+
+        cy1 = cy[i] + ch[i]
+
+        If (turn <> (3 - i)) And (cx[i] <= mx) And (mx < cx1) And (cy[i] <= my) And (my < cy1) Then
+
+          If (turn <> 0) And (imode = 2) Then
+
+            ms[3 - i] = ms[3 - i] + delayms
+
+          EndIf
+
+          PauseClock()
+
+          turn = 3 - i
+
+          StartClock()
+
+          If imode = 2 Then
+
+            _ms = ms[turn]
+
+            MillisecondToTime()
+
+            Shapes.SetText(otime[turn], _time)
+
+          ElseIf imode = 3 Then
+
+          EndIf
+
+        EndIf
+
+      EndFor
+
+      clicked = "False"
+
+    EndIf
+
+    If ticked Then
+
+      If 0 < turn Then
+
+        _ms = ms[turn] - (ems - lastems)
+
+        If _ms <= 0 Then
+
+          _ms = 0
+
+          ingame = "False"
+
+          Timer.Pause()
+
+          Shapes.SetText(otime[turn], "TIME UP")
+
+          turn = 0
+
+        Else
+
+          MillisecondToTime()
+
+          Shapes.SetText(otime[turn], _time)
+
+        EndIf
+
+        If imode = 3 Then
+
+          _ms = ms[3 - turn] + (ems - lastems)
+
+          MillisecondToTime()
+
+          Shapes.SetText(otime[3 - turn], _time)
+
+        EndIf
+
+      EndIf
+
+      ticked = "False"
+
+    EndIf 
+
+    Program.Delay(200)
+
+  EndWhile
+
+EndSub
+
+Sub Init
+
+  GraphicsWindow.Title = title
+
+  Not = "False=True;True=False;"
+
+  gw = 598
+
+  gh = 300
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "LightGray"
+
+  mode = "1=Sudden Death;2=Fischer Delay;3=Hourglass;"
+
+  imode = 1 ' current mode index
+
+  turn = 0
+
+EndSub
+
+Sub Wait
+
+  Controls.SetButtonCaption(bpause, "Exit")
+
+  exit = "False"
+
+  Controls.ButtonClicked = OnExit
+
+  While Not[exit]
+
+    Program.Delay(200)
+
+  EndWhile
+
+  GraphicsWindow.BackgroundColor = "LightGray"
+
+  GraphicsWindow.Clear()
+
+EndSub
+
+Sub OnExit
+
+  exit = "True"
+
+EndSub
+
+Sub SelectMode
+
+  GraphicsWindow.FontName = "Arial"
+
+  GraphicsWindow.FontSize = 12
+
+  GraphicsWindow.BrushColor = "Black"
+
+  bmode = Controls.AddButton("Mode", 10, 10)
+
+  cmode = mode[imode] ' current mode
+
+  omode = Shapes.AddText(cmode)
+
+  Shapes.Move(omode, 60, 16)
+
+  end = "False"
+
+  atime = "00:30:00"
+
+  GraphicsWindow.DrawText(10, 44, "Allotted Time")
+
+  otime = Controls.AddTextBox(96, 40)
+
+  Controls.SetSize(otime, 60, 22)
+
+  Controls.SetTextBoxText(otime, atime)
+
+  delay = "00:00:30"
+
+  bok = Controls.AddButton("OK", 10, 100)
+
+  Controls.TextTyped = OnTextTyped
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  While Not[end]
+
+    Program.Delay(200)
+
+  EndWhile
+
+  atime = Controls.GetTextBoxText(otime)
+
+  delay = Controls.GetTextBoxText(odelay)
+
+  GraphicsWindow.Clear()
+
+EndSub
+
+Sub PauseClock
+
+  '  param turn
+
+  If turn <> 0 Then
+
+    ms[turn] = ms[turn] - (ems - lastems)
+
+    If imode = 3 Then
+
+      ms[3 - turn] = ms[3 - turn] + (ems - lastems)
+
+    EndIf
+
+    turn = 0
+
+  EndIf
+
+EndSub
+
+Sub StartClock
+
+  ' parm turn
+
+  lastems = ems
+
+EndSub
+
+Sub MillisecondToTime
+
+  ' param _ms
+
+  ' return _time
+
+  tsec = Math.Round(_ms / 1000)
+
+  sec = Math.Remainder(tsec, 60)
+
+  _time = sec
+
+  If sec < 10 Then
+
+    _time = Text.Append("0", _time)
+
+  EndIf
+
+  _time = ":" + _time
+
+  tmin = Math.Floor(tsec / 60)
+
+  min = Math.Remainder(tmin, 60)
+
+  _time = min + _time
+
+  If min < 10 Then
+
+    _time = Text.Append("0", _time)
+
+  EndIf
+
+  _time = ":" + _time
+
+  hour = Math.Floor(tmin / 60)
+
+  _time = hour + _time
+
+  If hour < 10 Then
+
+    _time = Text.Append("0", _time)
+
+  EndIf
+
+EndSub
+
+Sub TimeToMillisecond
+
+  ' param _time
+
+  ' return _ms
+
+  hour = Text.GetSubText(_time, 1, 2)
+
+  min = Text.GetSubText(_time, 4, 2)
+
+  sec = Text.GetSubText(_time, 7, 2)
+
+  _ms = ((((hour * 60) + min) * 60) + sec) * 1000
+
+EndSub
+
+Sub OnButtonClicked
+
+  ems = Clock.ElapsedMilliseconds
+
+  If Controls.LastClickedButton = bmode Then
+
+    imode = imode + 1
+
+    n = Array.GetItemCount(mode)
+
+    If n < imode Then
+
+      imode = 1
+
+    EndIf
+
+    cmode = mode[imode] ' current mode
+
+    Shapes.SetText(omode, cmode)
+
+    If imode = 2 Then
+
+      cdelay = Shapes.AddText("Delay")  ' caption
+
+      Shapes.Move(cdelay, 54, 74)
+
+      odelay = Controls.AddTextBox(96, 70)
+
+      Controls.SetSize(odelay, 60, 22)
+
+      Controls.SetTextBoxText(odelay, delay)
+
+    ElseIf imode = 3 Then
+
+      Shapes.Remove(cdelay)
+
+      Controls.Remove(odelay)
+
+    EndIf
+
+  ElseIf Controls.LastClickedButton = bok Then
+
+    end = "True"
+
+  ElseIf Controls.LastClickedButton = bpause Then
+
+    PauseClock()
+
+  EndIf
+
+EndSub
+
+Sub OnMouseDown
+
+  If Not[clicked] Then
+
+    mx = GraphicsWindow.MouseX
+
+    my = GraphicsWindow.MouseY
+
+    ems = Clock.ElapsedMilliseconds
+
+    clicked = "True"
+
+  EndIf
+
+EndSub
+
+Sub OnTextTyped
+
+  If Controls.LastTypedTextBox = otime Then
+
+    atime = Controls.GetTextBoxText(otime)
+
+  ElseIf Controls.LastTypedTextBox = odelay Then
+
+    delay = Controls.GetTextBoxText(odelay)
+
+  EndIf
+
+EndSub
+
+Sub OnTick
+
+  ems = Clock.ElapsedMilliseconds
+
+  ticked = "True"
+
+EndSub
+
+

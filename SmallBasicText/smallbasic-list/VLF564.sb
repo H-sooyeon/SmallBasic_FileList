@@ -1,0 +1,723 @@
+' SmallBasic Version 1.0
+
+' Function: Shell_EN.sb  (Demo)
+
+' Author: Pappa Lapub
+
+' Origin: http://social.msdn.microsoft.com/Forums/en-US/b14fd3e3-54c2-404f-b861-e0153c02348a/litdev-ldfileprintfile-doesnt-seem-to-be-working-maybe-windows-81-issue
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: 1. LitDev;  2. Gaku's TCMxx.exe in a %PATH% folder or define the path to TCM.exe in Line 157:
+
+'	http://www.eonet.ne.jp/~gakana/tablacus/contextmenu_en.html
+
+'	http://www.eonet.ne.jp/~gakana/tablacus/dl/tcm131120.cab  (TCM32.exe/TCM64.exe)
+
+'                  Version 13.11.20,  55,89 KiB (57.235 bytes),  20.11.2013 14:20:43
+
+'  In Line 157  change  LDProcess.Start("TCM.exe",  ...    TO  LDProcess.Start("Drive:\Your\PathTo\TCMxx.exe", ...    !!
+
+' 
+
+' Comment: 
+
+'   1.)  Better first save, run to compile and exit. Then RUN the created EXE of this program (else maybe some paths won't fit) !
+
+'   2.)  To AVOID a CHANGE OF your file ASSOCIATION (Shell 'Open') from  'Open with.. ' dialog
+
+'          UNMARK the "Always use the selected program to open this kind of file"  checkbox in the 'Open with' dialog  !!
+
+' 
+
+' Usage: 1. Select a file or folder (via Dialog-/Buttons,  Drag-/Drop on TextBox  or Enter/Paste in TextBox)
+
+'               2. Choose Contextmenu, Properties, 'Open with ..', 'New Link to ..' or Touch file
+
+'  
+
+' Variables: FileObj/DirObj ... True if File/Folder selected or dropped
+
+'     Info  ...  Shape Infotext
+
+'     Obj ... selected File-/Folderpath
+
+' 
+
+' ToDo: support file-/folderpaths entered/pasted in TextBox   -  CheckTBLine()	                 OK
+
+'             support drives for Contextmenu, Properties and NewLink			OK, all same for folders ?
+
+'             add touch file via VBS                                                                                                               OK
+
+'             support shortcut keys D,F - C, P, O, N, T - Delete, Escape - OnKeyDown()
+
+'             fix 2x MsgBox when TB empty and a lower Button is clicked
+
+' --------------------------------------------------------------------------------
+
+LF = Text.GetCharacter(10)
+
+QU = Text.GetCharacter(34)
+
+GW1 = GraphicsWindow.Width
+
+GraphicsWindow.Height = 126
+
+GraphicsWindow.BackgroundColor = "BurlyWood"
+
+' The following line could be harmful and has been automatically commented.
+
+' SelfPath = Program.Directory + "\" + LDFile.GetFile(File.GetSettingsFilePath()) + ".sb /.exe"
+
+' The following line could be harmful and has been automatically commented.
+
+' GraphicsWindow.Title = LDFile.GetFile(File.GetSettingsFilePath())   ' Self
+
+
+
+ToolTip[1] = "Select a folder (for Contextmenu, Properties or to create a Shelllink in)"
+
+ToolTip[2] = "Select a file (for Contextmenu, Properties, to 'Open with ..' or Touch)"
+
+ToolTip[3] = "Show Contextmenu for selected file or folder."
+
+ToolTip[4] = "Show Property sheets dialog for selected file or folder."
+
+ToolTip[5] = "'Open with ..' (for a file only)."
+
+ToolTip[6] = "Shortcut (lnk/url) will be created in folder shown in upper TextBox (for a folder only)."
+
+ToolTip[7] = "Touch file (set to current date/time)."
+
+
+
+GraphicsWindow.BrushColor = "RoyalBlue" ' "Plum"
+
+TB = Controls.AddTextBox(10,50)
+
+Controls.SetSize(TB, GW1-20,24)
+
+LDDialogs.ToolTip(TB,"Throw one file or folder on TextBox or enter/paste path.")
+
+LDControls.AllowDrop(TB)
+
+
+
+GraphicsWindow.BrushColor = "Black"
+
+SelDir = Controls.AddButton("Select folder ..", 10,10)
+
+SelFile = Controls.AddButton("Select file ..", 120,10)
+
+btnCMenu = Controls.AddButton("Contextmenu", 10,90)
+
+btnProps = Controls.AddButton("Properties", 120,90)
+
+btnOpenWith = Controls.AddButton("Open with ..", 230,90)
+
+btnNewLink = Controls.AddButton("New Link to ..", 340,90)
+
+btnTouch = Controls.AddButton("Touch file", 450,90)
+
+For N = 1 To 7
+
+  Controls.SetSize("Button"+N, 100,26)
+
+  LDDialogs.ToolTip("Button"+N,ToolTip[N])
+
+EndFor
+
+GraphicsWindow.BrushColor = "Red"
+
+btnClear = Controls.AddButton("CLEAR", GW1-60,90)
+
+Info = Shapes.AddText("")
+
+Shapes.Move(Info, 230,10)
+
+
+
+
+
+Controls.ButtonClicked = OnClick
+
+LDControls.FileDropped = OnDrop
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+LDEvents.Resized = OnResize
+
+
+
+
+
+' //////////  EVENTs  -  SUBs  \\\\\\\\\\
+
+Sub OnDrop
+
+  ObjArr = LDControls.LastDropFiles
+
+  Obj = ObjArr[1]
+
+' The following line could be harmful and has been automatically commented.
+
+'   If LDFile.Length(Controls.GetTextBoxText(TB)) > -1 Then
+
+    FileObj = "True"
+
+    Shapes.SetText(Info, "File dropped.")
+
+  Else
+
+    DirObj = "True"
+
+    Shapes.SetText(Info, "Directory dropped.")
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnClick
+
+  LastBtn = Controls.LastClickedButton
+
+  If LastBtn <> SelDir And LastBtn <> SelFile And LastBtn <> btnClear Then
+
+    CheckTBLine()
+
+  EndIf
+
+  Shapes.SetText(Info, "")
+
+  
+
+  If LastBtn = SelDir Then
+
+    Obj = LDDialogs.GetFolder("")
+
+    If Obj <> "" Then
+
+      Controls.SetTextBoxText(TB,Obj)
+
+      FileObj = ""
+
+      DirObj = "True"
+
+      Shapes.SetText(Info, "Directory selected.")
+
+    EndIf
+
+  ElseIf LastBtn = SelFile Then
+
+    Obj = LDDialogs.OpenFile("*","")
+
+    If Obj <> "" Then
+
+      Controls.SetTextBoxText(TB,Obj)
+
+      FileObj = "True"
+
+      DirObj = ""
+
+      Shapes.SetText(Info, "File selected.")
+
+    EndIf
+
+    
+
+  ElseIf LastBtn = btnCMenu Then
+
+    CMenu()
+
+  ElseIf LastBtn = btnProps Then
+
+    Props()
+
+  ElseIf LastBtn = btnOpenWith Then
+
+    OpenWith()
+
+  ElseIf LastBtn = btnNewLink Then
+
+    MakeLink()
+
+  ElseIf LastBtn = btnTouch Then
+
+    TouchFile()
+
+  ElseIf LastBtn = btnClear Then
+
+    Controls.SetTextBoxText(TB, "")
+
+    Obj = ""
+
+    FileObj = ""
+
+    DirObj = ""
+
+    Shapes.SetText(Info, "")
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  LastKey = GraphicsWindow.LastKey
+
+  If LastKey = "Escape" Then
+
+    Program.End()
+
+    ' .....     ToDo
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnResize
+
+  GW = GraphicsWindow.Width
+
+  ' If GW <> GW1 Then
+
+  Program.Delay(20)
+
+  If GW >= 610 Then
+
+    Controls.SetSize(TB, GW-20,24)
+
+    Controls.Move(btnClear, GW-60,90)
+
+  Else
+
+    GraphicsWindow.Width = 610
+
+    ' GW1 = GW
+
+  EndIf
+
+  GraphicsWindow.Height = 126
+
+EndSub
+
+
+
+' Actions
+
+Sub CMenu	' for given file or folder
+
+  If Controls.GetTextBoxText(TB) <> "" And (FileObj Or DirObj) Then
+
+    LDProcess.Start("TCM.exe", QU + Obj + QU)  ' in %Path% or better change to FULL PATH to TCM.exe  (using TCM.exe default options)
+
+  Else
+
+    GraphicsWindow.ShowMessage("NO File-/Folderpath given to show Contextmenu !", "Missing Path")
+
+  EndIf
+
+EndSub
+
+
+
+Sub Props	' for given file or folder
+
+  If Controls.GetTextBoxText(TB) <> "" And (FileObj Or DirObj) Then
+
+' The following line could be harmful and has been automatically commented.
+
+'     PropsVB = LDFile.TempFolder + "\FileProp-4SB.vbs"
+
+    WritePropsVBS()
+
+    LDProcess.Start(PropsVB, QU + Obj + QU)       ' default ShellExec for .vbs
+
+  Else
+
+    GraphicsWindow.ShowMessage("NO File-/Folderpath given to show PropertyTabs !", "Missing Path")
+
+  EndIf
+
+EndSub
+
+
+
+Sub OpenWith	' for given file only
+
+  If Controls.GetTextBoxText(TB) <> "" And FileObj Then
+
+    Shapes.SetText(Info, "UNMARK 'Always use selected program to open this kind of file'" + LF + "checkbox on the 'Open with' dialog !")
+
+    Path = Controls.GetTextBoxText(TB)
+
+' The following line could be harmful and has been automatically commented.
+
+'     If LDFile.Length(Path) > -1 Then                ' File exists (may be empty)
+
+      Args = "C:\WINDOWS\system32\shell32.dll,OpenAs_RunDLL " + Path
+
+      LDProcess.Start("rundll32.exe", Args)
+
+    EndIf
+
+  Else
+
+    GraphicsWindow.ShowMessage("NO Filepath given to 'Open with ..' !", "Missing Filepath")
+
+  EndIf
+
+EndSub
+
+
+
+Sub MakeLink	' for given folder only (= target folder for link/url creation)
+
+  If Controls.GetTextBoxText(TB) <> "" And DirObj Then
+
+    Path = Controls.GetTextBoxText(TB)
+
+' The following line could be harmful and has been automatically commented.
+
+'     If File.GetDirectories(Path) <> "FAILED" Then
+
+      LinkFile = Path + "\NewLink.lnk"
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.WriteContents(LinkFile,"")
+
+      Args = "C:\WINDOWS\system32\appwiz.cpl,NewLinkHere " + LinkFile     ' for Win7 | on XP: FolderPath\
+
+      ProcID = LDProcess.Start("rundll32.exe", Args)
+
+      
+
+      While Array.ContainsIndex(LDProcess.GetProcesses(),ProcID)
+
+        Program.Delay(50)
+
+      EndWhile
+
+      GraphicsWindow.ShowMessage("Shortcut created in " + Path + LF + " or aborted.", "SUCCESS")
+
+    Else
+
+      GraphicsWindow.ShowMessage("NO Folderpath given to create Shortcut in !", "Missing Folderpath")
+
+    EndIf
+
+  Else
+
+    GraphicsWindow.ShowMessage("NO Folderpath given to create Shortcut in !", "Missing Folderpath")
+
+  EndIf
+
+EndSub
+
+
+
+Sub TouchFile
+
+  If Controls.GetTextBoxText(TB) <> "" And FileObj Then
+
+' The following line could be harmful and has been automatically commented.
+
+'     TouchVB = LDFile.TempFolder + "\FileTouch-4SB.vbs"
+
+    WriteTouchVBS()
+
+    LDProcess.Start(TouchVB, QU + Obj + QU)       ' default ShellExec for .vbs
+
+    Program.Delay(1000)
+
+' The following line could be harmful and has been automatically commented.
+
+'     ModDate = LDFile.ModifiedTime(Obj)
+
+    Shapes.SetText(Info, Obj + LF + "touched at: " + ModDate)
+
+  Else
+
+    GraphicsWindow.ShowMessage("NO Filepath given to touch file !", "Missing Path")
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub CheckTBLine   ' REMOVE quotes - CHECK if file or folder  exists - SET FileObj or DirObj, Obj
+
+  TBLine = Controls.GetTextBoxText(TB)
+
+  If TBLine <> "" Then
+
+    If Text.IsSubText(TBLine,QU) Then         ' Remove Quotes
+
+      TBLine = LDUtilities.RegexReplace(TBLine,QU,"","")
+
+      Controls.SetTextBoxText(TB,TBLine)
+
+    EndIf
+
+' The following line could be harmful and has been automatically commented.
+
+'     If LDFile.Length(TBLine) > -1 Then        ' its FilePath in TB
+
+      FileObj = "True"
+
+      Shapes.SetText(Info, "File selected.")
+
+      Obj = TBLine
+
+' The following line could be harmful and has been automatically commented.
+
+'     ElseIf File.GetFiles(TBLine) <> "FAILED" Or File.GetDirectories(TBLine) <> "FAILED" Then  ' its DirPath in TB
+
+      DirObj = "True"
+
+      Shapes.SetText(Info, "Directory selected.")
+
+      Obj = TBLine
+
+    Else                                      ' Wrong Path in TB
+
+      GraphicsWindow.ShowMessage("File- or Folderpath not found !", "No existing Path !")
+
+      TBLine = ""
+
+      Controls.SetTextBoxText(TB, "")
+
+    EndIf
+
+  ElseIf LastBtn <> btnClear Then
+
+    GraphicsWindow.ShowMessage("NO File-/Folderpath given !", "Missing Path")
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub WritePropsVBS
+
+' The following line could be harmful and has been automatically commented.
+
+'   If LDFile.Length(PropsVB) < 1 Then          ' %TEMP%\FileProp-4SB.vbs  does not exist or is empty
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "' Created by " + SelfPath)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "'   to show Property Sheets for file/folder given as argument.")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "Option Explicit")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "Dim fso, strPath, strFold, strFile, shApp, FoldObj, FileObj")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "If WScript.Arguments.Count = 0 Then WScript.Quit")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "Set fso = CreateObject(" + QU + "Scripting.FileSystemObject" + QU + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "On Error Resume Next")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "strPath = fso.GetAbsolutePathName(WScript.Arguments(0))")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "If Not fso.FileExists(strPath) And Not fso.FolderExists(strPath) Then WScript.Quit")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "strFold = fso.GetParentFolderName(strPath)")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "strFile = fso.GetFileName(strPath)")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "Set shApp = CreateObject(" + QU + "Shell.Application" + QU + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "Set FoldObj = shApp.NameSpace(strFold)")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "Set FileObj = FoldObj.ParseName(strFile)")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "FileObj.InvokeVerb(" + QU + "properties" + QU + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "On Error Resume Next")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "WScript.Echo strPath")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "Set fso = Nothing")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "Set shApp = Nothing")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "Set FoldObj = Nothing")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(PropsVB, "Set FileObj = Nothing")
+
+  EndIf
+
+EndSub
+
+
+
+Sub WriteTouchVBS
+
+' The following line could be harmful and has been automatically commented.
+
+'   If LDFile.Length(TouchVB) < 1 Then         ' %TEMP%\FileTouch-4SB.vbs  does not exist or is empty
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "' Created by " + SelfPath)
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "'   to touch file given as argument (set to current date/time).")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "Option Explicit")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "Dim fso, strPath, strFold, strFile, shApp, FoldObj")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "If WScript.Arguments.Count = 0 Then WScript.Quit")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "Set fso = CreateObject(" + QU + "Scripting.FileSystemObject" + QU + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "strPath = fso.GetAbsolutePathName(WScript.Arguments(0))")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "If Not fso.FileExists(strPath) Then WScript.Quit")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "strFold = fso.GetParentFolderName(strPath)")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "strFile = fso.GetFileName(strPath)")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "Set fso = Nothing")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "Set shApp = CreateObject(" + QU + "Shell.Application" + QU + ")")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "Set FoldObj = shApp.NameSpace(strFold)")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "FoldObj.Items.Item(strFile).ModifyDate = Now")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "Set shApp = Nothing")
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.AppendContents(TouchVB, "Set FoldObj = Nothing")
+
+  EndIf
+
+EndSub
+
+    
+
+

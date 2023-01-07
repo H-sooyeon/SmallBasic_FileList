@@ -1,0 +1,281 @@
+Initialise()
+
+
+
+'================================================
+
+' EVENTS
+
+'================================================
+
+
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+LDClient.ServerMessage = OnServerMessage
+
+
+
+'================================================
+
+' GAME LOOP
+
+'================================================
+
+
+
+While ("True")
+
+  start = Clock.ElapsedMilliseconds
+
+  
+
+  UpdateVisuals() 
+
+  UpdateServer()
+
+  
+
+  'Nominal 50 fps
+
+  delay = 20 - (Clock.ElapsedMilliseconds-start)
+
+  If (delay > 0) Then
+
+    Program.Delay(delay)
+
+  EndIf
+
+EndWhile
+
+
+
+'================================================
+
+' SUBROUTINES
+
+'================================================
+
+
+
+Sub Initialise
+
+  'Server
+
+' The following line could be harmful and has been automatically commented.
+
+'   connect = File.ReadContents(Program.Directory+"\PhysicsConnect.txt")
+
+  status = LDClient.Connect(connect,"False")
+
+  'TextWindow.WriteLine(status)
+
+  
+
+  'GraphicsWindow - must be the same size as server
+
+  gw = 600
+
+  gh = 600
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Title = LDClient.Name
+
+  clientNumber = Text.GetSubTextToEnd(LDClient.Name,7)
+
+  
+
+  'Game Objects
+
+  'We must set all objects here to be sure of being consistent with server names
+
+  'fastShape is just an Array of integers for the FastShapes update
+
+  GraphicsWindow.PenWidth = 0
+
+  numBlock = 25
+
+  For i = 1 To numBlock
+
+    block = Shapes.AddRectangle(50,50)
+
+    fastShape[block] = LDFastShapes.ShapeIndex(block)
+
+  EndFor
+
+  numBullet = 30
+
+  GraphicsWindow.BrushColor = "Red"
+
+  For i = 1 To numBullet
+
+    bullet = Shapes.AddEllipse(20,20)
+
+    fastShape[bullet] = LDFastShapes.ShapeIndex(bullet)
+
+  EndFor
+
+  numPlayer = 10
+
+  For i = 1 To numPlayer
+
+    GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(255,255-15*i,100+15*i)
+
+    player = Shapes.AddEllipse(50,50)
+
+    fastShape[player] = LDFastShapes.ShapeIndex(player)
+
+  EndFor
+
+  
+
+  'Other objects - must be after shared game objects
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "Red"
+
+  target = Shapes.AddLine(-1,-1,-2,-2)
+
+EndSub
+
+
+
+Sub UpdateVisuals
+
+  indices = Array.GetAllIndices(sprites)
+
+  For i = 1 To Array.GetItemCount(indices)
+
+    'Update all engine sprites
+
+    label = indices[i]
+
+    sprite = sprites[label]
+
+    'TextWindow.WriteLine(label+" "+sprite)
+
+    index = fastShape[sprite["Shape"]]
+
+    If (sprite["Status"] = 1) Then
+
+      LDFastShapes.ShowShape(index)
+
+      LDFastShapes.Move(index,sprite["X"],sprite["Y"])
+
+      LDFastShapes.Rotate(index,sprite["Angle"])
+
+    Else
+
+      LDFastShapes.HideShape(index)
+
+    EndIf
+
+    
+
+    'Create a targetting line to mouse if object is current player
+
+    If (Text.StartsWith(label,"Player") And Text.EndsWith(label,clientNumber)) Then
+
+      LDShapes.MoveLine(target,sprite["X"]+25,sprite["Y"]+25,GraphicsWindow.MouseX,GraphicsWindow.MouseY)
+
+    EndIf
+
+  EndFor
+
+  LDFastShapes.Update() ' Do the position updates in batch (fast)
+
+  sprites = "" 'Flag update as finished ready for i to be updated
+
+EndSub
+
+
+
+Sub UpdateServer
+
+  If (keys <> "") Then
+
+    'TextWindow.WriteLine("keys "+keys)
+
+    'Send all down keys to server
+
+    LDClient.SendMessage(keys)
+
+    'Flag selected keys as been used - can be used by server to not autorepeat for fire
+
+    indices = Array.GetAllIndices(keys)
+
+    For i = 1 To Array.GetItemCount(indices)
+
+      index = indices[i]
+
+      If (index = "Space") Then
+
+        keys[index] = "Handled"
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+'================================================
+
+' EVENT SUBROUTINES
+
+'================================================
+
+
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  pos[1] = GraphicsWindow.MouseX
+
+  pos[2] = GraphicsWindow.MouseY
+
+  If (keys[key] <> "Handled") Then 'Either the key has previously been KeyUp or it is a continuous type key event
+
+    keys[key] = pos
+
+    EndIf
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  key = GraphicsWindow.LastKey
+
+  keys[key] = ""
+
+EndSub
+
+
+
+Sub OnServerMessage
+
+  message = LDClient.LastServerMessage
+
+  If (Array.IsArray(message) And sprites = "") Then 'Don't update while sprites may be beingused
+
+    sprites = message
+
+  EndIf
+
+  'TextWindow.WriteLine("OnServerMessage "+message)
+
+EndSub
+
+

@@ -1,0 +1,387 @@
+' Power a^b for big numbers
+
+' Copyright (c) 2012 Nonki Takahashi
+
+
+
+t0 = Clock.ElapsedMilliseconds
+
+
+
+DIGITS = 13 ' separate big number to avoid overflow within this digits
+
+POW10DIG = Math.Power(10, DIGITS)
+
+Z="000000000000000000000000000"
+
+COMMA = ","
+
+
+
+a = 3
+
+b = 361
+
+Power()
+
+TextWindow.Write(a + "^" + b + "=")
+
+x = ans
+
+WriteLineWithComma()
+
+
+
+t1 = Clock.ElapsedMilliseconds
+
+TextWindow.WriteLine("(" + (t1 - t0) + "ms)")
+
+' end of program
+
+
+
+' Power : a^b
+
+' param a
+
+' param b
+
+' return ans = a^b
+
+Sub Power
+
+  Stack.PushValue("local", a)
+
+  Stack.PushValue("local", b)
+
+  Stack.PushValue("local", i)
+
+  a0 = a
+
+  b0 = b
+
+  ans = 1
+
+  For i = 1 To b0
+
+    a = ans
+
+    b = a0
+
+    Mul()
+
+  EndFor
+
+  i = Stack.PopValue("local")
+
+  b = Stack.PopValue("local")
+
+  a = Stack.PopValue("local")
+
+EndSub
+
+
+
+' Mul : Multiply a by b
+
+' const DIGITS = 13
+
+' const POW10DIG = 10^DIGITS
+
+' const Z = "0000000000000000000000000"
+
+' param a : big number
+
+' param b : big number
+
+' return ans = a * b
+
+Sub Mul
+
+  Stack.PushValue("local", i)
+
+  Stack.PushValue("local", m)
+
+  Stack.PushValue("local", n)
+
+  Stack.PushValue("local", x)
+
+  
+
+  s = Text.GetLength(a)
+
+  While s >= 1 And Text.GetSubText(a, s, 1) = "0"
+
+    s = s - 1
+
+  EndWhile
+
+  If s = 0 Then
+
+    ans = 0
+
+    Goto mul_return
+
+  EndIf
+
+  az = Text.GetSubTextToEnd(a, s + 1)
+
+  an = Text.GetSubText(a, 1, s)
+
+  la = Text.GetLength(an)
+
+  m = Math.Ceiling(la / DIGITS)
+
+  
+
+  s = Text.GetLength(b)
+
+  While s >= 1 And Text.GetSubText(b, s, 1) = "0"
+
+    s = s - 1
+
+  EndWhile
+
+  If s = 0 Then
+
+    ans = 0
+
+    Goto mul_return
+
+  EndIf
+
+  bz = Text.GetSubTextToEnd(b, s + 1)
+
+  bn = Text.GetSubText(b, 1, s)
+
+  lb = Text.GetLength(bn)
+
+  n = Math.Ceiling(lb / DIGITS)
+
+  
+
+  For k = 1 To n + m
+
+    ab[k] = 0
+
+  EndFor
+
+  For i = 1 To n
+
+    For j = 1 To m
+
+      If j < m Then
+
+        s = la - DIGITS * j + 1
+
+        l = DIGITS
+
+      Else ' j = m
+
+        s = 1
+
+        l = Math.Remainder(la - 1, DIGITS) + 1
+
+      EndIf
+
+      aj = Text.GetSubText(an, s, l)
+
+      If i < n Then
+
+        s = lb - DIGITS * i + 1
+
+        l = DIGITS
+
+      Else ' i = n
+
+        s = 1
+
+        l = Math.Remainder(lb - 1, DIGITS) + 1
+
+      EndIf
+
+      bi = Text.GetSubText(bn, s, l)
+
+      x = aj * bi
+
+      k = i + j
+
+      l = Text.GetLength(x)
+
+      s = l - DIGITS + 1
+
+      If s < 1 Then
+
+        s = 1
+
+        xn = Text.GetSubText(x, s, l)
+
+        xc = 0
+
+      Else
+
+        l = DIGITS
+
+        xn = Text.GetSubText(x, s, l)
+
+        xc = Text.GetSubText(x, 1, s - 1)
+
+      EndIf  
+
+      ab[k] = ab[k] + xc
+
+      ab[k - 1] = ab[k - 1] + xn
+
+      While (k - 1 <= n + m) And (ab[k - 1] >= POW10DIG)
+
+        l = Text.GetLength(ab[k - 1])
+
+        s = l - DIGITS + 1
+
+        If s < 1 Then
+
+          s = 1
+
+          xn = Text.GetSubText(ab[k - 1], s, l)
+
+          xc = 0
+
+        Else
+
+          l = DIGITS
+
+          xn = Text.GetSubText(ab[k - 1], s, l)
+
+          xc = Text.GetSubText(ab[k - 1], 1, s - 1)
+
+        EndIf  
+
+        ab[k] = ab[k] + xc
+
+        ab[k - 1] = xn
+
+        k = k + 1
+
+      EndWhile
+
+    EndFor
+
+  EndFor
+
+  ans = ""
+
+  For k = 1 To n + m - 2
+
+    ans = Text.Append(ab[k], ans)
+
+    l = DIGITS * k - Text.GetLength(ans)
+
+    If l > 0 Then
+
+      ans = Text.Append(Text.GetSubText(Z, 1, l), ans)
+
+    EndIf
+
+  EndFor
+
+  ' k = n + m - 1
+
+  ans = Text.Append(ab[k], ans)
+
+  l = DIGITS * k - Text.GetLength(ans)
+
+  If (l > 0) And (ab[k + 1] > 0) Then
+
+    ans = Text.Append(Text.GetSubText(Z, 1, l), ans)
+
+  EndIf
+
+  k = k + 1
+
+  ' k = n + m 
+
+  If ab[k] > 0 Then
+
+    ans = Text.Append(ab[k], ans)
+
+  EndIf
+
+  ans = Text.Append(ans, az)
+
+  ans = Text.Append(ans, bz)
+
+mul_return:
+
+  x = Stack.PopValue("local")
+
+  n = Stack.PopValue("local")
+
+  m = Stack.PopValue("local")
+
+  i = Stack.PopValue("local")
+
+EndSub
+
+
+
+' WriteWithComma : Write with Comma
+
+' const COMMA = "," or "." or " " or "" etc.
+
+' param x
+
+Sub WriteWithComma
+
+  Stack.PushValue("local", n)
+
+  l = Text.GetLength(x)
+
+  n = Math.Ceiling(l / 3)
+
+  l = Math.Remainder(l, 3)
+
+  If l = 0 Then
+
+    l = 3
+
+  EndIf
+
+  s = 1
+
+  For i = 1 To n
+
+    TextWindow.Write(Text.GetSubText(x, s, l))
+
+    If i < n Then
+
+      TextWindow.Write(COMMA)
+
+    EndIf
+
+    s = s + l
+
+    l = 3
+
+  EndFor
+
+  n = Stack.PopValue("local")
+
+EndSub
+
+
+
+' WriteLineWithComma : Write Line with Comma
+
+' const COMMA = "," or "." or " " or "" etc.
+
+' param x
+
+Sub WriteLineWithComma
+
+  WriteWithComma()
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+

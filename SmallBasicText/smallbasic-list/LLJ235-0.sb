@@ -1,0 +1,365 @@
+' SmallBasic Version 1.2
+
+' Program: Windmill
+
+' Changelog: 17.4
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/ba0a4827-f072-4afd-8fc4-f2e93a088663/how-can-a-3d-model-be-displayed
+
+' ImportURL: http://smallbasic.com/program/?LLJ235-0
+
+' Extension: LitDev
+
+' Comment:
+
+'  Windmill: http://animium.com/2008/06/windmill
+
+'    http://animium.com/wp-content/uploads/downloads/2015/01/windmill.rar
+
+'  Tulip: https://archive3d.net/?a=download&id=6aed1a1f
+
+'	 https://storage3d.com/storage/2012.03/ec7beaea9e2764b1859ca3c5261faeb5.zip
+
+' Variables: 
+
+' ToDo: 
+
+' ================================================================================
+
+modPath = Program.Directory +"\windmill.3DS"
+
+tulPath = Program.Directory +"\Flower Ballade Tulip N130312.3DS"
+
+nTulips = 50  ' # of tulips
+
+scale = 0.3   ' tulips scale
+
+
+
+dist = 2200 '2000 ' 1000
+
+durat = 5
+
+bAnim = "True"
+
+lf = Text.GetCharacter(10)
+
+
+
+GraphicsWindow.Top = 0
+
+gw = GraphicsWindow.Width * 1.2   ' 1000
+
+gh = GraphicsWindow.Height * 1.2  ' Desktop.Height - 98     '' HEIGHT !!
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+
+
+GraphicsWindow.Title = "Windmill  [R Reset | N aNimate | -/+ Speed | M camMode | Esc Exit]"
+
+LDGraphicsWindow.Icon = "C:\Program Files (x86)\Microsoft\Small Basic\Projects\Icons\Windmill3.ico"
+
+LDGraphicsWindow.BackgroundBrush(LDShapes.BrushGradient("1=SkyBlue;2=Tomato;3=Crimson;4=DarkSlateBlue;", "V"))
+
+
+
+view = LD3DView.AddView(gw,gh, "")  ' "False" for load by Drag&Drop on Geometry via LDControls.FileDropped
+
+lAmb = LD3DView.AddAmbientLight(view, "Gray")
+
+lDir = LD3DView.AddDirectionalLight(view, "LightGray", -1,1,-0.5)  '-1)
+
+LD3DView.AutoControl("True","True", dist, 100)
+
+LDGraphicsWindow.PauseUpdates()
+
+
+
+mod = LD3DView.LoadModel(view, modPath)
+
+
+
+'LD3DView.ResetMaterial(view, mod[1], "SaddleBrown","D")            ' Base
+
+'LD3DView.ResetMaterial(view, mod[2], "Sienna","D")                         ' Mill house
+
+LD3DView.ResetMaterial(view, mod[5], "Maroon","D")      ' door
+
+LD3DView.ResetMaterial(view, mod[6], "Yellow","S")      ' window
+
+LD3DView.ResetMaterial(view, mod[7], "Green","D")       ' ground
+
+LD3DView.TranslateGeometry(view, mod[4], -95,-610,400)  ' wheel, sails
+
+
+
+sun = LD3DView.AddSphere(view, 2000, 20, "OrangeRed","E")
+
+LD3DView.TranslateGeometry(view, sun, -25000,3*dist,dist/2)
+
+LD3DView.Freeze(view, sun)
+
+
+
+AddTulip()
+
+PlaceTulips()
+
+
+
+LDGraphicsWindow.ResumeUpdates()
+
+LDGraphicsWindow.TopMost = "True"
+
+
+
+ResetView()
+
+
+
+
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+
+
+
+
+' //////////  EVENT  \\\\\\\\\\
+
+Sub OnKeyDown ' not X,Y,Z, A.D,W,S, Up,Down, Left,Right   (W,S, Up,Down  NOT working)
+
+  lastKey = GraphicsWindow.LastKey
+
+  If lastKey = "Escape" Then
+
+    Program.End()
+
+  ElseIf lastKey = "R" Then
+
+    ResetView()
+
+  ElseIf lastKey = "N" Then
+
+    Animation()
+
+  ElseIf lastKey = "M" Then
+
+    CamMod()
+
+    
+
+  ElseIf lastKey = "OemPlus" Then   ' Faster, up to 1 rps
+
+    durat = Math.Max(1, durat-1)
+
+    LD3DView.AnimateRotation(view, mod[4], -1,0.184528724970932,0, 0,-360, durat,-1) 
+
+  ElseIf lastKey = "OemMinus" Then  ' Slower, down to 10 rps
+
+    durat = Math.Min(10, durat+1)
+
+    LD3DView.AnimateRotation(view, mod[4], -1,0.184528724970932,0, 0,-360, durat,-1)
+
+    
+
+  ElseIf lastKey = "V" Then
+
+    GetCamView()
+
+  ElseIf lastKey = "B" Then
+
+    GetBoxPos()
+
+  EndIf
+
+EndSub
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub ResetView
+
+  ''View along x downwards, +z up/-z down, +y right/-y left
+
+  LD3DView.ResetCamera(view, dist,0,200, -1,0,0.25, 0,0,1)   ' 800 !!
+
+  durat = 5   ' reset speed
+
+  bAnim = LDLogic.Not(bAnim)
+
+  Animation()
+
+EndSub
+
+
+
+Sub Animation
+
+  If bAnim Then
+
+    LD3DView.AnimateRotation(view, mod[4], -1,0.184528724970932,0, 0,-360, durat,0)  ' Stop Anim.
+
+  Else
+
+    LD3DView.AnimateRotation(view, mod[4], -1,0.184528724970932,0, 0,-360, durat,-1) ' Start Anim.
+
+  EndIf
+
+  bAnim = LDLogic.Not(bAnim)
+
+EndSub
+
+
+
+Sub AddTulip  ' and scale and clone
+
+  tulp[1] = LD3DView.LoadModel(view, tulPath)
+
+  nTulp = Array.GetItemCount(tulp[1])  ' 11
+
+  
+
+  For n = 1 To nTulp
+
+    LD3DView.SetCentre(view, tulp[1][n], 0,0,0, "S")
+
+    LD3DView.ScaleGeometry(view, tulp[1][n], scale,scale,scale)
+
+    For t = 2 To nTulips
+
+      tulp[t][n] = LD3DView.CloneObject(view, tulp[1][n])
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub PlaceTulips
+
+  d = 0.1 * dist
+
+  min = 42                ' mill-base dimension: ~420
+
+  max = min + d/4
+
+  For t = 1 To nTulips
+
+    RandomXOr()
+
+    For n = 1 To nTulp
+
+      LD3DView.TranslateGeometry(view, tulp[t][n], 10*x,10*y,0)
+
+      LD3DView.Freeze(view, tulp[t][n])
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub RandomXOr ' in 'outer' square
+
+  sgn = 2*Math.GetRandomNumber(2) - 3
+
+  y = sgn * Math.GetRandomNumber(max)
+
+  
+
+  sgn = 2*Math.GetRandomNumber(2) - 3
+
+  If Math.Abs(y) <= min Then
+
+    x = sgn * (min + Math.GetRandomNumber(max-min))
+
+  Else
+
+    x = sgn * Math.GetRandomNumber(max)
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub CamMod
+
+  If bCamMod Then
+
+    LD3DView.CameraProperties(view, 0.125,"", 60)       'default
+
+  Else
+
+    LD3DView.CameraProperties(view, 0.125,"", -dist/2)  ' parallel
+
+  EndIf
+
+  bCamMod = LDLogic.Not(bCamMod)
+
+EndSub
+
+
+
+Sub GetBoxPos
+
+  obj = "1=Base;2=House;3=Shaft;4=Sails;5=Door;6=Window;7=Ground;"
+
+  TextWindow.WriteLine(lf+ mod +lf)
+
+  nMod = Array.GetItemCount(mod)  ' 7
+
+  For n = 1 To nMod
+
+    box[n] = LD3DView.BoundingBox(view, mod[n])
+
+    pos[n] = LD3DView.GetPosition(view, mod[n])
+
+    TextWindow.WriteLine(mod[n] +"  ("+ obj[n] +")"+ lf +"BoundingBox: (1=dimX,2=dimY;3=dimZ;4=minX;5=minY;6=minZ)")
+
+    TextWindow.WriteLine(box[n])
+
+    TextWindow.WriteLine("Position: (1=centX;2=centY;3=centZ)")
+
+    TextWindow.WriteLine(pos[n] +lf)
+
+  EndFor
+
+EndSub
+
+
+
+Sub GetCamView
+
+  pos = LD3DView.GetCameraPosition(view)
+
+  dir = LD3DView.GetCameraDirection(view)
+
+  up = LD3DView.GetCameraUpDirection(view)
+
+  TextWindow.WriteLine(lf+ "camPos: (1=xPos;2=yPos;3=zPos)" +lf+ pos)
+
+  TextWindow.WriteLine("camDir: (1=xDir;2=yDir;3=zDir)" +lf+ dir)
+
+  TextWindow.WriteLine("cUpDir: (1=xUp;2=yUp;3=zUp)" +lf+ up +lf)
+
+EndSub
+
+  
+
+

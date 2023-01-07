@@ -1,0 +1,1463 @@
+'///////////////////////////////////////
+
+' Program: Space Invaders
+
+'By: Me!!!!!
+
+'Version: 0.1
+
+'date: 24/03/10
+
+'SmallBasic: V 0.8
+
+'///////////////////////////////////////
+
+
+
+' //////////// BOOLEANS \\\\\\\\\\\\\\\
+
+
+
+TRUE = 1
+
+FALSE = 0
+
+
+
+ALIVE = TRUE
+
+DEAD = FALSE
+
+
+
+' ////////// Debugging \\\\\\\\\\\\\\\\\\
+
+
+
+DEBUG = FALSE
+
+FPS_MON = FALSE
+
+
+
+' ///////// GAME WINDOW \\\\\\\\\\\\
+
+
+
+'screen H x W
+
+G_WIDTH = 400
+
+G_HEIGHT = 400
+
+
+
+' ///////////////  SHIP  \\\\\\\\\\\\\\\\\
+
+
+
+' Defines where in the array the ship X Y co-ords are at in the array
+
+SHIP_X = 0
+
+SHIP_Y = 1
+
+
+
+' position in the array the alien array the shape, life and (X,Y) co-ords
+
+ALIEN_SHAPE = 0 
+
+ALIEN_LIFE = 1
+
+ALIEN_X = 2
+
+ALIEN_Y = 3
+
+
+
+MISSILE_SHAPE = 0
+
+MISSILE_LIFE = 1
+
+MISSILE_X = 2
+
+MISSILE_Y = 3
+
+
+
+'Desired frames per second (but will be lower on slower computers)
+
+fpsTarget = 30 ' frame rate stolen from import of 'STARGATES' !!!
+
+
+
+'////////// FYI ON GAME STATE ARRAYS \\\\\\\\\\\
+
+
+
+' aliens [ Horizontal position ] [ Vertical position ] [ shape = 0 / life = 1 / alien x pos = 2 / alien y pos = 3  ]
+
+'  missiles & alienMissiles [  id ] [ shape = 0 / life = 1 ]
+
+' shipPos [ shipe X Pos = 0 / ship Y pos = 1 ]
+
+
+
+'\\|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||//
+
+
+
+'///////////////////////
+
+'Start application point
+
+'//////////////////////
+
+
+
+'TODO game menu and loading
+
+'TODO IMPROVE HIT DETECTION - it sucks 
+
+' Ideas: triangulate the distance between the two objects to see if they are too close:
+
+'   sqrt( sqr(x2 - x1) x sqr(y2 - y1) ) < hit object radius
+
+' this should work using centre co ords and on squarish objects or ones with a constant width in the direction they are headed
+
+' consider doing hit detection of player missiles in loop to move aliens to reduce the number of loops
+
+
+
+'/////////////////////
+
+
+
+initApp()
+
+
+
+'/////////////////////
+
+
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'////////////////////////////////////////////////////////////GAME LOOP///////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+Sub startGameLoop
+
+  While (play = ALIVE)
+
+    
+
+    GraphicsWindow.Title = "score: " + score
+
+    
+
+    ' update player 
+
+    moveShip()
+
+    moveMissiles()
+
+    
+
+    'reduce player cooldown period
+
+    coolDownPeriod = coolDownPeriod + 1
+
+     
+
+    'update aliens
+
+    moveAliens()
+
+    
+
+    'this ideally requires a steady frame rate to work well
+
+    'every ALIEN_FIRE_INTERVAL(times a second) fire
+
+    ' calculates the current interval divided by the current frame rate 
+
+    'if the time elapsed since last fire is greater than half the current frame rate
+
+    'then shoot and restart the count.
+
+    alienFireCount = alienFireCount + 1
+
+    If alienFireCount > ((1000 / dTLossy) / levels[lvl][ALIEN_FIRE_INTERVAL]) Then
+
+      alienFire()
+
+      alienFireCount = 0
+
+    endif
+
+    
+
+    moveAlienMissiles()
+
+    
+
+    '///////////////////////////////////////////////////////////////////////////
+
+    
+
+    ' the below code has been stolen from 'STARGATES' by daddyo
+
+    ' it handles the gameloop using elapsed milliseconds instead of the
+
+    ' dodgy timer.
+
+    
+
+    ' Smooth estimate of time elapsed between frames
+
+    tNow = Clock.Millisecond
+
+    dT = tNow  - tLast
+
+    tLast = tNow    
+
+    
+
+    ' Handle millisecond rollover at 1 second marks
+
+    If (dT < 0) Then 
+
+      dT = dT + 1000
+
+    EndIf 
+
+    
+
+    k = 0.1 '  1 = no smoothing, values less than 1 smooths.  0.1 default
+
+    dTLossy = dTLossy * (1 - k) + dT * k 
+
+    
+
+    ' Figure out how long we need to wait to achieve desired average frame rate
+
+    waitLoops = 1000 / fpsTarget - dTLossy
+
+    waitLoops = waitLoops * loopsPerMilliSec
+
+    For i = 1 to waitLoops
+
+      i=i 
+
+    endfor
+
+    
+
+    If FPS_MON = TRUE then
+
+      GraphicsWindow.Title = 1000/dTLossy
+
+    endif
+
+    
+
+    '///////////////////////////////////////////////////////////////////////////////
+
+    
+
+    ' end of stolen code :)
+
+    
+
+    ' when there is no aliens left
+
+    If alienAlive = 0 Then
+
+      levelUp()
+
+    EndIf
+
+    
+
+    
+
+  EndWhile
+
+  
+
+  ' the game has ended
+
+  'TODO add lives - respawn and carry on. 
+
+  'TODO no lives left - goto menu
+
+  GraphicsWindow.Title = " ENDED "
+
+  Timer.Pause()
+
+  ' Program.End()
+
+EndSub
+
+
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'//////////////////////////////////////////////////GENERAL INIT////////////////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+'/////////////////////
+
+
+
+' All Initalisation calls are done in initApp
+
+Sub initApp
+
+  
+
+  gameVars() ' init gameVars
+
+  
+
+  '/////// INIT GAME INTERFACE \\\\\\\\\
+
+  
+
+  If DEBUG = FALSE then
+
+    Mouse.HideCursor() ' only hide the mouse if not debugging
+
+    GraphicsWindow.CanResize = "False" ' only stop resize if not debugging
+
+  endif
+
+  
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.Title = "SPACE INVADERS"
+
+  GraphicsWindow.Width = G_WIDTH
+
+  GraphicsWindow.Height = G_HEIGHT
+
+  
+
+  GraphicsWindow.KeyDown = onKeyDown
+
+  GraphicsWindow.KeyUp = onKeyUp
+
+  
+
+  'calc the speed of the host.
+
+  CalibrateDelay()
+
+  
+
+  '/////// Load levels\\\\\\\\\  
+
+  levelDefines()
+
+  loadLevels()
+
+  
+
+  '/////// INIT GAME COMPONENTS \\\\\\\\\
+
+  
+
+  initShip()
+
+  initAliens()
+
+  initMissiles()
+
+  initAlienMissiles()
+
+  
+
+  '/////// INIT AND START TIMER \\\\\\\\\
+
+  
+
+  startGameLoop() ' starts the game loop
+
+  
+
+endsub
+
+
+
+' the following sub has been stolen!! from 'STARGATES' by daddyo
+
+Sub CalibrateDelay
+
+  ' Figure out dummy wait loops per millisecond
+
+  ' Used instead of Program.Delay()'s coarse resolution of 16 ms
+
+  tLast = Clock.Millisecond
+
+  
+
+  For i = 1 to 200000
+
+    i = i 
+
+  endfor
+
+  
+
+  tNow = Clock.Millisecond
+
+  dT = tNow - tLast
+
+  
+
+  If (dT < 0) Then 
+
+    dT = dT + 1000
+
+  EndIf 
+
+  
+
+  loopsPerMilliSec = 200000 / dT 
+
+endsub 
+
+
+
+' create the game variables =- don't you just love encapsulation? well no by the looks of things! :D
+
+Sub gameVars
+
+  
+
+  '///// GAME STATE ////
+
+  
+
+  score = 0
+
+  play = ALIVE ' when changed to DEAD exit game loop
+
+  
+
+  '//// LEVELS ///////
+
+  
+
+  levels[0][0] = ""
+
+  lvl = 0
+
+  maxLvl = 0
+
+  
+
+  '////// SHIP ////////
+
+  
+
+  ship = 0 ' holds the ship shape
+
+  shipPos[0] = 0 ' stores the ship positions so no need to use gettop/getleft (they seem to be sloooow)
+
+  missiles[0][0] = 0 '  stores the players missiles see FYI ON GAME STATE ARRAYS (above)
+
+  coolDownPeriod = 0 ' stores the cooldown period if less than 0 then you can shoot
+
+  
+
+  nextMissile = 0 ' stores the index of the next player missile to fire
+
+  kbUp = TRUE 'stores whether space key has been released. space needs releasing before shooting again
+
+  
+
+  '////// ALIEN ////////
+
+  
+
+  aliens[0][0][0] = 0   'stores the aliens see FYI ON GAME STATE ARRAYS (above)
+
+  alienAlive = 0 ' count on alive aliens
+
+  alienMissiles[0][0] = 0  ' stores the alien missiles see FYI ON GAME STATE ARRAYS (above)
+
+  alienNextMissile = 0 ' stores the index of the next alien missile to fire
+
+  alienDirection = -1 ' stores the direction the aliens are heading in
+
+  
+
+  '///// Obstacles /////
+
+  
+
+  obs[0][0] = "" ' this is TODO
+
+  
+
+endsub
+
+
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'///////////////////////////////////////////////////////////////////ALIENS //////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+' initalise the aliens and move them to their start positions
+
+Sub initAliens
+
+  For i = 0 To levels[lvl][ALIENS_NUM_H]
+
+    For j = 0 To levels[lvl][ALIENS_NUM_V]
+
+      'set all alien to be alive!
+
+      aliens[i][j][ALIEN_LIFE] = ALIVE
+
+      
+
+      'this if the alien is alive then init it
+
+      If (aliens[i][j][ALIEN_LIFE] = ALIVE) then
+
+        
+
+        'specify the shape - this will be changed to an image
+
+        aliens[i][j][ALIEN_SHAPE] = Shapes.AddEllipse(levels[lvl][ALIEN_WIDTH], levels[lvl][ALIEN_HEIGHT])
+
+        
+
+        Shapes.HideShape(aliens[i][j][ALIEN_SHAPE])
+
+        
+
+        'store the position in the aliens array - this will remove the need to use gettop/getleft which seem to be slow.
+
+        
+
+        aliens[i][j][ALIEN_X] = G_WIDTH * 0.1 + (i * levels[lvl][ALIEN_H_SPACING])
+
+        aliens[i][j][ALIEN_Y] = G_HEIGHT * 0.1 + (j * levels[lvl][ALIEN_V_SPACING])
+
+        
+
+        'move the alien to the starting position
+
+        Shapes.Move(aliens[i][j][ALIEN_SHAPE],aliens[i][j][ALIEN_X],aliens[i][j][ALIEN_Y])
+
+        
+
+        alienAlive = alienAlive + 1 ' count the number of alive aliens
+
+        
+
+        Shapes.ShowShape(aliens[i][j][ALIEN_SHAPE])
+
+        
+
+      endif '/ aliens alive
+
+    EndFor  'aliens_num_v
+
+  EndFor 'aliens_num_h
+
+EndSub '/initAliens
+
+
+
+sub resetAliens
+
+  initAliens()
+
+endsub
+
+
+
+' moveAliens is called every frame and updates the alien position and handles hit detection and change of direction.
+
+Sub moveAliens
+
+  For i = 0 To levels[lvl][ALIENS_NUM_H]
+
+    For j = 0 To levels[lvl][ALIENS_NUM_V]
+
+      
+
+      If (aliens[i][j][ALIEN_LIFE] = ALIVE) then
+
+        alienLeft = aliens[i][j][ALIEN_X]
+
+        
+
+        ' detect if the alien has come in contact with the graphic_window sides
+
+        If alienDirection > 0 then 
+
+          'right side
+
+          If aliens[i][j][ALIEN_X] >= G_WIDTH - levels[lvl][ALIEN_WIDTH] then
+
+            alienDirection = alienDirection * - 1
+
+            moveAliensVertical()
+
+          endif '/ rightside
+
+          
+
+        ElseIf alienDirection < 0 then
+
+          'left side
+
+          If aliens[i][j][ALIEN_X] <= 0 then
+
+            alienDirection = alienDirection * - 1
+
+            moveAliensVertical()
+
+          EndIf ' / left side
+
+          
+
+        EndIf ' / side hit detection
+
+        
+
+        ' update the stored X co-ord and move the aliens horizontal
+
+        aliens[i][j][ALIEN_X] = aliens[i][j][ALIEN_X]  + (levels[lvl][ALIEN_SPEED] * alienDirection)
+
+        Shapes.move(aliens[i][j][ALIEN_SHAPE],aliens[i][j][ALIEN_X] , aliens[i][j][ALIEN_Y])
+
+      EndIf '/ alien alive
+
+    EndFor  '/ aliens_num_v
+
+  EndFor  '/aliens_num_h
+
+endsub '/ moveAliens
+
+
+
+Sub moveAliensVertical
+
+  For i = 0 To levels[lvl][ALIENS_NUM_H]
+
+    For j = 0 To levels[lvl][ALIENS_NUM_V]
+
+      aliens[i][j][ALIEN_Y] = aliens[i][j][ALIEN_Y] + levels[lvl][ALIEN_V_SPACING] / 2
+
+      Shapes.move(aliens[i][j][ALIEN_SHAPE],aliens[i][j][ALIEN_X], aliens[i][j][ALIEN_Y])
+
+    EndFor  'aliens_num_v
+
+  EndFor  'aliens_num_h
+
+endsub '/move aliens Vertical
+
+
+
+' initalizes the alien missiles
+
+Sub initAlienMissiles
+
+  
+
+  For i = 0 to levels[lvl][ALIENS_MISSILE_ARR]
+
+    
+
+    alienMissiles[i][MISSILE_SHAPE] = Shapes.AddTriangle(-(levels[lvl][ALIEN_MISSILE_WIDTH] / 2),0,0,levels[lvl][ALIEN_MISSILE_HEIGHT],(levels[lvl][ALIEN_MISSILE_WIDTH] / 2),0) 
+
+    
+
+    Shapes.HideShape(alienMissiles[i][MISSILE_SHAPE]) ' hide the missiles when they are created
+
+    alienMissiles[i][MISSILE_LIFE] = DEAD ' set to dead so they are ignored
+
+    aliensMissiles[i][MISSILE_X] = 0
+
+    aliensMissiles[i][MISSILE_Y] = 0
+
+  endfor '/ ALIENS_MISSILE_INIT loop
+
+  
+
+endsub '/ end of alien missile initalization
+
+
+
+Sub alienFire
+
+  'This is done on a timer must not use X and Y elsewhere as there is no incapsulation!!
+
+  ' TODO Not have aliens firing on timer but once every 15 frames/ about half second although 1/2 second timer 
+
+  'really is ok :)
+
+  For x = 0 To levels[lvl][ALIENS_NUM_H]
+
+    For y = 0 To levels[lvl][ALIENS_NUM_V]
+
+      
+
+      ' about 1 in ALIEN_FIRE_RATE aliens fire - this produces a constant yet sparse stream of fire 
+
+      If aliens[x][y][ALIEN_LIFE] = ALIVE and Math.GetRandomNumber( levels[lvl][ALIEN_FIRE_RATE]) = 1 then
+
+        
+
+        alienMissiles[alienNextMissile][MISSILE_LIFE] = ALIVE ' set missile to be alive
+
+        
+
+        'move the missile to the relevant alien position
+
+        alienMissiles[alienNextMissile][MISSILE_X] = aliens[x][y][ALIEN_X]
+
+        alienMissiles[alienNextMissile][MISSILE_Y] = aliens[x][y][ALIEN_Y]
+
+        
+
+        Shapes.Move(alienMissiles[alienNextMissile][MISSILE_SHAPE],alienMissiles[alienNextMissile][MISSILE_X],alienMissiles[alienNextMissile][MISSILE_Y] )
+
+        Shapes.ShowShape(alienMissiles[alienNextMissile][MISSILE_SHAPE]) ' unhide the missile
+
+        
+
+        alienNextMissile = alienNextMissile + 1 ' increment the next missile index
+
+        
+
+        ' if next missile is greater than alien_missile length go to beginning again
+
+        If (alienNextMissile > levels[lvl][ALIENS_MISSILE_ARR]) Then    
+
+          alienNextMissile = 0 
+
+        endif '/next missile
+
+        
+
+      endif '/ aliens alive and firing
+
+    endfor '/aliens_num_v
+
+  EndFor '/aliens_num_h
+
+endsub '/ aliens fire
+
+
+
+' move alien missiles handles the moving, hit detection and missiles leaving the game window
+
+Sub moveAlienMissiles
+
+  shipTop = shipPos[SHIP_Y] ' get the current ship position
+
+  shipLeft = shipPos[SHIP_X]
+
+  
+
+  For i = 0 to levels[lvl][ALIENS_MISSILE_ARR]
+
+    if ( alienMissiles[i][MISSILE_LIFE] = ALIVE) then ' only update the missile if its alive
+
+      
+
+      missileLeft = alienMissiles[i][MISSILE_X] 'update missile position
+
+      missileTop = alienMissiles[i][MISSILE_Y] + levels[lvl][ALIEN_MISSILE_SPEED]
+
+      
+
+      alienMissiles[i][MISSILE_X]  = missileLeft
+
+      alienMissiles[i][MISSILE_Y] = missileTop
+
+      
+
+      Shapes.Move(alienMissiles[i][MISSILE_SHAPE], missileLeft,missileTop) ' move to the alien position
+
+      
+
+      If missileTop >= G_HEIGHT then ' if the missile has left the screen kill it
+
+        
+
+        alienMissiles[i][ALIEN_LIFE] = DEAD
+
+        Shapes.HideShape(alienMissiles[i][MISSILE_SHAPE])
+
+        
+
+      ElseIf missileTop >= shipTop then ' if the missile is in the lower part of the screen do hit detection
+
+        
+
+        If (missileTop <= shipTop + (levels[lvl][SHIP_HEIGHT]) And missileLeft <= shipLeft + (levels[lvl][SHIP_WIDTH]) And missileLeft >= shipLeft) Then
+
+          
+
+          If DEBUG = FALSE then 
+
+            play= FALSE   'if the game isn't in debug mode exit game loop 
+
+          endif
+
+          
+
+          alienMissiles[i][MISSILE_LIFE] = DEAD ' kill the missile when its hit the player
+
+          Shapes.HideShape(alienMissiles[i][MISSILE_SHAPE]) ' hide the missile shape
+
+          
+
+        endif '/end of hit detection
+
+        
+
+      endif '/ end of  off screen if
+
+    endif '/ end of alive if
+
+  endfor ' end of missile array loop
+
+endsub '/ end of alien missile hit detection sub
+
+
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'//////////////////////////////////////////////////////////////SHIP PLAYER/////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+'initalizes ship size and position
+
+Sub initShip
+
+  ship = Shapes.AddRectangle(levels[lvl][SHIP_WIDTH],levels[lvl][SHIP_HEIGHT])
+
+  Shapes.Move(ship, -1000 , -1000) ' move the ship off the screen so it doesn't flash up 
+
+endsub '/ end of init ship
+
+
+
+'update ship position - todo change this from mouse to keys - mouse moves way too fast really
+
+Sub moveShip 
+
+  shipPos[SHIP_X] = Mouse.MouseX
+
+  shipPos[SHIP_Y] = G_HEIGHT - (levels[lvl][SHIP_HEIGHT] * 2)
+
+  Shapes.Move(ship, shipPos[SHIP_X] , shipPos[SHIP_Y])
+
+endsub '/ moveShip
+
+
+
+'handles key press events
+
+Sub onKeyDown
+
+  'if the last key is space and the cooldown period has expired and the space key was up then shoot!
+
+  If (GraphicsWindow.LastKey = "Space" And coolDownPeriod > 0 And kbUp = TRUE) then
+
+    kbUp= FALSE 'set the space key as down
+
+    coolDownPeriod = coolDownPeriod - levels[lvl][MISSILE_COOLDOWN] ' start cooldown period
+
+    
+
+    missiles[nextMissile][MISSILE_LIFE] = ALIVE ' set the missile as alive
+
+    
+
+    missiles[nextMissile][MISSILE_X] = shipPos[SHIP_X]
+
+    missiles[nextMissile][MISSILE_Y] = shipPos[SHIP_Y]
+
+    
+
+    Shapes.Move(missiles[nextMissile][MISSILE_SHAPE], missiles[nextMissile][MISSILE_X], missiles[nextMissile][MISSILE_Y]) 'move the missile to the ship
+
+    Shapes.ShowShape(missiles[nextMissile][MISSILE_SHAPE]) ' show the missile 
+
+    nextMissile = nextMissile + 1 'increment the missile index
+
+    
+
+    'reset the missile index when it gets too long
+
+    If (nextMissile = levels[lvl][SHIP_MISSILE_ARR]) Then 
+
+      nextMissile = 0 
+
+    endif '/ missile index 
+
+  endif '/ space keypress if
+
+endsub '/onKeyDown
+
+
+
+'handles key press releases
+
+Sub onKeyUp
+
+  
+
+  'if the current key is space then set kbUp to true
+
+  If GraphicsWindow.LastKey = "Space" then
+
+    kbUp = TRUE
+
+  endif
+
+  
+
+endsub '/onKeyUp
+
+
+
+'initalise the players missiles
+
+Sub initMissiles 
+
+  For i = 0 to levels[lvl][SHIP_MISSILE_ARR]
+
+    'create the missile shape
+
+    missiles[i][MISSILE_SHAPE] = Shapes.AddTriangle(-(levels[lvl][SHIP_MISSILE_WIDTH] / 2),levels[lvl][SHIP_MISSILE_HEIGHT],0,0,(levels[lvl][SHIP_MISSILE_WIDTH] / 2),levels[lvl][SHIP_MISSILE_HEIGHT]) 
+
+    Shapes.HideShape(missiles[i][MISSILE_SHAPE]) ' hide the missile
+
+    missiles[i][MISSILE_LIFE] = DEAD ' set the missile state to dead
+
+    
+
+  endfor '/ ship missile array
+
+endsub '/ initMissiles
+
+
+
+Sub resetMissiles
+
+  For i = 0 to levels[lvl - 1][SHIP_MISSILE_ARR]
+
+    'create the missile shape
+
+    Shapes.Remove(missiles[i][MISSILE_SHAPE])
+
+    missiles[i][MISSILE_LIFE] = DEAD ' set the missile state to dead
+
+  endfor '/ ship missile array
+
+  
+
+  initMissiles()
+
+endsub
+
+
+
+'move the player missile, detect if they have left the screen, detect if they hit an alien
+
+Sub moveMissiles
+
+  'for all the missiles in the ship missile array
+
+  For i = 0 to levels[lvl][SHIP_MISSILE_ARR]
+
+    if ( missiles[i][MISSILE_LIFE] = ALIVE) then ' if the missile is alive do the following
+
+      missiles[i][MISSILE_Y] = missiles[i][MISSILE_Y] - 5 ' update its position
+
+      missiles[i][MISSILE_X] = missiles[i][MISSILE_X]
+
+      
+
+      Shapes.Move(missiles[i][MISSILE_SHAPE], missiles[i][MISSILE_X],missiles[i][MISSILE_Y]) 'move it to its new position
+
+      
+
+      If missiles[i][MISSILE_Y] < -levels[lvl][SHIP_MISSILE_HEIGHT] then ' if the missile has left the screen kill it
+
+        missiles[i][MISSILE_LIFE] = DEAD
+
+      else
+
+        For j = 0 To levels[lvl][ALIENS_NUM_H]
+
+          For k = 0 To levels[lvl][ALIENS_NUM_V]
+
+            
+
+            If (aliens[j][k][MISSILE_LIFE] = ALIVE) Then 'if the alien is alive do hit detection
+
+              
+
+              alienTop = aliens[j][k][ALIEN_Y] 'get the alien position
+
+              alienLeft = aliens[j][k][ALIEN_X]
+
+              'if the missile intersects with the alien
+
+              If (missiles[i][MISSILE_Y] <= alienTop + (levels[lvl][ALIEN_HEIGHT]) And missiles[i][MISSILE_Y] >= alienTop And missiles[i][MISSILE_X] <= alienLeft + (levels[lvl][ALIEN_WIDTH]) And missiles[i][MISSILE_X] >= alienLeft) then
+
+                
+
+                aliens[j][k][ALIEN_LIFE] = DEAD 'kill the alien
+
+                missiles[i][MISSILE_LIFE] = DEAD 'kill the missile
+
+                alienAlive = alienAlive - 1 'decrement the number of alive aliens
+
+                score = score + 10
+
+                Shapes.HideShape(missiles[i][MISSILE_SHAPE])  'remove the missile shape 
+
+                Shapes.Remove( aliens[j][k][ALIEN_SHAPE]) 'remove the alien shape
+
+                
+
+              EndIf '/ end of hit detection if    
+
+            endif '/ end of missile alive if
+
+          EndFor '/ end of aliens_num_v
+
+        endfor '/ end of aliens_num_h
+
+      endif '/end of on screen if
+
+    endif '/ end of missile life if
+
+  endfor '/ end of missiles array loop
+
+endsub '/end of player missile hit detection
+
+
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'////////////////////////////////////////////////////////////OBSTACLES/////////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+sub initObs
+
+  
+
+endsub
+
+
+
+' Hit detection will be done in respective missiles sections
+
+
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'//////////////////////////////////////////////////////////////////LEVELS///////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+'/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+' level loading - attempts to load the level file - if it fails then it just defaults to some settings so you can play it. In the end the game will be extended by levels
+
+' along with obsticales
+
+
+
+Sub loadLevels
+
+  
+
+  notFound = TRUE
+
+  dirFiles = file.GetFiles(Program.Directory)
+
+  
+
+  for i = 0 to Array.GetItemCount(dirFiles)
+
+    if "True" = Text.EndsWith(dirFiles[i],"silevels.txt") Then
+
+      notFound = FALSE
+
+    EndIf
+
+  endfor
+
+  
+
+  EOF = FALSE
+
+  
+
+  If notFound = FALSE then
+
+    GraphicsWindow.Title= "LOADING"
+
+    Program.Delay(1000)
+
+    While EOF = FALSE 
+
+      ' The following line could be harmful and has been automatically commented.
+
+' The following line could be harmful and has been automatically commented.
+
+'       fText = File.ReadLine(Program.Directory + "./silevels.txt", line)  
+
+      line = line + 1
+
+      
+
+      If fText = "end" Then
+
+        EOF = TRUE
+
+      ElseIf fText = "levelEnd" then
+
+        lvl = lvl + 1
+
+      Else
+
+        If Text.StartsWith(ftext,"SHIP_HEIGHT") then
+
+          levels[lvl][SHIP_HEIGHT]= Text.GetSubTextToEnd(fText,Text.GetLength("SHIP_HEIGHT")+2)
+
+        elseIf Text.StartsWith(ftext,"SHIP_WIDTH") then
+
+          levels[lvl][SHIP_WIDTH]= Text.GetSubTextToEnd(fText,Text.GetLength("SHIP_WIDTH")+2)
+
+        elseIf Text.StartsWith(ftext,"SHIP_MISSILE_ARR") then
+
+          levels[lvl][SHIP_MISSILE_ARR]= Text.GetSubTextToEnd(fText,Text.GetLength("SHIP_MISSILE_ARR")+2)
+
+        elseIf Text.StartsWith(ftext,"SHIP_MISSILE_HEIGHT") then
+
+          levels[lvl][SHIP_MISSILE_HEIGHT]= Text.GetSubTextToEnd(fText,Text.GetLength("SHIP_MISSILE_HEIGHT")+2)
+
+        elseIf Text.StartsWith(ftext,"SHIP_MISSILE_WIDTH") then
+
+          levels[lvl][SHIP_MISSILE_WIDTH]= Text.GetSubTextToEnd(fText,Text.GetLength("SHIP_MISSILE_WIDTH")+2)
+
+        elseIf Text.StartsWith(ftext,"MISSILE_COOLDOWN") then
+
+          levels[lvl][MISSILE_COOLDOWN]= Text.GetSubTextToEnd(fText,Text.GetLength("MISSILE_COOLDOWN")+2)    
+
+        elseIf Text.StartsWith(ftext,"ALIEN_SPEED") then
+
+          levels[lvl][ALIEN_SPEED]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIEN_SPEED")+2) 
+
+        elseIf Text.StartsWith(ftext,"ALIEN_WIDTH") then
+
+          levels[lvl][ALIEN_WIDTH]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIEN_WIDTH")+2) 
+
+        elseIf Text.StartsWith(ftext,"ALIEN_HEIGHT") then
+
+          levels[lvl][ALIEN_HEIGHT]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIEN_HEIGHT")+2)    
+
+        elseIf Text.StartsWith(ftext,"ALIEN_H_SPACING") then
+
+          levels[lvl][ALIEN_H_SPACING]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIEN_H_SPACING")+2)
+
+        elseIf Text.StartsWith(ftext,"ALIEN_V_SPACING") then
+
+          levels[lvl][ALIEN_V_SPACING]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIEN_V_SPACING")+2)    
+
+        elseIf Text.StartsWith(ftext,"ALIENS_NUM_H") then
+
+          levels[lvl][ALIENS_NUM_H]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIENS_NUM_H")+2) -1 
+
+        elseIf Text.StartsWith(ftext,"ALIENS_NUM_V") then
+
+          levels[lvl][ALIENS_NUM_V]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIENS_NUM_V")+2) -1
+
+        elseIf Text.StartsWith(ftext,"ALIENS_MISSILE_ARR") then
+
+          levels[lvl][ALIENS_MISSILE_ARR]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIENS_MISSILE_ARR")+2)    
+
+        elseIf Text.StartsWith(ftext,"ALIEN_MISSILE_HEIGHT") then
+
+          levels[lvl][ALIEN_MISSILE_HEIGHT]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIEN_MISSILE_HEIGHT")+2)   
+
+        elseIf Text.StartsWith(ftext,"ALIEN_MISSILE_WIDTH") then
+
+          levels[lvl][ALIEN_MISSILE_WIDTH]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIEN_MISSILE_WIDTH")+2)  
+
+        elseIf Text.StartsWith(ftext,"ALIEN_FIRE_INTERVAL") then
+
+          levels[lvl][ALIEN_FIRE_INTERVAL]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIEN_FIRE_INTERVAL")+2) 
+
+        elseIf Text.StartsWith(ftext,"ALIEN_FIRE_RATE") then
+
+          levels[lvl][ALIEN_FIRE_RATE]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIEN_FIRE_RATE")+2) 
+
+        elseIf Text.StartsWith(ftext,"ALIEN_MISSILE_SPEED") then
+
+          levels[lvl][ALIEN_MISSILE_SPEED]= Text.GetSubTextToEnd(fText,Text.GetLength("ALIEN_MISSILE_SPEED")+2)     
+
+        endif
+
+      endif
+
+    EndWhile  
+
+  else
+
+    lvl = 0
+
+    levels[lvl][SHIP_HEIGHT]= 10
+
+    levels[lvl][SHIP_WIDTH]=10
+
+    levels[lvl][SHIP_MISSILE_ARR]= 12
+
+    levels[lvl][SHIP_MISSILE_HEIGHT]= 5
+
+    levels[lvl][SHIP_MISSILE_WIDTH]= 2
+
+    levels[lvl][MISSILE_COOLDOWN]= 12
+
+    levels[lvl][ALIEN_SPEED]= 0.5
+
+    levels[lvl][ALIEN_WIDTH]= 10
+
+    levels[lvl][ALIEN_HEIGHT]= 10   
+
+    levels[lvl][ALIEN_H_SPACING]= 25
+
+    levels[lvl][ALIEN_V_SPACING]= 40
+
+    levels[lvl][ALIENS_NUM_H]= 11
+
+    levels[lvl][ALIENS_NUM_V]= 3
+
+    levels[lvl][ALIENS_MISSILE_ARR]= 120 
+
+    levels[lvl][ALIEN_MISSILE_HEIGHT]= 2
+
+    levels[lvl][ALIEN_MISSILE_WIDTH]= 2
+
+    levels[lvl][ALIEN_FIRE_INTERVAL]= 2
+
+    levels[lvl][ALIEN_FIRE_RATE]=18
+
+    levels[lvl][ALIEN_MISSILE_SPEED]=3     
+
+    
+
+    lvl = 1
+
+  endif
+
+    
+
+  maxLvl = lvl
+
+  lvl = 0
+
+  
+
+  If DEBUG = TRUE then
+
+    testLevelLoad()
+
+  endif
+
+  
+
+endsub
+
+
+
+Sub levelDefines
+
+  '/////////////////////
+
+  
+
+  SHIP_HEIGHT =0
+
+  SHIP_WIDTH = 1
+
+  
+
+  SHIP_MISSILE_ARR = 2 
+
+  SHIP_MISSILE_WIDTH = 3
+
+  SHIP_MISSILE_HEIGHT = 4
+
+  MISSILE_COOLDOWN = 5
+
+  
+
+  ALIEN_SPEED = 19
+
+  ALIEN_WIDTH = 20
+
+  ALIEN_HEIGHT = 21
+
+  
+
+  ALIEN_H_SPACING = 22
+
+  ALIEN_V_SPACING = 23
+
+  
+
+  ALIENS_NUM_H = 24
+
+  ALIENS_NUM_V = 25
+
+  
+
+  ALIENS_MISSILE_ARR = 26
+
+  ALIEN_MISSILE_HEIGHT = 27
+
+  ALIEN_MISSILE_WIDTH = 28
+
+  
+
+  ALIEN_FIRE_INTERVAL = 29	
+
+  ALIEN_FIRE_RATE = 30
+
+  ALIEN_MISSILE_SPEED = 31
+
+  
+
+  '////////////////////
+
+EndSub
+
+
+
+Sub testLevelLoad
+
+  textWindow.WriteLine("number of levels:" + lvl)
+
+  TextWindow.WriteLine("")
+
+  'print out the text
+
+  For i = 0 To lvl 
+
+    For j = 0 To 31    
+
+      If levels[i][j] = "" Then
+
+        TextWindow.WriteLine(j +" is blank")
+
+      Else
+
+        TextWindow.WriteLine(j +":" +  levels[i][j])
+
+      endif
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub levelUp
+
+  lvl = lvl + 1  
+
+  play = DEAD
+
+  
+
+  If lvl > maxLvl Then
+
+    lvl = 0
+
+    'GraphicsWindow.Title = "WELL DONE YOU HAVE SUCCEEDED IN SAVING THE GALAXY"  
+
+  EndIf
+
+  'Else
+
+  resetAliens()
+
+  resetMissiles()
+
+  initAlienMissiles()
+
+  
+
+  Program.Delay(1000)
+
+  play = ALIVE
+
+  '  EndIf
+
+  
+
+EndSub
+
+

@@ -1,0 +1,173 @@
+'Create some springs
+
+numSpring = 5
+
+anchorRadius = 10
+
+For i = 1 To numSpring
+
+  length[i] = 100 'Unstretched length
+
+  anchorX[i] = 50+Math.GetRandomNumber(500)
+
+  anchorY[i] = 50+Math.GetRandomNumber(500)
+
+  anchor[i] = Shapes.AddEllipse(2*anchorRadius,2*anchorRadius)
+
+EndFor
+
+
+
+'Create a weight
+
+GraphicsWindow.Width = 600
+
+GraphicsWindow.Height = 600
+
+weightX = 50+Math.GetRandomNumber(500) 'Position
+
+weightY = 50+Math.GetRandomNumber(500)
+
+weightU = 0 'Velocity
+
+weightV = 0
+
+radius = 30
+
+damping  = 0.05 'Some damping to the velocity
+
+weight = Shapes.AddEllipse(2*radius,2*radius)
+
+
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.MouseUp = OnMouseUp
+
+
+
+While ("True")
+
+  If (mouseCapture = -1) Then
+
+    'Just move the weight with the mouse
+
+    weightX = GraphicsWindow.MouseX
+
+    weightY = GraphicsWindow.MouseY
+
+    weightU = 0
+
+    weightV = 0
+
+  Else
+
+    If (mouseCapture > 0) Then
+
+      'Just move the anchors
+
+      anchorX[mouseCapture] = GraphicsWindow.MouseX
+
+      anchorY[mouseCapture] = GraphicsWindow.MouseY
+
+    EndIf
+
+    'Calculate the force (Hooke's Law) and it is summed for each spring
+
+    forceX = 0
+
+    forceY = 200 'Gravity down - a constant vertical force
+
+    For i = 1 To numSpring
+
+      vecX = weightX-anchorX[i]
+
+      vecY = weightY-anchorY[i]
+
+      len = Math.SquareRoot(vecX*vecX+vecY*vecY)
+
+      forceX = forceX - vecX/len * (len-length[i])
+
+      forceY = forceY - vecY/len * (len-length[i])
+
+    EndFor
+
+    'Update the velocity and position of the weight
+
+    weightU = (1-damping)*(weightU+forceX/20)
+
+    weightV = (1-damping)*(weightV+forceY/20)
+
+    weightX = weightX+weightU
+
+    weightY = weightY+weightV
+
+  EndIf
+
+  'Do the update drawing
+
+  Shapes.Move(weight,weightX-radius,weightY-radius)
+
+  GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
+
+  GraphicsWindow.FillRectangle(-10,-10,GraphicsWindow.Width+20,GraphicsWindow.Height+20)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  For i = 1 To numSpring
+
+    GraphicsWindow.DrawLine(anchorX[i],anchorY[i],weightX,weightY)
+
+    Shapes.Move(anchor[i],anchorX[i]-anchorRadius,anchorY[i]-anchorRadius)
+
+  EndFor
+
+  Program.Delay(20)
+
+EndWhile
+
+
+
+Sub OnMouseDown
+
+  dx = GraphicsWindow.MouseX-weightX
+
+  dy = GraphicsWindow.MouseY-weightY
+
+  dist = Math.SquareRoot(dx*dx+dy*dy)
+
+  If (dist <= radius) Then
+
+    mouseCapture = -1 'The weight is captured by the mouse
+
+  Else
+
+    For j = 1 To numSpring
+
+      dx = GraphicsWindow.MouseX-anchorX[j]
+
+      dy = GraphicsWindow.MouseY-anchorY[j]
+
+      dist = Math.SquareRoot(dx*dx+dy*dy)
+
+      If (dist <= anchorRadius) Then
+
+        mouseCapture = j 'An anchor point is captured by the mouse
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseUp
+
+  mouseCapture = 0
+
+EndSub
+
+

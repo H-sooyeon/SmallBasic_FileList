@@ -1,0 +1,763 @@
+GraphicsWindow.Height=400
+
+GraphicsWindow.Width=700
+
+GraphicsWindow.FontName="noto mono
+
+
+
+GraphicsWindow.FontBold="false
+
+GraphicsWindow.Title="BarCode Decoder
+
+ox=40
+
+Sub init
+
+  
+
+  nmm[0]="   || |"
+
+  nmm[1]="  ||  |"
+
+  nmm[2]="  |  ||"
+
+  nmm[3]=" |||| |"
+
+  nmm[4]=" |   ||"
+
+  nmm[5]=" ||   |"
+
+  nmm[6]=" | ||||"
+
+  nmm[7]=" ||| ||"
+
+  nmm[8]=" || |||"
+
+  nmm[9]="   | ||"
+
+  
+
+  For r=0 To 9
+
+    For f=1 To 7
+
+      ch="|
+
+      ct=" "
+
+      If Text.GetSubText(nmm[r] f 1)="|" Then
+
+        ch=" "
+
+        ct="|"
+
+      EndIf
+
+      
+
+      inmm[r]=inmm[r]+ch 'inverse
+
+      tnmm[r]=ct+tnmm[r] 'rot.true
+
+      rnmm[r]=ch+rnmm[r] 'rot.inv.
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+init()
+
+ddd()
+
+GraphicsWindow.MouseDown=ddd
+
+
+
+Sub ddd
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.BackgroundColor="tan
+
+  cm=FCDialogs.AskForTextLine("1 = encode; 2= decode; othr = demo")
+
+  If cm=1 Then
+
+    cm=FCDialogs.AskForTextLine("1=EAN8; 2=EAN13; 3=UPC-A; 4=ISSN")
+
+    cln=LDText.Split("7 12 11 7" " ")
+
+    cmd=FCDialogs.AskForTextLine("type nums:"+cln[cm])
+
+    If cm=1 Then
+
+      
+
+      bc[1]="10100010110101111011110101101110101010011101110010100010010111000101
+
+      
+
+      LDCall.Function("enc_ean8" cmd)
+
+      bc[1]=LDText.Replace(bc[1] "1" "|")
+
+      bc[1]=LDText.Replace(bc[1] "0" " ")
+
+      pr_ean8()
+
+      
+
+    ElseIf cm=2 Then
+
+      bc[1]="10100010110100111011001100100110111101001110101010110011011011001000010101110010011101000100101
+
+      
+
+      LDCall.Function("enc_ean13" cmd)
+
+      bc[1]=LDText.Replace(bc[1] "1" "|")
+
+      bc[1]=LDText.Replace(bc[1] "0" " ")
+
+      pr_ean13()
+
+      
+
+    ElseIf cm=3 Then
+
+      bc[1]="| | |   ||   || | |||| |   | || |   || |   || | | | |||  | |||  ||  || |||  | |  ||| |||  | | |
+
+      
+
+      LDCall.Function("enc_upca" cmd)
+
+      pr_upca()
+
+      
+
+    ElseIf cm=4 Then
+
+      LDCall.Function("enc_issn" cmd)
+
+      pr_ean13()
+
+    EndIf
+
+    
+
+  EndIf
+
+EndSub
+
+
+
+args=0
+
+
+
+Sub enc_issn
+
+  cmd=Text.Append("77" args[1])
+
+  cmd=Text.Append(cmd "002")
+
+  
+
+    qq="101"
+
+  For r=1 To 6
+
+    cq=Text.GetSubText(cmd r 1)
+
+    if r=2 or r=3 or r=5 Then
+
+      qq=Text.Append(qq rnmm[cq])
+
+      else
+
+      qq=Text.Append(qq nmm[cq])
+
+      EndIf
+
+  EndFor
+
+  
+
+  qq=Text.Append(qq "01010")
+
+  For r=7 To 12
+
+    cq=Text.GetSubText(cmd r 1)
+
+    qq=Text.Append(qq inmm[cq])
+
+  EndFor
+
+  
+
+  
+
+  bc[1]=Text.Append(qq "101")
+
+  
+
+EndSub
+
+
+
+Sub enc_ean8
+
+  cmdd=args[1]
+
+  qq="101"
+
+  For r=1 To 4
+
+    cq=Text.GetSubText(cmd r 1)
+
+    qq=Text.Append(qq nmm[cq])
+
+  EndFor
+
+  
+
+  qq=Text.Append(qq "01010")
+
+  For r=5 To 7
+
+    cq=Text.GetSubText(cmd r 1)
+
+    qq=Text.Append(qq inmm[cq])
+
+  EndFor
+
+  For r=0 To 6
+
+    d=Text.GetSubText(cmd r+1 1)
+
+    v=3-Math.Remainder(r 2)*2
+
+    s=s+d*v
+
+  EndFor
+
+  os=math.Ceiling( s/10)*10-s
+
+  qq=Text.Append(qq inmm[os])
+
+  
+
+  bc[1]=Text.Append(qq "101")
+
+  
+
+EndSub
+
+
+
+Sub enc_upca
+
+  cmdd=args[1]
+
+  qq="101"
+
+  For r=1 To 6
+
+    cq=Text.GetSubText(cmd r 1)
+
+    qq=Text.Append(qq nmm[cq])
+
+  EndFor
+
+  
+
+  qq=Text.Append(qq "01010")
+
+  For r=7 To 11
+
+    cq=Text.GetSubText(cmd r 1)
+
+    qq=Text.Append(qq inmm[cq])
+
+  EndFor
+
+  For r=0 To 11
+
+    d=Text.GetSubText(cmd r+1 1)
+
+    v=3-Math.Remainder(r 2)*2
+
+    s=s+d*v
+
+  EndFor
+
+  os=math.Ceiling( s/10)*10-s
+
+  qq=Text.Append(qq inmm[os])
+
+  
+
+  bc[1]=Text.Append(qq "101")
+
+  bc[1]=LDText.Replace(bc[1] "1" "|")
+
+  bc[1]=LDText.Replace(bc[1] "0" " ")
+
+  
+
+EndSub
+
+
+
+Sub pr_ean8
+
+  GraphicsWindow.Title="Ean-8 Decoder
+
+  GraphicsWindow.FontSize=40
+
+  For y=1 To 1
+
+    cc=bc[y]
+
+    ll=Text.GetLength(cc)
+
+    hh=ll/2
+
+    For x=1 To ll
+
+      If x<4 or x>ll-3 or (x>hh-1 and x<hh+2) Then
+
+        xx=50
+
+      Else
+
+        xx=0
+
+      EndIf
+
+      
+
+      GraphicsWindow.BackgroundColor="tan
+
+      If Text.GetSubText(cc x 1)=" " Then
+
+        cl="white
+
+      Else
+
+        cl="black
+
+      EndIf
+
+      GraphicsWindow.BrushColor=cl
+
+      GraphicsWindow.FillRectangle(x*5+10 10+y*60 5 150+xx)
+
+    EndFor
+
+    
+
+    oo=""
+
+    For r=4 To 4*7+4 Step 7
+
+      cd=Text.GetSubText(cc r 7)
+
+      For m=0 To 9
+
+        If cd=nmm[m]  Then
+
+          oo=text.Append(oo m)
+
+        EndIf
+
+        If cd=rnmm[m]  Then
+
+          oo=text.Append(m oo)
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    
+
+    For r=4*7+9 To Text.GetLength(cc) Step 7
+
+      cd=Text.GetSubText(cc r 7)
+
+      For m=0 To 9
+
+        If cd=inmm[m] Then
+
+          oo=text.Append(oo m)
+
+        EndIf
+
+        If cd=tnmm[m]  Then
+
+          oo=text.Append(m oo)
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    
+
+    s=0
+
+    For r=0 To 7
+
+      d=Text.GetSubText(oo r+1 1)
+
+      v=3-Math.Remainder(r 2)*2
+
+      s=s+d*v
+
+    EndFor
+
+    If Math.Remainder(s 10)>0 Then
+
+      
+
+      GraphicsWindow.BrushColor="red
+
+    Else
+
+      GraphicsWindow.BrushColor="darkblue
+
+    EndIf
+
+    'GraphicsWindow.ShowMessage(oo y)
+
+    
+
+    GraphicsWindow.DrawText(60 220 text.GetSubText (oo 1 4))
+
+    GraphicsWindow.DrawText(220 220 text.GetSubTextToEnd (oo 5))
+
+  EndFor
+
+EndSub
+
+
+
+Sub pr_ean13
+
+  GraphicsWindow.Title="Ean13 Decoder
+
+  GraphicsWindow.FontSize=40
+
+  For y=1 To 1
+
+    cc=bc[y]
+
+    ll=Text.GetLength(cc)
+
+    hh=ll/2
+
+    For x=1 To ll
+
+      If x<4 or x>ll-3 or (x>hh-1 and x<hh+2) Then
+
+        xx=50
+
+      Else
+
+        xx=0
+
+      EndIf
+
+      
+
+      If Text.GetSubText(cc x 1)=" " or Text.GetSubText(cc x 1)=0 Then
+
+        cl="white
+
+      Else
+
+        cl="black
+
+      EndIf
+
+      GraphicsWindow.BrushColor=cl
+
+      GraphicsWindow.FillRectangle(ox+x*5+10 10+y*60 5 150+xx)
+
+    EndFor
+
+    
+
+    oo=""
+
+    pf=""
+
+    For r=4 To 5*7+4 Step 7
+
+      cd=Text.GetSubText(cc r 7)
+
+      For m=0 To 9
+
+        If cd=nmm[m]  Then
+
+          oo=text.Append(oo m)
+
+          pf=pf+"."
+
+        EndIf
+
+        If cd=rnmm[m]  Then
+
+          oo=text.Append(oo m)
+
+          pf=pf+"!"
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    
+
+    If pf=".!!..!" Then
+
+      fc=5
+
+    ElseIf pf="......" Then
+
+      fc=0
+
+    ElseIf pf="..!.!!" Then
+
+      fc=1
+
+    ElseIf pf="..!!.!" Then
+
+      fc=2
+
+    ElseIf pf="..!!!." Then
+
+      fc=3
+
+    ElseIf pf=".!..!!" Then
+
+      fc=4
+
+    ElseIf pf=".!!!.." Then
+
+      fc=6
+
+    ElseIf pf=".!.!.!" Then
+
+      fc=7
+
+    ElseIf pf=".!.!!." Then
+
+      fc=8
+
+    ElseIf pf=".!!.!." Then
+
+      fc=9
+
+      
+
+    EndIf
+
+    
+
+    For r=6*7+9 To Text.GetLength(cc) Step 7
+
+      cd=Text.GetSubText(cc r 7)
+
+      For m=0 To 9
+
+        If cd=inmm[m] Then
+
+          oo=text.Append(oo m)
+
+        EndIf
+
+        If cd=tnmm[m]  Then
+
+          oo=text.Append(m oo)
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    
+
+    s=0
+
+    oc=Text.Append(fc oo)
+
+    For r=0 To 12
+
+      d=Text.GetSubText(oc r+1 1)
+
+      v=3-Math.Remainder(r+1 2)*2
+
+      s=s+d*v
+
+    EndFor
+
+    If Math.Remainder(s 10)>0 Then
+
+      
+
+      GraphicsWindow.BrushColor="red
+
+    Else
+
+      GraphicsWindow.BrushColor="darkblue
+
+    EndIf
+
+    'GraphicsWindow.ShowMessage(oo y)
+
+    
+
+    GraphicsWindow.DrawText(ox+60 220 text.GetSubText (oo 1 6))
+
+    GraphicsWindow.DrawText(ox+265 220 text.GetSubTextToEnd (oo text.GetLength(oo)-5))
+
+    GraphicsWindow.FontSize=30
+
+    GraphicsWindow.DrawText(ox-20 230 fc)
+
+  EndFor
+
+EndSub
+
+
+
+Sub pr_upca
+
+  GraphicsWindow.Title="UPC-A Decoder
+
+  GraphicsWindow.FontSize=20
+
+  For y=1 To 1
+
+    cc=bc[y]
+
+    For x=1 To Text.GetLength(cc)
+
+      GraphicsWindow.BackgroundColor="tan
+
+      If Text.GetSubText(cc x 1)="0" or Text.GetSubText(cc x 1)=" " Then
+
+        cl="white
+
+      Else
+
+        cl="black
+
+      EndIf
+
+      GraphicsWindow.BrushColor=cl
+
+      GraphicsWindow.FillRectangle(x*5+10 10+y*60 5 50)
+
+    EndFor
+
+    
+
+    oo=""
+
+    For r=4 To 5*7+4 Step 7
+
+      cd=Text.GetSubText(cc r 7)
+
+      For m=0 To 9
+
+        If cd=nmm[m]  Then
+
+          oo=text.Append(oo m)
+
+        EndIf
+
+        If cd=rnmm[m]  Then
+
+          oo=text.Append(m oo)
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    
+
+    For r=6*7+9 To Text.GetLength(cc) Step 7
+
+      cd=Text.GetSubText(cc r 7)
+
+      For m=0 To 9
+
+        If cd=inmm[m] Then
+
+          oo=text.Append(oo m)
+
+        EndIf
+
+        If cd=tnmm[m]  Then
+
+          oo=text.Append(m oo)
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    
+
+    s=0
+
+    For r=0 To 11
+
+      d=Text.GetSubText(oo r+1 1)
+
+      v=3-Math.Remainder(r 2)*2
+
+      s=s+d*v
+
+    EndFor
+
+   ' GraphicsWindow.Title=oo
+
+    If Math.Remainder(s 10)>0 Then
+
+      oo="Err! "+oo
+
+      GraphicsWindow.BrushColor="red
+
+    Else
+
+      GraphicsWindow.BrushColor="darkblue
+
+    EndIf
+
+    'GraphicsWindow.ShowMessage(oo y)
+
+    
+
+    GraphicsWindow.DrawText(500 70 oo)
+
+  EndFor
+
+EndSub
+
+

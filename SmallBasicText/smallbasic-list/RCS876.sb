@@ -1,0 +1,811 @@
+'3D WireFrame Maze
+
+'by David R. Crutchfield (a.k.a. Pathdrc)
+
+'Version: 1.0
+
+'Date: 1/16/2010
+
+
+
+GraphicsWindow.BackgroundColor="Black"
+
+GraphicsWindow.Height = 600
+
+GraphicsWindow.Width = 800
+
+GraphicsWindow.Show()
+
+
+
+GraphicsWindow.KeyDown = ReadKey
+
+
+
+
+
+'Information frame on left
+
+GraphicsWindow.BrushColor = "Gainsboro"
+
+GraphicsWindow.FillRectangle(0,0,200,600)
+
+    'text in Info Frame
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.DrawText(48,1,"Adventurer's Name")
+
+    GraphicsWindow.DrawText(48,80,"Map Coordinates:")
+
+    GraphicsWindow.DrawText(5,220,"Forward = Up Arrow")
+
+    GraphicsWindow.DrawText(5,240,"Back = Down Arrow")
+
+    GraphicsWindow.DrawText(5,260,"Turn left = Left Arrow")
+
+    GraphicsWindow.DrawText(5,280,"Turn right = Right Arrow")
+
+    GraphicsWindow.DrawText(5,320,"To start over = Back Space")
+
+    GraphicsWindow.DrawText(5,340,"End program = Esc")
+
+
+
+'draw box around Maze-View window on the right
+
+ GraphicsWindow.PenColor = "White"
+
+ GraphicsWindow.PenWidth = 1
+
+ GraphicsWindow.DrawRectangle(200,0,600,600)
+
+ 
+
+'Map data
+
+
+
+' In advanced version there will be a MapWidth and MapHeight variable
+
+' to know how much to read from map data file.
+
+' (Map data file will be created by a Map Maker program.  That program
+
+' will allow users to create their own maps - future versions will allow for
+
+' placement of RPG type components like monsters and treasure.)
+
+
+
+  StartX = 5
+
+  StartY = 10
+
+  StartFacing = 1
+
+  Array.SetValue("mapdata",1,"00011100000000")
+
+  Array.SetValue("mapdata",2,"00010100000000")
+
+  Array.SetValue("mapdata",3,"00010111111111")
+
+  Array.SetValue("mapdata",4,"00010100000001")
+
+  Array.SetValue("mapdata",5,"0001011111110111111111111111")
+
+  Array.SetValue("mapdata",6,"0001000000000000000000000001")
+
+  Array.SetValue("mapdata",7,"0111011111110111111111111111")
+
+  Array.SetValue("mapdata",8,"01000100000001")
+
+  Array.SetValue("mapdata",9,"01110101111101")
+
+  Array.SetValue("mapdata",10,"00010100000001")
+
+  Array.SetValue("mapdata",11,"00011111111111")
+
+
+
+'Setup variables
+
+CurrentX = StartX
+
+CurrentY = StartY
+
+Facing = StartFacing '1 = north/up, 2 = east/right, 3 = south/down, 4 = west/left
+
+Main = "True"
+
+
+
+'Start main program
+
+While (Main)
+
+  DrawWalls()
+
+  DisplayCurrentXY() 'show coordinates in information frame.
+
+    loop = "True"
+
+    keyisupdated = "False"
+
+  WaitForKeyDownAndProcess()
+
+EndWhile
+
+
+
+Program.End()
+
+
+
+
+
+Sub WaitForKeyDownAndProcess
+
+  While (loop)
+
+    If (keyisupdated = "True") Then
+
+      
+
+      If (key = "Up") Then
+
+        'test if wall is blocking forward movement
+
+        If NoForward = "True" Then
+
+          HitWall()
+
+          keyisupdated = "False"
+
+        Else
+
+          loop = "False"
+
+          'find facing and update current position based on forward movement.
+
+          If Facing = 1 Then
+
+            CurrentY = CurrentY - 2
+
+          ElseIf Facing = 2 Then
+
+            CurrentX = CurrentX + 2
+
+          ElseIf Facing = 3 Then
+
+            CurrentY = CurrentY + 2
+
+          ElseIf Facing = 4 Then
+
+            CurrentX = CurrentX - 2
+
+          EndIf
+
+        EndIf
+
+        
+
+      EndIf
+
+      
+
+      If key = "Left" Then
+
+        NoForward = "False"
+
+        loop = "False"
+
+        Facing = Facing - 1
+
+        If Facing < 1 Then
+
+          Facing = 4
+
+        Endif
+
+      EndIf
+
+      
+
+      If key = "Right" Then
+
+        NoForward = "False"
+
+        loop = "False"
+
+        Facing = Facing + 1
+
+        If Facing > 4 Then
+
+          Facing = 1
+
+        EndIf
+
+      EndIf
+
+      
+
+      If key = "Down" Then
+
+        loop = "False"
+
+        'Make sure no wall behind you and then move back one.
+
+        If Facing = 1 and Text.GetSubText(Array.GetValue("mapdata",CurrentY + 1),CurrentX,1) = 0 Then
+
+          CurrentY = CurrentY + 2
+
+        ElseIf Facing = 2 and Text.GetSubText(Array.GetValue("mapdata",CurrentY),CurrentX - 1,1) = 0 Then
+
+          CurrentX = CurrentX - 2
+
+        ElseIf Facing = 3 and Text.GetSubText(Array.GetValue("mapdata",CurrentY - 1),CurrentX,1) = 0 Then
+
+          CurrentY = CurrentY - 2
+
+        ElseIf Facing = 4 and Text.GetSubText(Array.GetValue("mapdata",CurrentY),CurrentX + 1,1) = 0 Then
+
+          CurrentX = CurrentX + 2
+
+        Else
+
+          HitWall()
+
+        EndIf
+
+        keyisupdated = "False"
+
+      EndIf
+
+      
+
+      If key = "Back" Then
+
+        loop = "False"
+
+        keyisupdated = "False"
+
+        RestartMazeQuestion()
+
+      EndIf
+
+      
+
+      If (key = "Escape") Then
+
+        Main = "False"
+
+        loop = "False"
+
+      EndIf
+
+      
+
+    EndIf
+
+    
+
+  EndWhile
+
+  
+
+keyisupdated = "False"
+
+Sound.PlayClickAndWait()
+
+EndSub
+
+
+
+
+
+Sub DrawWalls
+
+  
+
+  EraseMazeWalls()
+
+  
+
+  'determine walls
+
+  
+
+  For fm = 0 to 4
+
+    WallSection1 = 0
+
+    WallSection2 = 0
+
+    WallSection3 = 0
+
+    
+
+    ' facing north/south
+
+    If Facing = 1 Or Facing = 3 Then
+
+      If Facing = 1 then
+
+        wd = 1
+
+      Else
+
+        wd = -1
+
+      EndIf
+
+      
+
+      If Text.GetSubText(Array.GetValue("mapdata",CurrentY - (fm * 2 * wd)),CurrentX - wd,1) = 1 Then
+
+        WallSection1 = 1
+
+      ElseIf Text.GetSubText(Array.GetValue("mapdata",CurrentY - (fm * 2 * wd + wd)),CurrentX - (2 * wd),1) = 1 Then
+
+        WallSection1 = 2
+
+      EndIf
+
+        
+
+      If Text.GetSubText(Array.GetValue("mapdata",CurrentY - (fm * 2 * wd + wd)),CurrentX,1) = 1 Then
+
+        WallSection2 = 1
+
+      EndIf
+
+      If Text.GetSubText(Array.GetValue("mapdata",CurrentY - (fm * 2 * wd)),CurrentX + wd,1) = 1 Then
+
+        WallSection3 = 1
+
+      ElseIf Text.GetSubText(Array.GetValue("mapdata",CurrentY-(fm * 2 * wd + (1 * wd))),CurrentX + (2 * wd),1) = 1 Then
+
+        WallSection3 = 2
+
+      EndIf
+
+      
+
+    EndIf
+
+    
+
+    ' facing east/west
+
+    If Facing = 2 Or Facing = 4 Then
+
+      If Facing = 2 then
+
+        wd = 1
+
+      Else
+
+        wd = -1
+
+      EndIf
+
+      
+
+      If Text.GetSubText(Array.GetValue("mapdata",CurrentY - (1 * wd)),CurrentX + (fm * 2 * wd),1) = 1 Then
+
+        WallSection1 = 1
+
+      ElseIf Text.GetSubText(Array.GetValue("mapdata",CurrentY - (2 * wd)),CurrentX + (fm * 2 * wd + (1 * wd)),1) = 1 Then
+
+        WallSection1 = 2
+
+      EndIf
+
+      
+
+      If Text.GetSubText(Array.GetValue("mapdata",CurrentY),CurrentX + (fm * 2 * wd + (1 * wd)),1) = 1 Then
+
+        WallSection2 = 1
+
+      EndIf
+
+      
+
+      If Text.GetSubText(Array.GetValue("mapdata",CurrentY + (1 * wd)),CurrentX + (fm * 2 * wd),1) = 1 Then
+
+        WallSection3 = 1
+
+      ElseIf Text.GetSubText(Array.GetValue("mapdata",CurrentY + (2 * wd)),CurrentX + (fm * 2 * wd + (1 * wd)),1) = 1 Then
+
+        WallSection3 = 2
+
+      EndIf
+
+      
+
+    EndIf
+
+    
+
+    
+
+    'draw the walls
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.PenWidth = 2
+
+    
+
+    If fm = 0 Then
+
+      ' immediate
+
+      If WallSection1 = 1 Then
+
+        GraphicsWindow.DrawLine(200,0,240,40)
+
+        GraphicsWindow.DrawLine(240,40,240,560)
+
+        GraphicsWindow.DrawLine(240,560,200,600)
+
+      EndIf
+
+      
+
+      If WallSection1 = 2 Then
+
+        GraphicsWindow.DrawLine(200,40,240,40)
+
+        GraphicsWindow.DrawLine(240,40,240,560)
+
+        GraphicsWindow.DrawLine(240,560,200,560)
+
+      EndIf
+
+      
+
+      If WallSection2 = 1 Then
+
+        GraphicsWindow.DrawLine(240,40,240,560)
+
+        GraphicsWindow.DrawLine(240,560,760,560)
+
+        GraphicsWindow.DrawLine(760,560,760,40)
+
+        GraphicsWindow.DrawLine(760,40,240,40)
+
+        fm = 4 'end wall drawing because you can't see any further
+
+        NoForward = "true"
+
+      EndIf
+
+      
+
+      If WallSection3 = 1 Then
+
+        GraphicsWindow.DrawLine(800,0,760,40)
+
+        GraphicsWindow.DrawLine(760,40,760,560)
+
+        GraphicsWindow.DrawLine(760,560,800,600)
+
+      EndIf
+
+      
+
+      If WallSection3 = 2 Then
+
+        GraphicsWindow.DrawLine(800,40,760,40)
+
+        GraphicsWindow.DrawLine(760,40,760,560)
+
+        GraphicsWindow.DrawLine(760,560,800,560) 
+
+      EndIf
+
+
+
+    Else
+
+  
+
+      ' greater than immediate
+
+      WallSize = 80
+
+      WallPositionLeftX = 240
+
+      WallPositionRightX = 760
+
+      WallPositionTopY = 40
+
+      WallPositionBottomY =560
+
+
+
+    
+
+      If fm > 1 Then
+
+        For count = 1 To fm-1
+
+          WallPositionLeftX = WallPositionLeftX + WallSize
+
+          WallPositionRightX = WallPositionRightX - WallSize
+
+          WallPositionTopY = WallPositionTopY + WallSize
+
+          WallPositionBottomY = WallPositionBottomY - WallSize
+
+          WallSize = WallSize - Math.Round(WallSize / 4)
+
+        EndFor
+
+      EndIf
+
+      
+
+      If WallSection1 = 1 Then
+
+        GraphicsWindow.DrawLine(WallPositionLeftX,WallPositionTopY,WallPositionLeftX + WallSize,WallPositionTopY + WallSize)
+
+        GraphicsWindow.DrawLine(WallPositionLeftX + WallSize,WallPositionTopY + WallSize,WallPositionLeftX + WallSize,WallPositionBottomY - WallSize)
+
+        GraphicsWindow.DrawLine(WallpositionLeftX + WallSize,WallPositionBottomY - WallSize,WallPositionLeftX,WallPositionBottomY)
+
+        GraphicsWindow.DrawLine(WallPositionLeftX,WallPositionBottomY,WallPositionLeftX,WallPositionTopY)
+
+      EndIf
+
+      
+
+      If WallSection1 = 2 Then
+
+        GraphicsWindow.DrawLine(WallPositionLeftX,WallPositionTopY + WallSize,WallPositionLeftX + WallSize,WallPositionTopY + WallSize)
+
+        GraphicsWindow.DrawLine(WallPositionLeftX + WallSize,WallPositionTopY + WallSize,WallPositionLeftX + WallSize,WallPositionBottomY - WallSize)
+
+        GraphicsWindow.DrawLine(WallpositionLeftX + WallSize,WallPositionBottomY - WallSize,WallPositionLeftX,WallPositionBottomY - WallSize)
+
+        GraphicsWindow.DrawLine(WallPositionLeftX,WallPositionBottomY - WallSize,WallPositionLeftX,WallPositionTopY + WallSize)
+
+      EndIf
+
+      
+
+      If WallSection2 = 1 Then
+
+        GraphicsWindow.DrawLine(WallPositionLeftX + WallSize,WallPositionTopY + WallSize,WallPositionRightX - WallSize,WallPositionTopY + WallSize)
+
+        GraphicsWindow.DrawLine(WallPositionRightX - WallSize,WallPositionTopY + WallSize,WallPositionRightX - WallSize,WallPositionBottomY - WallSize)
+
+        GraphicsWindow.DrawLine(WallPositionRightX - WallSize,WallPositionBottomY - WallSize,WallpositionLeftX + WallSize,WallPositionBottomY - WallSize)
+
+        GraphicsWindow.DrawLine(WallpositionLeftX + WallSize,WallPositionBottomY - WallSize,WallPositionLeftX + WallSize,WallPositionTopY + WallSize)
+
+        fm = 4 'end wall drawing because you can't see any further
+
+      EndIf
+
+      
+
+      If WallSection3 = 1 Then
+
+        GraphicsWindow.DrawLine(WallPositionRightX,WallPositionTopY,WallPositionRightX - WallSize,WallPositionTopY + WallSize)
+
+        GraphicsWindow.DrawLine(WallPositionRightX - WallSize,WallPositionTopY + WallSize,WallPositionRightX - WallSize,WallPositionBottomY - WallSize)
+
+        GraphicsWindow.DrawLine(WallPositionRightX - WallSize,WallPositionBottomY - WallSize,WallPositionRightX,WallPositionBottomY)
+
+        GraphicsWindow.DrawLine(WallPositionRightX,WallPositionBottomY,WallPositionRightX,WallPositionTopY)
+
+      EndIf
+
+      
+
+      If WallSection3 = 2 Then
+
+        GraphicsWindow.DrawLine(WallPositionRightX,WallPositionTopY + WallSize,WallPositionRightX - WallSize,WallPositionTopY + WallSize)
+
+        GraphicsWindow.DrawLine(WallPositionRightX - WallSize,WallPositionTopY + WallSize,WallPositionRightX - WallSize,WallPositionBottomY - WallSize)
+
+        GraphicsWindow.DrawLine(WallPositionRightX - WallSize,WallPositionBottomY - WallSize,WallPositionRightX,WallPositionBottomY - WallSize)
+
+        GraphicsWindow.DrawLine(WallPositionRightX,WallPositionBottomY - WallSize,WallPositionRightX,WallPositionTopY + WallSize)
+
+      EndIf
+
+    
+
+    EndIf
+
+  
+
+  EndFor
+
+  
+
+EndSub
+
+
+
+
+
+Sub HitWall
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.DrawText(483,295,"Ouch!")  
+
+  'play sound to indicate hit wall
+
+  Sound.PlayAndWait("C:\WINDOWS\Media\Windows XP Battery Low.wav")
+
+  Sound.Stop("C:\WINDOWS\Media\Windows XP Battery Low.wav")
+
+  
+
+  '[TODO]'s 
+
+  'maybe put "OUCH" in maze view
+
+  'put message in information frame that you ran into a wall 
+
+  '(IDEA: when secret walls are implemented, make some sound like magic or "swush" like sound when walking through secret wall)
+
+  'Note: be sure to clear both messages once a succesful Forward, left, right, or back move has been made.
+
+EndSub
+
+
+
+
+
+Sub ReadKey
+
+    key = GraphicsWindow.LastKey
+
+    keyisupdated = "True"
+
+EndSub
+
+
+
+
+
+Sub EraseMazeWalls
+
+  'erase walls from maze-view window
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.FillRectangle(202,2,596,596)
+
+
+
+
+
+  'draw box around Maze-View window on the right
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.PenWidth = 4
+
+  GraphicsWindow.DrawRectangle(200,0,600,600)
+
+EndSub
+
+
+
+
+
+Sub DisplayCurrentXY
+
+  'erase old coordinates
+
+  GraphicsWindow.BrushColor = "Gainsboro"
+
+  GraphicsWindow.FillRectangle(48,95,110,45)
+
+  
+
+  'display new coordinates
+
+  GraphicsWindow.BrushColor = "Black"
+
+  tempX = (CurrentX - 1) / 2
+
+  tempY = (CurrentY) / 2
+
+  CoordinatesText = "X = " + tempX + " Y = " + tempY
+
+  DirectionText = "Facing: "
+
+  If Facing = 1 Then
+
+    DirectionText = DirectionText + "North"
+
+  ElseIf Facing = 2 Then
+
+    DirectionText = DirectionText + "East"
+
+  ElseIf Facing = 3 Then
+
+    DirectionText = DirectionText + "South"
+
+  Else
+
+    DirectionText = DirectionText + "West"
+
+  EndIf
+
+  
+
+  GraphicsWindow.DrawText(48,95,CoordinatesText)
+
+  GraphicsWindow.DrawText(48,110,DirectionText)
+
+  
+
+EndSub
+
+
+
+
+
+Sub RestartMazeQuestion
+
+  
+
+  RestartMazeQuestionAnswered = "False"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawText(5,400,"You pressed the Backspace key.")
+
+  GraphicsWindow.DrawText(5,415,"Do you really wish to restart")
+
+  GraphicsWindow.DrawText(5,430,"the maze?")
+
+  While (RestartMazeQuestionAnswered = "False")
+
+    
+
+    If text.ConvertToLowerCase(key) = "y" Then
+
+      CurrentX = StartX
+
+      CurrentY = StartY
+
+      Facing = StartFacing
+
+      RestartMazeQuestionAnswered = "True"
+
+    ElseIf text.ConvertToLowerCase(key) = "n" Then
+
+      RestartMazeQuestionAnswered = "True"
+
+    EndIf
+
+    
+
+  EndWhile
+
+  
+
+  'erase Restart Maze message
+
+  GraphicsWindow.BrushColor = "Gainsboro"
+
+  GraphicsWindow.FillRectangle(5,400,195,595)
+
+  
+
+EndSub
+
+

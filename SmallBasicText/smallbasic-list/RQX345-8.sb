@@ -1,0 +1,463 @@
+' Graph - Sin, Cos and Tan
+
+' Version 0.9
+
+' Copyright © 2015-2018 Nonki Takahashi.  The MIT License.
+
+' Last update 2018-12-09
+
+' Program ID RQX345-8
+
+
+
+GraphicsWindow.Title = "Graph 0.9"
+
+Not = "True=False;False=True;"
+
+color = "1=#CC0033FF;2=#CC339900;3=#CCFF6600;"
+
+Form()
+
+For fid = 1 To 3
+
+  _gwx = ""
+
+  GraphicsWindow.PenColor = color[fid]
+
+  GraphicsWindow.DrawLine(10 + (fid - 1) * 60, 16, 30 + (fid - 1) * 60, 16)
+
+  Fx_GetProperties()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawText(34 + (fid - 1) * 60, 10, textFx)
+
+  dx = 0.01
+
+  For p = 1 To part
+
+    Graph_Draw()
+
+  EndFor
+
+EndFor
+
+
+
+Sub Form
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "LightGray"
+
+  GraphicsWindow.FontName = "Arial"
+
+  param = "x=10;"
+
+  param["width"] = gw - 20
+
+  param["y"] = 30
+
+  param["height"] = gh - 40
+
+  Graph_SetGWViewPort()
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillRectangle(param["x"], param["y"], param["width"], param["height"])
+
+  x1 = -6.5
+
+  param["x"] = x1
+
+  x2 = 6.5
+
+  param["width"] = x2 - x1
+
+  param["height"] = -param["width"] / (gw - 20) * (gh - 40)
+
+  y1 = -param["height"] / 2
+
+  y2 = param["height"] / 2
+
+  param["y"] = y1
+
+  Graph_SetLogicalViewPort()
+
+  GraphicsWindow.PenColor = "#11000000"
+
+  dx = 0.1
+
+  dy = 0.1
+
+  Graph_DrawGrid()
+
+  GraphicsWindow.PenColor = "#22000000"
+
+  GraphicsWindow.BrushColor = "#333333"
+
+  dx = 1
+
+  dy = 1
+
+  num = "True"
+
+  Graph_DrawGrid()
+
+  GraphicsWindow.PenColor = "Gray"
+
+  GraphicsWindow.DrawRectangle(10, 30, gw - 20, gh - 40)
+
+  ox = gwx1 + 300
+
+  oy = gwy1 + 300
+
+EndSub
+
+
+
+Sub Fx
+
+  ' param fid - function ID
+
+  If fid = 1 Then
+
+    y = Math.Sin(x)
+
+  ElseIf fid = 2 Then
+
+    y = Math.Cos(x)
+
+  Else
+
+    y = Math.Tan(x)
+
+  EndIf
+
+EndSub
+
+
+
+Sub Fx_GetProperties
+
+  ' param fid - function ID
+
+  If fid = 1 Then
+
+    textFx = "Sin"
+
+  ElseIf fid = 2 Then
+
+    textFx = "Cos"
+
+  Else
+
+    textFx = "Tan"
+
+  EndIf
+
+  minX[1] = x1
+
+  maxX[1] = x2
+
+  continuous[1] = "True"
+
+  part = 1
+
+EndSub
+
+
+
+Sub Graph_Draw
+
+  For p = 1 To part
+
+    For x = minX[p] To maxX[p] Step dx
+
+      Fx()
+
+      Graph_DrawLine()
+
+      _x = x
+
+      _y = y
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub Graph_SetGWViewPort
+
+  ' param["x"]
+
+  ' param["y"]
+
+  ' param["width"]
+
+  ' param["height"]
+
+  gwvp = param
+
+EndSub
+
+
+
+Sub Graph_SetLogicalViewPort
+
+  ' param["x"]
+
+  ' param["y"]
+
+  ' param["width"]
+
+  ' param["height"]
+
+  vp = param
+
+EndSub
+
+
+
+Sub Graph_ToGWCoordinate
+
+  ' param x, y - logical co-ordinate
+
+  ' return gwx, gwy - graphics window co-ordinate
+
+  gwx = gwvp["x"] + (x - vp["x"]) / vp["width"] * gwvp["width"]
+
+  gwy = gwvp["y"] + (y - vp["y"]) / vp["height"] * gwvp["height"]
+
+EndSub
+
+
+
+Sub Graph_DrawLine
+
+  ' param x, y - logical  point to endt line 
+
+  ' param _x, _y - logical point to start line
+
+  If x = 0 Then ' for SB 1.2
+
+    sign = 0
+
+  Else
+
+    sign = x / Math.Abs(x)
+
+  EndIf
+
+  Graph_ToGWCoordinate()
+
+  If _gwx <> "" And (continuous[p] Or (Not[continuous[p]] And Math.Abs(gwy - _gwy) < 30)) Then
+
+    If y2 <= _y And _y <= y1 And y2 <= y And y <= y1 Then
+
+      GraphicsWindow.DrawLine(_gwx, _gwy, gwx, gwy)
+
+    ElseIf y2 <= _y And _y <= y1 Then
+
+      Stack.PushValue("local", x)
+
+      Stack.PushValue("local", y)
+
+      Stack.PushValue("local", gwx)
+
+      Stack.PushValue("local", gwy)
+
+      If y < y2 Then
+
+        k = (_y - y2) / (_y - y)
+
+        x = (1 - k) * _x + k * x
+
+        y = y2
+
+      Else
+
+        k = (y1 - _y) / (y - _y)
+
+        x = (1 - k) * _x + k * x
+
+        y = y1
+
+      EndIf
+
+      Graph_ToGWCoordinate()
+
+      GraphicsWindow.DrawLine(_gwx, _gwy, gwx, gwy)
+
+      gwy = Stack.PopValue("local")
+
+      gwx = Stack.PopValue("local")
+
+      y = Stack.PopValue("local")
+
+      x = Stack.PopValue("local")
+
+    ElseIf y2 <= y And y <= y1 Then
+
+      Stack.PushValue("local", x)
+
+      Stack.PushValue("local", y)
+
+      Stack.PushValue("local", gwx)
+
+      Stack.PushValue("local", gwy)
+
+      Stack.PushValue("local", _gwx)
+
+      Stack.PushValue("local", _gwy)
+
+      _gwx = gwx
+
+      _gwy = gwy
+
+      If _y < y2 Then
+
+        k = (y - y2) / (y - _y)
+
+        x = (1 - k) * x + k * _x
+
+        y = y2
+
+      Else
+
+        k = (y1 - y) / (_y - y)
+
+        x = (1 - k) * x + k * _x
+
+        y = y1
+
+      EndIf
+
+      Graph_ToGWCoordinate()
+
+      GraphicsWindow.DrawLine(_gwx, _gwy, gwx, gwy)
+
+      _gwy = Stack.PopValue("local")
+
+      _gwx = Stack.PopValue("local")
+
+      gwy = Stack.PopValue("local")
+
+      gwx = Stack.PopValue("local")
+
+      y = Stack.PopValue("local")
+
+      x = Stack.PopValue("local")
+
+    EndIf
+
+  EndIf
+
+  _gwx = gwx
+
+  _gwy = gwy
+
+EndSub
+
+
+
+Sub Graph_DrawGrid
+
+  ' param x1, y1 - logical left top of the grid
+
+  ' param x2, y2 - logical right bottom of the grid
+
+  ' param dx, dy - logical grid pitch
+
+  x = x1
+
+  y = y1
+
+  Graph_ToGWCoordinate()
+
+  gwx1 = gwx
+
+  gwy1 = gwy
+
+  x = x2
+
+  y = y2
+
+  Graph_ToGWCoordinate()
+
+  gwx2 = gwx
+
+  gwy2 = gwy
+
+  x = 0
+
+  For y = 0 To y2 Step -dy
+
+    Graph_ToGWCoordinate()
+
+    GraphicsWindow.DrawLine(gwx1, gwy, gwx2, gwy)
+
+    If num Then
+
+      GraphicsWindow.DrawText(gwx + 2, gwy, y)
+
+    EndIf
+
+  EndFor
+
+  For y = 0 To y1 Step dy
+
+    Graph_ToGWCoordinate()
+
+    GraphicsWindow.DrawLine(gwx1, gwy, gwx2, gwy)
+
+    If num Then
+
+      GraphicsWindow.DrawText(gwx + 2, gwy, y)
+
+    EndIf
+
+  EndFor
+
+  y = 0
+
+  For x = 0 To x2 Step dx
+
+    Graph_ToGWCoordinate()
+
+    GraphicsWindow.DrawLine(gwx, gwy1, gwx, gwy2)
+
+    If num Then
+
+      GraphicsWindow.DrawText(gwx + 2, gwy, x)
+
+    EndIf
+
+  EndFor
+
+  For x = 0 To x1 Step -dx
+
+    Graph_ToGWCoordinate()
+
+    GraphicsWindow.DrawLine(gwx, gwy1, gwx, gwy2)
+
+    If num Then
+
+      GraphicsWindow.DrawText(gwx + 2, gwy, x)
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+

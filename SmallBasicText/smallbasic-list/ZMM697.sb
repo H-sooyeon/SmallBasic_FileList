@@ -1,0 +1,239 @@
+mode = 24     ' 24 or 12  hour display
+
+fontSize = 200  ' 360  ' 100
+
+tCycl = 1000    ' duration for a single flip cycle
+
+tChange = tCycl/2
+
+
+
+hh = Math.Remainder(Clock.Hour, mode) '' Clock.Hour always 0-23 ??
+
+mm = Clock.Minute                   '' no leading zero
+
+sec = Clock.Second                  '' no leading zero
+
+hh = Text.Append(LDLogic.Switch(LDMath.Evaluate3(hh+"<10"), "0",""), hh)  ' or  .. 0,""), hh)
+
+mm = Text.Append(LDLogic.Switch(LDMath.Evaluate3(mm+"<10"), "0",""), mm)  ' or  .. 0,""), mm)
+
+BuildGUI()
+
+
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.MouseUp = OnMouseUp
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+Timer.Interval = 1000
+
+Timer.Tick = OnTimerTick
+
+
+
+While 1=1
+
+  If countUp Then
+
+    countUp = ""
+
+    
+
+    LDShapes.AnimateZoom(shpCardMM, tCycl, 1, 1,0)
+
+    
+
+    mm = mm+1
+
+    If mm >= 60 Then                  ' Update hh and mm
+
+      lastH = hh
+
+      hh = Math.Remainder(hh+1, mode)
+
+      mm = Math.Remainder(mm, 60)
+
+      LDShapes.AnimateZoom(shpCardHH, tCycl, 1, 1,0)
+
+    EndIf
+
+    
+
+    If Text.GetLength(hh) < 2 Then    ' If hh < 10 Then
+
+      hh = Text.Append("0", hh)
+
+    EndIf
+
+    If Text.GetLength(mm) < 2 Then    ' If mm < 10 Then
+
+      mm = Text.Append("0", mm)
+
+    EndIf
+
+    
+
+    Program.Delay(tChange)
+
+    Shapes.SetText(shpCardMM, mm)
+
+    If 1*hh <> 1*lastH Then           ' hh was updated
+
+      Shapes.SetText(shpCardHH, hh)
+
+    EndIf
+
+    
+
+  EndIf
+
+  Program.Delay(20)
+
+EndWhile
+
+
+
+Sub OnTimerTick
+
+  If 1*mm <> Clock.Minute Then
+
+    countUp = "True"
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  If Mouse.IsRightButtonDown Then
+
+    LDGraphicsWindow.TopMost = LDLogic.Not(LDGraphicsWindow.TopMost)  '  .. Toggle TopMost/Normal
+
+    Shapes.SetText(shpPin, LDLogic.Switch(LDGraphicsWindow.TopMost, pin, ""))
+
+  Else
+
+    xOff = GraphicsWindow.MouseX  ' Drag with mouse
+
+    yOff = GraphicsWindow.MouseY
+
+    dragOn = "True"
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseUp
+
+  dragOn = ""
+
+EndSub
+
+
+
+Sub OnMouseMove
+
+  If dragOn Then
+
+    GraphicsWindow.Left = Mouse.MouseX - xOff
+
+    GraphicsWindow.Top = Mouse.MouseY - yOff
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  If lastKey = "Escape" Then        ' Exit
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+
+
+Sub BuildGUI
+
+  LDGraphicsWindow.TransparentGW()
+
+  GraphicsWindow.Title = "Flipcard Clock"
+
+  GraphicsWindow.FontName = "NOTO mono
+
+  GraphicsWindow.FontBold = ""
+
+  GraphicsWindow.FontSize = fontSize
+
+  GraphicsWindow.BrushColor = "Silver"
+
+  shpCardHH = Shapes.AddText(hh)
+
+  LDEffect.DropShadow(shpCardHH "")
+
+  cardW = LDShapes.Width(shpCardHH)
+
+  cardH = LDShapes.Height(shpCardHH)
+
+  GraphicsWindow.Width = 2 * cardW + 40
+
+  GraphicsWindow.Height = cardH+15
+
+  brush = LDShapes.BrushGradient("1=#999999;2=#101010;","V")      ' ... as Alternative
+
+  brush1 = LDShapes.BrushGradient("1=#55666666;2=#44000000;","V")      ' ... as Alternative
+
+  LDShapes.BrushRoundedRectangle(brush1, 10,10, cardW,cardH, 30)
+
+  LDShapes.BrushRoundedRectangle(brush, 0,0, cardW,cardH, 30)
+
+  shpCardMM = Shapes.AddText(mm)
+
+  LDEffect.DropShadow(shpCardMM "")
+
+  Shapes.Move(shpCardMM, cardW+20,0)
+
+  LDShapes.BrushRoundedRectangle(brush1, cardW+30,10, cardW,cardH, 30)
+
+  LDShapes.BrushRoundedRectangle(brush, cardW+20,0, cardW,cardH, 30)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  shpBarHH = Shapes.AddRectangle(cardW, 10)     ' perhaps 10 looks too thick with a low fontSize
+
+  Shapes.Move(shpBarHH, 0, cardH/2 - 10)         ' -10/2)
+
+  shpBarMM = Shapes.AddRectangle(cardW, 10)     ' 10)
+
+  Shapes.Move(shpBarMM, cardW+20, cardH/2 - 10)  ' -10/2)
+
+  GraphicsWindow.BrushColor = "Orange"  '"Red"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.FontName = "Webdings"
+
+  pin = "ë"
+
+  shpPin = Shapes.AddText("")
+
+  Shapes.Move(shpPin, cardW, 20)
+
+EndSub
+
+

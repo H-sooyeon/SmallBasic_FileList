@@ -1,0 +1,443 @@
+' ============================================================================
+
+' ============================================================================
+
+' Example of how to create Indexes and perform Case-Insensitive Searches (including wildcard searches) 
+
+' for SmallBasic v.0.8
+
+' by Davey~Wavey, April 30th 2010                                      (adapted from martmen's example:KBM363)
+
+'
+
+' As it stands, it handles wildcard searches like: *rock, rock*, and *rock*
+
+'
+
+' I will leave the coding of character wildcards (?) for you to play with :-)
+
+' ============================================================================
+
+' ============================================================================
+
+
+
+Init()
+
+makeIndexes()
+
+
+
+SearchN = "?"
+
+While SearchN <> "" 
+
+  TextWindow.Clear()
+
+  For i = 1 To Array.GetItemCount(A)
+
+    TextWindow.WriteLine(A[i])
+
+  EndFor 
+
+  TextWindow.WriteLine("_________________________________________________________")
+
+  TextWindow.Write("Enter Artist or Track Title to find. Use * for wildcard searches: ")
+
+  SearchN = TextWindow.Read()
+
+  
+
+  Search()
+
+  showResults()
+
+  
+
+  TextWindow.WriteLine("_________________________________________________________")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.Pause()
+
+EndWhile 
+
+Program.End()
+
+
+
+'**********************************************************************************************************
+
+
+
+Sub Init
+
+  ' here we populate our music collection array
+
+  ' format:  <Artist> - <Track Title>
+
+  
+
+  A[1] = "Queen - We will rock you"
+
+  A[2] = "Abba - Dancing queen"    
+
+  A[3] = "Costa Cordales - Sieben Fässer Wein"       
+
+  A[4] = "Queen - Bycicle race"
+
+  A[5] = "Cindy und Bert - Love Love Love"
+
+  A[6] = "Extrabreit - Extrabreit" 
+
+  A[7] = "Beatles - Love Love Love"
+
+EndSub   
+
+
+
+
+
+Sub makeIndexes
+
+  ' This sub builds the relevant index arrays to make searching the Artist/Title array faster
+
+  ' Two arrays are created: 
+
+  '   iArtist - contains One entry per Artist name, plus all ID's from the A[] array that match the Artist
+
+  '   iTitle   - contains One entry per Track Title, plus all ID's from the A[] array that match this Title
+
+  ' eg. 
+
+  '     QUEEN=Queen=1;4;
+
+  '     LOVE LOVE LOVE=Love Love Love=5;7;
+
+  
+
+  separator = " - " ' text indicating separator between Artist and Title
+
+  
+
+  For lwp = 1 to Array.GetItemCount(A)
+
+    artist = Text.GetSubText( A[lwp], 1, Text.GetIndexOf( A[lwp], separator )-1 )
+
+    uArtist = Text.ConvertToUpperCase( artist ) ' for case-sensitive searches, don't perform the conversion here, but all case differences will create a new index entry
+
+    iArtist[uArtist]["Artist"] = artist
+
+    iArtist[uArtist] = iArtist[uArtist] + lwp + "=" + lwp + ";"   ' build 2D array. eg. queen=1=1;4=4;
+
+    
+
+    title = Text.GetSubTextToEnd( A[lwp], Text.GetIndexOf( A[lwp], separator )+Text.GetLength(separator) )
+
+    uTitle = Text.ConvertToUpperCase( title ) ' for case-sensitive searches, don't perform the conversion here, but all case differences will create a new index entry
+
+    iTitle[uTitle]["Title"] = title
+
+    iTitle[uTitle] = iTitle[uTitle] + lwp + "=" + lwp + ";"   
+
+  EndFor
+
+EndSub
+
+
+
+
+
+
+
+Sub showResults
+
+  ' This sub simply displays any results contained in the searchResults[] array
+
+  ' or displays a 'none found' message
+
+  
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("Results: ")
+
+  TextWindow.WriteLine("")
+
+  
+
+  If resultID = 0 Then
+
+    TextWindow.WriteLine( "No matches found." )
+
+  Else
+
+    For lwp=1 to resultID
+
+      TextWindow.WriteLine( searchResult[lwp] )
+
+    EndFor
+
+  EndIf
+
+EndSub  
+
+
+
+
+
+
+
+Sub Search
+
+  ' This sub determines which search method to use, then gets the relevant results
+
+  
+
+  uSearch = Text.ConvertToUpperCase( SearchN )
+
+  searchResult = ""
+
+  resultID = 0
+
+  
+
+  If Text.IsSubText( uSearch, "*") Then
+
+    ' wildcard specified, so do a wild search  -  slow!
+
+    SearchWildStar()
+
+    
+
+  ElseIf Text.IsSubText( uSearch, "?") Then
+
+    ' character wildcards specified  -  will be slow!
+
+    'SearchWildQuery()    - not coded yet!
+
+    
+
+  Else
+
+    ' looking for a complete match against index   -   fastest method!
+
+    
+
+    ' get Artist matches
+
+    If Array.ContainsIndex( iArtist, uSearch ) Then
+
+      searchTracks = iArtist[uSearch]   ' pull results into a common variable so we can use a single getResults() sub
+
+      getResults()
+
+    EndIf
+
+    
+
+    ' get Track Title matches
+
+    If Array.ContainsIndex( iTitle, uSearch ) Then
+
+      searchTracks = iTitle[uSearch]
+
+      getResults()
+
+    EndIf
+
+    
+
+  EndIf ' search type
+
+EndSub
+
+
+
+
+
+
+
+Sub searchWildStar
+
+  ' handle * wildcard search strings
+
+  ' we now have to trawl every item in the index array to find all possible matches - slow!
+
+  
+
+  swStarFlag="NN" ' initialise the flags
+
+  
+
+  ' wildcard at beginning and end: eg. *queen*
+
+  If text.GetSubText(uSearch,1,1) = "*" AND Text.GetSubText(uSearch, Text.GetLength(uSearch), 1) = "*" Then
+
+    swStarFlag = "YY" ' First flag=wildcard begins search text (eg. *stones), Second flag=wildcard ends search text (eg. beat*), Both flags=wildcard starts and ends text (eg. *who*)
+
+    uSearch = Text.GetSubText( uSearch, 2, Text.GetLength(uSearch)-2 )
+
+  EndIf
+
+  
+
+  ' wildcard at beginning: eg. *stones
+
+  If text.GetSubText(uSearch,1,1) = "*" Then
+
+    swStarFlag = "YN"
+
+    uSearch = Text.GetSubTextToEnd( uSearch, 2)
+
+  EndIf
+
+  
+
+  ' wildcard at end: eg. rolling*
+
+  If text.GetSubText(uSearch, Text.GetLength(uSearch), 1) = "*" Then
+
+    swStarFlag = "NY"
+
+    uSearch = Text.GetSubText( uSearch, 1, Text.GetLength(uSearch)-1 )
+
+  EndIf
+
+  
+
+  ' Artist search
+
+  swIndeces = Array.GetAllIndices( iArtist )
+
+  For lwp = 1 To Array.GetItemCount( swIndeces )
+
+    If swStarFlag="YY" Then
+
+      If Text.IsSubText( swIndeces[lwp], uSearch ) Then
+
+        searchTracks = iArtist[ swIndeces[lwp] ]
+
+        getResults()
+
+      EndIf
+
+    EndIf
+
+    If swStarFlag="YN" Then
+
+      If Text.EndsWith( swIndeces[lwp], uSearch ) Then
+
+        searchTracks = iArtist[ swIndeces[lwp] ]
+
+        getResults()
+
+      EndIf
+
+    EndIf
+
+    If swStarFlag="NY" Then
+
+      If Text.StartsWith( swIndeces[lwp], uSearch ) Then
+
+        searchTracks = iArtist[ swIndeces[lwp] ]
+
+        getResults()
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  
+
+  ' Track Title search
+
+  swIndeces = Array.GetAllIndices( iTitle )
+
+  For lwp = 1 To Array.GetItemCount( swIndeces )
+
+    If swStarFlag="YY" Then
+
+      If Text.IsSubText( swIndeces[lwp], uSearch ) Then
+
+        searchTracks = iTitle[ swIndeces[lwp] ]
+
+        getResults()
+
+      EndIf
+
+    EndIf
+
+    If swStarFlag="YN" Then
+
+      If Text.EndsWith( swIndeces[lwp], uSearch ) Then
+
+        searchTracks = iTitle[ swIndeces[lwp] ]
+
+        getResults()
+
+      EndIf
+
+    EndIf
+
+    If swStarFlag="NY" Then
+
+      If Text.StartsWith( swIndeces[lwp], uSearch ) Then
+
+        searchTracks = iTitle[ swIndeces[lwp] ]
+
+        getResults()
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub getResults
+
+  ' This sub pulls the Artist and Title details out of the original 'A' array
+
+  ' and populates an array called 'searchResult[]'
+
+  
+
+  ' check if more than one item indexed - if so, get them all
+
+  grItems = Array.GetItemCount( searchTracks )
+
+  If grItems > 2 Then
+
+    grIndeces = Array.GetAllIndices( searchTracks ) ' need to build a new array containing sequential indices so that our grLwp will work
+
+    For grLwp = 2 To grItems
+
+      resultID = resultID + 1                       ' track the number of results we've found so far
+
+      searchResult[ resultID ] = A[ searchTracks[grIndeces[grLwp]] ]
+
+    EndFor
+
+    
+
+  Else  ' only one item indexed
+
+    resultID = resultID + 1
+
+    grIndeces = Array.GetAllIndices( searchTracks )
+
+    searchResult[ resultID ] = A[ searchTracks[grIndeces[2]] ]
+
+  EndIf
+
+EndSub
+
+

@@ -1,0 +1,495 @@
+Initialise()
+
+
+
+While 0=0
+
+  GraphicsWindow.PenColor = selectedPenColor  'put this in a penColor btn (more btns)
+
+  
+
+  'BUTTON EVENTS w/  MANAGER
+
+  If buttonClicked Then
+
+    TaskManager()
+
+    buttonClicked = "False"
+
+  EndIf
+
+  
+
+  'MOUSE TRACKING
+
+  UpdateMousePosition()  
+
+  CheckIfMouseIsOverCanvas()    
+
+  
+
+  'TASKS (one at a time)  - can include pen and menu tasks as well
+
+  If currentTask = "Free" And Mouse.IsLeftButtonDown And mouseIsOverCanvas Then  
+
+    DrawFreeHand()
+
+  ElseIf currentTask = "Rect" And Mouse.IsLeftButtonDown And mouseIsOverCanvas Then 
+
+    DrawRectangle()
+
+  ElseIf currentTask = "Clear" Then
+
+    ClearCanvas()  
+
+  ElseIf currentTask = "PColr" Then
+
+    SelectPenColor()
+
+    currentTask = ""
+
+  EndIf
+
+  
+
+  Program.Delay(20)
+
+EndWhile
+
+
+
+'=============================================================
+
+'TASKS
+
+'=============================================================
+
+Sub DrawRectangle  'by Jibba
+
+  If prevX = "" Then    'prevX is reset to ""  in ClearCanvas()
+
+    prevX = mseX
+
+    prevY = mseY
+
+  EndIf
+
+  width = mseX - prevX
+
+  height = mseY - prevY  
+
+  
+
+  If width > 0 And height > 0 Then 
+
+    'CLEAR CANVAS
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.FillRectangle(canvasLeft, canvasTop, canvasWidth, canvasHeight)
+
+    
+
+    'DRAW RECTANGLE
+
+    GraphicsWindow.PenColor = selectedPenColor  
+
+    GraphicsWindow.DrawRectangle(prevX, prevY, width, height)    
+
+  EndIf
+
+EndSub
+
+
+
+Sub DrawFreeHand
+
+  If prevX = "" Then
+
+    prevX = mseX
+
+    prevY = mseY
+
+  EndIf        
+
+  GraphicsWindow.DrawLine(prevX, prevY, mseX, mseY)
+
+  prevX = mseX
+
+  prevY = mseY
+
+EndSub
+
+
+
+Sub ClearCanvas
+
+  prevX = ""
+
+  DrawCanvas()
+
+  currentTask = ""
+
+  nextTask = ""
+
+EndSub
+
+
+
+'=========================================================
+
+'MANAGER
+
+'=========================================================
+
+Sub TaskManager  
+
+  nextTask = Controls.GetButtonCaption(Controls.LastClickedButton)    
+
+  If nextTask <> currentTask Then
+
+    currentTask = nextTask
+
+  EndIf
+
+EndSub 
+
+
+
+'=========================================================
+
+'MOUSE TRACKING
+
+'=========================================================
+
+Sub UpdateMousePosition
+
+  mseX = GraphicsWindow.MouseX
+
+  mseY = GraphicsWindow.MouseY
+
+EndSub
+
+
+
+Sub CheckIfMouseIsOverCanvas
+
+  mouseIsOverCanvas = "False"
+
+  If mseX > canvasLeft And mseX < canvasLeft + canvasWidth Then
+
+    If mseY > canvasTop And mseY < canvasTop + canvasHeight Then 
+
+      mouseIsOverCanvas = "True"  
+
+    EndIf  
+
+  EndIf
+
+EndSub
+
+
+
+'=========================================================
+
+'SETUP
+
+'=========================================================
+
+Sub Initialise
+
+  'GLOBALS
+
+  space = 5
+
+  margin = 10
+
+  defaultPenColor = GraphicsWindow.PenColor
+
+  defaultBrushColor = GraphicsWindow.BrushColor
+
+  
+
+  'ADD TOOLS
+
+  size = 30
+
+  caption = "1=Line;2=Free;3=Rect;4=Squa;5=Elip;6=Circ;7=Tria;8=Clear;9=PColr;
+
+  nCaption = Array.GetItemCount(caption)
+
+  
+
+  For row = 1 To Math.Ceiling(nCaption / 2)  '<<<<<<<<<<<<<<<<<by Nonki, interesting
+
+    Y = (row - 1) * (space + size) + margin + margin *10
+
+    For column = 1 To 2
+
+      If (row - 1) * 2 + column <= nCaption Then
+
+        X = (column - 1) * (space + size *2) + margin
+
+        i = i + 1
+
+        btn[i] = Controls.AddButton(caption[i], X, Y)
+
+        Controls.SetSize(btn[i], size *2, size)
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  GraphicsWindow.FontSize = 20
+
+  toolsTitle = Shapes.AddText("Tools")
+
+  Shapes.Move(toolsTitle, margin, margin *11 - 25)  
+
+  
+
+  'ADD CANVAS
+
+  canvasLeft = 2 * (margin + size *2) + space
+
+  canvasTop = margin * 11
+
+  canvasWidth = GraphicsWindow.Width - canvasLeft - margin
+
+  canvasHeight = GraphicsWindow.Height - canvasTop - margin
+
+  
+
+  DrawCanvas()
+
+  
+
+  GraphicsWindow.BrushColor = defaultBrushColor
+
+  canvasTitle = Shapes.AddText("Canvas")
+
+  Shapes.Move(canvasTitle, canvasLeft, margin *11 - 25)
+
+  
+
+  'SELECT A PEN COLOR
+
+  GraphicsWindow.PenColor = "Green"
+
+  selectedPenColor = GraphicsWindow.PenColor
+
+  
+
+  'SELECT A PENWIDTH
+
+  GraphicsWindow.PenWidth = 5
+
+  selectedPenWidth = GraphicsWindow.PenWidth
+
+  
+
+  'REGISTER EVENTS
+
+  Controls.ButtonClicked = OnButtonClicked
+
+EndSub
+
+
+
+Sub OnButtonClicked
+
+  buttonClicked = "True"
+
+EndSub
+
+
+
+'========================================================
+
+'2ND ORDER SUBS
+
+'========================================================
+
+Sub DrawCanvas
+
+  GraphicsWindow.PenWidth = 3
+
+  GraphicsWindow.PenColor = defaultPenColor  
+
+  GraphicsWindow.DrawRectangle(canvasLeft, canvasTop, canvasWidth, canvasHeight)
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillRectangle(canvasLeft, canvasTop, canvasWidth, canvasHeight)
+
+  
+
+  GraphicsWindow.PenWidth = selectedPenWidth
+
+EndSub
+
+
+
+'========================================================
+
+'PLUG-IN QDS710  by Nonki
+
+'========================================================
+
+Sub SelectPenColor
+
+  ' return selectedPenColor - returned if new pen color is selected
+
+  ' draw dialog
+
+  gw = GraphicsWindow.Width
+
+  gh = GraphicsWindow.Height
+
+  dw = 260
+
+  dh = 160
+
+  pw = GraphicsWindow.PenWidth
+
+  bc = GraphicsWindow.BrushColor
+
+  fs = GraphicsWindow.FontSize
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  dialog = Shapes.AddRectangle(dw, dh)
+
+  Shapes.SetOpacity(dialog, 50)
+
+  dLeft = (gw - dw) / 2
+
+  dTop = (gh - dh) / 2
+
+  Shapes.Move(dialog, dLeft, dTop)
+
+  ' draw buttons
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 12
+
+  dOK = Controls.AddButton("OK", dLeft + 10, dTop + dh - 40)
+
+  dCancel = Controls.AddButton("Cancel", dLeft + 50, dTop + dh - 40)
+
+  ' draw current pen color
+
+  pcCandidate = GraphicsWindow.PenColor
+
+  GraphicsWindow.BrushColor = pcCandidate
+
+  penColor = Shapes.AddRectangle(100, 100)
+
+  Shapes.Move(penColor, dLeft + 10, dTop + 10)
+
+  ' draw palette
+
+  palette = "0=Black;1=Red;2=Green;4=Blue;"
+
+  pIndex = Array.GetAllIndices(palette)
+
+  pNum = Array.GetItemCount(palette)
+
+  pLeft = dLeft + 120
+
+  pTop = dTop + 10
+
+  For i = 1 To pNum
+
+    GraphicsWindow.BrushColor = palette[pIndex[i]]
+
+    pSquare[i] = Controls.AddButton("?– ", pLeft + (i - 1) * 30, pTop)
+
+  EndFor
+
+  continue = "True"
+
+  While continue
+
+    If buttonClicked Then
+
+      button = Controls.LastClickedButton
+
+      If button = dOK Then
+
+        selectedPenColor = pcCandidate
+
+        GraphicsWindow.PenColor = selectedPenColor
+
+        continue = "False"
+
+      ElseIf button = dCancel Then
+
+        continue = "False"
+
+      Else
+
+        For i = 1 To pNum
+
+          If button = pSquare[i] Then
+
+            pcCandidate = palette[pIndex[i]]
+
+            GraphicsWindow.BrushColor = pcCandidate
+
+            Shapes.Remove(penColor)
+
+            penColor = Shapes.AddRectangle(100, 100)
+
+            Shapes.Move(penColor, dLeft + 10, dTop + 10)
+
+          EndIf
+
+        EndFor
+
+      EndIf
+
+      buttonClicked = "False"
+
+    Else
+
+      Program.Delay(200)
+
+    EndIf
+
+  EndWhile
+
+  ' remove controls and dialog
+
+  Shapes.Remove(penColor)
+
+  For i = 1 To pNum
+
+    Controls.Remove(pSquare[i])
+
+  EndFor
+
+  Controls.Remove(dOK)
+
+  Controls.Remove(dCancel)
+
+  Shapes.Remove(dialog)
+
+  ' restore properties
+
+  GraphicsWindow.FontSize = fs
+
+  GraphicsWindow.PenWidth = pw
+
+  GraphicsWindow.BrushColor = bc
+
+EndSub
+
+  
+
+

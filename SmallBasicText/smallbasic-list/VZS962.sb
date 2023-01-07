@@ -1,0 +1,165 @@
+'Efficient methods to calculate all of the factors of large numbers
+
+'1] All factors of an integer number are prime numbers
+
+'2] A number is prime if it has no factors, other than itself and 1
+
+'3] To check if a number is prime we only need to check factors up to its square root
+
+'Since if a factor is greater than the square root it must be mutiplied by a number less than the square root and we would have found this factor first.
+
+
+
+'Store a list of previously found primes usually only speeds things if the maximum number we are trying to factor is constant
+
+' The following line could be harmful and has been automatically commented.
+
+' 'primes = File.ReadContents(Program.Directory+"\primes.txt") ' doesn't really speed it up to store the last primes because SB is slow if this list is too big (big arrays are slow)
+
+numPrimes = Array.GetItemCount(primes)
+
+TextWindow.WriteLine("Calculating...")
+
+TextWindow.WriteLine("")
+
+
+
+Start:
+
+
+
+numberInput = Math.GetRandomNumber(1000000000) 'Random numbers up to 1 billion
+
+number = numberInput
+
+factors = ""
+
+numFactors = 0
+
+getFactors() ' Use current primes list to get all the factors we can, number is the remaining unfactored value
+
+
+
+maxPrime = Math.Ceiling(Math.SquareRoot(number))
+
+If (number > 1 And maxPrime > primes[numPrimes]) Then 'We need more primes
+
+  getPrimes() 'More primes up to sqrt(number)
+
+  getFactors() 'Any possible factors using the new primes
+
+EndIf
+
+
+
+If (number > 1) Then 'Remainder must be a prime if there are no divisors less than its sqrt
+
+  numFactors = numFactors+1
+
+  factors[numFactors] = number
+
+EndIf
+
+
+
+TextWindow.WriteLine(numberInput+" has "+numFactors+" factors")
+
+For i = 1 To numFactors
+
+  TextWindow.WriteLine(factors[i])
+
+EndFor
+
+TextWindow.WriteLine("")
+
+
+
+'Program.Delay(1000) 'Its too fast!
+
+
+
+Goto start
+
+
+
+Sub getPrimes
+
+  If (numPrimes = 0) Then 'If we have no primes so far set the first 2
+
+    numPrimes = 2
+
+    primes[1] = 2
+
+    primes[2] = 3 'First odd prime
+
+  EndIf
+
+  For num = primes[numPrimes]+2 To maxPrime Step 2 'Only check the odd numbers, to do this the last prime in the list must be odd
+
+    For j = 1 To numPrimes
+
+      If (Math.Remainder(num,primes[j]) = 0) Then
+
+        Goto nextNum 'We found a divisor, this number is not prime
+
+      EndIf
+
+    EndFor
+
+    'We found a new prime - add it to the list
+
+    numPrimes = numPrimes+1
+
+    primes[numPrimes] = num      
+
+    nextNum:
+
+  EndFor
+
+' The following line could be harmful and has been automatically commented.
+
+'   'File.WriteContents(Program.Directory+"\primes.txt",primes)
+
+EndSub
+
+
+
+Sub getFactors
+
+  If (numFactors = 0) Then ' First time start from the beginning of the list of primes, otherwise just check the new primes starting from iPrime
+
+    iPrime = 1
+
+  EndIf
+
+  For i = iPrime To numPrimes
+
+    prime = primes[i]
+
+    While (Math.Remainder(number,prime) = 0) 'Check if we have a factor, if we do add it and set the new unfactored value for number
+
+      numFactors = numFactors+1
+
+      factors[numFactors] = prime
+
+      number = number/prime
+
+    EndWhile
+
+    If (number = 1) Then
+
+      Goto allFactors 'We have all the factors so stop
+
+    EndIf
+
+  EndFor
+
+  iPrime = numPrimes+1 ' Next call start where we left off if we need more primes.  
+
+  'The next number to be factored will start with numFactors = 0 and thus iPrime = 1 set at start of this sub
+
+  allFactors:
+
+EndSub
+
+

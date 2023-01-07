@@ -1,0 +1,177 @@
+' Simple Browser 0.2b
+
+' Copyright (c) 2013 Nonki Takahashi.  All right reserved.
+
+'
+
+' History:
+
+'  0.2b 2013/03/07 Changed to show inside of body tag. (DZH703-0)
+
+'  0.1a 2013/03/07 Created. (DZH703)
+
+'
+
+GraphicsWindow.Title = "Simple Browser 0.2b"
+
+fg = "Black"
+
+bg = "LightGray"
+
+GraphicsWindow.BrushColor = fg
+
+GraphicsWindow.BackgroundColor = bg
+
+fs = 30
+
+gw = GraphicsWindow.Width
+
+gh = GraphicsWindow.Height
+
+GraphicsWindow.FontSize = fs / 2
+
+urlbox = Controls.AddTextBox(0, 0)
+
+Controls.SetSize(urlbox, gw, fs)
+
+button = Controls.AddButton("Search", gw - 100, 0)
+
+Controls.SetSize(button, 100, fs)
+
+obj = Shapes.AddText("Source:")
+
+Shapes.Move(obj, gw / 2, fs * 1.2)
+
+sourcebox = Controls.AddMultiLineTextBox(gw / 2, fs * 2)
+
+Controls.SetSize(sourcebox, gw / 2, gh - fs * 2)
+
+Controls.ButtonClicked = OnButtonClicked
+
+Sub OnButtonClicked
+
+  GraphicsWindow.BrushColor = bg
+
+  GraphicsWindow.FillRectangle(0, 0, gw, gh)
+
+  url = Controls.GetTextBoxText(urlbox)
+
+  buf = Network.GetWebPageContents(url)
+
+  Controls.SetTextBoxText(sourcebox, buf)
+
+  lower = Text.ConvertToLowerCase(buf)
+
+  p = 1
+
+  Parse_HTML()
+
+EndSub
+
+Sub Parse_HTML
+
+  Stack.PushValue("local", p)
+
+  matched = "False"
+
+  q = Text.GetIndexOf(Text.GetSubTextToEnd(lower, p), "<html")
+
+  If q > 0 Then
+
+    p = p + q + 4
+
+    q = Text.GetIndexOf(Text.GetSubTextToEnd(lower, p), ">")
+
+    If q > 0 Then
+
+      p = p + q
+
+      Parse_Body()
+
+      If matched Then
+
+        q = Text.GetIndexOf(Text.GetSubTextToEnd(lower, p), "</html>")
+
+        If q > 0 Then
+
+          p = p + q + 6
+
+        Else
+
+          matched = "False"
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  If matched Then
+
+    obsolete = Stack.PopValue("local")
+
+  Else
+
+    p = Stack.PopValue("local")
+
+  EndIf
+
+EndSub
+
+Sub Parse_Body
+
+  Stack.PushValue("local", p)
+
+  matched = "False"
+
+  q = Text.GetIndexOf(Text.GetSubTextToEnd(lower, p), "<body")
+
+  If q > 0 Then
+
+    p = p + q + 4
+
+    q = Text.GetIndexOf(Text.GetSubTextToEnd(lower, p), ">")
+
+    If q > 0 Then
+
+      p = p + q
+
+      q = Text.GetIndexOf(Text.GetSubTextToEnd(lower, p), "</body>")
+
+      If q > 0 Then
+
+        matched = "True"
+
+        txt = Text.GetSubText(buf, p, q - 1)
+
+        GraphicsWindow.BrushColor = fg
+
+        GraphicsWindow.DrawText(0, fs * 1.2, txt)
+
+        p = p + q + 6
+
+      Else
+
+        matched = "False"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  If matched Then
+
+    obsolete = Stack.PopValue("local")
+
+  Else
+
+    p = Stack.PopValue("local")
+
+  EndIf
+
+EndSub
+
+

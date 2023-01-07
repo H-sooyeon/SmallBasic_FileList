@@ -1,0 +1,599 @@
+' Minesweeper by Alex_2000 v. 1.0 for Microsoft Small Basic v0.9, Dec. 2010, Russia, Moscow
+
+' Site -  www.rezoh.ru
+
+' Forum - www.basicforum.rezoh.ru
+
+
+
+' set colours for signing numbers
+
+color_array = "1=#6A5ACD;2=#228B22;3=#FF0000;4=#EE9A49;5=#8B2323;6=#20B2AA;7=#8B7E66;8=#8B4513"
+
+
+
+' initialise graphics window
+
+GraphicsWindow.Width = 500
+
+GraphicsWindow.Height = 550
+
+GraphicsWindow.Title = "Minesweeper by Alex_2000"
+
+
+
+' displaying first grafics window with inscription
+
+GraphicsWindow.BrushColor = "Green"
+
+GraphicsWindow.FontSize = 60
+
+GraphicsWindow.BackgroundColor = "Black"
+
+GraphicsWindow.DrawText(15, 200, "MINESWEEPER")
+
+GraphicsWindow.BrushColor = "Red"
+
+GraphicsWindow.FontSize = 30
+
+GraphicsWindow.DrawText(140, 10, "www.rezoh.ru")
+
+GraphicsWindow.DrawText(100, 500, "Game by Alex_2000")
+
+Program.Delay(5000)
+
+GraphicsWindow.Clear()
+
+
+
+' main programm
+
+play()
+
+Sub play
+
+  GraphicsWindow.Clear()
+
+  
+
+  ' initialise number of mines 
+
+  k = 15  
+
+  
+
+  ' setup mouse subroutines
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+  
+
+  ' displaying text with number of mines there
+
+  GraphicsWindow.FontSize = 30
+
+  GraphicsWindow.DrawText(100, 510, "Available mines: ")
+
+  texte = Shapes.AddText(k)
+
+  Shapes.Move(texte, 350, 510)
+
+  
+
+  ' set backrground colour
+
+  GraphicsWindow.BackgroundColor  ="#D1EEEE"
+
+  
+
+  ' draw the grid
+
+  GraphicsWindow.PenColor = "Black"
+
+  For x = 0 To 500 Step 50
+
+    GraphicsWindow.DrawLine(x, 0, x, 500)
+
+  EndFor
+
+  For y = 0 To 500 Step 50
+
+    GraphicsWindow.DrawLine(0, y, 500, y)
+
+  EndFor
+
+  
+
+  ' create field 10 ?? 10 and enter cells into array mine_board
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  GraphicsWindow.PenColor = "Black"
+
+  For X = 1 To 10
+
+    For Y = 1 To 10
+
+      kletka = Shapes.AddRectangle(50,50)
+
+      ' subtracte one because of coordinates start with zero
+
+      '  allocate cells across the whole field
+
+      Controls.Move(kletka, (X-1) * 50, (Y-1) * 50)
+
+      mine_board[x][y] = kletka
+
+      ' load array mine from value 0 (zero)
+
+      mine[x][y] = 0  
+
+    EndFor
+
+  EndFor
+
+  
+
+  ' place mines
+
+  For i = 1 To k
+
+    n1 = Math.GetRandomNumber(10) 
+
+    n2 = Math.GetRandomNumber(10) 
+
+    If mine[n1][n2] = "M" Then 
+
+      i = i - 1
+
+    ElseIf mine[n1][n2] = 0 Then
+
+      mine[n1][n2] = "M"
+
+    EndIf
+
+  EndFor
+
+  
+
+  ' place number of contacts
+
+  For x = 1 To 10
+
+    For y = 1 To 10
+
+      If mine[x][y] <> "M" Then
+
+        m = 0
+
+        If mine[x-1][y-1] = "M" Then
+
+          m = m + 1
+
+        EndIf  
+
+        If mine[x][y-1] = "M" Then
+
+          m = m + 1
+
+        EndIf  
+
+        If mine[x+1][y-1] = "M" Then
+
+          m = m + 1
+
+        EndIf  
+
+        If mine[x-1][y] = "M" Then
+
+          m = m + 1
+
+        EndIf  
+
+        If mine[x+1][y] = "M" Then
+
+          m = m + 1 
+
+        EndIf  
+
+        If mine[x-1][y+1] = "M" Then
+
+          m = m + 1
+
+        EndIf    
+
+        If mine[x][y+1] = "M" Then
+
+          m = m + 1
+
+        EndIf  
+
+        If mine[x+1][y+1] = "M" Then
+
+          m = m + 1
+
+        EndIf
+
+        mine[x][y] = m  '  Initialise number of contacts
+
+      EndIf
+
+    EndFor 
+
+  EndFor
+
+EndSub
+
+
+
+' Open the cells
+
+Sub OnMouseDown
+
+  ' sign "it is not mine there"
+
+  If Mouse.IsLeftButtonDown Then
+
+    'sound if the left mouse button clicked
+
+    Sound.PlayClick()
+
+    'evaluate X and Y for the left mouse button clicked
+
+    x = Math.Floor(GraphicsWindow.MouseX / 50 + 1)
+
+    y = Math.Floor(GraphicsWindow.MouseY / 50 + 1)
+
+    'delete pressing cell
+
+    Shapes.Remove(mine_board[x][y])
+
+    GraphicsWindow.BrushColor = "black"
+
+    'If there is no mine there
+
+    If mine[x][y] <> "M" Then
+
+      If mine[x][y] = 0 Then
+
+        Stack.PushValue("xx", x)
+
+        Stack.PushValue("yy", y)
+
+        mine[x][y] = " "
+
+        proverka()
+
+      Else
+
+        GraphicsWindow.FontSize = 40
+
+        GraphicsWindow.BrushColor = color_array[mine[x][y]]
+
+        textu = Shapes.AddText(mine[x][y])
+
+        Shapes.Move(textu, x*50-50+10, y*50-50)      
+
+      EndIf   
+
+    ElseIf mine[x][y] = "M" Then
+
+      'sound of loss
+
+      Sound.PlayBellRing()
+
+      'delete pressing cell
+
+      Shapes.Remove(mine_board[x][y])
+
+      ' Initialise colour for new and enter it for old place
+
+      GraphicsWindow.BrushColor = "Red"
+
+      kletka = Shapes.AddRectangle(50,50)
+
+      ' subtracte one because of coordinates start with zero
+
+      Controls.Move(kletka, (x-1) * 50, (y-1) * 50)
+
+      mine_board[x][y] = kletka
+
+      ' displaying text about loss
+
+      GraphicsWindow.ShowMessage("You lose!!!", "Game over")
+
+      play()
+
+    EndIf
+
+  EndIf
+
+  'marker for the mine placed there
+
+  If Mouse.IsRightButtonDown And k > 0 Then
+
+    'evaluate X and Y for the right mouse button clicked
+
+    x = Math.Floor(GraphicsWindow.MouseX / 50 + 1)
+
+    y = Math.Floor(GraphicsWindow.MouseY / 50 + 1)
+
+    'delete pressing cell
+
+    Shapes.Remove(mine_board[x][y])
+
+    ' Initialise colour for new and enter it for old place
+
+    GraphicsWindow.BrushColor = "Red"
+
+    kletka = Shapes.AddRectangle(50,50)
+
+    '  subtracte one because of coordinates start with zero
+
+    Controls.Move(kletka, (x-1) * 50, (y-1) * 50)
+
+    mine_board[x][y] = kletka
+
+    prover[x][y] = 1
+
+    k = k - 1
+
+    Shapes.SetText(texte, k)
+
+  EndIf
+
+  ' carry out a check constant inspection for finishing game
+
+  color()
+
+EndSub
+
+
+
+Sub proverka
+
+  GraphicsWindow.FontSize = 40
+
+  
+
+  While Stack.GetCount("xx") <> 0 And Stack.GetCount("yy") <> 0
+
+    Shapes.Remove(mine_board[x-1][y-1])
+
+    
+
+    If mine[x-1][y-1] = 0 Then
+
+      Stack.PushValue("xx", x-1)
+
+      Stack.PushValue("yy", y-1)
+
+      mine[x-1][y-1] = " "  
+
+    Else
+
+      GraphicsWindow.BrushColor = color_array[mine[x-1][y-1]]
+
+      textu = Shapes.AddText(mine[x-1][y-1])
+
+      Shapes.Move(textu, (x-1)*50-50+10, (y-1)*50-50)  
+
+    EndIf
+
+    
+
+    Shapes.Remove(mine_board[x][y-1])
+
+    
+
+    If mine[x][y-1] = 0 Then
+
+      Stack.PushValue("xx", x)
+
+      Stack.PushValue("yy", y-1)  
+
+      mine[x][y-1] = " "
+
+    Else
+
+      GraphicsWindow.BrushColor = color_array[mine[x][y-1]]
+
+      textu = Shapes.AddText(mine[x][y-1])
+
+      Shapes.Move(textu, x*50-50+10, (y-1)*50-50)  
+
+    EndIf
+
+    
+
+    Shapes.Remove(mine_board[x+1][y-1])
+
+    
+
+    If mine[x+1][y-1] = 0 Then
+
+      Stack.PushValue("xx", x+1)
+
+      Stack.PushValue("yy", y-1)  
+
+      mine[x+1][y-1] = " "
+
+    Else
+
+      GraphicsWindow.BrushColor = color_array[mine[x+1][y-1]]
+
+      textu = Shapes.AddText(mine[x+1][y-1])
+
+      Shapes.Move(textu, (x+1)*50-50+10, (y-1)*50-50)  
+
+    EndIf
+
+    
+
+    Shapes.Remove(mine_board[x-1][y])
+
+    
+
+    If mine[x-1][y] = 0 Then
+
+      Stack.PushValue("xx", x-1)
+
+      Stack.PushValue("yy", y)
+
+      mine[x-1][y] = " "
+
+    Else
+
+      GraphicsWindow.BrushColor = color_array[mine[x-1][y]]
+
+      textu = Shapes.AddText(mine[x-1][y])
+
+      Shapes.Move(textu, (x-1)*50-50+10, y*50-50)
+
+    EndIf
+
+    
+
+    Shapes.Remove(mine_board[x+1][y])
+
+    
+
+    If mine[x+1][y] = 0 Then
+
+      Stack.PushValue("xx", x+1)
+
+      Stack.PushValue("yy", y) 
+
+      mine[x+1][y] = " "
+
+    Else
+
+      GraphicsWindow.BrushColor = color_array[mine[x+1][y]]
+
+      textu = Shapes.AddText(mine[x+1][y])
+
+      Shapes.Move(textu, (x+1)*50-50+10, y*50-50)  
+
+    EndIf
+
+    
+
+    Shapes.Remove(mine_board[x-1][y+1])
+
+    
+
+    If mine[x-1][y+1] = 0 Then
+
+      Stack.PushValue("xx", x-1)
+
+      Stack.PushValue("yy", y+1) 
+
+      mine[x-1][y+1] = " "  
+
+    Else
+
+      GraphicsWindow.BrushColor = color_array[mine[x-1][y+1]]
+
+      textu = Shapes.AddText(mine[x-1][y+1])
+
+      Shapes.Move(textu, (x-1)*50-50+10, (y+1)*50-50)  
+
+    EndIf
+
+    
+
+    Shapes.Remove(mine_board[x][y+1])
+
+    
+
+    If mine[x][y+1] = 0 Then
+
+      Stack.PushValue("xx", x)
+
+      Stack.PushValue("yy", y+1)  
+
+      mine[x][y+1] = " "  
+
+    Else
+
+      GraphicsWindow.BrushColor = color_array[mine[x][y+1]]
+
+      textu = Shapes.AddText(mine[x][y+1])
+
+      Shapes.Move(textu, x*50-50+10, (y+1)*50-50)  
+
+    EndIf
+
+    
+
+    Shapes.Remove(mine_board[x+1][y+1])
+
+    
+
+    If mine[x+1][y+1] = 0 Then
+
+      Stack.PushValue("xx", x+1)
+
+      Stack.PushValue("yy", y+1)  
+
+      mine[x+1][y+1] = " "  
+
+    Else
+
+      GraphicsWindow.BrushColor = color_array[mine[x+1][y+1]]
+
+      textu = Shapes.AddText(mine[x+1][y+1])
+
+      Shapes.Move(textu, (x+1)*50-50+10, (y+1)*50-50)  
+
+    EndIf
+
+    
+
+    x = Stack.PopValue("xx")
+
+    y = Stack.PopValue("yy")
+
+    
+
+  EndWhile
+
+EndSub
+
+
+
+Sub color
+
+  a = 15
+
+  For x = 1 To 10
+
+    For y = 1 To 10
+
+      If mine[x][y] = "M" And prover[x][y] = 1 And k = 0 Then
+
+        a = a - 1
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  
+
+  If a = 0 Then
+
+    ' victory sound
+
+    Sound.PlayChimes()
+
+    GraphicsWindow.ShowMessage("You are the best!", "You win")
+
+    play()
+
+  EndIf
+
+EndSub
+
+

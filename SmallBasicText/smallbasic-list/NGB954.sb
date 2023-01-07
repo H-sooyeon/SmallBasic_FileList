@@ -1,0 +1,393 @@
+'Cookie Nom Nom Typing is a game developed by four 10- and 11-year old boys at Southmoor Elementary School in Denver, CO
+
+'It is a project designed to help them learn basic programming concepts and have a fun way to improve their typing skills
+
+
+
+'Set up base variables
+
+gw = 640
+
+gh = 480
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.Width = gw
+
+cookieCount = 5
+
+cookieWidth = 50
+
+cookieHeight = 50
+
+textboxWidth = 30
+
+textboxHeight = 30
+
+groundHeight = 40
+
+gameLevel = 1
+
+deadCookie = 0
+
+livesLeft = 10
+
+score = 0
+
+stillProcessingLastKeystroke = 0
+
+
+
+GraphicsWindow.FontSize = 16
+
+GraphicsWindow.Title = "Cookie Nom Nom Typing"
+
+
+
+'Add initial cookies
+
+For i = 1 To cookieCount
+
+  cookieToAdd = i
+
+  AddCookie()
+
+EndFor
+
+
+
+'Set up event handler
+
+GraphicsWindow.KeyUp = OnKeyDown
+
+
+
+'Draw the ground
+
+GraphicsWindow.BrushColor = "green"
+
+GraphicsWindow.FillRectangle(0, gh - groundHeight, gw, groundHeight)
+
+
+
+'Draw the score and lives left textboxes
+
+GraphicsWindow.BrushColor = "black"
+
+scoreTextBox = Shapes.AddText("Score: 0")
+
+Shapes.Move(scoreTextBox, gw/2, gh - groundHeight/1.5)
+
+
+
+livesLeftTextBox = Shapes.AddText("Lives Left: " + livesLeft)
+
+Shapes.Move(livesLeftTextBox, groundHeight/2, gh - groundHeight/1.5)
+
+
+
+'Main loop
+
+While (1=1)
+
+  'Cycle through however many cookies are present
+
+  For i = 1 To cookieCount
+
+    'Move each cookie/letter down according to its respective speed
+
+    Shapes.Move(cookies[i], Shapes.GetLeft(cookies[i]), Shapes.GetTop(cookies[i]) + cookieSpeed[i])
+
+    Controls.Move(textboxes[i], Shapes.GetLeft(cookies[i]) + ((cookieWidth - textboxWidth)/2), Shapes.GetTop(cookies[i]) + ((cookieHeight - textboxHeight)/2) + cookieSpeed[i])
+
+    'Detect when a cookie has hit the ground
+
+    If Shapes.GetTop(cookies[i]) > ((gh - groundHeight)- cookieHeight) Then
+
+      Sound.PlayBellRing()
+
+      deadCookie = i
+
+      'The following line ensures that we replace a cookie in place - that is, if cookie #4 hits the ground, we create a new #4
+
+      cookieToAdd = deadCookie
+
+      RemoveCookie()
+
+      EndIf
+
+  EndFor  
+
+  Program.Delay(75)
+
+EndWhile
+
+
+
+
+
+Sub RemoveCookie
+
+
+
+  If deadCookie > 0 Then
+
+    cookieToRemove = deadCookie
+
+    livesLeft = livesLeft - 1
+
+    Shapes.SetText(livesLeftTextBox, "Lives Left: " + livesLeft)
+
+  Else
+
+    cookieToRemove = matchedCookie    
+
+  EndIf 
+
+
+
+  Controls.Remove(textboxes[cookieToRemove])
+
+  Shapes.Remove(cookies[cookieToRemove])
+
+  
+
+  If livesLeft = 0 Then 
+
+    GraphicsWindow.ShowMessage("Game Over", Text.Append("Score: ", score))
+
+    Program.End()  
+
+  EndIf
+
+  'Add a cookie back to replace the one that was just removed
+
+  cookieToAdd = cookieToRemove
+
+  AddCookie()
+
+  
+
+EndSub
+
+
+
+Sub AddCookie
+
+
+
+  If cookieToAdd > 0 Then
+
+    GraphicsWindow.BrushColor = "tan"
+
+    'add a new element to the cookies array and set its x-axis location randomly
+
+    cookies[cookieToAdd] = Shapes.AddEllipse(cookieWidth, cookieHeight)
+
+    xLocation = Math.GetrandomNumber(gw - cookieWidth)
+
+    GraphicsWindow.BrushColor = "black"
+
+    'add a new element to the array of textboxes to match the new cookie
+
+    textboxes[cookieToAdd] = Controls.AddTextBox(xLocation, 0)
+
+    GetrandomLetter()
+
+    'get a random letter for the new textbox and keep track of it in a letters array
+
+    letters[cookieToAdd] = randomLetter
+
+    Controls.SetSize(textboxes[cookieToAdd], textboxWidth, textboxHeight)
+
+    Controls.SetTextBoxText(textboxes[cookieToAdd], letters[cookieToAdd])
+
+    Shapes.Move(cookies[cookieToAdd], xLocation, 0)
+
+    'set a random speed for the cookie/textbox based on the game's currrent level and keep track of it in an array
+
+    cookieSpeed[cookieToAdd] = Math.Max(1, Math.Round((Math.GetrandomNumber(6) + gameLevel) / 4))
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+
+
+Sub OnKeyDown
+
+  
+
+  'if you hit two matching keys too close together, the logic gets fouled up and you end up with stuck cookies - managing the keystroke processing avoids that
+
+  If stillProcessingLastKeystroke = 0 Then 
+
+
+
+    stillProcessingLastKeystroke = 1
+
+    liveCookies = 0
+
+    deadCookie = 0
+
+    matchedCookie = 0
+
+    'cookieMatches = ""
+
+
+
+    'check the existing letters array to see if there is a match on the user's last keystroke
+
+    For i = 1 To cookieCount
+
+      If letters[i] = Text.ConvertToLowerCase(GraphicsWindow.LastKey) Then
+
+        deadCookie = 0
+
+        'see how many matches there are in case we need to see which is the matching cookie closest to the ground
+
+        liveCookies = liveCookies + 1
+
+        cookieMatches[liveCookies] = i
+
+      EndIf  
+
+    EndFor
+
+    
+
+    If liveCookies = 0 Then
+
+      'incorrect keystroke - no matching cookie
+
+      score = score - 1
+
+      Sound.PlayClick()
+
+    else
+
+      score = score + 1
+
+      GetRandomNote()
+
+      Sound.PlayMusic(randomNote)
+
+
+
+      lowestCookie = cookieMatches[1]
+
+      lowestCookieLocation = Shapes.GetTop(cookies[cookieMatches[1]])
+
+
+
+      'if more than one cookie matches the keystroke, determine which matching cookie is closest to the ground so we remove the correct one
+
+      If liveCookies > 1 Then
+
+        For o = 2 To liveCookies
+
+          If Shapes.GetTop(cookies[cookieMatches[o]]) > lowestCookieLocation Then
+
+            lowestCookie = cookieMatches[o]
+
+            lowestCookieLocation = Shapes.GetTop(cookies[cookieMatches[o]])
+
+          EndIf
+
+        EndFor
+
+      EndIf
+
+
+
+      cookieToAdd = lowestCookie
+
+      matchedCookie = lowestCookie
+
+
+
+      RemoveCookie()
+
+      
+
+      'since there are 26 letters in the english alphabet, we move on to a new level every 26 points
+
+      If Math.Remainder(score, 26) = 0 Then 
+
+          gameLevel = gameLevel + 1
+
+          cookieCount = cookieCount + 1
+
+          cookieToAdd = cookieCount
+
+          AddCookie()
+
+      EndIf
+
+
+
+    EndIf
+
+    Shapes.SetText(scoreTextBox, "Score: " + score)
+
+    
+
+    stillProcessingLastKeystroke = 0
+
+  EndIf
+
+
+
+EndSub
+
+
+
+
+
+Sub GetrandomLetter
+
+  
+
+  randomLetter = ""
+
+  While randomLetter = Text.ConvertToLowerCase(GraphicsWindow.LastKey) Or randomLetter = ""
+
+    randomNumber = Math.GetrandomNumber(26) + 96
+
+    randomLetter = Text.GetCharacter(randomNumber)
+
+  EndWhile  
+
+
+
+EndSub
+
+
+
+
+
+Sub GetRandomNote
+
+  
+
+  randomNote = Text.GetCharacter(Math.GetrandomNumber(7) + 96) + "32"
+
+
+
+EndSub
+
+  
+
+'other things to add later
+
+'rotate background images based on your level
+
+'maintain a high score list
+
+'use actual cookie image instead of an ellipse
+
+

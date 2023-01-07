@@ -1,0 +1,377 @@
+' Attempt to write a 3D rendering framework in SmallBasic
+
+' By: Stephen Hollibaugh (ArkiaV)
+
+' Date: October 19th, 2012
+
+
+
+' Window Dimensions
+
+ww = 200
+
+hh = 200
+
+
+
+' Distances for translation
+
+dx = 0
+
+dy = 0
+
+dz = 0
+
+
+
+' Angles for rotation (in radians)
+
+rx = 0
+
+ry = 0
+
+rz = 0
+
+
+
+' Factors for scaling
+
+sx = 1
+
+sy = 1
+
+sz = 1
+
+
+
+pMatrix = 0
+
+
+
+' Main program
+
+GraphicsWindow.Width = ww
+
+GraphicsWindow.Height = hh
+
+GraphicsWindow.Show()
+
+GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(255,0,0)
+
+GraphicsWindow.CanResize = 0
+
+MakeTriangle()
+
+
+
+' Animate a triangle rotating about the y-axis
+
+MAIN_LOOP:
+
+GraphicsWindow.Clear()
+
+LoadIdentity()
+
+matrix = N
+
+ry = ry + Math.Pi * 0.1
+
+If (ry > 2 * Math.Pi) Then
+
+  ry = ry - (2 * Math.Pi)
+
+EndIf
+
+Rotate()
+
+DrawTriangles()
+
+Program.Delay(50)
+
+Goto MAIN_LOOP
+
+
+
+' Load the 4x4 identity matrix into 'N'
+
+Sub LoadIdentity
+
+  For i = 0 To 3
+
+    For j = 0 To 3
+
+      N[i][j] = 0
+
+    EndFor
+
+    N[i][i] = 1
+
+  EndFor
+
+EndSub
+
+
+
+' Translate by 'dx', 'dy', 'dz'
+
+Sub Translate
+
+  LoadIdentity()
+
+  M = N
+
+  
+
+  M[0][3] = dx
+
+  M[1][3] = dy
+
+  M[2][3] = dz
+
+  
+
+  MultiplyMatrix()
+
+  matrix = N
+
+EndSub
+
+
+
+' Rotate by 'rx', 'ry', 'rz' (angles in radians)
+
+Sub Rotate
+
+  ' Z rotation
+
+  LoadIdentity()
+
+  M = N
+
+  MI = M
+
+  M[0][0] = Math.Cos(rz)
+
+  M[0][1] = -Math.Sin(rz)
+
+  M[1][0] = Math.Sin(rz)
+
+  M[1][1] = Math.Cos(rz)
+
+  
+
+  MultiplyMatrix()
+
+  matrix = N
+
+  ' Y rotation
+
+  M = MI
+
+  M[0][0] = Math.Cos(ry)
+
+  M[0][2] = Math.Sin(ry)
+
+  M[2][0] = -Math.Sin(ry)
+
+  M[2][2] = Math.Cos(ry)
+
+  
+
+  MultiplyMatrix()
+
+  matrix = N
+
+  ' X rotation
+
+  M = MI
+
+  M[1][1] = Math.Cos(rx)
+
+  M[1][2] = -Math.Sin(rx)
+
+  M[2][1] = Math.Sin(rx)
+
+  M[2][2] = Math.Cos(rx)
+
+  
+
+  MultiplyMatrix()
+
+  matrix = N
+
+EndSub
+
+
+
+' Scale by 'sx', 'sy', 'sz'
+
+Sub Scale
+
+  LoadIdentity()
+
+  M = N
+
+  
+
+  M[0][0] = sx
+
+  M[1][1] = sy
+
+  M[2][2] = sz
+
+  
+
+  MultiplyMatrix()
+
+  matrix = N
+
+EndSub
+
+
+
+' Multiply 'M' with 'matrix' and put the result in 'N'
+
+Sub MultiplyMatrix
+
+  rows = Array.GetItemCount(M)
+
+  cols = Array.GetItemCount(matrix[0])
+
+  If (rows = cols) Then
+
+    pCols = Array.GetItemCount(M[0])
+
+    pRows = Array.GetItemCount(matrix)
+
+    For r = 0 To pRows - 1
+
+      For c = 0 To pCols - 1
+
+        N[r][c] = 0
+
+        For mIndex = 0 To rows
+
+          N[r][c] = N[r][c] + (M[mIndex][c] * matrix[r][mIndex])
+
+        EndFor
+
+      EndFor
+
+    EndFor
+
+  Else
+
+    TextWindow.WriteLine("Cannot multiply matrices!")
+
+  EndIf
+
+EndSub
+
+
+
+Sub MakeTriangle
+
+  object[0][0] = 0.0
+
+  object[0][1] = -0.9
+
+  object[0][2] = 0.0
+
+  object[0][3] = 1.0
+
+  
+
+  object[1][0] = -0.9
+
+  object[1][1] = 0.9
+
+  object[1][2] = 0.0
+
+  object[1][3] = 1.0
+
+  
+
+  object[2][0] = 0.9
+
+  object[2][1] = 0.9
+
+  object[2][2] = 0.0
+
+  object[2][3] = 1.0
+
+EndSub
+
+
+
+' Draw the array of 4D points in 'object' as triangles
+
+Sub DrawTriangles
+
+  p = 0
+
+  For i = 0 To Array.GetItemCount(object) - 1
+
+    M = 0
+
+    For j = 0 To Array.GetItemCount(object[i]) - 1
+
+      M[j][0] = object[i][j]
+
+    EndFor
+
+    MultiplyMatrix()
+
+    For j = 0 To Array.GetItemCount(N) - 1
+
+      p[i][j] = N[j][0]
+
+    EndFor
+
+    p[i][0] = (p[i][0] * (ww/2)) + (ww/2)
+
+    p[i][1] = (p[i][1] * (hh/2)) + (hh/2)
+
+  EndFor
+
+  
+
+  i = 0
+
+  While i < Array.GetItemCount(p) - 2
+
+    GraphicsWindow.FillTriangle(p[i][0], p[i][1], p[i+1][0], p[i+1][1], p[i+2][0], p[i+2][1])
+
+    i = i + 3
+
+  EndWhile
+
+EndSub
+
+
+
+' Print the contents of pMatrix to the console
+
+Sub PrintMatrix
+
+  rows = Array.GetItemCount(pMatrix)
+
+  cols = Array.GetItemCount(pMatrix[0])
+
+  For i = 0 To rows
+
+    For j = 0 To cols
+
+      TextWindow.Write(pMatrix[i][j])
+
+      TextWindow.Write(" ")
+
+    EndFor
+
+    TextWindow.WriteLine("")
+
+  EndFor
+
+EndSub
+
+

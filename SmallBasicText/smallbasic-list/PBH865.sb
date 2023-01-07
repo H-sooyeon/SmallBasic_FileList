@@ -1,0 +1,341 @@
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.Height = 600
+
+GraphicsWindow.Width = 600
+
+TextWindow.Left = GraphicsWindow.Left + 615
+
+TextWindow.Top = GraphicsWindow.Top
+
+
+
+Smoke_Skin=ImageList.LoadImage("http://public.bay.livefilestore.com/y1pSDvsXajbdg0-y3xRxTA_W7gio52NarIE4aiSvo3pk3QhqsV72UwBk7HWeBd5i6PlZ2W5CtYZzegxsrkfsbLAxA/smoke1.png")
+
+'Smoke_Skin = ImageList.LoadImage(Program.Directory + "\smoke1.png")
+
+Pi = Math.Pi
+
+'GraphicsWindow.BackgroundColor = "LightBlue"
+
+Smoke_Radius = ImageList.GetHeightOfImage(Smoke_Skin)/2
+
+
+
+Smoke_Emitter_Radius = 25
+
+Smoke_Emitter_Diameter = Smoke_Emitter_Radius * 2
+
+
+
+GraphicsWindow.BrushColor = "#99AA0000"
+
+
+
+While "True"
+
+  TimeStart = Clock.ElapsedMilliseconds
+
+  
+
+  Mouse_X = GraphicsWindow.MouseX
+
+  Mouse_Y = GraphicsWindow.MouseY
+
+  
+
+  Smoke_Emitter_Update()
+
+  Smoke_Update()
+
+  
+
+  
+
+  TextWindow.Clear()
+
+  TextWindow.WriteLine("Smoke Sprites: " + (Smoke_New - Smoke_Old))
+
+  TextWindow.WriteLine("Smoke_New: " + Smoke_New)
+
+  TextWindow.WriteLine("Smoke_Old: " + Smoke_Old)
+
+  
+
+  TimeEnd = Clock.ElapsedMilliseconds
+
+  PassedTime = TimeEnd - TimeStart
+
+  TextWindow.WriteLine("PassedTime: " + PassedTime)
+
+  PerfectDelay = 30-PassedTime
+
+  If PerfectDelay > 0 Then
+
+    Program.Delay(PerfectDelay)
+
+  endif
+
+endwhile
+
+
+
+Sub Smoke_Emitter_Emit   
+
+  For e = Smoke_Emitter_Old+1 To Smoke_Emitter_New
+
+    If Smoke_Emitter_Deleted[e] = 0 then
+
+      Smoke_New = Smoke_New + 1
+
+      
+
+      Smoke[Smoke_New] = Shapes.AddImage(Smoke_Skin)
+
+      Shapes.Move(Smoke[Smoke_New],-1000,-1000)
+
+      
+
+      Smoke_X[Smoke_New] = Smoke_Emitter_X[e]
+
+      Smoke_Y[Smoke_New] = Smoke_Emitter_Y[e]
+
+      
+
+      Smoke_Velocity = Smoke_Emitter_Velocity[e]
+
+      
+
+      Smoke_WX[Smoke_New] = Math.Cos(Smoke_Emitter_Angle[e] + (Math.GetRandomNumber(11)-6)*0.03) * Smoke_Velocity
+
+      Smoke_WY[Smoke_New] = Math.Sin(Smoke_Emitter_Angle[e] + (Math.GetRandomNumber(11)-6)*0.03) * Smoke_Velocity
+
+      
+
+      Smoke_Opacity[Smoke_New] = 100
+
+      Smoke_Angle[Smoke_New] = Math.GetRandomNumber(360)-180
+
+      Smoke_Zoom[Smoke_New] = Math.GetRandomNumber(5) * 0.05 + 0.5
+
+    endif
+
+  endfor
+
+endsub
+
+
+
+Sub Smoke_Update
+
+  For s = Smoke_Old+1 To Smoke_New
+
+    Smoke_WX[s] = Smoke_WX[s] * 0.95
+
+    Smoke_WY[s] = Smoke_WY[s] * 0.95
+
+    Smoke_X[s] = Smoke_X[s] + Smoke_WX[s]
+
+    Smoke_Y[s] = Smoke_Y[s] + Smoke_WY[s]
+
+    
+
+    Smoke_Angle[s] = Smoke_Angle[s] + Smoke_Angle[s] * 0.006
+
+    
+
+    Smoke_Zoom[s] = Smoke_Zoom[s] + 0.1
+
+    Smoke_Opacity[s] = Smoke_Opacity[s] - 4 'Originally: 2
+
+    
+
+    If Smoke_Opacity[s] <= 0 And s = Smoke_Old+1 Then 'Smoke is still being transformed even after deletion! NEED A FIX FOR THIS!
+
+      Smoke_Remove()
+
+    endif
+
+    
+
+    Shapes.SetOpacity(Smoke[s],Smoke_Opacity[s])
+
+    Shapes.Zoom(Smoke[s],Smoke_Zoom[s],Smoke_Zoom[s])
+
+    Shapes.Rotate(Smoke[s],Smoke_Angle[s])
+
+    Shapes.Move(Smoke[s],Smoke_X[s] - Smoke_Radius,Smoke_Y[s] - Smoke_Radius)
+
+  endfor
+
+endsub
+
+
+
+Sub Smoke_Remove
+
+  Shapes.Remove(Smoke[s])
+
+  Smoke[s] = ""
+
+  Smoke_X[s] = ""
+
+  Smoke_Y[s] = ""
+
+  Smoke_WX[s] = ""
+
+  Smoke_WY[s] = ""
+
+  Smoke_Opacity[s] = ""
+
+  Smoke_Angle[s] = ""
+
+  Smoke_Zoom[s] = ""
+
+  Smoke_Old = Smoke_Old + 1
+
+endsub
+
+
+
+
+
+Sub Smoke_Emitter_Updateline
+
+  u = Mouse_X - Smoke_Emitter_X[Smoke_Emitter_New]
+
+  v = Mouse_Y - Smoke_Emitter_Y[Smoke_Emitter_New]
+
+  Smoke_Emitter_Velocity[Smoke_Emitter_New] = Math.SquareRoot(u * u + v * v)/10
+
+  
+
+  Shapes.Remove(Smoke_Emitter_Line)
+
+  Smoke_Emitter_Line = Shapes.AddLine(Mouse_X,Mouse_Y,Smoke_Emitter_X[Smoke_Emitter_New],Smoke_Emitter_Y[Smoke_Emitter_New])
+
+  
+
+  If u = 0 Then
+
+    theta = Pi/2
+
+  Else
+
+    theta = Math.ArcTan(v/u)
+
+  EndIf
+
+  If (u < 0) Then
+
+    theta = Pi + theta
+
+  EndIf
+
+  Smoke_Emitter_Angle[Smoke_Emitter_New] = Theta
+
+endsub
+
+
+
+Sub Smoke_Emitter_Add
+
+  Smoke_Emitter_New = Smoke_Emitter_New + 1
+
+  Smoke_Emitter_Deleted[Smoke_Emitter_New] = 0
+
+  Smoke_Emitter_X[Smoke_Emitter_New] = Mouse_X
+
+  Smoke_Emitter_Y[Smoke_Emitter_New] = Mouse_Y
+
+  Smoke_Emitter[Smoke_Emitter_New] = Shapes.AddRectangle(Smoke_Emitter_Diameter,Smoke_Emitter_Diameter)
+
+  Shapes.Move(Smoke_Emitter[Smoke_Emitter_New],Smoke_Emitter_X[Smoke_Emitter_New] - Smoke_Emitter_Radius,Smoke_Emitter_Y[Smoke_Emitter_New] - Smoke_Emitter_Radius)
+
+endsub
+
+
+
+Sub Smoke_Emitter_Remove
+
+  Shapes.Remove(Smoke_Emitter_Line)
+
+  Shapes.Remove(Smoke_Emitter[e])
+
+  Smoke_Emitter[e] = ""
+
+  Smoke_Emitter_X[e] = ""
+
+  Smoke_Emitter_Y[e] = ""
+
+  Smoke_Emitter_Angle[e] = ""
+
+  Smoke_Emitter_Deleted[e] = 1
+
+  If Smoke_Emitter_Old = e then
+
+    Smoke_Emitter_Old = Smoke_Emitter_Old + 1
+
+  endif
+
+endsub
+
+
+
+Sub OnMouseDown
+
+  If Mouse.IsRightButtonDown Then
+
+    For e = Smoke_Emitter_Old+1 To Smoke_Emitter_New 'Check if the cursor is touching the Emitter:
+
+      If Mouse_X >= (Smoke_Emitter_X[e] - Smoke_Emitter_Radius) And Mouse_X <= (Smoke_Emitter_X[e] + Smoke_Emitter_Radius) And Mouse_Y >= (Smoke_Emitter_Y[e] - Smoke_Emitter_Radius) And Mouse_Y <= (Smoke_Emitter_Y[e] + Smoke_Emitter_Radius) Then
+
+        Smoke_Emitter_Remove()
+
+      endif
+
+    endfor
+
+  endif
+
+Endsub
+
+
+
+Sub Smoke_Emitter_Update
+
+  Smoke_Emitter_Delay = Smoke_Emitter_Delay + 1
+
+  If Smoke_Emitter_Delay >= 2 Then
+
+    Smoke_Emitter_Emit()
+
+    Smoke_Emitter_Delay = 0
+
+  endif
+
+  
+
+  If Mouse.IsLeftButtonDown Then
+
+    If Mouse_LeftButtonDown = 0 Then
+
+      Smoke_Emitter_Add()
+
+      Mouse_LeftButtonDown = 1
+
+    endif
+
+    Smoke_Emitter_Updateline()
+
+  Else
+
+    Mouse_LeftButtonDown = 0
+
+  endif
+
+endsub
+
+    
+
+

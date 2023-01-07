@@ -1,0 +1,313 @@
+' Monoris 0.1a
+
+' Copyright © 2014 Nonki Takahashi.  The MIT License.
+
+'
+
+GraphicsWindow.Title = "Monoris 0.1a"
+
+Not = "False=True;True=False;"
+
+gw = 598
+
+gh = 428
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.BackgroundColor = "gray"
+
+InitPiece()
+
+ClearBoard()
+
+t = 0
+
+nDropped = 0
+
+While "True"
+
+  t = t + 1
+
+  If Math.Remainder(t, 5) = 0 Then
+
+    DropPiece()
+
+  EndIf
+
+  DrawBoard()
+
+  UpdatePiece()
+
+  Program.Delay(1000)
+
+  'DumpBoard()
+
+EndWhile
+
+Sub DumpBoard
+
+  For r = 1 To maxRow
+
+    For c = 1 To maxCol
+
+      TextWindow.Write(board[r][c])
+
+    EndFor
+
+    TextWindow.WriteLine("")
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+Sub DropPiece
+
+  nDropped = nDropped + 1
+
+  dropped[nDropped]["floating"] = "True"
+
+  iPiece = Math.GetRandomNumber(nPiece)
+
+  dropped[nDropped]["piece"] = iPiece
+
+  col = Math.Floor((maxCol - piece[iPiece]["width"]) / 2)
+
+  row = 1 - piece[iPiece]["height"]
+
+  dropped[nDropped]["col"] = col
+
+  dropped[nDropped]["row"] = row
+
+  'DumpDropped()
+
+EndSub
+
+Sub DumpDropped
+
+  TextWindow.WriteLine("dropped: ")
+
+  For i = 1 To nDropped
+
+    TextWindow.WriteLine("dropped[" + i + "]: " + dropped[i])
+
+  EndFor
+
+  TextWindow.Pause()
+
+EndSub
+
+Sub UpdatePiece
+
+  For iDropped = 1 To nDropped
+
+    If dropped[iDropped]["floating"] Then
+
+      col = dropped[iDropped]["col"]
+
+      row = dropped[iDropped]["row"] + 1
+
+      CollisionDetect()
+
+      If Not[collision] Then
+
+        MovePiece()
+
+      Else
+
+        dropped[iDropped]["floating"] = "False"
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub CollisionDetect
+
+  ' param iDropped - index of dropped piece
+
+  ' param col - new col
+
+  ' param row - new row
+
+  ' return collision - "True" if collision detected
+
+  collision = "False"
+
+  left = col
+
+  top = row
+
+  iPiece = dropped[iDropped]["piece"]
+
+  hPiece = piece[iPiece]["width"]
+
+  wPiece = piece[iPiece]["Height"]
+
+  For rowPiece = 1 To hPiece
+
+    rowBoard = top + rowPiece - 1
+
+    For colPiece = 1 To wPiece
+
+      If piece[iPiece]["shape"][rowPiece][colPiece] = 1 Then
+
+        colBoard = left + colPiece - 1
+
+        If board[rowBoard][colBoard] <> 0 Then
+
+          collision = "True"
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub MovePiece
+
+  ' param iDropped - index of dropped piece
+
+  ' param col - new col
+
+  ' param row - new row
+
+  left = dropped[iDropped]["col"]
+
+  top = dropped[iDropped]["row"]
+
+  iPiece = dropped[iDropped]["piece"]
+
+  hPiece = piece[iPiece]["width"]
+
+  wPiece = piece[iPiece]["Height"]
+
+  For rowPiece = 1 To hPiece
+
+    rowBoard = top + rowPiece - 1
+
+    If 1 <= rowBoard Then 
+
+      For colPiece = 1 To wPiece
+
+        colBoard = left + colPiece - 1
+
+        If (1 <= colBoard) And (piece[iPiece]["shape"][rowPiece][colPiece] = 1) Then
+
+          board[rowBoard][colBoard] = 0
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+  EndFor
+
+  left = col
+
+  top = row
+
+  For rowPiece = 1 To hPiece
+
+    rowBoard = top + rowPiece - 1
+
+    If 1 <= rowBoard Then 
+
+      For colPiece = 1 To wPiece
+
+        colBoard = left + colPiece - 1
+
+        If (1 <= colBoard) And (piece[iPiece]["shape"][rowPiece][colPiece] = 1) Then
+
+          board[top + rowPiece - 1][left + colPiece - 1] = iPiece
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+  EndFor
+
+  dropped[iDropped]["col"] = col
+
+  dropped[iDropped]["row"] = row
+
+EndSub
+
+Sub InitPiece
+
+  piece[1] = "width=1;height=1;"
+
+  piece[1]["shape"]["1"] = "1=1;"
+
+  color[1] = "red"
+
+  piece[2] = "width=1;height=1;"
+
+  piece[2]["shape"]["1"] = "1=1;"
+
+  color[2] = "green"
+
+  nPiece = Array.GetItemCount(piece)
+
+EndSub
+
+Sub ClearBoard
+
+  maxRow = 10
+
+  maxCol = 5
+
+  color[0] = "white"
+
+  For row = 1 To maxRow
+
+    For col = 1 To maxCol
+
+      board[row][col] = 0
+
+    EndFor
+
+  EndFor
+
+  sizePiece = 40
+
+  x0 = (gw - sizePiece * maxCol) / 2
+
+  y0 = (gh - sizePiece * maxRow) / 2
+
+EndSub
+
+Sub DrawBoard
+
+  For row = 1 To maxRow
+
+    y = y0 + (row - 1) * sizePiece
+
+    For col = 1 To maxCol
+
+      x = x0 + (col - 1) * sizePiece
+
+      GraphicsWindow.BrushColor = color[board[row][col]]
+
+      GraphicsWindow.FillRectangle(x, y, sizePiece, sizePiece)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+

@@ -1,0 +1,1223 @@
+GraphicsWindow.Title  = "Sums Calculator"
+
+GraphicsWindow.BackgroundColor="Gray
+
+GraphicsWindow.Width=700
+
+GraphicsWindow.Height=700
+
+Lex_Init()
+
+txxx=Controls.AddMultiLineTextBox (10,10)
+
+btt= Controls.AddButton ("Run",300,10)
+
+rbb=LDControls.AddRichTextBox (300,600)
+
+Controls.Move (rbb,400,30)
+
+Controls.SetSize (txxx,250,600)
+
+Controls.ButtonClicked=bccl
+
+For x=1 to 100
+
+sarr[x]=0
+
+endfor
+
+sxx=1
+
+
+
+Sub bccl
+
+  summ()
+
+EndSub 
+
+
+
+Sub summ
+
+  buf= Controls.GetTextBoxText (txxx)
+
+  ConvertTextToLines()
+
+  sum = 0
+
+  LDControls.RichTextBoxSetText  (rbb,ESLText.CRLF +"Summarizing:","True")
+
+  For l = 1 To nLines
+
+    buf = ldtext.Trim (lines[l])
+
+    while Text.IsSubText  (buf,"%") 
+
+      sp=text.GetIndexOf (buf,"%")+1
+
+      rr=text.GetSubText (buf,sp,2)
+
+      If rr="$$" then  
+
+         buf=LDText.Replace (buf,"%$$",sarr[sxx-1])
+
+      else
+
+      buf=LDText.Replace (buf,"%"+rr,sarr[rr])
+
+      endif
+
+    EndWhile 
+
+    Calc()
+
+    If var["ans"] <> "ERR" Then
+
+      LDControls.RichTextBoxSetText  (rbb, buf + "=" + var["ans"],"True")
+
+      sum = sum + var["ans"]
+
+    EndIf
+
+  EndFor
+
+  LDControls.RichTextBoxSetText  (rbb, sxx+" Sum=" + sum,"True")
+
+  sarr[sxx]=sum
+
+  sxx=sxx+1
+
+  
+
+EndSub 
+
+
+
+Sub ConvertTextToLines
+
+  len = Text.GetLength(buf)
+
+  lines= LDText.Split(buf, ESLText.CRLF )
+
+  nLines=array.GetItemCount (lines) 
+
+EndSub
+
+
+
+Sub Calc  ' param buf - expr  ' param var[] - vars   ' return var["ans"] - answer
+
+  len = Text.GetLength(buf)
+
+  ptr = 1
+
+  Parse_Expr()
+
+  If ptr <= len Then
+
+    TextWindow.WriteLine("Syntax error in expression " + buf + ".")
+
+    var["ans"] = "ERR"
+
+  Else
+
+    var["ans"] = val
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exec_Expr ' expr ::= <term>[[]{+|-}[]<term>]  ' return val - result of expression
+
+  If match Then
+
+    n = Array.GetItemCount(_opt)
+
+    val = _val[1]
+
+    For i = 1 To n
+
+      If _opt[i] = "+" Then
+
+        val = val + _val[i + 1]
+
+      ElseIf _opt[i] = "-" Then
+
+        val = val - _val[i + 1]
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exec_Factor ' factor ::= {<func>|<literal>|([]<expr>[])}
+
+  If match Then
+
+    If (_opt[1] = "func")??Or (_opt[1] = "val") Then
+
+      val = _val[1]
+
+    ElseIf _opt[1] = ")" Then
+
+      val = _val[2]
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exec_Func' func ::= sqrt([]<expr>[])
+
+  If match Then
+
+    val = Math.SquareRoot(_val[1])
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exec_Literal  ' literal ::= {<real>|<_str>}
+
+  If match Then
+
+    If _opt[1] = "real" Then
+
+      val = _val[1]
+
+    ElseIf _opt[1] = "_str" Then
+
+      val = _val[2]
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exec_Real  ' real ::= [-]<_num>[.<_num>]
+
+  If match Then
+
+    val = _const[1] + _val[1] ' sign + int
+
+    If _const[2] = "." Then
+
+      val = Text.Append(val + ".", _val[2]) ' sign + int + "." + frac
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exec_Term  ' term ::= <factor>[[]{'*'|/}[]<factor>]
+
+  If match Then
+
+    n = Array.GetItemCount(_opt)
+
+    val = _val[1]
+
+    For i = 1 To n
+
+      If _opt[i] = "*" Then
+
+        val = val * _val[i + 1]
+
+      ElseIf _opt[i] = "/" Then
+
+        val = val / _val[i + 1]
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Init
+
+  UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+  LOWER = "abcdefghijklmnopqrstuvwxyz"
+
+  DIGIT = "0123456789"
+
+  FCHAR = UPPER + LOWER         ' first charcters for label/variable/sub
+
+  TCHAR = FCHAR + DIGIT + "_"   ' trailing characters for label/variable/sub
+
+  WQ = Text.GetCharacter(34)                            ' double quote
+
+  SQ = "'"                                              ' single quote
+
+  CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)  ' carriage return + line feed
+
+  Not = "True=False;False=True;"
+
+EndSub
+
+Sub Lex_Label
+
+  Lex_Name()
+
+  If match And (Array.ContainsValue(label, val) = "False") Then
+
+    nLabel = nLabel + 1
+
+    label[nLabel] = val
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Name
+
+  ch = Text.GetSubText(buf, ptr, 1)
+
+  If Text.GetIndexOf(FCHAR, ch) > 0 Then
+
+    name = ch
+
+    ptr = ptr + 1
+
+    match = "True"
+
+    While match
+
+      ch = Text.GetSubText(buf, ptr, 1)
+
+      If Text.GetIndexOf(TCHAR, ch) > 0 Then
+
+        ptr = ptr + 1
+
+        name = name + ch
+
+      Else
+
+        match = "False"
+
+      EndIf
+
+    EndWhile
+
+    match = "True"
+
+  Else
+
+    name = ""
+
+    match = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Num
+
+  ch = Text.GetSubText(buf, ptr, 1)
+
+  If Text.GetIndexOf(DIGIT, ch) > 0 Then
+
+    val = ch
+
+    ptr = ptr + 1
+
+    match = "True"
+
+    While match
+
+      ch = Text.GetSubText(buf, ptr, 1)
+
+      If Text.GetIndexOf(DIGIT, ch) > 0 Then
+
+        ptr = ptr + 1
+
+        val = Text.Append(val, ch)
+
+      Else
+
+        match = "False"
+
+      EndIf
+
+    EndWhile
+
+    match = "True"
+
+  Else
+
+    val = ""
+
+    match = "False"
+
+  EndIf
+
+EndSub
+
+Sub Lex_Space0
+
+  ' param buf - buffer
+
+  ' param ptr - pointer
+
+  ' return match - "True"
+
+  ' return ptr - next pointer
+
+  txt = " "
+
+  match = "True"
+
+  While match
+
+    Lex_Text()
+
+  EndWhile
+
+  match = "True"
+
+EndSub
+
+Sub Lex_Space1
+
+  txt = " "
+
+  Lex_Text()
+
+  If match Then
+
+    While match
+
+      Lex_Text()
+
+    EndWhile
+
+    match = "True"
+
+  Else
+
+    LDControls.RichTextBoxSetText (rbb,"Syntax Error: space not found","True")
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Str
+
+  Stack.PushValue("local", ptr)
+
+  txt = WQ
+
+  Lex_Text()
+
+  If match Then
+
+    ch = Text.GetSubText(buf, ptr, 1)
+
+    str = ""
+
+    While ch <> WQ
+
+      str = str + ch
+
+      ptr = ptr + 1
+
+      ch = Text.GetSubText(buf, ptr, 1)
+
+    EndWhile
+
+  EndIf
+
+  If match Then
+
+    txt = WQ
+
+    Lex_Text()
+
+  EndIf
+
+  _ptr = Stack.PopValue("local")
+
+  If match Then
+
+    val = str
+
+  Else
+
+    val = ""
+
+    ptr = _ptr
+
+  EndIf
+
+EndSub
+
+Sub Lex_Text
+
+  val = ""
+
+  txtlen = Text.GetLength(txt)
+
+  lotxt = Text.ConvertToLowerCase(txt)
+
+  lobuf = Text.ConvertToLowerCase(Text.GetSubText(buf, ptr, txtlen))
+
+  If lobuf = lotxt Then
+
+    match = "True"
+
+    ptr = ptr + txtlen
+
+    val = txt
+
+  Else
+
+    match = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Var
+
+  Stack.PushValue("local", _val)
+
+  _val = ""
+
+  Lex_Name()
+
+  _val[1] = val
+
+  Stack.PushValue("local", name)
+
+  If match Then
+
+    Stack.PushValue("ptr",ptr)
+
+    If match Then
+
+      txt = "["
+
+      Lex_Text()
+
+    EndIf
+
+    If match Then
+
+      Lex_Space0()
+
+    EndIf
+
+    If match Then
+
+      Parse_Val()
+
+      _val[2] = val
+
+    EndIf
+
+    If match Then
+
+      Lex_Space0()
+
+    EndIf
+
+    If match Then
+
+      txt = "]"
+
+      Lex_Text()
+
+    EndIf
+
+    If match Then
+
+      Stack.PushValue("ptr",ptr)
+
+      If match Then
+
+        txt = "["
+
+        Lex_Text()
+
+      EndIf
+
+      If match Then
+
+        Lex_Space0()
+
+      EndIf
+
+      If match Then
+
+        Parse_Val()
+
+        _val[3] = val
+
+      EndIf
+
+      If match Then
+
+        Lex_Space0()
+
+      EndIf
+
+      If match Then
+
+        txt = "]"
+
+        Lex_Text()
+
+      EndIf
+
+      _ptr = Stack.PopValue("ptr")
+
+      If Not[match] Then
+
+        ptr = _ptr
+
+        match = "True"
+
+      EndIf
+
+    EndIf
+
+    _ptr = Stack.PopValue("ptr")
+
+    If Not[match] Then
+
+      ptr = _ptr
+
+      match = "True"
+
+    EndIf
+
+  EndIf
+
+  name = Stack.PopValue("local")
+
+  If match Then
+
+    If _val[3] <> "" Then
+
+      name = name + "[" + _val[2] + "][" + _val[3] + "]"
+
+    ElseIf _Val[2] <> "" Then
+
+      name = name + "[" + _val[2] + "]
+
+    EndIf
+
+    If Array.ContainsIndex(var, name) Then
+
+      val = var[name]
+
+      If val = "N/A" Then
+
+        val = ""
+
+      EndIf
+
+    Else
+
+      var[name] = "N/A"
+
+      val = ""
+
+    EndIf
+
+  EndIf
+
+  _val = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Expr  ' expr ::= <term>[[]{+|-}[]<term>]
+
+  _const = ""
+
+  Stack.PushValue("local", _opt)
+
+  _opt = ""
+
+  Stack.PushValue("local", _val)
+
+  _val = ""
+
+  Stack.PushValue("ptr",ptr)
+
+  Parse_Term()
+
+  i = 1
+
+  _val[i] = val
+
+  If match Then
+
+    While match
+
+      Stack.PushValue("ptr",ptr)
+
+      Lex_Space0()
+
+      txt = "+"
+
+      Lex_Text()
+
+      _const[i] = val
+
+      If match Then
+
+        _opt[i] = "+"
+
+      Else
+
+        txt = "-"
+
+        Lex_Text()
+
+        _const[i] = val
+
+        If match Then
+
+          _opt[i] = "-"
+
+        EndIf
+
+      EndIf
+
+      If match Then
+
+        Lex_Space0()
+
+      EndIf
+
+      If match Then
+
+        Stack.PushValue("local", i)
+
+        Parse_Term()
+
+        i = Stack.PopValue("local")
+
+        _val[i + 1] = val
+
+      EndIf
+
+      _ptr = Stack.PopValue("ptr")
+
+      If Not[match] Then
+
+        ptr = _ptr
+
+        _opt[i] = ""
+
+      EndIf
+
+      i = i + 1
+
+    EndWhile
+
+    match = "True"
+
+  EndIf
+
+  _ptr = Stack.PopValue("ptr")
+
+  If Not[match] Then
+
+    ptr = _ptr
+
+  EndIf
+
+  Exec_Expr()
+
+  _val = Stack.PopValue("local")
+
+  _opt = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Term  ' term ::= <factor>[[]{'*'|/}[]<factor>]
+
+  _const = ""
+
+  Stack.PushValue("local", _opt)
+
+  _opt = ""
+
+  Stack.PushValue("local", _val)
+
+  _val = ""
+
+  Stack.PushValue("ptr", ptr)
+
+  Parse_Factor()
+
+  i = 1
+
+  _val[i] = val
+
+  If match Then
+
+    While match
+
+      Stack.PushValue("ptr", ptr)
+
+      Lex_Space0()
+
+      If match Then
+
+        txt = "*"
+
+        Lex_Text()
+
+        _const[i] = val
+
+        If match Then
+
+          _opt[i] = "*"
+
+        Else
+
+          txt = "/"
+
+          Lex_Text()
+
+          _const[i] = val
+
+          If match Then
+
+            _opt[i] = "/"
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+      If match Then
+
+        Lex_Space0()
+
+      EndIf
+
+      If match Then
+
+        Stack.PushValue("local", i)
+
+        Parse_Factor()
+
+        i = Stack.PopValue("local")
+
+        _val[i + 1] = val
+
+      EndIf
+
+      _ptr = Stack.PopValue("ptr")
+
+      If Not[match] Then
+
+        ptr = _ptr
+
+        _opt[i] = ""
+
+      EndIf
+
+      i = i + 1
+
+    EndWhile
+
+    match = "True"
+
+  EndIf
+
+  _ptr = Stack.PopValue("ptr")
+
+  If Not[match] Then
+
+    ptr = _ptr
+
+  EndIf
+
+  Exec_Term()
+
+  _val = Stack.PopValue("local")
+
+  _opt = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Factor  ' factor ::= {<func>|<literal>|([]<expr>[])}
+
+  _const = ""
+
+  Stack.PushValue("local", _opt)
+
+  _opt = ""
+
+  Stack.PushValue("local", _val)
+
+  _val = ""
+
+  Parse_Func()
+
+  _val[1] = val
+
+  If match Then
+
+    _opt[1] = "func"
+
+  Else
+
+    Parse_Literal()
+
+    _val[1] = val
+
+    If match Then
+
+      _opt[1] = "val"
+
+    EndIf
+
+  EndIf
+
+  If Not[match] Then
+
+    Stack.PushValue("ptr",ptr)
+
+    txt = "("
+
+    Lex_Text()
+
+    _const[1] = val
+
+    If match Then
+
+      Lex_Space0()
+
+    EndIf
+
+    If match Then
+
+      Parse_Expr()
+
+      _val[2] = val
+
+    EndIf
+
+    If match Then
+
+      Lex_Space0()
+
+    EndIf
+
+    If match Then
+
+      txt = ")"
+
+      Lex_Text()
+
+      _const[2] = val
+
+    EndIf
+
+    _ptr = Stack.PopValue("ptr")
+
+    If Not[match] Then
+
+      ptr = _ptr
+
+    EndIf
+
+    If match Then
+
+      _opt[1] = ")"
+
+    EndIf
+
+  EndIf
+
+  Exec_Factor()
+
+  _val = Stack.PopValue("local")
+
+  _opt = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Func  ' func ::= sqrt([]<expr>[])
+
+  _const = ""
+
+  Stack.PushValue("local", _opt)
+
+  _opt = ""
+
+  Stack.PushValue("local", _val)
+
+  _val = ""
+
+  Stack.PushValue("ptr",ptr)
+
+  txt = "sqrt("
+
+  Lex_Text()
+
+  _const[1] = val
+
+  If match Then
+
+    Lex_Space0()
+
+  EndIf
+
+  If match Then
+
+    Parse_Expr()
+
+    _val[1] = val
+
+  EndIf
+
+  If match Then
+
+    Lex_Space0()
+
+  EndIf
+
+  If match Then
+
+    txt = ")"
+
+    Lex_Text()
+
+    _const[2] = val
+
+  EndIf
+
+  _ptr = Stack.PopValue("ptr")
+
+  If Not[match] Then
+
+    ptr = _ptr
+
+  EndIf
+
+  If match Then
+
+    _opt[1] = "func"
+
+  EndIf
+
+  Exec_Func()
+
+  _val = Stack.PopValue("local")
+
+  _opt = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Val  ' val ::= {<literal>|<_var>}
+
+  _const = ""
+
+  Stack.PushValue("local", _opt)
+
+  _opt = ""
+
+  Stack.PushValue("local", _val)
+
+  _val = ""
+
+  Parse_Literal()
+
+  _val[1] = val
+
+  If match Then
+
+    _opt[1] = "literal"
+
+  Else
+
+    Lex_Var()
+
+    _val[2] = val
+
+    If match Then
+
+      _opt[1] = "_var"
+
+    EndIf
+
+  EndIf
+
+  _val = Stack.PopValue("local")
+
+  _opt = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Literal  ' literal ::= {<real>|<_str>}
+
+  _const = ""
+
+  Stack.PushValue("local", _opt)
+
+  _opt = ""
+
+  Stack.PushValue("local", _val)
+
+  _val = ""
+
+  Parse_Real()
+
+  _val[1] = val
+
+  If match Then
+
+    _opt[1] = "real"
+
+  Else
+
+    Lex_Str()
+
+    _val[2] = val
+
+    If match Then
+
+      _opt[1] = "_str"
+
+    EndIf
+
+  EndIf
+
+  Exec_Literal()
+
+  _val = Stack.PopValue("local")
+
+  _opt = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Real  ' real ::= [-]<_num>[.<_num>]
+
+  _const = ""
+
+  Stack.PushValue("local", _opt)
+
+  _opt = ""
+
+  Stack.PushValue("local", _val)
+
+  _val = ""
+
+  Stack.PushValue("ptr",ptr)
+
+  txt = "-"
+
+  Lex_Text()
+
+  _const[1] = val
+
+  match = "True"
+
+  If match Then
+
+    Lex_Num()
+
+    _val[1] = val
+
+  EndIf
+
+  If match Then
+
+    Stack.PushValue("ptr",ptr)
+
+    txt = "."
+
+    Lex_Text()
+
+    _const[2] = val
+
+    If match Then
+
+      Lex_Num()
+
+      _val[2] = val
+
+    EndIf
+
+    _ptr = Stack.PopValue("ptr")
+
+    If Not[match] Then
+
+      ptr = _ptr
+
+    EndIf
+
+    match = "True"
+
+  EndIf
+
+  _ptr = Stack.PopValue("ptr")
+
+  If Not[match] Then
+
+    ptr = _ptr
+
+  EndIf
+
+  Exec_Real()
+
+  _val = Stack.PopValue("local")
+
+  _opt = Stack.PopValue("local")
+
+EndSub
+
+

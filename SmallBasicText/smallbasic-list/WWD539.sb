@@ -1,0 +1,195 @@
+' Yo-yo Simulation
+
+' Copyright (c) 2014 Nonki Takahashi.  The MIT License.
+
+'
+
+Not = "False=True;True=False;"
+
+gw = 598
+
+gh = 428
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.Title = "Yo-yo"
+
+l = 50    ' length of string [cm]
+
+rY = 3    ' radius of yo-yo [cm]
+
+rS = 0.5  ' radius of spindle [cm]
+
+rM = 1    ' radius of mark [cm]
+
+scale = 5 ' [px/cm]
+
+w = 5     ' weight of yo-yo [g]
+
+g = 9.8   ' acceleration of gravity [m/s^2]
+
+GraphicsWindow.PenWidth = 0
+
+GraphicsWindow.BrushColor = "Crimson"
+
+yoyo = Shapes.AddEllipse(2 * rY * scale, 2 * rY * scale)
+
+GraphicsWindow.BrushColor = "Pink"
+
+mark = Shapes.AddEllipse(2 * rM * scale, 2 * rM * scale)
+
+yMax = gh / scale
+
+xMax = gw / scale
+
+xHand = xMax / 2
+
+yHand = 70
+
+GraphicsWindow.PenWidth = 1
+
+GraphicsWindow.PenColor = "Silver"
+
+x1 = xHand * scale
+
+y1 = (yMax - yHand) * scale 
+
+x2 = x1
+
+a = 0 ' [rad]
+
+cxY = xHand - rS / 2
+
+cyY = yHand - rY - rS / 2
+
+MoveYoyo()
+
+dt = 0.01 ' [s]
+
+vxY = 0 ' velocity [m/s]
+
+vyY = 0 ' velocity [m/s]
+
+Timer.Interval = 1000 * dt  ' [ms]
+
+down = "True"
+
+up = "False"
+
+cw = "False"  ' clockwise
+
+Timer.Tick = OnTick
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+Sub OnKeyDown
+
+  If GraphicsWindow.LastKey = "Up" And Not[down] Then
+
+    up = "True"
+
+    If cw Then
+
+      cxY = xHand - rS / 2
+
+    Else
+
+      cxY = xHand + rS / 2
+
+    EndIf
+
+    dy = -dy
+
+  EndIf
+
+EndSub
+
+Sub OnTick
+
+  Timer.Pause()
+
+  If down Then 
+
+    vyYLast = vyY
+
+    vyY = vyY - (g * dt)
+
+    dy = 100 * (vyYLast + vyY) * dt / 2 ' [cm]
+
+    cyY = cyY + dy  ' [cm]
+
+    If l < yHand - cyY Then
+
+      cyY = yHand - l
+
+      cxY = xHand
+
+      down = "False"
+
+      vyY = 0
+
+    EndIf
+
+  EndIf
+
+  If up Then
+
+    cyY = cyY + dy  ' [cm]
+
+    If yHand - rY < cyY Then
+
+      cyY = yHand - rY
+
+      vyY = 0
+
+      up = "False"
+
+      down = "True"
+
+      cw = Not[cw]
+
+    EndIf
+
+  EndIF
+
+  If cw Then
+
+    a = a + dy / rS ' [rad]
+
+  Else
+
+    a = a - dy / rS ' [rad]
+
+  EndIf
+
+  MoveYoyo()
+
+  Timer.Resume()
+
+EndSub
+
+Sub MoveYoyo
+
+  If string <> "" Then
+
+    Shapes.Remove(string)
+
+  EndIf
+
+  y2 = (yMax - cyY - rY) * scale
+
+  string = Shapes.AddLine(x1, y1, x2, y2)
+
+  Shapes.Move(yoyo, (cxY - rY) * scale, (yMax - (cyY + rY)) * scale)
+
+  cxM = cxY + (rY / 2) * Math.Cos(a)
+
+  cyM = cyY - (rY / 2) * Math.Sin(a)
+
+  Shapes.Move(mark, (cxM - rM) * scale, (yMax - (cyM + rM)) * scale)
+
+EndSub
+
+

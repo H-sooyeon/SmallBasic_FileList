@@ -1,0 +1,443 @@
+' SmallBasic Version 1.2
+
+' Program: ColorWheel
+
+' Changelog: 15.11/12
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/ca8db35c-abc7-4a9f-9e92-a1e4ae7c4ea4/colors-shapes-and-brushes
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev
+
+' Comment: http://www.leifiphysik.de/themenbereiche/farben/lb/heimversuche-farbkreisel
+
+'  http://www.leifiphysik.de/printpdf/730?v=ok  (leifi_physik_-_heimversuche_-_farbkreisel_-_2015-05-26.pdf)
+
+'  http://www.leifiphysik.de/sites/default/files/medien/farben_versuch_farbkreisel.svg
+
+' KEYS: Escape ... Exit,  Space ... Stop rotation,  R|D ... toggle direction R<->L
+
+' Left/Right ... -/+ rotation speed (dStep)
+
+' Down/Up ... prev./next wheel image
+
+' ================================================================================
+
+r = 200         '' Wheel Radius [Pxl], eg. 300
+
+dStep = 100     '' Delta -/+ rpm, eg. 50
+
+rpm = 0         '' Initial Wheel RotSpeed [Revolutions/Minute], eg. 100
+
+
+
+imgDir = Program.Directory + "\img\Wheels"    '' Directory for additional wheel images, with ...
+
+arrAllowed = "1=bmp;2=gif;3=ico;4=jpg;5=jpeg;6=png;7=tiff;"   '' ... allowed extensions to filter out
+
+
+
+
+
+'' 1.) Drawing wheel with different color sectors (?뿈, highest  wheel# and is selected from start)
+
+arrCols = "1=Red;2=Lime;3=Blue;"   '' Best (white/gray) result at 1200 rpm
+
+'arrDegs = "1=180;2=90;3=90;"       '' Degrees for arrCols eg: 180째 Red, 90째 Lime, 90째 Blue (Sum = 360째)
+
+
+
+'' eg. Alternative 7-color wheel, with equal (arrDegs = "") or variable sector angles (from arrDegs)
+
+'arrCols = "1=#8B00FF;2=Indigo;3=Blue;4=Lime;5=Yellow;6=Orange;7=Red;"   ' 1=DarkViolet;
+
+'arrCols = "1=DarkViolet;2=DarkBlue;3=LightBlue;4=Green;5=Yellow;6=Orange;7=Red;"
+
+'arrDegs = "1=61;2=34;3=54;4=61;5=55;6=34;7=61;"   '' ~ Bandwidth in visible 7-color spectrum [째], Sum = 360
+
+
+
+nCols = Array.GetItemCount(arrCols)
+
+'' Check/Correct the last value in arrDegs, if sum <> 360째 (as long as sum of prev. values <= 360)
+
+''   eg.  "1=180;2=90;3=9;"  is corrected to "1=180;2=90;3=90;"   now with sum = 360
+
+If Array.IsArray(arrDegs) Then
+
+  AutoCorrectDegs()
+
+Else
+
+  arrDegs = ""
+
+EndIf
+
+
+
+'ReverseCols()       '' optional sort colors in reverse order (for drawing wheel)
+
+
+
+
+
+'' 2.) Additional image files to select/change  (?뿃, optional) from defined directory path (imgDir)
+
+GetImages()
+
+
+
+' ================  NO changes below  ================
+
+lastRPM = 0
+
+lf = Text.GetCharacter(10)
+
+nPics = Array.GetItemCount(arrPics)
+
+pi = 3.14159
+
+rads = 2 * pi / nCols
+
+
+
+brush = LDShapes.BrushImage("")   '' #FF6A5ACD (106,90,205), to support transparency for wheel image
+
+LDUtilities.ShowErrors = "False"  '' ignore ERROR,  and support transparency for wheel image
+
+LDGraphicsWindow.TransparentGW()
+
+LDGraphicsWindow.TopMost = "True"
+
+GraphicsWindow.Width = 2 * r
+
+GraphicsWindow.Height = 2 * r
+
+
+
+WheelImage()
+
+
+
+'' Textinfo for RpM, RpS, Image#
+
+GraphicsWindow.BrushColor = "Orange"
+
+shpInfo = Shapes.AddText("")
+
+UpdateInfo()
+
+
+
+LDShapes.BrushEllipse(brush, 0,0, 2*r,2*r)
+
+GraphicsWindow.PenWidth = 0
+
+shpWheel = Shapes.AddEllipse(2*r, 2*r)
+
+LDShapes.BrushShape(shpWheel, brush)
+
+
+
+SetActivePic()
+
+OnKeyDown()
+
+
+
+
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.MouseUp = OnMouseUp
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+
+
+
+
+' //////////  EVENTs  \\\\\\\\\\
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  
+
+  If lastKey = "Escape" Then      ' Exit
+
+    Program.End()
+
+    
+
+  ElseIf lastKey = "Left" Then    ' Decrease speed
+
+    rpm = rpm - dStep
+
+    
+
+  ElseIf lastKey = "Right" Then   ' Increase speed
+
+    rpm = rpm + dStep
+
+    
+
+  ElseIf lastKey = "Space" Then   ' Stop
+
+    rpm = 0
+
+    
+
+  ElseIf lastKey = "R" Or lastKey = "D" Then  ' Change direction
+
+    rpm = -rpm
+
+    
+
+  ElseIf lastKey = "Up" And nPics > 1 Then    ' Next image
+
+    activePic = Math.Remainder(activePic, nPics) + 1
+
+    SetActivePic()
+
+    
+
+  ElseIf lastKey = "Down" And nPics > 1 Then  ' Previous image
+
+    activePic = Math.Remainder(nPics + activePic-2, nPics) + 1
+
+    SetActivePic()
+
+  EndIf
+
+  
+
+  If rpm <> lastRPM Then
+
+    T = 0
+
+    If rpm <> 0 Then
+
+      T = 60000 / rpm
+
+    EndIf
+
+    LDShapes.AnimateRotation(shpWheel, T,0)   ' Change speed ...
+
+    UpdateInfo()                              ' ... and Info
+
+    lastRPM = rpm
+
+  EndIf
+
+EndSub
+
+
+
+
+
+'' 3 Events to drag GW
+
+Sub OnMouseDown
+
+  xOff = GraphicsWindow.MouseX
+
+  yOff = GraphicsWindow.MouseY
+
+  dragOn = "True"
+
+EndSub
+
+
+
+Sub OnMouseUp
+
+  dragOn = ""
+
+EndSub
+
+
+
+Sub OnMouseMove
+
+  If dragOn Then
+
+    GraphicsWindow.Left = Mouse.MouseX - xOff
+
+    GraphicsWindow.Top = Mouse.MouseY - yOff
+
+  EndIf  
+
+EndSub
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub GetImages
+
+' The following line could be harmful and has been automatically commented.
+
+'   arrFiles = File.GetFiles(imgDir)
+
+  For n = 1 To Array.GetItemCount(arrFiles)
+
+' The following line could be harmful and has been automatically commented.
+
+'     ext = Text.ConvertToLowerCase(LDFile.GetExtension(arrFiles[n]))
+
+    If Array.ContainsValue(arrAllowed, ext) Then
+
+      arrPics[Array.GetItemCount(arrPics) + 1] = arrFiles[n]
+
+    EndIf
+
+  EndFor  
+
+EndSub
+
+
+
+Sub AutoCorrectDegs
+
+  For i = 1 To nCols-1
+
+    sum = sum + arrDegs[i]
+
+  EndFor
+
+  If sum + arrDegs[nCols] <> 360 Then
+
+    arrDegs[nCols] = 360 - sum
+
+  EndIf
+
+EndSub
+
+
+
+Sub ReverseCols
+
+  For n = nCols To 1 Step -1
+
+    rev[Array.GetItemCount(rev) + 1] = arrCols[n]
+
+  EndFor
+
+  arrCols = rev
+
+EndSub
+
+
+
+Sub WheelImage
+
+  GraphicsWindow.BrushColor = arrCols[1]
+
+  GraphicsWindow.FillEllipse(0,0, 2*r,2*r)
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = arrCols[2]
+
+  GraphicsWindow.DrawLine(r,r, 2*r,r)
+
+  
+
+  For n = 1 To nCols-1
+
+    If Array.IsArray(arrDegs) Then
+
+      rads = arrDegs[n] * pi/180
+
+    EndIf
+
+    ang = ang + rads
+
+    
+
+    x = r + r * Math.Cos(ang)
+
+    y = r + r * Math.Sin(ang)
+
+    GraphicsWindow.PenColor = arrCols[n+1]
+
+    GraphicsWindow.DrawLine(r,r, x,y)
+
+    
+
+    xP = r + r/2 * Math.Cos(ang + rads/2)
+
+    yP = r + r/2 * Math.Sin(ang + rads/2)
+
+    GraphicsWindow.BrushColor = arrCols[n+1]
+
+    LDGraphicsWindow.FloodFill(xP,yP, arrCols[n+1])
+
+  EndFor
+
+  
+
+  GraphicsWindow.PenColor = arrCols[nCols]
+
+  GraphicsWindow.DrawLine(r,r, 2*r,r)
+
+  
+
+  nPics = nPics + 1
+
+  arrPics[nPics] = LDGraphicsWindow.Capture("","")  '' add drawing image ...
+
+  activePic = nPics                                 '' ... and set active
+
+  GraphicsWindow.Clear()
+
+EndSub
+
+
+
+Sub SetActivePic
+
+  brush = LDShapes.BrushImage(arrPics[activePic])
+
+  LDShapes.BrushShape(shpWheel, brush)
+
+  UpdateInfo()
+
+EndSub
+
+
+
+Sub UpdateInfo
+
+  rps = Math.Round(rpm / 60)
+
+' The following line could be harmful and has been automatically commented.
+
+'   ' picName = LDFile.GetFile(arrPics[activePic])
+
+  If activePic = nPics Then
+
+    symb = "?뿈 "
+
+  Else
+
+    symb = "?뿃 "
+
+  EndIf
+
+  txt = rpm +" r/min"+lf+ rps +" r/sec"+lf+ symb + activePic  ' or  ... + picName
+
+  Shapes.SetText(shpInfo, txt)
+
+EndSub
+
+

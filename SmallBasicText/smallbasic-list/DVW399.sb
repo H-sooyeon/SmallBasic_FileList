@@ -1,0 +1,315 @@
+Initialise()
+
+
+
+While ("True")
+
+  start = Clock.ElapsedMilliseconds
+
+  
+
+  If (mouseClickDown) Then
+
+    SelectCards()
+
+    mouseClickDown = "False"
+
+  ElseIf (mouseClickUp) Then
+
+    DropCards()
+
+    mouseClickUp = "False"
+
+  ElseIf (mouseDown) Then
+
+    MoveCards()
+
+  EndIf
+
+  
+
+  delay = 20-(Clock.ElapsedMilliseconds-start)
+
+  If (delay > 0) Then
+
+    Program.Delay(delay)
+
+  EndIf
+
+EndWhile
+
+
+
+Sub Initialise
+
+  'Card data
+
+  cardW = 70
+
+  cardH = 100
+
+  numColumn = 7
+
+  numCard = 0
+
+  overlap = cardH/4 'size of overlayed card showing
+
+  
+
+  'Setup Display
+
+  gw = 1.5*(numColumn+1)*cardW+cardW
+
+  gh = 700
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Title = "Solitair Prototype"
+
+  GraphicsWindow.Top = 0
+
+  GraphicsWindow.Left = (Desktop.Width-gw)/2
+
+  GraphicsWindow.BackgroundColor = "Gray"
+
+  
+
+  'Create cards
+
+  For i = 1 To numColumn
+
+    For j = 1 To i
+
+      numCard = numCard+1
+
+      cards[numCard] = Shapes.AddRectangle(cardW,cardH)
+
+      columnCards[i][j] = numCard 
+
+    EndFor
+
+  EndFor
+
+  
+
+  animate = 100
+
+  StackCards()
+
+  animate = 0
+
+  
+
+  'Register events
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+  GraphicsWindow.MouseUp = OnMouseUp
+
+EndSub
+
+
+
+Sub StackCards
+
+  For i = 1 To numColumn
+
+    For j = 1 To Array.GetItemCount(columnCards[i])
+
+      iCard = columnCards[i][j]
+
+      cardX[iCard] = 1.5*i*cardW
+
+      cardY[iCard] = cardW+overlap*j
+
+      Shapes.Remove(cards[iCard])
+
+      cards[iCard] = Shapes.AddRectangle(cardW,cardH)
+
+      If (animate > 0) Then
+
+        Shapes.Animate(cards[iCard],cardX[iCard],cardY[iCard],animate)
+
+        Program.Delay(animate)
+
+      Else
+
+        Shapes.Move(cards[iCard],cardX[iCard],cardY[iCard])
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub SelectCards
+
+  'Only select if currently not noving cards
+
+  If (moving) Then
+
+  Else
+
+    'Find if we have a selected card - this is the card at the top of the pile and all cards below it we want to move
+
+    'Also remove selected cards from static piles
+
+    'Set the Z indices for the selected indices to be above all other cards
+
+    numSelected = 0
+
+    selectedCards = ""
+
+    selectedColumn = 0
+
+    For i = 1 To numColumn
+
+      count = Array.GetItemCount(columnCards[i]) 'Get count first since it changes as cards are removed
+
+      For j = 1 To count
+
+        iCard = columnCards[i][j]
+
+        dx = GraphicsWindow.MouseX - cardX[iCard]
+
+        dy = GraphicsWindow.MouseY - cardY[iCard]
+
+        testH = overlap
+
+        If (j = Array.GetItemCount(columnCards[i])) Then
+
+          testH = cardH 'The bottom card can be selected on its fall area
+
+        EndIf
+
+        If (dx > 0 And dx < cardW And dy > 0 And dy < testH) Then 'First card
+
+          numSelected = numSelected+1
+
+          selectedCards[numSelected] = iCard
+
+          columnCards[i][j] = ""
+
+          Shapes.Remove(cards[iCard])
+
+          cards[iCard] = Shapes.AddRectangle(cardW,cardH)
+
+          Shapes.Move(cards[iCard],cardX[iCard],cardY[iCard])
+
+          offsetX = dx 'To drag the cards with the mouse without a jump
+
+          offsetY = dy
+
+          moving = "True"
+
+          selectedColumn = i
+
+        ElseIf (selectedColumn = i) Then 'Cards below first also move
+
+          numSelected = numSelected+1
+
+          selectedCards[numSelected] = iCard
+
+          columnCards[i][j] = ""
+
+          Shapes.Remove(cards[iCard])
+
+          cards[iCard] = Shapes.AddRectangle(cardW,cardH)
+
+          Shapes.Move(cards[iCard],cardX[iCard],cardY[iCard])
+
+        EndIf  
+
+      EndFor
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub DropCards
+
+  If (moving) Then
+
+    'Find the column to drop on - default is where they came from
+
+    dropColumn = selectedColumn
+
+    For i = 1 To numColumn
+
+      If (GraphicsWindow.MouseX > 1.5*i*cardW And GraphicsWindow.MouseX < 1.5*i*cardW+cardW) Then
+
+        dropColumn = i
+
+      EndIf
+
+    EndFor
+
+    'Add the moving cards to the selected pile
+
+    For i = 1 To numSelected
+
+      columnCards[dropColumn][Array.GetItemCount(columnCards[dropColumn])+1] = selectedCards[i]
+
+    EndFor
+
+    numSelected = 0
+
+    selectedCards = ""
+
+    StackCards()
+
+    moving = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub MoveCards
+
+  If (moving) Then
+
+    For i = 1 To numSelected
+
+      iCard = selectedCards[i]
+
+      Shapes.Move(cards[iCard],GraphicsWindow.MouseX-offsetX,GraphicsWindow.MouseY-offsetY+overlap*(i-1))
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  mouseClickDown = "True"
+
+  mouseDown = "True"
+
+EndSub
+
+
+
+Sub OnMouseUp
+
+  mouseClickUp = "True"
+
+  mouseDown = "False"
+
+EndSub
+
+

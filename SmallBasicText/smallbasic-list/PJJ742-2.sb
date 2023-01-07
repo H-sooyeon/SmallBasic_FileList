@@ -1,0 +1,331 @@
+'PJJ742-2      runs local only.   http://smallbasic.com/program/?PJJ742-2
+
+'JJ Picture Viewer v1.0 (20/7/2013)
+
+
+
+w = 600
+
+h = 350
+
+defaultFS = GraphicsWindow.FontSize
+
+colour = GraphicsWindow.GetRandomColor()
+
+
+
+'button & pic variables & offsets
+
+capt = "1=BG Colour;2=Make Sound;3=Show Image;4=Clear"
+
+size = "bw=100;bh=35"
+
+btnOffset_R = w-size["bw"] -10
+
+btnOffset_B = h-size["bh"] -10
+
+picOffset_X = size["bw"] + 2*10
+
+picOffset_Y = size["bh"] + 2*10
+
+PW = w - picOffset_X * 2
+
+PH = h - picOffset_Y * 2
+
+
+
+animateLoop = 1
+
+j = 0
+
+Timer.Interval = 100
+
+
+
+Controls.ButtonClicked = Click
+
+Timer.Tick = Tick       'start speed bar while loading
+
+'----------------------------------------Main Program--------------------------------------
+
+SetGW()
+
+
+
+While "true"  
+
+  If flag_StartLoading = 1 Then
+
+    If Array.GetItemCount(pic) < 50 Then 'continuously load upto 50 pics
+
+      i = i + 1
+
+      unused_i = i 'so i is not shared
+
+      LoadPic()
+
+      flag_NumberLoaded = 1
+
+      Program.Delay(20)   'time to finish tick event
+
+      If i = 10 Then
+
+        Program.Delay(500) 'show finished speedBar 
+
+        animateLoop = 0
+
+        Program.Delay(5) 'time to finish tick event
+
+        flag_AddButtons = 1
+
+      EndIf      
+
+    EndIf
+
+  EndIf  
+
+  If flag_AddButtons = 1 Then
+
+    flag_AddButtons = 0
+
+    AddButtons()
+
+    ColourPreview()
+
+    GraphicsWindow.DrawResizedImage(pic[j+1], w-60, 60, 50, 50) 'preview of next pic
+
+  EndIf
+
+  If flag_toggleCaption = 1 Then
+
+    If unused_i > j Then
+
+      GraphicsWindow.DrawResizedImage(pic[j+1], w-60, 60, 50, 50) 'preview of next pic 
+
+      Controls.SetButtonCaption(btn[3], "Show Image")
+
+    EndIf
+
+  EndIf
+
+EndWhile
+
+'------------------------------------------Event handlers----------------------------------------------------------
+
+Sub Tick
+
+  Timer.Pause()
+
+  flag_AddButtons = 0
+
+  flag_StartLoading = 1
+
+  Animate()
+
+EndSub
+
+
+
+Sub Click
+
+  LC = Controls.GetButtonCaption(Controls.LastClickedButton)
+
+  If LC = "Show Image" Then  
+
+    j = j + 1
+
+    GraphicsWindow.DrawResizedImage(pic[j], (w-w/2)/2,(h-h/2)/2, w/2,h/2)
+
+    pic[j] = ""  'clear from memory after use
+
+    GraphicsWindow.DrawResizedImage(pic[j+1], w-60, 60, 50, 50) 'preview of next pic 
+
+    If unused_i = j+1 Then 
+
+      flag_toggleCaption = 1  
+
+      Controls.SetButtonCaption(btn[3], "Wait a second")
+
+    EndIf    
+
+  ElseIf LC = "BG Colour" Then
+
+    GraphicsWindow.BackgroundColor = colour
+
+    colour = GraphicsWindow.GetRandomColor()
+
+    ColourPreview()
+
+  ElseIf LC = "Make Sound" Then    
+
+    Sound.PlayMusic("O5 C16 G16 O6 C32 O7 E64 O3 C16")
+
+  ElseIf LC = "Clear" Then
+
+    GraphicsWindow.Clear()
+
+    GraphicsWindow.BackgroundColor = "white"
+
+    AddButtons()
+
+    ColourPreview()
+
+    GraphicsWindow.DrawResizedImage(pic[j+1], w-60, 60, 50, 50) 'preview of next pic
+
+  EndIf
+
+EndSub
+
+'------------------------------------------Subroutines-----------------------------------------------------------------
+
+Sub ColourPreview
+
+  GraphicsWindow.DrawRectangle(10, 60, 45, 45)
+
+  GraphicsWindow.BrushColor = colour
+
+  GraphicsWindow.FillRectangle(10, 60, 45, 45)
+
+EndSub
+
+
+
+Sub Animate
+
+  GraphicsWindow.Title = "JJ Preloading 10 Flickr Pictures of the Moment"  
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "blue"
+
+  
+
+  backLight = Shapes.AddEllipse(20,25)
+
+  X = 200
+
+  Y = 200
+
+  Xpos = X
+
+  Ypos = Y
+
+  pace = 0.8
+
+  waitBarOffset = 200
+
+  barWidth = w-(2*waitBarOffset)
+
+  
+
+  tintBar = Shapes.AddRectangle(barWidth, 25)
+
+  Shapes.SetOpacity(tintBar, 10)
+
+  Shapes.Move(tintBar, X, Y)
+
+  GraphicsWindow.FontSize = 17.5
+
+  GraphicsWindow.DrawText(X, Y-30, "Loading... Please Wait")
+
+  GraphicsWindow.FontSize = defaultFS
+
+  
+
+  While animateLoop = 1
+
+    If flag_NumberLoaded = 1 Then
+
+      Shapes.Remove(speedBar)
+
+      flag_NumberLoaded = 0
+
+      progress = i / 10 'i is number of pics loaded / 10 is number to load before ui is displayed
+
+      GraphicsWindow.BrushColor = "lime"      
+
+      speedBar = Shapes.AddRectangle(progress * barWidth, 25)
+
+      Shapes.Move(speedBar, Xpos, Ypos)
+
+      Shapes.SetOpacity(speedBar, 50)
+
+      GraphicsWindow.BrushColor = "blue"
+
+    EndIf
+
+    Shapes.Move(backLight, X, Y)
+
+    If X > w - waitBarOffset - 22 Or X < waitBarOffset Then
+
+      pace = -pace
+
+    EndIf
+
+    X = X + pace
+
+    Program.Delay(5)
+
+  EndWhile
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.Title = "JJ Picture Viewer v1.0"  
+
+EndSub
+
+
+
+Sub LoadPic
+
+  url = Flickr.GetPictureOfMoment()
+
+  pic[i] = ImageList.LoadImage(url)
+
+EndSub
+
+
+
+Sub AddButtons
+
+  GraphicsWindow.BrushColor = "black" 
+
+  For z = 1 To 4
+
+    btn[z] = Controls.AddButton(capt[z], 0,0)
+
+    Controls.SetSize(btn[z], size["bw"], size["bh"])
+
+  EndFor
+
+  
+
+  Controls.Move(btn[1], 10, 10)
+
+  Controls.Move(btn[2], 10, btnOffset_B)
+
+  Controls.Move(btn[3], btnOffset_R , 10)
+
+  Controls.Move(btn[4], btnOffset_R, btnOffset_B)  
+
+EndSub
+
+
+
+Sub SetGW 
+
+  GraphicsWindow.CanResize = 0  
+
+  GraphicsWindow.Width = w
+
+  GraphicsWindow.Height = h
+
+  GraphicsWindow.Left = (Desktop.Width - w) / 2
+
+  GraphicsWindow.Top = (Desktop.Height - h) / 2 - 50  
+
+EndSub
+
+
+
+

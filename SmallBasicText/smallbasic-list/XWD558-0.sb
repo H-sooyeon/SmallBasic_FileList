@@ -1,0 +1,769 @@
+' Interface Challenge
+
+' Copyright © 2017 Nonki Takahashi.  The MIT License.
+
+' Challenge 2017-07
+
+' Program ID XWD558-0
+
+
+
+GraphicsWindow.Title = "Interface Challenge"
+
+Parse_Init()
+
+Form()
+
+While "True"
+
+  If buttonClicked Then
+
+    CheckInput()
+
+    If err = "" Then
+
+      If btn = btnSum Then
+
+        CalcSum()
+
+      ElseIf btn = btnAve Then
+
+        CalcAve()
+
+      ElseIf btn = btnMin Then
+
+        CalcMin()
+
+      ElseIf btn = btnMax Then
+
+        CalcMax()
+
+      EndIf
+
+    EndIf
+
+    ShowAns()
+
+    buttonClicked = "False"
+
+  EndIf
+
+EndWhile
+
+
+
+Sub CalcAve
+
+  CalcSum()
+
+  ans = ans / iMax
+
+EndSub
+
+
+
+Sub CalcMax
+
+  ans = num[1]
+
+  For i = 2 To iMax
+
+    ans = Math.Max(ans, num[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub CalcMin
+
+  ans = num[1]
+
+  For i = 2 To iMax
+
+    ans = Math.Min(ans, num[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub CalcSum
+
+  ans = num[1]
+
+  For i = 2 To iMax
+
+    ans = ans + num[i]
+
+  EndFor
+
+EndSub
+
+
+
+Sub CheckInput
+
+  err = ""
+
+  For i = 1 To iMax
+
+    num[i] = Controls.GetTextBoxText(tbox[i])
+
+    n = num[i]
+
+    Text_IsNumber()
+
+    If Not[match] Then
+
+      If err = "" Then
+
+        err = "Invalid number[s]: "
+
+      Else
+
+        err = err + ", "
+
+      EndIf
+
+      err = err + "number" + i
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub Form
+
+  GraphicsWindow.BackgroundColor = "LightGray"
+
+  GraphicsWindow.FontName = "Arial"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  iMax = 5
+
+  y0 = 16
+
+  dy = 40
+
+  For y = y0 To y0 + dy * (iMax - 1) Step dy
+
+    i = i + 1
+
+    GraphicsWindow.DrawText(10, y, "number" + i)
+
+    tbox[i] = Controls.AddTextBox(70, y - 3)
+
+  EndFor
+
+  btnSum = Controls.AddButton("Sum", 10, y - 5)
+
+  btnAve = Controls.AddButton("Average", 60, y - 5)
+
+  btnMin = Controls.AddButton("Minimum", 130, y - 5)
+
+  btnMax = Controls.AddButton("Maximum", 210, y - 5)
+
+  y = y + 40
+
+  txt = Shapes.AddText("answer")
+
+  Shapes.Move(txt, 10, y)
+
+  tbox["ans"] = Controls.AddTextBox(70, y - 3)
+
+  Controls.SetSize(tbox["ans"], 400, 20)
+
+  Controls.ButtonClicked = OnButtonClicked
+
+EndSub
+
+
+
+Sub OnButtonClicked
+
+  buttonClicked = "True"
+
+  btn = Controls.LastClickedButton
+
+EndSub
+
+
+
+Sub ShowAns
+
+  If err = "" Then
+
+    caption = Controls.GetButtonCaption(btn)
+
+    Shapes.SetText(txt, Text.ConvertToLowerCase(caption))
+
+    Controls.SetTextBoxText(tbox["ans"], ans)
+
+  Else
+
+    Shapes.SetText(txt, "error")
+
+    Controls.SetTextBoxText(tbox["ans"], err)
+
+  EndIf
+
+EndSub
+
+
+
+Sub Text_IsNumber
+
+  ' Text | Check if the text is number
+
+  ' param n - text to check
+
+  ' return match - "True" if match
+
+  ' return value - number
+
+  buf = n
+
+  len = Text.GetLength(buf)
+
+  p = 1
+
+  Parse_Number()
+
+  If match And (p <= len) Then
+
+    match = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Parse_Init
+
+  ' Parse | Initialization
+
+  Not = "False=True;True=False;"
+
+EndSub
+
+
+
+Sub Parse_Char
+
+  ' Parse | Parse character
+
+  ' param chr - character set
+
+  ' param buf - text buffer to T
+
+  ' param p - pointer to buf
+
+  ' return match - "True" if match
+
+  ' return value - char
+
+  ' return p - updated pointer to buf
+
+  Stack.PushValue("local", _c)
+
+  _c = Text.GetSubText(buf, p, 1)
+
+  If Text.IsSubText(chr, _c) Then
+
+    value = _c
+
+    match = "True"
+
+    p = p + 1
+
+  Else
+
+    match = "False"
+
+  EndIf
+
+  _c = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Digit
+
+  ' Parse | Parse digit
+
+  ' EBNF: digit = '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'.
+
+  ' param buf - text buffer to parse
+
+  ' param p - pointer to buf
+
+  ' return match - "True" if match
+
+  ' return value - digit
+
+  ' return p - updated pointer to buf
+
+  Stack.PushValue("local", chr)
+
+  chr = "0123456789"
+
+  Parse_Char()
+
+  chr = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Integer
+
+  ' Parse | Parse integer
+
+  ' EBNF: integer = ['-'],digit,{digit}.
+
+  ' param buf - text buffer to parse
+
+  ' param p - pointer to buf
+
+  ' return match - "True" if match
+
+  ' return value - integer
+
+  ' return p - updated pointer to buf
+
+  Stack.PushValue("local", _p)
+
+  Stack.PushValue("local", chr)
+
+  Stack.PushValue("local", _sgn)
+
+  Stack.PushValue("local", _nz)
+
+  Stack.PushValue("local", _value)
+
+  Stack.PushValue("local", _match)
+
+  _p = p
+
+  chr = "-"
+
+  Parse_Char()
+
+  If match Then
+
+    _sgn = "-"
+
+  Else
+
+    _sgn = ""
+
+  EndIf
+
+  Parse_Digit()
+
+  _nz = "False"
+
+  If match Then
+
+    If 0 < value Then
+
+      _nz = "True"
+
+    EndIf
+
+    _value = value
+
+    While match
+
+      Parse_Digit()
+
+      If match then
+
+        If 0 < value Then
+
+          _nz = "True"
+
+        EndIf
+
+        _value = Text.Append(_value, value)
+
+      Else
+
+        value = (_sgn + _value) * 1
+
+        If _nz And (value = 0) Then
+
+          _match = "False"
+
+          p = _p
+
+        Else
+
+          _match = "True"
+
+        EndIf
+
+      EndIf
+
+    EndWhile
+
+    match = _match
+
+  Else
+
+    p = _p
+
+  EndIF
+
+  _match = Stack.PopValue("local")
+
+  _value = Stack.PopValue("local")
+
+  _nz = Stack.PopValue("local")
+
+  _sgn = Stack.PopValue("local")
+
+  chr = Stack.PopValue("local")
+
+  _p = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Real
+
+  ' Parse | Parse real
+
+  ' EBNF: real = ((integer,'.')|('.',digit)),{digit}.
+
+  ' param buf - text buffer to parse
+
+  ' param p - pointer to buf
+
+  ' return match - "True" if match
+
+  ' return value - real
+
+  ' return p - updated pointer to buf
+
+  Stack.PushValue("local", _p)
+
+  Stack.PushValue("local", _int)
+
+  Stack.PushValue("local", _frac)
+
+  Stack.PushValue("local", chr)
+
+  Stack.PushValue("local", _nz)
+
+  _p = p
+
+  Parse_Integer()
+
+  _frac = ""
+
+  If match Then
+
+    _int = value
+
+    chr = "."
+
+    Parse_Char()
+
+  Else
+
+    _int = ""
+
+    chr = "."
+
+    Parse_Char()
+
+    If match Then
+
+      Parse_Digit()
+
+      _nz = "False"
+
+      If match Then
+
+        If 0 < value Then
+
+          _nz = "True"
+
+        EndIf
+
+        _frac = value
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  If match Then
+
+    Parse_Digit()
+
+    If match Then
+
+      If 0 < value Then
+
+        _nz = "True"
+
+      EndIf
+
+      _frac = Text.Append(_frac, value)
+
+      While match
+
+        Parse_Digit()
+
+        If match Then
+
+          If 0 < value Then
+
+            _nz = "True"
+
+          EndIf
+
+          _frac = Text.Append(_frac, value)
+
+        EndIf
+
+      EndWhile
+
+    EndIf
+
+    value = Text.Append(_int + ".", _frac) * 1
+
+    If _nz And (value = 0) Then
+
+      match = "False"
+
+      p = _p
+
+    Else
+
+      match = "True"
+
+    EndIf
+
+  Else
+
+    p = _p
+
+  EndIf
+
+  _nz = Stack.PopValue("local")
+
+  chr = Stack.PopValue("local")
+
+  _frac = Stack.PopValue("local")
+
+  _int = Stack.PopValue("local")
+
+  _p = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Sci
+
+  ' Parse | Parse scientific notation number
+
+  ' EBNF: sci = (real|integer),('E'|'e'),['-'|'+'],integer.
+
+  ' param buf - text buffer to parse
+
+  ' param p - pointer to buf
+
+  ' return match - "True" if match
+
+  ' return value - scientific notation number
+
+  ' return p - updated pointer to buf
+
+  Stack.PushValue("local", _p)
+
+  Stack.PushValue("local", _base)
+
+  Stack.PushValue("local", chr)
+
+  Stack.PushValue("local", _sgn)
+
+  Stack.PushValue("local", _pwr)
+
+  _p = p
+
+  Parse_Real()
+
+  If Not[match] Then
+
+    Parse_Integer()
+
+  EndIf
+
+  If match Then
+
+    _base = value
+
+    chr = "Ee"
+
+    Parse_Char()
+
+    If match Then
+
+      _sgn = ""
+
+      chr = "-+"
+
+      Parse_Char()
+
+      If match Then
+
+        _sgn = value
+
+      EndIf
+
+      Parse_Integer()
+
+      If match Then
+
+        _pwr = value
+
+        value = (_base + "E" + _sgn + _pwr) * 1
+
+        If ((_base < 0) Or (0 < _base)) And (value = 0) Then
+
+          p = _p
+
+          match = "False"
+
+        EndIf
+
+      Else
+
+        p = _p
+
+      EndIf
+
+    Else
+
+      p = _p
+
+    EndIf
+
+  EndIf
+
+  _pwr = Stack.PopValue("local")
+
+  _sgn = Stack.PopValue("local")
+
+  chr = Stack.PopValue("local")
+
+  _base = Stack.PopValue("local")
+
+  _p = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub Parse_Number
+
+  ' Parse | Parse number
+
+  ' EBNF: number = {' '}(sci|real|integer){' '}.
+
+  ' param buf - text buffer to parse
+
+  ' param p - pointer to buf
+
+  ' return match - "True" if match
+
+  ' return value - number
+
+  ' return p - updated pointer to buf
+
+  Stack.PushValue("local", _p)
+
+  Stack.PushValue("local", chr)
+
+  Stack.PushValue("local", _match)
+
+  Stack.PushValue("local", _value)
+
+  _p = p
+
+  chr = " "
+
+  Parse_Char()
+
+  While match
+
+    Parse_Char()
+
+  EndWhile
+
+  Parse_Sci()
+
+  If Not[match] Then
+
+    Parse_Real()
+
+  EndIf
+
+  If Not[match] Then
+
+    Parse_Integer()
+
+  EndIf
+
+  _match = match
+
+  _value = value
+
+  If match Then
+
+    chr = " "
+
+    Parse_Char()
+
+    While match
+
+      Parse_Char()
+
+    EndWhile
+
+  Else
+
+    p = _p
+
+  EndIF
+
+  value = _value
+
+  match = _match
+
+  _value = Stack.PopValue("local")
+
+  _match = Stack.PopValue("local")
+
+  chr = Stack.PopValue("local")
+
+  _p = Stack.PopValue("local")
+
+EndSub
+
+

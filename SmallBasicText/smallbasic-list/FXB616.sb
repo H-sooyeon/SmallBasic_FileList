@@ -1,0 +1,409 @@
+True = "True"
+
+False = "False"
+
+
+
+WindowWidth = 600
+
+WindowHeight = 600
+
+
+
+Rows = 20
+
+Columns = 20
+
+
+
+CellSize = Math.Min(WindowWidth / Columns, WindowHeight / Rows)
+
+
+
+GridWidth = Columns * CellSize
+
+GridHeight = Rows * CellSize
+
+
+
+GridLeft = (WindowWidth - GridWidth) / 2
+
+GridTop = (WindowHeight - GridHeight) / 2
+
+GridRight = GridLeft + GridWidth
+
+GridBottom = GridTop + GridHeight
+
+
+
+CellColor = GraphicsWindow.GetColorFromRGB(0, 0, 200)
+
+DeadCellColor = GraphicsWindow.GetColorFromRGB(255, 255, 255)
+
+
+
+run = False
+
+next = False
+
+
+
+shouldClear = False
+
+
+
+Main()
+
+
+
+Sub Main
+
+  InitGraphicsWindow()
+
+  InitCells()
+
+  InitGrid()
+
+  
+
+  For r = 1 To Rows
+
+    For c = 1 To Columns
+
+      If (Math.GetRandomNumber(100) < 50) Then
+
+        cellState[r][c] = True
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  
+
+  While (True)
+
+    If (run Or next) Then
+
+      next = False
+
+      Update()
+
+    EndIf
+
+    
+
+    GetInput()
+
+    Draw()
+
+  EndWhile
+
+EndSub
+
+
+
+Sub InitGraphicsWindow
+
+  GraphicsWindow.Show()
+
+  GraphicsWindow.Title = "Conway's Game of Life"
+
+  GraphicsWindow.Width = WindowWidth
+
+  GraphicsWindow.Height = WindowHeight
+
+  GraphicsWindow.Left = (Desktop.Width - WindowWidth) / 2
+
+  GraphicsWindow.Top = (Desktop.Height - WindowHeight) / 2
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+EndSub
+
+
+
+Sub InitGrid
+
+  For r = 0 To Rows
+
+    Shapes.AddLine(GridLeft, r * CellSize + GridTop, GridRight, r * CellSize + GridTop)
+
+  EndFor
+
+  For c = 0 To Columns
+
+    Shapes.AddLine(c * CellSize + GridLeft, GridTop, c * CellSize + GridLeft, GridBottom)
+
+  EndFor
+
+EndSub
+
+
+
+Sub InitCells
+
+  For r = 1 To Rows
+
+    For c = 1 To Columns
+
+      CellLeft[r][c] = (c - 1) * CellSize + GridLeft
+
+      CellTop[r][c] = (r - 1) * CellSize + GridTop
+
+      CellRight[r][c] = CellLeft[r][c] + CellSize
+
+      CellBottom[r][c] = CellTop[r][c] + CellSize
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub Update
+
+  ' Loop through all cells
+
+  For r = 1 To Rows
+
+    For c = 1 To Columns
+
+      count = 0
+
+      ' Loop through all neighbors of the current cell.
+
+      For r2 = r - 1 To r + 1
+
+        For c2 = c - 1 To c + 1
+
+          ' Increase count by one if the neighbor is alive and is inside the grid.
+
+          If ((r = r2 And c = c2) = False And r2 >= 1 And r2 <= Rows And c2 >= 1 And c2 <= Columns) Then
+
+            If (cellState[r2][c2] = True) Then
+
+              count = count + 1
+
+            EndIf
+
+          EndIf
+
+        EndFor
+
+      EndFor
+
+      ' If a cell is alive and has 2 or 3 neighbors it survives, otherwise it dies.
+
+      ' If a cell is dead and has 3 neighbors it becomes alive.
+
+      If (cellState[r][c] = True) Then
+
+        If (count = 2 Or count = 3) Then
+
+          cellStateTemp[r][c] = True
+
+        Else
+
+          cellStateTemp[r][c] = False
+
+        EndIf
+
+      Else
+
+        If (count = 3) Then
+
+          cellStateTemp[r][c] = True
+
+        Else
+
+          cellStateTemp[r][c] = False
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  
+
+  ' Update cell states.
+
+  For r = 1 To Rows
+
+    For c = 1 To Columns
+
+      cellState[r][c] = cellStateTemp[r][c]
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub Draw
+
+  For r = 1 To Rows
+
+    For c = 1 To Columns
+
+      If (cellState[r][c] = True) Then
+
+        GraphicsWindow.BrushColor = CellColor
+
+        GraphicsWindow.FillRectangle(CellLeft[r][c], CellTop[r][c], CellSize, CellSize)
+
+      Else
+
+        GraphicsWindow.BrushColor = DeadCellColor
+
+        GraphicsWindow.FillRectangle(CellLeft[r][c], CellTop[r][c], CellSize, CellSize)
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub GetInput
+
+  If (Mouse.IsLeftButtonDown) Then
+
+    mouseX = GraphicsWindow.MouseX
+
+    mouseY = GraphicsWindow.MouseY
+
+    For r = 1 To Rows
+
+      For c = 1 To Columns
+
+        If (mouseX > CellLeft[r][c] And mouseX < CellRight[r][c] And mouseY > CellTop[r][c] And mouseY < CellBottom[r][c]) Then
+
+          cellState[r][c] = True
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+  ElseIf (Mouse.IsRightButtonDown) Then
+
+    mouseX = GraphicsWindow.MouseX
+
+    mouseY = GraphicsWindow.MouseY
+
+    For r = 1 To Rows
+
+      For c = 1 To Columns
+
+        If (mouseX > CellLeft[r][c] And mouseX < CellRight[r][c] And mouseY > CellTop[r][c] And mouseY < CellBottom[r][c]) Then
+
+          cellState[r][c] = False
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+  ElseIf (shouldClear) Then
+
+    shouldClear = False
+
+    For r = 1 To Rows
+
+      For c = 1 To Columns
+
+        cellState[r][c] = False
+
+      EndFor
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  If (lastKey = "Escape") Then
+
+    Program.End()
+
+  ElseIf (lastKey = "Space") Then
+
+    If (run = True) Then
+
+      run = False
+
+    Else
+
+      run = True
+
+    EndIf
+
+  ElseIf (lastKey = "N") Then
+
+    next = True
+
+  ElseIf (lastKey = "Delete") Then
+
+    shouldClear = True
+
+  EndIf
+
+EndSub
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

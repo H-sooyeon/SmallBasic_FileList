@@ -1,0 +1,499 @@
+'MAIN BUILD 2
+
+'ANIMATE DUCK - BLD 6  looping 1 duck , & 'JJ Gun Sights Routine.   'Aug 2013  - LIBRARY
+
+'BUILD IN - Spear, collision
+
+
+
+TextWindow.Show() 'debug
+
+TextWindow.Left = 5
+
+GraphicsWindow.Left = 150
+
+
+
+GraphicsWindow.Hide()
+
+SetGW()
+
+DuckData()
+
+
+
+Timer.Interval = 0
+
+Timer.Pause()
+
+flagFire = 1
+
+flagCollision = 0
+
+
+
+scopeRadius = 20
+
+scopeLensOpacity = 20 'allows the target to be seen
+
+
+
+GraphicsWindow.MouseMove = OnMouseMove   'crossHairs
+
+GraphicsWindow.KeyDown = OnKeyDown       'fire
+
+Timer.Tick = OnTick                      'animate spear & check collision
+
+
+
+'-----------------------------------------------Event Response---------------------------------------
+
+Sub OnMouseMove  
+
+  UpdateScopePosition()
+
+  MoveScope()
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  If GraphicsWindow.LastKey = "Space" And flagFire = 1 Then    
+
+    Timer.Resume()
+
+    flagFire = 0
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnTick  
+
+  Timer.Pause()
+
+  Fire()  
+
+  flagFire = 1
+
+EndSub
+
+
+
+'============================Main Program=======================
+
+
+
+flag = "At Start Up"
+
+top:
+
+
+
+FlightSpeed()
+
+CreateSpearAndMessages()
+
+
+
+'ADD DUCK w/o WINGS 
+
+dX = -DS[2]["X"] - DS[2]["W"]  'position off Left
+
+For i = 1 To 5
+
+  GraphicsWindow.BrushColor = DS[i]["BC"]
+
+  duckShape[i] = Shapes.AddEllipse(DS[i]["W"], DS[i]["H"])
+
+  Shapes.HideShape(duckShape[i]) 'reduce 0,0 flash
+
+  Shapes.Rotate(duckShape[i], DS[i]["R"]) 
+
+  Shapes.Move(duckShape[i], DS[i]["X"]+dx, DS[i]["Y"]+oT)
+
+  Shapes.ShowShape(duckShape[i])
+
+EndFor
+
+
+
+CreateScopeShapes()
+
+If flag = "At Start Up" Then
+
+  Mouse.HideCursor()
+
+  GraphicsWindow.Show()  'Show GW
+
+  GetMouseCentre()   
+
+EndIf
+
+OnMouseMove()
+
+ShowScope()
+
+flag = "Animate Duck"
+
+
+
+' ANIMATE DUCK
+
+While flag = "Animate Duck"
+
+  If TY[3]+dTY > 28 Or TY[3]+dTY < -10 Then 'BUG
+
+    flapSpeed = -flapSpeed
+
+  EndIf    
+
+  dTY = dTY + flapSpeed
+
+  TextWindow.WriteLine("dty " + dTY)
+
+  dX = dX + duckSpeed
+
+  Shapes.HideShape(frontWing) 'animate WING by redraw 
+
+  If TY[3]+dTY > 0 Then
+
+    GraphicsWindow.BrushColor = "Maroon"
+
+  Else
+
+    GraphicsWindow.BrushColor = "DarkGoldenrod"
+
+  EndIf
+
+  frontWing = Shapes.AddTriangle(TX[1]+dx,TY[1]+oT,TX[2]+dx,TY[2]+oT,TX[3]+dx,TY[3]+dTY+oT)
+
+  Shapes.HideShape(rearWing)
+
+  If TY[3]+dTY < 0 Then    
+
+    dRTY = dRTY + flapSpeed/2
+
+    GraphicsWindow.BrushColor = "Maroon"
+
+    rearWing = Shapes.AddTriangle(TX[4]+dx,TY[4]+oT,TX[5]+dx,TY[5]+oT,TX[6]+dx,TY[6]+dRTY+oT)
+
+  Else
+
+    dRTY = 0
+
+  EndIf
+
+  For i = 1 To 5
+
+    Shapes.Move(duckShape[i], DS[i]["X"]+dX, DS[i]["Y"]+oT)
+
+  EndFor
+
+  If DS[4]["X"] + dX > gw Then  'If tail is off screen right
+
+    dX = -DS[2]["X"] - DS[2]["W"]
+
+    flag = "Break Loop"
+
+  ElseIf flagCollision = 1 Then
+
+    DeadDuck()
+
+    oT = gh / 3
+
+    For i = 1 To 5
+
+      Shapes.HideShape(duckShape[i])
+
+    EndFor
+
+    Shapes.HideShape(frontWing)
+
+    Shapes.HideShape(rearWing)
+
+    flag = "Break Loop"
+
+    flagCollision = 0
+
+  EndIf
+
+  Program.Delay(10) '30
+
+EndWhile
+
+dTY = 0 'BUG fixer??
+
+
+
+GraphicsWindow.Clear()
+
+Goto top
+
+'-------------------------------------------Duck Subroutines----------------------------------------------------------
+
+Sub DuckData 'DUCK - DATA TABLE
+
+  ' Table key: W = width; H = height; X = X rel to the body; Y = Y rel to body; R = rotate angle"
+
+  DS[1] = "W=28;H=8;X=62;Y=2;R=-10;BC=DarkGoldenrod"  'NECK
+
+  DS[2] = "W=22;H=6;X=89;Y=0;R=0;BC=Maroon"  'BEAK
+
+  DS[3] = "W=20;H=18;X=82;Y=-8;R=0;BC=Purple" 'HEAD y=-5
+
+  DS[4] = "W=65;H=12;X=0;Y=4;R=5;BC=Sienna"  'TAIL 
+
+  DS[5] = "W=60;H=25;X=12;Y=0;R=0;BC=Sienna"  'BODY
+
+  TX = "1=40;2=57;3=44;4=34;5=42;6=37"  'FRONT WING X
+
+  TY = "1=8;2=8;3=28;4=0;5=0;6=0"   'FRONT  WING Y .  Y[3]  animated by add/remove  
+
+  oT = gh / 3  'off Top = topOffset
+
+  Speed = "1=1.6;2=2;3=2.5;4=3;5=3.5;6=4" 'buggy above 3
+
+EndSub
+
+
+
+Sub Fire
+
+  xS = gw / 2
+
+  yS = gh
+
+  xT = scopeX + 8
+
+  yT = scopeY
+
+  rise = yS - yT
+
+  run = xT - xS
+
+  slope = run / rise 'inverted
+
+  angle = slope * 45
+
+  Shapes.Rotate(spear, angle)
+
+  While yS > 0 - 25 And xS > 0 -25 And xS < gw +25 And flagCollision = 0 'animate Spear till Spear off screen
+
+    yS = yS - 1      ' constant = spear speed
+
+    xS = xS + 1*slope
+
+    Shapes.Move(spear, xS, yS)
+
+    If DS[5]["Y"] + oT > yS And DS[3]["Y"] + oT < yS And DS[5]["X"] + dX < xS And DS[3]["X"] + 20 + dX > xS Then
+
+      flagCollision = 1     
+
+    EndIf
+
+    Program.Delay(2)      
+
+  EndWhile
+
+EndSub
+
+
+
+Sub CreateSpearAndMessages
+
+  spear = Shapes.AddRectangle(3, 25) 
+
+  Shapes.Move(spear, gw/2, gh)
+
+  ducksMessage = Shapes.AddText("")
+
+  headShot = Shapes.AddText("")
+
+  Shapes.Zoom(headShot, 3, 3)
+
+  instructions = Shapes.AddText("Press SPACE to fire, 100 bonus for Head shot")
+
+  Shapes.Move(instructions, 150, 40)
+
+  Shapes.Zoom(instructions, 1.5, 1.5)
+
+  totalScore = Shapes.AddText("Total Score = 0")
+
+  Shapes.Move(totalScore, gw- 170, 40)
+
+  Shapes.Zoom(totalScore, 1.5, 1.5)
+
+EndSub  
+
+
+
+Sub FlightSpeed
+
+  k = k + 1
+
+  If k > 6 Then
+
+    k = 1
+
+  EndIf  
+
+  flapSpeed = Speed[k] * 2.5
+
+  duckSpeed = Speed[k] * 5
+
+EndSub
+
+
+
+Sub AddDuck  'ADD DUCK w/o WINGS - reduce 0,0 flash
+
+  dX = -DS[2]["X"] - DS[2]["W"]
+
+  For i = 1 To 5
+
+    GraphicsWindow.BrushColor = DS[i]["BC"]
+
+    duckShape[i] = Shapes.AddEllipse(DS[i]["W"], DS[i]["H"])
+
+    Shapes.HideShape(duckShape[i])
+
+    Shapes.Rotate(duckShape[i], DS[i]["R"]) 
+
+    Shapes.Move(duckShape[i], DS[i]["X"]+dx, DS[i]["Y"]+oT)
+
+    Shapes.ShowShape(duckShape[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub DeadDuck
+
+  While oT < gh - 40
+
+    oT = oT + 3
+
+    yS = yS + 3
+
+    Shapes.Move(spear, xS, yS)
+
+    For i = 1 To 5
+
+      Shapes.Move(duckShape[i], DS[i]["X"]+dX, DS[i]["Y"]+oT)
+
+    EndFor    
+
+    Shapes.HideShape(frontWing)
+
+    frontWing = Shapes.AddTriangle(TX[1]+dx,TY[1]+oT,TX[2]+dx,TY[2]+oT,TX[3]+dx,TY[3]+dTY+oT)
+
+    Shapes.HideShape(rearWing)
+
+    rearWing = Shapes.AddTriangle(TX[4]+dx,TY[4]+oT,TX[5]+dx,TY[5]+oT,TX[6]+dx,TY[6]+dRTY+oT)
+
+    Program.Delay(10)
+
+  EndWhile
+
+EndSub
+
+
+
+'----------------------------------------------Scope Subroutines-----------------------------------
+
+Sub CreateScopeShapes
+
+  GraphicsWindow.BrushColor = "black" 'ADDING THIS MAKES SCOPE APPEAR ON TOP?
+
+  scopeLens = Shapes.AddEllipse(scopeRadius*2, scopeRadius*2)
+
+  Shapes.SetOpacity(scopeLens, scopeLensOpacity)
+
+  Shapes.HideShape(scopeLens)       'add then hide (on next line to minimise screen flash)
+
+  scopeHorzLine = Shapes.AddRectangle(scopeRadius*2, 1) 
+
+  Shapes.HideShape(scopeHorzLine)    'using rectangle so i don't need x & y coord yet
+
+  scopeVertLine = Shapes.AddRectangle(1, scopeRadius*2)
+
+  Shapes.HideShape(scopeVertLine)  
+
+EndSub
+
+
+
+Sub GetMouseCentre
+
+  Mouse.MouseX = GraphicsWindow.Left + GraphicsWindow.Width/2 
+
+  Mouse.MouseY = GraphicsWindow.Top + GraphicsWindow.Height/2
+
+EndSub
+
+
+
+Sub ShowScope
+
+  Shapes.ShowShape(scopeVertLine) 'pos 1st then show in centre of GW
+
+  Shapes.ShowShape(scopeHorzLine)
+
+  Shapes.ShowShape(scopeLens)
+
+EndSub
+
+
+
+Sub UpdateScopePosition
+
+  scopeX = GraphicsWindow.MouseX
+
+  scopeY = GraphicsWindow.MouseY
+
+EndSub
+
+
+
+Sub MoveScope
+
+  Shapes.Move(scopeLens, scopeX - scopeRadius, scopeY - scopeRadius)
+
+  Shapes.Move(scopeHorzLine, scopeX - scopeRadius, scopeY)
+
+  Shapes.Move(scopeVertLine, scopeX, scopeY - scopeRadius)
+
+EndSub
+
+
+
+'-----------------------------------------Graphics Window Subroutines----------------------------
+
+Sub SetGW
+
+  gw = 1100
+
+  gh = 580
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Left = (Desktop.Width - gw) / 2
+
+  GraphicsWindow.Top = (Desktop.Height - gh) / 3
+
+  GraphicsWindow.BackgroundColor = "DeepSkyBlue"
+
+  GraphicsWindow.PenWidth = 0
+
+EndSub
+
+

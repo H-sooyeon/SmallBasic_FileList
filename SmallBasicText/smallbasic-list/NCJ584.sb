@@ -1,0 +1,2463 @@
+'Maze Tower Defence coded from scratch by Caleb Noller March 2015; 
+
+'inspired by NaochanON Like pong game March 2013
+
+
+
+GraphicsWindow.Title = "Maze Tower Defence"
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+score = 0
+
+damage = 0
+
+amp = 0
+
+Begin()
+
+
+
+Sub Begin
+
+  frameFactor = 6
+
+  overLoad = 0
+
+  gameEnd = "false"
+
+  gameOver = "false"
+
+  cycleU = "true"
+
+  cycleD = "true"
+
+  cycleR = "true"
+
+  cycleL = "true"
+
+  edgeCount = 0
+
+  eC = 0
+
+  rFactor1 = 0
+
+  rFactor2 = 0
+
+  rFactor3 = 0
+
+  rCheck = ""
+
+  s = 1 'scale
+
+
+
+  SetGridSize()
+
+  ShapesInit()
+
+  BuffersInit()
+
+  MazeInit()
+
+  mazeTotal = edgeCount
+
+  ShapesDraw()
+
+  staticTotal = edgeCount
+
+  GraphicsWindow.PenColor = "#8B0000"
+
+  GraphicsWindow.BrushColor = "#8B0000"
+
+  damX = (damage / 100) * 35
+
+  damY = (damage / 100) * 35
+
+  damObj = Shapes.AddEllipse(damX, damY)
+
+  Shapes.Move(damObj, SHP[1]["x"] + SHP[1]["width"] / 2 - damX / 2, SHP[1]["y"] + SHP[1]["height"] / 2 - damY / 2)
+
+  
+
+  While gameEnd <> "true"
+
+    moving = "true"
+
+    BallPosition()
+
+    Timer.Interval = 2000
+
+    GraphicsWindow.PenColor = "White"
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.FontSize = 15
+
+    sTxt = Shapes.AddText("Score: " + score)
+
+    Shapes.Move(sTxt, 25, 15)
+
+    Timer.Tick = OnTick
+
+    While moving = "true"
+
+      amp = amp + 0.0001 'speed amplification
+
+      PlayerMoving()
+
+      BallMoving()
+
+      BufferMoving()
+
+      CollectGen()
+
+      If amp > frameFactor - 0.1 Then
+
+        amp = frameFactor - 0.1
+
+      EndIf
+
+      Program.Delay(frameFactor - amp)
+
+    EndWhile
+
+    Program.Delay(1000)
+
+  EndWhile
+
+  GameStatus()
+
+EndSub
+
+
+
+Sub PlayerMoving
+
+  playerMoveAmount = 1.25 * s
+
+  'check the key pressed, hence direction and collision
+
+  If lastKey = "Up" Then
+
+    If cycleU = "true" Then
+
+      cycleU = "false"
+
+      endI = Array.GetItemCount(cor)
+
+      collisionCheckP = SHP[2]["y"] - playerMoveAmount
+
+      collisionCheckE = SHP[2]["x"] + SHP[2]["width"]
+
+      For i = 1 To endI
+
+        If collisionCheckP <> cor[i]["y"] + cor[i]["height"] Or collisionCheckE < cor[i]["x"] Or SHP[2]["x"] > cor[i]["x"] + cor[i]["width"] Then
+
+          ableU = "true"
+
+        Else
+
+          ableU = "false"
+
+          endI = i
+
+        EndIf
+
+      EndFor
+
+      If ableU = "true" Then
+
+        Shapes.Move(SHP[2]["obj"], SHP[2]["x"], SHP[2]["y"] - playerMoveAmount)
+
+        SHP[2]["y"] = SHP[2]["y"] - playerMoveAmount
+
+        cycleU = "true"
+
+        cycleD = "true"
+
+        cycleR = "true"
+
+        cycleL = "true"
+
+      EndIf
+
+    EndIf
+
+  ElseIf lastKey = "Down" Then
+
+    If cycleD = "true" Then
+
+      cycleD = "false"
+
+      endI = Array.GetItemCount(cor)
+
+      collisionCheckP = SHP[2]["y"] + playerMoveAmount + SHP[2]["height"]
+
+      collisionCheckE = SHP[2]["x"] + SHP[2]["width"]
+
+      For i = 1 To endI
+
+        If collisionCheckP <> cor[i]["y"] Or collisionCheckE < cor[i]["x"] Or SHP[2]["x"] > cor[i]["x"] + cor[i]["width"] Then
+
+          ableD = "true"
+
+        Else
+
+          ableD = "false"
+
+          endI = i
+
+        EndIf
+
+      EndFor
+
+      If ableD = "true" Then
+
+        Shapes.Move(SHP[2]["obj"], SHP[2]["x"], SHP[2]["y"] + playerMoveAmount)
+
+        SHP[2]["y"] = SHP[2]["y"] + playerMoveAmount
+
+        cycleU = "true"
+
+        cycleD = "true"
+
+        cycleR = "true"
+
+        cycleL = "true"
+
+      EndIf
+
+    EndIf
+
+  ElseIf lastKey = "Right" Then
+
+    If cycleR = "true" Then
+
+      cycleR = "false"
+
+      endI = Array.GetItemCount(cor)
+
+      collisionCheckP = SHP[2]["x"] + playerMoveAmount + SHP[2]["width"]
+
+      collisionCheckE = SHP[2]["y"] + SHP[2]["height"]
+
+      For i = 1 To endI
+
+        If collisionCheckP <> cor[i]["x"] Or collisionCheckE < cor[i]["y"] Or SHP[2]["y"] > cor[i]["y"] + cor[i]["height"] Then
+
+          ableR = "true"
+
+        Else
+
+          ableR = "false"
+
+          endI = i
+
+        EndIf
+
+      EndFor
+
+      If ableR = "true" Then
+
+        Shapes.Move(SHP[2]["obj"], SHP[2]["x"] + playerMoveAmount, SHP[2]["y"])
+
+        SHP[2]["x"] = SHP[2]["x"] + playerMoveAmount
+
+        cycleU = "true"
+
+        cycleD = "true"
+
+        cycleR = "true"
+
+        cycleL = "true"
+
+      EndIf
+
+    EndIf
+
+  ElseIf lastKey = "Left" Then
+
+    If cycleL = "true" Then
+
+      cycleL = "false"
+
+      endI = Array.GetItemCount(cor)
+
+      collisionCheckP = SHP[2]["x"] - playerMoveAmount
+
+      collisionCheckE = SHP[2]["y"] + SHP[2]["height"]
+
+      For i = 1 To endI
+
+        If collisionCheckP <> cor[i]["x"] + cor[i]["width"] Or collisionCheckE < cor[i]["y"] Or SHP[2]["y"] > cor[i]["y"] + cor[i]["height"] Then
+
+          ableL = "true"
+
+        Else
+
+          ableL = "false"
+
+          endI = i
+
+        EndIf
+
+      EndFor
+
+      If ableL = "true" Then
+
+        Shapes.Move(SHP[2]["obj"], SHP[2]["x"] - playerMoveAmount, SHP[2]["y"])
+
+        SHP[2]["x"] = SHP[2]["x"] - playerMoveAmount
+
+        cycleU = "true"
+
+        cycleD = "true"
+
+        cycleR = "true"
+
+        cycleL = "true"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  If GraphicsWindow.LastKey = "Up" Or GraphicsWindow.LastKey = "Down" Or GraphicsWindow.LastKey = "Right" Or GraphicsWindow.LastKey = "Left" Then
+
+    lastKey = ""
+
+    lastKey = GraphicsWindow.LastKey
+
+  EndIf
+
+EndSub
+
+
+
+Sub BallPosition
+
+  SHP[3]["xSpeed"] = 0.5 * Math.GetRandomNumber(2) * s
+
+  SHP[3]["ySpeed"] = 0.5 * Math.GetRandomNumber(2) * s
+
+  bgx = Math.GetRandomNumber(square * 3 - lineVar * 4) 'ball get random X
+
+  bgy = Math.GetRandomNumber(square * 3 - lineVar * 4) ' ball get random Y
+
+  SHP[3]["x"] = XO + lineVar + bgx
+
+  SHP[3]["y"] = YO + lineVar + bgy
+
+  Shapes.Move(SHP[3]["obj"], SHP[3]["x"], SHP[3]["y"])
+
+EndSub
+
+
+
+Sub BallMoving
+
+  endX = Array.GetItemCount(cr)
+
+  endY = Array.GetItemCount(cr)
+
+  For i = 1 To endX
+
+    If SHP[3]["xSpeed"] / Math.Abs(SHP[3]["xSpeed"]) = 1 Then
+
+      If SHP[3]["x"] + SHP[3]["width"] + SHP[3]["xSpeed"] = cr[i]["x"] And SHP[3]["y"] + SHP[3]["height"] > cr[i]["y"] And SHP[3]["y"] < cr[i]["y"] + cr[i]["height"] Then
+
+        SHP[3]["xSpeed"] = -SHP[3]["xSpeed"]
+
+        endX = i
+
+        TowerCollision()
+
+      EndIf
+
+    Else
+
+      If SHP[3]["x"] = cr[i]["x"] + cr[i]["width"] And SHP[3]["y"] + SHP[3]["height"] > cr[i]["y"] And SHP[3]["y"] < cr[i]["y"] + cr[i]["height"] Then
+
+        SHP[3]["xSpeed"] = -SHP[3]["xSpeed"]
+
+        endX = i
+
+        TowerCollision()
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  For i = 1 To endY
+
+    If SHP[3]["ySpeed"] / Math.Abs(SHP[3]["ySpeed"]) = 1 Then
+
+      If SHP[3]["y"] + SHP[3]["height"] + SHP[3]["ySpeed"] = cr[i]["y"] And SHP[3]["x"] + SHP[3]["width"] > cr[i]["x"] And SHP[3]["x"] < cr[i]["x"] + cr[i]["width"] Then
+
+        SHP[3]["ySpeed"] = -SHP[3]["ySpeed"]
+
+        endY = i
+
+        TowerCollision()
+
+      EndIf
+
+    Else
+
+      If SHP[3]["y"] = cr[i]["y"] + cr[i]["height"] And SHP[3]["x"] + SHP[3]["width"] > cr[i]["x"] And SHP[3]["x"] < cr[i]["x"] + cr[i]["width"] Then
+
+        SHP[3]["ySpeed"] = -SHP[3]["ySpeed"]
+
+        endY = i
+
+        TowerCollision()
+
+      EndIf
+
+    EndIf
+
+  EndFor  
+
+  'check for player collision
+
+  If SHP[3]["x"] + SHP[3]["width"] / 2 < SHP[2]["x"] + SHP[2]["width"] And SHP[3]["x"] + SHP[3]["width"] / 2  > SHP[2]["x"] And SHP[2]["y"] > SHP[3]["y"] And SHP[2]["y"] < SHP[3]["y"] + SHP[3]["height"] Then
+
+    plRand = Math.GetRandomNumber(2)
+
+    If plRand = 1 Then
+
+      SHP[3]["xSpeed"] = -SHP[3]["xSpeed"]
+
+    Else
+
+      SHP[3]["ySpeed"] = -SHP[3]["ySpeed"]
+
+    EndIf
+
+  EndIf
+
+  If SHP[3]["y"] + SHP[3]["height"] / 2 < SHP[2]["y"] + SHP[2]["height"] And SHP[3]["y"] + SHP[3]["height"] / 2  > SHP[2]["y"] And SHP[2]["x"] > SHP[3]["x"] And SHP[2]["x"] < SHP[3]["x"] + SHP[3]["width"] Then
+
+    plRand = Math.GetRandomNumber(2)
+
+    If plRand = 1 Then
+
+      SHP[3]["xSpeed"] = -SHP[3]["xSpeed"]
+
+    Else
+
+      SHP[3]["ySpeed"] = -SHP[3]["ySpeed"]
+
+    EndIf
+
+  EndIf
+
+  'check if outside grid
+
+  If SHP[3]["x"] > GraphicsWindow.Width Or SHP[3]["y"] > GraphicsWindow.Height Or SHP[3]["x"] + SHP[3]["width"] < 0 Or SHP[3]["y"] + SHP[3]["height"] < 0 Then
+
+    gameEnd = "true"
+
+    moving = "false"
+
+  EndIf
+
+  'move to new position
+
+  SHP[3]["x"] = SHP[3]["x"] + SHP[3]["xSpeed"]
+
+  SHP[3]["y"] = SHP[3]["y"] + SHP[3]["ySpeed"]
+
+  Shapes.Move(SHP[3]["obj"], SHP[3]["x"], SHP[3]["y"])
+
+EndSub
+
+
+
+Sub TowerCollision
+
+  If endX = 1 Or endY = 1 Then
+
+    If damage < 61 Then
+
+      damage = damage + Math.GetRandomNumber(4) * 10
+
+    ElseIf damage < 71 Then
+
+      damage = damage + Math.GetRandomNumber(3) * 10
+
+    ElseIf damage < 81 Then
+
+      damage = damage + Math.GetRandomNumber(2) * 10
+
+    ElseIf damage < 100 Then
+
+      damage = damage + 10
+
+    Else
+
+      damage = 102
+
+    EndIf
+
+    Shapes.Remove(damObj)
+
+    GraphicsWindow.PenColor = "#8B0000"
+
+    GraphicsWindow.BrushColor = "#8B0000"
+
+    damX = (damage / 100) * SHP[1]["width"]
+
+    damY = (damage / 100) * SHP[1]["height"]
+
+    damObj = Shapes.AddEllipse(damX, damY)
+
+    Shapes.Move(damObj, SHP[1]["x"] + SHP[1]["width"] / 2 - damX / 2, SHP[1]["y"] + SHP[1]["height"] / 2 - damY / 2)
+
+    If damage > 99 Then
+
+      gameEnd = "true"
+
+      gameOver = "true"
+
+      moving = "false"
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub BufferMoving
+
+  bufferSpeed = 0.5 * s
+
+  bufferRestriction = square / 2 - SHP[4]["width"] / 2
+
+  detectionZone = 70
+
+  'check if ball is near, then move towards it
+
+  If SHP[4]["draw"] = "" Then
+
+    If SHP[4]["y"] + detectionZone > SHP[3]["y"] Then
+
+      If SHP[3]["x"] > SHP[4]["x"] + SHP[4]["width"] / 2 Then
+
+        If SHP[4]["x"] + bufferSpeed < SHP[4]["xSt"] + bufferRestriction Then
+
+          SHP[4]["x"] = SHP[4]["x"] + bufferSpeed
+
+          cor[mazeTotal + 2]["x"] = SHP[4]["x"]
+
+          cr[2]["x"] = SHP[4]["x"]
+
+          Shapes.Move(SHP[4]["obj"], SHP[4]["x"], SHP[4]["y"])
+
+        EndIf
+
+      ElseIf SHP[3]["x"] < SHP[4]["x"] + SHP[4]["width"] / 2 Then
+
+        If SHP[4]["x"] - bufferSpeed > SHP[4]["xSt"] - bufferRestriction Then
+
+          SHP[4]["x"] = SHP[4]["x"] - bufferSpeed
+
+          cor[mazeTotal + 2]["x"] = SHP[4]["x"]
+
+          cr[2]["x"] = SHP[4]["x"]
+
+          Shapes.Move(SHP[4]["obj"], SHP[4]["x"], SHP[4]["y"])
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  ElseIf rCheck <> "true" Then
+
+    rFactor1 = 1
+
+  EndIf
+
+  If SHP[5]["draw"] = "" Then
+
+    If SHP[5]["y"] - detectionZone < SHP[5]["y"] Then
+
+      If SHP[3]["x"] > SHP[5]["x"] + SHP[5]["width"] / 2 Then
+
+        If SHP[5]["x"] + bufferSpeed < SHP[5]["xSt"] + bufferRestriction Then
+
+          SHP[5]["x"] = SHP[5]["x"] + bufferSpeed
+
+          cor[mazeTotal + 3 - rFactor1]["x"] = SHP[5]["x"]
+
+          cr[3 - rFactor1]["x"] = SHP[5]["x"]
+
+          Shapes.Move(SHP[5]["obj"], SHP[5]["x"], SHP[5]["y"])
+
+        EndIf
+
+      ElseIf SHP[3]["x"] < SHP[5]["x"] + SHP[5]["width"] / 2 Then
+
+        If SHP[5]["x"] - bufferSpeed > SHP[5]["xSt"] - bufferRestriction Then
+
+          SHP[5]["x"] = SHP[5]["x"] - bufferSpeed
+
+          cor[mazeTotal + 3 - rFactor1]["x"] = SHP[5]["x"]
+
+          cr[3 - rFactor1]["x"] = SHP[5]["x"]
+
+          Shapes.Move(SHP[5]["obj"], SHP[5]["x"], SHP[5]["y"])
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+    rFactor2 = rFactor1
+
+  ElseIf rCheck <> "true" Then
+
+    rFactor2 = rFactor1 + 1
+
+  EndIf
+
+  If SHP[6]["draw"] = "" Then
+
+    If SHP[6]["x"] + detectionZone > SHP[3]["x"] Then
+
+      If SHP[3]["y"] > SHP[6]["y"] + SHP[6]["height"] / 2 Then
+
+        If SHP[6]["y"] + bufferSpeed < SHP[6]["ySt"] + bufferRestriction Then
+
+          SHP[6]["y"] = SHP[6]["y"] + bufferSpeed
+
+          cor[mazeTotal + 4 - rFactor2]["y"] = SHP[6]["y"]
+
+          cr[4 - rFactor2]["y"] = SHP[6]["y"]
+
+          Shapes.Move(SHP[6]["obj"], SHP[6]["x"], SHP[6]["y"])
+
+        EndIf
+
+      ElseIf SHP[3]["y"] < SHP[6]["y"] + SHP[6]["height"] / 2 Then
+
+        If SHP[6]["y"] - bufferSpeed > SHP[6]["ySt"] - bufferRestriction Then
+
+          SHP[6]["y"] = SHP[6]["y"] - bufferSpeed
+
+          cor[mazeTotal + 4 - rFactor2]["y"] = SHP[6]["y"]
+
+          cr[4 - rFactor2]["y"] = SHP[6]["y"]
+
+          Shapes.Move(SHP[6]["obj"], SHP[6]["x"], SHP[6]["y"])
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+    rFactor3 = rFactor2
+
+  ElseIf rCheck <> "true" Then
+
+    rFactor3 = rFactor2 + 1
+
+  EndIf
+
+  If SHP[7]["draw"] = "" Then
+
+    If SHP[7]["x"] - detectionZone < SHP[7]["x"] Then
+
+      If SHP[3]["y"] > SHP[7]["y"] + SHP[7]["height"] / 2 Then
+
+        If SHP[7]["y"] + bufferSpeed < SHP[7]["ySt"] + bufferRestriction Then
+
+          SHP[7]["y"] = SHP[7]["y"] + bufferSpeed
+
+          cor[mazeTotal + 5 - rFactor3]["y"] = SHP[7]["y"]
+
+          cr[5 - rFactor3]["y"] = SHP[7]["y"]
+
+          Shapes.Move(SHP[7]["obj"], SHP[7]["x"], SHP[7]["y"])
+
+        EndIf
+
+      ElseIf SHP[3]["y"] < SHP[7]["y"] + SHP[7]["height"] / 2 Then
+
+        If SHP[7]["y"] - bufferSpeed > SHP[7]["ySt"] - bufferRestriction Then
+
+          SHP[7]["y"] = SHP[7]["y"] - bufferSpeed
+
+          cor[mazeTotal + 5 - rFactor3]["y"] = SHP[7]["y"]
+
+          cr[5 - rFactor3]["y"] = SHP[7]["y"]
+
+          Shapes.Move(SHP[7]["obj"], SHP[7]["x"], SHP[7]["y"])
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  If rCheck <> "true" Then    
+
+    rCheck = "true"
+
+  EndIf
+
+EndSub
+
+
+
+Sub CollectGen
+
+  For q = 1 To 10
+
+    If sA[q]["placed"] = "" Then
+
+      For i = 1 To maxX
+
+        For j = 1 To maxY
+
+          If i < maxX And j < maxY Then
+
+            edge = 0
+
+            cdte = Math.GetRandomNumber(16)
+
+          ElseIf j = maxY Then
+
+            cdte = Math.GetRandomNumber(12)
+
+            If cdte > 9 Then
+
+              cdte = cdte + 3
+
+            EndIf
+
+          EndIf 
+
+          
+
+          If i <> towerX Then
+
+            If j <> towerY Then
+
+              If c[i][j][cdte]["taken"] <> "true" Then
+
+                Shapes.Remove(sA[q]["obj"])
+
+                c[i][j][cdte]["taken"] = "true"
+
+                sA[q]["x"] = c[i][j][cdte]["x"]
+
+                sA[q]["y"] = c[i][j][cdte]["y"]
+
+                sA[q]["i"] = i 
+
+                sA[q]["j"] = j
+
+                sA[q]["cdte"] = cdte
+
+                GraphicsWindow.PenColor = "white"
+
+                GraphicsWindow.BrushColor = "white"
+
+                GraphicsWindow.PenWidth = 2
+
+                sA[q]["obj"] = Shapes.AddEllipse(5, 5)
+
+                Shapes.Move(sA[q]["obj"], sA[q]["x"], sA[q]["y"])
+
+                sA[q]["placed"] = "true"
+
+              EndIf
+
+            EndIf
+
+          EndIf
+
+        EndFor
+
+      EndFor
+
+    ElseIf sA[q]["x"] + 2.5 > SHP[2]["x"] And sA[q]["x"] + 2.5 < SHP[2]["x"] + SHP[2]["width"] And sA[q]["y"] + 2.5 > SHP[2]["y"] And sA[q]["y"] + 2.5 < SHP[2]["y"] + SHP[2]["height"] Then      
+
+      Shapes.Remove(sA[q]["obj"])
+
+      c[(sA[q]["i"])][(sA[q]["j"])][(sA[q]["cdte"])]["taken"] = ""
+
+      score = score + 10
+
+      Shapes.SetText(sTxt, "Score: " + score)
+
+      sA[q]["placed"] = ""
+
+    EndIf   
+
+  EndFor
+
+EndSub
+
+  
+
+Sub OnTick
+
+  tR = Math.GetRandomNumber(10)
+
+  Shapes.Remove(sA[tR]["obj"])
+
+  c[(sA[tR]["i"])][(sA[tR]["j"])][(sA[tR]["cdte"])]["taken"] = ""
+
+  sA[tR]["placed"] = "
+
+EndSub
+
+
+
+Sub GameStatus
+
+  GraphicsWindow.Clear()
+
+  If gameOver <> "true" Then
+
+    score = score + 500
+
+    SHP[114]["draw"] = ""
+
+    SHP[214]["draw"] = ""
+
+    SHP[124]["draw"] = ""
+
+    SHP[134]["draw"] = ""
+
+    SHP[234]["draw"] = ""
+
+    SHP[234]["draw"] = ""
+
+    SHP[231]["draw"] = ""
+
+    SHP[233]["draw"] = ""
+
+    SHP[113]["draw"] = ""
+
+    SHP[123]["draw"] = ""
+
+    SHP[133]["draw"] = ""
+
+    SHP[141]["draw"] = ""
+
+    SHP[241]["draw"] = ""
+
+    SHP[242]["draw"] = ""
+
+    SHP[143]["draw"] = ""
+
+    SHP[243]["draw"] = ""
+
+    For i = 1 To 243
+
+      SHP[i] = ""    
+
+    EndFor
+
+    For i = 1 To Array.GetItemCount(cor)
+
+      cor[i]["x"] = ""
+
+      cor[i]["y"] = ""
+
+      cor[i]["width"] = ""
+
+      cor[i]["height"] = ""
+
+      cor[i]["obj"] = ""
+
+      cor[i] = ""
+
+    EndFor
+
+    For i = 1 To Array.GetItemCount(cor)
+
+      cr[i]["x"] = ""
+
+      cr[i]["y"] = ""
+
+      cr[i]["width"] = ""
+
+      cr[i]["height"] = ""
+
+      cr[i]["obj"] = ""
+
+      cr[i] = ""
+
+    EndFor
+
+    For i = 1 To Array.GetItemCount(MZE)
+
+      For j = 1 To Array.GetItemCount(MZE[i])
+
+        For k = 1 To Array.GetItemCount(MZE[i][j])
+
+          MZE[i][j][k] = ""
+
+        EndFor
+
+        MZE[i][j] = ""
+
+      EndFor
+
+      MZE[i] = ""
+
+    EndFor
+
+    For i = 1 To 4
+
+      For j = 1 To 4
+
+        For k = 1 To Array.GetItemCount(c[i][j])
+
+          c[i][j][k]["taken"] = ""
+
+          c[i][j][k] = ""
+
+        EndFor
+
+        c[i][j] = ""
+
+      EndFor
+
+      c[i] = ""
+
+    EndFor
+
+    For i = 1 To Array.GetItemCount(sA)
+
+      sA[i] = ""
+
+    EndFor
+
+    For i = 1 To Array.GetItemCount(eC)
+
+      eC[i] = ""
+
+    EndFor
+
+    For i = 1 To Array.GetItemCount(edgeCount)
+
+      edgeCount[i] = ""
+
+    EndFor
+
+    For i = 1 To Array.GetItemCount(m)
+
+      m[i] = ""
+
+    EndFor
+
+    For i = 1 To Array.GetItemCount(MVE)
+
+      For j = 1 To Array.GetItemCount(MVE[i])
+
+        For k = 1 To Array.GetItemCount(MVE[i][j])
+
+          MVE[i][j][k] = ""
+
+        EndFor
+
+        MVE[i][j] = ""
+
+      EndFor
+
+      MVE[i] = ""
+
+    EndFor
+
+    bgx = ""
+
+    bgy = ""
+
+    gx = ""
+
+    gy = ""
+
+    lastKey = ""
+
+    cdte = ""
+
+    cde = ""
+
+    Begin()
+
+  Else
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.PenColor = "White"
+
+    GraphicsWindow.FontSize = 30
+
+    finalMsg = Shapes.AddText("Your Score: ")
+
+    scMsg = Shapes.AddText(score)
+
+    Shapes.Move(finalMsg, GraphicsWindow.Width / 2 - 90, GraphicsWindow.Height / 2 - 50)
+
+    Shapes.Move(scMsg, GraphicsWindow.Width / 2 - 30, GraphicsWindow.Height / 2)
+
+  EndIf  
+
+EndSub
+
+  
+
+Sub SetGridSize 
+
+  size = Math.GetRandomNumber(3) 'sets the formation of the grids
+
+  square = 110 'the size in pixels of each grid
+
+  XO = 55 'x offset
+
+  YO = 55 'y offset
+
+  If size = 1 Then
+
+    Grid9()   'grid with 9 squares, 3x3
+
+  ElseIf size = 2 Then
+
+    Grid12H() 'grid with 12 squares, 3x4 (more horizontally)
+
+  ElseIf size = 3 Then
+
+    Grid12V() 'grid with 12 squares, 4x3 (move vertically)
+
+  EndIf
+
+ EndSub
+
+
+
+Sub Grid9
+
+  GraphicsWindow.Width = square * 3 + (XO * 2)
+
+  GraphicsWindow.Height = square * 3 + (YO * 2)
+
+  towerX = Math.GetRandomNumber(3) 'the x grid coordinate of the tower
+
+  towerY = Math.GetRandomNumber(3) 'the y grid coordinate of the tower
+
+  'don't draw the unused lines
+
+  SHP[114]["draw"] = "false"
+
+  SHP[214]["draw"] = "false"
+
+  SHP[124]["draw"] = "false"
+
+  SHP[134]["draw"] = "false"
+
+  SHP[234]["draw"] = "false"
+
+  SHP[141]["draw"] = "false"
+
+  SHP[241]["draw"] = "false"
+
+  SHP[242]["draw"] = "false"
+
+  SHP[143]["draw"] = "false"
+
+  SHP[243]["draw"] = "false"
+
+EndSub
+
+
+
+Sub Grid12H
+
+  GraphicsWindow.Width = square * 4 + (XO * 2)
+
+  GraphicsWindow.Height = square * 3 + (YO * 2)
+
+  towerX = Math.GetRandomNumber(4)
+
+  towerY = Math.GetRandomNumber(3)
+
+  SHP[114]["draw"] = "false"
+
+  SHP[214]["draw"] = "false"
+
+  SHP[124]["draw"] = "false"
+
+  SHP[134]["draw"] = "false"
+
+  SHP[234]["draw"] = "false"
+
+  SHP[231]["draw"] = "false"
+
+  SHP[232]["draw"] = "false"
+
+  SHP[233]["draw"] = "false"
+
+EndSub
+
+
+
+Sub Grid12V
+
+  GraphicsWindow.Width = square * 3 + (XO * 2)
+
+  GraphicsWindow.Height = square * 4 + (YO * 2)
+
+  towerX = Math.GetRandomNumber(3)
+
+  towerY = Math.GetRandomNumber(4)
+
+  SHP[113]["draw"] = "false"
+
+  SHP[123]["draw"] = "false"
+
+  SHP[133]["draw"] = "false"
+
+  SHP[141]["draw"] = "false"
+
+  SHP[241]["draw"] = "false"
+
+  SHP[242]["draw"] = "false"
+
+  SHP[143]["draw"] = "false"
+
+  SHP[243]["draw"] = "false"
+
+EndSub
+
+
+
+Sub ShapesInit
+
+  lineVar = 5 'the thickness of the lines  
+
+  'tower
+
+  SHP[1] = "func=circ;width=30;height=30;pw=4;pc=#FFFFFF;bc=#808000"
+
+  SHP[1]["x"] = towerX * square - (square / 2) - (SHP[1]["width"] / 2) + lineVar
+
+  SHP[1]["y"] = towerY * square - (square / 2) - (SHP[1]["height"] / 2) + lineVar
+
+  'player
+
+  SHP[2] = "func=rect;width=10;height=10;pw=1;pc=#FFFFFF;bc=#D2691E"
+
+  SHP[2]["x"] = (SHP[1]["x"] + 40)
+
+  SHP[2]["y"] = (SHP[1]["y"] + 40)
+
+  'ball
+
+  SHP[3] = "func=circ;width=10;height=10;pw=2;pc=#8B008B;bc=#8B008B"
+
+  
+
+  'buffers
+
+  'top X
+
+  SHP[4] = "draw=false;func=rect;pw=2;pc=#B22222;bc=#B22222"
+
+  SHP[4]["width"] = square / 2.5
+
+  SHP[4]["height"] = lineVar
+
+  'low X
+
+  SHP[5] = "draw=false;func=rect;pw=2;pc=#B22222;bc=#B22222"
+
+  SHP[5]["width"] = square / 2.5
+
+  SHP[5]["height"] = lineVar
+
+  'left Y
+
+  SHP[6] = "draw=false;func=rect;pw=2;pc=#B22222;bc=#B22222"
+
+  SHP[6]["width"] = lineVar
+
+  SHP[6]["height"] = square / 2.5
+
+  'right Y
+
+  SHP[7] = "draw=false;func=rect;pw=2;pc=#B22222;bc=#B22222"
+
+  SHP[7]["width"] = lineVar
+
+  SHP[7]["height"] = square / 2.5
+
+  
+
+  'optional blockades
+
+  'optNumber = Math.GetRandomNumber(7) - 1 'how many are drawn
+
+  'SHP[8] = "draw=false;func=circ;width=30;height=30;opacity=40;pw=2;pc=#FFDEAD;bc=#696969"
+
+  'SHP[9] = "draw=false;func=circ;width=30;height=30;opacity=40;pw=2;pc=#FFDEAD;bc=#696969"
+
+  'SHP[10] = "draw=false;func=circ;width=30;height=30;opacity=40;pw=2;pc=#FFDEAD;bc=#696969"
+
+  'SHP[11] = "draw=false;func=circ;width=30;height=30;opacity=40;pw=2;pc=#FFDEAD;bc=#696969"
+
+  'SHP[12] = "draw=false;func=circ;width=30;height=30;opacity=40;pw=2;pc=#FFDEAD;bc=#696969"
+
+  'SHP[13] = "draw=false;func=circ;width=30;height=30;opacity=40;pw=2;pc=#FFDEAD;bc=#696969"
+
+  
+
+  'edge lines
+
+  '1, 1 (Coordinates)
+
+  SHP[111] = SHP[111] + "func=rect;des=edge;cx=1;cy=1;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  SHP[211] = SHP[211] + "func=rect;des=edge;cx=1;cy=1;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  '1, 2
+
+  SHP[212] = SHP[212] + "func=rect;des=edge;cx=1;cy=2;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  '1, 3
+
+  SHP[113] = SHP[113] + "func=rect;des=edge;cx=1;cy=3;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  SHP[213] = SHP[213] + "func=rect;des=edge;cx=1;cy=3;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  '1, 4
+
+  SHP[114] = SHP[114] + "func=rect;des=edge;cx=1;cy=4;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  SHP[214] = SHP[214] + "func=rect;des=edge;cx=1;cy=4;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  
+
+  '2, 1 
+
+  SHP[121] = SHP[121] + "func=rect;des=edge;cx=2;cy=1;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  '2, 3
+
+  SHP[123] = SHP[123] + "func=rect;des=edge;cx=2;cy=3;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  '2, 4
+
+  SHP[124] = SHP[124] + "func=rect;des=edge;cx=2;cy=4;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  
+
+  '3, 1 
+
+  SHP[131] = SHP[131] + "func=rect;des=edge;cx=3;cy=1;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  SHP[231] = SHP[231] + "func=rect;des=edge;cx=3;cy=1;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  '3, 2
+
+  SHP[232] = SHP[232] + "func=rect;des=edge;cx=3;cy=2;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  '3, 3
+
+  SHP[133] = SHP[133] + "func=rect;des=edge;cx=3;cy=3;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  SHP[233] = SHP[233] + "func=rect;des=edge;cx=3;cy=3;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  '3, 4
+
+  SHP[134] = SHP[134] + "func=rect;des=edge;cx=3;cy=4;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  SHP[234] = SHP[234] + "func=rect;des=edge;cx=3;cy=4;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  
+
+  '4, 1 
+
+  SHP[141] = SHP[141] + "func=rect;des=edge;cx=4;cy=1;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  SHP[241] = SHP[241] + "func=rect;des=edge;cx=4;cy=1;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  '4, 2
+
+  SHP[242] = SHP[242] + "func=rect;des=edge;cx=4;cy=2;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  '4, 3
+
+  SHP[143] = SHP[143] + "func=rect;des=edge;cx=4;cy=3;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+  SHP[243] = SHP[243] + "func=rect;des=edge;cx=4;cy=3;pw=2;pc=#FFFFFF;bc=#FFFFFF"
+
+EndSub  
+
+
+
+Sub BuffersInit
+
+  rand = Math.GetRandomNumber(100)
+
+  If rand >= 1 And rand <= 50 Then
+
+    count = 2
+
+  ElseIf rand >= 51 And rand <= 75 Then
+
+    count = 1
+
+  ElseIf rand >= 76 And rand <= 90 Then
+
+    count = 3
+
+  Else
+
+    count = 4
+
+  EndIf
+
+  
+
+  If count = 2 Then
+
+    XYBias = Math.GetRandomNumber(5)
+
+  ElseIf count = 1 Or count = 3 Then
+
+    XYBias = Math.GetRandomNumber(2)
+
+  EndIf
+
+  
+
+  If count < 4 Then
+
+    XBias = Math.GetRandomNumber(2)
+
+    YBias = Math.GetRandomNumber(2)
+
+  EndIf
+
+  
+
+  If count = 1 Then
+
+    If XYBias = 1 Then
+
+      BiasedX()
+
+    Else
+
+      BiasedY()
+
+    EndIf
+
+  ElseIf count = 2 Then
+
+    If XYBias < 4 Then
+
+      UnbiasedX()
+
+    ElseIf XYBias = 5 Then
+
+      UnbiasedY()
+
+    Else
+
+      BiasedX()
+
+      BiasedY()
+
+    EndIf
+
+  ElseIf count = 3 Then
+
+    If XYBias = 1 Then
+
+      UnbiasedX()
+
+      BiasedY()
+
+    Else
+
+      BiasedX()
+
+      UnbiasedY()
+
+    EndIf
+
+  Else
+
+    UnbiasedX()
+
+    UnbiasedY()
+
+  EndIf
+
+EndSub
+
+
+
+Sub BiasedX
+
+  If XBias = 1 Then
+
+    SHP[100 + (towerX * 10) + 1]["draw"] = "false"
+
+    gx = "BX1"
+
+    SHP[4]["draw"] = ""
+
+    SHP[4]["x"] = towerX * square - square / 2 - SHP[4]["width"] / 2
+
+    SHP[4]["xSt"] = XO + SHP[4]["x"] * s
+
+    SHP[4]["y"] = lineVar * 2
+
+  Else
+
+    If size < 3 Then
+
+      SHP[100 + (towerX * 10) + 3]["draw"] = "false"
+
+      gx = "BX2"
+
+      SHP[5]["draw"] = ""
+
+      SHP[5]["x"] = towerX * square - square / 2 - SHP[4]["width"] / 2
+
+      SHP[5]["xSt"] = XO + SHP[5]["x"] * s
+
+      SHP[5]["y"] = square * 3 - lineVar * 2
+
+    Else
+
+      SHP[100 + (towerX * 10) + 4]["draw"] = "false"
+
+      gx = "BX2"
+
+      SHP[100 + (towerX * 10) + 4]["draw"] = "false"
+
+      SHP[5]["draw"] = ""
+
+      SHP[5]["x"] = towerX * square - square / 2 - SHP[4]["width"] / 2
+
+      SHP[5]["xSt"] = XO + SHP[5]["x"] * s
+
+      SHP[5]["y"] = square * 4 - lineVar * 2
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub BiasedY
+
+  If YBias = 1 Then
+
+    SHP[200 + (1 * 10) + towerY]["draw"] = "false"
+
+    gy = "BY1"
+
+    SHP[6]["draw"] = ""
+
+    SHP[6]["x"] = lineVar * 2
+
+    SHP[6]["y"] = towerY * square - square / 2 - SHP[6]["height"] / 2
+
+    SHP[6]["ySt"] = YO + SHP[6]["y"] * s
+
+  Else
+
+    If size = 1 Or size = 3 Then
+
+      SHP[200 + (3 * 10) + towerY]["draw"] = "false"
+
+      gy = "BY2"
+
+      SHP[7]["draw"] = ""
+
+      SHP[7]["x"] = square * 3 - lineVar * 2
+
+      SHP[7]["y"] = towerY * square - square / 2 - SHP[7]["height"] / 2
+
+      SHP[7]["ySt"] = YO + SHP[7]["y"] * s
+
+    Else
+
+      SHP[200 + (4 * 10) + towerY]["draw"] = "false"
+
+      gy = "BY2"
+
+      SHP[7]["draw"] = ""
+
+      SHP[7]["x"] = square * 4 - lineVar * 2
+
+      SHP[7]["y"] = towerY * square - square / 2 - SHP[7]["height"] / 2
+
+      SHP[7]["ySt"] = YO + SHP[7]["y"] * s
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub UnbiasedX
+
+  gx = "UX"
+
+  SHP[100 + (towerX * 10) + 1]["draw"] = "false"
+
+  SHP[4]["draw"] = ""
+
+  SHP[4]["x"] = towerX * square - square / 2 - SHP[4]["width"] / 2
+
+  SHP[4]["xSt"] = XO + SHP[4]["x"] * s
+
+  SHP[4]["y"] = lineVar * 2
+
+  If size < 3 Then
+
+    SHP[100 + (towerX * 10) + 3]["draw"] = "false"
+
+    SHP[5]["draw"] = ""
+
+    SHP[5]["x"] = towerX * square - square / 2 - SHP[4]["width"] / 2
+
+    SHP[5]["xSt"] = XO + SHP[5]["x"] * s
+
+    SHP[5]["y"] = square * 3 - lineVar * 2
+
+  Else
+
+    SHP[100 + (towerX * 10) + 4]["draw"] = "false"
+
+    SHP[5]["draw"] = ""
+
+    SHP[5]["x"] = towerX * square - square / 2 - SHP[4]["width"] / 2
+
+    SHP[5]["xSt"] = XO + SHP[5]["x"] * s
+
+    SHP[5]["y"] = square * 4 - lineVar * 2 
+
+  EndIf
+
+EndSub
+
+
+
+Sub UnbiasedY
+
+  gy = "UY"
+
+  SHP[200 + (1 * 10) + towerY]["draw"] = "false"
+
+  SHP[6]["draw"] = ""
+
+  SHP[6]["x"] = lineVar * 2
+
+  SHP[6]["y"] = towerY * square - square / 2 - SHP[6]["height"] / 2
+
+  SHP[6]["ySt"] = YO + SHP[6]["y"] * s
+
+  If size = 1 Or size = 3 Then
+
+    SHP[200 + (3 * 10) + towerY]["draw"] = "false"
+
+    SHP[7]["draw"] = ""
+
+    SHP[7]["x"] = square * 3 - lineVar * 2
+
+    SHP[7]["y"] = towerY * square - square / 2 - SHP[7]["height"] / 2
+
+    SHP[7]["ySt"] = YO + SHP[7]["y"] * s
+
+  Else
+
+    SHP[200 + (4 * 10) + towerY]["draw"] = "false"
+
+    SHP[7]["draw"] = ""
+
+    SHP[7]["x"] = square * 4 - lineVar * 2
+
+    SHP[7]["y"] = towerY * square - square / 2 - SHP[7]["height"] / 2
+
+    SHP[7]["ySt"] = YO + SHP[7]["y"] * s
+
+  EndIf
+
+EndSub
+
+
+
+Sub MazeInit
+
+  'sub grid coordinates
+
+  For i = 1 To 4
+
+    For j = 1 To 4
+
+      c[i][j][5]["x"] = (i * (square / 2) + XO + ((i - 1) * (square / 2))) * s
+
+      c[i][j][5]["y"] = (j * (square / 2) + YO + ((j - 1) * (square / 2))) * s
+
+      c[i][j][4]["x"] = c[i][j][5]["x"] - (square / 4 * s)
+
+      c[i][j][4]["y"] = c[i][j][5]["y"]
+
+      c[i][j][6]["x"] = c[i][j][5]["x"] + (square / 4 * s)
+
+      c[i][j][6]["y"] = c[i][j][5]["y"]
+
+      c[i][j][2]["x"] = c[i][j][5]["x"]
+
+      c[i][j][2]["y"] = c[i][j][5]["y"] - (square / 4 * s)
+
+      c[i][j][8]["x"] = c[i][j][5]["x"]
+
+      c[i][j][8]["y"] = c[i][j][5]["y"] + (square / 4 * s)
+
+      c[i][j][1]["x"] = c[i][j][5]["x"] - (square / 4 * s)
+
+      c[i][j][1]["y"] = c[i][j][5]["y"] - (square / 4 * s)
+
+      c[i][j][3]["x"] = c[i][j][5]["x"] + (square / 4 * s)
+
+      c[i][j][3]["y"] = c[i][j][5]["y"] - (square / 4 * s)
+
+      c[i][j][7]["x"] = c[i][j][5]["x"] - (square / 4 * s)
+
+      c[i][j][7]["y"] = c[i][j][5]["y"] + (square / 4 * s)
+
+      c[i][j][9]["x"] = c[i][j][5]["x"] + (square / 4 * s)
+
+      c[i][j][9]["y"] = c[i][j][5]["y"] + (square / 4 * s)
+
+      c[i][j][10]["x"] = c[i][j][5]["x"] - (square / 4 * s)
+
+      c[i][j][10]["y"] = c[i][j][5]["y"] + 2 * (square / 4 * s)
+
+      c[i][j][11]["x"] = c[i][j][5]["x"]
+
+      c[i][j][11]["y"] = c[i][j][5]["y"] + 2 * (square / 4 * s)
+
+      c[i][j][12]["x"] = c[i][j][5]["x"] + (square / 4 * s)
+
+      c[i][j][12]["y"] = c[i][j][5]["y"] + 2 * (square / 4 * s)
+
+      c[i][j][13]["x"] = c[i][j][5]["x"] + 2 * (square / 4 * s)
+
+      c[i][j][13]["y"] = c[i][j][5]["y"] - (square / 4 * s)
+
+      c[i][j][14]["x"] = c[i][j][5]["x"] + 2 * (square / 4 * s)
+
+      c[i][j][14]["y"] = c[i][j][5]["y"]
+
+      c[i][j][15]["x"] = c[i][j][5]["x"] + 2 * (square / 4 * s)
+
+      c[i][j][15]["y"] = c[i][j][5]["y"] + (square / 4 * s)
+
+      c[i][j][16]["x"] = c[i][j][5]["x"] - 2 * (square / 4 * s)
+
+      c[i][j][16]["y"] = c[i][j][5]["y"] - 2 * (square / 4 * s)
+
+      'draw the sub grid coordinates
+
+      'For k = 1 To 16 
+
+      '  GraphicsWindow.PenColor = "White"
+
+      '  GraphicsWindow.PenWidth = 2
+
+      '  GraphicsWindow.BrushColor = "White"
+
+      '  c[i][j][k]["obj"] = Shapes.AddEllipse(5, 5)
+
+      '  Shapes.Move(c[i][j][k]["obj"], c[i][j][k]["x"], c[i][j][k]["y"])
+
+      'EndFor
+
+    EndFor
+
+  EndFor
+
+  
+
+  If size = 1 Then
+
+    maxX = 3
+
+    maxY = 3
+
+  ElseIf size = 2 Then
+
+    maxX = 4
+
+    maxY = 3
+
+  Else
+
+    maxX = 3
+
+    maxY = 4
+
+  EndIf
+
+  
+
+  numMove = 0 'number of movable objects
+
+  
+
+  For i = 1 To maxX
+
+    For j = 1 To maxY
+
+      
+
+      maxK = Math.GetRandomNumber(20) 'max amount of lines in each square
+
+      If maxK < 2 Then
+
+        endK = 1
+
+      ElseIf maxK < 3 Then
+
+        endK = 2
+
+      ElseIf maxK < 5 Then
+
+        endK = 3
+
+      ElseIf maxK < 8 Then
+
+        endK = 4
+
+      ElseIf maxK < 14 Then
+
+        endK = 5
+
+      ElseIf maxK < 17 Then
+
+        endK = 6
+
+      ElseIf maxK < 20 Then
+
+        endK = 7
+
+      Else
+
+        endK = 8
+
+      EndIf
+
+      
+
+      For k = 1 To endK
+
+        If gx = "UX" Then
+
+          If i <> towerX Then
+
+            CheckY()
+
+          'Else 
+
+          '  CheckMY()
+
+          EndIf
+
+        ElseIf gx = "BX1" Then
+
+          If i <> towerX  Or (i = towerX and j > towerY) Then
+
+            CheckY()
+
+          'Else
+
+          '  CheckMY()
+
+          EndIf
+
+        ElseIf gx = "BX2" Then
+
+          If i <> towerX Or (i = towerX and j < towerY) Then
+
+            CheckY()
+
+          'Else
+
+          '  CheckMY()
+
+          EndIf
+
+        Else
+
+          CheckY()
+
+        EndIf 
+
+      EndFor
+
+    EndFor
+
+  EndFor 
+
+EndSub
+
+
+
+Sub CheckY
+
+  If gy = "UY" Then
+
+    If j <> towerY Then
+
+      LineGen()
+
+    'Else
+
+      'MoveGenX()
+
+    EndIf
+
+  ElseIf gy = "BY1" Then
+
+    If j <> towerY Or (j = towerY and i > towerX) Then
+
+      LineGen()
+
+    'Else
+
+      'MoveGenX()
+
+    EndIf
+
+  ElseIf  gy = "BY2" Then
+
+    If j <> towerY Or (j = towerY and i < towerX) Then
+
+      LineGen()
+
+    'Else
+
+      'MoveGenX()
+
+    EndIf
+
+  Else 
+
+    LineGen()
+
+  EndIf
+
+EndSub
+
+
+
+Sub CheckMY
+
+  If gy = "UY" Then
+
+    If j <> towerY Then
+
+     MoveGenY()
+
+    EndIf
+
+  ElseIf gy = "BY1" Then
+
+    If j <> towerY Or (j = towerY and i > towerX) Then
+
+      MoveGenY()
+
+    EndIf
+
+  ElseIf  gy = "BY2" Then
+
+    If j <> towerY Or (j = towerY and i < towerX) Then
+
+      MoveGenY()
+
+    EndIf
+
+  Else
+
+    MoveGenY()
+
+  EndIf
+
+EndSub
+
+
+
+Sub LineGen
+
+  'line starting coordiate
+
+  overLoad = 0
+
+  grab:
+
+  If i < maxX And j < maxY Then
+
+    edge = 0
+
+    cdte = Math.GetRandomNumber(16)
+
+  ElseIf i = maxX and j = maxY Then
+
+    cdte = Math.GetRandomNumber(9)
+
+    If cdte = 13 Then
+
+      edge = 0
+
+      cdte = 16
+
+    ElseIf cdte > 6 Then
+
+      edge = 1
+
+    ElseIf Math.Remainder(cdte, 3) = 0 Then
+
+      edge = 1
+
+    Else 
+
+      edge = 0
+
+    EndIf
+
+  ElseIf i = maxX Then
+
+    cdte = Math.GetRandomNumber(13)
+
+    If cdte = 13 Then
+
+      edge = 0
+
+      cdte = 16
+
+    ElseIf cdte > 9 Then
+
+      edge = 1
+
+    ElseIf Math.Remainder(cdte, 3) = 0 Then
+
+      edge = 1
+
+    Else 
+
+      edge = 0
+
+    EndIf
+
+  ElseIf j = maxY Then
+
+    cdte = Math.GetRandomNumber(13)
+
+    If cdte = 13 Then
+
+      edge = 0
+
+      cdte = 16
+
+    ElseIf cdte > 9 Then
+
+      cdte = cdte + 3
+
+      edge = 1
+
+    ElseIf cdte > 6 Then
+
+      edge = 1
+
+    Else 
+
+      edge = 0
+
+    EndIf
+
+  EndIf
+
+  
+
+  'optional blockades
+
+  'If optNumber > 0 Then
+
+  '  optRand = Math.GetRandomNumber(100)
+
+  '  If optRand > 92 Then
+
+  '    If c[i][j][cdte]["taken"] <> "true" Then
+
+  '      If cdte < 16 Then
+
+  '        SHP[optNumber + 7]["x"] = c[i][j][cdte - 1]["x"] - SHP[optNumber]["width"] / 2
+
+  '        SHP[optNumber + 7]["y"] = c[i][j][cdte - 1]["y"] - SHP[optNumber]["height"] / 2
+
+  '      EndIf
+
+  '      SHP[optNumber + 7]["draw"] = ""
+
+  '      c[i][j][cdte]["taken"] = "true"
+
+  '      optNumber = optNumber - 1
+
+  '    EndIf
+
+  '  EndIf
+
+  'EndIf
+
+  
+
+  If c[i][j][cdte]["taken"] = "true" Then 
+
+    overLoad = overLoad + 1
+
+    If overLoad > 100 Then
+
+      Goto load
+
+    EndIf
+
+    Goto grab
+
+  Else
+
+    c[i][j][cdte]["taken"] = "true"
+
+    MZE[i][j][k]["x"] = c[i][j][cdte]["x"]
+
+    MZE[i][j][k]["y"] = c[i][j][cdte]["y"]
+
+  EndIf
+
+  
+
+  'line length and direction
+
+  If edge = 0 Then
+
+    dir = Math.GetRandomNumber(4)
+
+  ElseIf edge = 1 Then
+
+    dir = Math.GetRandomNumber(2)
+
+  EndIf
+
+  If dir = 1 Then
+
+    MZE[i][j][k]["width"] = square / 4 + lineVar
+
+    MZE[i][j][k]["height"] = lineVar
+
+  ElseIf dir = 2 Then
+
+    MZE[i][j][k]["width"] = lineVar
+
+    MZE[i][j][k]["height"] = square / 4 + lineVar
+
+  ElseIf dir = 3 Then
+
+    MZE[i][j][k]["width"] = square / 2 + lineVar
+
+    MZE[i][j][k]["height"] = lineVar
+
+  ElseIf dir = 4 Then
+
+    MZE[i][j][k]["width"] = lineVar
+
+    MZE[i][j][k]["height"] = square / 2 + lineVar
+
+  EndIf
+
+  
+
+  'draw the maze line
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.BrushColor = "LightCyan"
+
+  GraphicsWindow.PenColor = "LightCyan"
+
+  MZE[i][j][k]["obj"] = Shapes.AddRectangle(MZE[i][j][k]["width"]*s, MZE[i][j][k]["height"]*s)
+
+  Shapes.Move(MZE[i][j][k]["obj"], MZE[i][j][k]["x"]*s, MZE[i][j][k]["y"]*s)
+
+  Shapes.SetOpacity(MZE[i][j][k]["obj"], 60)
+
+  
+
+  'assign values
+
+  edgeCount = edgeCount + 1
+
+  cor[edgeCount]["x"] = MZE[i][j][k]["x"]*s
+
+  cor[edgeCount]["y"] = MZE[i][j][k]["y"]*s
+
+  cor[edgeCount]["width"] = MZE[i][j][k]["width"]*s
+
+  cor[edgeCount]["height"] = MZE[i][j][k]["height"]*s
+
+  load:
+
+EndSub
+
+
+
+Sub MoveGenX
+
+  vis = Math.GetRandomNumber(100)
+
+  If vis < 95 Then
+
+    Goto skipX
+
+  ElseIf vis < 100 Then
+
+    endH = 1
+
+  Else
+
+    endH = 2
+
+  EndIf
+
+  For h = 1 To endH
+
+    graspX:
+
+    cde = Math.GetRandomNumber(6)
+
+    If cde = 2 Then
+
+      cde = 7
+
+    ElseIf cde = 5 Then
+
+      cde = 9
+
+    EndIf
+
+    
+
+    If c[i][j][cde]["taken"] = "true" Then
+
+      Goto graspX
+
+    Else
+
+      c[i][j][cde]["taken"] = "true"
+
+      MVE[i][j][h]["x"] = c[i][j][cde]["x"]
+
+      MVE[i][j][h]["y"] = c[i][j][cde]["y"]
+
+    EndIf   
+
+    MoveDraw()
+
+  EndFor
+
+  skipX:
+
+EndSub
+
+
+
+Sub MoveGenY
+
+  vis = Math.GetRandomNumber(100)
+
+  If vis < 95 Then
+
+    Goto skipY
+
+  ElseIf vis < 100 Then
+
+    endH = 1
+
+  Else
+
+    endH = 2
+
+  EndIf
+
+  For h = 1 To endH
+
+    graspY:
+
+    cde = Math.GetRandomNumber(6)
+
+    If cde = 4 Then
+
+      cde = 7
+
+    ElseIf cde = 5 Then
+
+      cde = 8
+
+    ElseIf cde = 6 Then
+
+      cde = 9
+
+    EndIf
+
+    
+
+    If c[i][j][cde]["taken"] = "true" Then
+
+      Goto graspY
+
+    Else
+
+      c[i][j][cde]["taken"] = "true"
+
+      MVE[i][j][h]["x"] = c[i][j][cde]["x"]
+
+      MVE[i][j][h]["y"] = c[i][j][cde]["y"]
+
+    EndIf
+
+    MoveDraw()
+
+  EndFor
+
+  skipY:
+
+EndSub
+
+
+
+Sub MoveDraw
+
+  'line direction
+
+  dyr = Math.GetRandomNumber(2)
+
+  If dyr = 1 Then
+
+    MVE[i][j][h]["width"] = square / 4 + lineVar
+
+    MVE[i][j][h]["height"] = lineVar
+
+  Else
+
+    MVE[i][j][h]["width"] = lineVar
+
+    MVE[i][j][h]["height"] = square / 4 + lineVar
+
+  EndIf
+
+  
+
+  numMove = numMove + 1 'number of movable objects
+
+  moveSpeed = 0.2 * s 'speed of movable objects
+
+  
+
+  'draw the object
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.BrushColor = "RoyalBlue"
+
+  GraphicsWindow.PenColor = "RoyalBlue"
+
+  m[numMove]["obj"] = Shapes.AddRectangle(MVE[i][j][h]["width"]*s, MVE[i][j][h]["height"]*s)
+
+  Shapes.Move(m[numMove]["obj"], MVE[i][j][h]["x"]*s, MVE[i][j][h]["y"]*s)
+
+  
+
+  'assign values
+
+  m[numMove]["x"] = MVE[i][j][h]["x"]*s
+
+  m[numMove]["y"] = MVE[i][j][h]["y"]*s 
+
+  m[numMove]["speed"] = moveSpeed
+
+  If dyr = 1 Then
+
+    m[numMove]["dir"] = "hor"
+
+  Else
+
+    m[numMove]["dir"] = "ver"
+
+  EndIf
+
+EndSub
+
+
+
+Sub ShapesDraw
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  For i = 1 To 243
+
+    If SHP[i]["pw"] > 0 Then
+
+      If SHP[i]["draw"] = "" Then 'if it is supposed to be drawn
+
+        GraphicsWindow.PenWidth = SHP[i]["pw"]*s
+
+        GraphicsWindow.PenColor = SHP[i]["pc"]
+
+        GraphicsWindow.BrushColor = SHP[i]["bc"]
+
+        cx = SHP[i]["cx"]
+
+        cy = SHP[i]["cy"]
+
+        If SHP[i]["func"] = "rect" Then
+
+          If SHP[i]["des"] = "edge" Then
+
+            If (i - 100) < 100 Then
+
+              SHP[i]["x"] = (cx - 1) * square
+
+              SHP[i]["y"] = (cy - 1) * square
+
+              SHP[i]["width"] = square + lineVar
+
+              SHP[i]["height"] = lineVar
+
+              If cy > 1 Then
+
+                SHP[i]["y"] = SHP[i]["y"] + square
+
+              EndIf
+
+            Else
+
+              SHP[i]["x"] = (cx - 1) * square
+
+              SHP[i]["y"] = (cy - 1) * square
+
+              SHP[i]["width"] = lineVar
+
+              SHP[i]["height"] = square + lineVar
+
+              If cx > 1 Then
+
+                SHP[i]["x"] = SHP[i]["x"] + square
+
+              EndIf
+
+            EndIf
+
+          EndIf  
+
+          SHP[i]["obj"] = Shapes.AddRectangle(SHP[i]["width"]*s, SHP[i]["height"]*s)
+
+        ElseIf SHP[i]["func"] = "circ" Then
+
+          SHP[i]["obj"] = Shapes.AddEllipse(SHP[i]["width"]*s, SHP[i]["height"]*s)
+
+        ElseIf SHP[i]["func"] = "tri" Then
+
+          SHP[i]["obj"] = Shapes.AddTriangle(SHP[i]["x1"]*s, SHP[i]["y1"]*s, SHP[i]["x2"]*s, SHP[i]["y2"]*s, SHP[i]["x3"]*s, SHP[i]["y3"]*s)
+
+        ElseIf SHP[i]["func"] = "line" Then
+
+          SHP[i]["obj"] = Shapes.AddLine(SHP[i]["x1"]*s, SHP[i]["y1"]*s, SHP[i]["x2"]*s, SHP[i]["y2"]*s)
+
+        EndIf
+
+        SHP[i]["x"] = XO + SHP[i]["x"]*s
+
+        SHP[i]["y"] = YO + SHP[i]["y"]*s
+
+        Shapes.Move(SHP[i]["obj"], SHP[i]["x"], SHP[i]["y"])
+
+        Shapes.Rotate(SHP[i]["obj"], SHP[i]["angle"])
+
+        If SHP[i]["opacity"] <> "" Then
+
+          Shapes.SetOpacity(SHP[i]["obj"], SHP[i]["opacity"])
+
+        EndIf
+
+        If i < 2 Or i > 3 Then
+
+          edgeCount = edgeCount + 1
+
+          cor[edgeCount]["x"] = SHP[i]["x"]
+
+          cor[edgeCount]["y"] = SHP[i]["y"]
+
+          cor[edgeCount]["width"] = SHP[i]["width"]
+
+          cor[edgeCount]["height"] = SHP[i]["height"]
+
+          cor[edgeCount]["obj"] = SHP[i]["obj"]
+
+          eC = eC + 1
+
+          cr[eC]["x"] = SHP[i]["x"]
+
+          cr[eC]["y"] = SHP[i]["y"]
+
+          cr[eC]["width"] = SHP[i]["width"]
+
+          cr[eC]["height"] = SHP[i]["height"]
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  GraphicsWindow.Width = GraphicsWindow.Width * s
+
+  GraphicsWindow.Height = GraphicsWindow.Height * s
+
+EndSub
+
+

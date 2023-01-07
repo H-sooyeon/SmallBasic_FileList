@@ -1,0 +1,2985 @@
+PROCEDURE RACKBK
+
+    Rem     ********************************************
+
+    Rem     * KIDDER STACY MACHINE CO. 973-50-710      *
+
+    Rem     *            AB OS-9 BASIC                 *
+
+    Rem     *    RBK973.BAS   RACKBACK CONTROL         *
+
+    Rem     * J. Syzdek        09/30/94                *
+
+    Rem     *          VOL LABEL 973AB530              *
+
+    Rem     ********************************************
+
+
+
+    BASE 1
+
+    DIM  PHM1,PHM2,PHM3,PHM4,PHM5,PHM6,PHM7,PHM8 :INTEGER
+
+    DIM  STEP_DN,SLOW_DN,FAST_DN :INTEGER
+
+    DIM  PLATE_DN,ANILOX_DN :INTEGER
+
+    DIM  OSIN_DN,OSOUT_DN,DSIN_DN,DSOUT_DN  :INTEGER
+
+    DIM  BOTH_OUT_DN,BOTH_IN_DN  :INTEGER
+
+    DIM  LINK1 :INTEGER     \Rem used to find states of PLC I/O
+
+    DIM  LINK2 :INTEGER 
+
+    DIM  LINK3 :INTEGER
+
+    DIM  LINK4 :INTEGER
+
+    DIM  LINK5 :INTEGER
+
+    DIM  LINK6 :INTEGER
+
+    DIM  LINK7 :INTEGER
+
+    DIM  PRINT_ST    :INTEGER
+
+    DIM  PLATE_UP,ANILOX_UP   :INTEGER
+
+    DIM  BOTH_OUT_UP,BOTH_IN_UP  :INTEGER
+
+    DIM  DSIN_UP,DSOUT_UP,OSIN_UP,OSOUT_UP    :INTEGER
+
+    DIM  FAST_UP,STEP_UP,SLOW_UP     :INTEGER
+
+    DIM  SR_OS_DN,SR_DS_DN,RR_ADV_DN,RR_RET_DN   :INTEGER
+
+    DIM  SR_OS_UP,SR_DS_UP,RR_ADV_UP,RR_RET_UP   :INTEGER
+
+    DIM  STA1,STA2,STA3,STA4,STA5,STA6,STA7,STA8  :INTEGER
+
+    DIM  PLT1_ON     :INTEGER
+
+    DIM  PLT2_ON     :INTEGER
+
+    DIM  PLT3_ON     :INTEGER
+
+    DIM  PLT4_ON     :INTEGER
+
+    DIM  PLT5_ON     :INTEGER
+
+    DIM  PLT6_ON     :INTEGER
+
+    DIM  PLT7_ON     :INTEGER
+
+    DIM  PLT8_ON     :INTEGER
+
+    DIM  ANL1_ON     :INTEGER
+
+    DIM  ANL2_ON     :INTEGER
+
+    DIM  ANL3_ON     :INTEGER
+
+    DIM  ANL4_ON     :INTEGER
+
+    DIM  ANL5_ON     :INTEGER
+
+    DIM  ANL6_ON     :INTEGER
+
+    DIM  ANL7_ON     :INTEGER
+
+    DIM  ANL8_ON     :INTEGER
+
+    DIM  AXIS(32)    :STRING [10]
+
+    DIM  BUTTON,BTONS,UPSIDE,BIT :INTEGER
+
+    DIM  DISPLAY,MOTOR,RMOTOR    :INTEGER    
+
+    DIM  MSTAT       :INTEGER       \Rem AMS motor status
+
+    DIM  U,V,W,II,JJ :INTEGER
+
+    DIM  DIR1$,DIR2$,HOME_SPEED$ :STRING[5]
+
+    DIM  NOSP$,SPEED$,DIREC$,DIREC1$,DIREC2$ :STRING[10]
+
+    DIM  AXIS1$,AXIS2$,AXIS3$,AXIS4$ :STRING[3]
+
+    DIM  METER$,METER1$,METER2$ :STRING [5]
+
+    DIM  SPEED1$,SPEED2$ :STRING[10]
+
+    DIM  TEMP,TEMP2,HOMEWD,HOME_CK,DFLG :INTEGER
+
+    DIM  LOC1,LOC2,LOC3,LOC4,LOC5,LOC6,LOC7,IOSTAT :INTEGER
+
+    DIM  STATUS  :INTEGER
+
+    DIM  XFAC,MFAC,BFAC,OUTPOS  :REAL
+
+    DIM  A$ : STRING[30]
+
+    DIM  Q$,Dumpster$ :STRING[1]
+
+    DIM  Bufr_size, Index, Delay, DTIME, STP :INTEGER
+
+
+
+    DIM   AX$ :STRING[32]
+
+    DIM   ANDMASK,ORMASK :INTEGER
+
+       
+
+	RUN CINIT
+
+	RUN AB_BAS (0)
+
+	RUN AB_BAS (1,status,300)
+
+
+
+   Q$=CHR$(10) \REM 10 is linefeed for AMS motors
+
+   Open #DISPLAY, "/T1":update   \Rem for DISPLAYS
+
+   Open #MOTOR,   "/T2":update   \Rem for print deck AMS motors
+
+   Open #RMOTOR,  "/T3":update   \Rem for SR/RR AMS motors
+
+		   
+
+  RUN AB_BAS(2,STATUS,ADDR(LOC1),"B3:3,1,LONG,READ")  \REM STA 
+
+  RUN AB_BAS(2,STATUS,ADDR(LOC2),"B3:4,1,LONG,READ")  \REM AND HOME LS
+
+  RUN AB_BAS(2,STATUS,ADDR(LOC3),"B3:13,1,LONG,READ") \REM MOVES
+
+  RUN AB_BAS(2,STATUS,ADDR(LOC4),"B3:14,1,LONG,READ") \REM SPEED AND SLIDE
+
+  RUN AB_BAS(2,STATUS,ADDR(LOC5),"B13:0,1,LONG,READ") \REM PRINT CONTROL     
+
+  RUN AB_BAS(2,STATUS,ADDR(LOC6),"B13:9,1,LONG,MODIFY") \REM PRINT OFF OK
+
+  
+
+   REM set stations to print on postion
+
+    RUN AB_BAS(5,STATUS,LOC5,ADDR(LINK5),ADDR(IOSTAT))
+
+    LINK5=LAND(LINK5,65535)
+
+    PRINT_ST=LINK5
+
+   IF LINK5=0 THEN
+
+      LINK6=1
+
+   ELSE LINK6=0\ENDIF
+
+
+
+    RUN AB_BAS(6,STATUS,LOC6,ADDR(LINK6),ADDR(IOSTAT))  \REM WRITE BIT
+
+
+
+       ANL1_ON_CK=(LAND (LINK5,2^0))/(2^0)
+
+       PLT1_ON_CK=(LAND (LINK5,2^1))/(2^1) 
+
+       ANL2_ON_CK=(LAND (LINK5,2^2))/(2^2)
+
+       PLT2_ON_CK=(LAND (LINK5,2^3))/(2^3)
+
+       ANL3_ON_CK=(LAND (LINK5,2^4))/(2^4) 
+
+       PLT3_ON_CK=(LAND (LINK5,2^5))/(2^5)
+
+       ANL4_ON_CK=(LAND (LINK5,2^6))/(2^6)
+
+       PLT4_ON_CK=(LAND (LINK5,2^7))/(2^7)
+
+       ANL5_ON_CK=(LAND (LINK5,2^8))/(2^8)
+
+       PLT5_ON_CK=(LAND (LINK5,2^9))/(2^9) 
+
+       ANL6_ON_CK=(LAND (LINK5,2^10))/(2^10) 
+
+       PLT6_ON_CK=(LAND (LINK5,2^11))/(2^11) 
+
+       ANL7_ON_CK=(LAND (LINK5,2^12))/(2^12) 
+
+       PLT7_ON_CK=(LAND (LINK5,2^13))/(2^13) 
+
+       ANL8_ON_CK=(LAND (LINK5,2^14))/(2^14) 
+
+       PLT8_ON_CK=(LAND (LINK5,2^15))/(2^15) 
+
+    GOSUB 13000 \ GOSUB 13600  \REM Clear Motor Communication Buffers
+
+
+
+   FOR U=1 TO 32 \ AXIS(U)="]" \ NEXT U
+
+    
+
+   REM  distance set for each station for .050 in/out with backlash     
+
+     MOVE_PRINT1$="3300"\MOVE_PRINT2$="3300"
+
+     MOVE_PRINT3$="3300" \MOVE_PRINT4$="3300"
+
+
+
+     RUN AB_BAS(102,STATUS,"RUN ")
+
+
+
+   Rem CONTINOUS LOOP OF PROGRAM TO LINE 999 (NEXT)
+
+
+
+   200  LOOP   
+
+   RUN AB_BAS(5,STATUS,LOC1,ADDR(LINK1),ADDR(IOSTAT))   \REM READ MEM MAPS
+
+   RUN AB_BAS(5,STATUS,LOC2,ADDR(LINK2),ADDR(IOSTAT))
+
+   RUN AB_BAS(5,STATUS,LOC3,ADDR(LINK3),ADDR(IOSTAT))
+
+   RUN AB_BAS(5,STATUS,LOC5,ADDR(LINK5),ADDR(IOSTAT))
+
+   LINK5=LAND(LINK5,65535)
+
+   
+
+ BOTH_OUT_UP=(LAND (LINK3,2^7))/(2^7)
+
+ BOTH_OUT_DN=(LAND (LINK3,2^13))/(2^13)
+
+ STA1=(LAND (LINK1,2^3))/(2^3) 
+
+ STA2=(LAND (LINK1,2^4))/(2^4)
+
+ STA3=(LAND (LINK1,2^5))/(2^5)
+
+ STA4=(LAND (LINK1,2^6))/(2^6)
+
+ STA5=(LAND (LINK1,2^7))/(2^7)
+
+ STA6=(LAND (LINK1,2^8))/(2^8)
+
+ STA7=(LAND (LINK1,2^9))/(2^9)
+
+ STA8=(LAND (LINK1,2^10))/(2^10)
+
+   
+
+ PHM1=(LAND (LINK1,2^11))/(2^11)
+
+ PHM2=(LAND (LINK1,2^12))/(2^12)
+
+ PHM3=(LAND (LINK1,2^13))/(2^13)
+
+ PHM4=(LAND (LINK1,2^14))/(2^14)
+
+ PHM5=(LAND (LINK1,2^15))/(2^15)
+
+ PHM6=(LAND (LINK2,2^0))/(2^0)
+
+ PHM7=(LAND (LINK2,2^1))/(2^1)
+
+ PHM8=(LAND (LINK2,2^2))/(2^2)
+
+
+
+   Rem check to see if all 8 stations have been sent home THEN HOMEWD is set
+
+      IF PHM1=1 and PHM2=1 and PHM3=1 and PHM4=1 and PHM5=1 THEN 
+
+	 TEMP = 1
+
+      ELSE TEMP = 0
+
+      ENDIF
+
+
+
+      IF TEMP=1 and PHM6=1 and PHM7=1 and PHM8=1 THEN 
+
+	HOMEWD = 1
+
+      ELSE HOMEWD=0
+
+      ENDIF
+
+
+
+   IF HOMEWD = 0 THEN
+
+      GOSUB 1000   \ Rem skips HOME ROUTINE if already homed
+
+   ENDIF
+
+
+
+    METER1$=""\METER2$=""
+
+
+
+600  RUN AB_BAS(5,STATUS,LOC3,ADDR(LINK3),ADDR(IOSTAT))
+
+     RUN AB_BAS(5,STATUS,LOC4,ADDR(LINK4),ADDR(IOSTAT))
+
+     RUN AB_BAS(5,STATUS,LOC7,ADDR(LINK7),ADDR(IOSTAT))
+
+
+
+     DFLG=(LAND (LINK4,2^5))/(2^5)
+
+     EN_STA_OUT=(LAND (LINK4,4))/4
+
+     PLATE_UP=(LAND (LINK4,2^12))/(2^12)
+
+     ANILOX_UP=(LAND (LINK4,2^13))/(2^13)
+
+     DSIN_UP=(LAND (LINK3,2^2))/(2^2)
+
+     DSOUT_UP=(LAND (LINK3,2^3))/(2^3)
+
+     OSIN_UP=(LAND (LINK3,2^4))/(2^4)
+
+     OSOUT_UP=(LAND (LINK3,2^5))/(2^5)
+
+     BOTH_IN_UP=(LAND (LINK3,2^6))/(2^6)
+
+     STEP_UP=(LAND (LINK4,2^6))/(2^6)
+
+     SLOW_UP=(LAND (LINK4,2^7))/(2^7)
+
+     FAST_UP=(LAND (LINK4,2^8))/(2^8)
+
+     ANILOX_DN=(LAND (LINK4,2^15))/(2^15)
+
+     PLATE_DN=(LAND (LINK4,2^14))/(2^14)
+
+     DSIN_DN=(LAND (LINK3,2^8))/(2^8)
+
+     DSOUT_DN=(LAND (LINK3,2^9))/(2^9)
+
+     OSIN_DN=(LAND (LINK3,2^10))/(2^10)
+
+     OSOUT_DN=(LAND (LINK3,2^11))/(2^11)
+
+     BOTH_IN_DN=(LAND (LINK3,2^12))/(2^12)
+
+     STEP_DN=(LAND (LINK4,2^9))/(2^9)
+
+     SLOW_DN=(LAND (LINK4,2^10))/(2^10)
+
+     FAST_DN=(LAND (LINK4,2^11))/(2^11)
+
+
+
+    SPEED1$ =""\SPEED2$ = ""
+
+      IF STEP_UP = 1 THEN     
+
+	 SPEED1$= "37"\ NOSP1$=""               \ Rem  .00 IN STEP 
+
+      ENDIF
+
+
+
+       IF SLOW_UP = 1 THEN 
+
+	 SPEED1$="1000"\ NOSP1$="M"             \ Rem  SPEED = XXX IN/S
+
+       ENDIF
+
+
+
+       IF FAST_UP = 1 THEN          
+
+	 SPEED1$ ="4000"\ NOSP1$="M"            \ Rem  SPEED = XXX IN/S
+
+       ENDIF
+
+
+
+	IF STEP_DN = 1 THEN 
+
+	  SPEED2$="37"\ NOSP2$=""               \ Rem  .00 IN STEP
+
+	ENDIF
+
+
+
+	IF SLOW_DN = 1 THEN 
+
+	  SPEED2$="1000"\ NOSP2$="M"            \ Rem  SPEED = XXX IN/S
+
+	ENDIF
+
+
+
+	IF FAST_DN = 1 THEN
+
+	  SPEED2$="4000"\ NOSP2$="M"            \ Rem  SPEED = XXX IN/S
+
+	ENDIF
+
+
+
+  Rem  DO_PRINT ON/OFF
+
+      IF LINK5 > PRINT_ST THEN 
+
+	GOSUB 10500    \REM DO_PRINT_ON
+
+      ENDIF
+
+
+
+      IF LINK5 < PRINT_ST THEN 
+
+	GOSUB 11000    \REM DO_PRINT_OFF
+
+      ENDIF
+
+
+
+   PRINT_ST=LINK5  
+
+
+
+   IF PLATE_UP = 1 AND ANILOX_UP = 1 THEN
+
+      GOSUB 15100 \rem ANILOX_PLATE_UP
+
+   ELSE
+
+      IF PLATE_UP = 1 THEN
+
+	 GOSUB 12000 \rem DO_PLATE_UP
+
+      ENDIF
+
+
+
+      IF ANILOX_UP = 1 THEN
+
+	 GOSUB 12500 \rem DO_ANILOX_UP
+
+      ENDIF
+
+   ENDIF
+
+
+
+   IF PLATE_DN = 1 AND ANILOX_DN = 1 THEN
+
+      GOSUB 15000 \rem ANILOX_PLATE_DN 
+
+   ELSE
+
+      IF PLATE_DN = 1 THEN
+
+	 GOSUB 2000 \rem DO_PLATE_DN
+
+      ENDIF
+
+
+
+      IF ANILOX_DN = 1 THEN
+
+	 GOSUB 2500 \rem DO_ANILOX_DN
+
+      ENDIF
+
+   ENDIF
+
+
+
+    TEMP=(LAND (LINK3,2^15))/(2^15)
+
+    IF TEMP=1 THEN
+
+      GOSUB 30000 \ENDIF  \REM AMS parameter reset
+
+ 
+
+	GOSUB 1100
+
+  999   ENDLOOP \Rem  LOOP BACK TO LINE 200  ------------------------------
+
+
+
+ 1000 REM initialize deck (home) routine
+
+    Rem  checks if station selected has been homed
+
+  HOME_CK=0\ AT1=0\ AT2=0\ AT3=0\ AT3=0\ AT4=0\ AT5=0\ AT6=0\ AT7=0\ AT8=0
+
+				    
+
+  IF BOTH_OUT_DN = 1 THEN
+
+       IF STA1 = 1 AND PHM1 = 0 THEN
+
+	 AXIS(1)="A"
+
+	 AXIS(2)="B"
+
+	 AXIS(3)="C"\AT1=1
+
+	 AXIS(4)="D"\HOME_CK = 1
+
+	ENDIF
+
+	IF STA2 = 1 AND PHM2 = 0 THEN
+
+	 AXIS(5)="E"
+
+	 AXIS(6)="F"
+
+	 AXIS(7)="G"\AT2=1
+
+	 AXIS(8)="H"\HOME_CK = 1
+
+	ENDIF
+
+	IF STA3 = 1 AND PHM3 = 0 THEN
+
+	 AXIS(9)="I"
+
+	 AXIS(10)="J"
+
+	 AXIS(11)="K"\AT3=1
+
+	 AXIS(12)="L"\HOME_CK = 1
+
+	ENDIF
+
+	IF STA4 = 1 AND PHM4 = 0 THEN
+
+	 AXIS(13)="M"
+
+	 AXIS(14)="N"
+
+	 AXIS(15)="O"\AT4=1
+
+	 AXIS(16)="P"\HOME_CK = 1
+
+	ENDIF
+
+  ENDIF
+
+
+
+  IF BOTH_OUT_UP = 1 THEN
+
+	IF STA5 = 1 AND PHM5 = 0 THEN
+
+	 AXIS(17)="Q"
+
+	 AXIS(18)="R"
+
+	 AXIS(19)="S"\AT5=1
+
+	 AXIS(20)="T"\HOME_CK = 1
+
+	ENDIF
+
+	IF STA6 = 1 AND PHM6 = 0 THEN
+
+	 AXIS(21)="U"
+
+	 AXIS(22)="V"
+
+	 AXIS(23)="W"\AT6=1
+
+	 AXIS(24)="X"\HOME_CK = 1
+
+	ENDIF
+
+	IF STA7 = 1 AND PHM7 = 0 THEN
+
+	 AXIS(25)="Y"
+
+	 AXIS(26)="Z"
+
+	 AXIS(27)="a"\AT7=1
+
+	 AXIS(28)="b"\HOME_CK = 1
+
+	ENDIF
+
+	IF STA8 = 1 AND PHM8 = 0 THEN
+
+	 AXIS(29)="c"
+
+	 AXIS(30)="d"
+
+	 AXIS(31)="e"\AT8=1
+
+	 AXIS(32)="f"\HOME_CK = 1
+
+	ENDIF
+
+  ENDIF
+
+  
+
+    IF HOME_CK = 1 THEN 
+
+	GOSUB 10000 \rem DO_HOME
+
+    ENDIF
+
+       HOME_CK = 0
+
+
+
+  FOR U= 1 TO 8
+
+	JJ=0   \ REM flag for each axis
+
+	IF U=1 AND AT1 = 1 AND PHM1 = 0 THEN
+
+	 AT1=0\JJ=1
+
+	ENDIF
+
+	IF U=2 AND AT2 = 1 AND PHM2 = 0 THEN
+
+	 AT2=0\JJ=1
+
+	ENDIF
+
+	IF U=3 AND AT3 = 1 AND PHM3 = 0 THEN
+
+	 AT3=0\JJ=1
+
+	ENDIF
+
+	IF U=4 AND AT4 = 1 AND PHM4 = 0 THEN
+
+	 AT4=0\JJ=1
+
+	ENDIF
+
+	IF U=5 AND AT5 = 1 AND PHM5 = 0 THEN
+
+	 AT5=0\JJ=1
+
+	ENDIF
+
+	IF U=6 AND AT6 = 1 AND PHM6 = 0 THEN
+
+	 AT6=0\JJ=1
+
+	ENDIF
+
+	IF U=7 AND AT7 = 1 AND PHM7 = 0 THEN
+
+	 AT7=0\JJ=1
+
+	ENDIF
+
+	IF U=8 AND AT8 = 1 AND PHM8 = 0 THEN
+
+	 AT8=0\JJ=1
+
+	ENDIF
+
+
+
+    IF JJ=1 THEN
+
+       FOR V=1 TO 4
+
+	KK=((U-1)*4)+V
+
+  	Print #MOTOR,Q$+AXIS(KK)+"O0"+Q$
+
+	  GOSUB 13000
+
+       NEXT V
+
+    ENDIF
+
+
+
+  NEXT U
+
+      Rem clear for next scan
+
+   FOR U=1 TO 32 \ AXIS(U)="]" \ NEXT U
+
+   RETURN
+
+
+
+ 1100 REM set co-processor watchdog bit in PLC (B13/145)
+
+      ANDMASK=255 \ ORMASK=2
+
+      RUN AB_BAS(7,STATUS,LOC6,ANDMASK,ORMASK,ADDR(IOSTAT))
+
+      RETURN
+
+
+
+ 2000 rem def proc DO_PLATE_DN
+
+
+
+      ?\?"  AT PLATE DOWN ROUTINE"
+
+       UPSIDE = 0  \Rem used to tell which pendant
+
+       AXIS1$="" \ AXIS2$=""
+
+     METER1$="N01"\METER2$="N02" \Rem  METER1$ = PLATE OS  METER2$ = PLATE DS
+
+  Rem used to display drive postion of selected station- plate only
+
+       IF STA1 = 1 THEN
+
+	AXIS1$="A"\MFAC=-4.867
+
+	AXIS2$="B"\U=1\BFAC=35.952
+
+       ENDIF
+
+       IF STA2 = 1 THEN
+
+	AXIS1$="E"\MFAC=-6.188
+
+	AXIS2$="F"\U=2\BFAC=44.994
+
+       ENDIF
+
+       IF STA3 = 1 THEN
+
+	AXIS1$="I"\MFAC=-5.947
+
+	AXIS2$="J"\U=3\BFAC=44.682
+
+       ENDIF
+
+       IF STA4 = 1 THEN
+
+	AXIS1$="M"\MFAC=-3.997
+
+	AXIS2$="N"\U=4\BFAC=45.442
+
+       ENDIF
+
+
+
+       IF AXIS1$<>"" THEN
+
+	  GOSUB 13000
+
+	  Print #MOTOR,Q$+AXIS1$+"Z"+Q$
+
+	  GOSUB 13500
+
+	  METER$=METER1$
+
+	  GOSUB 14000
+
+
+
+   Rem NEXT DRIVE READS
+
+	  Print #MOTOR,Q$+AXIS2$+"Z"+Q$
+
+	  GOSUB 13500
+
+	  METER$=METER2$
+
+	  GOSUB 14000
+
+      ENDIF
+
+
+
+      Rem  BUTTON = one move button has been pressed, set direction DIRECx$
+
+	IF BOTH_OUT_DN = 1 THEN
+
+	 DIREC1$="+"\DIREC2$="-"\GOSUB 7000\ rem PDO_BOTH_MOVE_DN
+
+	ENDIF
+
+
+
+	IF BOTH_IN_DN = 1 THEN
+
+	 DIREC1$="-"\DIREC2$="+"\GOSUB 7000\ rem PDO_BOTH_MOVE_DN
+
+	ENDIF
+
+
+
+	IF OSIN_DN  = 1 THEN
+
+	 DIREC$="-"\GOSUB 3000 \rem PDO_OS_MOVE_DN 
+
+	ENDIF
+
+
+
+	IF OSOUT_DN = 1 THEN
+
+	 DIREC$="+"\GOSUB 3000 \rem PDO_OS_MOVE_DN
+
+	ENDIF
+
+
+
+	IF DSIN_DN  = 1 THEN
+
+	 DIREC$="+"\GOSUB 4000 \rem PDO_DS_MOVE_DN
+
+	ENDIF
+
+
+
+	IF DSOUT_DN = 1 THEN
+
+	 DIREC$="-"\GOSUB 4000 \rem PDO_DS_MOVE_DN
+
+	ENDIF
+
+      RETURN
+
+
+
+ 2500 rem def proc DO_ANILOX_DN
+
+
+
+       ?\?"   AT ANILOX DOWN ROUTINE "\?
+
+	UPSIDE = 0
+
+       AXIS1$="" \ AXIS2$=""
+
+   METER1$="N03"\METER2$="N04" \Rem  METER1$ = ANILOX OS  METER2$ = ANILOX DS
+
+
+
+  Rem used to display drive position of selected station- anilox only
+
+       IF STA1 = 1 THEN
+
+	AXIS1$="C"
+
+	AXIS2$="D"\U=1
+
+       ENDIF
+
+       IF STA2 = 1 THEN 
+
+	AXIS1$="G"
+
+	AXIS2$="H"\U=2
+
+       ENDIF
+
+       IF STA3 = 1 THEN 
+
+	AXIS1$="K"
+
+	AXIS2$="L"\U=3
+
+       ENDIF
+
+       IF STA4 = 1 THEN
+
+	AXIS1$="O"
+
+	AXIS2$="P"\U=4
+
+       ENDIF
+
+    
+
+       IF AXIS1$<>"" THEN
+
+          MFAC=-6.41 \ BFAC=41.473
+
+	  GOSUB 13000
+
+	  Print #MOTOR,Q$+AXIS1$+"Z"+Q$
+
+	  GOSUB 13500
+
+	  METER$=METER1$
+
+	  GOSUB 14000
+
+
+
+	  Print #MOTOR,Q$+AXIS2$+"Z"+Q$
+
+	  GOSUB 13500
+
+	  METER$=METER2$
+
+	  GOSUB 14000
+
+       ENDIF
+
+
+
+    Rem BUTTON = one move button has been pressed
+
+	IF BOTH_OUT_DN = 1 THEN
+
+	 DIREC1$="+"\DIREC2$="-"\GOSUB 8000 \rem ADO_BOTH_MOVE_DN
+
+	ENDIF
+
+
+
+	IF BOTH_IN_DN = 1 THEN
+
+	 DIREC1$="-"\DIREC2$="+"\GOSUB 8000 \rem ADO_BOTH_MOVE_DN
+
+	ENDIF
+
+
+
+	IF OSIN_DN  = 1 THEN
+
+	 DIREC$="-"\GOSUB 5000 \rem ADO_OS_MOVE_DN  
+
+	ENDIF
+
+
+
+	IF OSOUT_DN = 1 THEN
+
+	 DIREC$="+"\GOSUB 5000 \rem ADO_OS_MOVE_DN
+
+	ENDIF
+
+
+
+	IF DSIN_DN  = 1 THEN
+
+	 DIREC$="+"\GOSUB 6000 \rem ADO_DS_MOVE_DN
+
+	ENDIF
+
+
+
+	IF DSOUT_DN = 1 THEN
+
+	 DIREC$="-"\GOSUB 6000 \rem ADO_DS_MOVE_DN
+
+	ENDIF
+
+
+
+      RETURN
+
+
+
+ 3000  rem  def proc PDO_OS_MOVE_DN
+
+
+
+      ?\?"                         PLATE  OS MOVE  DOWN ROUTINE"
+
+      METER$="N01"
+
+     Rem select which axis and THEN do move DO_POSIT_READ
+
+	IF STA1 = 1 AND PHM1 = 1 THEN
+
+	 AXIS$="A"\GOSUB 9000 \rem  DO_POSIT_READ
+
+	ENDIF
+
+	IF STA2 = 1 AND PHM2 = 1 THEN
+
+	 AXIS$="E"\GOSUB 9000 \rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA3 = 1 AND PHM3 = 1 THEN
+
+	 AXIS$="I"\GOSUB 9000 \rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA4 = 1 AND PHM4 = 1 THEN
+
+	 AXIS$="M"\GOSUB 9000 \rem DO_POSIT_READ
+
+	ENDIF
+
+ 
+
+	RETURN
+
+
+
+ 3500 rem  def proc PDO_OS_MOVE_UP
+
+
+
+     ?\?"                             PLATE OS MOVE UP ROUTINE"
+
+      METER$="N05"
+
+  Rem select which axis and THEN do move DO_POSIT_READ
+
+	IF STA5 = 1 AND PHM5 = 1 THEN
+
+	 AXIS$="Q"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA6 = 1 AND PHM6 = 1 THEN
+
+	 AXIS$="U"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA7 = 1 AND PHM7 = 1 THEN
+
+	 AXIS$="Y"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA8 = 1 AND PHM8 = 1 THEN
+
+	 AXIS$="c"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+   
+
+      RETURN
+
+
+
+ 4000 rem def proc PDO_DS_MOVE_DN
+
+
+
+    ?\?"                                PLATE DS MOVE DOWN ROUTINE"
+
+      METER$="N02"
+
+    Rem select which axis and THEN do move DO_POSIT_READ
+
+	IF STA1 = 1 AND PHM1 = 1 THEN
+
+	 AXIS$="B"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA2 = 1 AND PHM2 = 1 THEN
+
+	 AXIS$="F"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA3 = 1 AND PHM3 = 1 THEN
+
+	 AXIS$="J"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA4 = 1 AND PHM4 = 1 THEN
+
+	 AXIS$="N"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+   
+
+       RETURN
+
+
+
+ 4500 rem def proc PDO_DS_MOVE_UP
+
+
+
+      ?\?"                              PLATE DS MOVE UP ROUTINE"
+
+      METER$="N06"
+
+    Rem select which axis and THEN do move DO_POSIT_READ
+
+	IF STA5 = 1 AND PHM5 = 1 THEN
+
+	 AXIS$="R"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA6 = 1 AND PHM6 = 1 THEN
+
+	 AXIS$="V"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA7 = 1 AND PHM7 = 1 THEN
+
+	 AXIS$="Z"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA8 = 1 AND PHM8 = 1 THEN
+
+	 AXIS$="d"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+   
+
+      RETURN
+
+
+
+ 5000 rem def proc ADO_OS_MOVE_DN
+
+
+
+     ?\?"                             ANILOX OS MOVE DOWN ROUTINE"
+
+      METER$="N03"
+
+     Rem select which axis and THEN do move DO_POSIT_READ
+
+	IF STA1 = 1 AND PHM1 = 1 THEN
+
+	 AXIS$="C"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA2 = 1 AND PHM2 = 1 THEN
+
+	 AXIS$="G"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA3 = 1 AND PHM3 = 1 THEN
+
+	 AXIS$="K"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA4 = 1 AND PHM4 = 1 THEN
+
+	 AXIS$="O"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+   
+
+	RETURN
+
+
+
+ 5500 rem def proc ADO_OS_MOVE_UP
+
+
+
+       ?\?"                                 ANILOX OS MOVE UP ROUTINE"
+
+      METER$="N07"
+
+     Rem select which axis and THEN do move DO_POSIT_READ
+
+	IF STA5 = 1 AND PHM5 = 1 THEN
+
+	 AXIS$="S"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA6 = 1 AND PHM6 = 1 THEN
+
+	 AXIS$="W"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA7 = 1 AND PHM7 = 1 THEN
+
+	 AXIS$="a"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA8 = 1 AND PHM8 = 1 THEN
+
+	 AXIS$="e"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+      RETURN
+
+
+
+ 6000 rem def proc ADO_DS_MOVE_DN
+
+
+
+       ?\?"                                ANILOX DS MOVE DOWN ROUTINE"
+
+      METER$="N04"
+
+     Rem select which axis and THEN do move DO_POSIT_READ
+
+	IF STA1 = 1 AND PHM1 = 1 THEN
+
+	 AXIS$="D"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA2 = 1 AND PHM2 = 1 THEN
+
+	 AXIS$="H"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA3 = 1 AND PHM3 = 1 THEN
+
+	 AXIS$="L"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA4 = 1 AND PHM4 = 1 THEN
+
+	 AXIS$="P"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+   
+
+      RETURN
+
+
+
+ 6500 rem def proc ADO_DS_MOVE_UP
+
+
+
+     ?\?"                                  ANILOX DS MOVE UP ROUTINE"
+
+      METER$="N08"
+
+     Rem select which axis and THEN do move DO_POSIT_READ
+
+	IF STA5 = 1 AND PHM5 = 1 THEN
+
+	 AXIS$="T"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA6 = 1 AND PHM6 = 1 THEN
+
+	 AXIS$="X"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA7 = 1 AND PHM7 = 1 THEN
+
+	 AXIS$="b"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+	IF STA8 = 1 AND PHM8 = 1 THEN
+
+	 AXIS$="f"\GOSUB 9000\ rem DO_POSIT_READ
+
+	ENDIF
+
+  
+
+      RETURN
+
+
+
+ 7000 rem def proc PDO_BOTH_MOVE_DN
+
+
+
+	?\?"         PLATE BOTH MOVE DOWN ROUTINE"
+
+      METER1$="N01"\METER2$="N02"
+
+     Rem select which axis and THEN move both DO_BOTH_READ
+
+	IF STA1 = 1 AND PHM1 = 1 THEN
+
+	 AXIS1$="A"
+
+	 AXIS2$="B"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA2 = 1 AND PHM2 = 1 THEN
+
+	 AXIS1$="E"
+
+	 AXIS2$="F"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA3 = 1 AND PHM3 = 1 THEN
+
+	 AXIS1$="I"
+
+	 AXIS2$="J"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA4 = 1 AND PHM4 = 1 THEN
+
+	 AXIS1$="M"
+
+	 AXIS2$="N"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+   
+
+      RETURN
+
+
+
+ 7500 rem def proc PDO_BOTH_MOVE_UP
+
+
+
+	?\?"         PLATE BOTH MOVE UP ROUTINE"
+
+      METER1$="N05"\METER2$="N06"
+
+      Rem select which axis and THEN move both DO_BOTH_READ
+
+	IF STA5 = 1 AND PHM5 = 1 THEN
+
+	 AXIS1$="Q"
+
+	 AXIS2$="R"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA6 = 1 AND PHM6 = 1 THEN
+
+	 AXIS1$="U"
+
+	 AXIS2$="V"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA7 = 1 AND PHM7 = 1 THEN
+
+	 AXIS1$="Y"
+
+	 AXIS2$="Z"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA8 = 1 AND PHM8 = 1 THEN
+
+	 AXIS1$="c"
+
+	 AXIS2$="d"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+   
+
+      RETURN
+
+
+
+ 8000 rem def proc ADO_BOTH_MOVE_DN
+
+
+
+	  ?\?"         ANILOX BOTH MOVE DOWN ROUTINE"
+
+      METER1$="N03"\METER2$="N04"
+
+   Rem select which axis and THEN move both DO_BOTH_READ
+
+	IF STA1 = 1 AND PHM1 = 1 THEN
+
+	 AXIS1$="C"
+
+	 AXIS2$="D"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA2 = 1 AND PHM2 = 1 THEN
+
+	 AXIS1$="G"
+
+	 AXIS2$="H"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA3 = 1 AND PHM3 = 1 THEN
+
+	 AXIS1$="K"
+
+	 AXIS2$="L"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA4 = 1 AND PHM4 = 1 THEN
+
+	 AXIS1$="O"
+
+	 AXIS2$="P"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+   
+
+      RETURN
+
+
+
+ 8500 rem def proc ADO_BOTH_MOVE_UP
+
+
+
+	   ?\?"         ANILOX BOTH MOVE UP ROUTINE"
+
+      METER1$="N07"\METER2$="N08"
+
+   Rem select which axis and THEN move both DO_BOTH_READ
+
+	IF STA5 = 1 AND PHM5 = 1 THEN
+
+	 AXIS1$="S"
+
+	 AXIS2$="T"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA6 = 1 AND PHM6 = 1 THEN
+
+	 AXIS1$="W"
+
+	 AXIS2$="X"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA7 = 1 AND PHM7 = 1 THEN
+
+	 AXIS1$="a"
+
+	 AXIS2$="b"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+	IF STA8 = 1 AND PHM8 = 1 THEN
+
+	 AXIS1$="e"
+
+	 AXIS2$="f"\GOSUB 9500\ rem DO_BOTH_READ
+
+	ENDIF
+
+  
+
+      RETURN
+
+
+
+ 9000 rem def proc DO_POSIT_READ
+
+       IF UPSIDE = 1 THEN 
+
+	 SPEED$=SPEED1$ \ NOSP$=NOSP1$ \ ANDMASK=60
+
+	ELSE
+
+          SPEED$=SPEED2$ \ NOSP$=NOSP2$ \ ANDMASK=3840
+
+        ENDIF
+
+
+
+        IF NOSP$="" THEN
+
+           STP=1 \ DTIME=10000
+
+        ELSE
+
+           STP=0 \ ENDIF
+
+
+
+	 Print #MOTOR,Q$+AXIS$+NOSP$+DIREC$+SPEED$+Q$
+
+	   GOSUB 13000
+
+       
+
+    Rem stay and scan for button until button is released THEN stop move
+
+    BUTTON = 1
+
+    While BUTTON > 0  DO
+
+	Print #MOTOR,Q$+AXIS$+"Z"+Q$
+
+	   GOSUB 13500
+
+	   GOSUB 14000
+
+
+
+   IF STP=1 THEN
+
+      GOSUB 9550
+
+      IF DTIME >5000 THEN
+
+         DTIME=DTIME-500 \ ENDIF
+
+   ENDIF
+
+
+
+       RUN AB_BAS(5,STATUS,LOC3,ADDR(LINK3),ADDR(IOSTAT))
+
+       BUTTON=LAND (LINK3,ANDMASK)
+
+
+
+       IF STP=1 AND BUTTON>0 THEN
+
+	 Print #MOTOR,Q$+AXIS$+NOSP$+DIREC$+SPEED$+Q$
+
+         GOSUB 13000
+
+       ENDIF
+
+ 
+
+    ENDWHILE
+
+
+
+   Rem  send stop command
+
+	 Print #MOTOR,Q$+AXIS$+"@"+Q$
+
+	 GOSUB 13000
+
+     For I = 1 to 4 \Rem loop read while motor slows to stop
+
+	    Print #MOTOR,Q$+AXIS$+"Z"+Q$
+
+	    GOSUB 13500
+
+	    GOSUB 14000
+
+     Next I
+
+    RETURN
+
+
+
+9500 rem def proc DO_BOTH_READ
+
+       IF UPSIDE = 1 THEN 
+
+	 SPEED$=SPEED1$ \ NOSP$=NOSP1$ \ ANDMASK=192
+
+	ELSE
+
+          SPEED$=SPEED2$ \ NOSP$=NOSP2$ \ ANDMASK=12288
+
+        ENDIF
+
+
+
+        IF NOSP$="" THEN
+
+           STP=1 \ DTIME=10000
+
+        ELSE
+
+           STP=0 \ ENDIF
+
+
+
+	     Print #MOTOR,Q$+AXIS1$+NOSP$+DIREC1$+SPEED$+Q$
+
+	     GOSUB 13000
+
+	     Print #MOTOR,Q$+AXIS2$+NOSP$+DIREC2$+SPEED$+Q$
+
+	     GOSUB 13000
+
+
+
+      Rem stay and scan for button until button is released THEN stop move
+
+    BUTTON = 1
+
+    While BUTTON > 0 DO
+
+	     Print #MOTOR,Q$+AXIS1$+"Z"+Q$
+
+	     GOSUB 13500
+
+	     METER$=METER1$
+
+	     GOSUB 14000
+
+
+
+     Rem NEXT DRIVE READS
+
+	     Print #MOTOR,Q$+AXIS2$+"Z"+Q$
+
+	     GOSUB 13500
+
+	     METER$=METER2$
+
+	     GOSUB 14000
+
+
+
+   IF STP=1 THEN
+
+      GOSUB 9550
+
+      IF DTIME >5000 THEN
+
+         DTIME=DTIME-500 \ ENDIF
+
+   ENDIF
+
+
+
+       RUN AB_BAS(5,STATUS,LOC3,ADDR(LINK3),ADDR(IOSTAT))
+
+       BUTTON=LAND (LINK3,ANDMASK)
+
+
+
+       IF STP=1 AND BUTTON>0 THEN
+
+          Print #MOTOR,Q$+AXIS1$+NOSP$+DIREC1$+SPEED$+Q$
+
+          GOSUB 13000
+
+          Print #MOTOR,Q$+AXIS2$+NOSP$+DIREC2$+SPEED$+Q$
+
+          GOSUB 13000
+
+       ENDIF
+
+  
+
+    ENDWHILE
+
+
+
+    Rem send stop commands
+
+	  Print #MOTOR,Q$+AXIS1$+"@"+Q$
+
+	  GOSUB 13000
+
+	  Print #MOTOR,Q$+AXIS2$+"@"+Q$
+
+	  GOSUB 13000
+
+       
+
+      For I = 1 to 4\ Rem loop read while motors slows to stop
+
+	     Print #MOTOR,Q$+AXIS1$+"Z"+Q$
+
+	     GOSUB 13500
+
+	     METER$=METER1$
+
+	     GOSUB 14000
+
+
+
+	     Print #MOTOR,Q$+AXIS2$+"Z"+Q$
+
+	     GOSUB 13500
+
+	     METER$=METER2$
+
+	     GOSUB 14000
+
+     Next I
+
+    RETURN
+
+
+
+9550    FOR Delay=1 TO DTIME \ NEXT Delay \ RETURN
+
+
+
+10000 rem  def proc DO_HOME
+
+     HOME_SPEED$ = "2500"\DIR1$="-"\DIR2$="+"
+
+
+
+      ?\?"                  AT HOME ROUTINE"
+
+   Rem SEND HOMES
+
+  IF BOTH_OUT_DN = 1 THEN
+
+
+
+	FOR U= 1 TO 15 STEP 2
+
+	  IF AXIS(U)<>"]" THEN 
+
+	       Print #MOTOR,Q$+AXIS(U)+"F"+DIR2$+HOME_SPEED$+Q$
+
+	       GOSUB 13000  
+
+	       Print #MOTOR,Q$+AXIS(U+1)+"F"+DIR1$+HOME_SPEED$+Q$
+
+	       GOSUB 13000  
+
+	  ENDIF
+
+	NEXT U \II=1\JJ=16
+
+
+
+	    Print #DISPLAY,"N01#2ERO*"
+
+	    Print #DISPLAY,"N02#2ERO*"
+
+	    Print #DISPLAY,"N03#2ERO*"
+
+	    Print #DISPLAY,"N04#2ERO*"
+
+  ENDIF
+
+
+
+  IF BOTH_OUT_UP = 1 THEN
+
+
+
+	FOR U= 17 TO 31 STEP 2
+
+	  IF AXIS(U)<>"]" THEN 
+
+	       Print #MOTOR,Q$+AXIS(U)+"F"+DIR1$+HOME_SPEED$+Q$
+
+	       GOSUB 13000  
+
+	       Print #MOTOR,Q$+AXIS(U+1)+"F"+DIR2$+HOME_SPEED$+Q$
+
+	       GOSUB 13000  
+
+	  ENDIF
+
+	NEXT U \II=17\JJ=32
+
+
+
+	    Print #DISPLAY,"N05#2ERO*"
+
+	    Print #DISPLAY,"N06#2ERO*"
+
+	    Print #DISPLAY,"N07#2ERO*"
+
+	    Print #DISPLAY,"N08#2ERO*"
+
+  ENDIF
+
+
+
+   REM stop motors if button released
+
+  BTONS = 1
+
+  While BTONS > 0 DO
+
+   RUN AB_BAS(5,STATUS,LOC3,ADDR(LINK3),ADDR(IOSTAT))
+
+    BOTH_OUT_UP=(LAND (LINK3,2^7))/(2^7)
+
+    BOTH_OUT_DN=(LAND (LINK3,2^13))/(2^13)
+
+    BTONS=BOTH_OUT_UP + BOTH_OUT_DN
+
+  Endwhile
+
+
+
+ REM if BOTH OUT released  - stop motors
+
+    IF BTONS = 0 THEN
+
+       FOR U=II TO JJ
+
+	IF AXIS(U)<>"]" THEN 
+
+	     Print #MOTOR,Q$+AXIS(U)+"@"+Q$
+
+	     GOSUB 13000 
+
+	ENDIF
+
+       NEXT U
+
+    ENDIF
+
+  
+
+      ?\?"                 DONE HOME ROUTINE"
+
+    RETURN
+
+
+
+10500 REM def proc DO_PRINT_ON
+
+
+
+       ANL1_ON=(LAND (LINK5,2^0))/(2^0)
+
+       PLT1_ON=(LAND (LINK5,2^1))/(2^1) 
+
+       ANL2_ON=(LAND (LINK5,2^2))/(2^2)
+
+       PLT2_ON=(LAND (LINK5,2^3))/(2^3)
+
+       ANL3_ON=(LAND (LINK5,2^4))/(2^4) 
+
+       PLT3_ON=(LAND (LINK5,2^5))/(2^5)
+
+       ANL4_ON=(LAND (LINK5,2^6))/(2^6)
+
+       PLT4_ON=(LAND (LINK5,2^7))/(2^7)
+
+       ANL5_ON=(LAND (LINK5,2^8))/(2^8)
+
+       PLT5_ON=(LAND (LINK5,2^9))/(2^9) 
+
+       ANL6_ON=(LAND (LINK5,2^10))/(2^10) 
+
+       PLT6_ON=(LAND (LINK5,2^11))/(2^11) 
+
+       ANL7_ON=(LAND (LINK5,2^12))/(2^12) 
+
+       PLT7_ON=(LAND (LINK5,2^13))/(2^13) 
+
+       ANL8_ON=(LAND (LINK5,2^14))/(2^14) 
+
+       PLT8_ON=(LAND (LINK5,2^15))/(2^15) 
+
+
+
+    IF LINK5<>0 THEN
+
+     LINK6=0
+
+     RUN AB_BAS(6,STATUS,LOC6,ADDR(LINK6),ADDR(IOSTAT))
+
+    ENDIF
+
+
+
+       IF PLT1_ON = 1 AND PLT1_ON_CK = 0 AND PHM1 = 1 THEN
+
+	 AXIS(1)="A-"+MOVE_PRINT1$\PRINT_CK=1
+
+	 AXIS(2)="B+"+MOVE_PRINT1$\PLT1_ON_CK=1
+
+       ENDIF
+
+       IF PLT2_ON = 1 AND PLT2_ON_CK = 0 AND PHM2 = 1 THEN
+
+	 AXIS(3)="E-"+MOVE_PRINT2$\PRINT_CK=1
+
+	 AXIS(4)="F+"+MOVE_PRINT2$\PLT2_ON_CK=1
+
+       ENDIF
+
+       IF PLT3_ON = 1 AND PLT3_ON_CK = 0 AND PHM3 = 1 THEN
+
+	 AXIS(5)="I-"+MOVE_PRINT3$\PRINT_CK=1
+
+	 AXIS(6)="J+"+MOVE_PRINT3$\PLT3_ON_CK=1
+
+       ENDIF
+
+       IF PLT4_ON = 1 AND PLT4_ON_CK = 0 AND PHM4 = 1 THEN
+
+	 AXIS(7)="M-"+MOVE_PRINT4$\PRINT_CK=1
+
+	 AXIS(8)="N+"+MOVE_PRINT4$\PLT4_ON_CK=1
+
+       ENDIF
+
+       IF PLT5_ON = 1 AND PLT5_ON_CK = 0 AND PHM5 = 1 THEN
+
+	 AXIS(9)="Q+"+MOVE_PRINT4$\PRINT_CK=1
+
+	 AXIS(10)="R-"+MOVE_PRINT4$\PLT5_ON_CK=1
+
+       ENDIF
+
+       IF PLT6_ON = 1 AND PLT6_ON_CK = 0 AND PHM6 = 1 THEN
+
+	 AXIS(11)="U+"+MOVE_PRINT3$\PRINT_CK=1
+
+	 AXIS(12)="V-"+MOVE_PRINT3$\PLT6_ON_CK=1 
+
+       ENDIF
+
+       IF PLT7_ON = 1 AND PLT7_ON_CK = 0 AND PHM7 = 1 THEN
+
+	 AXIS(13)="Y+"+MOVE_PRINT2$\PRINT_CK=1
+
+	 AXIS(14)="Z-"+MOVE_PRINT2$\PLT7_ON_CK=1 
+
+       ENDIF
+
+       IF PLT8_ON = 1 AND PLT8_ON_CK = 0 AND PHM8 = 1 THEN
+
+	 AXIS(15)="c+"+MOVE_PRINT1$\PRINT_CK=1
+
+	 AXIS(16)="d-"+MOVE_PRINT1$\PLT8_ON_CK=1 
+
+       ENDIF
+
+
+
+       IF ANL1_ON = 1 AND ANL1_ON_CK = 0 AND PHM1 = 1 THEN
+
+	 AXIS(17)="C-"+MOVE_PRINT1$\PRINT_CK=1
+
+	 AXIS(18)="D+"+MOVE_PRINT1$\ANL1_ON_CK=1 
+
+       ENDIF
+
+       IF ANL2_ON = 1 AND ANL2_ON_CK = 0 AND PHM2 = 1 THEN
+
+	 AXIS(19)="G-"+MOVE_PRINT2$\PRINT_CK=1
+
+	 AXIS(20)="H+"+MOVE_PRINT2$\ANL2_ON_CK=1 
+
+       ENDIF
+
+       IF ANL3_ON = 1 AND ANL3_ON_CK = 0 AND PHM3 = 1 THEN
+
+	 AXIS(21)="K-"+MOVE_PRINT3$\PRINT_CK=1
+
+	 AXIS(22)="L+"+MOVE_PRINT3$\ANL3_ON_CK=1 
+
+       ENDIF
+
+       IF ANL4_ON = 1 AND ANL4_ON_CK = 0 AND PHM4 = 1 THEN
+
+	 AXIS(23)="O-"+MOVE_PRINT4$\PRINT_CK=1
+
+	 AXIS(24)="P+"+MOVE_PRINT4$\ANL4_ON_CK=1 
+
+       ENDIF
+
+       IF ANL5_ON = 1 AND ANL5_ON_CK = 0 AND PHM5 = 1 THEN
+
+	 AXIS(25)="S+"+MOVE_PRINT4$\PRINT_CK=1
+
+	 AXIS(26)="T-"+MOVE_PRINT4$\ANL5_ON_CK=1 
+
+       ENDIF
+
+       IF ANL6_ON = 1 AND ANL6_ON_CK = 0 AND PHM6 = 1 THEN
+
+	 AXIS(27)="W+"+MOVE_PRINT3$\PRINT_CK=1
+
+	 AXIS(28)="X-"+MOVE_PRINT3$\ANL6_ON_CK=1 
+
+       ENDIF
+
+       IF ANL7_ON = 1 AND ANL7_ON_CK = 0 AND PHM7 = 1 THEN
+
+	 AXIS(29)="a+"+MOVE_PRINT2$\PRINT_CK=1
+
+	 AXIS(30)="b-"+MOVE_PRINT2$\ANL7_ON_CK=1 
+
+       ENDIF
+
+       IF ANL8_ON = 1 AND ANL8_ON_CK = 0 AND PHM8 = 1 THEN
+
+	  AXIS(31)="e+"+MOVE_PRINT1$\PRINT_CK=1
+
+	  AXIS(32)="f-"+MOVE_PRINT1$\ANL8_ON_CK=1 
+
+       ENDIF
+
+       IF PRINT_CK = 1 THEN
+
+	GOSUB 11500 \rem DO_PRINT_MOVE
+
+       ENDIF
+
+       PRINT_CK = 0
+
+       RETURN
+
+     
+
+11000  REM def proc DO_PRINT_OFF     
+
+
+
+       ANL1_ON=(LAND (LINK5,2^0))/(2^0)
+
+       PLT1_ON=(LAND (LINK5,2^1))/(2^1) 
+
+       ANL2_ON=(LAND (LINK5,2^2))/(2^2)
+
+       PLT2_ON=(LAND (LINK5,2^3))/(2^3)
+
+       ANL3_ON=(LAND (LINK5,2^4))/(2^4) 
+
+       PLT3_ON=(LAND (LINK5,2^5))/(2^5)
+
+       ANL4_ON=(LAND (LINK5,2^6))/(2^6)
+
+       PLT4_ON=(LAND (LINK5,2^7))/(2^7)
+
+       ANL5_ON=(LAND (LINK5,2^8))/(2^8)
+
+       PLT5_ON=(LAND (LINK5,2^9))/(2^9) 
+
+       ANL6_ON=(LAND (LINK5,2^10))/(2^10) 
+
+       PLT6_ON=(LAND (LINK5,2^11))/(2^11) 
+
+       ANL7_ON=(LAND (LINK5,2^12))/(2^12) 
+
+       PLT7_ON=(LAND (LINK5,2^13))/(2^13) 
+
+       ANL8_ON=(LAND (LINK5,2^14))/(2^14) 
+
+       PLT8_ON=(LAND (LINK5,2^15))/(2^15) 
+
+
+
+       IF PLT1_ON = 0 AND PLT1_ON_CK = 1 AND PHM1 = 1 THEN
+
+	 AXIS(1)="A+"+MOVE_PRINT1$\PRINT_CK=1
+
+	 AXIS(2)="B-"+MOVE_PRINT1$\PLT1_ON_CK=0 
+
+       ENDIF
+
+       IF PLT2_ON = 0 AND PLT2_ON_CK = 1 AND PHM2 = 1 THEN
+
+	 AXIS(3)="E+"+MOVE_PRINT2$\PRINT_CK=1
+
+	 AXIS(4)="F-"+MOVE_PRINT2$\PLT2_ON_CK=0 
+
+       ENDIF
+
+       IF PLT3_ON = 0 AND PLT3_ON_CK = 1 AND PHM3 = 1 THEN
+
+	 AXIS(5)="I+"+MOVE_PRINT3$\PRINT_CK=1
+
+	 AXIS(6)="J-"+MOVE_PRINT3$\PLT3_ON_CK=0 
+
+       ENDIF
+
+       IF PLT4_ON = 0 AND PLT4_ON_CK = 1 AND PHM4 = 1 THEN
+
+	 AXIS(7)="M+"+MOVE_PRINT4$\PRINT_CK=1
+
+	 AXIS(8)="N-"+MOVE_PRINT4$\PLT4_ON_CK=0 
+
+       ENDIF
+
+       IF PLT5_ON = 0 AND PLT5_ON_CK = 1 AND PHM5 = 1 THEN
+
+	 AXIS(9)="Q-"+MOVE_PRINT4$\PRINT_CK=1
+
+	 AXIS(10)="R+"+MOVE_PRINT4$\PLT5_ON_CK=0 
+
+       ENDIF
+
+       IF PLT6_ON = 0 AND PLT6_ON_CK = 1 AND PHM6 = 1 THEN
+
+	 AXIS(11)="U-"+MOVE_PRINT3$\PRINT_CK=1
+
+	 AXIS(12)="V+"+MOVE_PRINT3$\PLT6_ON_CK=0 
+
+       ENDIF
+
+       IF PLT7_ON = 0 AND PLT7_ON_CK = 1 AND PHM7 = 1 THEN
+
+	 AXIS(13)="Y-"+MOVE_PRINT2$\PRINT_CK=1
+
+	 AXIS(14)="Z+"+MOVE_PRINT2$\PLT7_ON_CK=0 
+
+       ENDIF
+
+       IF PLT8_ON = 0 AND PLT8_ON_CK = 1 AND PHM8 = 1 THEN
+
+	 AXIS(15)="c-"+MOVE_PRINT1$\PRINT_CK=1
+
+	 AXIS(16)="d+"+MOVE_PRINT1$\PLT8_ON_CK=0 
+
+       ENDIF
+
+
+
+       IF ANL1_ON = 0 AND ANL1_ON_CK = 1 AND PHM1 = 1 THEN
+
+	 AXIS(17)="C+"+MOVE_PRINT1$\PRINT_CK=1
+
+	 AXIS(18)="D-"+MOVE_PRINT1$\ANL1_ON_CK=0 
+
+       ENDIF
+
+       IF ANL2_ON = 0 AND ANL2_ON_CK = 1 AND PHM2 = 1 THEN
+
+	 AXIS(19)="G+"+MOVE_PRINT2$\PRINT_CK=1
+
+	 AXIS(20)="H-"+MOVE_PRINT2$\ANL2_ON_CK=0 
+
+       ENDIF
+
+       IF ANL3_ON = 0 AND ANL3_ON_CK = 1 AND PHM3 = 1 THEN
+
+	 AXIS(21)="K+"+MOVE_PRINT3$\PRINT_CK=1
+
+	 AXIS(22)="L-"+MOVE_PRINT3$\ANL3_ON_CK=0 
+
+       ENDIF
+
+       IF ANL4_ON = 0 AND ANL4_ON_CK = 1 AND PHM4 = 1 THEN
+
+	 AXIS(23)="O+"+MOVE_PRINT4$\PRINT_CK=1
+
+	 AXIS(24)="P-"+MOVE_PRINT4$\ANL4_ON_CK=0 
+
+       ENDIF
+
+       IF ANL5_ON = 0 AND ANL5_ON_CK = 1 AND PHM5 = 1 THEN
+
+	 AXIS(25)="S-"+MOVE_PRINT4$\PRINT_CK=1
+
+	 AXIS(26)="T+"+MOVE_PRINT4$\ANL5_ON_CK=0 
+
+       ENDIF
+
+       IF ANL6_ON = 0 AND ANL6_ON_CK = 1 AND PHM6 = 1 THEN
+
+	 AXIS(27)="W-"+MOVE_PRINT3$\PRINT_CK=1
+
+	 AXIS(28)="X+"+MOVE_PRINT3$\ANL6_ON_CK=0 
+
+       ENDIF
+
+       IF ANL7_ON = 0 AND ANL7_ON_CK = 1 AND PHM7 = 1 THEN
+
+	 AXIS(29)="a-"+MOVE_PRINT2$\PRINT_CK=1
+
+	 AXIS(30)="b+"+MOVE_PRINT2$\ANL7_ON_CK=0 
+
+       ENDIF
+
+       IF ANL8_ON = 0 AND ANL8_ON_CK = 1 AND PHM8 = 1 THEN
+
+	 AXIS(31)="e-"+MOVE_PRINT1$\PRINT_CK=1
+
+	 AXIS(32)="f+"+MOVE_PRINT1$\ANL8_ON_CK=0 
+
+       ENDIF
+
+
+
+       IF PRINT_CK = 1 THEN 
+
+	GOSUB 11500\rem DO_PRINT_MOVE
+
+       ENDIF
+
+       PRINT_CK = 0
+
+
+
+    IF LINK5=0 THEN
+
+     LINK6=1
+
+     RUN AB_BAS(6,STATUS,LOC6,ADDR(LINK6),ADDR(IOSTAT))
+
+    ENDIF
+
+       RETURN
+
+
+
+11500   Rem def proc DO_PRINT_MOVE
+
+	
+
+	FOR U=1 TO 32
+
+	 IF AXIS(U)<>"]" THEN 
+
+	   Print #MOTOR,Q$+AXIS(U)+Q$
+
+	   GOSUB 13000
+
+	 ENDIF
+
+	NEXT U
+
+
+
+   REM  Get motor status-wait until print move is done
+
+	FOR U=1 TO 32
+
+	 IF AXIS(U)<>"]" THEN 
+
+	   MSTAT=1
+
+	   WHILE MSTAT > 0 DO
+
+	    Print #MOTOR,Q$+LEFT$(AXIS(U),1)+"^"+Q$
+
+	    GOSUB 13500
+
+	    GOSUB 16000
+
+	   ENDWHILE
+
+	   AXIS(U)="]"
+
+	 ENDIF
+
+	NEXT U
+
+       RETURN
+
+
+
+12000 rem def proc DO_PLATE_UP
+
+
+
+	   ?\?"                  AT PLATE UP ROUTINE"
+
+	  UPSIDE = 1
+
+       AXIS1$="" \ AXIS2$=""
+
+    METER1$="N05"\METER2$="N06" \Rem  METER1$ = PLATE OS  METER2$ = PLATE DS
+
+
+
+     Rem used to display drive postion of selected station- plate only
+
+	 IF STA5 = 1 THEN
+
+	  AXIS1$="Q"\MFAC=-3.997
+
+	  AXIS2$="R"\U=5\BFAC=45.442
+
+	 ENDIF
+
+	 IF STA6 = 1 THEN
+
+	  AXIS1$="U"\MFAC=-5.947
+
+	  AXIS2$="V"\U=6\BFAC=44.682
+
+	 ENDIF
+
+	 IF STA7 = 1 THEN
+
+	  AXIS1$="Y"\MFAC=-6.188
+
+	  AXIS2$="Z"\U=7\BFAC=44.994
+
+	 ENDIF
+
+	 IF STA8 = 1 THEN
+
+	  AXIS1$="c"\MFAC=-4.867
+
+	  AXIS2$="d"\U=8\BFAC=35.952
+
+	 ENDIF
+
+
+
+       IF AXIS1$<>"" THEN
+
+	  GOSUB 13000
+
+	     Print #MOTOR,Q$+AXIS1$+"Z"+Q$
+
+	     GOSUB 13500
+
+	     METER$=METER1$
+
+	     GOSUB 14000
+
+
+
+	     Print #MOTOR,Q$+AXIS2$+"Z"+Q$
+
+	     GOSUB 13500
+
+	     METER$=METER2$
+
+	     GOSUB 14000
+
+       ENDIF
+
+
+
+	Rem  BUTTON = one move button has been pressed, set direction DIRECx$
+
+	IF BOTH_OUT_UP = 1 THEN
+
+	  DIREC1$="-"\DIREC2$="+"\GOSUB 7500\ rem PDO_BOTH_MOVE_UP
+
+	ENDIF
+
+
+
+	IF BOTH_IN_UP = 1 THEN
+
+	  DIREC1$="+"\DIREC2$="-"\GOSUB 7500\ rem PDO_BOTH_MOVE_UP
+
+	ENDIF
+
+
+
+	IF OSIN_UP  = 1 THEN
+
+	  DIREC$="+"\GOSUB 3500\ rem PDO_OS_MOVE_UP
+
+	ENDIF
+
+
+
+	IF OSOUT_UP = 1 THEN
+
+	  DIREC$="-"\GOSUB 3500\ rem PDO_OS_MOVE_UP
+
+	ENDIF
+
+
+
+	IF DSIN_UP  = 1 THEN
+
+	  DIREC$="-"\GOSUB 4500\ rem PDO_DS_MOVE_UP
+
+	ENDIF
+
+
+
+	IF DSOUT_UP = 1 THEN
+
+	  DIREC$="+"\GOSUB 4500\ rem PDO_DS_MOVE_UP
+
+	ENDIF
+
+
+
+      RETURN
+
+
+
+12500 rem def proc DO_ANILOX_UP
+
+
+
+	  ?\?"                AT ANILOX UP ROUTINE "\?\?
+
+	  UPSIDE = 1
+
+       AXIS1$="" \ AXIS2$=""
+
+   METER1$="N07"\METER2$="N08" \Rem  METER1$ = ANILOX OS  METER2$ = ANILOX DS
+
+
+
+    Rem used to display drive postion of selected station- plate only
+
+      IF STA5 = 1 THEN
+
+	AXIS1$="S"
+
+	AXIS2$="T"\U=5
+
+      ENDIF
+
+      IF STA6 = 1 THEN
+
+	AXIS1$="W"
+
+	AXIS2$="X"\U=6
+
+      ENDIF
+
+      IF STA7 = 1 THEN
+
+	AXIS1$="a"
+
+	AXIS2$="b"\U=7
+
+      ENDIF
+
+      IF STA8 = 1 THEN
+
+	AXIS1$="e"
+
+	AXIS2$="f"\U=8
+
+      ENDIF
+
+
+
+       IF AXIS1$<>"" THEN
+
+          MFAC=-6.41 \ BFAC=41.473
+
+	  GOSUB 13000
+
+	     Print #MOTOR,Q$+AXIS1$+"Z"+Q$
+
+	     GOSUB 13500
+
+	     METER$=METER1$
+
+	     GOSUB 14000
+
+
+
+	     Print #MOTOR,Q$+AXIS2$+"Z"+Q$
+
+	     GOSUB 13500
+
+	     METER$=METER2$
+
+	     GOSUB 14000
+
+       ENDIF
+
+
+
+      Rem  BUTTON = one move button has been pressed, set direction DIRECx$
+
+	IF BOTH_OUT_UP = 1 THEN
+
+	  DIREC1$="-"\DIREC2$="+"\GOSUB 8500\ rem ADO_BOTH_MOVE_UP
+
+	ENDIF
+
+
+
+	IF BOTH_IN_UP = 1 THEN
+
+	  DIREC1$="+"\DIREC2$="-"\GOSUB 8500\ rem ADO_BOTH_MOVE_UP
+
+	ENDIF
+
+
+
+	IF OSIN_UP  = 1 THEN
+
+	 DIREC$="+"\GOSUB 5500\ rem ADO_OS_MOVE_UP
+
+	ENDIF
+
+
+
+	IF OSOUT_UP = 1 THEN
+
+	 DIREC$="-"\GOSUB 5500\ rem ADO_OS_MOVE_UP
+
+	ENDIF
+
+
+
+	IF DSIN_UP  = 1 THEN
+
+	 DIREC$="-"\GOSUB 6500\ rem ADO_DS_MOVE_UP
+
+	ENDIF
+
+
+
+	IF DSOUT_UP = 1 THEN
+
+	 DIREC$="+"\GOSUB 6500\ rem ADO_DS_MOVE_UP
+
+	ENDIF
+
+
+
+      RETURN
+
+
+
+13000 rem proc clear /t2 buffer
+
+rem wait for buffer to fill
+
+      FOR Delay = 1 TO 500
+
+      NEXT Delay
+
+
+
+rem test buffer for number of characters and clear if present
+
+13020 Bufr_size = INKEY(#MOTOR)
+
+      IF Bufr_size > 0 THEN 
+
+	 FOR Index = 1 to Bufr_size
+
+	     GET #MOTOR, Dumpster$
+
+	 NEXT Index
+
+      ENDIF
+
+      IF INKEY(#MOTOR)>0 THEN 13020
+
+      RETURN
+
+
+
+13500 rem proc store /t2 buffer
+
+rem wait for buffer to fill
+
+      FOR Delay = 1 TO 2000
+
+      NEXT Delay
+
+
+
+rem test buffer for number of characters and save in A$ if present
+
+      Bufr_size = INKEY(#MOTOR)
+
+      IF Bufr_size > 0 THEN 
+
+	 A$ = ""
+
+	 FOR Index = 1 to Bufr_size
+
+	     GET #MOTOR, Dumpster$
+
+	     A$ = A$ + Dumpster$
+
+	 NEXT Index
+
+      ENDIF
+
+      RETURN
+
+
+
+13600 rem proc clear /t3 buffer
+
+rem wait for buffer to fill
+
+      FOR Delay = 1 TO 500
+
+      NEXT Delay
+
+
+
+rem test buffer for number of characters and clear if present
+
+13620 Bufr_size = INKEY(#RMOTOR)
+
+      IF Bufr_size > 0 THEN 
+
+	 FOR Index = 1 to Bufr_size
+
+	     GET #RMOTOR, Dumpster$
+
+	 NEXT Index
+
+      ENDIF
+
+      IF INKEY(#RMOTOR)>0 THEN 13620
+
+      RETURN
+
+
+
+13700 rem proc store /t3 buffer
+
+rem wait for buffer to fill
+
+      FOR Delay = 1 TO 2000
+
+      NEXT Delay
+
+
+
+rem test buffer for number of characters and save in A$ if present
+
+      Bufr_size = INKEY(#RMOTOR)
+
+      IF Bufr_size > 0 THEN 
+
+	 A$ = ""
+
+	 FOR Index = 1 to Bufr_size
+
+	     GET #RMOTOR, Dumpster$
+
+	     A$ = A$ + Dumpster$
+
+	 NEXT Index
+
+      ENDIF
+
+      RETURN
+
+
+
+14000 rem Get motor position from A$ and send to displays
+
+      ON ERROR GOTO 14100
+
+      FIX$=MID$(A$,3,10) \ XFAC=ABS(VAL(FIX$))
+
+
+
+  IF DFLG=0 THEN
+
+      OUTPOS=(MFAC*XFAC/60960) + BFAC \ OUTPOS = INT(OUTPOS*100)/100
+
+  ELSE
+
+      OUTPOS=XFAC
+
+  ENDIF
+
+
+
+      A$=METER$+STR$(OUTPOS)+"*"
+
+      PRINT #DISPLAY, A$
+
+14100 ON ERROR
+
+      RETURN
+
+
+
+15000 rem def proc ANILOX_PLATE_DN
+
+
+
+      ?\?"  AT ANILOX_PLATE DOWN ROUTINE"
+
+        UPSIDE = 0  \Rem used to tell which pendant is used
+
+   IF BOTH_OUT_DN = 1 THEN
+
+       DIREC1$="+"\DIREC2$="-"
+
+
+
+       IF STA1 = 1 AND PHM1 = 1 THEN
+
+        AXIS1$="A"\AXIS2$="B"\AXIS3$="C"\AXIS4$="D"\GOSUB 15200
+
+       ENDIF
+
+
+
+       IF STA2 = 1 AND PHM2 = 1 THEN
+
+        AXIS1$="E"\AXIS2$="F"\AXIS3$="G"\AXIS4$="H"\GOSUB 15200
+
+       ENDIF
+
+
+
+       IF STA3 = 1 AND PHM3 = 1 THEN
+
+        AXIS1$="I"\AXIS2$="J"\AXIS3$="K"\AXIS4$="L"\GOSUB 15200
+
+       ENDIF
+
+
+
+       IF STA4 = 1 AND PHM4 = 1 THEN
+
+        AXIS1$="M"\AXIS2$="N"\AXIS3$="O"\AXIS4$="P"\GOSUB 15200
+
+       ENDIF
+
+   ENDIF
+
+
+
+      RETURN
+
+
+
+15100 rem def proc ANILOX_PLATE_UP
+
+
+
+      ?\?"  AT ANILOX_PLATE UP ROUTINE"
+
+        UPSIDE = 1  \Rem used to tell which pendant is used
+
+   IF BOTH_OUT_UP = 1 THEN
+
+       DIREC1$="-"\DIREC2$="+"
+
+
+
+       IF STA5 = 1 AND PHM5 = 1 THEN
+
+        AXIS1$="Q"\AXIS2$="R"\AXIS3$="S"\AXIS4$="T"\GOSUB 15200
+
+       ENDIF
+
+
+
+       IF STA6 = 1 AND PHM6 = 1 THEN
+
+        AXIS1$="U"\AXIS2$="V"\AXIS3$="W"\AXIS4$="X"\GOSUB 15200
+
+       ENDIF
+
+
+
+       IF STA7 = 1 AND PHM7 = 1 THEN
+
+        AXIS1$="Y"\AXIS2$="Z"\AXIS3$="a"\AXIS4$="b"\GOSUB 15200
+
+       ENDIF
+
+
+
+       IF STA8 = 1 AND PHM8 = 1 THEN
+
+        AXIS1$="c"\AXIS2$="d"\AXIS3$="e"\AXIS4$="f"\GOSUB 15200
+
+       ENDIF
+
+   ENDIF
+
+
+
+      RETURN
+
+
+
+15200 rem def proc ANILOX_PLATE_MOVE
+
+
+
+       IF UPSIDE = 1 THEN 
+
+	 SPEED$=SPEED1$ \ NOSP$=NOSP1$ \ ANDMASK=192
+
+	ELSE
+
+          SPEED$=SPEED2$ \ NOSP$=NOSP2$ \ ANDMASK=12288
+
+        ENDIF
+
+
+
+          Print #MOTOR,chr$(10)+AXIS1$+NOSP$+DIREC1$+SPEED$+chr$(10)
+
+             GOSUB 13000
+
+          Print #MOTOR,chr$(10)+AXIS2$+NOSP$+DIREC2$+SPEED$+chr$(10)
+
+             GOSUB 13000
+
+          Print #MOTOR,chr$(10)+AXIS3$+NOSP$+DIREC1$+SPEED$+chr$(10)
+
+             GOSUB 13000
+
+          Print #MOTOR,chr$(10)+AXIS4$+NOSP$+DIREC2$+SPEED$+chr$(10)
+
+             GOSUB 13000
+
+
+
+
+
+   Rem stay until button is released then stop move
+
+  BUTTON = 1
+
+  WHILE BUTTON > 0 DO
+
+
+
+     RUN AB_BAS(5,STATUS,LOC3,ADDR(LINK3),ADDR(IOSTAT))
+
+     BUTTON=LAND (LINK3,ANDMASK)
+
+
+
+  ENDWHILE
+
+
+
+    Rem send stop commands
+
+       Print #MOTOR, chr$(10)+AXIS1$+"@"+chr$(10)
+
+          GOSUB 13000
+
+       Print #MOTOR, chr$(10)+AXIS2$+"@"+chr$(10)
+
+          GOSUB 13000
+
+       Print #MOTOR, chr$(10)+AXIS3$+"@"+chr$(10)
+
+          GOSUB 13000
+
+       Print #MOTOR, chr$(10)+AXIS4$+"@"+chr$(10)
+
+          GOSUB 13000
+
+        
+
+      RETURN
+
+
+
+16000 rem Get motor status from A$
+
+      ON ERROR GOTO 16100
+
+      FIX$=MID$(A$,3,10) \ XFAC=ABS(VAL(FIX$))
+
+      MSTAT=LAND(XFAC,27)
+
+16100 ON ERROR
+
+      RETURN
+
+
+
+ REM =====================================================================
+
+23100  BTONS=1 \REM be sure button is released before moving
+
+       WHILE BTONS <> 0 DO
+
+       RUN AB_BAS(5,STATUS,LOC3,ADDR(LINK3),ADDR(IOSTAT))
+
+       BOTH_IN_UP=(LAND (LINK3,2^6))/(2^6)
+
+       BOTH_IN_DN=(LAND (LINK3,2^12))/(2^12)
+
+       BOTH_OUT_UP=(LAND (LINK3,2^7))/(2^7)
+
+       BOTH_OUT_DN=(LAND (LINK3,2^13))/(2^13)
+
+       BTONS=BOTH_IN_UP + BOTH_IN_DN + BOTH_OUT_DN + BOTH_OUT_UP
+
+       ENDWHILE
+
+ RETURN
+
+ REM =====================================================================
+
+24900  RUN AB_BAS(5,STATUS,LOC3,ADDR(LINK3),ADDR(IOSTAT))
+
+     RUN AB_BAS(5,STATUS,LOC4,ADDR(LINK4),ADDR(IOSTAT))
+
+     STA_STOP_DN=(LAND (LINK3,2^0))/(2^0)
+
+     STA_STOP_UP=(LAND (LINK3,2^1))/(2^1)
+
+     EN_STA_STOP=(LAND (LINK4,8))/8
+
+     BTONS=STA_STOP_DN + STA_STOP_UP + EN_STA_STOP
+
+     RETURN
+
+ REM =====================================================================
+
+ REM set all AMS motor parameters
+
+
+
+30000 REM deck motors
+
+
+
+      RUN AB_BAS(102,STATUS,"AMS ")
+
+      AX$="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef"
+
+      A$="I600" \ GOSUB 30100
+
+      A$="V5015" \ GOSUB 30100
+
+      A$="K120" \ GOSUB 30100
+
+      A$="H1" \ GOSUB 30100
+
+      A$="D1" \ GOSUB 30100
+
+      A$="T0" \ GOSUB 30100
+
+      A$="Y50 90" \ GOSUB 30100
+
+      A$="S" \ GOSUB 30100
+
+      RUN AB_BAS(102,STATUS,"RUN ")
+
+  RETURN
+
+30100 FOR U=1 TO 32
+
+      PRINT #MOTOR,Q$+MID$(AX$,U,1)+A$+Q$
+
+      GOSUB 13000 \ NEXT U
+
+      RETURN
+
+ END
+
+

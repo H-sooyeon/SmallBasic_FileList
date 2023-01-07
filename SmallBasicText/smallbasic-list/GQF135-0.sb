@@ -1,0 +1,341 @@
+' Kitchen Timer 0.2b
+
+' Copyright © 2014-2015 Nonki Takahashi.  The MIT License.
+
+' Last update 2015-07-14
+
+' Program ID GQF135-0
+
+'
+
+gw = 598
+
+gh = 428
+
+WQ = Text.GetCharacter(34)
+
+Not = "False=True;True=False;"
+
+title = "Kitchen Timer 0.2b"
+
+GraphicsWindow.Title = title
+
+DrawKitchenTimer()
+
+AddMinuteHand()
+
+MouseInit()
+
+TimerInit()
+
+While "True"
+
+  If mouseDown Then
+
+    CheckOnHand()
+
+    If isOnHand Then
+
+      Timer.Pause()
+
+      mouseUp = "False"
+
+      While Not[mouseUp]
+
+        If mouseMove Then
+
+          x = mx - gw / 2
+
+          y = my - gh / 2
+
+          Math_CartesianToPolar()
+
+          a = a - da + 90
+
+          Shapes.Rotate(hand, a)
+
+          m = Math.Remainder(a / 360 * 60, 60)
+
+          ShowTitle()
+
+          Timer.Resume()
+
+          mouseMove = "False"
+
+        EndIf
+
+      EndWhile
+
+      mouseUp = "False"
+
+    EndIf
+
+    mouseDown = "False"
+
+  EndIf
+
+EndWhile
+
+Sub ShowTitle
+
+  ' param m - minutes
+
+  If 0 < m Then
+
+    min = Math.Floor(m)
+
+    sec = Math.Floor(Math.Remainder(m, 1) * 60)
+
+    GraphicsWindow.Title = title + " - " + min + "'" + sec + WQ
+
+  Else
+
+    GraphicsWindow.Title = title
+
+  EndIf
+
+EndSub
+
+Sub DrawKitchenTimer
+
+  size = 300
+
+  GraphicsWindow.BackgroundColor = "SkyBlue"
+
+  x = (gw - size) / 2
+
+  y = (gh - size) / 2
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillRectangle(x, y, size, size)
+
+  x = (gw - size * 0.9) / 2
+
+  y = (gh - size * 0.9) / 2
+
+  GraphicsWindow.BrushColor = "SkyBlue"
+
+  GraphicsWindow.FillEllipse(x, y, size * 0.9, size * 0.9)
+
+  x = (gw - size * 0.7) / 2
+
+  y = (gh - size * 0.7) / 2
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillEllipse(x, y, size * 0.7, size * 0.7)
+
+  r2 = size * 0.9 / 2
+
+  GraphicsWindow.PenColor = "LightGray"
+
+  For m = 0 To 59
+
+    If Math.Remainder(m, 10) = 0 Then
+
+      r1 = size * 0.7 / 2
+
+    Else
+
+      r1 = size * 0.8 / 2
+
+    EndIf
+
+    _a = Math.GetRadians(m * 360 / 60)
+
+    x1 = gw / 2 + r1 * Math.Sin(_a)
+
+    y1 = gh / 2 + r1 * Math.Cos(_a)
+
+    x2 = gw / 2 + r2 * Math.Sin(_a)
+
+    y2 = gh / 2 + r2 * Math.Cos(_a)
+
+    GraphicsWindow.DrawLine(x1, y1, x2, y2)
+
+  EndFor
+
+EndSub
+
+Sub AddMinuteHand
+
+  x1 = 0
+
+  y1 = size * 0.9
+
+  x2 = size * 0.1
+
+  y2 = 0
+
+  x3 = size * 0.2
+
+  y3 = size * 0.9
+
+  GraphicsWindow.PenColor = "LightGray"
+
+  GraphicsWindow.BrushColor = "White"
+
+  hand = Shapes.AddTriangle(x1, y1, x2, y2, x3, y3)
+
+  Shapes.Move(hand, gw / 2 - size * 0.1, gh / 2 - size * 0.45)
+
+EndSub
+
+Sub CheckOnHand
+
+  isOnHand = "False"
+
+  x = mx - gw / 2
+
+  y = my - gh / 2
+
+  Math_CartesianToPolar()
+
+  a = a + 90
+
+  If 360 <= a Then
+
+    a = a - 360
+
+  EndIf
+
+  ah = m * 360 / 60
+
+  cosDa = Math.Cos(Math.GetRadians(a - ah))
+
+  hh = y1 / 2 - r * cosDa
+
+  wh = hh * (x2 / 2) / (y1 / 2)
+
+  wd = r * Math.Abs(Math.Sin(Math.GetRadians(a - ah)))
+
+  If (r <= y1 / 2) And (0 <= cosDa) And (wd <= wh) Then
+
+    da = a - ah
+
+    isOnHand = "True"
+
+  EndIf
+
+EndSub
+
+Sub TimerInit
+
+  Timer.Interval = 500
+
+  Timer.Tick = OnTick
+
+  Timer.Pause()
+
+  m = 0
+
+EndSub
+
+Sub OnTick
+
+  If 0 < m Then
+
+    m = m - 0.5 / 60
+
+    a = m * 360 / 60
+
+    Shapes.Rotate(hand, a)
+
+    ShowTitle()
+
+    If min = 0 And sec = 0 Then
+
+      Timer.Pause()
+
+      Sound.PlayBellRing()
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub MouseInit
+
+  mouseMove = "False"
+
+  mouseDown = "False"
+
+  mouseUp = "False"
+
+  GraphicsWindow.MouseMove = OnMouseMove
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+  GraphicsWindow.MouseUp = OnMouseUp
+
+EndSub
+
+Sub OnMouseMove
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  mouseMove = "True"
+
+EndSub
+
+Sub OnMouseDown
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  mouseDown = "True"
+
+EndSub
+
+Sub OnMouseUp
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  mouseUp = "True"
+
+EndSub
+
+Sub Math_CartesianToPolar
+
+  ' Math | convert cartesian coodinate to polar coordinate
+
+  ' param x, y - cartesian coordinate
+
+  ' return r, a - polar coordinate
+
+  r = Math.SquareRoot(x * x + y * y)
+
+  If x = 0 And y > 0 Then
+
+    a = 90 ' [degree]
+
+  ElseIf x = 0 And y < 0 Then
+
+    a = -90
+
+  Else
+
+    a = Math.ArcTan(y / x) * 180 / Math.Pi
+
+  EndIf
+
+  If x < 0 Then
+
+    a = a + 180
+
+  ElseIf x >= 0 And y < 0 Then
+
+    a = a + 360
+
+  EndIf
+
+EndSub
+
+

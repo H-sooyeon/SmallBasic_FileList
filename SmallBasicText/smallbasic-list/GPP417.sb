@@ -1,0 +1,219 @@
+GameWidth = 700
+
+GameHeight = 450
+
+BrickWidth = 40
+
+BrickHight = 20
+
+BallWidth = 15
+
+BallHeight = BallWidth
+
+PaddleWidth = 120
+
+PaddleHeight = 15
+
+GameRunning = "False"
+
+deltaX = 1
+
+deltaY = -1
+
+Score = 0
+
+GraphicsWindow.Width = GameWidth
+
+GraphicsWindow.Height = GameHeight
+
+GraphicsWindow.MouseMove = onMouseMove
+
+GraphicsWindow.MouseDown = onClick
+
+DrawBricks()
+
+CreateBallAndPaddle()
+
+Sub CreateBallAndPaddle
+
+  Paddle = Shapes.AddRectangle(PaddleWidth,PaddleHeight)
+
+  Shapes.Move(Paddle,GameWidth/2-PaddleWidth/2,GameHeight-PaddleHeight)
+
+  Ball = Shapes.AddEllipse(BallWidth,BallHeight)
+
+  Shapes.Move(Ball,GameWidth/2-BallWidth/2,GameHeight-PaddleHeight-BallHeight)
+
+EndSub
+
+Sub DrawBricks
+
+  For Collumn = 1 To 5
+
+    For Row = 1 To 8
+
+      GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
+
+      Bricks[Collumn][Row] = Shapes.AddRectangle(BrickWidth,BrickHight)
+
+      Shapes.Animate(Bricks[Collumn][Row],(BrickWidth+35)*Row,(BrickHight+10)*Collumn,500)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub onMouseMove
+
+  PadX = GraphicsWindow.MouseX
+
+  If PadX < PaddleWidth/2 Then
+
+    PadX = PaddleWidth/2
+
+  ElseIf  PadX > GameWidth - PaddleWidth/2 Then
+
+    PadX =GameWidth - PaddleWidth/2
+
+  EndIf
+
+  PadPos = PadX - PaddleWidth/2
+
+  Shapes.Move(Paddle,PadPos,GameHeight-PaddleHeight)
+
+  If GameRunning = "False" Then
+
+    Shapes.Move(Ball,(PadPos+PaddleWidth/2)-BallWidth/2,GameHeight-PaddleHeight-BallHeight)
+
+    XPos = Shapes.GetLeft(Ball)
+
+    YPos = Shapes.GetTop(Ball)
+
+  EndIf
+
+EndSub
+
+Sub onClick
+
+  XPos = Shapes.GetLeft(Ball)
+
+  YPos = Shapes.GetTop(Ball)
+
+  GameRunning = "True"
+
+EndSub
+
+ While "True"
+
+    XPos = XPos + deltaX
+
+    YPos = YPos + deltaY
+
+    If XPos > GameWidth - BallWidth Or XPos < 0 Then
+
+      deltaX = -deltaX
+
+    EndIf
+
+    If YPos <= 0 Then
+
+      deltaY = -deltaY
+
+    EndIf
+
+    PaddleX = Shapes.GetLeft(Paddle)
+
+    If YPos = GameHeight-BallHeight-PaddleHeight And XPos > PaddleX And XPos < paddleX + PaddleWidth Then
+
+      deltaY = -deltaY
+
+    EndIf
+
+    If YPos > GameHeight - BallHeight Then
+
+      GameRunning = "False"
+
+      deltaX = 1
+
+      deltaY = -1
+
+      Shapes.Move(Ball,(PadPos+PaddleWidth/2)-BallWidth/2,GameHeight-PaddleHeight-BallHeight)
+
+      GraphicsWindow.Title = "You missed!"
+
+      onMouseMove()
+
+    EndIf
+
+    Shapes.Move(Ball,XPos,YPos)
+
+    'GraphicsWindow.SetPixel(XPos,YPos,"Red")
+
+    CollisionCheck()
+
+    Program.Delay(5)
+
+  EndWhile
+
+Sub CollisionCheck
+
+  For Collumn = 1 To 5
+
+    For Row = 1 To 8
+
+      BrickTop = Shapes.GetTop(Bricks[Collumn][Row])
+
+      BrickLeft = Shapes.GetLeft(Bricks[Collumn][Row])
+
+      If XPos + BallWidth >= BrickLeft And XPos <= BrickLeft + BrickWidth And YPos < BrickTop + BrickHight And YPos + BallHeight > BrickTop Then
+
+        deltaY = -deltaY
+
+        Shapes.Remove(Bricks[Collumn][Row])
+
+        Score = Score + 1
+
+        TextWindow.WriteLine("HIT "+Score)
+
+        GraphicsWindow.Title = Score * Clock.Second
+
+        If Score = 40 Then
+
+          Sound.PlayChime()
+
+          deltaX =1
+
+          deltaY = -1
+
+          Score = 0
+
+          GameRunning = "False"
+
+          'Remove all remaining shaped
+
+          For Collumn = 1 To 5
+
+            For Row = 1 To 8
+
+              Shapes.Remove(Bricks[Collumn][Row])
+
+            EndFor
+
+          EndFor
+
+          DrawBricks()
+
+          onMouseMove()
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+

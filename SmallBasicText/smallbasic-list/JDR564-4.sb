@@ -1,0 +1,273 @@
+' Spring 0.32
+
+' Physics Challenge
+
+' Copyright (c) 2012 Nonki Takahashi.  All rights reserved.
+
+'
+
+' History:
+
+'  0.32 2012/10/14 Work on the web too + restart option by GoToLoop. (JDR564-4)
+
+'  0.31 2012/10/14 Minor change. (JDR564-2)
+
+'  0.3 2012/10/14 Changed to use image. (JDR564-1)
+
+'  0.2 2012/10/13 Timer event mod by GoToLoop. (JDR564-0)
+
+'  0.1 2012/10/13 Created. (JDR564)
+
+'
+
+title = "Spring 0.32"
+
+msg = " - Hit <Space> start/pause, <Enter> restart, any other key quit."
+
+GraphicsWindow.Title = title + msg
+
+
+
+CR = Text.GetCharacter(13)
+
+
+
+scale = 3139  ' [dot/m]
+
+
+
+l  = .06      ' spring length [m]
+
+w  = .006     ' spring width [m]
+
+le = .006     ' spring edge length [m]
+
+k  = 20       ' spring constant [N/m]
+
+m  = .01      ' mass of weight [kg]
+
+d  = .01      ' diameter of weight [m]
+
+g  = 9.8      ' acceleration of gravity [m/(s^2)]
+
+xs = .1       ' stationary point from left [m]
+
+ys = 0        ' stationary point from top [m]
+
+
+
+x0 = xs - d/2
+
+y0 = ys + l
+
+y  = y0 + l   ' initial position of weight
+
+v0 = 0
+
+v  = v0       ' initial velocity of weight
+
+
+
+fps  = 12     ' frame rate [FPS (frames per second)]
+
+time = Math.Round(1000 / fps)
+
+dt   = time / 1000
+
+
+
+isLocal = "False"
+
+
+
+InitWeight()
+
+Animation()
+
+
+
+Timer.Tick = Animation
+
+Timer.Interval = time
+
+Timer.Pause()
+
+isPaused = "True"
+
+
+
+GraphicsWindow.TextInput = Keyboard
+
+GraphicsWindow.MouseDown = Pause
+
+
+
+Sub Animation
+
+  
+
+  ShowWeight()
+
+  
+
+  dv = (m*g - (y - y0) * k) * dt
+
+  v  = v + dv
+
+  dy = (2*v + dv) * dt/2
+
+  y  = y + dy
+
+  
+
+EndSub
+
+
+
+Sub InitWeight
+
+  
+
+  If isLocal Then
+
+    path = Program.Directory + "\"
+
+  Else
+
+    path = "http://www.Nonkit.com/smallbasic.files/"
+
+  EndIf
+
+  
+
+  img = ImageList.LoadImage(path + "spring.png")
+
+  ld  = ImageList.GetHeightOfImage(img) ' spring length (without edges) [dot]
+
+  
+
+  If ld < 1 Then  ' Patch to make it work on the web!
+
+    ld = 276
+
+  EndIf
+
+  
+
+  spring = Shapes.AddImage(img)
+
+  
+
+  GraphicsWindow.PenColor = "DimGray"
+
+  edge0 = Shapes.AddLine(0,0  0,le*scale)
+
+  edge1 = Shapes.AddLine(0,0  0,le*scale)
+
+  
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "Black"
+
+  weight = Shapes.AddEllipse(d*scale, d*scale)
+
+  
+
+  Shapes.Move(edge0    xs*scale,ys*scale)
+
+  
+
+EndSub
+
+
+
+Sub ShowWeight
+
+  
+
+  Shapes.Move(weight  x0*scale,y*scale)
+
+  
+
+  Shapes.Move(spring  (xs - w/2) * scale, ((y - y0 + l - 2*le) / 2 + le + ys) * scale - ld/2)
+
+  Shapes.Zoom(spring  1, (y - y0 + l - 2*le) * scale/ld)
+
+  
+
+  Shapes.Move(edge1   xs*scale, (y - le + ys) * scale)
+
+  
+
+EndSub
+
+
+
+Sub Keyboard
+
+  
+
+  char = GraphicsWindow.LastText
+
+  
+
+  If char = " " Then
+
+    Pause()
+
+  ElseIf char = CR Then
+
+    Reset()
+
+  Else
+
+    Sound.PlayClickAndWait()
+
+    Program.End()
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+Sub Pause
+
+  
+
+  If isPaused Then
+
+    isPaused = "False"
+
+    Timer.Resume()
+
+  Else
+
+    isPaused = "True"
+
+    Timer.Pause()
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+Sub Reset
+
+  
+
+  v  = v0
+
+  y  = y0 + l
+
+  
+
+EndSub
+
+

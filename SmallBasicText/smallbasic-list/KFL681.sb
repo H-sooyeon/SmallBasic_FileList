@@ -1,0 +1,813 @@
+' Draw All Tetromino
+
+' Copyright © 2014 Nonki Takahashi.  The MIT License.
+
+' Last update 2014-12-17
+
+'
+
+o = 4 ' order of polyomino
+
+title  = "1=Monomino;2=Domino;3=Tromino;4=Tetromino;5=Pentomino;6=Hexomino;7=Heptomino;8=Octomino;9=Nonomino;10=Decomino;"
+
+GraphicsWindow.Title = title[o]
+
+debug = "False"
+
+Init()
+
+For n = 1 To o
+
+  x0 = gw - size * (n + 2)
+
+  y0save = y0
+
+  y0 = size
+
+  n = n + 1
+
+  DrawGrid()
+
+  n = n - 1
+
+  If n = 1 Then
+
+    i = 1
+
+    col = 1
+
+    row = 1
+
+    AddRect()
+
+    Shapes.SetText(txtPolyomino, n_omino)
+
+    Program.Delay(msWait)
+
+    Stack.PushValue("local", polyomino[n][1])
+
+    RemoveRect()
+
+    polyomino[n][1] = Stack.PopValue("local")
+
+  Else
+
+    nN_1omino = Array.GetItemCount(polyomino[n - 1])
+
+    If debug Then
+
+      TextWindow.WriteLine("nN_1omino=" + nN_1omino)
+
+      DumpN_1()
+
+    EndIf
+
+    i = 0 ' number of polyomino
+
+    For k = 1 To nN_1omino
+
+      CopyN_1ToN()
+
+      If debug Then
+
+        TextWindow.WriteLine("i=" + i)
+
+        TextWindow.WriteLine("polyomino[n][i]=" + polyomino[n][i])
+
+      EndIf
+
+      RemoveAllRect()
+
+      DrawN()
+
+      If debug Then
+
+        TextWindow.WriteLine("n=" + n)
+
+        TextWindow.WriteLine("n_1omino=" + n_1omino)
+
+      EndIf
+
+      CalcBorder()
+
+      If debug Then
+
+        TextWindow.WriteLine("nBorder=" + nBorder)
+
+        TextWindow.WriteLine("borderList=" + borderList)
+
+        TextWindow.Pause()
+
+      EndIf
+
+      For j = 1 To nBorder
+
+        col = borderList[j]["col"]
+
+        row = borderList[j]["row"]
+
+        AddRect()
+
+        ConvertN()
+
+        Shapes.SetText(txtPolyomino, converted)
+
+        Program.Delay(msWait)
+
+        If j < nBorder Then
+
+          i = i + 1
+
+          polyomino[n][i] = polyomino[n][i - 1]
+
+          RemoveRect()
+
+        EndIf
+
+      EndFor
+
+      If debug Then
+
+        TextWindow.ForegroundColor = "Green"
+
+        DumpN()
+
+        TextWindow.ForegroundColor = "Gray"
+
+      EndIf
+
+    EndFor
+
+    ShrinkN()
+
+    If debug Then
+
+      TextWindow.ForegroundColor = "Yellow"
+
+      DumpN()
+
+      TextWindow.ForegroundColor = "Gray"
+
+    EndIf
+
+  EndIf
+
+  y0 = y0save
+
+  ShowN()
+
+EndFor
+
+Sub AddRect
+
+  ' param n - order of polyomino
+
+  ' param i - index to an order n polyomino
+
+  ' param row, col - position of square to add
+
+  ' return polyomino[n][i]
+
+  If row < 1 Or (n + 1) < row Or col < 1 Or (n + 1) < col Then
+
+    TextWindow.WriteLine("Error - row " + row + " or col " + col + " out of range " + (n + 1))
+
+  Else
+
+    n_omino = polyomino[n][i]
+
+    p = (row - 1) * (n + 1) + col
+
+    n_omino = Text.Append(Text.Append(Text.GetSubText(n_omino, 1, p - 1), "1"), Text.GetSubTextToEnd(n_omino, p + 1))
+
+    polyomino[n][i] = n_omino
+
+    nRect = nRect + 1
+
+    GraphicsWindow.PenWidth = 0
+
+    GraphicsWindow.BrushColor = PIECECOLOR
+
+    rect[nRect] = Shapes.AddRectangle(size, size)
+
+    y = y0 + (row - 1) * size
+
+    x = x0 + (col - 1) * size
+
+    Shapes.Move(rect[nRect], x, y)
+
+    Shapes.ShowShape(rect[nRect])
+
+  EndIf
+
+EndSub
+
+Sub CalcBorder
+
+  ' param n - order
+
+  ' param i - index for order n polyomino
+
+  ' return borderList
+
+  borderList = ""
+
+  nBorder = 0
+
+  n_omino = polyomino[n][i]
+
+  If debug Then
+
+    TextWindow.WriteLine("n_omino=" + n_omino)
+
+  EndIf
+
+  For row = 1 To (n + 1)
+
+    For col = 1 To (n + 1)
+
+      isBorder = "False"
+
+      p = (row - 1) * (n + 1) + col
+
+      If Text.GetSubText(n_omino, p, 1) = "0" Then
+
+        For a = 0 To 270 Step 90
+
+          nextRow = row + dRow[a]
+
+          nextCol = col + dCol[a]
+
+          If 1 <= nextRow And nextRow <= (n + 1) And 1 <= nextCol And nextCol <= (n + 1) Then
+
+            nextP = (nextRow - 1) * (n + 1) + nextCol
+
+            If Text.GetSubText(n_omino, nextP, 1) = "1" Then
+
+              isBorder = "True"
+
+              a = 270 ' break
+
+            EndIf
+
+          EndIf
+
+        EndFor
+
+      EndIf
+
+      If isBorder Then
+
+        nBorder = nBorder + 1
+
+        borderList[nBorder]["col"] = col
+
+        borderList[nBorder]["row"] = row
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub CopyN_1ToN
+
+  ' param n - order
+
+  ' param k - index for order n - 1 polyomino
+
+  ' param i - index for order n polyomino
+
+  ' return polyomino[n][nPolyomino]
+
+  n_1omino = polyomino[n - 1][k]
+
+  n_omino = ""
+
+  For row = 1 To (n + 1)
+
+    For col = 1 To (n + 1)
+
+      If row = 1 Or row = (n + 1) Or col = 1 Or col = (n + 1) Then
+
+        n_omino = Text.Append(n_omino, "0")
+
+      Else
+
+        pN_1 = (row - 2) * (n - 1) + col - 1
+
+        n_omino = Text.Append(n_omino, Text.GetSubText(n_1omino, pN_1, 1))
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  i = i + 1
+
+  polyomino[n][i] = n_omino
+
+EndSub
+
+Sub ConvertN
+
+  ' param polyomino[n][i] - polyomino
+
+  ' return converted
+
+  order = Math.SquareRoot(Text.GetLength(polyomino[n][i]))
+
+  converted = ""
+
+  For _row = 1 To order
+
+    p = (_row - 1) * order + 1
+
+    converted = Text.Append(converted, Text.GetSubText(polyomino[n][i], p, order))
+
+    converted = Text.Append(converted, " ")
+
+  EndFor
+
+EndSub
+
+Sub CornerN
+
+  ' param toMove - order n polyomino to move
+
+  ' return moved - order n polyomino moved to top left corner
+
+  order = Math.SquareRoot(Text.GetLength(toMove))
+
+  ' find top left of the polyomino
+
+  top = order
+
+  left = order
+
+  For row = 1 To order
+
+    For col = 1 To order
+
+      p = (row - 1) * order + col
+
+      value = Text.GetSubText(toMove, p, 1)
+
+      If value = "1" Then
+
+        If row < top Then
+
+          top = row
+
+        EndIf
+
+        If col < left Then
+
+          left = col
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  If debug Then
+
+    TextWindow.WriteLine("top=" + top)
+
+    TextWindow.WriteLine("left=" + left)
+
+  EndIf
+
+  ' move polyomino to top left corner
+
+  moved = ""
+
+  srcRow = top
+
+  srcCol = left
+
+  For row = 1 To order
+
+    For col = 1 To order
+
+      If order < srcCol Or order < srcRow Then
+
+        value = "0"
+
+      Else 
+
+        srcP = (srcRow - 1) * order + srcCol
+
+        value = Text.GetSubText(toMove, srcP, 1)
+
+      EndIf
+
+      moved = Text.Append(moved, value)
+
+      srcCol = srcCol + 1
+
+    EndFor
+
+    srcRow = srcRow + 1
+
+    srcCol = left
+
+  EndFor
+
+EndSub
+
+Sub DrawGrid
+
+  ' param n - order
+
+  ' param x0, y0 - top left position of the grid
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = GRIDCOLOR
+
+  For row = 1 To n
+
+    y = y0 + (row - 1) * size
+
+    For col = 1 To n
+
+      x = x0 + (col - 1) * size
+
+      GraphicsWindow.DrawRectangle(x, y, size, size)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub DrawN
+
+  ' param n
+
+  ' param i
+
+  ' param polyomino[n][i]
+
+  For row = 1 To (n + 1)
+
+    For col = 1 To (n + 1)
+
+      p = (row - 1) * (n + 1) + col
+
+      If Text.GetSubText(polyomino[n][i], p, 1) = "1" Then
+
+        AddRect()
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub DumpN
+
+  _n = Array.GetItemCount(polyomino[n])
+
+  _index = Array.GetAllIndices(polyomino[n])
+
+  TextWindow.Write("polyomino[" + (n) + "]=")
+
+  TextWindow.WriteLine(polyomino[n])
+
+  For _i = 1 To _n
+
+    TextWindow.Write("polyomino[" + (n) + "][" + _index[_i] + "]=")
+
+    TextWindow.WriteLine(polyomino[n][_index[_i]])
+
+  EndFor
+
+EndSub
+
+Sub DumpN_1
+
+  _n = Array.GetItemCount(polyomino[n - 1])
+
+  _index = Array.GetAllIndices(polyomino[n - 1])
+
+  TextWindow.Write("polyomino[" + (n - 1) + "]=")
+
+  TextWindow.WriteLine(polyomino[n - 1])
+
+  For _i = 1 To _n
+
+    TextWindow.Write("polyomino[" + (n - 1) + "][" + _index[_i] + "]=")
+
+    TextWindow.WriteLine(polyomino[n - 1][_index[_i]])
+
+  EndFor
+
+EndSub
+
+Sub Init
+
+  GRIDCOLOR = "Gray"
+
+  PIECECOLOR = "#BBFF0000"
+
+  If debug Then
+
+    msWait = 1000
+
+  Else
+
+    msWait = 400
+
+  EndIf
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  Not = "False=True;True=False;"
+
+  dCol = "0=0;90=1;180=0;270=-1;"
+
+  dRow = "0=-1;90=0;180=1;270=0;"
+
+  size = 16
+
+  polyomino = ""
+
+  GraphicsWindow.BrushColor = "Black
+
+  txtPolyomino = Shapes.AddText("")
+
+  Shapes.Move(txtPolyomino, 10, 4)
+
+  y0 = 20
+
+EndSub
+
+Sub Pause
+
+  keyDown = "False"
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+  While Not[keyDown]
+
+    Program.Delay(500)
+
+  EndWhile
+
+EndSub
+
+Sub OnKeyDown
+
+  keyDown = "True"
+
+EndSub
+
+Sub RemoveAllRect
+
+  While 0 < nRect
+
+    Shapes.Remove(rect[nRect])
+
+    nRect = nRect - 1
+
+  EndWhile
+
+EndSub
+
+Sub RemoveRect
+
+  ' param n - order of polyomino
+
+  ' param i - index to an order n polyomino
+
+  ' param row, col - position of square to add
+
+  ' return polyomino[n][i]
+
+  If row < 1 Or (n + 1) < row Or col < 1 Or (n + 1) < col Then
+
+    TextWindow.WriteLine("Error - row " + row + " or col " + col + " out of range " + n)
+
+  Else
+
+    n_omino = polyomino[n][i]
+
+    p = (row - 1) * (n + 1) + col
+
+    n_omino = Text.Append(Text.Append(Text.GetSubText(n_omino, 1, p - 1), "0"), Text.GetSubTextToEnd(n_omino, p + 1))
+
+    polyomino[n][i] = n_omino
+
+    Shapes.Remove(rect[nRect])
+
+    nRect = nRect - 1
+
+  EndIf
+
+EndSub
+
+Sub RotateN90
+
+  ' param n - order of polyomino
+
+  ' param toRotate - order n polyomino
+
+  ' return toMove - 90 degree rotated order n polyomino
+
+  toMove = ""
+
+  srcRow = n
+
+  srcCol = 1
+
+  For row = 1 To n
+
+    For col = 1 To n
+
+      p = (srcRow - 1) * n + srcCol
+
+      value = Text.GetSubText(toRotate, p, 1)
+
+      toMove = Text.Append(toMove, value)
+
+      srcRow = srcRow - 1
+
+    EndFor
+
+    srcCol = srcCol + 1
+
+    srcRow = n
+
+  EndFor
+
+EndSub
+
+Sub ShowN
+
+  ' param n - order of the polyomino
+
+  nPolyomino = Array.GetItemCount(polyomino[n])
+
+  index = Array.GetAllIndices(polyomino[n])
+
+  x0 = 10
+
+  y0 = y0 + n * size
+
+  For i = 1 To nPolyomino
+
+    DrawGrid()
+
+    GraphicsWindow.PenWidth = 0
+
+    GraphicsWindow.BrushColor = PIECECOLOR
+
+    n_omino = polyomino[n][index[i]]
+
+    order = Math.SquareRoot(Text.GetLength(n_omino))
+
+    For row = 1 To order
+
+      y = y0 + (row - 1) * size
+
+      For col = 1 To order
+
+        x = x0 + (col - 1) * size
+
+        p = (row - 1) * order + col
+
+        value = Text.GetSubText(n_omino, p, 1)
+
+        If value = "1" Then
+
+          GraphicsWindow.FillRectangle(x, y, size, size)
+
+        EndIf
+
+      EndFor
+
+    EndFor
+
+    x0 = x0 + (n + 1) * size
+
+  EndFor
+
+EndSub
+
+Sub ShrinkN
+
+  ' param n - order of polyomino
+
+  ' return polyomino[n][] - shrinked order n polyomino
+
+  nPolyomino = Array.GetItemCount(polyomino[n])
+
+  index = Array.GetAllIndices(polyomino[n])
+
+  For i = 1 To nPolyomino
+
+    toMove = polyomino[n][index[i]]
+
+    CornerN()
+
+    ' copy from (n+1)*(n+1) to n*n
+
+    shrinked = ""
+
+    For row = 1 To n
+
+      For col = 1 To n
+
+        p = (row - 1) * (n + 1) + col
+
+        value = Text.GetSubText(moved, p, 1)
+
+        shrinked = Text.Append(shrinked, value)
+
+      EndFor
+
+    EndFor
+
+    polyomino[n][index[i]] = shrinked
+
+  EndFor
+
+  ' remove rotational symmetry
+
+  For i = 1 To nPolyomino
+
+    n_omino = polyomino[n][index[i]]
+
+    If n_omino <> "" Then
+
+      For j = i + 1 To nPolyomino
+
+        toRotate = polyomino[n][index[j]]
+
+        If toRotate <> "" Then
+
+          If debug Then
+
+            TextWindow.WriteLine("toRotate=" + toRotate)
+
+          EndIf
+
+          For k = 1 To 4
+
+            RotateN90()
+
+            If debug Then
+
+              TextWindow.WriteLine("toMove=" + toMove)
+
+            EndIf
+
+            CornerN()
+
+            If debug Then
+
+              TextWindow.WriteLine("moved=" + moved)
+
+            EndIf
+
+            If n_omino = moved Then
+
+              polyomino[n][index[j]] = ""
+
+              k = 4 ' break
+
+            EndIf
+
+            toRotate = moved
+
+          EndFor
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+            
+
+

@@ -1,0 +1,263 @@
+'Drift and bounce-- Created by codingCat aka Matthew L. Parets -- No rights reserved as long as no money is earned
+
+'Demonstrates how to manage multiple moving objects at the same time.
+
+'Circles are added every few ticks until the frame delay is reduced to zero.
+
+'As the circles move around they bounce into each other
+
+'----------------------------------------------------------------------------
+
+
+
+'At the top of your program - Initial Setup
+
+'Stuff up here only happens once before the main loop
+
+GraphicsWindow.Show()
+
+GraphicsWindow.KeyDown = OnKeyDown 'Let winows know our key event is waiting for presses. 
+
+
+
+stop = "false"
+
+pressed = "False" 'No key pressed at the start of the program
+
+frameRate = 50    'Number of milliseonds each frame (trip through the main program) should take
+
+ballAdd = Clock.ElapsedMilliseconds 'Note the time for adding new balls
+
+ballRate = 500 'Add a new ball every half second
+
+balls[1] = Shapes.AddEllipse(5,5)
+
+ballsX[1] = GraphicsWindow.Width
+
+ballsY[1] = Math.GetRandomNumber(GraphicsWindow.Height)
+
+ballSpdX[ballCnt] = (Math.GetRandomNumber(1000) / 100)-500
+
+ballSpdY[ballCnt] = (Math.GetRandomNumber(1000) / 100)-500
+
+ballCnt = 1
+
+
+
+'----------------------------------------------------------------------------
+
+
+
+'Main Program Loop
+
+'Repeats continuously until the escape key is pressed
+
+frameStart = Clock.ElapsedMilliseconds 'note the time to allow for frame pauses
+
+key = "" 
+
+While key <> "Escape" 'Keep going until the escape key is pressed
+
+  GetKeyPress()       'Check if a key has been pressed
+
+  MoveTheCircles()     'Update circle automatically
+
+  FrameWait()         'Pause and wait for just a tick
+
+endwhile
+
+
+
+'----------------------------------------------------------------------------
+
+
+
+'Program Close Down. Stuff that is down once after the main loop
+
+
+
+GraphicsWindow.FontSize = 90
+
+GraphicsWindow.BrushColor = "Red"
+
+GraphicsWindow.DrawText(100,GraphicsWindow.Height/3,"Good bye")
+
+Program.Delay(2000)
+
+Program.end()
+
+
+
+'----------------------------------------------------------------------------
+
+
+
+'Events and subroutines.
+
+'Always at the bottom of your program
+
+'No code outside of a subroutine allowed below.
+
+
+
+
+
+Sub GetKeyPress
+
+  'Get key press, processes all user interaction.
+
+  'Key presses are ignored unless the event tells us that a new key has been pressed
+
+  If pressed = "True" Then 'ignore unless the event tells us there was a press       
+
+    key = GraphicsWindow.LastKey  'Movement keys
+
+    
+
+    pressed = "False"
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub MoveTheCircles
+
+  
+
+  If (Clock.ElapsedMilliseconds - ballAdd > ballRate) And stop <> "true" then
+
+    ballCnt = ballCnt + 1
+
+    GraphicsWindow.Title = "Balls = " + ballCnt
+
+    GraphicsWindow.PenColor = GraphicsWindow.GetRandomColor()
+
+    balls[ballCnt] = Shapes.AddEllipse(5,5)
+
+    ballsX[ballCnt] = Math.GetRandomNumber(GraphicsWindow.Width)
+
+    ballsY[ballCnt] = Math.GetRandomNumber(GraphicsWindow.Height)
+
+    ballSpdX[ballCnt] = (Math.GetRandomNumber(200) / 100)-1
+
+    ballSpdY[ballCnt] = (Math.GetRandomNumber(200) / 100)-1
+
+    ballAdd = Clock.ElapsedMilliseconds
+
+  EndIf
+
+  For i = 1 To ballCnt
+
+    ballsX[i] = ballsX[i] + ballSpdX[i]
+
+    ballsY[i] = ballsY[i] + ballSpdY[i]
+
+    If ballsX[i] < 0 or ballsX[i] > graphicswindow.Width Then
+
+      ballSpdX[i] = ballSpdX[i] * -1
+
+    endif
+
+    If ballsY[i] < 0 or ballsY[i] > graphicswindow.Height Then
+
+      ballSpdY[i] = ballSpdY[i] * -1
+
+    endif
+
+    For j = 1 To ballCnt
+
+      If i <> j Then
+
+        If (ballsX[j] > ballsX[i] And  ballsX[j] < ballsX[i]+5 And ballsy[j] > ballsy[i] And  ballsy[j] < ballsy[i]+5) Or (ballsX[j]+5 > ballsX[i] And  ballsX[j]+5 < ballsX[i]+5 And ballsy[j] > ballsy[i] And  ballsy[j] < ballsy[i]+5) or (ballsX[j] > ballsX[i] And  ballsX[j] < ballsX[i]+5 And ballsy[j]+5 > ballsy[i] And  ballsy[j]+5 < ballsy[i]+5) Or (ballsX[j]+5 > ballsX[i] And  ballsX[j]+5 < ballsX[i]+5 And ballsy[j]+5 > ballsy[i] And  ballsy[j]+5 < ballsy[i]+5) Then
+
+          ballSpdX[i] = ballSpdX[i] * -1
+
+        endif
+
+      endif     
+
+    endfor  
+
+    Shapes.Move(balls[i], ballsX[i], ballsY[i])
+
+  endfor
+
+EndSub  
+
+
+
+
+
+Sub FrameWait
+
+  in = "false"
+
+  While Clock.ElapsedMilliseconds - frameStart < frameRate
+
+    'Sit here and do nothing until the frame clock has run out.
+
+    'This wait keeps the automatic operations, like moving the ball
+
+    'from running too fast. 
+
+    'This technique is better then using Program.Delay() for two reasons:
+
+    '   1)  The wait time is based on when we started the frame, not
+
+    '        when we ended it. In other words, when one of our trips through
+
+    '        the for loop above takes longer than normal, the delay will be 
+
+    '        reduced, so each frame will be exactly the same length.
+
+    '  2) We have the option (even though we are not using it here) of  
+
+    '        doing some extra processing, such as checking the keyboard. 
+
+    '        With Program.Delay() we are stuck, unable to do anything,
+
+    '       until the  delay is complete.
+
+    in = "true"
+
+  EndWhile
+
+  If in <> "true" Then
+
+    GraphicsWindow.Title = "Stopped -- Balls = " + ballCnt
+
+    stop = "true"
+
+  EndIf
+
+  
+
+  frameStart = Clock.ElapsedMilliseconds 'Start  a new frame.
+
+EndSub
+
+
+
+
+
+Sub OnKeyDown
+
+  'Take note of the fact that a key has been pressed. This event is 
+
+  'needed because the GraphicsWindow.lastkey property never
+
+  'clears. Making otherwise impossible to distinguish between
+
+  'multiple presses of the same key
+
+  pressed = "True"
+
+EndSub
+
+  
+
+

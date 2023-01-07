@@ -1,0 +1,147 @@
+numPlayer = 2
+
+Local = 1
+
+Remote = 2
+
+radius = 25
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+For i = 1 To numPlayer
+
+  ball[i] = Shapes.AddEllipse(2*radius,2*radius)
+
+  ballX[i] = i*100
+
+  BallY[i] = 100
+
+  ballU[i] = 0
+
+  BallV[i] = 0
+
+EndFor
+
+
+
+While ("True")
+
+  url="http://localhost/server/server.php"'Gets data
+
+  data = Network.GetWebPageContents(url)
+
+  doKeys()
+
+  updateBalls()
+
+  Program.Delay(100)
+
+EndWhile
+
+
+
+Sub doKeys
+
+  For i = 1 To numPlayer
+
+    If (data[i]["keyDown"] <> "") Then
+
+      keyState[i][data[i]["keyDown"]] = 1
+
+      data[i]["keyDown"] = ""
+
+    EndIf
+
+    If (data[i]["keyUp"] <> "") Then
+
+      keyState[i][data[i]["keyUp"]] = ""
+
+      data[i]["keyUp"] = ""
+
+    EndIf
+
+    index = Array.GetAllIndices(keyState[i])
+
+    For j = 1 To Array.GetItemCount(index)
+
+      If (index[j] = "Down") Then
+
+        BallV[i] = BallV[i]+1
+
+      ElseIf (index[j] = "Up") Then
+
+        BallV[i] = BallV[i]-1
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub updateBalls
+
+  For i = 1 To numPlayer
+
+    ballX[i] = ballX[i]+ballU[i]
+
+    ballY[i] = ballY[i]+ballV[i]
+
+    If (ballX[i] < radius Or ballX[i] > GraphicsWindow.Width-radius) Then
+
+      ballU[i] = -ballU[i]
+
+    EndIf
+
+    If (ballY[i] < radius Or ballY[i] > GraphicsWindow.Height-radius) Then
+
+      ballV[i] = -ballV[i]
+
+    EndIf
+
+    Shapes.Move(ball[i],ballX[i]-radius,ballY[i]-radius)
+
+  EndFor
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  KeyDown = GraphicsWindow.LastKey
+
+  x = GraphicsWindow.MouseX
+
+  y = GraphicsWindow.MouseY
+
+  url="http://localhost/server/server.php?program="+Local+"&x="+x+"&y="+y+"&keyDown="+keyDown+"&keyUp="+keyUp  'Sends and gets data
+
+  Network.GetWebPageContents(url)
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  KeyUp = GraphicsWindow.LastKey
+
+  x = GraphicsWindow.MouseX
+
+  y = GraphicsWindow.MouseY
+
+  url="http://localhost/server/server.php?program="+Local+"&x="+x+"&y="+y+"&keyDown="+keyDown+"&keyUp="+keyUp  'Sends and gets data
+
+  Network.GetWebPageContents(url)
+
+EndSub
+
+
+
+

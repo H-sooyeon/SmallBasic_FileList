@@ -1,0 +1,539 @@
+GraphicsWindow.Title="Iovi
+
+Sub main
+
+  GraphicsWindow.BackgroundColor = "#000022"
+
+  Init()
+
+  px = 60
+
+  py = 8
+
+  ii=ImageList.LoadImage("e:/jupi.jpg")
+
+  GraphicsWindow.DrawImage(ii, -px, -py)
+
+  w = 400 - 2 * px
+
+  h = 283 - 2 * py
+
+  ra = 64
+
+  x = w / 2
+
+  For z = ra * 2 To 0 Step -1
+
+    y = h * z  / (ra * 2)
+
+    c[z] = GraphicsWindow.GetPixel(x, y)
+
+  EndFor
+
+  GraphicsWindow.Clear()
+
+  DrawStars()
+
+  ' sphere
+
+  param["x"] = ra
+
+  param["y"] = ra
+
+  For z = ra * 2 To 0 Step -1
+
+    param["color"] = c[z]
+
+    param["z"] = z
+
+    ha = Math.Abs(ra - z)
+
+    rb = Math.SquareRoot(ra * ra - ha * ha)
+
+    param["r"] = rb
+
+    If ra < z Then
+
+      z2 = z + 1
+
+    Else
+
+      z2 = z - 1
+
+    EndIf
+
+    ha2 = Math.Abs(ra - z2)
+
+    rb2 = Math.SquareRoot(ra * ra - ha2 * ha2)
+
+    param["w"] = Math.Max(Math.Abs(rb - rb2), 2)
+
+    GraphicsWindow.BrushColor=c[z]
+
+    DrawRingOnXY()
+
+  EndFor
+
+  For i = 1 To j
+
+    LDShapes.AnimateOpacity(stt[i] 3500+Math.GetRandomNumber(50)*150 0)
+
+  EndFor
+
+  
+
+EndSub
+
+
+
+Sub Init
+
+  UNDEFINED = "N/A"
+
+  gw = 600
+
+  gh = 500
+
+  cx = gw/2
+
+  cy = gh/2-30
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  xo = 0.5 * gw
+
+  yo = 0.46 * gh
+
+  u = 2
+
+  ru = u * Math.SquareRoot(2 / 3)
+
+  a60 = Math.GetRadians(60)
+
+  a120 = Math.GetRadians(120)
+
+  ColorsqqInit()
+
+EndSub
+
+
+
+Sub CalcColors
+
+  color = param["color"]
+
+  If color = "Transparent" Then
+
+    transparent = "True"
+
+    color = "Black"
+
+  Else
+
+    transparent = "False"
+
+  EndIf
+
+  ColorqqNameToRGB()
+
+  colorRight = color
+
+  ColorqqRGBtoHSL()
+
+  savedLightness = lightness
+
+  lightness = Math.Min(savedLightness * 0.1, 1)
+
+  ColorqqHSLtoRGB()
+
+  colorTop = color
+
+  lightness = Math.Max(savedLightness * 0.2, 0)
+
+  ColorqqHSLtoRGB()
+
+  colorLeft = color
+
+  If transparent Then
+
+    colorTop = "#66" + Text.GetSubTextToEnd(colorTop, 2)
+
+    colorLeft = "#66" + Text.GetSubTextToEnd(colorLeft, 2)
+
+    colorRight = "#66" + Text.GetSubTextToEnd(colorRight, 2)
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub DrawRingOnXY  ' param["x"], param["y"] - center of the ring   ' param["z"] - X-Y surface
+
+  ' param["r"] - radius of the ring               ' param["w"] - width of the ring
+
+  Stack.PushValue("local", param)
+
+  ox = param["x"]
+
+  oy = param["y"]
+
+  rb = param["r"]
+
+  wr = param["w"]
+
+  
+
+  For y = oy + rb To oy - rb Step -1
+
+    param["y"] = y
+
+    hb = Math.Abs(y - oy)
+
+    w = Math.SquareRoot(rb * rb - hb * hb)
+
+    If rb - wr < hb Then
+
+      For x = ox + w To ox - w Step -1
+
+        param["x"] = x
+
+        DrawVoxel()
+
+      EndFor
+
+    Else
+
+      w2 = Math.SquareRoot((rb - wr) * (rb - wr) - hb * hb)
+
+      For x = ox + w To ox + w2 Step -1
+
+        param["x"] = x
+
+        DrawVoxel()
+
+      EndFor
+
+      For x = ox - w2 To ox - w Step -1
+
+        param["x"] = x
+
+        DrawVoxel()
+
+      EndFor
+
+    EndIf
+
+  EndFor
+
+  param = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub DrawStars
+
+  GraphicsWindow.PenWidth=0
+
+  For i = 1 To 1000
+
+    l = Math.GetRandomNumber(255)
+
+    x = Math.GetRandomNumber(gw)
+
+    y = Math.GetRandomNumber(gh)
+
+    d = Math.GetRandomNumber(u)
+
+    GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(l, l, l)
+
+    rr=LDMath.Convert2Radial(cx cy x y)
+
+    If rr[1]>135 Then
+
+      j=j+1
+
+      stt[j]=Shapes.AddEllipse(d d)
+
+      Shapes.Move(stt[j] x, y)
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub DrawVoxel
+
+  CalcColors()
+
+  x0 = xo + ru * Math.Sin(a60) * param["y"] + ru * Math.Sin(-a60) * param["x"]
+
+  y0 = yo - ru * Math.Cos(a60) * param["y"] + ru * param["z"] - ru * Math.Cos(-a60) * param["x"]
+
+  x1 = x0
+
+  y1 = y0 - ru
+
+  x2 = x0 + ru * Math.Sin(-a60)
+
+  y2 = y0 - ru * Math.Cos(-a60)
+
+  x3 = x0 + ru * Math.Sin(a60)
+
+  y3 = y0 - ru * Math.Cos(a60)
+
+  GraphicsWindow.FillEllipse(x1, y1, 4,4)
+
+EndSub
+
+
+
+Sub ColorqqHSLtoRGB
+
+  If lightness <= 0.5 Then
+
+    n2 = lightness * (1 + saturation)
+
+  Else
+
+    n2 = lightness + saturation - lightness * saturation
+
+  EndIf
+
+  n1 = 2 * lightness - n2
+
+  If saturation = 0 Then
+
+    r = Math.Round(lightness * 255)
+
+    g = Math.Round(lightness * 255)
+
+    b = Math.Round(lightness * 255)
+
+  Else
+
+    h = hue + 120
+
+    ColorqqValue()
+
+    r = value
+
+    h = hue
+
+    ColorqqValue()
+
+    g = value
+
+    h = hue - 120
+
+    ColorqqValue()
+
+    b = value
+
+  EndIf
+
+  color = GraphicsWindow.GetColorFromRGB(r, g, b)
+
+EndSub
+
+
+
+Sub ColorqqNameToRGB
+
+  If Text.StartsWith(color, "#") Then
+
+    color = Text.ConvertToUpperCase(color)
+
+  Else
+
+    color = Text.ConvertToLowerCase(color)
+
+    color = colors[color]
+
+  EndIf
+
+EndSub
+
+
+
+Sub ColorqqValue
+
+  If h >= 360 Then
+
+    h = h - 360
+
+  EndIf
+
+  If h < 0 Then
+
+    h = h + 360
+
+  EndIf
+
+  If h < 60 Then
+
+    v = n1 + (n2 - n1) * h / 60
+
+  ElseIf h < 180 Then
+
+    v = n2
+
+  ElseIf h < 240 Then
+
+    v = n1 + (n2 - n1) * (240 - h) / 60
+
+  Else
+
+    v = n1
+
+  EndIf
+
+  value = Math.Round(v * 255)
+
+EndSub
+
+
+
+Sub ColorqqRGBtoHSL
+
+  ColorqqNameToRGB()
+
+  sR = Text.GetSubText(color, 2, 2)
+
+  sG = Text.GetSubText(color, 4, 2)
+
+  sB = Text.GetSubText(color, 6, 2)
+
+  hex = sR
+
+  MathqqHex2Dec()
+
+  ' r = dec / 255 ' occurs Math.Max() bug
+
+  r = Math.Round(dec / 255 * 10000) / 10000
+
+  hex = sG
+
+  MathqqHex2Dec()
+
+  ' g = dec / 255 ' occurs Math.Max() bug
+
+  g = Math.Round(dec / 255 * 10000) / 10000
+
+  hex = sB
+
+  MathqqHex2Dec()
+
+  ' b = dec / 255 ' occurs Math.Max() bug
+
+  b = Math.Round(dec / 255 * 10000) / 10000
+
+  max = Math.Max(r, g)
+
+  max = Math.Max(max, b)
+
+  min = Math.Min(r, g)
+
+  min = Math.Min(min, b)
+
+  lightness = (max + min) / 2
+
+  If max = min Then ' r = g = b
+
+    saturation = 0
+
+    hue = UNDEFINED
+
+  Else
+
+    If lightness <= 0.5 Then
+
+      saturation = (max - min) / (max + min)
+
+    Else
+
+      saturation = (max - min) / (2 - max - min)
+
+    EndIf
+
+    rc = (max - r) / (max - min)
+
+    gc = (max - g) / (max - min)
+
+    bc = (max - b) / (max - min)
+
+    If r = max Then     ' between Yellow and Magenta
+
+      hue = bc - gc
+
+    ElseIf g = max Then ' between Cyan and Yellow
+
+      hue = 2 + rc - bc
+
+    ElseIf b = max Then ' between Magenta and Cyan
+
+      hue = 4 + gc - rc
+
+    EndIf
+
+    hue = hue * 60
+
+    If hue < 0 Then
+
+      hue = hue + 360
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub ColorqqGrayFromLightness
+
+  iGray = Math.Round(lightness * 255)
+
+  gray = GraphicsWindow.GetColorFromRGB(iGray, iGray, iGray)
+
+EndSub
+
+
+
+Sub ColorsqqInit
+
+  colors["black"]="#000000"
+
+  colors["white"]="#FFFFFF"
+
+EndSub
+
+
+
+Sub MathqqHex2Dec
+
+  dec = 0
+
+  len = Text.GetLength(hex)
+
+  For ptr = 1 To len
+
+    dec = dec * 16 + Text.GetIndexOf("123456789ABCDEF", Text.GetSubText(hex, ptr, 1))
+
+  EndFor
+
+EndSub
+
+
+
+main()
+
+

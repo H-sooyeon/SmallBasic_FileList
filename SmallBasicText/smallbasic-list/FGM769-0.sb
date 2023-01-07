@@ -1,0 +1,357 @@
+' Simple Donkey Kong 0.2a
+
+' Small Basic version written by Nonki Takahashi.
+
+'
+
+' History:
+
+'  0.2a 2014-03-10 Barrel demo without friction. (FGM769-0)
+
+'  0.1a 2014-03-08 Created only for graphics. (FGM769)
+
+'
+
+GraphicsWindow.Title = "Simple Donkey Kong 0.2a"
+
+Init()
+
+g = 9.8     ' [m/s^2]
+
+dt = 1 / 30 ' [s]
+
+pxpm = 100  ' [pixel/m]
+
+pslope[1] = "x1=0;y1=50;x2=540;y2=70;height=20;pitch=10;color=DeepPink;"
+
+pslope[2] = "x1=60;y1=180;x2=600;y2=160;height=20;pitch=10;color=DeepPink;"
+
+pslope[3] = "x1=0;y1=270;x2=540;y2=290;height=20;pitch=10;color=DeepPink;"
+
+pslope[4] = "x1=300;y1=408;x2=600;y2=380;height=20;pitch=10;color=DeepPink;"
+
+pslope[5] = "x1=0;y1=408;x2=300;y2=408;height=20;pitch=10;color=DeepPink;"
+
+ns = Array.GetItemCount(pslope)
+
+For i = 1 To ns
+
+  param = pslope[i]
+
+  Slope_Add()
+
+EndFor
+
+param = "x=10;y=10;m=5000;e=0.64;"
+
+Barrel_Add()
+
+Timer.Interval = dt * 1000
+
+Timer.Tick = OnTick
+
+Sub OnTick
+
+  n = barrel["num"]
+
+  m = slope["num"]
+
+  For i = 1 To n
+
+    ax = 0
+
+    ay = g
+
+    barrel[i]["vx"] = barrel[i]["vx"] + ax * dt * pxpm
+
+    barrel[i]["vy"] = barrel[i]["vy"] + ay * dt * pxpm
+
+    barrel[i]["x"] = barrel[i]["x"] + barrel[i]["vx"] * dt
+
+    barrel[i]["y"] = barrel[i]["y"] + barrel[i]["vy"] * dt
+
+    xo = barrel[i]["x"] + 16
+
+    yo = barrel[i]["y"] + 16
+
+    e = barrel[i]["e"]
+
+    For j = 1 To m
+
+      a = slope[j]["a"]
+
+      b = slope[j]["b"]
+
+      c = slope[j]["c"]
+
+      d = Math.Abs(a * xo + b * yo + c) / Math.SquareRoot(a * a + b * b)
+
+      If d <= 16 And slope[j]["x1"] <= xo And xo <= slope[j]["x2"] Then
+
+        x = barrel[i]["vx"]
+
+        y = barrel[i]["vy"]
+
+        Math_CartesianToPolar()
+
+        a = slope[j]["ss"] * 2 - a
+
+        vx = r * Math.Cos(Math.GetRadians(a))
+
+        vy = r * Math.Sin(Math.GetRadians(a))
+
+        dv = Math.SquareRoot(Math.Power((vx - x), 2) + Math.Power((vy - y), 2))
+
+        barrel[i]["vx"] = (vx - x) * e / 2 + (vx + x) / 2
+
+        barrel[i]["vy"] = (vy - y) * e / 2 + (vy + y) / 2
+
+        barrel[i]["x"] = barrel[i]["x"] + (vx - x) * (16 - d) / dv * e * e 
+
+        barrel[i]["y"] = barrel[i]["y"] + (vy - y) * (16 - d) / dv * e * e
+
+      EndIf
+
+    EndFor
+
+    l = barrel[i]["x"]
+
+    If l < 0 Then
+
+      barrel[i]["x"] = -l * e * e
+
+      barrel[i]["vx"] = -barrel[i]["vx"] * e
+
+    EndIf
+
+    r = barrel[i]["x"] + 32
+
+    If gw < r Then
+
+      barrel[i]["x"] = barrel[i]["x"] - 2 * (r - gw) * e * e
+
+      barrel[i]["vx"] = -barrel[i]["vx"] * e
+
+    EndIf
+
+    h = gh - (barrel[i]["y"] + 32)
+
+    If h < 0 Then
+
+      barrel[i]["y"] = barrel[i]["y"] + h * e * e
+
+      barrel[i]["vy"] = -barrel[i]["vy"] * e
+
+    EndIf
+
+    Shapes.Move(barrel[i]["obj"], barrel[i]["x"], barrel[i]["y"])
+
+  EndFor
+
+EndSub
+
+Sub Barrel_Add
+
+  ' param["x"] - left co-ordinate
+
+  ' param["y"] - top co-ordinate
+
+  ' param["m"] - mass of barrel [g]
+
+  ' param["e"] - coefficient of resititution
+
+  n = barrel["num"]
+
+  n = n + 1
+
+  barrel["num"] = n
+
+  barrel[n]["m"] = param["m"]
+
+  barrel[n]["e"] = param["e"]
+
+  url = "http://www.nonkit.com/smallbasic.files/Barrel32.png"
+
+  x = param["x"]
+
+  y = param["y"]
+
+  barrel[n]["obj"] = Shapes.AddImage(url)
+
+  Shapes.SetOpacity(barrel[n]["obj"], 100)
+
+  barrel[n]["x"] = x
+
+  barrel[n]["y"] = y
+
+  Shapes.Move(barrel[n]["obj"], x, y)
+
+  barrel[n]["vx"] = 0
+
+  barrel[n]["vy"] = 0
+
+  barrel[n]["vr"] = 0
+
+  barrel[n]["r"] = 0
+
+EndSub
+
+Sub Slope_Add
+
+  ' param["x1"] - top-left x co-ordinate
+
+  ' param["y1"] - top-left y co-ordinate
+
+  ' param["x2"] - top-right x co-ordinate
+
+  ' param["y2"] - top-right y co-ordinate
+
+  ' param["height"] - height of slope
+
+  ' param["pitch"] - x pitch for diagonal brace
+
+  ' param["color"] - color of slop
+
+  ' return slope
+
+  n = slope["num"]
+
+  n = n + 1
+
+  slope["num"] = n
+
+  GraphicsWindow.PenColor = param["color"]
+
+  x1 = param["x1"]
+
+  y1 = param["y1"]
+
+  x2 = param["x2"]
+
+  y2 = param["y2"]
+
+  GraphicsWindow.DrawLine(x1, y1, x2, y2)
+
+  slope[n]["x1"] = x1
+
+  slope[n]["y1"] = y1
+
+  slope[n]["x2"] = x2
+
+  slope[n]["y2"] = y2
+
+  x = x2 - x1
+
+  y = y2 - y1
+
+  Math_CartesianToPolar()
+
+  slope[n]["ss"] = a
+
+  slope[n]["a"] = y
+
+  slope[n]["b"] = -x
+
+  slope[n]["c"] = -y * x1 + x * y1
+
+  x3 = x1
+
+  y3 = y1 + param["height"]
+
+  x4 = x2
+
+  y4 = y2 + param["height"]
+
+  GraphicsWindow.DrawLine(x3, y3, x4, y4)
+
+  slope[n]["x3"] = x3
+
+  slope[n]["y3"] = y3
+
+  slope[n]["x4"] = x4
+
+  slope[n]["y4"] = y4
+
+  pitch = param["pitch"]
+
+  up = "False"
+
+  For x5 = x1 To x2 - pitch Step pitch
+
+    x6 = x5 + pitch
+
+    If up Then
+
+      y5 = y1 + (y2 - y1) * (x5 - x1) / (x2 - x1)
+
+      y6 = y3 + (y4 - y3) * (x6 - x3) / (x4 - x3)
+
+    Else
+
+      y5 = y3 + (y4 - y3) * (x5 - x3) / (x4 - x3)
+
+      y6 = y1 + (y2 - y1) * (x6 - x1) / (x2 - x1)
+
+    EndIf
+
+    GraphicsWindow.DrawLine(x5, y5, x6, y6)
+
+    up = Not[up]
+
+  EndFor
+
+EndSub
+
+Sub Init
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  Not = "True=False;False=True;"
+
+EndSub
+
+Sub Math_CartesianToPolar
+
+  ' Math | convert cartesian coodinate to polar coordinate
+
+  ' param x, y - cartesian coordinate
+
+  ' return r, a - polar coordinate
+
+  r = Math.SquareRoot(x * x + y * y)
+
+  If x = 0 And y > 0 Then
+
+    a = 90 ' [degree]
+
+  ElseIf x = 0 And y < 0 Then
+
+    a = -90
+
+  Else
+
+    a = Math.ArcTan(y / x) * 180 / Math.Pi
+
+  EndIf
+
+  If x < 0 Then
+
+    a = a + 180
+
+  ElseIf x > 0 And y < 0 Then
+
+    a = a + 360
+
+  EndIf
+
+EndSub
+
+

@@ -1,0 +1,3835 @@
+'\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+'Train is a simple PC based simulator used for conducting basic
+
+'excersises in directional drilling.
+
+
+
+
+
+'   Designed and prepared by Angus L Jamieson June 1993
+
+'   Converted to Small Basic by Micheal Lanham December 2010
+
+
+
+'\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+
+
+
+'INITIALIZATION
+
+bha = 0           'DEFAULT
+
+inclination = 0   'up to date well attitude
+
+direction = 0
+
+ander = 0
+
+spin = 0
+
+ob = 1
+
+wd[1][ 1] = 0
+
+wd[1][2] = 0
+
+wd[1][3] = 0
+
+wd[1][4] = 0
+
+wd[1][5] = 0
+
+wd[1][6] = 0
+
+andrex = 1
+
+
+
+'Screen 12, 0: CLS  --- graphic window init
+
+GraphicsWindow.Title = "Drilling Simulator"
+
+GraphicsWindow.Width = 1024
+
+GraphicsWindow.Height = 768
+
+GraphicsWindow.CanResize = "false"
+
+GraphicsWindow.Clear()
+
+GraphicsWindow.Show()
+
+
+
+debug = "off"
+
+
+
+xScale = GraphicsWindow.Width/46.1 '21
+
+yScale = GraphicsWindow.Height/35 '20.5
+
+If xScale > yScale then
+
+  rscale = yScale
+
+else
+
+  rscale = xScale
+
+endif
+
+
+
+GraphicsWindow.FontSize = 12 * GraphicsWindow.Height/480 
+
+
+
+bStr = "None"
+
+GraphicsWindow.KeyUp = Await
+
+
+
+'On Error GoTo smack
+
+
+
+p1 = 3.1415936 / 180    'degrees radians convertor
+
+maxrpm = 200
+
+maxwob = 100            '1000 lbs
+
+MWOB = 0                'CHECK MAX TORQUE DURING FIRST 2 DEGS OF BUILD
+
+maxmud = 200
+
+mud = 0                'initial setting for mud pumps
+
+toolsav = 3             'both MWD and SRG
+
+tf = 0
+
+rotary = 1
+
+Weight = 0
+
+son = 1
+
+startdepth = 615
+
+holedepth = startdepth
+
+rotgear = 1      'DRILL FLOOR UNLOCKED
+
+liftgear = 1     'direction downhole
+
+
+
+'assigned variables
+
+BUNG = 0
+
+md = 0
+
+binc = 0
+
+hit = 0
+
+
+
+SetColors()
+
+Chars()
+
+Layout()
+
+Gears()
+
+
+
+If bha = 0 Then 
+
+  'BhaSetup() 
+
+endif
+
+
+
+Sub Await
+
+  bStr = GraphicsWindow.LastKey
+
+  'TextWindow.WriteLine(bStr)
+
+endsub
+
+
+
+Sub SetColors
+
+  BGColor = GraphicsWindow.GetColorFromRGB(0,0,255)
+
+  FRColor = GraphicsWindow.GetColorFromRGB(255,255,255)
+
+  LFRColor = GraphicsWindow.GetColorFromRGB(128,128,128)
+
+  LBGColor = GraphicsWindow.GetColorFromRGB(64,64,64)
+
+  TXColor = GraphicsWindow.GetColorFromRGB(255,255,255)
+
+  TXSHColor = GraphicsWindow.GetColorFromRGB(64,64,64)
+
+  
+
+  Color0 = GraphicsWindow.GetColorFromRGB(0,0,0)
+
+  Color1 = GraphicsWindow.GetColorFromRGB(0,0,255)
+
+  Color2 = GraphicsWindow.GetColorFromRGB(0,255,0)
+
+  Color3 = GraphicsWindow.GetColorFromRGB(0,255,255) 'CYAN
+
+  Color4 = GraphicsWindow.GetColorFromRGB(170,0,0)
+
+  Color5 = GraphicsWindow.GetColorFromRGB(255,0,255)
+
+  Color7 = GraphicsWindow.GetColorFromRGB(222,222,222)
+
+  Color8 = GraphicsWindow.GetColorFromRGB(128,128,128)
+
+  Color9 = GraphicsWindow.GetColorFromRGB(64,64,255)
+
+  Color10 = GraphicsWindow.GetColorFromRGB(128,255,128)
+
+  Color11 = GraphicsWindow.GetColorFromRGB(100,255,255)
+
+  Color12 = GraphicsWindow.GetColorFromRGB(128,64,64)
+
+  Color13 = GraphicsWindow.GetColorFromRGB(255,100,255)
+
+  Color14 = GraphicsWindow.GetColorFromRGB(255,255,0)
+
+  Color15 = GraphicsWindow.GetColorFromRGB(255,255,255)
+
+  Color16 = GraphicsWindow.GetColorFromRGB(128,128,150)
+
+  Color17 = GraphicsWindow.GetColorFromRGB(64,64,64)
+
+endsub
+
+
+
+
+
+Sub Layout
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.BrushColor = BGColor
+
+  GraphicsWindow.FillRectangle(0,0,GraphicsWindow.Width,GraphicsWindow.Height)
+
+  GraphicsWindow.PenColor = FRColor
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.DrawRectangle(2,2,GraphicsWindow.Width-2,GraphicsWindow.Height-2)
+
+  
+
+  createHandle = "true"
+
+  openWindowStack = "openwindow"
+
+  
+
+  gauges: 
+
+  aStr = "JTS  DRILLING SIMULATOR  H=HELP  ESC=EXIT"
+
+  lx0 = (-8 + 32) * xScale  '-8
+
+  ly0 = (24 - 22.4) * yScale  '22.4
+
+  lx = 0.5 * xScale
+
+  ly = .8 * yScale  
+
+  Label() 
+
+  
+
+  StartSelect()
+
+  
+
+  r = 4 * rscale
+
+  cx = (-25 + 32) * xScale
+
+  cy = (24 - 18) * yScale
+
+  minv = 0
+
+  maxv = 200
+
+  iv = 10
+
+  Gauge()
+
+  
+
+  aStr = "ROTARY  R.P.M."
+
+  lx0 = (-29 + 32) * xScale '-29
+
+  ly0 = (24 - 12.1) * yScale '12.1
+
+  lx = 0.6 * xScale '.6
+
+  ly = 1 * yScale '1
+
+  Label()
+
+  
+
+  r = 5.6 * rscale
+
+  cx = (-13.86 + 32) * xScale
+
+  cy = (24 - 17.65) * yScale
+
+  minv = 0
+
+  maxv = 100
+
+  iv = 1
+
+  Gauge()
+
+  
+
+  aStr = "Weight on BIT"
+
+  lx0 = (-17 + 32) * xScale '-17
+
+  ly0 = (24 - 23) * yScale '23
+
+  lx = 0.4 * xScale '.4
+
+  ly = 0.6 * yScale '.6
+
+  Label()
+
+  
+
+  r = 4 * rscale
+
+  cx = (-25 + 32) * xScale
+
+  cy = (24 - 5) * yScale
+
+  minv = 0
+
+  maxv = 5000
+
+  iv = 100
+
+  Gauge()
+
+  
+
+  aStr = "DRILL PIPE PSI"
+
+  lx0 = (-29 + 32) * xScale '-29
+
+  ly0 = (24 - -1) * yScale '-1
+
+  lx = 0.6 * xScale '.6
+
+  ly = 1 * yScale '1
+
+  Label()
+
+  
+
+  r = 2.5 * rscale
+
+  cx = (-27 + 32) * xScale
+
+  cy = (24 - -6) * yScale
+
+  minv = 0
+
+  maxv = maxmud
+
+  iv = 10
+
+  Gauge()
+
+  
+
+  r = 2.5 * rscale
+
+  cx = (-21.5 + 32) * xScale
+
+  cy = (24 - -6) * yScale
+
+  Gauge()
+
+  
+
+  aStr = "MUD PUMPS S.P.M"
+
+  lx0 = (-29 + 32) * xScale
+
+  ly0 = (24 - -10.5) * yScale
+
+  lx = 0.6 * xScale
+
+  ly = 1 * yScale
+
+  Label()
+
+  
+
+  aStr = "SURVEY DATA"
+
+  lx0 = (-17 + 32) * xScale
+
+  ly0 = (24 - -11) * yScale
+
+  lx = 0.6 * xScale
+
+  ly = 1 * yScale
+
+  Label()
+
+  SURVEY() 
+
+  Box() 
+
+  
+
+endsub
+
+
+
+Sub Box
+
+  'DRILL FLOOR BOX
+
+  'Line (-8.5, -8.5)-(8.5, 16.6), 14, BF
+
+  x0 = -8.5
+
+  y0 = -8.5
+
+  X1 = 8.5
+
+  Y1 = 16.6
+
+  gfxcolor = Color14
+
+  FillRectangleConvert()
+
+  'Line (-8, -8)-(8, 16.1), 0, BF
+
+  x0 = -8.0
+
+  y0 = -8.0
+
+  X1 = 8.0
+
+  Y1 = 16.1
+
+  gfxcolor = Color0
+
+  FillRectangleConvert()
+
+  
+
+  DY = 4
+
+  'Line (-8.5, -8.5)-(-8, -8), DY
+
+  x0 = -8.5
+
+  y0 = -8.5
+
+  X1 = -8.0
+
+  Y1 = -8.0
+
+  gfxcolor = Color4
+
+  DrawLineConvert()  
+
+  'Line -(-8, 16), DY
+
+  x0 = -8.0
+
+  y0 = -8.0
+
+  X1 = -8.0
+
+  Y1 = 16.0
+
+  gfxcolor = Color4
+
+  DrawLineConvert() 
+
+  'Line -(8, 16), DY
+
+  x0 = -8.0
+
+  y0 = 16
+
+  X1 = 8.0
+
+  Y1 = 16
+
+  gfxcolor = Color4
+
+  DrawLineConvert() 
+
+  'Line -(8.5, 16.6), DY
+
+  x0 = 8.0
+
+  y0 = 16
+
+  X1 = 8.5
+
+  Y1 = 16.6
+
+  gfxcolor = Color4
+
+  DrawLineConvert() 
+
+  'Line -(-8.5, 16.6), DY
+
+  x0 = 8.5
+
+  y0 = 16.6
+
+  X1 = -8.5
+
+  Y1 = 16.6
+
+  gfxcolor = Color4
+
+  DrawLineConvert() 
+
+  'Line -(-8.5, -8.5), DY
+
+  x0 = -8.5
+
+  y0 = 16.6
+
+  X1 = -8.5
+
+  Y1 = -8.5
+
+  gfxcolor = Color4
+
+  DrawLineConvert() 
+
+  'PAINT (-8.2, 16.2), DY
+
+  
+
+  aStr = "DRILL FLOOR WINDOW"
+
+  lx0 = -5
+
+  ly0 = -9.7
+
+  ly = 1
+
+  lx = 0.6
+
+  ConvertLabel()
+
+  Label()
+
+  
+
+  'stars
+
+  For i = 0 To 50
+
+    X = -8 +  Math.GetRandomNumber(16) '16  * Rnd
+
+    Y = 6 +  Math.GetRandomNumber(10)  '10 * RND
+
+    X = (X + 32) * xScale
+
+    Y = (24 - Y) * yScale
+
+    GraphicsWindow.PenColor = Color15
+
+    GraphicsWindow.DrawLine(x,y,x+.5,y+.5)
+
+    GraphicsWindow.PenColor = Color14
+
+    GraphicsWindow.DrawLine(x-.5,y-.5,x,y)
+
+    'Line (X, Y)-(X, Y), 15
+
+  endfor  
+
+
+
+  'Line (-8, -8)-(8, 6), 2, BF
+
+  x0 = -8
+
+  y0 = -8
+
+  X1 = 8
+
+  Y1 = 6
+
+  gfxcolor = Color2
+
+  FillRectangleConvert()
+
+  
+
+  shadow:  
+
+  'Line (-1.25, 0)-(6, 6), 8
+
+  x0 = -1.25
+
+  y0 = 0
+
+  X1 = 6
+
+  Y1 = 6
+
+  gfxcolor = Color8
+
+  DrawLineConvert() 
+
+  'Line -(6.6, 6), 8
+
+  x0 = 6
+
+  y0 = 6
+
+  X1 = 6.6
+
+  Y1 = 6
+
+  gfxcolor = Color8
+
+  DrawLineConvert() 
+
+  'Line -(0, -1.5), 8
+
+  x0 = 6.6
+
+  y0 = 6
+
+  X1 = 0
+
+  Y1 = -1.5
+
+  gfxcolor = Color8
+
+  DrawLineConvert() 
+
+  'Line -(-1.25, 0), 8
+
+  x0 = 0
+
+  y0 = -1.5
+
+  X1 = -1.25
+
+  Y1 = 0
+
+  gfxcolor = Color8
+
+  DrawLineConvert() 
+
+  'PAINT (0, 0), 8
+
+  x0 = -1.25
+
+  Y0 = 0
+
+  X1 = 6
+
+  Y1 = 6
+
+  X2 = 0
+
+  Y2 = -1.5
+
+  gfxcolor = Color8
+
+  FillTriangleConvert()
+
+  x0 = 0
+
+  Y0 = -1.5
+
+  X1 = 6.6
+
+  Y1 = 6
+
+  X2 = 6
+
+  Y2 = 6
+
+  gfxcolor = Color8
+
+  FillTriangleConvert()
+
+
+
+  ARROW:   'save up just now
+
+  'Line (0, -6.3)-(0, -5.3), 15
+
+  GraphicsWindow.PenWidth = 2
+
+  x0 = 0
+
+  y0 = -6.3
+
+  X1 = 0
+
+  Y1 = -5.3
+
+  gfxcolor = Color8
+
+  DrawLineConvert()
+
+  GraphicsWindow.PenWidth = 1
+
+  x0 = 0
+
+  y0 = -6.3
+
+  X1 = 0
+
+  Y1 = -5.3
+
+  gfxcolor = Color15
+
+  DrawLineConvert() 
+
+  GraphicsWindow.PenWidth = 2
+
+  'Line -(-1, -5.3), 15
+
+  x0 = 0
+
+  y0 = -5.3
+
+  X1 = -1
+
+  Y1 = -5.3
+
+  gfxcolor = Color8
+
+  DrawLineConvert() 
+
+  'Line -(0, -3.3), 15
+
+  x0 = -1
+
+  y0 = -5.3
+
+  X1 = 0
+
+  Y1 = -3.3
+
+  gfxcolor = Color8
+
+  DrawLineConvert() 
+
+  'Line -(1, -5.3), 15
+
+  x0 = 0
+
+  y0 = -3.3
+
+  X1 = 1
+
+  Y1 = -5.3
+
+  gfxcolor = Color8
+
+  DrawLineConvert() 
+
+  'Line -(0, -5.3), 15
+
+  x0 = 1
+
+  y0 = -5.3
+
+  X1 = 0
+
+  Y1 = -5.3
+
+  gfxcolor = Color8
+
+  DrawLineConvert() 
+
+  GraphicsWindow.PenWidth = 1
+
+  x0 = -1
+
+  Y0 = -5.3
+
+  X1 = 1
+
+  Y1 = -5.3
+
+  X2 = 0
+
+  Y2 = -3.3
+
+  gfxcolor = Color15
+
+  FillTriangleConvert()
+
+  'PAINT (0, -4.4), 15
+
+ 
+
+  Y = 6
+
+  For D = 12 To 3 Step -1
+
+    'Line (-8, Y)-(8, Y), 3
+
+    x0 = -8
+
+    y0 = y
+
+    X1 = 8
+
+    Y1 = y
+
+    gfxcolor = Color3
+
+    DrawLineConvert() 
+
+    Y = Y - 9 / D
+
+  endfor  
+
+  
+
+  For i = 0 To 8
+
+    X1 = 2 * i
+
+    Y1 = -8
+
+    If X1 > 8 Then
+
+      Y1 = (X1 - 8) / (i + 0.0001) * 14 - 8
+
+      X1 = 8
+
+    EndIf
+
+    sx1 = X1
+
+    sy1 = y1
+
+    'Line (-X1, Y1)-(-i, 6), 3
+
+    x0 = -sx1
+
+    y0 = sy1
+
+    X1 = -i
+
+    Y1 = 6
+
+    gfxcolor = Color3
+
+    DrawLineConvert()
+
+    'Line (X1, Y1)-(i, 6), 3    
+
+    x0 = sx1
+
+    y0 = sy1
+
+    X1 = i
+
+    Y1 = 6
+
+    gfxcolor = Color3
+
+    DrawLineConvert()
+
+  EndFor
+
+  'Line (-8, -8)-(8, 16.1), 15, B
+
+  x0 = -8
+
+  y0 = -8
+
+  X1 = 8
+
+  Y1 = 16.1
+
+  gfxcolor = Color15
+
+  DrawRectangleConvert()
+
+  
+
+  FLOOR()
+
+  'HOLE()
+
+  DRILL()
+
+  
+
+  aStr = "B.H.A Now Running:         "
+
+  lx0 = 1.4
+
+  ly0 = -6.4
+
+  lx = 0.37
+
+  ly = 0.9
+
+  ConvertLabel()
+
+  Label()
+
+  'LOCATE 26, 71: Print "     "
+
+  'LOCATE 26, 72: Print bha  
+
+  astr = ""
+
+  If bha = 6 Or (bha = 8 And andrex = 1) Then
+
+    If ander = 1 Then 
+
+      aStr = "F"
+
+    endif
+
+    If ander = 0 Then 
+
+      aStr = "U"
+
+    endif  
+
+  EndIf
+
+  'LOCATE 26, 74: Print a$
+
+  X = 71
+
+  Y = 25
+
+  aStr = bha + "  " + aStr
+
+  gfxcolor = Color1
+
+  BuildTextShapeConvert()
+
+  
+
+  aStr = "BRAKE"
+
+  lx0 = 9
+
+  ly0 = 15
+
+  lx = 0.5
+
+  ly = 0.8
+
+  ConvertLabel()
+
+  Label()
+
+  aStr = "OFF"
+
+  lx0 = 9
+
+  ly0 = 13
+
+  lx = 0.5
+
+  ly = 0.8
+
+  ConvertLabel()
+
+  label1()
+
+  aStr = " ON"
+
+  lx0 = 9
+
+  ly0 = -3
+
+  lx = 0.5
+
+  ly = 0.8
+
+  ConvertLabel()
+
+  label1()
+
+
+
+  'Line (9, -1)-(11, -1), 12
+
+  'Line -(9, 12), 12
+
+  'Line -(9, -1), 12
+
+  'PAINT (10, 3), 12
+
+  x0 = 9
+
+  Y0 = -1
+
+  X1 = 11
+
+  Y1 = -1
+
+  X2 = 9
+
+  Y2 = 12
+
+  gfxcolor = Color12
+
+  FillTriangleConvert()
+
+
+
+  'Line (9, 12)-(11, 12), 10
+
+  'Line -(11, -1), 10
+
+  'Line -(9, 12), 10
+
+  'PAINT (10, 7), 10
+
+  x0 = 9
+
+  Y0 = 12
+
+  X1 = 11
+
+  Y1 = 12
+
+  X2 = 11
+
+  Y2 = -1
+
+  gfxcolor = Color10
+
+  FillTriangleConvert()
+
+
+
+  brake = 1
+
+  L = (1 - brake) * 13 - 1
+
+  'GET (7, L)-(12, L + 1), h'get old background at handle position
+
+  Lasthandle = L
+
+  Handle()
+
+  
+
+endsub
+
+
+
+sub Handle
+
+  
+
+  'PUT (7, Lasthandle), h, PSET  'replace background
+
+  L = (1 - brake) * 13 - 1
+
+  'GET (7, L)-(12, L + 1), h'get old background at new handle position
+
+  If createHandle = "true" then
+
+    i = 1
+
+    'Line (8 + 0.5, L)-(9, L + 0.5), 0, BF
+
+    x0 = 8 + .5
+
+    y0 = L 
+
+    X1 = 9
+
+    Y1 = L + .5
+
+    gfxcolor = Color0
+
+    gfxPcolor = Color0
+
+    BuildRectangleShapeConvert()
+
+    Shapes.SetOpacity(shape,50)
+
+    AddHandleShape()
+
+    'Line (11, L)-(11, L + 0.5), 0
+
+    'Line -(12, L), 0
+
+    'Line -(11, L), 0
+
+    'PAINT (11 + .5, L + .1), 0
+
+    x0 = 11
+
+    Y0 = L
+
+    X1 = 11
+
+    Y1 = L+.5
+
+    X2 = 12
+
+    Y2 = L
+
+    gfxcolor = Color0
+
+    BuildTriangleShapeConvert()
+
+    Shapes.SetOpacity(shape,50)
+
+    AddHandleShape()
+
+    'Line (8, L)-(8 + 0.5, L + 0.5), 4, BF
+
+    x0 = 8 
+
+    y0 = L 
+
+    X1 = 8 + .5
+
+    Y1 = L + .5
+
+    gfxcolor = Color0
+
+    gfxPcolor = Color0    
+
+    BuildRectangleShapeConvert()
+
+    Shapes.SetOpacity(shape,50)
+
+    AddHandleShape()
+
+    'Line (8, L)-(8, L + 0.5), 0
+
+    x0 = 8 
+
+    y0 = L 
+
+    X1 = 8 
+
+    Y1 = L + .5
+
+    gfxcolor = Color0
+
+    BuildLineShapeConvert()
+
+    AddHandleShape()
+
+    'Line (9, L)-(9 + 2 * brake, L + 0.5), 4, BF
+
+    x0 = 9 
+
+    y0 = L 
+
+    X1 = 9 + 2*brake
+
+    Y1 = L + .5
+
+    gfxcolor = Color0
+
+    BuildRectangleShapeConvert()
+
+    Shapes.SetOpacity(shape,50)
+
+    AddHandleShape()
+
+    'Line (9 + 2 * brake, L)-(11, L + 0.5), 2, BF
+
+    x0 = 9+2*brake 
+
+    y0 = L 
+
+    X1 = 11
+
+    Y1 = L + .5
+
+    gfxcolor = Color2
+
+    BuildRectangleShapeConvert()
+
+    AddHandleShape()
+
+    hp = 13
+
+    'Line (7, L + 0.5)-(11, L + 1), hp, BF
+
+    x0 = 7 
+
+    y0 = L + .5
+
+    X1 = 11
+
+    Y1 = L + 1
+
+    gfxcolor = Color13
+
+    BuildRectangleShapeConvert()
+
+    AddHandleShape()
+
+    'Line (11, L + 1)-(12, L + 0.5), hp
+
+    'Line -(12, L), hp
+
+    'Line -(11, L + 0.5), hp
+
+    'PAINT (11.5, L + .5), hp
+
+    x0 = 11
+
+    Y0 = L + 1
+
+    X1 = 12
+
+    Y1 = L + .5
+
+    X2 = 11
+
+    Y2 = L + .5
+
+    gfxcolor = Color13
+
+    BuildTriangleShapeConvert()
+
+    AddHandleShape()
+
+    x0 = 11
+
+    Y0 = L + .5
+
+    X1 = 12
+
+    Y1 = L + .5
+
+    X2 = 12
+
+    Y2 = L 
+
+    gfxcolor = Color13
+
+    BuildTriangleShapeConvert()
+
+    AddHandleShape()
+
+    'Line (7, L + 0.5)-(7, L + 1), 15
+
+    x0 = 7 
+
+    y0 = L + .5
+
+    X1 = 7
+
+    Y1 = L + 1
+
+    gfxcolor = Color15
+
+    BuildLineShapeConvert()
+
+    AddHandleShape()
+
+    'Line -(11, L + 1), 15
+
+    x0 = 7 
+
+    y0 = L + 1
+
+    X1 = 11
+
+    Y1 = L + 1
+
+    gfxcolor = Color15
+
+    BuildLineShapeConvert()
+
+    AddHandleShape()
+
+    'Line -(12, L + 0.5), 15
+
+    x0 = 11 
+
+    y0 = L + 1
+
+    X1 = 12
+
+    Y1 = L + .5
+
+    gfxcolor = Color15
+
+    BuildLineShapeConvert()
+
+    AddHandleShape()
+
+    createHandle = "false"  
+
+    handleShapeCnt = i  
+
+  endif
+
+  'brake = .8
+
+  
+
+  L = (1 - brake) * 13 - 1
+
+  ly0 = (24 - -1) * yScale  'starting point
+
+  ly1 = (24 - L) * yScale
+
+  lyMove = (ly1 - ly0) 
+
+  'TextWindow.WriteLine(ly1 + "<" + ly0)
+
+  If lyMove <> 0 then
+
+    For i = 1 to handleShapeCnt
+
+      shape = handleShapes[i]["Name"]
+
+      X = handleShapes[i]["Left"]
+
+      Y = handleShapes[i]["Top"] + lyMove
+
+      'TextWindow.WriteLine(shape + "," + X + "," + Y)
+
+      Shapes.Move(shape,x,y)
+
+    endfor  
+
+   endif
+
+  Lasthandle = L
+
+endsub
+
+
+
+Sub AddHandleShape
+
+  handleShapes[i]["Name"] = shape
+
+  handleShapes[i]["Top"] = Shapes.GetTop(shape)
+
+  handleShapes[i]["Left"] = Shapes.GetLeft(shape)
+
+  i = i + 1
+
+endsub
+
+
+
+Sub FLOOR
+
+
+
+  'SHADOW
+
+
+
+  For i = 125 To 40 Step -0.2
+
+    j = i * p1
+
+    X = 5 * Math.Sin(j)
+
+    Y = 2.5 * Math.Cos(j)
+
+    'Line (X, Y - 1)-(X + 0.3, Y - 0.6), 8
+
+    x0 = X
+
+    y0 = Y - 1
+
+    X1 = X + .3
+
+    Y1 = Y - .6
+
+    gfxcolor = Color8
+
+    DrawLineConvert()
+
+  endfor
+
+
+
+  For i = 0 To 360 Step .25
+
+    j = i * p1
+
+    X = 5 * Math.Sin(j)
+
+    Y = 2.5 * Math.Cos(j)
+
+    If i = 0 Then 
+
+      'Line (X, Y)-(X, Y), 1
+
+      x0 = X
+
+      y0 = Y 
+
+      X1 = X 
+
+      Y1 = Y 
+
+      shx = X
+
+      shy = y
+
+      gfxcolor = Color1
+
+      DrawLineConvert()
+
+    endif
+
+    'Line -(X, Y), 1
+
+    x0 = shx
+
+    y0 = shy 
+
+    X1 = X
+
+    Y1 = Y
+
+    gfxcolor = Color1
+
+    'debug = "on"
+
+    'GraphicsWindow.PenWidth = 2
+
+    DrawLineConvert()
+
+  endfor
+
+  'PAINT (0, 0), 1
+
+  'GraphicsWindow.PenWidth = 1
+
+  
+
+  For i = 0 To 38 Step .25
+
+    j = i * p1
+
+    X = 5 * Math.Sin(j)
+
+    Y = 2.55 * Math.Cos(j)
+
+    If i = 0 Then 
+
+      'Line (0, 0)-(X, Y), 0
+
+      x0 = .95
+
+      y0 = -.15 
+
+      X1 = X 
+
+      Y1 = Y 
+
+      shx = x0
+
+      shy = y0
+
+      gfxcolor = Color17
+
+      DrawLineConvert()
+
+    endif
+
+    'Line -(X, Y), 0
+
+    x0 = shx
+
+    y0 = shy 
+
+    X1 = X 
+
+    Y1 = Y 
+
+    gfxcolor = Color17
+
+    DrawLineConvert()
+
+  endfor  
+
+  shx = X
+
+  shy = Y
+
+  'Line -(1.3, -0.3), 0
+
+  x0 = shx
+
+  y0 = shy 
+
+  X1 = 1.3 
+
+  Y1 = -.3 
+
+  gfxcolor = Color8
+
+  'DrawLineConvert()
+
+  'Line -(0, 0), 0
+
+  x0 = 1.3
+
+  y0 = -.3 
+
+  X1 = 0 
+
+  Y1 = 0 
+
+  gfxcolor = Color8
+
+  'DrawLineConvert()
+
+  'PAINT (1, 1), 0
+
+  
+
+  For i = 270 To 90 Step -0.3
+
+    j = i * p1
+
+    X = 5 * Math.Sin(j)
+
+    Y = 2.5 * Math.Cos(j)
+
+    pp = Color4
+
+    If i > 130 Then 
+
+      pp = Color12
+
+    endif
+
+    'Line (X, Y)-(X, Y - 1), pp
+
+    x0 = x
+
+    y0 = Y 
+
+    X1 = X 
+
+    Y1 = Y-1 
+
+    gfxcolor = pp
+
+    DrawLineConvert()
+
+  EndFor
+
+  
+
+endsub
+
+
+
+Sub DRILL
+
+  r = 1.25 
+
+  'Line (r, 16)-(r, 0), 9
+
+  x0 = r
+
+  y0 = 16 
+
+  X1 = r 
+
+  Y1 = 0 
+
+  gfxcolor = Color1
+
+  'DrawLineConvert()
+
+  shx = r
+
+  shy = 0
+
+  For i = 90 To 270
+
+    'Line -(r * Sin(i * p1), 0.5 * r * Cos(i * p1)), 9
+
+    x0 = shx
+
+    y0 = 16
+
+    X1 = r * Math.Sin(i * p1) 
+
+    Y1 = 0.5 * r * Math.Cos(i * p1) 
+
+    shx = x1
+
+    shy = y1
+
+    gfxcolor = Color9
+
+    'debug = "on"
+
+    DrawLineConvert() 
+
+    'debug = "off"   
+
+  endfor
+
+  'Line -(-r, 16), 9
+
+  'Line -(r, 16), 9
+
+  'PAINT (0, 4), 9  
+
+endsub
+
+
+
+
+
+
+
+sub StartSelect
+
+  errorSelect:
+
+  x0 = -24 
+
+  y0 = 3
+
+  X1 = -1 
+
+  Y1 = 10.5
+
+  OpenWindow()
+
+  
+
+  QB = 1.16
+
+  B = 2
+
+  a = 9 + B
+
+  'Line (-20.9, 18.2 - QB * a)-(-7.1, 19.3 - QB * a), 12, B
+
+  x0 = -19.9
+
+  y0 = 18.2-QB*a 
+
+  X1 = -6.1
+
+  Y1 = 19.3-QB*a
+
+  gfxcolor = Color8
+
+  gfxPcolor = Color14
+
+  BuildRectangleShapeConvert() 
+
+  Shapes.SetOpacity(shape,50)
+
+  Stack.PushValue(openWindowStack,shape)
+
+  highlight = shape
+
+  
+
+  'Color 13: LOCATE 13, 18: 
+
+  gfxcolor = Color13
+
+  X = 22
+
+  Y = 12
+
+  aStr = "Please Select Starting Point"
+
+  BuildTextShapeConvert()
+
+  Stack.PushValue(openWindowStack,shape)
+
+  'Color 11
+
+  gfxcolor = Color11
+
+  'LOCATE 15, 21: Print " Previous Status "
+
+  'LOCATE 16, 21: Print "       NEW "
+
+  X = 25
+
+  Y = 14
+
+  aStr = " Previous Status"
+
+  BuildTextShapeConvert()
+
+  Stack.PushValue(openWindowStack,shape)
+
+  X = 25
+
+  Y = 15
+
+  aStr = "      NEW"
+
+  BuildTextShapeConvert()
+
+  Stack.PushValue(openWindowStack,shape)
+
+  
+
+  startsel: 
+
+  if bStr = "None" Then
+
+    Goto startsel    
+
+  endif 
+
+ 
+
+  If bStr = "Up" And B <> 1 Then 
+
+    B = B - 1
+
+    hmove = -1.167 * yScale
+
+    X = Shapes.GetLeft(highlight)
+
+    Y = Shapes.GetTop(highlight)+hmove
+
+    'TextWindow.WriteLine(X + "," + Y + "," + hmove)
+
+    Shapes.Move(highlight,x,y)
+
+  EndIf
+
+  If bStr = "Down" And B <> 2 Then 
+
+    B = B + 1
+
+    hmove = 1.167 * yScale
+
+    X = Shapes.GetLeft(highlight)
+
+    Y = Shapes.GetTop(highlight)+hmove
+
+    'TextWindow.WriteLine(X + "," + Y + "," + hmove)
+
+    Shapes.Move(highlight,x,y)
+
+  endif
+
+  'TextWindow.WriteLine(bStr)
+
+  If bStr = "Return" Then
+
+    GoTo accepted3
+
+  endif
+
+  
+
+  GoTo startsel 
+
+  
+
+  accepted3:
+
+  SHUTWINDOW() 
+
+  If stuck = 0 Then 
+
+    SHUTWINDOW()
+
+  endif
+
+  If B = 1 Then                     'recover data
+
+    If Text.GetLength(simStr) < 4 Then
+
+      simStr = "status.sim"
+
+    EndIf
+
+     
+
+     'Open sim$ For Input As #gg
+
+     line = 1
+
+' The following line could be harmful and has been automatically commented.
+
+'      fileText = File.ReadLine(simStr,line)
+
+     'TextWindow.WriteLine(fileText)
+
+     line = line + 1
+
+     If fileText = "" Then
+
+       'error
+
+       GraphicsWindow.ShowMessage("File " + simStr + " cannot be found.","No File")
+
+       Goto errorselect
+
+     endif
+
+     SplitFileCommaString()     
+
+     'Input #gg,
+
+     inclination = split[1]
+
+     direction = split[2]
+
+     holedepth = split[3]
+
+     BD = split[4]
+
+     md = split[5]
+
+     bha = split[6]
+
+     back = split[7]
+
+     toolsav = split[8]
+
+     ob = split[9]
+
+     rotary = split[10]
+
+     spin = split[11]
+
+     rotgear = split[12]
+
+     liftgear = split[13]
+
+     toolorient = split[14]
+
+     tf = split[15]
+
+     startdepth = split[16]
+
+     mud = split[17]
+
+     ander = split[18]
+
+     
+
+     'For i = 1 To 18
+
+       'TextWindow.Write(split[i] + ",")
+
+     'EndFor
+
+     
+
+     MEASUREDDEPTH = md   
+
+     
+
+    tch: 
+
+    If toolsav = 1 Then 
+
+      surtool = 1 
+
+    Else 
+
+      surtool = 2        'MWD unless SRG only
+
+    endif
+
+    For i = 1 To ob
+
+      For j = 1 To 6
+
+        'Input #gg, wd(i, j)
+
+' The following line could be harmful and has been automatically commented.
+
+'         wd[i][j] = File.ReadLine(simStr,line)
+
+        line = line + 1        
+
+      endfor
+
+    endfor  
+
+    
+
+    nobs = ob   ' calculate XYZ
+
+    'wd(1, 4) = 0: wd(1, 5) = 0: wd(1, 6) = 0
+
+    wd[1][4] = 0
+
+    wd[1][5] = 0
+
+    wd[1][6] = 0
+
+    For ob = 1 To nobs - 1
+
+      'Call SURVEY(wd(), ob)
+
+    EndFor
+
+    ob = nobs
+
+    'GoTo nold1
+
+  Else
+
+    exn = 1
+
+    'GoSub exselect
+
+    If B = 5 Then
+
+        exn = 2
+
+        stuck = 1
+
+        'GoSub exselect
+
+        stuck = B
+
+        simStr = "Stuck" + stuck + ".sim"
+
+        B = 1
+
+        GoTo accepted3
+
+    EndIf
+
+  EndIf
+
+    'GoSub getex
+
+
+
+endsub
+
+
+
+sub SplitFileCommaString
+
+  For i = 1 to Text.GetLength(fileText)
+
+    str = Text.GetSubText(fileText,i,1)
+
+    'TextWindow.Write(str)
+
+    If str = "," Then
+
+      j = j + 1      
+
+    Else
+
+      split[j] = Text.Append(split[j],str)
+
+    EndIf    
+
+  endfor
+
+  'TextWindow.WriteLine(" ")
+
+endsub
+
+
+
+Sub SHUTWINDOW
+
+  While Stack.GetCount(openWindowStack) > 0
+
+    shape = Stack.PopValue(openWindowStack)
+
+    Shapes.Remove(shape)
+
+  endwhile
+
+endsub
+
+
+
+Sub Label
+
+  w = (Text.GetLength(aStr) + 1 ) * lx
+
+  h = 1.5 * ly
+
+  GraphicsWindow.BrushColor = Color0
+
+  GraphicsWindow.FillRectangle(lx0 - .5 * lx + 2, ly0 + 2 - h, w ,  h ) '      Line (lx0 - 0.5 * lx + 0.2, ly0 - 0.2)-(lx0 - 0.5 * lx + 0.2 + w, ly0 - 0.2 + h), 0, BF
+
+  GraphicsWindow.BrushColor = Color8
+
+  GraphicsWindow.FillRectangle(lx0 - .5 * lx, ly0 - h, w, h) 'Line (lx0 - 0.5 * lx, ly0)-(lx0 - 0.5 * lx + w, ly0 + h), 4, BF
+
+  shd = 1
+
+  GraphicsWindow.PenWidth = 1.5
+
+  GraphicsWindow.PenColor = Color15
+
+  GraphicsWindow.DrawRectangle(lx0 - .5 * lx, ly0 - h, w, h) 'Line (lx0 - 0.5 * lx, ly0)-(lx0 - 0.5 * lx + w, ly0 + h), 15, B
+
+  GraphicsWindow.PenWidth = 1
+
+  ly0 = ly0 + 0.3 * h - h/2
+
+  label1()
+
+  shd = 0
+
+endsub
+
+
+
+Sub ConvertLabel
+
+  lx0 = (lx0 + 32) * xScale
+
+  ly0 = (24 - ly0) * yScale
+
+  lx = lx * xScale
+
+  ly = ly * yScale
+
+endsub
+
+
+
+
+
+sub label1 
+
+  'TextWindow.WriteLine("Test Output")
+
+  keeplx0 = lx0
+
+  keeply0 = ly0
+
+  For ofst = shd To 0 Step -1
+
+    'TextWindow.WriteLine("  enter offset = " + ofst )
+
+    If ofst = 0 then
+
+      GraphicsWindow.PenColor = Color15
+
+      GraphicsWindow.PenWidth = ly / 13
+
+    Else
+
+      GraphicsWindow.PenColor = Color0
+
+      GraphicsWindow.PenWidth = ly / 13
+
+    EndIf    
+
+    'lp = 15 * (1 - ofst)
+
+    lx0 = keeplx0
+
+    ly0 = keeply0
+
+    For LABI = 1 To Text.GetLength(aStr) 
+
+      LABC =  Text.GetCharacterCode(Text.GetSubText(aStr, LABI, 1))
+
+      'TextWindow.WriteLine("    letter = " + Text.GetSubText(aStr, LABI, 1) + " , " + LABC )
+
+      For LABJ = 1 To GH[LABC][1]
+
+        'TextWindow.WriteLine("      steps = " + GH[LABC][1] )
+
+        LABJ1 = LABJ * 3
+
+        ch1 = lx * GH[LABC][LABJ1 - 1] / 12
+
+        CH2 = ly * GH[LABC][LABJ1] / 12
+
+        X = lx0 + ch1 + ofst '* 0.07
+
+        Y = ly0 - CH2 + ofst '* 0.07
+
+        
+
+        'TextWindow.WriteLine("        " + x + "," + y)
+
+        If GH[LABC][LABJ1 + 1] = 1 Then
+
+          GraphicsWindow.DrawLine(x,y,x,y) 'Line (X, Y)-(X, Y), lp          
+
+          oldx = X
+
+          oldy = y
+
+        endif
+
+        
+
+        GraphicsWindow.DrawLine(oldx,oldy,x,y) 'Line -(X, Y), lp
+
+        oldx = X
+
+        oldy = y
+
+      endfor 'LABJ
+
+      lx0 = lx0 + lx
+
+    EndFor 'LABI
+
+  endfor 'ofst
+
+  GraphicsWindow.PenWidth = 1
+
+EndSub
+
+
+
+Sub Gauge
+
+  If r = 5.6 Then 
+
+    EXTRA = 19 
+
+  Else 
+
+    EXTRA = 0
+
+  endif
+
+  r1 = r
+
+  X1 = cx + .3 * rscale
+
+  Y1 = cy + .3 * rscale
+
+  gfxcolor = Color0
+
+  FillCircle() 'P = 0: GOSUB cir: PAINT (cx, cy), 0
+
+  X1 = cx
+
+  Y1 = cy
+
+  gfxcolor = Color12
+
+  FillCircle()  'P = 12: GOSUB cir: PAINT (cx, cy), P
+
+  r1 = .9 * r
+
+  gfxcolor = Color8
+
+  FillCircle()  'P = 8: GOSUB cir: PAINT (cx, cy), P
+
+  r1 = r
+
+  gfxcolor = Color15
+
+  DrawCircle()'P = 15: GoSub cir
+
+  r1 = 0.9 * r
+
+  gfxcolor = Color1
+
+  DrawCircle()'P = 1: GoSub cir
+
+  r1 = .2 * r
+
+  gfxcolor = Color14
+
+  FillCircle()  'P = 14: GOSUB cir: PAINT (cx, cy), P
+
+  
+
+  'numbers
+
+  
+
+  s = 300 / (maxv - minv)
+
+  c = 0
+
+  For i = minv To maxv + EXTRA Step iv
+
+    labit = 0
+
+    q = 0.06 * r
+
+    If Math.Remainder(c,5) = 0 Then 
+
+      q = 1.5 * q
+
+    EndIf
+
+    If Math.Remainder(c,10) = 0 Then 
+
+      q = 1.5 * q
+
+      labit = 1
+
+    endif
+
+    
+
+    a = (-150 + s * (i - minv)) * p1 'angle
+
+    r1 = 0.86 * r
+
+    r2 = r1 - q
+
+    lp = 14
+
+    
+
+    If i > maxv Then 
+
+      gfxColor = Color12 'lp = 12
+
+    Else
+
+      gfxcolor = Color14
+
+    endif
+
+    GraphicsWindow.PenColor = gfxcolor
+
+    GraphicsWindow.DrawLine(cx + r1 * Math.Sin(a), cy - r1 * Math.Cos(a),cx + r2 * Math.Sin(a), cy - r2 * Math.Cos(a))
+
+    'Line (cx + r1 * Sin(a), cy + r1 * Cos(a))-(cx + r2 * Sin(a), cy + r2 * Cos(a)), lp
+
+    If labit = 1 And i <= maxv Then
+
+      'a$ = LTrim$(RTrim$(Str$(i)))
+
+      aStr = i
+
+      lx = 0.09 * r
+
+      ly = 0.12 * r
+
+      lx0 = cx + 0.6 * r * Math.Sin(a) - 0.6 * lx * Text.GetLength(aStr)
+
+      ly0 = cy - 0.6 * r * Math.Cos(a) + 0.6 * ly
+
+      Label1()
+
+    endif
+
+    c = c + 1
+
+  endfor
+
+  
+
+  G = G + 1 'gauge counter
+
+  gag[G][1] = r
+
+  gag[G][2] = cx
+
+  gag[G][3] = cy
+
+  gag[G][4] = minv
+
+  gag[G][5] = maxv
+
+  gag[G][6] = 0    'first value
+
+  newval = 0
+
+  Needle()
+
+  
+
+  'If EXTRA > 0 Then LOCATE 6, 31: Print "   "
+
+endsub
+
+
+
+Sub Needle
+
+  gfxColor = color8 ' P = 8
+
+  v = gag[G][6]
+
+  Needpos()
+
+  gfxColor = Color12 'P = 12
+
+  v = newval
+
+  Needpos()
+
+  gag[G][6] = newval
+
+EndSub 
+
+
+
+sub Needpos
+
+  a = (-150 + 300 * (v - gag[G][4]) / (gag[G][5] - gag[G][4])) * p1 'angle
+
+  X = gag[G][2]
+
+  Y = gag[G][3]
+
+  r = gag[G][1]
+
+  X1 = X + 0.4 * r * Math.Sin(a)
+
+  Y1 = Y - 0.4 * r * Math.Cos(a)
+
+  X2 = X + 0.22 * r * Math.Sin(a - 0.15)
+
+  Y2 = Y - 0.22 * r * Math.Cos(a - 0.15)
+
+  x3 = X + 0.22 * r * Math.Sin(a + 0.15)
+
+  y3 = Y - 0.22 * r * Math.Cos(a + 0.15)
+
+  GraphicsWindow.PenColor = gfxcolor
+
+  GraphicsWindow.DrawLine(X1,Y1,X2,Y2) '  Line (X1, Y1)-(X2, Y2), P
+
+  GraphicsWindow.DrawLine(x2,y2,x3,y3)  'Line -(x3, y3), P
+
+  GraphicsWindow.DrawLine(x3,y3,x1,y1)  'Line -(X1, Y1), P  
+
+endsub
+
+
+
+sub Gears
+
+  aStr = "ROTARY TABLE"
+
+  lx0 = (-8 + 32) * xScale
+
+  ly0 = (24 - 20) * yScale
+
+  lx = 0.6 * xScale
+
+  ly = 1 * yScale
+
+  Label()
+
+  
+
+  aStr = "UNLK"
+
+  lx0 = (-8 + 32) * xScale
+
+  ly0 = (24 - 18) * yscale
+
+  lx = 0.4 * xscale
+
+  ly = 0.7 * yScale
+
+  Label()
+
+  
+
+  aStr = "LOCK"
+
+  lx0 = (-4 + 32) * xScale
+
+  ly0 = (24 - 18) * yScale
+
+  lx = 0.4 * xScale
+
+  ly = 0.7 * yScale
+
+  Label()
+
+  
+
+  aStr = "DRAWWORKS CLUTCH"
+
+  lx0 = (2 + 32) * xScale
+
+  ly0 = (24 - 20) * yScale
+
+  lx = 0.6 * xScale
+
+  ly = 1 * yScale
+
+  Label()
+
+  
+
+  aStr = "OUT"
+
+  lx0 = (32 + 2) * xScale
+
+  ly0 = (24 - 18) * yScale
+
+  lx = 0.4 * xScale
+
+  ly = 0.7 * yScale
+
+  Label()
+
+  
+
+  aStr = "IN"
+
+  lx0 = (32 + 6) * xScale
+
+  ly0 = (24 - 18) * yScale
+
+  lx = 0.4 * xScale
+
+  ly = 0.7 * yScale
+
+  Label()
+
+  
+
+  r1 = .6 * rscale
+
+  X1 = (32 + -5.5) * xScale
+
+  Y1 = (24 - 18.35) * yScale
+
+  gfxcolor = Color15
+
+  FillCircle()  ' P = 15: GOSUB cir: PAINT (X1, Y1), P
+
+  X1 = (32 + -1.5) * xScale
+
+  FillCircle()    ' P  = 15: GOSUB cir: PAINT (X1, Y1), P
+
+  X1 = (32 + 4.5) * xScale
+
+  FillCircle()  '  P  = 15: GOSUB cir: PAINT (X1, Y1), P
+
+  X1 = (32 + 8.5) * xScale
+
+  FillCircle()   ' P = 15: GOSUB cir: PAINT (X1, Y1), P
+
+  
+
+  Gears1()
+
+endsub
+
+
+
+Sub Gears1
+
+  
+
+  gfxcolor = Color10  '  P = 10: 
+
+  If rotgear = 0 Then 
+
+    gfxcolor = Color0
+
+  endif
+
+  r1 = .5 * rscale
+
+  X1 = (32 + -5.5) * xScale
+
+  Y1 = (24 - 18.35) * yScale
+
+  FillCircle()  ' GOSUB cir: PAINT (X1, Y1), P
+
+  gfxcolor = Color12 ' P = 12: 
+
+  If rotgear = 1 Then 
+
+    gfxcolor = Color0
+
+  endif
+
+  X1 = (32 + -1.5) * xScale
+
+  FillCircle()  ' GOSUB cir: PAINT (X1, Y1), P
+
+  
+
+  gfxcolor = Color10 ' P = 10: 
+
+  If liftgear = -1 Then 
+
+    gfxcolor = Color0  ' P = 0
+
+  endif
+
+  X1 = (32 + 4.5) * xScale
+
+  FillCircle()  ' GOSUB cir: PAINT (X1, Y1), P
+
+  gfxcolor = Color12  ' P = 12: 
+
+  If liftgear = 1 Then 
+
+    gfxcolor = Color0
+
+  endif
+
+  X1 = (32 + 8.5) * xScale
+
+  FillCircle()  ' GOSUB cir: PAINT (X1, Y1), P
+
+endsub
+
+
+
+sub SURVEY  
+
+  'Line (-18.5, -9)-(-9, 11.5), 14, BF
+
+  x0 = -18.5
+
+  y0 = -9
+
+  X1 = -9
+
+  Y1 = 11.5
+
+  gfxcolor = Color14
+
+  FillRectangleConvert()
+
+  'Line (-18, -8.5)-(-9.5, 11), 7, BF
+
+  x0 = -18
+
+  y0 = -8.5
+
+  X1 = -9.5
+
+  Y1 = 11
+
+  gfxcolor = Color7
+
+  FillRectangleConvert()
+
+  'Line (-18, 7)-(-9, 7.5), 14, BF
+
+  x0 = -18
+
+  y0 = 7
+
+  X1 = -9
+
+  Y1 = 7.5
+
+  gfxcolor = Color14
+
+  FillRectangleConvert()
+
+  'Line (-18, 3)-(-9, 3.5), 14, BF
+
+  x0 = -18
+
+  y0 = 3
+
+  X1 = -9
+
+  Y1 = 3.5
+
+  gfxcolor = Color14
+
+  FillRectangleConvert()
+
+  'Line (-18, -1)-(-9, -0.5), 14, BF
+
+  x0 = -18
+
+  y0 = -1
+
+  X1 = -9
+
+  Y1 = -.5
+
+  gfxcolor = Color14
+
+  FillRectangleConvert()
+
+  'Line (-18, -5)-(-9, -4.5), 14, BF
+
+  x0 = -18
+
+  y0 = -5
+
+  X1 = -9
+
+  Y1 = -4.5
+
+  gfxcolor = Color14
+
+  FillRectangleConvert()
+
+
+
+  'Line (-18.5, -9)-(-18.4, 11.5), 15, BF
+
+  x0 = -18.5
+
+  y0 = -9
+
+  X1 = -18.4
+
+  Y1 = 11.5
+
+  gfxcolor = Color15
+
+  FillRectangleConvert()
+
+  'Line (-18.5, 11.4)-(-9, 11.5), 15, BF
+
+  x0 = -18.5
+
+  y0 = 11.4
+
+  X1 = -9
+
+  Y1 = 11.5
+
+  gfxcolor = Color15
+
+  FillRectangleConvert()
+
+
+
+  'Line (-18.5, -9)-(-9, -8.9), 4, BF
+
+  x0 = -18.5
+
+  y0 = -9
+
+  X1 = -9
+
+  Y1 = -8.9
+
+  gfxcolor = Color4
+
+  FillRectangleConvert()
+
+  'Line (-9.1, -9)-(-9, 11.5), 4, BF
+
+  x0 = -9.1
+
+  y0 = -9
+
+  X1 = -9
+
+  Y1 = 11.5
+
+  gfxcolor = Color4
+
+  FillRectangleConvert()
+
+  For j = 7.5 To -8.5 Step -4
+
+    'Line (-18.1, j)-(-18, j + 3.5), 4, BF
+
+    x0 = -18.1
+
+    y0 = j 
+
+    X1 = -18
+
+    Y1 = j + 3.5
+
+    gfxcolor = Color4
+
+    FillRectangleConvert()
+
+    'Line (-18, j + 3.5)-(-9.5, j + 3.6), 4, BF
+
+    x0 = -18
+
+    y0 = j + 3.5
+
+    X1 = -9.5
+
+    Y1 = j + 3.6
+
+    gfxcolor = Color4
+
+    FillRectangleConvert()
+
+    'Line (-18.1, j)-(-9.5, j + 0.1), 15, BF
+
+    x0 = -18.1
+
+    y0 = j 
+
+    X1 = -9.5
+
+    Y1 = j + .1
+
+    gfxcolor = Color4
+
+    FillRectangleConvert()
+
+    'Line (-9.6, j)-(-9.5, j + 3.5), 15, BF
+
+    x0 = -9.6
+
+    y0 = j 
+
+    X1 = -9.5
+
+    Y1 = j + 3.5
+
+    gfxcolor = Color4
+
+    FillRectangleConvert()
+
+  endfor
+
+  'TextWindow.Write("survey boxes done")
+
+  
+
+  'Line (-16.5, 2.27 + 8)-(-10.5, 2.93 + 8), 1, BF
+
+  x0 = -16.5
+
+  y0 = 2.22 + 8 
+
+  X1 = -10.5
+
+  Y1 = 2.93 + 8
+
+  gfxcolor = Color1
+
+  FillRectangleConvert()
+
+  aStr = "BIT  Depth"
+
+  lx = 0.5
+
+  ly = 0.5
+
+  lx0 = -16
+
+  ly0 = 10.3
+
+  ConvertLabel()
+
+  label1()
+
+  
+
+  'Line (-16.5, 2.27 + 4)-(-10.5, 2.93 + 4), 1, BF
+
+  x0 = -16.5
+
+  y0 = 2.22 + 4 
+
+  X1 = -10.5
+
+  Y1 = 2.93 + 4
+
+  gfxcolor = Color1
+
+  FillRectangleConvert()
+
+  aStr = "HOLE Depth"
+
+  lx = 0.5
+
+  ly = 0.5
+
+  lx0 = -16
+
+  ly0 = 6.3
+
+  ConvertLabel()
+
+  label1()
+
+  'Line (-16.5, 2.27)-(-10.5, 2.93), 1, BF
+
+  x0 = -16.5
+
+  y0 = 2.22 
+
+  X1 = -10.5
+
+  Y1 = 2.93 
+
+  gfxcolor = Color1
+
+  FillRectangleConvert()
+
+  aStr = "HOLE Dir'n"
+
+  lx = 0.5
+
+  ly = 0.5
+
+  lx0 = -16
+
+  ly0 = 2.3
+
+  ConvertLabel()
+
+  label1()
+
+  'Line (-16.5, 2.27 - 4)-(-10.5, 2.93 - 4), 1, BF
+
+  x0 = -16.5
+
+  y0 = 2.22 - 4 
+
+  X1 = -10.5
+
+  Y1 = 2.93 - 4
+
+  gfxcolor = Color1
+
+  FillRectangleConvert()
+
+  aStr = "INCLINAT'n"
+
+  lx = 0.5
+
+  ly = 0.5
+
+  lx0 = -16
+
+  ly0 = -1.7
+
+  ConvertLabel()
+
+  label1()
+
+  'Line (-16.5, 2.27 - 8)-(-10.5, 2.93 - 8), 1, BF
+
+  x0 = -16.5
+
+  y0 = 2.22 - 8 
+
+  X1 = -10.5
+
+  Y1 = 2.93 - 8
+
+  gfxcolor = Color1
+
+  
+
+  FillRectangleConvert()
+
+  aStr = " TOOLFACE "
+
+  lx = 0.5
+
+  ly = 0.5
+
+  lx0 = -16
+
+  ly0 = -5.7
+
+  ConvertLabel()
+
+  label1()
+
+  
+
+  panel:
+
+  'TextWindow.Write("survey boxes done")
+
+  BDDISP()
+
+  'TextWindow.Write("survey bddisp done")
+
+  MDDISP()
+
+  'TextWindow.Write("survey mddisp done")
+
+  DIRDISP()
+
+  'TextWindow.Write("survey dirdisp done")
+
+  INCDISP()
+
+  'TextWindow.Write("survey incdisp done")
+
+  TFDISP()
+
+  'TextWindow.Write("survey tfdisp done")  
+
+  'TextWindow.Write("survey done")
+
+  
+
+EndSub
+
+
+
+sub BDDISP
+
+  If BUNG <= 0 Then 
+
+    BD = md
+
+    nx = -18
+
+    ny = 8
+
+    Value = BD
+
+    keepblank = blank
+
+    blank = 0
+
+    dis()
+
+    blank = keepblank
+
+    'Line (-12.3, 8)-(-11.9, 8.4), 0, BF
+
+    x0 = -12.3
+
+    y0 = 8
+
+    X1 = -11.9
+
+    Y1 = 8.4
+
+    gfxcolor = Color0
+
+    FillRectangleConvert()
+
+  endif
+
+EndSub
+
+
+
+Sub MDDISP
+
+  nx = -18
+
+  ny = 4
+
+  Value = holedepth
+
+  keepblank = blank
+
+  blank = 0
+
+  dis()
+
+  blank = keepblank
+
+  'Line (-12.3, 4)-(-11.9, 4.4), 0, BF
+
+  x0 = -12.3
+
+  y0 = 4
+
+  X1 = -11.9
+
+  Y1 = 4.4
+
+  gfxcolor = Color0
+
+  FillRectangleConvert()
+
+endsub
+
+
+
+sub DIRDISP
+
+  nx = -18
+
+  ny = 0
+
+  If bdir < 0 Then
+
+    bdir = bdir + 360
+
+  EndIf
+
+  If bdir > 360 Then 
+
+    bdir = bdir - 360
+
+  endif
+
+  Value = bdir
+
+  dis()
+
+  'Line (-12.3, 0)-(-11.9, 0.4), 0, BF
+
+  x0 = -12.3
+
+  y0 = 0
+
+  X1 = -11.9
+
+  Y1 = 0.4
+
+  gfxcolor = Color0
+
+  FillRectangleConvert()
+
+endsub
+
+
+
+Sub  INCDISP
+
+  nx = -18
+
+  ny = -4
+
+  Value = binc
+
+  fd = 2
+
+  dis()
+
+  'Line (-12.3, -4)-(-11.9, -3.6), 0, BF
+
+  x0 = -12.3
+
+  y0 = -4
+
+  X1 = -11.9
+
+  Y1 = -3.6
+
+  gfxcolor = Color0
+
+  FillRectangleConvert()
+
+endsub
+
+
+
+Sub TFDISP
+
+  nx = -18
+
+  ny = -8
+
+  'tf = 99.76
+
+  aStr = Math.Round(tf*100) ' Right$("         " + LTrim$(Str$(Int(100 * tf))), 7)
+
+  keepblank = blank
+
+  If tf = -99 Then 
+
+    blank = 1
+
+  EndIf    
+
+  Value = tf
+
+  If hit = 1 And tf > 180 Then
+
+    Value = 360 - tf
+
+  endif
+
+  fd = 2
+
+  
+
+  dis()
+
+  
+
+  blank = keepblank
+
+  'Line (-12.3, -8)-(-11.9, -7.6), 0, BF
+
+  x0 = -12.3
+
+  y0 = -8
+
+  X1 = -11.9
+
+  Y1 = -7.6
+
+  gfxcolor = Color0
+
+  FillRectangleConvert()
+
+  
+
+  tfc = 11
+
+  tfcStr = "A"
+
+  If hit = 1 Then
+
+    If tf > 180 Then
+
+      tfc = Color12
+
+      tfcStr = "L"
+
+    EndIf      
+
+    If tf <= 180 Then 
+
+      tfc = color10
+
+      tfcStr = "R"
+
+    endif
+
+  EndIf
+
+  'LOCATE 27, 26: Color tfc: Print tfc$
+
+  X = 27
+
+  Y = 26
+
+  aStr = tfcStr  
+
+  gfxcolor = tfc
+
+  BuildTextShapeConvert()
+
+  
+
+Endsub
+
+
+
+
+
+sub dis
+
+  u = 0
+
+
+
+  aStr =  "        " + Math.Round(Value * 100)        'Right$("         " + LTrim$(Str$(Int(100 * Value))), 7)
+
+  aStr = Text.GetSubTextToEnd(aStr,text.GetLength(aStr)-6)
+
+  
+
+  If Value < 1 Then 
+
+    aStr =  "        00" + aStr  
+
+    aStr = Text.GetSubTextToEnd(aStr,text.GetLength(aStr)-6)'  a$ = Right$("        0" + LTrim$(Str$(Int(100 * Value))), 7)
+
+  endif
+
+  If Value < 0.1 Then 
+
+    aStr =  "        000" + aStr  
+
+    aStr = Text.GetSubTextToEnd(aStr,text.GetLength(aStr)-6)''  a$ = Right$("       00" + LTrim$(Str$(Int(100 * Value))), 7)
+
+  endif
+
+  'TextWindow.WriteLine(" ")
+
+  'TextWindow.Write(astr + " len = " + Text.GetLength(astr))
+
+  dsx = nx + 1.2 * fd
+
+  nx = dsx
+
+  u = 0
+
+  For a = fd + 1 To 7
+
+    A1Str = Text.GetSubText(aStr, a, 1) '      Mid$(a$, a, 1)
+
+    'TextWindow.WriteLine(aStr + "," + Text.GetLength(astr) +  " = " + A1Str)
+
+    If A1Str <> " " And u = 0 And a >= fd Then
+
+      'Line (dsx + 0.1, ny)-(nx, ny + 2), 7, BF 'empty
+
+      x0 = dsx + .1
+
+      y0 = ny 
+
+      x1 = nx
+
+      Y1 = ny + 2
+
+      gfxcolor = Color7
+
+      'TextWindow.WriteLine(x0 + "," + y0 + "," + X1 + "," + y1)
+
+      'debug = "on"
+
+      FillRectangleConvert() 
+
+      'debug = "off"     
+
+      u = 1
+
+    EndIf
+
+    'TextWindow.Write(a1str + " len = " + Text.GetLength(a1str))
+
+    i = A1Str
+
+    If blank = 1 Then 
+
+      i = 10
+
+    endif
+
+    If u = 1 Then 
+
+      'TextWindow.write(i)
+
+      Digit()      
+
+    endif
+
+    nx = nx + 1.2
+
+    If a = 5 Then 
+
+      nx = nx + 0.3
+
+    endif
+
+  EndFor
+
+  fd = 0
+
+endsub
+
+
+
+sub Digit
+
+  'Line (nx + 0.26, ny + 1.86)-(nx + 0.54, ny + 2), L(i, 1), BF 'top
+
+  x0 = nx + .26
+
+  y0 = ny + 1.86
+
+  X1 = nx + .54
+
+  Y1 = ny + 2
+
+  gfxcolor = L[i][1]
+
+  FillRectangleConvert()
+
+  'TextWindow.Write(1)
+
+  'Line (nx + 0.26, ny + 1)-(nx + 0.54, ny + 1.14), L(i, 2), BF 'middle
+
+  x0 = nx + .26
+
+  y0 = ny + 1
+
+  X1 = nx + .54
+
+  Y1 = ny + 1.14
+
+  gfxcolor = L[i][2]
+
+  FillRectangleConvert()
+
+  'TextWindow.Write(2)
+
+  'Line (nx + 0.26, ny)-(nx + 0.54, ny + 0.14), L(i, 3), BF   'bottom
+
+  x0 = nx + .26
+
+  y0 = ny 
+
+  X1 = nx + .54
+
+  Y1 = ny + .14
+
+  gfxcolor = L[i][3]
+
+  FillRectangleConvert()
+
+  'TextWindow.Write(3)
+
+  'Line (nx, ny + 1)-(nx + 0.14, ny + 2), L(i, 4), BF         'top left
+
+  x0 = nx 
+
+  y0 = ny + 1
+
+  X1 = nx + .14
+
+  Y1 = ny + 2
+
+  gfxcolor = L[i][4]
+
+  FillRectangleConvert()
+
+  'TextWindow.Write(4)
+
+  'Line (nx, ny)-(nx + 0.14, ny + 1), L(i, 5), BF             'bot left
+
+  x0 = nx 
+
+  y0 = ny 
+
+  X1 = nx + .14
+
+  Y1 = ny + 1
+
+  gfxcolor = L[i][5]
+
+  FillRectangleConvert()
+
+  'TextWindow.Write(5)
+
+  'Line (nx + 0.66, ny + 1)-(nx + 0.8, ny + 2), L(i, 6), BF   'top right
+
+  x0 = nx + .66
+
+  y0 = ny + 1
+
+  X1 = nx + .8
+
+  Y1 = ny + 2
+
+  gfxcolor = L[i][6]
+
+  'debug = "on"
+
+  FillRectangleConvert()
+
+  'debug = "off"
+
+  'TextWindow.Write(6)
+
+  ' Line (nx + 0.66, ny)-(nx + 0.8, ny + 1), L(i, 7), BF       'bot right
+
+  x0 = nx + .66
+
+  y0 = ny 
+
+  X1 = nx + .8
+
+  Y1 = ny + 1
+
+  gfxcolor = L[i][7]
+
+  FillRectangleConvert()
+
+  'TextWindow.Write(7)
+
+endsub
+
+
+
+Sub FillRectangleConvert
+
+  x0 = (x0 + 32) * xScale
+
+  y1 = (24 - y1) * yScale
+
+  w = ((X1 + 32) * xScale) - x0
+
+  h = ((24 - Y0) * yScale) - y1
+
+  If debug = "on" then
+
+    TextWindow.WriteLine(x0 + ", " + y1 + ", " + " ," + w + " ," + h)
+
+  endif
+
+  GraphicsWindow.PenColor = gfxcolor
+
+  GraphicsWindow.BrushColor = gfxcolor
+
+  If w > 0 and h > 0 then
+
+    GraphicsWindow.FillRectangle(x0,y1,w,h)
+
+  Else
+
+    'TextWindow.WriteLine("Application Error, width and/or height on object negative values")
+
+    'TextWindow.WriteLine("    width = " + w + "   height = " + h)     
+
+  endif
+
+endsub
+
+
+
+Sub DrawRectangleConvert
+
+  x0 = (x0 + 32) * xScale
+
+  y1 = (24 - y1) * yScale
+
+  w = ((X1 + 32) * xScale) - x0
+
+  h = ((24 - Y0) * yScale) - y1
+
+  If debug = "on" then
+
+    TextWindow.WriteLine(x0 + ", " + y1 + ", " + " ," + w + " ," + h)
+
+  endif
+
+  GraphicsWindow.PenColor = gfxcolor
+
+  If w > 0 and h > 0 then
+
+    GraphicsWindow.DrawRectangle(x0,y1,w,h)
+
+  Else
+
+    'TextWindow.WriteLine("Application Error, width and/or height on object negative values")
+
+    'TextWindow.WriteLine("    width = " + w + "   height = " + h) 
+
+  endif
+
+endsub
+
+
+
+sub BuildRectangleShapeConvert
+
+  x0 = (x0 + 32) * xScale
+
+  y1 = (24 - y1) * yScale
+
+  w = ((X1 + 32) * xScale) - x0
+
+  h = ((24 - Y0) * yScale) - y1
+
+  If debug = "on" then
+
+    TextWindow.WriteLine(x0 + ", " + y1 + ", " + " ," + w + " ," + h)
+
+  endif
+
+  If gfxPcolor <> 0 then
+
+    GraphicsWindow.PenColor = gfxPcolor
+
+  else
+
+    GraphicsWindow.PenColor = gfxcolor
+
+  endif
+
+  GraphicsWindow.BrushColor = gfxcolor
+
+  shape = Shapes.AddRectangle(w,h)
+
+  Shapes.Move(shape,x0,y1)
+
+  Shapes.ShowShape(shape)  
+
+endsub
+
+
+
+Sub DrawLineConvert
+
+  x0 = (x0 + 32) * xScale
+
+  y0 = (24 - y0) * yScale
+
+  x1 = ((X1 + 32) * xScale) 
+
+  y1 = ((24 - Y1) * yScale) 
+
+  If debug = "on" then
+
+    TextWindow.WriteLine(x0 + ", " + y1 + ", " + " ," + x1 + " ," + y1)
+
+  endif
+
+  GraphicsWindow.PenColor = gfxcolor
+
+  GraphicsWindow.DrawLine(x0,y0,x1,y1)
+
+endsub
+
+
+
+sub BuildTextShapeConvert
+
+  x = ((X * 8 / 640 * 46.1)) * xScale
+
+  y = Y * 16 / 480 * 35 * yScale
+
+  If debug = "on" then
+
+    TextWindow.WriteLine(x + ", " + y )
+
+  endif
+
+  GraphicsWindow.PenColor = gfxcolor
+
+  GraphicsWindow.BrushColor = gfxcolor  
+
+  shape = Shapes.AddText(aStr)
+
+  Shapes.Move(shape,x,y)  
+
+  Shapes.ShowShape(shape)
+
+  
+
+endsub
+
+
+
+Sub BuildLineShapeConvert
+
+  x0 = (x0 + 32) * xScale
+
+  y0 = (24 - y0) * yScale
+
+  x1 = ((X1 + 32) * xScale) 
+
+  y1 = ((24 - Y1) * yScale) 
+
+  If debug = "on" then
+
+    TextWindow.WriteLine(x0 + ", " + y1 + ", " + " ," + x1 + " ," + y1)
+
+  endif
+
+  GraphicsWindow.PenColor = gfxcolor
+
+  shape = Shapes.AddLine(x0,y0,x1,y1)  
+
+  Shapes.ShowShape(shape)
+
+endsub
+
+
+
+Sub FillTriangleConvert
+
+  x0 = (x0 + 32) * xScale
+
+  y0 = (24 - y0) * yScale
+
+  x1 = ((X1 + 32) * xScale) 
+
+  y1 = ((24 - Y1) * yScale) 
+
+  X2 = (X2 + 32) * xScale
+
+  Y2 = (24 - y2) * yScale
+
+  If debug = "on" then
+
+    TextWindow.WriteLine(x0 + ", " + y1 + ", " + " ," + x1 + " ," + y1)
+
+  endif
+
+  GraphicsWindow.PenColor = gfxcolor
+
+  GraphicsWindow.BrushColor = gfxcolor
+
+  GraphicsWindow.FillTriangle(x0,y0,x1,y1,x2,y2)
+
+endsub
+
+
+
+Sub BuildTriangleShapeConvert
+
+  x0 = (x0 + 32) * xScale
+
+  y0 = (24 - y0) * yScale
+
+  x1 = ((X1 + 32) * xScale) 
+
+  y1 = ((24 - Y1) * yScale) 
+
+  X2 = (X2 + 32) * xScale
+
+  Y2 = (24 - y2) * yScale
+
+  If debug = "on" then
+
+    TextWindow.WriteLine(x0 + ", " + y1 + ", " + " ," + x1 + " ," + y1)
+
+  endif
+
+  GraphicsWindow.BrushColor = gfxcolor
+
+  GraphicsWindow.PenColor = gfxcolor
+
+  shape = Shapes.AddTriangle(x0,y0,x1,y1,x2,y2)
+
+  Shapes.ShowShape(shape)
+
+endsub
+
+
+
+ sub OpenWindow
+
+   wind:
+
+   
+
+  'GET (x0, y0)-(X1, Y1), holder
+
+  sx0 = x0
+
+  sy0 = y0
+
+  sx1 = X1
+
+  sy1 = Y1  
+
+  'window shadow
+
+  x0 = sx0 + 1
+
+  y0 = sy0 
+
+  X1 = sX1
+
+  Y1 = sY1 - 2
+
+  gfxPcolor = Color0
+
+  BuildRectangleShapeConvert() 
+
+  Shapes.SetOpacity(shape,50)
+
+  Stack.PushValue(openWindowStack,shape)
+
+  'TextWindow.WriteLine(y0 + " , " + y1)
+
+  ' Line (x0, y0 + 1)-(X1 - 1, Y1), 0, BF
+
+  x0 = sx0
+
+  y0 = sy0 + 1
+
+  X1 = sX1 -1
+
+  Y1 = sY1
+
+  gfxcolor = Color0
+
+  gfxPcolor = Color14
+
+  BuildRectangleShapeConvert()    
+
+  Stack.PushValue(openWindowStack,shape)
+
+  ' Line (x0, y0 + 1)-(X1 - 1, Y1), 14, B 
+
+endsub
+
+
+
+
+
+Sub DrawCircle
+
+  GraphicsWindow.PenColor = gfxcolor
+
+  GraphicsWindow.DrawEllipse(X1-r1,Y1-r1,r1*2,r1*2)
+
+endsub
+
+
+
+Sub FillCircle 
+
+  GraphicsWindow.BrushColor = gfxcolor
+
+  GraphicsWindow.FillEllipse(X1-r1,Y1-r1,r1*2,r1*2)  
+
+endsub
+
+
+
+
+
+Sub Chars
+
+  Nums()
+
+  pr = 1
+
+  DEP = 1
+
+  line = 1
+
+  filepath = "CHARBANK"  
+
+  For i = 1 To 128
+
+' The following line could be harmful and has been automatically commented.
+
+'     GH[i][1] = File.ReadLine(filepath,line)
+
+    line = line + 1
+
+    For j = 1 To 3 * GH[i][1]
+
+' The following line could be harmful and has been automatically commented.
+
+'       GH[i][j+1] = File.ReadLine(filepath,line)
+
+      line = line + 1
+
+    EndFor
+
+  EndFor  
+
+  
+
+  'TestChars()
+
+EndSub
+
+
+
+Sub TestChars
+
+  'test input/output for Chars
+
+  For i = 1 To 128
+
+    TextWindow.WriteLine(GH[i][1])
+
+    For j = 1 To 3
+
+      TextWindow.WriteLine(GH[i][j+1])
+
+    EndFor
+
+  EndFor 
+
+EndSub
+
+
+
+sub Nums
+
+  Data[0] = "1711111"
+
+  Data[1] = "7777711"
+
+  Data[2] = "1117117"
+
+  Data[3] = "1117711"
+
+  Data[4] = "7171711"
+
+  Data[5] = "1111771"
+
+  Data[6] = "7111171"
+
+  Data[7] = "1777711"
+
+  Data[8] = "1111111"
+
+  Data[9] = "1111711"
+
+  Data[10] = "7777777"
+
+  For i = 0 To 10
+
+    'TextWindow.WriteLine(" ")
+
+    For j = 1 To 7
+
+      aStr = Text.GetSubText(Data[i],j,1)
+
+      If aStr = "1" Then
+
+        L[i][j] = Color1
+
+      ElseIf aStr = "7" then
+
+        L[i][j] = Color7
+
+      EndIf   
+
+      'TextWindow.Write(L[i][j])
+
+    EndFor
+
+  EndFor
+
+endsub
+
+

@@ -1,0 +1,457 @@
+'' stopwatch  2013-08-26  WhTurner     ''
+
+'' Challege of the Month - August 2013  ''
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
+''' KNOWN BUG : the first lap calculation after Stop and then Continue is wrong
+
+
+
+FO=Program.Directory+"\StopwLog.txt"      ''name of logfile
+
+FileUse=1   '  0=no file write     1=clear file and use       2=append to existing file
+
+If FileUse=1 then
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.DeleteFile(FO)
+
+endif
+
+graphinit()
+
+Controls.ButtonClicked=Click
+
+GraphicsWindow.KeyDown=KeyD
+
+
+
+
+
+
+
+'==================================================
+
+'  SUBROUTINES   KeyD ; Click; Shand ; graphinit ; DoLap
+
+'==================================================
+
+Sub KeyD
+
+  Key=GraphicsWindow.LastKey
+
+  If Key="Space" Then
+
+    DoLap()
+
+  endif
+
+EndSub
+
+Sub Click
+
+  If Controls.LastClickedButton=b1 then  'start
+
+    running=1
+
+    Controls.HideControl(b1)
+
+    Controls.ShowControl(b2)
+
+    GraphicsWindow.FontSize=20
+
+    Timer.Tick=Shand
+
+    Timer.Interval=500
+
+    date=Clock.Date
+
+    If FileUse>0 Then
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.AppendContents(FO,"Started on "+date)
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.AppendContents(FO,"     at  "+Clock.Time)
+
+    EndIf
+
+    t0=Clock.ElapsedMilliseconds-t000
+
+  endif
+
+  If Controls.LastClickedButton=b2 then   'stop
+
+    running=0
+
+    Timer.Pause()  
+
+    Controls.HideControl(b2)
+
+    Controls.ShowControl(b5)
+
+    t1=Clock.ElapsedMilliseconds
+
+    t000=t1-t0
+
+    sc=(t1-t0)/10000000
+
+    sc=(0+text.GetSubText(sc,3,6))/100
+
+    min=Math.Floor(sc/60)
+
+    sc=Math.Remainder(sc,60)
+
+    secf=text.GetSubText("100"+sc+"00000",2,5)
+
+    minf=Text.GetSubTextToEnd(100+min,2)
+
+    GraphicsWindow.BrushColor="#E0E0E0"           ''lightgray
+
+    GraphicsWindow.fillRectangle(200,550,180,50)
+
+    GraphicsWindow.BrushColor="black"     
+
+    GraphicsWindow.DrawText(230,560,minf+":"+secf)
+
+    If FileUse>0 Then
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.AppendContents(FO,"stop"  +minf+":"+secf)
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.AppendContents(FO,"Stopped at "+Clock.Time)
+
+    EndIf
+
+  EndIf
+
+  If Controls.LastClickedButton=b3 Then    'reset
+
+    running=0
+
+    hsec=-1
+
+    min=0
+
+    minh=0
+
+    min2=0
+
+    t000=0
+
+    Shand()
+
+    Controls.HideControl(b2)
+
+    Controls.HideControl(b5)
+
+    Controls.ShowControl(b1)
+
+    Timer.Tick=Shand
+
+    Timer.Interval=500
+
+    Timer.Pause()
+
+    GraphicsWindow.BrushColor="white"    ''erase lap-table
+
+    GraphicsWindow.FillRectangle(549,20,220,650)
+
+    GraphicsWindow.BrushColor="black"
+
+    ll=0
+
+    lapoffset=0
+
+    If FileUse>0 Then
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.AppendContents(FO,"Reset at "+Clock.Time)
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.AppendContents(FO,"")
+
+    EndIf
+
+  endif
+
+  If Controls.LastClickedButton=b4 then   'lap
+
+    DoLap()
+
+  endif
+
+  If Controls.LastClickedButton=b5 then   'continue
+
+    running=1
+
+    Controls.HideControl(b5)
+
+    Controls.ShowControl(b2)    
+
+    If FileUse>0 Then
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.AppendContents(FO,"Continued at "+Clock.Time)
+
+    EndIf
+
+    Timer.Resume()
+
+    t0=Clock.ElapsedMilliseconds-t000
+
+    t01=t0
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub Shand
+
+  hsec=hsec+1
+
+  If hsec>119 Then
+
+    hsec=hsec-120
+
+    minh=minh+1
+
+  EndIf
+
+  secf=text.GetSubTextToEnd("100"+hsec/2,2)
+
+  minf=Text.GetSubTextToEnd(100+minh,2)
+
+  hr=Math.GetRadians(hsec*3)
+
+  sinhr=Math.Sin(hr)
+
+  coshr=Math.Cos(hr)
+
+  Shapes.Rotate(ptr,hsec*3)
+
+  Shapes.Move(ptr,xmp-2.5+90*sinhr,ymp-100-90*coshr)
+
+  GraphicsWindow.BrushColor="#E0E0E0"           ''lightgray
+
+  GraphicsWindow.fillRectangle(200,550,180,50)
+
+  GraphicsWindow.BrushColor="#A0A0A0"           ''mediumgray
+
+  GraphicsWindow.FontSize=30
+
+  GraphicsWindow.DrawText(220,560,minf+":"+secf)
+
+  GraphicsWindow.BrushColor="Black"
+
+endsub
+
+
+
+Sub graphinit
+
+  GraphicsWindow.Height=650
+
+  GraphicsWindow.top=50
+
+  GraphicsWindow.Width=800
+
+  GraphicsWindow.Left=50
+
+  GraphicsWindow.FontSize=20
+
+  r0=200
+
+  r1=190
+
+  r2=170
+
+  xmp=300
+
+  ymp=300
+
+  GraphicsWindow.BrushColor="#E0E0E0"
+
+  GraphicsWindow.FillEllipse(xmp-210,ymp-210,420,420)
+
+  GraphicsWindow.fillRectangle(200,550,180,50)
+
+  GraphicsWindow.drawRectangle(200,550,180,50)
+
+  GraphicsWindow.BrushColor="#A0A0A0"
+
+  GraphicsWindow.FontSize=30
+
+  GraphicsWindow.DrawText(230,560,"00:00.")
+
+  GraphicsWindow.BrushColor="Black"
+
+  GraphicsWindow.FontSize=20
+
+  GraphicsWindow.DrawEllipse(xmp-210,ymp-210,420,420)
+
+  GraphicsWindow.fillEllipse(xmp-20,ymp-20,40,40)
+
+  For h=0 To 60    'sec.marks
+
+    hr= Math.GetRadians(6*h)
+
+    sinhr=Math.Sin(hr)
+
+    coshr=Math.Cos(hr)
+
+    GraphicsWindow.DrawLine(xmp+r0*Sinhr,ymp+r0*Coshr,xmp+r1*sinhr,ymp+r1*coshr)
+
+  EndFor
+
+  For h=0 To 60 Step 6    '10 sec marks
+
+    hr= Math.GetRadians(10*h)
+
+    sinhr=Math.Sin(hr)
+
+    coshr=Math.Cos(hr)
+
+    GraphicsWindow.DrawLine(xmp+r0*Sinhr,ymp+r0*Coshr,xmp+r2*sinhr,ymp+r2*coshr)
+
+  EndFor
+
+  For h=0 To 50 Step 10   'numbers
+
+    hr=Math.GetRadians(h*6)
+
+    sinhr=Math.Sin(hr)
+
+    coshr=Math.Cos(hr)
+
+    GraphicsWindow.DrawText(xmp-10+150*sinhr,ymp-10-150*coshr,h)  
+
+  EndFor
+
+  b1=Controls.AddButton("start",100,100)
+
+  b2=controls.addButton("stop/pause",50,100)
+
+  b5=controls.addButton("continue.",60,100)
+
+  Controls.HideControl(b2)
+
+  Controls.HideControl(b5)
+
+  b3=Controls.AddButton("reset",450,100)
+
+  b4=Controls.AddButton("  lap   (or use spacebar)",180,50)
+
+  ptr=Shapes.AddRectangle(5,200)    ''secondshand
+
+  Shapes.Move(ptr,xmp-2.5,ymp-190)
+
+  t000=0
+
+EndSub
+
+
+
+sub DoLap
+
+  If running=1 Then
+
+    running=2
+
+    GraphicsWindow.FontSize=15
+
+    GraphicsWindow.DrawText(570,20,"Lap history")
+
+    GraphicsWindow.DrawText(550,40,"#   from start     from last lap")
+
+  EndIf
+
+  If running>0 then
+
+    t01=t1
+
+    t1=Clock.ElapsedMilliseconds
+
+    t00=t1-t0     'from start
+
+    sc=Text.Append((t00)/10000000,"000000")
+
+    sc=(0+text.GetSubText(sc,3,6))/100
+
+    min=Math.Floor(sc/60)
+
+    sc=Math.Remainder(sc,60)
+
+    secf=text.GetSubText(Text.append(100+sc,"0000000"),2,5)
+
+    minf=Text.GetSubTextToEnd(100+min,2)
+
+    sc2=(t1-t01)/10000000
+
+    sc2=(0+text.GetSubText(sc2,3,6))/100
+
+    min2=Math.Floor(sc2/60)
+
+    sc2=Math.Remainder(sc2,60)
+
+    sec2f=text.GetSubText(Text.Append(100+sc2,"00"),2,5)
+
+    min2f=Text.GetSubTextToEnd(100+min2,2)
+
+    ll=ll+1
+
+    llf= Text.GetSubText(100+ll,2,2)
+
+    lap[ll]=llf+" - "+minf+":"+secf+"      "+min2f+":"+sec2f
+
+    GraphicsWindow.FontSize=15
+
+    If ll-lapoffset>20 Then
+
+      lapoffset=lapoffset+10
+
+      GraphicsWindow.BrushColor="white"    ''erase lap-table
+
+      GraphicsWindow.FillRectangle(549,70,200,600)
+
+      GraphicsWindow.BrushColor="black"
+
+      For ilap=1 To 10
+
+        GraphicsWindow.DrawText(550,50+25*ilap,lap[ilap+lapoffset])
+
+      Endfor
+
+    endif
+
+    GraphicsWindow.DrawText(550,50+25*(ll-lapoffset),lap[ll])
+
+    If FileUse>0 Then
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.AppendContents(FO,lap[ll])
+
+    EndIf
+
+  endif
+
+EndSub
+
+      
+
+

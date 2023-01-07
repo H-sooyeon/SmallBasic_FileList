@@ -1,0 +1,467 @@
+' SmallBasic Version 1.2
+
+' Program: Neon Desktop Clock
+
+' Changelog: 
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/ca8db35c-abc7-4a9f-9e92-a1e4ae7c4ea4/colors-shapes-and-brushes
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev  v.1.2.3.0
+
+' Comment: 
+
+' 
+
+' Variables: 
+
+' ToDo: * add/switch DigiClock, * different neon colors choosable
+
+'             * transparent/doPause(/col) as arguments to select via .lnk/cmdLine
+
+' ================================================================================
+
+'' FIRST set the height of your bottom taskbar  under tbh = 
+
+'' Keys: <Esc> .. Exit; <S> .. toggle ClickSound On/Off;  <P> .. toggle Pause On/Off
+
+
+
+transparent = "True"    ' transparent GW ?
+
+doPause = "True"        ' Pause screen before Start (after GUI built) ?
+
+
+
+col = "Violet"          '  "Lime"  "Cyan"  "LightBlue" "Yellow" "Red"  "White"
+
+tbh = 60                ' Taskbar Height
+
+
+
+' -----------------------------------------------------------------------------
+
+gw = Desktop.Width + 7
+
+gh = Desktop.Height - tbh
+
+centX = gw/2
+
+centY = gh/2
+
+r = 0.9 * centY
+
+pi = 3.14159
+
+
+
+ellW = 50
+
+ellH = 60
+
+rectW = 11
+
+rectH = 50  ' 40
+
+handW = 15  ' 11
+
+wait = 700
+
+
+
+ellCols[1] = col
+
+ellCols[2] = LDColours.SetOpacity(col,128)
+
+ellCols[3] = "Transparent"
+
+
+
+handCols[1] = "Transparent"
+
+handCols[2] = col
+
+handCols[3] = col
+
+handCols[4] = "Transparent"
+
+
+
+ellBrush = LDShapes.BrushGradient(ellCols, "R")
+
+handBrush = LDShapes.BrushGradient(handCols, "H")
+
+
+
+'GetArgs()
+
+
+
+BuildGUI()
+
+
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+
+
+If doPause Then
+
+  Pause()
+
+EndIf
+
+
+
+SetPositions()
+
+
+
+
+
+Timer.Interval = 1000
+
+Timer.Tick = OnTimerTick
+
+
+
+
+
+' //////////  EVENTs  \\\\\\\\\\
+
+Sub OnTimerTick
+
+  SetPositions()
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  If lastKey = "Escape" Then
+
+    If transparent Then
+
+      RestoreDesktop()
+
+    EndIf
+
+    Program.End()
+
+    
+
+  ElseIf lastKey = "S" Then
+
+    If soundOn Then
+
+      soundOn = ""
+
+    Else
+
+      soundOn = "True"
+
+    EndIf
+
+    
+
+  ElseIf lastKey = "P" Then
+
+    If paused Then
+
+      paused = ""
+
+      Timer.Resume()
+
+    Else
+
+      paused = "True"
+
+      Timer.Pause()
+
+    EndIf
+
+    
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  If continue <> "True" Then
+
+    continue = "True"
+
+  EndIf  
+
+EndSub
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub BuildGUI
+
+  If transparent Then
+
+    LDGraphicsWindow.TransparentGW()
+
+    GraphicsWindow.BackgroundColor = "#A0000000"
+
+    GraphicsWindow.Left = 0
+
+    GraphicsWindow.Top = 0
+
+    Program.Delay(100)
+
+    CleanDesktop()
+
+    Program.Delay(100)
+
+  Else
+
+    GraphicsWindow.BackgroundColor = "Black"
+
+    GraphicsWindow.CanResize = ""
+
+    GraphicsWindow.Left = -7
+
+    GraphicsWindow.Top = -29
+
+  EndIf
+
+  
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "Transparent"   ' add Shapes as transparent to avoid flicker
+
+  
+
+  For n = 1 To 12
+
+    shpEll[n] = Shapes.AddEllipse(ellW, ellH)
+
+    shpRect[n] = Shapes.AddRectangle(rectW, rectH)
+
+    
+
+    ang = n * pi/6
+
+    x = centX + r * Math.Cos(ang)
+
+    y = centY + r * Math.Sin(ang)
+
+    
+
+    Shapes.Move(shpEll[n], x - ellW/2, y - ellH/2)
+
+    Shapes.Rotate(shpEll[n], 90 + Math.GetDegrees(ang))
+
+    LDShapes.BrushShape(shpEll[n], ellBrush)
+
+    
+
+    Shapes.Move(shpRect[n], x - rectW/2 + 1, y - rectH/2)
+
+    Shapes.Rotate(shpRect[n], 90 + Math.GetDegrees(ang))
+
+    LDShapes.BrushColour(shpRect[n], col)
+
+    
+
+    Program.Delay(120)
+
+  EndFor
+
+  
+
+  '' Stundenzeiger
+
+  Program.Delay(wait)
+
+  shpHandH = Shapes.AddRectangle(handW, 0.7 * r)
+
+  Shapes.Move(shpHandH, centX - handW/2, centY - 20)
+
+  LDShapes.RotateAbout(shpHandH, centX, centY, 120)
+
+  LDShapes.BrushShape(shpHandH, handBrush)
+
+  
+
+  '' Minutenzeiger
+
+  Program.Delay(wait)
+
+  shpHandM = Shapes.AddRectangle(handW, 0.9 * r)
+
+  Shapes.Move(shpHandM, centX - handW/2, centY - 20)
+
+  LDShapes.RotateAbout(shpHandM, centX, centY, 240)
+
+  LDShapes.BrushShape(shpHandM, handBrush)
+
+  
+
+  '' Sekundenzeiger
+
+  Program.Delay(wait)
+
+  shpHandS = Shapes.AddRectangle(3, 0.9 * r)
+
+  Shapes.Move(shpHandS, centX - 1, centY - 20)
+
+  LDShapes.RotateAbout(shpHandS, centX, centY, 120)
+
+  LDShapes.BrushColour(shpHandS, "White")   ' "Silver"
+
+  
+
+  ' Abdeckung/Nabe
+
+  shpCent = Shapes.AddEllipse(21, 21)
+
+  Shapes.Move(shpCent, centX - 11, centY - 10)
+
+  LDShapes.BrushShape(shpCent, LDShapes.BrushGradient("1=Black;2=#202020;3=#404040;", "R"))
+
+EndSub
+
+
+
+Sub SetPositions
+
+  currH = Math.Remainder(Clock.Hour, 12)
+
+  currM = Clock.Minute
+
+  currS = Clock.Second
+
+  
+
+  angS = 180 + 6 * currS
+
+  angM = 180 + 6 * currM
+
+  angH = 180 + 30 * currH + currM/2
+
+  
+
+  Shapes.Rotate(shpHandS, angS)
+
+  Shapes.Rotate(shpHandM, angM)
+
+  Shapes.Rotate(shpHandH, angH)
+
+  
+
+  If soundOn Then
+
+    Sound.PlayClick()
+
+  EndIf
+
+EndSub
+
+
+
+Sub Pause
+
+  GraphicsWindow.FontSize = 100
+
+  GraphicsWindow.FontBold = ""
+
+  GraphicsWindow.BrushColor = "CornflowerBlue"
+
+  GraphicsWindow.FontName = "Wingdings"
+
+  shpEyeL = Shapes.AddText("")
+
+  shpEyeR = Shapes.AddText("")
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.BrushColor = "DarkRed"
+
+  GraphicsWindow.FontName = "Comic Sans MS"
+
+  shpMouth = Shapes.AddText("")
+
+  
+
+  Shapes.Move(shpEyeL, centX-r/2, centY-r/2 -70)
+
+  Shapes.Move(shpEyeR, centX+r/2 -100, centY-r/2 -70)
+
+  Shapes.Move(shpMouth, centX - LDText.GetWidth("Click")/2, centY+20)
+
+  Shapes.SetText(shpEyeL, "¥") '"¸")  '"¹")
+
+  Shapes.SetText(shpEyeR, "¥")  '"?")  '"¿")
+
+  Shapes.SetText(shpMouth, "Click")
+
+  
+
+  While continue <> "True"
+
+    Program.Delay(50)
+
+  EndWhile
+
+  
+
+  Shapes.Remove(shpEyeL)
+
+  Shapes.Remove(shpEyeR)
+
+  Shapes.Remove(shpMouth)
+
+EndSub
+
+
+
+Sub CleanDesktop   '' BossMode
+
+  LDShell.ShowDesktop()         ' Minimize all open windows to taskbar
+
+  LDShell.DTIconsHide()         ' Hide all DT icons
+
+  Program.Delay(100)
+
+  LDGraphicsWindow.State = 0    ' Show up again the current clock window only
+
+EndSub
+
+
+
+Sub RestoreDesktop
+
+  LDShell.DTIconsShow()         ' Show DT icons again
+
+  LDShell.RestoreWindows()      ' Restore minimized windows again from taskbar
+
+EndSub
+
+  
+
+

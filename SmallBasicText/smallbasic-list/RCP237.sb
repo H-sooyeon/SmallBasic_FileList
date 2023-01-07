@@ -1,0 +1,497 @@
+' SmallBasic Version 1.1
+
+' Program: WavelengthRGB (380 - 700 nm), Frequ [THz] (Energie [eV], Temp [K] von E therm. QuMe)
+
+' Changelog: 15.08
+
+' Author: Pappa Lapub
+
+' Website: 
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: LitDev
+
+' Comment: 380 - 700 nm (delta 320 nm)
+
+'  http://www.miguelmoreno.net/wavelength-to-colors-in-silverlight/   (01-2010)
+
+'  https://web.archive.org/web/20130228010145/http://miguelmoreno.net/sandbox/wavelengthtoRGB/default.aspx  (C#, 09-2004)
+
+'  https://web.archive.org/web/*/http://miguelmoreno.net/sandbox/wavelengthToRGB/wavelengthToRGB.zip (C#)
+
+'  http://www.expertcore.org/viewtopic.php?f=12&t=3072  (C#, 02-2012,  wavelengthToRGB.zip)
+
+' 
+
+'  http://www.midnightkite.com/color.html
+
+'  http://www.physics.sfasu.edu/astro/color/spectra.html
+
+' Variables: 
+
+' ToDo: 
+
+' ================================================================================
+
+self = "WavelengthRGB"
+
+icoPath = ""     ' Program.Directory +"\Icons\SpectrumLR.ico"   'DSOTM.ico"
+
+gw = 220
+
+gh = 170
+
+lf = Text.GetCharacter(10)
+
+args = "" ' LDCall preset
+
+
+
+BuildGUI()
+
+OnSliderChange()
+
+
+
+LDControls.SliderChanged = OnSliderChange
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+LDEvents.MouseWheel = OnWheelChange
+
+
+
+
+
+' //////////  EVENTs \\\\\\\\\\
+
+Sub OnSliderChange
+
+  value = LDControls.LastSliderValue
+
+  waveLen = Math.Round(380 + 3.2 * value)       ' [nm] EE-9
+
+  freq = Math.Round(299792.458 / waveLen)       ' f = c/Î»  [THz] EE12, c = 299792258 [m/s]
+
+  'egy = Math.Round(0.4135667516 * freq)/100     ' E = hf, h = 4.135 667 516EE?ˆ’15 [eV*s]         , in QuMech !
+
+  'tmp = Math.Round(100000 * egy / 8.6173324)    ' T = E/kB, kB = 8.6173324EE?ˆ’5 [eV/K]       , in QuMech !
+
+  Shapes.SetText(shpWL, waveLen +" [nm] "+ freq +" [THz]")
+
+  'Shapes.SetText(shpEgyTmp, egy +" [eV] " + tmp +" [K]")
+
+  GetColor()
+
+  LDShapes.BrushColour(rect, hCol)
+
+  Shapes.SetText("Text"+1, "R: " + r)
+
+  Shapes.SetText("Text"+2, "G: " + g)
+
+  Shapes.SetText("Text"+3, "B: " + b)
+
+  Shapes.SetText("Text"+4, "C: " + hCol)
+
+EndSub
+
+
+
+Sub OnWheelChange
+
+  dir = LDEvents.LastMouseWheelDelta
+
+  If value+dir > 100 Or value+dir < 0 Then
+
+  Else
+
+    value = value + dir
+
+    LDControls.SliderValue(slider, value)
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  
+
+  If lastKey = "Escape" Then
+
+    Program.End()
+
+    
+
+  ElseIf lastKey = "C" Then
+
+    clip["nm"] = waveLen
+
+    clip["rgb"] = r +","+ g +"," +b
+
+    clip["hex"] = hCol
+
+    If LDClipboard.SetText(clip) = "SUCCESS" Then
+
+      ClipInfo()
+
+    EndIf
+
+    
+
+  ElseIf lastKey = "I" Then
+
+    imgCol = LDGraphicsWindow.Capture("","")
+
+    LDImage.Crop(imgCol, 110,60, 100,100)
+
+    If LDClipboard.SetImage(imgCol) = "SUCCESS" Then
+
+      ClipInfo()
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  If Mouse.IsRightButtonDown Then
+
+    tab = Text.GetCharacter(9)
+
+    qu = Text.GetCharacter(34)
+
+    hlpTxt = "Determine RGB Color for wavelengths from 380 to 700 nm." +lf+lf
+
+    hlpTxt = hlpTxt+ "Keys:" +lf
+
+    hlpTxt = hlpTxt+ "<C>" +tab+ "Copy values to clipboard as array:" +lf
+
+    hlpTxt = hlpTxt+tab +"  "+ qu+"nm=waveLen;rgb=R,G,B;hex=#color;"+qu +"."+lf
+
+    hlpTxt = hlpTxt+ "<I>" +tab+ "Copy color pattern to clipboard (100x100 Image)." +lf
+
+    hlpTxt = hlpTxt+ "<Esc>" +tab+ "Exit" +lf+lf
+
+    hlpTxt = hlpTxt+ "L-Click" +tab+ "(Un)Dock window." +lf
+
+    hlpTxt = hlpTxt+ "R-Click" +tab+ "This help." +lf
+
+    hlpTxt = hlpTxt+ "Wheel" +tab+ "Slider ?†”."
+
+    GraphicsWindow.ShowMessage(hlpTxt, self)
+
+    
+
+  ElseIf Mouse.IsLeftButtonDown Then
+
+    If docked Then
+
+      GraphicsWindow.Left = gwX
+
+      Shapes.HideShape(shpDock)
+
+      LDGraphicsWindow.ExitButtonMode(self,"Enabled")
+
+      LDGraphicsWindow.TopMost = ""
+
+      docked = ""
+
+    Else    ' oder GW.Left > 0
+
+      gwX = GraphicsWindow.Left
+
+      GraphicsWindow.Left = 20-gw
+
+      LDGraphicsWindow.TopMost = "True"
+
+      LDGraphicsWindow.ExitButtonMode(self,"Disabled")
+
+      Shapes.ShowShape(shpDock)
+
+      docked = "True"
+
+    EndIf
+
+    
+
+    'Else '' middle Button unused
+
+    ' ?? empty Option
+
+  EndIf
+
+EndSub
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub BuildGUI
+
+  GraphicsWindow.Hide()
+
+  GraphicsWindow.CanResize = ""
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "Gainsboro"
+
+  GraphicsWindow.Title = self
+
+' The following line could be harmful and has been automatically commented.
+
+'   If LDFile.Exists(icoPath) Then
+
+    LDGraphicsWindow.Icon = icoPath
+
+  EndIf
+
+  LDGraphicsWindow.TopMost = "True"
+
+  
+
+  slider = LDControls.AddSlider(200,22, "H")
+
+  Controls.Move(slider, 10,10)
+
+  
+
+  gradCols = "1=DarkViolet;2=Indigo;3=Blue;4=Lime;5=Yellow;6=Orange;7=Red;"	'"1=Violet;
+
+  LDShapes.BrushShape(slider, LDShapes.BrushGradient(gradCols, "H"))
+
+  
+
+  GraphicsWindow.PenWidth = 0
+
+  rect = Shapes.AddRectangle(100,100)
+
+  Shapes.Move(rect, 110, 60)
+
+  
+
+  GraphicsWindow.BrushColor = "Black"
+
+  For n = 1 To 4
+
+    Shapes.AddText("")
+
+    Shapes.Move("Text"+n, 10, 70 + 22*(n-1))
+
+  EndFor
+
+  
+
+  GraphicsWindow.FontSize = 10
+
+  shpWL = Shapes.AddText("")
+
+  Shapes.Move(shpWL, 110,47)
+
+  shpEgyTmp = Shapes.AddText("")
+
+  Shapes.Move(shpEgyTmp, 110,147)
+
+  
+
+  GraphicsWindow.BrushColor = "Red"
+
+  shpClip = Shapes.AddText("Copied")
+
+  LDShapes.BrushColour(shpClip, "Yellow")
+
+  Shapes.Move(shpClip, 10,155)
+
+  Shapes.SetOpacity(shpClip, 0)
+
+  
+
+  GraphicsWindow.FontSize = 8
+
+  GraphicsWindow.DrawText(200,34, "IR?†’")
+
+  GraphicsWindow.BrushColor = "DarkViolet"
+
+  GraphicsWindow.DrawText(3,34, "?†UV")
+
+  
+
+  '' Docking shape
+
+  For n = 1 To Text.GetLength(self)
+
+    dockTxt = Text.Append(dockTxt, "  "+Text.GetSubText(self,n,1)+"  "+lf)
+
+  EndFor
+
+  GraphicsWindow.BrushColor = "Black" '"Yellow"
+
+  GraphicsWindow.FontSize = 11
+
+  shpDock = Shapes.AddText(dockTxt)
+
+  LDShapes.BrushColour(shpDock, "Fuchsia")  '"Black")
+
+  Shapes.Move(shpDock, gw-23,0)
+
+  Shapes.HideShape(shpDock)
+
+  
+
+  GraphicsWindow.Show()
+
+EndSub
+
+
+
+Sub GetColor
+
+  gamma = 1
+
+  intensityMax = 255
+
+  
+
+  If (waveLen >= 350 And waveLen <= 439) Then
+
+    red	= -(waveLen - 440) / 90   '(440 - 350)
+
+    green = 0
+
+    blue = 1
+
+  ElseIf (waveLen >= 440 And waveLen <= 489) Then
+
+    red	= 0
+
+    green = (waveLen - 440) / 50  '(490 - 440)
+
+    blue = 1
+
+  ElseIf (waveLen >= 490 And waveLen <= 509) Then
+
+    red = 0
+
+    green = 1
+
+    blue = -(waveLen - 510) / 20  ' (510 - 490)
+
+  ElseIf (waveLen >= 510 And waveLen <= 579) Then
+
+    red = (waveLen - 510) / 70    ' (580 - 510)
+
+    green = 1
+
+    blue = 0
+
+  ElseIf (waveLen >= 580 And waveLen <= 644) Then
+
+    red = 1
+
+    green = -(waveLen - 645) / 65   ' (645 - 580)
+
+    blue = 0
+
+  ElseIf (waveLen >= 645 And waveLen <= 780) Then
+
+    red = 1
+
+    green = 0
+
+    blue = 0
+
+  Else
+
+    red = 0
+
+    green = 0
+
+    blue = 0
+
+  EndIf
+
+  
+
+  If (waveLen >= 350 And waveLen <= 419) Then
+
+    factor = 0.3 + 0.7*(waveLen - 350) / 70 ' (420 - 350)
+
+  ElseIf (waveLen >= 420 And waveLen <= 700) Then
+
+    factor = 1
+
+  ElseIf (waveLen >= 701 And waveLen <= 780) Then
+
+    factor = 0.3 + 0.7*(780 - waveLen) / 80 ' (780 - 700)
+
+  Else
+
+    factor = 0
+
+  EndIf
+
+  
+
+  r = LDCall.Function4("FactorAdjust", red, factor, intensityMax, gamma)
+
+  g = LDCall.Function4("FactorAdjust", green, factor, intensityMax, gamma)
+
+  b = LDCall.Function4("FactorAdjust", blue, factor, intensityMax, gamma)
+
+  hCol = GraphicsWindow.GetColorFromRGB(r, g, b)
+
+EndSub
+
+
+
+Sub FactorAdjust
+
+  If args[1] = 0 Then
+
+    return = 0
+
+  Else
+
+    return = Math.Round(args[3] * Math.Power(args[1] * args[2], args[4]))
+
+  EndIf
+
+EndSub
+
+
+
+Sub ClipInfo
+
+  For opac = 0 To 100 Step 10
+
+    Shapes.SetOpacity(shpClip, opac)
+
+    Program.Delay(100)
+
+  EndFor
+
+  For opac = 100 To 0 Step -10
+
+    Shapes.SetOpacity(shpClip, opac)
+
+    Program.Delay(100)
+
+  EndFor
+
+EndSub
+
+

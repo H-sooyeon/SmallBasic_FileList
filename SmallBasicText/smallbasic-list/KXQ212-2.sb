@@ -1,0 +1,223 @@
+' Gravity 0.31
+
+' Copyright (c) 2014 Nonki Takahashi.  The MIT License.
+
+' Program ID KXQ212-2
+
+'
+
+GraphicsWindow.Title = "Gravity 0.31"
+
+GraphicsWindow.BackgroundColor = "Black"
+
+gw = 598
+
+gh = 428
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+DrawStars()
+
+DrawVScale()
+
+sz = 4      ' size [m]
+
+fw = 1      ' frame width [m]
+
+fh = 4      ' frame height [m]
+
+gap = 0.5   ' gap between LM and frame [m]
+
+scale = 5   ' [px/m]
+
+y0 = gh - 10
+
+GraphicsWindow.PenWidth = 0
+
+GraphicsWindow.BrushColor = "LightGray"
+
+lm = Shapes.AddRectangle(sz * scale, sz * scale)
+
+GraphicsWindow.BrushColor = "Orange"
+
+fr = Shapes.AddEllipse(fw * scale, fh * scale)
+
+GraphicsWindow.PenWidth = 0
+
+GraphicsWindow.BrushColor = "Gray"
+
+moon = Shapes.AddRectangle(gw, 10)
+
+Shapes.Move(moon, 0, y0)
+
+x = gw / 2              ' [px]
+
+y = y0 - sz * scale / 2 ' [px]
+
+MoveLM()
+
+m = 15000   ' mass of LM [kg] = 15[t]
+
+g = 9.8 / 6 ' acceleration due to gravity on the surface of the Moon [m/s^2]
+
+f = 45040   ' descent engine trust [N]
+
+a = f / m   ' acceleration by descent engine [m/s^2]
+
+vx2 = 0     ' velocity x [m/s]
+
+vy2 = 0     ' velocity y [m/s]
+
+engineOn = "False"
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+While "True"
+
+  t1 = t2
+
+  t2 = Clock.ElapsedMilliseconds / 1000
+
+  dt = t2 - t1  ' [s]
+
+  vy1 = vy2
+
+  If engineOn Then
+
+    Shapes.SetOpacity(fr, 50)
+
+    vy2 = vy1 + (g - a) * dt  ' [m/s]
+
+  Else
+
+    Shapes.SetOpacity(fr, 0)
+
+    vy2 = vy1 + g * dt        ' [m/s]
+
+  EndIf
+
+  dy = (vy2 + vy1) * dt / 2 * scale ' [px]
+
+  y = y + dy  ' [px]
+
+  If y0 - sz * scale / 2 <= y Then
+
+    y = y0 - sz * scale / 2
+
+    vy2 = 0
+
+  EndIf
+
+  ShowV()
+
+  MoveLM()
+
+  Program.Delay(1000 / 24)
+
+EndWhile
+
+Sub DrawStars
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "White"
+
+  For i = 1 To 300
+
+    x = Math.GetRandomNumber(gw)
+
+    y = Math.GetRandomNumber(gh)
+
+    GraphicsWindow.FillEllipse(x, y, 2, 2)
+
+  EndFor
+
+EndSub
+
+Sub DrawVScale
+
+  GraphicsWindow.BrushColor = "#99000000"
+
+  GraphicsWindow.FillRectangle(10, 10, 40, gh - 40)
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.DrawText(10, 10, "v[m/s]")
+
+  For v = -20 To 20
+
+    y = 30 + (1 - v / 20) * ((gh - 60) / 2)
+
+    If Math.Remainder(v + 20, 5) = 0 Then
+
+      GraphicsWindow.DrawLine(10, y, 40, y)
+
+      GraphicsWindow.DrawText(10, y, v)
+
+    Else
+
+      GraphicsWindow.DrawLine(30, y, 40, y)
+
+    EndIf
+
+  EndFor
+
+  Program.Delay(300)  ' for Silverlight
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "Red"
+
+  vHand = Shapes.AddTriangle(0, 0, 10, -5, 10, 5)
+
+  Shapes.Move(vHand, 40, 10 + (gh - 60) / 2)
+
+EndSub
+
+Sub ShowV
+
+  yV = 30 + (1 + vy2 / 20) * ((gh - 60) / 2)
+
+  Shapes.Move(vHand, 40, yV)
+
+EndSub
+
+Sub MoveLM
+
+  Shapes.Move(lm, x - sz / 2 * scale y - sz /2 * scale)
+
+  Shapes.Move(fr, x - fw / 2 * scale, y + (sz / 2 + gap) * scale)
+
+EndSub
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  If key = "Up" Then
+
+    engineOn = "True"
+
+  EndIf
+
+EndSub
+
+Sub OnKeyUp
+
+  If GraphicsWindow.LastKey = "Up" Then
+
+    engineOn = "False"
+
+  EndIf
+
+EndSub
+
+

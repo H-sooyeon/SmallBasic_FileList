@@ -1,0 +1,585 @@
+'===============================
+
+'=                          BRICK                                      =
+
+'=            by Sean & Greg Allen                         =
+
+'=                            v 1.0                                        =
+
+'=            teeps00@gmail.com                          =
+
+'===============================
+
+
+
+'===============================
+
+'= Define the Graphics Window properties   =
+
+'===============================
+
+
+
+GraphicsWindow.BackgroundColor = "Blue"
+
+GraphicsWindow.Height = 600
+
+GraphicsWindow.Width = 800
+
+
+
+'===============================
+
+'=            Define the Game Variables               =
+
+'===============================
+
+
+
+leftKey  = "Left"
+
+rightKey = "Right"
+
+escapeKey = "Escape"
+
+
+
+play = 1
+
+true = 1
+
+false = 0
+
+
+
+path = Program.Directory
+
+
+
+speed = 4
+
+paddleSpeed = 3
+
+currentRow = 2
+
+
+
+ballYDirection = 1
+
+ballXDirection = 0
+
+
+
+Score = 0
+
+
+
+'===============================
+
+'=            Define the Event Handlers               =
+
+'===============================
+
+
+
+GraphicsWindow.KeyDown = KeyDown
+
+GraphicsWindow.KeyUp   = KeyUp  
+
+
+
+'===============================
+
+'=            Load the Graphics Objects               =
+
+'===============================
+
+
+
+LoadShapes()
+
+LayoutShapes()
+
+
+
+'===============================
+
+'=                  MAIN GAME LOOP                      =
+
+'===============================
+
+
+
+DrawMenu()
+
+
+
+Timer.Interval = 10
+
+Timer.Tick = LoopTick
+
+
+
+Sub LoopTick
+
+  CheckBrickCollision()
+
+  MoveBall()
+
+  CheckPaddleCollision()
+
+  ProcessInput()
+
+EndSub
+
+
+
+'===============================
+
+'=                       Graphics Objects                      =
+
+'===============================
+
+
+
+Sub LoadShapes
+
+  ' Load the paddle image
+
+  paddleShape = Shapes.AddImage("http://social.msdn.microsoft.com/Forums/getfile/133839")
+
+  Shapes.Move(paddleShape,375,500)
+
+  Shapes.ShowShape(paddleShape)
+
+
+
+  ' Load the ball image
+
+  ballShape = Shapes.AddImage("http://social.msdn.microsoft.com/Forums/getfile/133838")
+
+  Shapes.Move(ballShape,375,200)
+
+  Shapes.ShowShape(ballShape)
+
+EndSub
+
+
+
+Sub LayoutShapes
+
+  For i = 1 to 14
+
+    ' layout bricks
+
+    brickShape[i][1] = Shapes.AddImage("http://social.msdn.microsoft.com/Forums/getfile/133840")
+
+    brickShape[i][2] = Shapes.AddImage("http://social.msdn.microsoft.com/Forums/getfile/133840")
+
+    Shapes.Move(brickShape[i][1],i*50,100)
+
+    Shapes.Move(brickShape[i][2],i*50+25,111)
+
+  endFor
+
+EndSub
+
+
+
+'===============================
+
+'=                  Collision Detection                       =
+
+'===============================
+
+
+
+Sub CheckPaddleCollision
+
+  'Ball Boundaries
+
+  X1BallBound = Shapes.GetLeft(ballShape)
+
+  X2BallBound = Shapes.GetLeft(ballShape) + 16
+
+  Y1BallBound = Shapes.GetTop(ballShape)
+
+  Y2BallBound = Shapes.GetTop(ballShape) + 16
+
+  
+
+  'Paddle Boundaries
+
+  X1PaddleBound = Shapes.GetLeft(paddleShape)
+
+  X2PaddleBound = Shapes.GetLeft(paddleShape) + 50
+
+  Y1PaddleBound = Shapes.GetTop(paddleShape)
+
+  Y2PaddleBound = Shapes.GetTop(paddleShape) + 10
+
+  
+
+  If (Y2BallBound >= Y1PaddleBound And Y2BallBound <= Y1PaddleBound + speed And ballYDirection = 1) Then
+
+    If ( X2BallBound >= X1PaddleBound And X1BallBound <= X2PaddleBound) Then
+
+      Shapes.Move(ballShape,X1BallBound,Y1BallBound -1)
+
+      If GraphicsWindow.LastKey = "Left" then
+
+        ballXDirection = -1
+
+      ElseIf GraphicsWindow.LastKey = "Right" then
+
+        ballXDirection = 1
+
+      endif
+
+      ballYDirection = ballYDirection * -1
+
+      If (ballXDirection = 0) Then
+
+        ballXDirection = Math.GetRandomNumber(2)
+
+        If ballXDirection = 2 then
+
+          ballXDirection = -1
+
+        endif
+
+      EndIf
+
+    Endif
+
+  endif
+
+EndSub
+
+
+
+Sub CheckBrickCollision
+
+  'Ball Boundaries
+
+  X1BallBound = Shapes.GetLeft(ballShape)
+
+  X2BallBound = Shapes.GetLeft(ballShape) + 16
+
+  Y1BallBound = Shapes.GetTop(ballShape)
+
+  Y2BallBound = Shapes.GetTop(ballShape) + 16
+
+  
+
+  If ballYDirection = -1 then
+
+    
+
+    ' find the x brick
+
+    xPos = math.Floor( Shapes.GetLeft(ballShape) / 50)
+
+
+
+    CheckFrontRow()
+
+    CheckBackRow()
+
+
+
+  endif
+
+EndSub
+
+
+
+Sub CheckFrontRow
+
+    brickTop = Shapes.GetTop(brickShape[xPos][2]) + 10
+
+    brickLeft = Shapes.GetLeft(brickShape[xPos][2])
+
+    
+
+    if Y1BallBound <= brickTop And Y1BallBound > brickTop - speed Then
+
+      if (X2BallBound >= brickLeft And X1BallBound <= (brickLeft + 50)) Then
+
+        currentRow = 2
+
+        RemoveBrick()
+
+      endif
+
+    endif
+
+EndSub
+
+
+
+Sub CheckBackRow
+
+      brickTopBack = Shapes.GetTop(brickShape[xPos][1]) + 10
+
+      brickLeftBack = Shapes.GetLeft(brickShape[xPos][1])
+
+      
+
+    if Y1BallBound <= brickTopBack And Y1BallBound > brickTopBack - speed Then
+
+      if (X2BallBound >= brickLeftBack And X1BallBound <= (brickLeftBack + 50)) Then
+
+        currentRow = 1
+
+        RemoveBrick()
+
+      endif
+
+    endif
+
+EndSub
+
+
+
+Sub RemoveBrick
+
+        ballYDirection = ballYDirection * -1
+
+        Shapes.Remove(brickShape[xPos][currentRow])
+
+        Score = Score +10
+
+        UpdateScore()
+
+EndSub
+
+
+
+
+
+'===============================
+
+'=                           Update Score                         =
+
+'===============================
+
+
+
+Sub UpdateScore
+
+  GraphicsWindow.BrushColor = "blue"
+
+  GraphicsWindow.FillRectangle(10,10,GraphicsWindow.Width,20)
+
+  GraphicsWindow.BrushColor = "white"
+
+  GraphicsWindow.DrawText(10,10,"Score:")
+
+  GraphicsWindow.DrawText(60,10,Score)
+
+  DrawMenu()
+
+EndSub
+
+
+
+'===============================
+
+'=                           Display Menu                        =
+
+'===============================
+
+
+
+Sub DrawMenu
+
+  GraphicsWindow.BrushColor = "white"
+
+  GraphicsWindow.DrawText(250,10,"Use left and right keys and ESC to quit.")
+
+EndSub
+
+
+
+'===============================
+
+'=                           Move Ball                              =
+
+'===============================
+
+
+
+Sub MoveBall
+
+  ballXPos = Shapes.GetLeft(ballShape)
+
+  ballYPos = Shapes.GetTop(ballShape)
+
+  
+
+  ' check vertical movement boundaries of the ball
+
+  If (ballYPos <= 0 Or ballYPos + 16 >= GraphicsWindow.Height) Then 
+
+    ballYDirection = ballYDirection * -1
+
+  EndIf
+
+  
+
+  ' check the horizontal movement of the ball
+
+  If (ballXPos <= 0 Or ballXPos + 16 >= GraphicsWindow.Width) Then
+
+    ballXDirection = ballXDirection * -1
+
+  EndIf
+
+  
+
+  If (ballYPos+16 >= GraphicsWindow.Height) then
+
+    Score = Score - 15
+
+    UpdateScore()
+
+  Endif
+
+  
+
+  Shapes.Move(ballShape, ballXPos+(speed*ballXDirection), ballYPos+(speed*ballYDirection))
+
+  
+
+EndSub
+
+
+
+'===============================
+
+'=                       Process Key Input                    =
+
+'===============================
+
+
+
+Sub ProcessInput
+
+  ' paddle location
+
+  xPos = Shapes.GetLeft(paddleShape)
+
+  
+
+  ' Key press logic
+
+  If (bleftKey = true) And xPos >= 0 Then
+
+    Shapes.Move(paddleShape, xPos - paddleSpeed,Shapes.GetTop(paddleShape))
+
+  EndIf
+
+  
+
+  If (brightKey = true) And xPos <= GraphicsWindow.Width - 50 Then
+
+    Shapes.Move(paddleShape, xPos + paddleSpeed,Shapes.GetTop(paddleShape))
+
+  EndIf   
+
+EndSub
+
+
+
+' movement
+
+Sub KeyDown
+
+  
+
+  bleftKey    = false
+
+  brightKey   = false
+
+  bescapeKey  = false
+
+  
+
+  If GraphicsWindow.LastKey = leftKey then
+
+    bleftKey = true
+
+  elseif GraphicsWindow.LastKey = rightKey then
+
+    brightKey = true   
+
+  elseif GraphicsWindow.LastKey = escapeKey then
+
+    bescapeKey = true
+
+  endif
+
+  
+
+  If GraphicsWindow.LastKey = "Up" Then
+
+    ' speed up paddle
+
+    paddleSpeed = paddleSpeed + 1
+
+  EndIf
+
+  
+
+  If GraphicsWindow.LastKey = "Down" Then
+
+    ' slow down paddle
+
+    paddleSpeed = paddleSpeed - 1
+
+  EndIf
+
+  
+
+  If GraphicsWindow.LastKey = "Delete" Then
+
+    speed = 0
+
+  EndIf
+
+  
+
+endSub
+
+
+
+Sub KeyUp
+
+  ' reset every key first
+
+  bleftKey    = false
+
+  brightKey   = false
+
+  
+
+  If GraphicsWindow.LastKey = "Delete" Then
+
+    speed = 4
+
+  EndIf
+
+    
+
+  If GraphicsWindow.LastKey = escapeKey then
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+    
+
+

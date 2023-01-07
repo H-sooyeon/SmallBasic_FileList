@@ -1,0 +1,1837 @@
+InitializeSettings()
+
+InitializeScreen()
+
+InitializePlayer()
+
+InitializeTiles()
+
+
+
+Draw()
+
+
+
+'move when the player releases the key so that they have to press it once for each movement
+
+GraphicsWindow.KeyUp = MoveKeyboard 
+
+GraphicsWindow.MouseUp = MoveMouse
+
+Timer.Tick = OnTick
+
+
+
+Sub InitializeSettings
+
+  resourceMode = "online"
+
+  'resourceMode = "local"
+
+  
+
+  debugMode = "False"
+
+  
+
+  working = "False"
+
+  showingMessage = "False"
+
+  Timer.Interval = 100
+
+EndSub  
+
+
+
+Sub InitializeScreen
+
+  GraphicsWindow.CanResize = "False"
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  GraphicsWindow.Clear()
+
+  
+
+  playerSightRadius = 8
+
+  tileSize = 24
+
+  pixelSize = 3
+
+  
+
+  viewportSize = playerSightRadius * 2 - 1    
+
+  viewportPixels = viewportSize * tileSize
+
+  center = viewportPixels / 2  
+
+EndSub  
+
+
+
+Sub InitializePlayer
+
+  ResetPlayer()
+
+  DownLevel()  
+
+EndSub
+
+
+
+Sub AddFont
+
+  imageNameCount = Array.GetItemCount( imageName )
+
+  fIndex = imageNameCount + 1
+
+  
+
+  imageName[ fIndex ] = "font-32"
+
+  fIndex = fIndex + 1
+
+  
+
+  For i = 0 To 9
+
+    charCode = 48 + i
+
+    imageName[ fIndex ] = "font-" + charCode
+
+    fIndex = fIndex + 1
+
+  EndFor
+
+  
+
+  For i = 0 To 25
+
+    charCode = 65 + i
+
+    imageName[ fIndex ] = "font-" + charCode
+
+    fIndex = fIndex + 1    
+
+  EndFor
+
+EndSub  
+
+
+
+Sub InitializeTiles
+
+  imageName[ 1 ] = "Floor"
+
+  imageName[ 2 ] = "Wall"
+
+  imageName[ 3 ] = "Breakable"
+
+  imageName[ 4 ] = "Broken"
+
+  imageName[ 5 ] = "Stairs"
+
+  imageName[ 6 ] = "Up"
+
+  imageName[ 7 ] = "PowerUp"
+
+  imageName[ 8 ] = "Monster"
+
+  imageName[ 9 ] = "FloorB"
+
+  imageName[ 10 ] = "WallB"
+
+  
+
+  imageName[ 11 ] = "Player"
+
+  imageName[ 12 ] = "Health"
+
+  imageName[ 13 ] = "MaxHealth"
+
+  imageName[ 14 ] = "EmptyHealth"
+
+  imageName[ 15 ] = "Orb"
+
+  
+
+  AddFont()
+
+  
+
+  'The level tiles are tiles that change for each level - the engine looks for an image that has the name followed by the level number
+
+  levelTilesEndIndex = 10
+
+  
+
+  blockings[ 1 ] = "Wall"
+
+  blockings[ 2 ] = "WallB"
+
+  blockings[ 3 ] = "Breakable"
+
+  
+
+  LoadResources()
+
+EndSub
+
+
+
+Sub ShowMessage
+
+  showingMessage = "True" 
+
+  Timer.Interval = 1000000
+
+EndSub  
+
+
+
+Sub ResetPlayer
+
+  playerX = 0
+
+  playerY = 0
+
+  playerLevel = 1
+
+  score = 0
+
+  map = 0
+
+  monsters = 0
+
+  lastDrawn = 0
+
+  topLevel = 0
+
+  level = 0
+
+  foundOrb = "False"
+
+  
+
+  maxLevel = 5  
+
+  healthLimit = 100
+
+  maxHealth = Math.Floor( healthLimit / 5 )
+
+  health = maxHealth  
+
+  nextLevelUp = 400  
+
+  
+
+  message = "You must find the Orb of Worlds hidden in the red dungeon"
+
+  ShowMessage()
+
+EndSub
+
+
+
+Sub UpdateMap
+
+  map[ level ][ updateLocation ] = updateTilename
+
+EndSub
+
+
+
+Sub ClearAroundPlayer 
+
+  updateTilename = "Floor"
+
+  
+
+  updateLocation = playerX + ":" + ( playerY - 1 )
+
+  UpdateMap()
+
+  
+
+  updateLocation = ( playerX - 1 ) + ":" + playerY
+
+  UpdateMap()
+
+  
+
+  updateLocation = playerX + ":" + ( playerY + 1 )
+
+  UpdateMap()
+
+  
+
+  updateLocation = ( playerX + 1 ) + ":" + playerY 
+
+  UpdateMap()
+
+  
+
+  If ( level > 1 ) Then
+
+    updateTilename = "Up"
+
+  EndIf
+
+  
+
+  updateLocation = playerX + ":" + playerY
+
+  UpdateMap()
+
+EndSub
+
+
+
+Sub DownLevel
+
+  If ( level < maxLevel ) Then
+
+    level = level + 1  
+
+    ClearAroundPlayer()
+
+    lastDrawn = ""
+
+    Timer.Interval = 1000000
+
+  EndIf  
+
+EndSub
+
+
+
+Sub UpLevel
+
+  If ( level > 1 ) Then
+
+    level = level - 1    
+
+    lastDrawn = ""
+
+    Timer.Interval = 1000000
+
+  EndIf  
+
+EndSub
+
+
+
+Sub GetDimensions
+
+  offsetX = ( GraphicsWindow.Width - viewportPixels ) / 2 
+
+  offsetY = ( GraphicsWindow.Height - viewportPixels ) / 2
+
+  centerX = center + offsetX
+
+  centerY = center + offsetY  
+
+EndSub
+
+
+
+Sub Draw3D
+
+  If( width3D >= pixelSize And height3D >= pixelSize ) Then
+
+    GraphicsWindow.BrushColor = midtone
+
+    GraphicsWindow.FillRectangle( left3D, top3D, width3D, height3D )
+
+    If( width3D > pixelSize And height3D > pixelSize ) Then
+
+      GraphicsWindow.BrushColor = highlight
+
+      GraphicsWindow.FillRectangle( left3D, top3D, width3D - pixelSize, height3D - pixelSize )
+
+      If( width3D > pixelSize * 2 And height3D > pixelSize * 2 ) Then
+
+        GraphicsWindow.BrushColor = shadow
+
+        GraphicsWindow.FillRectangle( left3D + pixelSize, top3D + pixelSize, width3D - pixelSize, height3D - pixelSize )
+
+        If( width3D > pixelSize * 3 And height3D > pixelSize * 3 ) Then
+
+          GraphicsWindow.BrushColor = midtone
+
+          GraphicsWindow.FillRectangle( left3D + pixelSize, top3D + pixelSize, width3D - ( pixelSize * 2 ), height3D - ( pixelSize * 2 ) )
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub DrawText
+
+  textToDraw = Text.ConvertToUpperCase( textToDraw )
+
+  textLength = Text.GetLength( textToDraw )
+
+  For tIndex = 1 To textLength
+
+    currentLetter = Text.GetSubText( textToDraw, tIndex, 1 )
+
+    charCode = Text.GetCharacterCode( currentLetter )
+
+    textTileName = "font-" + charCode
+
+    If ( Array.ContainsValue( imageName, textTileName ) = "False" ) Then
+
+      textTileName = "font-32"
+
+    EndIf
+
+    GraphicsWindow.DrawImage( tiles[ textTileName ], textX + ( tIndex - 1 ) * tileSize, textY )
+
+  EndFor
+
+EndSub
+
+
+
+Sub StartProgress  
+
+  GetDimensions()
+
+  working = "True"
+
+  
+
+  left3D = offsetX
+
+  top3D = ( viewportSize / 2 ) * tileSize + offsetY  
+
+  width3D = viewportPixels
+
+  height3D = tileSize
+
+  highlight = "#343434"
+
+  midtone = "#4d4d4d"
+
+  shadow = "#999999"
+
+  Draw3D()
+
+  
+
+  progress = 0
+
+  stepAmount = ( viewportPixels - pixelSize * 2 ) / steps
+
+EndSub
+
+
+
+Sub Progress
+
+  progress = progress + 1
+
+  
+
+  left3D = offsetX + pixelSize
+
+  top3D = ( viewportSize / 2 ) * tileSize + offsetY + pixelSize
+
+  width3D = stepAmount * progress
+
+  height3D = tileSize - pixelSize * 2
+
+  highlight = "#3dc93a"
+
+  midtone = "#36b033"
+
+  shadow = "#2d962c"
+
+  Draw3D()      
+
+EndSub
+
+
+
+Sub EndProgress
+
+  working = "False"
+
+EndSub
+
+
+
+Sub LoadImage
+
+  fullPath = path + loadImageName + ".png"
+
+  tiles[ loadImageName ] = ImageList.LoadImage( fullPath )
+
+  Progress()
+
+EndSub
+
+
+
+Sub LoadResources
+
+  If ( resourceMode = "online" ) Then
+
+    path = "http://dl.dropbox.com/u/26751885/Small%20Basic%20Tile%20Engine/"
+
+  Else 
+
+    path = Program.Directory + "\"
+
+  EndIf
+
+  
+
+  steps = levelTilesEndIndex * maxLevel + Array.GetItemCount( imageName ) - levelTilesEndIndex
+
+  StartProgress()
+
+  
+
+  For i = 1 to Array.GetItemCount( imageName )
+
+    If ( i > levelTilesEndIndex ) Then
+
+      loadImageName = imageName[ i ]
+
+      LoadImage()
+
+    Else
+
+      For l = 1 To maxLevel
+
+        loadImageName = imageName[ i ] + l
+
+        LoadImage()
+
+      EndFor
+
+    EndIf
+
+    indexFromName[ imageName[ i ] ] = i  
+
+  EndFor
+
+  
+
+  EndProgress()  
+
+EndSub 
+
+
+
+Sub Draw
+
+  GetDimensions()
+
+  uncached = 0
+
+  'draw a section of the map that is 17 x 17 tiles in size  
+
+  For y = 0 To viewportSize - 1
+
+    For x = 0 to viewportSize - 1
+
+      GetLocationRelativeToPlayer()
+
+      
+
+      GetScreenPosition()
+
+      
+
+      'the part of the map at this location might not have been created yet       
+
+      CheckMapAtLocation() 
+
+      
+
+      GetLevelTileName()
+
+      
+
+      viewPortLocation = x + ":" + y
+
+      
+
+      'check lastDrawn array for this tile - we only want to bother drawing if the tile is different to the last one we drew here
+
+      If ( Array.ContainsIndex( lastDrawn, viewPortLocation ) = "False" Or tile <> lastDrawn[ viewPortLocation ] ) Then
+
+        uncached = uncached + 1
+
+        'draw a floor first        
+
+        GraphicsWindow.DrawImage( tiles[ "Floor" + level ], screenX,  screenY )
+
+        
+
+        'if the current tile IS a floor then no point in drawing it again
+
+        If ( map[ level ][ location ] <> "Floor" ) Then        
+
+          GraphicsWindow.DrawImage( tiles[ tile ], screenX, screenY )
+
+        EndIf
+
+      EndIf
+
+      
+
+      lastDrawn[ viewPortLocation ] = tile
+
+      
+
+      If ( monsters[ level ][ location ] = "True" ) Then
+
+        GraphicsWindow.DrawImage( tiles[ "Monster" + level ], screenX, screenY )
+
+        lastDrawn[ viewPortLocation ] = "Monster" + tile
+
+      EndIf
+
+      
+
+      'now overlay the player sprite if the current location is the player's location
+
+      If ( x = playerSightRadius - 1 And y = playerSightRadius - 1 ) Then
+
+        GraphicsWindow.DrawImage( tiles[ "Player" ],  screenX,  screenY )
+
+      EndIf     
+
+    EndFor
+
+  EndFor
+
+  DrawHealth()
+
+  DrawStats()
+
+  DrawMessage()  
+
+  
+
+  GraphicsWindow.Title = "Lvl: " + playerLevel + " XP: " + score + "/" + nextLevelUp + " Health: " + health + "/" + maxHealth      
+
+EndSub
+
+
+
+Sub GetLocationRelativeToPlayer
+
+  locationX = x - playerSightRadius + playerX + 1
+
+  locationY = y - playerSightRadius + playerY + 1
+
+  location = locationX + ":" + locationY
+
+EndSub
+
+
+
+Sub GetScreenPosition
+
+  screenX = x * tileSize + offsetX
+
+  screenY = y * tileSize + offsetY  
+
+EndSub
+
+
+
+Sub UpdateProbabilities
+
+  'higher is less likely
+
+  maxHealthProbability = 2000
+
+  stairProbability = 1500    
+
+  orbProbability = 1000
+
+  healthProbability = 150
+
+  powerupProbability = 30
+
+  alternateWallProbability = 16
+
+  wallProbability = 4
+
+  alternateFloorProbability = 4
+
+  
+
+  monsterProbability = Math.Floor( 100 / level )
+
+  breakableWallProbability = Math.Round( 1.5 * level )
+
+  
+
+  If( debugMode ) Then
+
+    maxHealthProbability = 500
+
+    healthProbability = 100
+
+    stairProbability = 100
+
+    monsterProbability = 500
+
+    orbProbability = 200
+
+  EndIf  
+
+EndSub  
+
+
+
+'check if the map is empty at this location and if it is then randomly pick a tile to place here
+
+Sub CheckMapAtLocation 
+
+  UpdateProbabilities()
+
+  
+
+  If ( Array.ContainsIndex( map[ level ], location ) = "False" ) Then
+
+    '2nd condition - don't put stairs here if a tile has already been generated at this location on the level below
+
+    If ( level < maxLevel And Math.GetRandomNumber( stairProbability ) = 1 And Array.ContainsIndex( map[ level + 1 ], location ) = "False" ) Then
+
+      'Stairs - next level
+
+      map[ level ][ location ] = "Stairs"
+
+      map[ level + 1 ][ location ] = "Up"
+
+    ElseIf ( level > 1 And Math.GetRandomNumber( stairProbability ) = 1 And Array.ContainsIndex( map[ level - 1 ], location ) = "False" ) Then
+
+      'Stairs up - previous level
+
+      map[ level ][ location ] = "Up"
+
+      map[ level - 1 ][ location ] = "Stairs"
+
+    ElseIf ( level = maxLevel And foundOrb = "False" And Math.GetRandomNumber( orbProbability ) = 1 ) Then
+
+      'win condition
+
+      map[ level ][ location ] = "Orb"
+
+      foundOrb = "True"
+
+      message = "The Orb is near"
+
+      ShowMessage()      
+
+    ElseIf ( Math.GetRandomNumber( maxHealthProbability ) = 1 ) Then            
+
+      'Max Health - heals 1 damage and adds 1 to max
+
+      map[ level ][ location ] = "MaxHealth" 
+
+    ElseIf ( Math.GetRandomNumber( healthProbability ) = 1 ) Then            
+
+      'Health - heals 1 damage
+
+      map[ level ][ location ] = "Health" 
+
+    ElseIf ( Math.GetRandomNumber( powerupProbability ) = 1 ) Then            
+
+      'PowerUp - increases your score
+
+      map[ level ][ location ] = "PowerUp" 
+
+    ElseIf ( Math.GetRandomNumber( monsterProbability ) = 1 ) Then            
+
+      'Monster
+
+      If( location <> ( playerX + ":" + playerY ) And monsters[ level ][ location ] <> "True" ) Then 
+
+        monsters[ level ][ location ] = "True"  
+
+      EndIf      
+
+      map[ level ][ location ] = "Floor"
+
+    ElseIf ( Math.GetRandomNumber( alternateWallProbability ) = 1 ) Then
+
+      'Wall - a square you can't move through
+
+      map[ level ][ location ] = "WallB" 
+
+    ElseIf ( Math.GetRandomNumber( wallProbability ) = 1 ) Then
+
+      'Wall - a square you can't move through
+
+      map[ level ][ location ] = "Wall" 
+
+    ElseIf ( Math.GetRandomNumber( alternateFloorProbability ) = 1 ) Then
+
+      map[ level ][ location ] = "FloorB" 
+
+    ElseIf ( Math.GetRandomNumber( breakableWallProbability ) = 1 ) Then
+
+      'Breakable - a wall you can break down
+
+      map[ level ][ location ] = "Breakable" 
+
+    Else
+
+      'Floor - a square you can move over
+
+      map[ level ][ location ] = "Floor" 
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub GetLevelTileName
+
+  GetTile()
+
+  tileIndex = indexFromName[ tile ]
+
+  If ( tileIndex <= levelTilesEndIndex ) Then
+
+    tile = tile + level
+
+  EndIf
+
+EndSub
+
+
+
+Sub GetTile
+
+  tile = map[ level ][ location ]
+
+EndSub
+
+
+
+Sub StringToWords
+
+  words = 0
+
+  wordIndex = 0
+
+  word = ""
+
+  For wI = 1 To Text.GetLength( inString )
+
+    currentLetter = Text.GetSubText( inString, wI, 1 )
+
+    If( currentLetter = " " ) Then
+
+      wordIndex = wordIndex + 1
+
+      words[ wordIndex ] = word
+
+      word = ""
+
+    Else 
+
+      word = word + currentLetter
+
+    EndIf
+
+  EndFor
+
+  If( word <> "" ) Then
+
+    wordIndex = wordIndex + 1
+
+    words[ wordIndex ] = word
+
+  EndIf
+
+EndSub  
+
+
+
+Sub WordsToLines
+
+  lines = 0
+
+  line = ""
+
+  lineIndex = 1
+
+  For wI = 1 To Array.GetItemCount( words )
+
+    word = words[ wI ]
+
+    If ( word > maxLineLength ) Then
+
+      If( line <> "" ) Then
+
+        lines[ lineIndex ] = line
+
+        lineIndex = lineIndex + 1
+
+      EndIf
+
+      lines[ lineIndex ] = Text.GetSubText( word, 1, maxLineLength )
+
+      lineIndex = lineIndex + 1
+
+      line = ""
+
+    ElseIf ( line = "" ) Then
+
+      line = line + word
+
+    ElseIf ( Text.GetLength( line ) + 1 + Text.GetLength( word ) <= maxLineLength ) Then
+
+      line = line + " " + word
+
+    ElseIf( line <> "" ) Then
+
+      lines[ lineIndex ] = line
+
+      lineIndex = lineIndex + 1      
+
+      line = word
+
+    EndIf
+
+  EndFor 
+
+  If( line <> "" ) Then
+
+    lines[ lineIndex ] = line     
+
+  EndIf  
+
+EndSub 
+
+
+
+Sub DrawHealth  
+
+  If ( health <> lastHealth Or maxHealth <> lastMaxHealth ) Then
+
+    GraphicsWindow.DrawImage( tiles[ "MaxHealth" ], offsetX - pixelSize, offsetY - tileSize - pixelSize )
+
+    
+
+    left3D = offsetX + tileSize
+
+    top3D = offsetY - tileSize
+
+    width3D = viewportPixels - tileSize
+
+    height3D = tileSize - pixelSize
+
+    highlight = "#343434"
+
+    midtone = "#4d4d4d"
+
+    shadow = "#999999"
+
+    Draw3D()
+
+    
+
+    healthLimitWidth = viewportPixels - tileSize - pixelSize * 2
+
+    maxHealthWidth = ( maxHealth / healthLimit ) * healthLimitWidth
+
+    healthWidth = ( health / maxHealth ) * maxHealthWidth
+
+    
+
+    left3D = offsetX + tileSize + pixelSize
+
+    top3D = offsetY - tileSize + pixelSize  
+
+    height3D = tileSize - pixelSize * 3
+
+    If( health < maxHealth ) Then
+
+      width3D = maxHealthWidth
+
+      highlight = "#972c2c"
+
+      midtone = "#b03333"
+
+      shadow = "#ca3a3a"
+
+      Draw3D()
+
+    EndIf    
+
+    
+
+    width3D = healthWidth
+
+    highlight = "#3dc93a"
+
+    midtone = "#36b033"
+
+    shadow = "#2d962c"
+
+    Draw3D()    
+
+  EndIf
+
+  lastHealth = health
+
+  lastMaxHealth = maxHealth
+
+EndSub
+
+
+
+Sub DrawStats
+
+  If ( playerLevel <> lastLevel Or score <> lastScore Or nextLevelUp <> lastNextLevelUp ) Then
+
+    textX = offsetX
+
+    textY = offsetY + viewportPixels
+
+    textToDraw = "Lvl"
+
+    If ( playerLevel < 10 ) Then
+
+      textToDraw = textToDraw + " "
+
+    EndIf
+
+    If ( playerLevel < 100 ) Then
+
+      textToDraw = textToDraw + playerLevel
+
+    Else
+
+      textToDraw = textToDraw + "99"
+
+    EndIf
+
+    textToDraw = textToDraw + " NXT"
+
+    DrawText()
+
+    
+
+    nextWidth = ( viewportSize - Text.GetLength( textToDraw ) ) * tileSize - pixelSize
+
+    nextHeight = tileSize - pixelSize * 2
+
+    nextLeft = offsetX + viewportPixels - nextWidth
+
+    nextTop = textY + pixelSize
+
+    
+
+    left3D = nextLeft
+
+    top3D = nextTop
+
+    width3D = nextWidth
+
+    height3D = nextHeight
+
+    highlight = "#343434"
+
+    midtone = "#4d4d4d"
+
+    shadow = "#999999"
+
+    Draw3D()    
+
+    
+
+    left3D = nextLeft + pixelSize
+
+    top3D = nextTop + pixelSize
+
+    If( playerLevel < 2 ) Then
+
+      width3D = Math.Floor( ( ( nextWidth - pixelSize * 2 ) / nextLevelUp ) * score )
+
+    Else
+
+      levelUpAmount = nextLevelUp / 2
+
+      levelUpProgress = score - levelUpAmount
+
+      width3D = Math.Floor( ( ( nextWidth - pixelSize * 2 ) / levelUpAmount ) * levelUpProgress )
+
+    EndIf
+
+    height3D = nextHeight - pixelSize * 2
+
+    highlight = "#ca3a3a"
+
+    midtone = "#b03333"
+
+    shadow = "#972c2c"
+
+    Draw3D()    
+
+    
+
+    lastLevel = playerLevel
+
+    lastScore = score
+
+    lastNextLevelUp = nextLevelUp    
+
+  EndIf  
+
+EndSub 
+
+
+
+Sub DrawMessage 
+
+  If ( showingMessage ) Then
+
+    inString = message
+
+    StringToWords()
+
+    maxLineLength = viewportSize - 2
+
+    WordsToLines()
+
+    lineCount = Array.GetItemCount( lines )
+
+    messageTop = ( ( viewportSize - lineCount ) / 2 ) * tileSize + offsetY
+
+    
+
+    midtone = "#025ab3"
+
+    shadow = "#024d99"
+
+    highlight = "#0267cc"
+
+    left3D = offsetX
+
+    top3D = messageTop - tileSize
+
+    width3D = viewportPixels
+
+    height3D = ( lineCount + 2 ) * tileSize
+
+    Draw3D()
+
+    
+
+    midtone = "#025ab3"
+
+    shadow = "#0267cc"
+
+    highlight = "#024d99"
+
+    left3D = offsetX + tileSize - pixelSize
+
+    top3D = messageTop - pixelSize
+
+    width3D = viewportPixels - ( tileSize * 2 ) + ( pixelSize * 2 )
+
+    height3D = ( lineCount * tileSize ) + ( pixelSize * 2 )
+
+    Draw3D()    
+
+    
+
+    GraphicsWindow.BrushColor = "#000000"
+
+    GraphicsWindow.FillRectangle( offsetX + tileSize, messageTop, viewportPixels - tileSize * 2, lineCount * tileSize )
+
+    
+
+    For lI = 1 To lineCount
+
+      textToDraw = lines[ lI ]
+
+      textX = ( ( viewportSize- Text.GetLength( textToDraw ) ) / 2 ) * tileSize + offsetX
+
+      textY = messageTop + ( ( lI - 1 ) * tileSize )
+
+      DrawText()
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub MoveKeyboard
+
+  If( working = "False" ) Then
+
+    direction = GraphicsWindow.LastKey 
+
+    Timer.Interval = 100 
+
+    Update()
+
+  EndIf
+
+EndSub
+
+
+
+Sub MoveMouse
+
+  If ( working = "False" ) Then
+
+    upAmount = centerY - GraphicsWindow.MouseY
+
+    downAmount = GraphicsWindow.MouseY - centerY
+
+    leftAmount = centerX - GraphicsWindow.MouseX
+
+    rightAmount = GraphicsWindow.MouseX - centerX
+
+    
+
+    If( upAmount > downAmount And upAmount > leftAmount And upAmount > rightAmount ) Then
+
+      direction = "Up"
+
+    ElseIf( downAmount > leftAmount And downAmount > rightAmount ) Then
+
+      direction = "Down"
+
+    ElseIf( leftAmount > rightAmount ) Then 
+
+      direction = "Left"
+
+    Else
+
+      direction = "Right"
+
+    EndIf
+
+    Timer.Interval = 100
+
+    Update()
+
+  EndIf
+
+EndSub
+
+
+
+Sub UpdatePosition
+
+  'make a copy of the player's current location
+
+  oldX = playerX
+
+  oldY = playerY
+
+  
+
+  'check if the player is moving and if so change the copy of the location accordingly
+
+  If ( direction = "Up" ) Then 
+
+    playerY = playerY - 1
+
+  ElseIf ( direction = "Down" ) Then
+
+    playerY = playerY + 1
+
+  ElseIf ( direction = "Left" ) Then
+
+    playerX = playerX - 1
+
+  ElseIf ( direction = "Right" ) Then
+
+    playerX = playerX + 1
+
+  EndIf
+
+  
+
+  'set location to the new position
+
+  location = playerX + ":" + playerY 
+
+  
+
+  'the square of map at this location might not have been created yet
+
+  CheckMapAtLocation()   
+
+EndSub  
+
+
+
+Sub HandlePlayerAction
+
+  monsterScore = 50 * level
+
+  powerUpScore = 5 * level
+
+  downLevelScore = 100 * level
+
+  maxHealthScore = 10 * level
+
+  
+
+  clearFloor = "False"
+
+  
+
+  'only update position if they're not trying to move into a wall
+
+  If ( Array.ContainsValue( blockings, map[ level ][ location ] ) ) Then 
+
+    If ( map[ level ][ location ] = "Breakable" ) Then
+
+      updateLocation = location
+
+      updateTilename = "Broken"
+
+      UpdateMap()             
+
+    EndIf  
+
+    playerX = oldX
+
+    playerY = oldY
+
+  Else    
+
+    If ( monsters[ level ][ location ] = "True" ) Then
+
+      If ( ( Math.GetRandomNumber( 50 + ( level * 10 ) ) - Math.GetRandomNumber( playerLevel ) ) <= 50 ) Then
+
+        scoreAmount = monsterScore
+
+        GiveScore()
+
+        monsters[ level ][ location ] = "False"  
+
+      EndIf
+
+      playerX = oldX      
+
+      playerY = oldY
+
+    ElseIf( map[ level ][ location ] = "Orb" ) Then 
+
+      message = "You found the Orb of Worlds Final-score LVL:" + playerLevel + " XP:" + score + " Press any key to play again"
+
+      ShowMessage()
+
+      Draw()
+
+      health = 0
+
+    ElseIf( map[ level ][ location ] = "PowerUp" ) Then 
+
+      'give them a point
+
+      scoreAmount = powerUpScore
+
+      GiveScore()      
+
+      clearFloor = "True"
+
+    ElseIf ( map[ level ][ location ] = "Stairs" ) Then
+
+      DownLevel()
+
+      If ( level > topLevel ) Then
+
+        topLevel = level
+
+        scoreAmount = downLevelScore
+
+        GiveScore()
+
+      EndIf      
+
+    ElseIf ( map[ level ][ location ] = "Up" ) Then 
+
+      UpLevel()            
+
+    ElseIf( map[ level ][ location ] = "Health" ) Then
+
+      healthAmount = level
+
+      GiveHealth()
+
+      scoreAmount = powerUpScore
+
+      GiveScore()
+
+      clearFloor = "True"
+
+    ElseIf( map[ level ][ location ] = "MaxHealth" ) Then
+
+      healthAmount = level
+
+      GiveMaxHealth()
+
+      healthAmount = maxHealth
+
+      GiveHealth()
+
+      scoreAmount = maxHealthScore
+
+      GiveScore()      
+
+      clearFloor = "True"
+
+    EndIf
+
+  EndIf
+
+  
+
+  If( clearFloor ) Then
+
+    updateLocation = location
+
+    updateTilename = "Floor"
+
+    UpdateMap()
+
+  EndIf  
+
+EndSub  
+
+
+
+Sub Update  
+
+  If( health <= 0 ) Then
+
+    InitializePlayer()
+
+  ElseIf( showingMessage ) Then
+
+    showingMessage = "False"
+
+    Timer.Interval = 100
+
+    lastDrawn = 0
+
+  Else  
+
+    UpdatePosition()        
+
+    HandlePlayerAction()    
+
+    UpdateMonsters()
+
+  EndIf
+
+  
+
+  Draw()
+
+  direction = "None"
+
+  lastTick = Clock.ElapsedMilliseconds
+
+EndSub 
+
+
+
+Sub GiveHealth
+
+  gotHealth = "False"
+
+  For i = 1 To healthAmount
+
+    If( health < maxHealth ) Then
+
+      health = health + 1
+
+      gotHealth = "True"
+
+    EndIf
+
+  EndFor
+
+EndSub  
+
+
+
+Sub GiveMaxHealth
+
+  gotHealth = "False"
+
+  For i = 1 To healthAmount
+
+    If( maxHealth < healthLimit) Then
+
+      maxHealth = maxHealth + 1
+
+      gotHealth = "True"
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub GiveScore
+
+  For i = 1 To scoreAmount
+
+    score = score + 1
+
+    If( score = nextLevelUp ) Then
+
+      playerLevel = playerLevel + 1
+
+      
+
+      levelUpAmount = nextLevelUp
+
+      nextLevelUp = nextLevelUp * 2
+
+      
+
+      healthAmount = playerLevel
+
+      GiveMaxHealth()
+
+      
+
+      healthAmount = maxHealth
+
+      GiveHealth()
+
+      
+
+      message = "Level up"
+
+      ShowMessage()
+
+    EndIf
+
+  EndFor
+
+EndSub  
+
+
+
+Sub HitPlayer
+
+  initialDamage = Math.GetRandomNumber( level * 6 ) + Math.GetRandomNumber( level * 6 )
+
+  dampen = Math.GetRandomNumber( playerLevel ) + Math.GetRandomNumber( playerLevel )
+
+  health = health - Math.Floor( initialDamage / dampen )
+
+  If ( health <= 0 ) Then
+
+    health = 0
+
+    message = "Game Over Final-score LVL:" + playerLevel + " XP:" + score + " Press any key to play again"
+
+    ShowMessage()
+
+  EndIf  
+
+EndSub  
+
+
+
+Sub IsPassable
+
+  oldLocation = location
+
+  location = newLocation
+
+  GetTile()
+
+  passable = "True"
+
+  If ( Array.ContainsValue( blockings, tile ) ) Then
+
+    passable = "False"
+
+  EndIf
+
+  location = oldLocation  
+
+EndSub
+
+
+
+Sub GetMonstersOnScreen
+
+  monstersOnScreen = 0
+
+  monsterCount = 0
+
+  For y = 0 To viewportSize - 1
+
+    For x = 0 to viewportSize - 1
+
+      GetLocationRelativeToPlayer()      
+
+      CheckMapAtLocation()
+
+      
+
+      If ( monsters[ level ][ location ] = "True" ) Then
+
+        monsterCount = monsterCount + 1
+
+        monstersOnScreen[ monsterCount ][ "x" ] = locationX
+
+        monstersOnScreen[ monsterCount ][ "y" ] = locationY
+
+      EndIf  
+
+    EndFor
+
+  EndFor  
+
+EndSub  
+
+
+
+Sub GetPossibleMonsterMovements
+
+  newLocation = monsterX + ":" + ( monsterY - 1 )
+
+  IsPassable()
+
+  canMoveUp = passable
+
+  
+
+  newLocation = monsterX + ":" + ( monsterY + 1 )
+
+  IsPassable()
+
+  canMoveDown = passable
+
+  
+
+  newLocation = ( monsterX - 1 ) + ":" + monsterY
+
+  IsPassable()
+
+  canMoveLeft = passable
+
+  
+
+  newLocation = ( monsterX + 1 ) + ":" + monsterY
+
+  IsPassable()
+
+  canMoveRight = passable  
+
+EndSub  
+
+
+
+Sub MoveMonster
+
+  locationX = monstersOnScreen[ m ][ "x" ]   
+
+  locationY = monstersOnScreen[ m ][ "y" ]
+
+  location = locationX + ":" + locationY
+
+  
+
+  monsterX = locationX
+
+  monsterY = locationY
+
+  
+
+  GetPossibleMonsterMovements()
+
+  
+
+  'move randomly occasionally to prevent getting stuck - otherwise try to move towards player
+
+  If ( Math.GetRandomNumber( 8 ) = 1 ) Then
+
+    MoveMonsterRandomly()
+
+  ElseIf ( canMoveRight And monsterX < playerX ) Then
+
+    monsterX = monsterX + 1
+
+  ElseIf ( canMoveDown And monsterY < playerY ) Then
+
+    monsterY = monsterY + 1
+
+  ElseIf ( canMoveUp And monsterY > playerY ) Then
+
+    monsterY = monsterY - 1
+
+  ElseIf ( canMoveLeft And monsterX > playerX ) Then
+
+    monsterX = monsterX - 1
+
+  Else
+
+    'can't move towards player - try to move randomly
+
+    MoveMonsterRandomly()
+
+  EndIf
+
+  
+
+  monsterLocation = monsterX + ":" + monsterY   
+
+EndSub  
+
+
+
+Sub UpdateMonsters
+
+  GetDimensions()  
+
+  GetMonstersOnScreen()
+
+  For m = 1 To monsterCount
+
+    MoveMonster()
+
+    If ( monsterX = playerX And monsterY = playerY ) Then
+
+      HitPlayer()
+
+    Else
+
+      newLocation = monsterLocation
+
+      IsPassable()
+
+      If ( passable And monsters[ level ][ monsterLocation ] <> "True" ) Then
+
+        monsters[ level ][ location ] = "False"
+
+        monsters[ level ][ monsterLocation ] = "True"
+
+      EndIf
+
+    EndIf    
+
+  EndFor  
+
+EndSub  
+
+
+
+Sub MoveMonsterRandomly
+
+  'try to move randomly
+
+  dirCount = 0
+
+  directions = 0
+
+  If( canMoveUp ) Then
+
+    dirCount = dirCount + 1
+
+    directions[ dirCount ][ "x" ] = 0
+
+    directions[ dirCount ][ "y" ] = -1
+
+  EndIf
+
+  If( canMoveDown ) Then
+
+    dirCount = dirCount + 1
+
+    directions[ dirCount ][ "x" ] = 0
+
+    directions[ dirCount ][ "y" ] = 1
+
+  EndIf
+
+  If( canMoveLeft ) Then
+
+    dirCount = dirCount + 1
+
+    directions[ dirCount ][ "x" ] = -1
+
+    directions[ dirCount ][ "y" ] = 0
+
+  EndIf
+
+  If( canMoveRight ) Then
+
+    dirCount = dirCount + 1
+
+    directions[ dirCount ][ "x" ] = 1
+
+    directions[ dirCount ][ "y" ] = 0
+
+  EndIf
+
+  If( dirCount > 0 ) Then
+
+    randomDirection = directions[ Math.GetRandomNumber( dirCount ) ]
+
+    monsterX = monsterX + randomDirection[ "x" ]
+
+    monsterY = monsterY + randomDirection[ "y" ]
+
+  EndIf  
+
+EndSub
+
+
+
+
+
+Sub onTick
+
+  turnInterval = 1000 - (level * 100)
+
+  If (Clock.ElapsedMilliseconds - lastTick >= (turnInterval)) Then
+
+    direction = "None"
+
+    Update()
+
+  EndIf
+
+EndSub
+
+  
+
+

@@ -1,0 +1,599 @@
+' Orbit
+
+' Version 0.22
+
+' Copyright Â© 2016 Nonki Takahashi.  The MIT License.
+
+' Last update 2016-06-08
+
+' Program ID CLJ212-1
+
+' Reference:
+
+' 1) JPL, Keplerian Elements for Approximate Positions of the Major Planets
+
+' http://ssd.jpl.nasa.gov/txt/aprx_pos_planets.pdf
+
+' 2) ?›½ç«‹å¤©?–‡?°, ?†ç§‘å¹´è¡? å¹³æˆ28å¹? (Chronological Scientific Tables 2016), 2015
+
+' http://www.rikanenpyo.jp
+
+'
+
+GraphicsWindow.Title = "Orbit 0.22"
+
+debug = "False"
+
+years = 100 ' duration
+
+delay = 30  ' slow
+
+delay = 0   ' fast
+
+pO = "Sa"   ' outer orbit to show
+
+pauseOnSuperMars = "False"
+
+Init()
+
+DrawSun()
+
+Today = Clock.ElapsedMilliseconds / 1000 / 3600 / 24 + 2415020.5  ' JD[day]
+
+For T_eph = Today - years * 365 / 2 To Today + years * 365 / 2
+
+  ShowDate()
+
+  For iP = 1 To nP - 1
+
+    planet = index[iP]
+
+    CalcPlanetPos()
+
+    DrawPlanet()
+
+    If debug Then
+
+      GraphicsWindow.MouseDown = OnMouseDown
+
+      mouseDown = "False"
+
+      While Not[mouseDown]
+
+        Program.Delay(200)
+
+      EndWhile
+
+    EndIf
+
+  EndFor
+
+  Program.Delay(delay)
+
+  If pauseOnSuperMars And (date = "2016-05-31") Then
+
+    GraphicsWindow.BrushColor = "LightGray"
+
+    txtSuperMars = Shapes.AddText("Super Mars 2016")
+
+    For xx = gw To -100 Step -1
+
+      Shapes.Move(txtSuperMars, xx , gh - 50)
+
+      Program.Delay(5)
+
+    EndFor
+
+    Shapes.Remove(txtSuperMars)
+
+  EndIf
+
+EndFor
+
+Sub Init
+
+  CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
+
+  Not = "False=True;True=False;"
+
+  PI = Math.Pi
+
+  dom = "1=31;2=28;3=31;4=30;5=31;6=30;7=31;8=31;9=30;10=31;11=30;12=31;"
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  au = "1.4959787E8" ' [km]
+
+  ' tb[][] - planet elements table
+
+  ' Me - Mercury
+
+  ' V - Venus
+
+  ' E - Earth
+
+  ' Ma - Mars
+
+  ' J - Jupter
+
+  ' Sa - Saturn
+
+  ' U - Uranus
+
+  ' N - Neptune
+
+  '
+
+  ' Table 1 1)
+
+  '  Keplerian elements and their rates, with respect to the mean ecliptic
+
+  '  and equinox of J2000, valid for the time-interval 1800 AD - 2050 AD.
+
+  ' ao, ?”a - semi-major axis [au, au/century]
+
+  ' eo, ?”e - eccentricity [ ,  /century]
+
+  ' Io, ?”I - inclination [degree, degree/century]
+
+  ' Lo, ?”L - mean longitude [degree, degree/century]
+
+  ' ?–o, ?”Ï? - longitude of perihelion [degree, degree/century]
+
+  ' Î©o, ?”Î? - longitude of the ascending node [degree, degree/century]
+
+  tb["Me"] = "ao= 0.38709927;eo= 0.20563593;Io= 7.00497902;Lo=   252.25032350;?–o= 77.45779628;Î©o= 48.33076593;"
+
+  tb["Me"] = tb["Me"] + "?”a= 0.00000037;?”e= 0.00001906;?”I=-0.00594749;?”L=149472.67411175;?”Ï?=  0.16047689;?”Î?= -0.12534081;"
+
+  tb["V"]  = "ao= 0.72333566;eo= 0.00677672;Io= 3.39467605;Lo=   181.97909950;?–o=131.60246718;Î©o= 76.67984255;"
+
+  tb["V"]  = tb["V"]  + "?”a= 0.00000390;?”e=-0.00004107;?”I=-0.00078890;?”L= 58517.81538729;?”Ï?=  0.00268329;?”Î?= -0.27769418;"
+
+  tb["E"]  = "ao= 1.00000261;eo= 0.01671123;Io=-0.00001531;Lo=   100.46457166;?–o=102.93768193;Î©o=  0.0;"
+
+  tb["E"]  = tb["E"]  + "?”a= 0.00000562;?”e=-0.00004392;?”I=-0.01294668;?”L= 35999.37244981;?”Ï?=  0.32327364;?”Î?=  0.0;"
+
+  tb["Ma"] = "ao= 1.52371034;eo= 0.09339410;Io= 1.84969142;Lo=    -4.55343205;?–o=-23.94362959;Î©o= 49.55953891;"
+
+  tb["Ma"] = tb["Ma"] + "?”a= 0.00001847;?”e= 0.00007882;?”I=-0.00813131;?”L= 19140.30268499;?”Ï?=  0.44441088;?”Î?= -0.29257343;"
+
+  tb["J"]  = "ao= 5.20288700;eo= 0.04838624;Io= 1.30439695;Lo=    34.39644051;?–o= 14.72847983;Î©o=100.47390909;"
+
+  tb["J"]  = tb["J"]  + "?”a=-0.00011607;?”e=-0.00013253;?”I=-0.00183714;?”L=  3034.74612775;?”Ï?=  0.21252668;?”Î?=  0.20469106;"
+
+  tb["Sa"] = "ao= 9.53667594;eo= 0.05386179;Io= 2.48599187;Lo=    49.95424423;?–o= 92.59887831;Î©o=113.66242448;"
+
+  tb["Sa"] = tb["Sa"] + "?”a=-0.00125060;?”e=-0.00050991;?”I= 0.00193609;?”L=  1222.49362201;?”Ï?= -0.41897216;?”Î?= -0.28867794;"
+
+  tb["U"]  = "ao=19.18916464;eo= 0.04725744;Io= 0.77263783;Lo=   313.23810451;?–o=170.95427630;Î©o= 74.01692503;"
+
+  tb["U"]  = tb["U"]  + "?”a=-0.00196176;?”e=-0.00004397;?”I=-0.00242939;?”L=   428.48202785;?”Ï?=  0.40805281;?”Î?=  0.04240589;"
+
+  tb["N"]  = "ao=30.06992276;eo= 0.00859048;Io= 1.77004347;Lo=   -55.12002969;?–o= 44.96476227;Î©o=131.78422574;"
+
+  tb["N"]  = tb["N"]  + "?”a= 0.00026291;?”e= 0.00005105;?”I= 0.00035372;?”L=   218.45945325;?”Ï?= -0.32241464;?”Î?= -0.00508664;"
+
+  ' r - equatorial radius of the planet [km] 2)
+
+  ' color - color for the planet
+
+  tb["Su"] = "r=696000;color=#FFFFCC;"
+
+  tb["Me"] = tb["Me"] + "r= 2440;color=LightGray;"
+
+  tb["V"]  = tb["V"]  + "r= 6052;color=CornSilk;"
+
+  tb["E"]  = tb["E"]  + "r= 6378;color=#336699;"
+
+  tb["Ma"] = tb["Ma"] + "r= 3396;color=#FF6633;"
+
+  tb["J"]  = tb["J"]  + "r=71492;color=Tan;"
+
+  tb["Sa"] = tb["Sa"] + "r=60268;color=DarkKhaki;"
+
+  tb["U"]  = tb["U"]  + "r=25559;color=SkyBlue;"
+
+  tb["N"]  = tb["N"]  + "r=24764;color=RoyalBlue;"
+
+  nP = Array.GetItemCount(tb)
+
+  index = Array.GetAllIndices(tb)
+
+  xo = gw / 2
+
+  yo = gh / 2
+
+  rO = yo - 10
+
+  For iP = 1 To nP
+
+    If index[iP] = pO Then
+
+      nP = iP + 1
+
+    EndIf
+
+  EndFor
+
+  GraphicsWindow.BrushColor = "LightGray"
+
+  txtDate = Shapes.AddText("Date")
+
+  Shapes.Move(txtDate, gw - 100, 10)
+
+  If debug Then
+
+    txtDbg = Shapes.AddText("Debug")
+
+    Shapes.Move(txtDbg, 10, 10)
+
+  EndIf
+
+EndSub
+
+Sub OnMouseDown
+
+  mouseDown = "True"
+
+EndSub
+
+Sub CalcPlanetPos
+
+  ' param planet
+
+  ' param T_eph
+
+  ' In order to obtain the coordinates of one of the planets as a given Julian Ephemeris Date, T_eph,
+
+  buf = "T_eph=" + T_eph + "[year]" + CRLF
+
+  ' 1. Compute the value of each of that planet's six elements: a = ao + ?”a T,, etc., where T,
+
+  '    the number of centuries past J2000.0, is T = (T_eph - 2451545.0) / 36525.
+
+  T = (T_eph - 2451545.0) / 36525
+
+  buf = buf + "T=" + T + "[century]" + CRLF
+
+  a = tb[planet]["ao"] + tb[planet]["?”a"] * T
+
+  buf = buf + "a=" + a + "[au]" + CRLF
+
+  e = tb[planet]["eo"] + tb[planet]["?”e"] * T
+
+  buf = buf + "e=" + e + CRLF
+
+  I = Math.Remainder(tb[planet]["Io"] + tb[planet]["?”I"] * T, 360)
+
+  buf = buf + "I=" + I + "[degree]" + CRLF
+
+  L = Math.Remainder(tb[planet]["Lo"] + tb[planet]["?”L"] * T, 360)
+
+  buf = buf + "L=" + L + "[degree]" + CRLF
+
+  ?? = Math.Remainder(tb[planet]["?–o"] + tb[planet]["?”Ï?"] * T, 360)
+
+  buf = buf + "??=" + ?? + "[degree]" + CRLF
+
+  Î© = Math.Remainder(tb[planet]["Î©o"] + tb[planet]["?”Î?"] * T, 360)
+
+  ' 2. Compute the argument of perihelion, ??, and the mean anomaly, M :
+
+  '    ?? = ?? - Î© ; M = L - ??
+
+  ?‰p = ?? - Î©
+
+  buf = buf + "Î©=" + Î© + "[degree]" + CRLF
+
+  buf = buf + "??=" + ?‰p + "[degree]" + CRLF
+
+  M = Math.Remainder(L - ?? + 180, 360) - 180
+
+  '  M = L - ??
+
+  buf = buf + "M=" + M + "[degree]" + CRLF
+
+  ' 3. Modulus the mean anomaly so that -180Â° ?‰¦ M < +180Â° and then obtain the eccentric
+
+  '     anomaly, E, from the solution of Kepler's equation (see below):
+
+  '    M = E - e_deg sin E,
+
+  '    where e_deg = 180/? e = 57.29578 e.
+
+  e_deg = Math.GetDegrees(e)
+
+  buf = buf + "e_deg=" + e_deg + "[degree]" + CRLF
+
+  _M = Math.GetRadians(M)
+
+  EA = M + e_deg * Math.Sin(_M)
+
+  tol = "1E-6"
+
+  Calc3Equ()
+
+  While Math.Abs(?”EA) > tol
+
+    Calc3Equ()
+
+  EndWhile
+
+  buf = buf + "E" + "=" + EA + "[degree]" + CRLF
+
+  ' 4. Compute the planet's heliocentric coodinates in its orbital plane, r', with the x'-axis
+
+  '    aligned from the focus to the perihelion:
+
+  '    x' = a(cos E - e) ; y' = a  ?ˆš(1 - e^2) sin E ; z' = 0
+
+  _EA = Math.GetRadians(EA)
+
+  xh = a * (Math.Cos(_EA) - e)
+
+  yh = a * Math.SquareRoot(1 - e * e) * Math.Sin(_EA)
+
+  zh = 0
+
+  ' 5. Compute the coordinates, r_ecl, in the J2000 ecliptic plane, with the x-axis aligned
+
+  '    toward the equinox:
+
+  '    r_ecl = _M r' ?‰¡ _Rz (-Î©) _Rx (-I) _Rz (-??) r'
+
+  '    so that
+
+  '    x_ecl = (cos ?? cos Î© - sin ?? sin Î© cos I) x' + (- sin ?? cos Î© - cos ?? sin Î© cos I) y' 
+
+  '    y_ecl = (cos ?? sin Î© + sin ?? cos Î© cos I) x' + (- sin ?? sin Î© + cos ?? cos Î© cos I) y'
+
+  '    z_ecl = (sin ?? sin I) x' + (cos ?? sin I) y'
+
+  _?‰p = Math.GetRadians(?‰p)
+
+  _Î© = Math.GetRadians(Î©)
+
+  _I = Math.GetRadians(I)
+
+  x_ecl = (Math.Cos(_?‰p) * Math.Cos(_Î©) - Math.Sin(_?‰p) * Math.Sin(_Î©) * Math.Cos(_I)) * xh
+
+  x_ecl = x_ecl + (-Math.Sin(_?‰p) * Math.Cos(_Î©) - Math.Cos(_?‰p) * Math.Sin(_Î©) * Math.Cos(_I)) * yh
+
+  y_ecl = (Math.Cos(_?‰p) * Math.Sin(_Î©) + Math.Sin(_?‰p) * Math.Cos(_Î©) * Math.Cos(_I)) * xh
+
+  y_ecl = y_ecl + (-Math.Sin(_?‰p) * Math.Sin(_Î©) + Math.Cos(_?‰p) * Math.Cos(_Î©) * Math.Cos(_I)) * yh
+
+  z_ecl = (Math.Sin(_?‰p) * Math.Sin(_I)) * xh
+
+  z_ecl = z_ecl + (Math.Cos(_?‰p) * Math.Sin(_I)) * yh
+
+  buf = buf + "x_ecl=" + x_ecl + "[au]" + CRLF
+
+  buf = buf + "y_ecl=" + y_ecl + "[au]" + CRLF
+
+  buf = buf + "z_ecl=" + z_ecl + "[au]" + CRLF
+
+  If debug Then
+
+    Shapes.SetText(txtDbg, buf)
+
+  EndIf
+
+  ' 6. If desired, obtain the equatorial coodinates in the "ICRF" or "J2000 frame", r_eq :
+
+  '    x_eq = x_ecl
+
+  '    y_eq = + cos Îµ y_ecl - sin Îµ z_ecl
+
+  '    z_eq = + sin Îµ y_ecl + cos Îµ z_ecl
+
+  '    wherre the obliquility at J2000 is Îµ = 23Â°.43928.
+
+EndSub
+
+Sub Calc3Equ
+
+  ' Solution of Kepler's Equation, M = E - e_deg sin E
+
+  ' Given the mean anomaly, M, and the eccentricity, e_deg, both in degrees, start with
+
+  '    E0 = M + e_deg sin M
+
+  ' and iterate the following three equations, with n = 0, 1, 2, ..., until |?”E| ?‰¦ tol (nothing
+
+  ' that e_deg is in degrees; e is in radians):
+
+  '    ?”M = M - (En - e_deg sin En) ; ?”E = ?”M / (1 - e cos En) ; En+1 = En + ?”E.
+
+  ' For the aproximate formulae in this present context, tol = 10^-6 degrees in sufficient.
+
+  _EA = Math.GetRadians(EA)
+
+  ?”M = M - (EA - e_deg * Math.Sin(_EA))
+
+  ?”EA = ?”M / (1 - e * Math.Cos(_EA))
+
+  EA = EA + ?”EA
+
+  buf = buf + "?”M=" + ?”M + CRLF
+
+  buf = buf + "?”E=" + ?”EA + CRLF
+
+  buf = buf + "E" + "=" + EA + CRLF
+
+EndSub
+
+Sub DrawPlanet
+
+  ' param planet - planet index
+
+  ' param a - semi-mejor axis [au]
+
+  ' param e - eccenricity
+
+  ' param ?? - longitude of perihelion [degree]
+
+  _?? = Math.GetRadians(??)
+
+  If debug Then
+
+    buf = "a=" + a + CRLF
+
+    buf = buf + "tb["+pO+"][ao]=" + tb[pO]["ao"] + CRLF
+
+    buf = buf + "rO=" + rO + CRLF
+
+    Shapes.SetText(txtDbg, buf)
+
+  EndIf
+
+  a = a / tb[pO]["ao"] * rO                   ' semi-major axis
+
+  b = Math.SquareRoot(1 - e * e) * a          ' semi-minor axis
+
+  If "False" And debug Then
+
+    buf = "a=" + a + CRLF
+
+    buf = buf + "b=" + b + CRLF
+
+    Shapes.SetText(txtDbg, buf)
+
+  EndIf
+
+  If tb[planet]["orbit"] = "" Then
+
+    GraphicsWindow.PenWidth = 1
+
+    GraphicsWindow.PenColor = "#333333"
+
+    GraphicsWindow.BrushColor = "Transparent"
+
+    tb[planet]["orbit"] = Shapes.AddEllipse(2 * a, 2 * b)
+
+    xc = xo + e * a * Math.Cos(_?? + PI)
+
+    yc = yo - e * a * Math.Sin(_?? + PI)
+
+    x = xc - a
+
+    y = yc - b
+
+    Shapes.Move(tb[planet]["orbit"], x, y)
+
+    Shapes.Rotate(tb[planet]["orbit"], -??)
+
+  EndIf
+
+  GraphicsWindow.PenColor = "Transparent"
+
+  GraphicsWindow.BrushColor = tb[planet]["color"]
+
+  If nP < 5 Then
+
+    r = tb[planet]["r"] / (tb[pO]["ao"] * au) * rO * 500
+
+  Else
+
+    r = 2
+
+  EndIf
+
+  If tb[planet]["planet"] = "" Then
+
+    tb[planet]["planet"] = Shapes.AddEllipse(2 * r, 2 * r)
+
+  EndIf
+
+  x = xo + x_ecl / tb[pO]["ao"] * rO 
+
+  y = yo - y_ecl / tb[pO]["ao"] * rO
+
+  Shapes.Move(tb[planet]["planet"], x - r / 2, y - r / 2)
+
+EndSub
+
+Sub DrawSun
+
+  If nP < 5 Then
+
+    r = tb["Su"]["r"] / (tb[pO]["ao"] * au) * rO * 10
+
+  Else
+
+    r = 2.5
+
+  EndIf
+
+  GraphicsWindow.BrushColor = tb["Su"]["color"]
+
+  GraphicsWindow.FillEllipse(xo - r, yo - r, 2 * r, 2 * r)
+
+EndSub
+
+Sub ShowDate
+
+  ' param T_eph - Julian Day [day] ?‰§ 2299160.5
+
+  d1000 = Math.Floor(T_eph - 0.5) - 2086301.5
+
+  year = 1000 + Math.Floor(d1000 / 365.2425)
+
+  If Math.Remainder(year, 4) = 0 And Math.Remainder(year, 100) <> 100 Or Math.Remainder(year, 400) Then
+
+    dom[2] = 29
+
+  Else
+
+    dom[2] = 28
+
+  EndIf
+
+  day = Math.Floor(Math.Remainder(d1000, 365.2425))
+
+  For mm = 1 To 12
+
+    If day < dom[mm] Then
+
+      month = mm
+
+      mm = 12 ' exit For
+
+    Else
+
+      day = day - dom[mm]
+
+    EndIf
+
+  EndFor
+
+  If month < 10 Then
+
+    month = Text.Append(0, month)
+
+  EndIf
+
+  day = day + 1
+
+  If day < 10 Then
+
+    day = Text.Append(0, day)
+
+  EndIf
+
+  date = year + "-" + month + "-" + day
+
+  Shapes.SetText(txtDate, date)
+
+EndSub
+
+

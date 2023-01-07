@@ -1,0 +1,443 @@
+' Knight's Tour
+
+' Version 0.6
+
+' Copyright © 2012-2016 Nonki Takahashi.  The MIT License.
+
+'
+
+' History :
+
+'  0.6 2016-04-16 Changed crosses to lines. (WPV159-3) 
+
+'  0.51 2016-04-16 Adopted Warnsdorff-rule algorithm. (WPV159-2)
+
+'  0.4 2016-04-16 Solving with depth-first search. (WPV159-0)
+
+'  0.3 2016-04-01 Rewrote for knight's tour. (WPV159)
+
+'  0.2 2013-03-22 Enabled to move chessmen with mouse. (CLP327-0)
+
+'  0.1 2012-08-04 Code for chessmen written in hexadecimal.
+
+'  0.0 2012-08-04 25-line version created. (CLP327)
+
+'
+
+' Reference:
+
+' [1] https://en.wikipedia.org/wiki/Knight%27s_tour
+
+'
+
+t0 = Clock.ElapsedMilliseconds
+
+title = "Knight's Tour 0.6"
+
+GraphicsWindow.Title = title
+
+Not = "False=True;True=False;"
+
+CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
+
+GraphicsWindow.BackgroundColor = "#003300"
+
+dim = 8
+
+Form()
+
+nm = 0  ' number of moves
+
+Move()
+
+RemovePieces()
+
+Sub Move
+
+  If nm = 0 Then
+
+    hex = pieces["N"]
+
+    Math_Hex2Dec()
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.FontSize = size
+
+    knight = Shapes.AddText(Text.GetCharacter(dec))
+
+  Else
+
+    GetNextCandidates()
+
+    ' for a line
+
+    y0 = pos["y0"] + (dim - nRow) * size
+
+    x0 = pos["x0"] + (nCol - 1) * size
+
+  EndIf
+
+  Stack.PushValue("local", nRow)
+
+  Stack.PushValue("local", nCol)
+
+  For iCan = 1 To nMoves
+
+    nRow = Text.GetSubText(next[iCan], 2, 1)
+
+    nCol = aton[Text.GetSubText(next[iCan], 1, 1)]
+
+    visited[(nRow - 1) * dim + nCol] = "True"
+
+    y = pos["y0"] + (dim - nRow) * size
+
+    x = pos["x0"] + (nCol - 1) * size
+
+    If nm = 0 Then
+
+      rec = ntoa[nCol] + nRow
+
+    Else
+
+      rec = rec + ","
+
+      If Math.Remainder(nm, 5) = 0 Then
+
+        rec = rec + CRLF
+
+      EndIf
+
+      rec = rec + ntoa[nCol] + nRow
+
+      ' draw a line
+
+      line[(nRow - 1) * dim + nCol] = Shapes.AddLine(0, 0, x - x0 , y - y0)
+
+      Shapes.Move(line[(nRow - 1) * dim + nCol], x0 + size * 0.5, y0 + size * 0.5)
+
+    EndIf
+
+    nm = nm + 1  ' number of moves
+
+    Shapes.Move(knight, x, y - size * 0.12)
+
+    Controls.SetTextBoxText(tbox, rec)
+
+    Stack.PushValue("local", next)
+
+    Stack.PushValue("local", iCan)
+
+    Stack.PushValue("local", nMoves)
+
+    Stack.PushValue("local", x0)
+
+    Stack.PushValue("local", y0)
+
+    If Array.GetItemCount(visited) < dim * dim Then
+
+      Move()
+
+    Else
+
+      t = Clock.ElapsedMilliseconds - t0
+
+      GraphicsWindow.Title = title + " - " + (t / 1000) + "[sec]"
+
+      buttonClicked = "False"
+
+      While Not[buttonClicked]
+
+        Program.Delay(300)
+
+      EndWhile
+
+      t0 = Clock.ElapsedMilliseconds
+
+    EndIf
+
+    visited[(nRow - 1) * dim + nCol] = ""
+
+    Shapes.Remove(line[(nRow - 1) * dim + nCol])
+
+    line[(nRow - 1) * dim + nCol] = ""
+
+    nm = nm - 1  ' number of moves
+
+    rec = Text.GetSubText(rec, 1, Text.GetLength(rec) - 2)
+
+    If Text.EndsWith(rec, CRLF) Then
+
+      rec = Text.GetSubText(rec, 1, Text.GetLength(rec) - 2)
+
+    EndIf
+
+    If Text.EndsWith(rec, ",") Then
+
+      rec = Text.GetSubText(rec, 1, Text.GetLength(rec) - 1)
+
+    EndIf
+
+    Controls.SetTextBoxText(tbox, rec)
+
+    y0 = Stack.PopValue("local")
+
+    x0 = Stack.PopValue("local")
+
+    nMoves = Stack.PopValue("local")
+
+    iCan = Stack.PopValue("local")
+
+    next = Stack.PopValue("local")
+
+  EndFor
+
+  nCol = Stack.PopValue("local")
+
+  nRow = Stack.PopValue("local")
+
+  If nm = 0 Then
+
+    Shapes.Remove(knight)
+
+  Else
+
+    y = pos["y0"] + (dim - nRow) * size
+
+    x = pos["x0"] + (nCol - 1) * size
+
+    Shapes.Move(knight, x, y - size * 0.12)
+
+  EndIf
+
+EndSub
+
+Sub GetNextCandidates
+
+  ' param nRow - current knight's row
+
+  ' param nCol - current knight's column
+
+  ' return next - array of the next move candidates
+
+  next = ""
+
+  nMoves = 0
+
+  iFrom = (nRow - 1) * dim + nCol
+
+  minPaths = 8
+
+  minN = 1
+
+  For d = 1 To 8
+
+    r = nRow + nDir[d]["row"]   ' candidate
+
+    c = nCol + nDir[d]["col"]
+
+    i = (r - 1) * dim + c         ' index for visited array
+
+    If 1 <= r And r <= dim And 1 <= c And c <= dim And visited[i] = "" Then
+
+      nMoves = nMoves + 1
+
+      next[nMoves] = ntoa[c] + r
+
+      paths = ""
+
+      For d2 = 1 To 8
+
+        r2 = r + nDir[d2]["row"]
+
+        c2 = c + nDir[d2]["col"]
+
+        i2 = (r2 - 1) * dim + c2
+
+        If 1 <= r2 And r2 <= dim And 1 <= c2 And c2 <= dim And visited[i2] = "" Then
+
+          paths[nMoves] = paths[nMoves] + 1
+
+        EndIf
+
+      EndFor
+
+      If paths[nMoves] < minPaths Then
+
+        minPaths = paths[nMoves]
+
+        minN = nMoves
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  If 1 < minN Then
+
+    work = next[1]
+
+    next[1] = next[minN]  ' fewest paths first
+
+    next[minN] = work
+
+  EndIf
+
+EndSub
+
+Sub Form
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  InitBoard()
+
+  InitChessmen()
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 12
+
+  tbox = Controls.AddMultiLineTextBox(pos["x0"] + size * dim + 20, pos["y0"])
+
+  Controls.SetSize(tbox, 140, gh - 60)
+
+  Controls.AddButton("Next", gw - 54, gh - 40)
+
+  Controls.ButtonClicked = OnButtonClicked
+
+EndSub
+
+Sub OnButtonClicked
+
+  buttonClicked = "True"
+
+EndSub
+
+Sub RemovePieces
+
+  Shapes.Remove(knight)
+
+  n = Array.GetItemCount(line)
+
+  index = Array.GetAllIndices(line)
+
+  For i = 1 To n
+
+    Shapes.Remove(line[index[i]])
+
+  EndFor
+
+  visited = ""
+
+  Controls.SetTextBoxText(tbox, "")
+
+EndSub
+
+Sub InitBoard
+
+  pos = "x0=40;y0=10;"        ' left, top position of the board
+
+  color = "W=White;B=Black;0=SaddleBrown;1=BurlyWood;"
+
+  nDir[1] = "row=+2;col=+1;"  ' = directions for a knight
+
+  nDir[2] = "row=+2;col=-1;"
+
+  nDir[3] = "row=+1;col=+2;"
+
+  nDir[4] = "row=+1;col=-2;"
+
+  nDir[5] = "row=-1;col=+2;"
+
+  nDir[6] = "row=-1;col=-2;"
+
+  nDir[7] = "row=-2;col=+1;"
+
+  nDir[8] = "row=-2;col=-1;"
+
+  aton = "a=1;b=2;c=3;d=4;e=5;f=6;g=7;h=8;"
+
+  ntoa = "1=a;2=b;3=c;4=d;5=e;6=f;7=g;8=h;"
+
+  next = "1=a1;2=b1;3=b2;4=c1;5=c2;6=c3;7=d1;8=d2;9=d3;10=d4;"
+
+  nMoves = 10
+
+  size = 48   ' font height and square size
+
+  visited = ""
+
+  GraphicsWindow.FontSize = size / 2
+
+  For i = 1 To dim
+
+    x = pos["x0"] + (i - 1) * size
+
+    GraphicsWindow.BrushColor = color["W"]
+
+    GraphicsWindow.DrawText(x + size * 0.3, pos["y0"] + size * dim, ntoa[i])
+
+  EndFor
+
+  For j = dim To 1 Step - 1
+
+    y = pos["y0"] + (dim - j) * size
+
+    GraphicsWindow.BrushColor = color["W"]
+
+    GraphicsWindow.DrawText(pos["x0"] - size / 2, y + size * 0.2, j)
+
+    For i = 1 To dim
+
+      x = pos["x0"] + (i - 1) * size
+
+      GraphicsWindow.BrushColor = color[Math.Remainder((i + j), 2)]
+
+      GraphicsWindow.FillRectangle(x, y, size, size)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub InitChessmen
+
+  ' param size - font height and square size
+
+  pieces = "P=265F;N=265E;B=265D;R=265C;Q=265B;K=265A;X=2716;"
+
+  hex = pieces["X"]
+
+  Math_Hex2Dec()
+
+  charX = Text.GetCharacter(dec)
+
+EndSub
+
+Sub Math_Hex2Dec
+
+  ' Math | Convert hex to dec
+
+  dec = 0
+
+  len = Text.GetLength(hex)
+
+  For ptr = 1 To len
+
+    dec = dec * 16 + Text.GetIndexOf("0123456789ABCDEF", Text.GetSubText(hex, ptr, 1)) - 1
+
+  EndFor
+
+EndSub
+
+    
+
+

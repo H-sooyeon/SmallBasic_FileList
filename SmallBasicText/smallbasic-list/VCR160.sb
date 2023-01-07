@@ -1,0 +1,689 @@
+' Bowling Score Board
+
+' Copyright © 2014 Nonki Takahashi.  The MIT License.
+
+' Version (pilot)
+
+' Last update 2014-12-16
+
+'
+
+GraphicsWindow.Title = "BOWLING SCORE BOARD (pilot)"
+
+Init()
+
+While "True"
+
+  Form()
+
+  While Not[clicked]
+
+    Program.Delay(500)
+
+  EndWhile
+
+  clicked = "False"
+
+  Game()
+
+EndWhile
+
+Sub AddCursor
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  cursor = Shapes.AddRectangle(fw / 2, fh / 2)
+
+  Shapes.SetOpacity(cursor, 50)
+
+  x = x0 + pw
+
+  y = y0 + hh
+
+  Shapes.Move(cursor, x, y)
+
+  cursorOn = "True"
+
+  Timer.Interval = 500
+
+  Timer.Tick = OnTick
+
+EndSub
+
+Sub DrawSpare
+
+  ' param x, y - left top of the cursor
+
+  If frame < 10 Then
+
+    sw = fw / 2
+
+  Else
+
+    sw = fw / 3
+
+  EndIf
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FillTriangle(x, y + fh / 2, x + sw, y, x + sw, y + fh / 2)
+
+EndSub
+
+Sub DrawPoint
+
+  ' param x, y - left top of the cursor
+
+  ' param point - point
+
+  ' param throw
+
+  ' param frame
+
+  ' param prevPoint
+
+  GraphicsWindow.BrushColor = "Black"
+
+  If 0 < point Then
+
+    GraphicsWindow.DrawText(x + 2, y, point)
+
+  Else
+
+    If frame < 10 Then
+
+      If throw = 1 Then
+
+        GraphicsWindow.DrawText(x + 2, y, "G")
+
+      Else
+
+        GraphicsWindow.DrawText(x + 2, y, "-")
+
+      EndIf
+
+    Else
+
+      If (prevPoint = 0) Or (prevPoint = 10) Then
+
+        GraphicsWindow.DrawText(x + 2, y, "G")
+
+      Else
+
+        GraphicsWindow.DrawText(x + 2, y, "-")
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub DrawStrike
+
+  ' param x, y - left top of the cursor
+
+  If frame < 10 Then
+
+    dx = fw / 2
+
+    sw = fw / 2
+
+  Else
+
+    dx = 0
+
+    sw = fw / 3
+
+  EndIf
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FillTriangle(x + dx, y, x + dx, y + fh / 2, x + dx + sw / 2,  y + fh / 4)
+
+  GraphicsWindow.FillTriangle(x + dx + sw / 2,  y + fh / 4, x + dx + sw, y, x + dx + sw, y + fh / 2)
+
+EndSub
+
+Sub DrawTotal
+
+  ' param frame
+
+  ' param iPerson
+
+  GraphicsWindow.BrushColor = "Black"
+
+  _x = x0 + pw + (frame - 1) * fw
+
+  _y = y0 + hh + (iPerson - 0.5) * fh
+
+  total = 0
+
+  For _i = 1 To frame
+
+    total = total + subtotal[iPerson][_i]
+
+  EndFor
+
+  GraphicsWindow.DrawText(_x + 2, _y, total)
+
+  If frame = 10 Then
+
+    _x = x0 + pw + frame * fw
+
+    _y = y0 + hh + (iPerson - 1) * fh
+
+    GraphicsWindow.DrawText(_x + 2, _y, total)
+
+  EndIf
+
+EndSub
+
+Sub Form
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "DarkCyan"
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "DarkCyan"
+
+  maxPerson = 8
+
+  hh = 22
+
+  pw = 100
+
+  fw = 44
+
+  fh = 44
+
+  bh = 26
+
+  x0 = (gw - pw - fw * 11) / 2
+
+  y0 = (gh - hh - fh * maxPerson - 4 - bh) / 2
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillRectangle(x0 + 1, y0 + 1, pw - 2, hh - 2)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawText(x0 + 2, y0, "NAME")
+
+  For iFrame = 1 To 11
+
+    x = x0 + pw + (iFrame - 1) * fw
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.FillRectangle(x + 1, y0 + 1, fw - 2, hh - 2)
+
+    GraphicsWindow.BrushColor = "Black"
+
+    If iFrame = 11 Then
+
+      GraphicsWindow.DrawText(x + 2, y0, "TOTAL")
+
+    Else
+
+      GraphicsWindow.DrawText(x + 2, y0, iFrame)
+
+    EndIf
+
+  EndFor
+
+  For iPerson = 1 To maxPerson
+
+    y = y0 + hh + (iPerson - 1) * fh
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.FillRectangle(x0 + 1, y + 1, pw - 2, fh - 2)
+
+    GraphicsWindow.BrushColor = "Black"
+
+    tboxName[iPerson] = Controls.AddTextBox(x0 + 1, y)
+
+    Controls.SetSize(tboxName[iPerson], pw - 2, fh - 2)
+
+    Controls.SetTextBoxText(tboxName[iPerson], name[row[iPerson]])
+
+    For iFrame = 1 To 11
+
+      x = x0 + pw + (iFrame - 1) * fw
+
+      GraphicsWindow.BrushColor = "White"
+
+      GraphicsWindow.FillRectangle(x + 1, y + 1, fw - 2, fh - 2)
+
+      If iFrame < 10 Then
+
+        GraphicsWindow.DrawRectangle(x + fw / 2, y, fw / 2, fh / 2)
+
+        spare[iPerson][iFrame] = 0
+
+      ElseIf iFrame = 10 Then
+
+        GraphicsWindow.DrawRectangle(x, y, fw / 3, fh / 2)
+
+        GraphicsWindow.DrawRectangle(x + fw / 3, y, fw / 3, fh / 2)
+
+        GraphicsWindow.DrawRectangle(x + fw * 2 / 3, y, fw / 3, fh / 2)
+
+        spare[iPerson][iFrame][1] = 0
+
+        spare[iPerson][iFrame][2] = 0
+
+        spare[iPerson][iFrame][3] = 0
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  y = y0 + hh + maxPerson * fh + 4
+
+  GraphicsWindow.BrushColor = "Black"
+
+  Controls.AddButton("START", x0, y)
+
+  clicked = "False"
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  msg = "ENTER NAMES AND PUSH [START] BUTTON."
+
+  help = Shapes.AddText(msg)
+
+  Shapes.Move(help, x0 + 80, y + 6)
+
+EndSub
+
+Sub Game
+
+  msg = "PUSH ONE OF 0~9, X, /, - AND G KEYS."
+
+  Shapes.SetText(help, msg)
+
+  subtotal = ""
+
+  frame = 1
+
+  iPerson = 1
+
+  throw = 1
+
+  prevPoint = 0
+
+  AddCursor()
+
+  keyDown = "False"
+
+  gameset = "False"
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+  While Not[gameset] And Not[clicked]
+
+    GetPerson()
+
+    invalid = "True"
+
+    While invalid And Not[clicked]
+
+      While Not[keyDown] And Not[clicked]
+
+        Program.Delay(500)
+
+      EndWhile
+
+      keyDown = "False"
+
+      If Array.ContainsIndex(score, key) Then
+
+        invalid = "False"
+
+      EndIf
+
+    EndWhile
+
+    If clicked Then
+
+      Goto return
+
+    EndIf
+
+    If score[key] = "/" Then
+
+      If frame < 10 Then
+
+        point = 10 - subtotal[iPerson][frame]
+
+      Else
+
+        point = 10 - prevPoint
+
+        If point = 0 Then
+
+          point = 10
+
+        EndIf
+
+      EndIf
+
+    Else
+
+      point = score[key]
+
+    EndIf
+
+    If frame < 10 Then
+
+      If 10 < point + subtotal[iPerson][frame] Then
+
+        point = 10 - subtotal[iPerson][frame]
+
+      EndIf
+
+    Else
+
+      If (1 < throw) And (prevPoint < 10) Then 
+
+        If 10 < point + prevPoint Then
+
+          point = 10 - prevPoint
+
+        EndIf
+
+      EndIf 
+
+    EndIf
+
+    subtotal[iPerson][frame] = subtotal[iPerson][frame] + point
+
+    If (1 < frame) And (0 < spare[iPerson][frame - 1]) Then
+
+      subtotal[iPerson][frame - 1] = subtotal[iPerson][frame - 1] + point
+
+      spare[iPerson][frame - 1] = spare[iPerson][frame - 1] - 1
+
+      If spare[iPerson][frame - 1] = 0 Then
+
+        frame = frame - 1
+
+        DrawTotal()
+
+        frame = frame + 1
+
+      EndIf
+
+    EndIf
+
+    If (2 < frame) And (0 < spare[iPerson][frame - 2]) Then
+
+      subtotal[iPerson][frame - 2] = subtotal[iPerson][frame - 2] + point
+
+      spare[iPerson][frame - 2] = spare[iPerson][frame - 2] - 1
+
+      If spare[iPerson][frame - 2] = 0 Then
+
+        frame = frame - 2
+
+        DrawTotal()
+
+        frame = frame + 2
+
+      EndIf
+
+    EndIf
+
+    isSpare = "False"
+
+    If (frame < 10) And (subtotal[iPerson][frame] = 10) Then
+
+      isSpare = "True"
+
+    ElseIf (frame = 10) And (point <> 10) And (1 < throw) And (spare[iPerson][frame][throw - 1] = 0) And (prevPoint + point = 10) Then
+
+      isSpare = "True"
+
+    EndIf
+
+    If point = 10 Then  ' strike
+
+      If frame < 10 Then
+
+        spare[iPerson][frame] = 2
+
+      Else
+
+        spare[iPerson][frame][throw] = 2
+
+      EndIf
+
+      DrawStrike()
+
+    ElseIf isSpare Then
+
+      If frame < 10 Then
+
+        spare[iPerson][frame] = 1
+
+      Else
+
+        spare[iPerson][frame][throw] = 1
+
+      EndIf
+
+      DrawSpare()
+
+    Else
+
+      DrawPoint()
+
+      If throw = 2 And frame < 10 Then
+
+        DrawTotal()
+
+      EndIf
+
+    EndIf
+
+    throw = throw + 1
+
+    nextPerson = "False"
+
+    If frame < 10 Then
+
+      If 2 < throw Then
+
+        nextPerson = "True"
+
+      ElseIf spare[iPerson][frame] = 2 Then
+
+        nextPerson = "True"
+
+      EndIf
+
+    ElseIf frame = 10 Then
+
+      If 3 < throw Then
+
+        nextPerson = "True"
+
+      ElseIf throw = 3 Then
+
+        nextPerson = "True"
+
+        If spare[iPerson][frame][1] = 2 Then
+
+          nextPerson = "False"
+
+        ElseIf 0 < spare[iPerson][frame][2] Then
+
+          nextPerson = "False"
+
+        EndIf
+
+      EndIf
+
+      If nextPerson Then
+
+        DrawTotal()
+
+      EndIf
+
+    EndIf
+
+    If nextPerson Then
+
+      throw = 1
+
+      iPerson = iPerson + 1
+
+      If nPerson < iPerson Then
+
+        iPerson = 1
+
+        frame = frame + 1
+
+        If frame = 10 Then
+
+          Shapes.Remove(cursor)
+
+          cursor = Shapes.AddRectangle(fw / 3, fh / 2)
+
+          Shapes.SetOpacity(cursor, 50)
+
+        ElseIf 10 < frame Then
+
+          Shapes.Remove(cursor)
+
+          gameset = "True"
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+    MoveCursor()
+
+    prevPoint = point
+
+  EndWhile
+
+  return:
+
+  While Not[clicked]
+
+    Program.Delay(500)
+
+  EndWhile
+
+EndSub
+
+Sub GetPerson
+
+  name = ""
+
+  For iRow = 1 To maxPerson
+
+    name[iRow] = Controls.GetTextBoxText(tboxName[iRow])
+
+  EndFor
+
+  row = Array.GetAllIndices(name)
+
+  nPerson = Array.GetItemCount(name)
+
+EndSub
+
+Sub Init
+
+  Not = "True=False;False=True;"
+
+  score = "D0=0;D1=1;D2=2;D3=3;D4=4;D5=5;D6=6;D7=7;D8=8;D9=9;X=10;"
+
+  score = score + "NumPad0=0;NumPad1=1;NumPad2=2;NumPad3=3;NumPad4=4;"
+
+  score = score + "NumPad5=5;NumPad6=6;NumPad7=7;NumPad8=8;NumPad9=9;"
+
+  score = score + "OemQuestion=/;Divide=/;"
+
+  score = score + "OemMinus=0;Subtract=0;"
+
+  name = ""
+
+EndSub
+
+Sub MoveCursor
+
+  ' param iPerson
+
+  ' param frame
+
+  ' param throw
+
+  If frame < 10 Then
+
+    x = x0 + pw + (frame - 1) * fw + (throw - 1) * fw / 2
+
+  Else
+
+    x = x0 + pw + (frame - 1) * fw + (throw - 1) * fw / 3
+
+  EndIf
+
+  y = y0 + hh + (iPerson - 1) * fh
+
+  Shapes.Move(cursor, x, y)
+
+EndSub
+
+Sub OnButtonClicked
+
+  clicked = "True"
+
+EndSub
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  keyDown = "True"
+
+EndSub
+
+Sub OnTick
+
+  cursorOn = Not[cursorOn]
+
+  If cursorOn Then
+
+    Shapes.ShowShape(cursor)
+
+  Else
+
+    Shapes.HideShape(cursor)
+
+  EndIf
+
+EndSub
+
+

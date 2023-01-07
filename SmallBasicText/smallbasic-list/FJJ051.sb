@@ -1,0 +1,275 @@
+' Idea 1 to generate Sudoku puzzle
+
+' Copyright © 2019 Nonki Takahashi.  The MIT License.
+
+
+
+Not = "False=True;True=False;"
+
+complete = "False"
+
+nTrial = 0
+
+iMax = 0
+
+While Not[complete]
+
+  ' initialize candidate array
+
+  For row = 1 To 9
+
+    For col = 1 To 9
+
+      can[row][col] = "123456789"
+
+    EndFor
+
+  EndFor
+
+  continue = "True"
+
+  i = 1
+
+  While continue
+
+    row = Math.Floor((i - 1) / 9) + 1
+
+    col = Math.Remainder(i - 1, 9) + 1
+
+    TextWindow.WriteLine("i = " + i)
+
+    TextWindow.WriteLine("row = " + row)
+
+    TextWindow.WriteLine("col = " + col)
+
+    ' get candidate
+
+    len = Text.GetLength(can[row][col])
+
+    If len = 0 Then
+
+      continue = "False"
+
+    Else
+
+      n = Text.GetSubText(can[row][col], Math.GetRandomNumber(len), 1)
+
+      TextWindow.WriteLine("n = " + n)
+
+      puzzle[row][col] = n
+
+      'can[row][col] = ""
+
+      UpdateCandidate()
+
+      DumpPuzzle()
+
+      If i = 81 Then
+
+        continue = "False"
+
+        complete = "True"
+
+      Else
+
+        i = i + 1
+
+      EndIf
+
+    EndIf
+
+  EndWhile
+
+  If iMax < i Then
+
+    iMax = i
+
+  EndIf
+
+  nTrial = nTrial + 1
+
+  TextWindow.Title = "nTrial = " + nTrial + ", iMax = " + iMax
+
+  TextWindow.Pause()
+
+EndWhile
+
+
+
+Sub DumpCandidate
+
+  ' param r, c - position
+
+  ' return hex
+
+  dec = 0
+
+  For _i = 1 To 9
+
+    If Text.IsSubText(can[r][c], _i) Then
+
+      dec = dec * 2 + 1
+
+    Else
+
+      dec = dec * 2
+
+    EndIf
+
+  EndFor
+
+  Math_Dec2Hex()
+
+  hex = Text.Append(Text.GetSubTextToEnd("00", Text.GetLength(hex)), hex)
+
+EndSub
+
+
+
+Sub DumpPuzzle
+
+  For r = 1 To 9
+
+    For c = 1 To 9
+
+      If puzzle[r][c] = "" Then
+
+        TextWindow.Write("  ")
+
+      Else
+
+        TextWindow.Write(puzzle[r][c] + " ")
+
+      EndIf
+
+    EndFor
+
+    TextWindow.Write(" ")
+
+    For c = 1 To 9
+
+      DumpCandidate()
+
+      TextWindow.Write(hex + " ")
+
+    EndFor
+
+    TextWindow.WriteLine("")
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+
+
+Sub RemoveCandidate
+
+  ' param r, c - position
+
+  ' param n - number to remove
+
+  p = Text.GetIndexOf(can[r][c], n)
+
+  If 0 < p Then
+
+    left = Text.GetSubText(can[r][c], 1, p - 1)
+
+    right = Text.GetSubTextToEnd(can[r][c], p + 1)
+
+    can[r][c] = Text.Append(left, right)
+
+  EndIf
+
+EndSub
+
+
+
+Sub UpdateCandidate
+
+  ' param row, col - set position
+
+  ' param n - set number
+
+  r1 = Math.Floor((row - 1) / 3) * 3 + 1
+
+  c1 = Math.Floor((col - 1) / 3) * 3 + 1
+
+  For r = r1 To r1 + 2
+
+    For c = c1 To c1 + 2
+
+      If (r <> row) Or (c <> col) Then
+
+        RemoveCandidate()
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  c = col
+
+  For r = 1 To 9
+
+    If (r <> row) Or (c <> col) Then
+
+      RemoveCandidate()
+
+    EndIf
+
+  EndFor
+
+  r = row
+
+  For c = 1 To 9
+
+    If (r <> row) Or (c <> col) Then
+
+      RemoveCandidate()
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub Math_Dec2Hex
+
+  ' Math | convert decimal to hexadecimal
+
+  ' param dec - decimal number
+
+  ' returns hex - hexadecimal text
+
+  Stack.PushValue("local", dec)
+
+  hex = ""
+
+  While 0 < dec
+
+    digit = Math.Remainder(dec, 16)
+
+    dec = Math.Floor(dec / 16)
+
+    hex = Text.Append(Text.GetSubText("0123456789ABCDEF", digit + 1, 1), hex)
+
+  EndWhile
+
+  If hex = "" Then
+
+    hex = "0"
+
+  EndIf
+
+  dec = Stack.PopValue("local")  
+
+EndSub
+
+  
+
+

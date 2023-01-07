@@ -1,0 +1,971 @@
+' Image Color Changer
+
+' Copyright (c) 2012 Nonki Takahashi.  All right reserved.
+
+'
+
+' History:
+
+'  0.1 2012/11/25 Created.
+
+'
+
+title = "Image Color Changer 0.1"
+
+GraphicsWindow.Title = title
+
+GraphicsWindow.BackgroundColor = "DimGray"
+
+url = "http://www.nonkit.com/smallbasic.files/GreenTurtle.png"
+
+debug = "False"
+
+img = ImageList.LoadImage(url)
+
+width = ImageList.GetWidthOfImage(img)
+
+height = ImageList.GetHeightOfImage(img)
+
+x = 10
+
+y = 40
+
+GraphicsWindow.DrawImage(img, x, y) ' original image
+
+GraphicsWindow.BrushColor = "White"
+
+GraphicsWindow.DrawText(x, y - 30, "Original Image")
+
+GetImageColors()
+
+original = color  ' backup original color[][] of image 
+
+x = 10 + width * 2
+
+scale = 8
+
+ShowBigImage()                      ' original big image
+
+x = width * scale * 2 + 10 + width * 2
+
+CAPTIONCOLOR = "White"
+
+BORDERCOLOR = "Black"
+
+SLITCOLOR = "#222222"
+
+BOXCOLOR = "DimGray"
+
+caption = "Hue"
+
+left = x
+
+top = y + width * scale + 10
+
+' TODO - create slider
+
+UNDEFINED = "N/A"
+
+dH = 60
+
+ChangeColors()
+
+ShowBigImage()                      ' another big image
+
+x = width * scale * 2 + 10
+
+scale = 1
+
+GraphicsWindow.BrushColor = "White"
+
+GraphicsWindow.DrawText(x, y - 30, "Another Image")
+
+ShowBigImage()                      ' another image
+
+scale = 8
+
+x = 10
+
+y = 40 + height * scale + 60
+
+ShowPalette()
+
+
+
+Sub ChangeColors
+
+  ' param palette[] - color palette
+
+  ' param nPalette - number of colors in palette
+
+  ' param dH - delta hue [degree]
+
+  For i = 1 To nPalette
+
+    sColor = palette[i]
+
+    Color_RGBtoHSL()
+
+    If rHue <> UNDEFINED Then
+
+      rHue = rHue + dH
+
+      If rHue < 0 Then
+
+        rHue = rHue + 360
+
+      ElseIf 360 <= rHue Then
+
+        rHue = rHue - 360
+
+      EndIf
+
+      Color_HSLtoRGB()
+
+      palette[i] = sColor
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub GetImageColors
+
+  ' param width, height - of image
+
+  ' param x, y - left top position of image
+
+  ' return palette[], color[][] - image color
+
+  For dy = 0 To height - 1
+
+    For dx = 0 To width - 1
+
+      pixel = GraphicsWindow.GetPixel(x + dx , y + dy)
+
+      GetPaletteIndex()
+
+      color[dx][dy] = index
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub GetPaletteIndex
+
+  ' param pixel - color to add
+
+  ' return index - palelle index of given color
+
+  For index = 1 To nPalette
+
+    If palette[index] = pixel Then
+
+      Goto gpi_exit
+
+    EndIf
+
+  EndFor
+
+  nPalette = nPalette + 1
+
+  index = nPalette
+
+  palette[index] = pixel
+
+gpi_exit:
+
+EndSub
+
+
+
+Sub ShowBigImage
+
+  ' param color[][] - of image
+
+  ' param x, y - left top positon of  big image
+
+  ' param scale - for big image (integer)
+
+  GraphicsWindow.PenWidth = 0
+
+  For dy = 0 To height - 1
+
+    For dx = 0 To width - 1
+
+      index = color[dx][dy]
+
+      GraphicsWindow.BrushColor = palette[index]
+
+      GraphicsWindow.FillRectangle(x + dx * scale, y + dy * scale, scale, scale)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub ShowPalette
+
+  ' param palette
+
+  ' param x, y - left top position of palette
+
+  px = x
+
+  py = y
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.DrawText(x, y - 30, "Palette: " + nPalette + " [colors]")
+
+  For index = 1 To nPalette
+
+    GraphicsWindow.BrushColor = palette[index]
+
+    GraphicsWindow.FillRectangle(px, py, scale, scale)
+
+    px = px + scale * 2
+
+    If Math.Remainder(index, 32) = 0 Then
+
+      py = py + scale * 2
+
+      px = x
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub Color_ColorToRGB
+
+  ' Color | Convert Color to RGB
+
+  ' param sColor - "#rrggbb"
+
+  ' return iR, iG, iB - [0, 255]
+
+  sR = Text.GetSubText(sColor, 2, 2)
+
+  sG = Text.GetSubText(sColor, 4, 2)
+
+  sB = Text.GetSubText(sColor, 6, 2)
+
+  sHex = sR
+
+  Math_Hex2Dec()
+
+  iR = iDec
+
+  sHex = sG
+
+  Math_Hex2Dec()
+
+  iG = iDec
+
+  sHex = sB
+
+  Math_Hex2Dec()
+
+  iB = iDec
+
+EndSub
+
+
+
+Sub Color_HSLtoRGB
+
+  ' Color | Convert HSL to RGB
+
+  ' param rHue - [0, 360) or UNDEFINED
+
+  ' param rLightness - [0, 1]
+
+  ' param rSaturation - [0, 1]
+
+  ' return iR, iG, iB - RGB color
+
+  ' return sColor - "#rrggbb"
+
+  If rLightness <= 0.5 Then
+
+    rN2 = rLightness * (1 + rSaturation)
+
+  Else
+
+    rN2 = rLightness + rSaturation - rLightness * rSaturation
+
+  EndIf
+
+  rN1 = 2 * rLightness - rN2
+
+  If rSaturation = 0 Then
+
+    iR = Math.Round(rLightness * 255)
+
+    iG = Math.Round(rLightness * 255)
+
+    iB = Math.Round(rLightness * 255)
+
+  Else
+
+    rH = rHue + 120
+
+    Color_Value()
+
+    iR = iValue
+
+    rH = rHue
+
+    Color_Value()
+
+    iG = iValue
+
+    rH = rHue - 120
+
+    Color_Value()
+
+    iB = iValue
+
+  EndIf
+
+  sColor = GraphicsWindow.GetColorFromRGB(iR, iG, iB)
+
+EndSub
+
+
+
+Sub Color_RGBtoHSL
+
+  ' Color | Convert RGB to HSL
+
+  ' param sColor - "#rrggbb"
+
+  ' return rHue - [0, 360) or UNDEFINED
+
+  ' return rLightness - (0, 1)
+
+  ' return rSaturation - (0, 1)
+
+  Color_ColorToRGB()
+
+  ' rR = iR / 255 ' occurs Math.Max() bug
+
+  rR = Math.Round(iR / 255 * 10000) / 10000
+
+  ' rG = iG / 255 ' occurs Math.Max() bug
+
+  rG = Math.Round(iG / 255 * 10000) / 10000
+
+  ' rB = iB / 255 ' occurs Math.Max() bug
+
+  rB = Math.Round(iB / 255 * 10000) / 10000
+
+  rMax = Math.Max(rR, rG)
+
+  rMax = Math.Max(rMax, rB)
+
+  rMin = Math.Min(rR, rG)
+
+  rMin = Math.Min(rMin, rB)
+
+  rLightness = (rMax + rMin) / 2
+
+  If rMax = rMin Then ' rR = rG = rB
+
+    rSaturation = 0
+
+    rHue = UNDEFINED
+
+  Else
+
+    If rLightness <= 0.5 Then
+
+      rSaturation = (rMax - rMin) / (rMax + rMin)
+
+    Else
+
+      rSaturation = (rMax - rMin) / (2 - rMax - rMin)
+
+    EndIf
+
+    rRC = (rMax - rR) / (rMax - rMin)
+
+    rGC = (rMax - rG) / (rMax - rMin)
+
+    rBC = (rMax - rB) / (rMax - rMin)
+
+    If rR = rMax Then     ' between Yellow and Magenta
+
+      rHue = rBC - rGC
+
+    ElseIf rG = rMax Then ' between Cyan and Yellow
+
+      rHue = 2 + rRC - rBC
+
+    ElseIf rB = rMax Then ' between Magenta and Cyan
+
+      rHue = 4 + rGC - rRC
+
+    Else
+
+      TextWindow.WriteLine("Error:")
+
+      TextWindow.WriteLine("rMax=" + rMax)
+
+      TextWindow.WriteLine("rR=" + rR + ",sR=" + sR)
+
+      TextWindow.WriteLine("rG=" + rG + ",sG=" + sG)
+
+      TextWindow.WriteLine("rB=" + rB + ",sB=" + sB)
+
+    EndIf
+
+    rHue = rHue * 60
+
+    If rHue < 0 Then
+
+      rHue = rHue + 360
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Color_Value
+
+  ' Color | Function value
+
+  ' param rN1, rN2
+
+  ' param rH - [-120, 480)
+
+  ' return iValue - 0..255
+
+  If rH >= 360 Then
+
+    rH = rH - 360
+
+  EndIF
+
+  If rH < 0 Then
+
+    rH = rH + 360
+
+  EndIF 
+
+  If rH < 60 Then
+
+    rV = rN1 + (rN2 - rN1) * rH / 60
+
+  ElseIf rH < 180 Then
+
+    rV = rN2
+
+  ElseIf rH < 240 Then
+
+    rV = rN1 + (rN2 - rN1) * (240 - rH) / 60
+
+  Else
+
+    rV = rN1
+
+  EndIf
+
+  iValue = Math.Round(rV * 255)
+
+EndSub
+
+
+
+Sub Math_Hex2Dec
+
+  ' Math | Convert hexadecimal to decimal
+
+  ' param sHex
+
+  ' return iDec
+
+  iDec = 0
+
+  iLen = Text.GetLength(sHex)
+
+  For iPtr = 1 To iLen
+
+    iDec = iDec * 16 + Text.GetIndexOf("0123456789ABCDEF", Text.GetSubText(sHex, iPtr, 1)) - 1
+
+  EndFor
+
+EndSub
+
+
+
+Sub Mouse_Init
+
+  ' Mouse | Initialize for common event handler
+
+  clicked = "False"
+
+  moved = "False"
+
+  released = "False"
+
+  If debug Then
+
+    Timer.Interval = 200
+
+    Timer.Tick = Mouse_OnTick
+
+  EndIf
+
+EndSub
+
+
+
+Sub Mouse_SetHandler
+
+  ' Mouse | Set or reset common event handler
+
+  ' param["down"] - "True" if set, "False" if reset
+
+  ' param["move"] - "True" if set, "False" if reset
+
+  ' param["up"] -  - "True" if set, "False" if reset
+
+  ' return clicked - "False" if set MouseDown
+
+  ' return moved - "False" if set MouseMove
+
+  ' return released - "False" if set MouseUp
+
+  ' return dmu - which handlers are set for debug
+
+  If param["up"] Then
+
+    released = "False"
+
+    GraphicsWindow.MouseUp = Mouse_OnUp
+
+    handler["up"] = "U"
+
+  ElseIf param["up"] = "False" Then
+
+    GraphicsWindow.MouseUp = Mouse_DoNothing
+
+    handler["up"] = ""
+
+  EndIf
+
+  If param["down"] Then
+
+    clicked = "False"
+
+    GraphicsWindow.MouseDown = Mouse_OnDown
+
+    handler["down"] = "D"
+
+  ElseIf param["down"] = "False" Then
+
+    GraphicsWindow.MouseDown = Mouse_DoNothing
+
+    handler["down"] = ""
+
+  EndIf
+
+  If param["move"] Then
+
+    moved = "False"
+
+    GraphicsWindow.MouseMove = Mouse_OnMove
+
+    handler["move"] = "M"
+
+  ElseIf param["move"] = "False" Then
+
+    GraphicsWindow.MouseMove = Mouse_DoNothing
+
+    handler["move"] = ""
+
+  EndIf
+
+  dmu = handler["down"] + handler["move"] + handler["up"] 
+
+  If debug Then
+
+    smrc = " set "
+
+  EndIf
+
+EndSub
+
+
+
+Sub Mouse_OnDown
+
+  ' Mouse | Common event handler on mouse down
+
+  ' return mxD, myD - position on mouse down
+
+  mxD = GraphicsWindow.MouseX
+
+  myD = GraphicsWindow.MouseY
+
+  clicked = "True"
+
+  released = "False"
+
+  If debug Then
+
+    smrc = " clicked " + mxD + "," + myD
+
+  EndIf
+
+EndSub
+
+
+
+Sub Mouse_DoNothing
+
+  ' Mouse | Common event handler to do nothing
+
+EndSub
+
+
+
+Sub Mouse_OnMove
+
+  ' Mouse | Common event handler on mouse move
+
+  ' return mxM, myM - position on mouse move
+
+  mxM = GraphicsWindow.MouseX
+
+  myM = GraphicsWindow.MouseY
+
+  moved = "True"
+
+  If debug Then
+
+    smrc = " moved " + mxM + "," + myM
+
+  EndIf
+
+EndSub
+
+
+
+Sub Mouse_OnTick
+
+  ' Mouse | debug routine
+
+  If clicked Then
+
+    cmr = "C"
+
+  Else
+
+    cmr = ""
+
+  EndIf
+
+  If moved Then
+
+    cmr = cmr + "M"
+
+  EndIf
+
+  If released Then
+
+    cmr = cmr + "R"
+
+  EndIf
+
+  GraphicsWindow.Title = title + smrc + " " + dmu + " " + cmr
+
+EndSub
+
+
+
+Sub Mouse_OnUp
+
+  ' Mouse | Common event handler on mouse up
+
+  ' return mxU, myU - position on mouse up
+
+  mxU = GraphicsWindow.MouseX
+
+  myU = GraphicsWindow.MouseY
+
+  released = "True"
+
+  If debug Then
+
+    smrc = " released " + mxU + "," + myU
+
+  EndIf
+
+EndSub
+
+
+
+Sub Slider_Add
+
+  ' Slider | Add slider as shapes and property
+
+  ' param width
+
+  ' param caption
+
+  ' param min, max
+
+  ' param left, top
+
+  ' return slider[] - property of slider
+
+  ' return iSlider - added slider index
+
+  numSlider = numSlider + 1
+
+  iSlider = numSlider
+
+  ' add shapes for slider
+
+  GraphicsWindow.BrushColor = CAPTIONCOLOR
+
+  len = Text.GetLength(caption)
+
+  slider[iSlider]["oCaption"] = Shapes.AddText(caption)
+
+  Shapes.Move(slider[iSlider]["oCaption"], left - (len * 5 + 10), top + 1)
+
+  level = Math.Floor((min + max) / 2)
+
+  slider[iSlider]["level"] = level  ' property
+
+  slider[iSlider]["min"] = min
+
+  slider[iSlider]["max"] = max
+
+  GraphicsWindow.PenColor = BORDERCOLOR
+
+  mag = (level - min) / (max - min)
+
+  GraphicsWindow.BrushColor = SLITCOLOR
+
+  slider[iSlider]["oSlit"] = Shapes.AddRectangle(width, 10)
+
+  GraphicsWindow.PenColor = BORDERCOLOR
+
+  GraphicsWindow.BrushColor = BOXCOLOR
+
+  slider[iSlider]["oBox"] = Shapes.AddRectangle(10, 18)
+
+  GraphicsWindow.BrushColor = CAPTIONCOLOR
+
+  slider[iSlider]["oLevel"] = Shapes.AddText(level)
+
+  slider[iSlider]["x0"] = left
+
+  slider[iSlider]["x1"] = left + width
+
+  slider[iSlider]["y0"] = top
+
+  Shapes.Move(slider[iSlider]["oLevel"], left + width + 5, top)
+
+  ' move and zoom shapes for slider
+
+  Shapes.Move(slider[iSlider]["oSlit"], left, top + 4)
+
+  Slider_SetLevel()
+
+EndSub
+
+
+
+Sub Slider_CallBack
+
+  ' Slider | Call back
+
+  ' param iSlider - changed slider
+
+EndSub
+
+
+
+Sub Slider_GetLevel
+
+  ' Slider | Get latest level of slider
+
+  ' param iSlider
+
+  ' return level
+
+  level = slider[iSlider]["level"]
+
+EndSub
+
+
+
+Sub Slider_GetMouseLevel
+
+  ' Slider | Get mouse level of slider
+
+  ' param iSlider
+
+  ' return level
+
+  x0 = slider[iSlider]["x0"]
+
+  x1 = slider[iSlider]["x1"]
+
+  max = slider[iSlider]["max"]
+
+  min = slider[iSlider]["min"]
+
+  level = min + Math.Floor((max - min) * (mxM - x0) / (x1 - x0))
+
+EndSub
+
+
+
+Sub Slider_WaitToRelease
+
+  ' Slider | Get released point for slider moving
+
+  ' param iSlider
+
+  param = "down=False;move=True;up=True;"  ' for slider moving / wait to release
+
+  Mouse_SetHandler()
+
+  While released = "False"
+
+    If moved Then
+
+      param = "move=False;"  ' while slider moving
+
+      Mouse_SetHandler()
+
+      x0_ = slider[iSlider]["x0"]
+
+      x1_ = slider[iSlider]["x1"]
+
+      If mxM < x0_ Then
+
+        mxM = x0_
+
+      EndIf
+
+      If x1_ < mxM Then
+
+        mxM = x1_
+
+      EndIf
+
+      Slider_GetMouseLevel()  ' get mouse level of slider
+
+      Slider_SetLevel()       ' set slider level and move slider box
+
+      Slider_CallBack()
+
+      param = "move=True;"    ' for next slider moving
+
+      Mouse_SetHandler()
+
+    Else
+
+      Program.Delay(100)
+
+    EndIf
+
+  EndWhile
+
+  param = "move=False;up=False;"  ' mouse released
+
+  Mouse_SetHandler()
+
+EndSub
+
+
+
+Sub Slider_Remove
+
+  ' Slider | Remove a slider
+
+  ' param iSlider
+
+  Shapes.Remove(slider[iSlider]["oCaption"])
+
+  Shapes.Remove(slider[iSlider]["oSlit"])
+
+  Shapes.Remove(slider[iSlider]["oBox"])
+
+  Shapes.Remove(slider[iSlider]["oLevel"])
+
+EndSub
+
+
+
+Sub Slider_SetLevel
+
+  ' Slider | Set slider level and move slider box
+
+  ' param iSlider
+
+  ' param level
+
+  Stack.PushValue("local", width)
+
+  x0 = slider[iSlider]["x0"]
+
+  x1 = slider[iSlider]["x1"]
+
+  y0 = slider[iSlider]["y0"]
+
+  width = x1 - x0
+
+  slider[iSlider]["level"] = level
+
+  Shapes.SetText(slider[iSlider]["oLevel"], level)
+
+  ' move bar
+
+  min = slider[iSlider]["min"]
+
+  max = slider[iSlider]["max"]
+
+  mag = (level - min) / (max - min)
+
+  ' move box
+
+  Shapes.Move(slider[iSlider]["oBox"], x0 + Math.Floor(width * mag) - 5, y0)
+
+  slider[iSlider]["x2"] = x0 + Math.Floor(width * mag) - 5
+
+  slider[iSlider]["x3"] = x0 + Math.Floor(width * mag) - 5 + 10
+
+  slider[iSlider]["y2"] = y0
+
+  slider[iSlider]["y3"] = y0 + 18
+
+  width = Stack.PopValue("local")
+
+EndSub
+
+

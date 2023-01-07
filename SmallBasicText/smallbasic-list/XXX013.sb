@@ -1,0 +1,933 @@
+'Quad-tris - By codingCat aka Matthew L. Parets
+
+'A version of tetris where single blocks come in from each of the four
+
+'sides twards the center.  Points awarded for each block landed.
+
+'Bonus points awarded for groups of the same color. 'Game over when 
+
+'board is full, or a block is trapped outside
+
+
+
+'Controls: Right = Clockwise, Left = Counter-Clockwise
+
+'                  Down = Move towards center, Up = Stop the Block
+
+
+
+'Developed in Smallbasic in May/June of 2015
+
+'Released under Creative Commons Attribution-NonCommercial-
+
+'ShareAlike 4.0 International License. 
+
+'Free to use, share and modify as you as you tell them I said hi. 
+
+
+
+'Good Luck - And enjoy!
+
+
+
+GraphicsWindow.Show()
+
+GraphicsWindow.Title = "Quad-tris"
+
+
+
+'The game board can be set to any size that will fit on the screen
+
+brdWid = 11    'How many block wide is the board
+
+brdHei = 11    'How many blocks high
+
+sqrSiz = 35   'Size of the blocks in pixels
+
+
+
+'Windows size and location (centered) is based on the board size
+
+GraphicsWindow.Width = (brdWid+2) * sqrSiz
+
+GraphicsWindow.Height = (brdHei+2) * sqrSiz
+
+GraphicsWindow.Top = (Desktop.Height/2) - GraphicsWindow.Height / 2
+
+GraphicsWindow.Left = (Desktop.Width/2) - GraphicsWindow.Width / 2
+
+
+
+'Initialize the array that is used to track to condition of the board and draw the board
+
+GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(172,156,255) 'A very light version of the default color
+
+For i = 1 To brdHei
+
+  For j = 1 To brdWid
+
+    GraphicsWindow.fillRectangle(sqrSiz*j, sqrSiz*i, sqrSiz-6,sqrSiz-6) 'Draw a block at the current positon
+
+    board[i][j] = "Empty"                                               'every position is marked as empty.
+
+  EndFor
+
+EndFor
+
+
+
+GraphicsWindow.KeyDown = OnKeyDown 'Let winows know our key event is waiting for presses. 
+
+
+
+frameRate = 10                         'Number of milliseonds each frame (trip through the game loop) should take
+
+frameStart = Clock.ElapsedMilliseconds 'note the time to allow for frame pauses
+
+playerRate = 1000                      'How often is a new player block added.
+
+playerRateReduction = (playerRate - 100) / (brdHei * brdWid)  'Speed up the add process with each success
+
+playerStart = Clock.ElapsedMilliseconds 'Track the start of the add process
+
+score = 0                              'Zero score at the begining
+
+newBlockAdded = "False"                'Track when new block is added
+
+landCount = 0                          'The number of blocks that have been added
+
+
+
+'Add the initial player shape
+
+NewBlock()                                    'Add the first block
+
+Shapes.Move(player,col*sqrSiz+3,row*sqrSiz+3) 'Show the block
+
+
+
+'---------------------------------------------------------------------------------
+
+'Main game loop. Each subroutine that is called from the game loop
+
+'is set as one step to take one step in that loop and advance for the next step
+
+'---------------------------------------------------------------------------------
+
+key = "" 
+
+While key <> "Escape" 'Keep going until the escape key is pressed
+
+  GetKeyPress()       'Check if a key has been pressed
+
+  UpdatePlayer()
+
+  FrameWait()         'Pause and wait for just a tick
+
+endwhile
+
+
+
+'---------------------------------------------------------------------------------
+
+' Subroutines
+
+'---------------------------------------------------------------------------------
+
+'---------------------------------------------------------------------------------
+
+
+
+'---------------------------------------------------------------------------------
+
+' UpdatePlayer - at interval automaticaly move the player block
+
+' towards the center
+
+'---------------------------------------------------------------------------------
+
+Sub UpdatePlayer
+
+  'Only do this at timed intervals.
+
+  If Clock.ElapsedMilliseconds - playerStart > playerRate then
+
+    DetectLanding()
+
+    MoveThePlayer()
+
+    playerStart = Clock.ElapsedMilliseconds     'Setup for next block
+
+  EndIf
+
+  Shapes.Move(player,col*sqrSiz+3,row*sqrSiz+3) 'Move the current block  
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' Detect landing - has the player block reached a stoping point (at
+
+' an edge or blocked by a block)
+
+'---------------------------------------------------------------------------------
+
+Sub DetectLanding
+
+  If dir = 1 Then
+
+    If row = brdHei Then  'Are we at the bottom of the baord?
+
+      Landed()
+
+    ElseIf board[row+1][col] <> "Empty" then 'Are we at the top of a stack?
+
+      Landed()
+
+    EndIf
+
+  ElseIf dir = 2 then
+
+    If row = 1 Then       'Are we at the top of the baord?
+
+      Landed()
+
+    ElseIf board[row-1][col] <> "Empty" then 'Are we at the top of a stack?
+
+      Landed()
+
+    EndIf
+
+  ElseIf dir = 3 Then
+
+    If col = brdWid Then  'Are we at the right side of the baord?
+
+      Landed()
+
+    ElseIf board[row][col+1] <> "Empty" then 'Are we at the edge of a stack?
+
+      Landed()
+
+    EndIf
+
+  ElseIf dir = 4 Then
+
+    If col = 1 Then       'Are we at the left side of the baord?
+
+      Landed()
+
+    ElseIf board[row][col-1] <> "Empty" then 'Are we at the edge of a stack?
+
+      Landed()
+
+    EndIf
+
+  EndIf
+
+EndSub 
+
+
+
+'---------------------------------------------------------------------------------
+
+' MoveThe Player - move the player block in the current direction of
+
+' play
+
+'---------------------------------------------------------------------------------
+
+sub MoveThePlayer
+
+  If newBlockAdded = "False" And key <> "Escape" Then
+
+    If dir = 1 Then       'Down
+
+      row = row + 1
+
+    ElseIf dir = 2 Then   'Up
+
+      row = row - 1
+
+    ElseIf dir = 3 Then   'Right
+
+      col = col + 1
+
+    ElseIf dir = 4 Then   'Left
+
+      col = col - 1
+
+    EndIf
+
+  EndIf
+
+  newBlockAdded = "False"
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' Landed - The bottom of the board, or the top of the stack has been 
+
+' reached, ;eave the block in place and check for win or lose
+
+'---------------------------------------------------------------------------------
+
+Sub Landed
+
+  If row = 0 Or col = 0 Or row = brdHei+1 Or col = brdWid+1 Then   'Still at the top? Lose condition
+
+    GameOverDisplay()
+
+    FlashFinal()
+
+    Shapes.HideShape(player)
+
+    key = "Escape"
+
+  ElseIf landCount+1 = brdHei * brdWid Then                        'Board full? Win condition
+
+    SuccessfulLand()
+
+    score = score * 10
+
+    GameOverDisplay()
+
+    FullBoardDisplay()
+
+    FlashFinal()
+
+    key = "Escape"
+
+  Else                                                             'Set up a new block
+
+    SuccessfulLand()
+
+    NewBlock()
+
+  endif
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' Full Board Display - Display board complete and bonus message
+
+'---------------------------------------------------------------------------------
+
+Sub FullBoardDisplay
+
+  offset = (GraphicsWindow.Width / 2) - (283 /2)
+
+  middle = (GraphicsWindow.Height / 2) - ((GraphicsWindow.Height / 10) * 2)
+
+  GraphicsWindow.FontSize = 35
+
+  GraphicsWindow.BrushColor = "black"
+
+  bcshpshadow = Shapes.AddText("Board Complete")
+
+  Shapes.Move(bcshpshadow,offset+2,middle-4)
+
+  GraphicsWindow.BrushColor = "gold"
+
+  bcshp = Shapes.AddText("Board Complete")
+
+  Shapes.Move(bcshp,offset,middle-6) 
+
+  
+
+  offset = (GraphicsWindow.Width / 2) - (343 /2)
+
+  middle = (GraphicsWindow.Height / 2) - ((GraphicsWindow.Height / 10) * 1)
+
+  GraphicsWindow.FontSize = 35
+
+  GraphicsWindow.BrushColor = "black"
+
+  bsshpshaddow = Shapes.AddText("Bonus = Score x 10")
+
+  Shapes.Move(bsshpshaddow,offset+2,middle-4)
+
+  GraphicsWindow.BrushColor = "gold"
+
+  bsshp = Shapes.AddText("Bonus = Score x 10")
+
+  Shapes.Move(bsshp,offset,middle-6) 
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' Flash the location of the final block
+
+'---------------------------------------------------------------------------------
+
+Sub FlashFinal
+
+  GraphicsWindow.BrushColor = "Black" 'Create a black block over the last player block
+
+  GraphicsWindow.PenColor = "Black"
+
+  lastBlock = Shapes.AddRectangle(sqrSiz-12,sqrSiz-12)
+
+  Shapes.SetOpacity(lastBlock,65)
+
+  Shapes.Move(lastBlock,col*sqrSiz+3,row*sqrSiz+3)
+
+  For fbi = 1 To 3                    'Flash the black block on and off
+
+    Shapes.HideShape(lastBlock)
+
+    Program.Delay(100)
+
+    Shapes.ShowShape(lastBlock)
+
+    Program.Delay(250)
+
+  endfor   
+
+  Shapes.HideShape(lastBlock)         'Remove the flash block
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' Game over display - Display the game over message and the 
+
+' final score
+
+'---------------------------------------------------------------------------------
+
+Sub GameOverDisplay
+
+  GraphicsWindow.Title = "Quad-Tris
+
+  offset = (GraphicsWindow.Width / 2) - (190 /2)
+
+  GraphicsWindow.FontSize = 35
+
+  GraphicsWindow.BrushColor = "black"
+
+  GraphicsWindow.DrawText(offset+2,-4,"Game Over")
+
+  GraphicsWindow.BrushColor = "gold"
+
+  GraphicsWindow.DrawText(offset,-6,"Game Over") 
+
+  
+
+  offset = (GraphicsWindow.Width / 2) - ((245 + (Text.GetLength(score) * 22)) /2)
+
+  GraphicsWindow.FontSize = 35
+
+  GraphicsWindow.BrushColor = "black"
+
+  GraphicsWindow.DrawText(offset+2,((brdHei+1) * sqrSiz)-7,"Final Score = " + score)
+
+  GraphicsWindow.BrushColor = "gold"
+
+  GraphicsWindow.DrawText(offset,((brdHei+1) * sqrSiz)-9,"Final Score = " + score) 
+
+EndSub
+
+
+
+
+
+'---------------------------------------------------------------------------------
+
+' Successful Land - Mark the current block as used, find and flash
+
+' matching for bonus, Calculate and display new score
+
+'---------------------------------------------------------------------------------
+
+Sub SuccessfulLand
+
+  board[row][col] = dir           'Mark the current postion as occupied
+
+  landCount = landCount + 1       'Keep track of how many times this has happend
+
+  FindMatching()                  'Calculate the multiplier - how many blocks of the same color are touching
+
+  scoreText = "Score -- " + score
+
+  score = score + (10 * multiplier)
+
+  scoreText = scoreText + " +  (10 x " + multiplier + ") = " + score
+
+  GraphicsWindow.Title = scoreText 
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' New Block - Following a successfull landing add a new player
+
+' block to the board
+
+'---------------------------------------------------------------------------------
+
+Sub NewBlock
+
+  dir = Math.GetRandomNumber(4)           'Choose a direction at random
+
+  If dir = 1 then                         'From the top
+
+    row = 0                               'reset at the top
+
+    col = Math.GetRandomNumber(brdWid)    'random position at the top
+
+    GraphicsWindow.BrushColor = "blue"    
+
+    GraphicsWindow.PenColor = "blue"    
+
+  ElseIf dir = 2 then                     'From the bottom
+
+    row = brdHei+1                        'reset at the bottom
+
+    col = Math.GetRandomNumber(brdWid)    'random position at the bottom
+
+    GraphicsWindow.BrushColor = "green"    
+
+    GraphicsWindow.PenColor = "green"    
+
+  elseIf dir = 3 then                    'From the left
+
+    row = Math.GetRandomNumber(brdHei)   'random position at the left
+
+    col = 0                              'reset at the left
+
+    GraphicsWindow.BrushColor = "red"  
+
+    GraphicsWindow.PenColor = "red"    
+
+  elseif dir = 4 then                     'From the right
+
+    row = Math.GetRandomNumber(brdHei)    'random position at the right
+
+    col = brdWid + 1                      'reset at the right
+
+    GraphicsWindow.BrushColor = "darkorange"    
+
+    GraphicsWindow.PenColor = "darkorange"    
+
+  EndIf    
+
+  playerRate = playerRate - playerRateReduction     'speed the game up
+
+  player = Shapes.AddRectangle(sqrSiz-12,sqrSiz-12) 'add the new block
+
+  playerStart = Clock.ElapsedMilliseconds           'Start  a new frame.
+
+  pressed = "False"                                 'Ignore any new key presses
+
+  newBlockAdded = "True"                            'Note the fact that a new block was added
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' Get Key Press - Process all user interaction. 'Key presses are 
+
+' ignored unless the event tells us that a new key has been pressed
+
+'---------------------------------------------------------------------------------
+
+Sub GetKeyPress
+
+  If pressed = "True" Then        'ignore unless the event tells us there was a press       
+
+    key = GraphicsWindow.LastKey  'Movement keys
+
+    If key = "Up" and col <> 0 and col <> brdWid+1 And row <> 0 And row<>brdHei+1 Then  'Place the block at this location
+
+      Landed() 
+
+    Else
+
+      If dir = 1 Then             'Block is moving downward
+
+        'Has the left key been press? And is the place we are heading on the board? And is place we heading not full? 
+
+        If key = "Left"  And col > 1 and (row < 1 or board[row][col-1] = "Empty") Then 
+
+          col = col - 1           'move Clockwise
+
+          'Has the right key been pressed? And is the place we are heading on the board? And is place we are heading not full?
+
+        ElseIf key = "Right" and col < brdWid and (row < 1 or board[row][col+1] = "Empty") then
+
+          col = col + 1           'move Counter-clockwise
+
+        ElseIf key = "Down" Then
+
+          playerStart = playerStart - playerRate   'expire the pacing pause and move DOWN a block NOW
+
+        EndIf
+
+      ElseIf dir = 2 Then             'Block is moving upward
+
+        'Has the right key been press? And is the place we are heading on the board? And is place we heading not full? 
+
+        If key = "Right"  And col > 1 and (row > brdHei or board[row][col-1] = "Empty") Then 
+
+          col = col - 1           'move Clockwise
+
+          'Has the left key been pressed? And is the place we are heading on the board? And is place we are heading not full?
+
+        ElseIf key = "Left" and col < brdWid and (row > brdHei or board[row][col+1] = "Empty") then
+
+          col = col + 1           'move Counter-clockwise
+
+        ElseIf key = "Down" Then
+
+          playerStart = playerStart - playerRate   'expire the pacing pause and move UP a block NOW
+
+        EndIf
+
+      ElseIf dir = 3 Then             'Block is moving to the right
+
+        'Has the left key been press? And is the place we are heading on the board? And is place we heading not full? 
+
+        If key = "Left"  And row < brdHei and (col < 1 or board[row+1][col] = "Empty") Then 
+
+          row = row + 1           'move Counter-lockwise
+
+          'Has the right key been pressed? And is the place we are heading on the board? And is place we are heading not full?
+
+        ElseIf key = "Right" and row > 1 and (col < 1 or board[row-1][col] = "Empty") then
+
+          row = row - 1           'move Clockwise
+
+        ElseIf key = "Down" Then
+
+          playerStart = playerStart - playerRate   'expire the pacing pause and move LEFT a block NOW
+
+        EndIf
+
+      ElseIf dir = 4 Then             'Block is moving to the left
+
+        'Has the right key been press? And is the place we are heading on the board? And is place we heading not full? 
+
+        If key = "Right"  And row < brdHei and (col > brdWid or board[row+1][col] = "Empty") Then 
+
+          row = row + 1           'move Clockwise
+
+          'Has the left key been pressed? And is the place we are heading on the board? And is place we are heading not full?
+
+        ElseIf key = "Left" and row > 1 and (col > brdWid or board[row-1][col] = "Empty") then
+
+          row = row - 1           'move Counter-clockwise
+
+        ElseIf key = "Down" Then
+
+          playerStart = playerStart - playerRate   'expire the pacing pause and move RIGHT a block NOW
+
+        EndIf
+
+      EndIf
+
+    endif
+
+    pressed = "False"
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' Find Matching is a helper method that sets up the values for the  
+
+' recursive FindMatchingWorker subroutine below. 
+
+'---------------------------------------------------------------------------------
+
+Sub FindMatching
+
+  multiplier = 0  'Assume no matches
+
+  fDir = dir      'Copies used in the find process
+
+  fCol = col
+
+  fRow = row
+
+  
+
+  'Setup a work space. This array will keep us from checking a
+
+  'block location more than once
+
+  For fmi = 1 To brdHei
+
+    For fmj = 1 To brdWid
+
+      fBoard[fmi][fmj] = "Empty"
+
+    EndFor
+
+  EndFor
+
+  
+
+  'Stacks needed for the recursion process. In most other languags
+
+  'the stack process would be hanlded automatically by the 
+
+  'subroutine call itself. Smallbasic's single global variable pool 
+
+  'and lack of subroutine parameters prevents this.
+
+  fRowSt = ""
+
+  fColSt = "" 
+
+  
+
+  bonusBlockCount = 0   'number of matching blocks found
+
+  FindMatchingWorker()  'Find the matches
+
+  FlashBonus()          'Flash the matching blocks to show the user
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' Find Matching Worker - Find all touching blocks that have the 
+
+' same color. This is a recursive subroutine. It calls itself four 
+
+' separate times, once for each direction a block can be touching: 
+
+' Up, Down, Left, and Right.
+
+'This is a basic maze following algorithm.
+
+'---------------------------------------------------------------------------------
+
+Sub FindMatchingWorker
+
+  'Base case - Are out outside the board, have we visited this block already, or is this block a different color (or empty)
+
+  If fRow > brdHei Or fRow < 1 Or fCol > brdWid Or fCol < 1 Or fBoard[fRow][fCol] <> "Empty" Or board[fRow][fcol] <> fDir Then
+
+    'Do nothing, return to previous call and continue the search
+
+  Else
+
+    multiplier = multiplier + 1             'Add this block to the multiplier
+
+    fBoard[fRow][fCol] = fDir               'Only count it once
+
+    bonusBlockCount = bonusBlockCount + 1   'Add a black block over this position to show the user
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.PenColor = "Black"
+
+    bonusBlocks[bonusBlockCount] = Shapes.AddRectangle(sqrSiz-12,sqrSiz-12)
+
+    Shapes.SetOpacity(bonusBlocks[bonusBlockCount],65)
+
+    Shapes.Move(bonusBlocks[bonusBlockCount],fCol*sqrSiz+3,fRow*sqrSiz+3)
+
+    
+
+    'Recursive call - Check all positions leading up from current
+
+    Stack.PushValue(fRowSt,fRow)            'Store the current row and col
+
+    Stack.PushValue(fColSt,fCol)
+
+    fRow = fRow - 1                         'Move one row up
+
+    FindMatchingWorker()                    'Check all blocks in that direction
+
+    fCol = Stack.PopValue(fColSt)           'Restore the old row and col from before the call
+
+    fRow = Stack.PopValue(fRowSt)
+
+    
+
+    'Recursive call - Check all positions leading down from current
+
+    Stack.PushValue(fRowSt,fRow)            'Store the current row and col
+
+    Stack.PushValue(fColSt,fCol)
+
+    fRow = fRow + 1                         'Move one row down
+
+    FindMatchingWorker()                    'Check all blocks in that direction
+
+    fCol = Stack.PopValue(fColSt)           'Restore the old row and col from before the call
+
+    fRow = Stack.PopValue(fRowSt)
+
+    
+
+    'Recursive call - Check all positions leading left from current
+
+    Stack.PushValue(fRowSt,fRow)            'Store the current row and col
+
+    Stack.PushValue(fColSt,fCol)
+
+    fCol = fCol - 1                         'Move one column left
+
+    FindMatchingWorker()                    'Check all blocks in that direction
+
+    fCol = Stack.PopValue(fColSt)           'Restore the old row and col from before the call
+
+    fRow = Stack.PopValue(fRowSt)
+
+    
+
+    'Recursive call - Check all positions leading right from current
+
+    Stack.PushValue(fRowSt,fRow)            'Store the current row and col
+
+    Stack.PushValue(fColSt,fCol)
+
+    fCol = fCol + 1                         'Move one column right
+
+    FindMatchingWorker()                    'Check all blocks in that direction
+
+    fCol = Stack.PopValue(fColSt)           'Restore the old row and col from before the call
+
+    fRow = Stack.PopValue(fRowSt)
+
+  EndIf
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' Flash Bous - Flash all the block identifed in FindMatching
+
+'---------------------------------------------------------------------------------
+
+Sub FlashBonus
+
+  If bonusBlockCount > 1 Then
+
+    For fbi = 1 To 3
+
+      For fbj = 1 To bonusBlockCount
+
+        Shapes.HideShape(bonusBlocks[fbj])
+
+      EndFor
+
+      Program.Delay(100)
+
+      For fbj = 1 To bonusBlockCount
+
+        Shapes.ShowShape(bonusBlocks[fbj])
+
+      EndFor
+
+      Program.Delay(250)
+
+    endfor    
+
+  EndIf
+
+  For fbj = 1 To bonusBlockCount
+
+    Shapes.Remove(bonusBlocks[fbj])
+
+  EndFor
+
+EndSub
+
+
+
+'---------------------------------------------------------------------------------
+
+' Frame Wait Sit here and do nothing until the frame clock has run 
+
+' out. This wait keeps the automatic operations, like moving the 
+
+' block from running too fast. 
+
+'This technique is better then using Program.Delay() for two reasons:
+
+'   1)  The wait time is based on when we started the frame, not
+
+'        when we ended it. In other words, when one of our trips through
+
+'        the for loop above takes longer than normal, the delay will be 
+
+'        reduced, so each frame will be exactly the same length.
+
+'  2) We have the option (even though we are not using it here) of  
+
+'        doing some extra processing, such as checking the keyboard. 
+
+'        With Program.Delay() we are stuck, unable to do anything,
+
+'       until the  delay is complete.
+
+'---------------------------------------------------------------------------------
+
+Sub FrameWait
+
+  While Clock.ElapsedMilliseconds - frameStart < frameRate
+
+    'As stated... do nothing.
+
+  EndWhile
+
+  frameStart = Clock.ElapsedMilliseconds 'Start  a new frame.
+
+EndSub
+
+
+
+'Event Subroutines ------------------------------------------------------------------------------------
+
+
+
+'--- 'OnKeyDown ---------------------------------------------------------------------------------------
+
+'---   Take note of the fact that a key has been pressed. This event is 
+
+'---   needed because the GraphicsWindow.lastkey property never
+
+'---   clears. Making otherwise impossible to distinguish between
+
+'---   multiple presses of the same key
+
+'-----------------------------------------------------------------------------------------------------------
+
+Sub OnKeyDown
+
+  pressed = "True"
+
+EndSub
+
+
+
+

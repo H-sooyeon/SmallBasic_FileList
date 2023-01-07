@@ -1,0 +1,1523 @@
+' Battleship v:1.0 -orig: Yanos - MRV593-1
+
+
+
+version = "1.0a"
+
+gameState = "init"
+
+args=0
+
+
+
+' Main loop
+
+While "true
+
+  If gameState = "createboard" Then
+
+    
+
+    GameCreateboardLoop()
+
+  ElseIf gameState ="init" then
+
+    InitializeGame()
+
+  ElseIf gameState = "play" Then
+
+    GamePlayLoop()
+
+  ElseIf gameState = "end" Then
+
+    GameEndLoop()
+
+  EndIf
+
+  ' Pause the computer
+
+  Program.Delay(10)
+
+EndWhile
+
+
+
+Sub InitializeGame
+
+  gameState = "createboard
+
+  dcs = 32
+
+  gw = 800
+
+  gh = 480
+
+  not = "False=True;True=False
+
+  lastKey = ""
+
+  lastMouseButtons = ""
+
+  error = ""
+
+  errorTimeline = 0
+
+  printShips = ""
+
+  BuildShips()
+
+  GraphicsWindow.Show()
+
+  GraphicsWindow.Title = "Small Basic - Battleship - " + version
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.CanResize = "False"
+
+  ' GraphicsWindow.KeyDown = kyy
+
+  GraphicsWindow.MouseDown = HandleMouseDownUp
+
+  GraphicsWindow.MouseUp = HandleMouseDownUp
+
+  GraphicsWindow.BackgroundColor ="teal
+
+  CreateboardScreen()
+
+EndSub
+
+
+
+Sub GameIntroLoop
+
+  If lastKey = "Escape" Then
+
+    gameState = ""
+
+  ElseIf lastKey = "Enter" Or lastKey = "Return" Or lastKey = "Space" Or lastMouseButtons <> "" Then
+
+    CreateboardScreen()
+
+  EndIf
+
+  lastKey = ""
+
+  lastMouseButtons = ""
+
+EndSub
+
+
+
+Sub GameCreateboardLoop
+
+  moveShip = "False"
+
+  ' If currentship = 0 then we start to use the first ship
+
+  If currentShip = 0 Then
+
+    currentShip = 1
+
+    moveShip = "True"
+
+  EndIf
+
+  ship = ships[currentShip]
+
+  
+
+  ' Handle mouse
+
+  x = dcs + (((gw / 2) - (11 * dcs)) / 2)
+
+  y = dcs + 120
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  If mx >= x And mx <= x + (10 * dcs) And my >= y And my <= y + (10 * dcs) Then
+
+    ' Calcul the position with limit
+
+    currentCursor["x"] = Math.Floor((mx - x) / dcs) + 1
+
+    max = 10
+
+    If ship["dir"]="r" Then
+
+      max = 11 - ship["size"]
+
+    EndIf
+
+    If currentCursor["x"] > max Then
+
+      currentCursor["x"] = max
+
+    EndIf
+
+    currentCursor["y"] = Math.Floor((my - y) / dcs) + 1
+
+    max = 10
+
+    If ship["dir"]="d" Then
+
+      max = 11 - ship["size"]
+
+    EndIf
+
+    If currentCursor["y"] > max Then
+
+      currentCursor["y"] = max
+
+    EndIf
+
+    ' The ship moved
+
+    moveShip = "True"
+
+  Else
+
+    ' Cancel mouse click because the mouse is out of board
+
+    lastMouseButtons = ""
+
+  EndIf
+
+  
+
+  
+
+  If lastKey = "Space" Or lastMouseButtons = "Right" Then
+
+    ' Change direction : 'r'ight <-> 'd'own
+
+    If ship["dir"] = "r" Then
+
+      ship["dir"] = "d"
+
+      ' Resize the ship
+
+      SetShipShapeProperties()
+
+      Shapes.Remove(ship["shape"])
+
+      ship["shape"] = Shapes.AddRectangle(dcs, ship["size"] * dcs)
+
+      ' If the ship is out of board we recalculate the cursor
+
+      max = 11 - ship["size"]
+
+      If currentCursor["y"] >= max Then
+
+        currentCursor["y"] = max
+
+      EndIf
+
+      moveShip = "True"
+
+    Else
+
+      ship["dir"] = "r"
+
+      ' Resize the ship
+
+      SetShipShapeProperties()
+
+      Shapes.Remove(ship["shape"])
+
+      ship["shape"] = Shapes.AddRectangle(ship["size"] * dcs, dcs)
+
+      ' If the ship is out of board we recalculate the cursor
+
+      max = 11 - ship["size"]
+
+      If currentCursor["x"] >= max Then
+
+        currentCursor["x"] = max
+
+      EndIf
+
+      moveShip = "True"
+
+    EndIf    
+
+    ships[currentShip] = ship
+
+    
+
+  ElseIf lastKey = "Enter" Or lastKey = "Return" Or lastMouseButtons = "Left" Then
+
+    validShip = currentShip ' Valid the current ship
+
+    validPosX = currentCursor["x"]
+
+    validPosY = currentCursor["y"]
+
+    validDir = ship["dir"]
+
+    validShipList = ships
+
+    ValidateShip()    
+
+    
+
+    If shipIsValid = "True" Then ' If  it valid we save the ship
+
+      ' Save the position for the ship
+
+      ship["x"] = currentCursor["x"]
+
+      ship["y"] = currentCursor["y"]
+
+      ships[currentShip] = ship  ' Save the ship changes
+
+      
+
+      ' Draw information to display the forbidden cells
+
+      GraphicsWindow.BrushColor = "#FF8888"
+
+      mx = (ship["x"] - 2) * dcs
+
+      my = (ship["y"] - 2) * dcs
+
+      If ship["dir"] = "r" Then
+
+        x2 = ship["x"] + ship["size"]
+
+        y2 = ship["y"] + 1
+
+        w = (ship["size"] + 2) * dcs
+
+        h = 3 * dcs
+
+      Else
+
+        x2 = ship["x"] + 1
+
+        y2 = ship["y"] + ship["size"]
+
+        w = 3 * dcs        
+
+        h = (ship["size"] + 2) * dcs
+
+      EndIf
+
+      
+
+      ' Correct the dimensions if out of board
+
+      If ship["x"] < 2 Then
+
+        mx = mx + dcs
+
+        w = w - dcs
+
+      EndIf
+
+      If x2 > 10 Then
+
+        w = w - dcs
+
+      EndIf
+
+      If ship["y"] < 2 Then
+
+        my = my + dcs
+
+        h = h - dcs
+
+      EndIf
+
+      If y2 > 10 Then
+
+        h = h - dcs
+
+      EndIf
+
+      GraphicsWindow.FillRectangle(x + mx, y + my, w, h)
+
+      currentShip = currentShip + 1
+
+      moveShip = "True"
+
+      
+
+      If currentShip > 5 Then    ' If we don't have more ships, then go to play
+
+        BuildComputerShips()
+
+        Goto EndGam
+
+      EndIf
+
+      'Else   ' TODO Display message
+
+    EndIf
+
+    
+
+  EndIf
+
+  
+
+  ' Move the current ship in the cursor
+
+  If moveShip = "True" Then
+
+    x = ((gw / 2) - (11 * dcs)) / 2
+
+    y = 120
+
+    x = x + (currentCursor["x"] * dcs)
+
+    y = y + (currentCursor["y"] * dcs)
+
+    Shapes.Move(ships[currentShip]["shape"], x, y)
+
+  EndIf 
+
+  
+
+  EndGam:
+
+  ' Forget the key and mouse
+
+  lastKey = ""
+
+  lastMouseButtons = ""
+
+EndSub
+
+
+
+Sub annul
+
+  ccc["x"]=args[1]
+
+  ccc["y"]=args[2]
+
+  playerGameState["moves"][ccc] = "."
+
+  playerGameState["movecount"] = playerGameState["movecount"] + 1
+
+EndSub 
+
+
+
+Sub GamePlayLoop
+
+  If currentPlayer = "computer" Then
+
+    Shapes.SetOpacity(moveCursor, 0)
+
+    Shapes.SetText(playProcessCaption, "Computer thinking ...")
+
+    ComputeNextMove()
+
+  Else  '  Waiting player action
+
+    Shapes.SetOpacity(moveCursor, 100)
+
+    Shapes.SetText(playProcessCaption, "Choose your next move, and press space or return to valid ...")
+
+    cursorMoved = "False"
+
+    
+
+    ' Handle mouse
+
+    x = dcs + (gw / 2) + (((gw / 2) - (11 * dcs)) / 2)
+
+    y = dcs + 120
+
+    mx = GraphicsWindow.MouseX
+
+    my = GraphicsWindow.MouseY
+
+    If mx >= x And mx <= x + (10 * dcs) And my >= y And my <= y + (10 * dcs) Then
+
+      currentCursor["x"] = Math.Floor((mx - x) / dcs) + 1
+
+      currentCursor["y"] = Math.Floor((my - y) / dcs) + 1
+
+    Else
+
+      ' Cancel the mouse click because the mous is out of the board
+
+      lastMouseButtons = ""
+
+    EndIf
+
+    
+
+    ' Handle key
+
+    If lastKey = "Space" Or lastKey = "Return" Or lastKey = "Enter" Or lastMouseButtons = "Left" Then
+
+      ' Calculate if  move already played
+
+      If Array.ContainsIndex(playerGameState["moves"], currentCursor) = "False" Then
+
+        ' Search if we find a ship 
+
+        findShip = "."
+
+        For i = 1 To Array.GetItemCount(computerShips)
+
+          If findShip = "." Then
+
+            sx1 = computerShips[i]["x"]
+
+            sy1 = computerShips[i]["y"]
+
+            If computerShips[i]["dir"] = "r" Then
+
+              sx2 = sx1 + computerShips[i]["size"] - 1
+
+              sy2 = sy1
+
+            Else
+
+              sx2 = sx1
+
+              sy2 = sy1 + computerShips[i]["size"] - 1
+
+            EndIf 
+
+            If currentCursor["x"] >= sx1 And currentCursor["x"] <= sx2 and currentCursor["y"] >= sy1 And currentCursor["y"] <= sy2 Then
+
+              findShip = i
+
+            EndIf
+
+          EndIf
+
+        EndFor
+
+        
+
+        ' Save the move
+
+        playerGameState["moves"][currentCursor] = findShip
+
+        playerGameState["movecount"] = playerGameState["movecount"] + 1
+
+        ' Next turn
+
+        scores["turn"]["current"] = scores["turn"]["current"] + 1
+
+        UpdateScores()
+
+        ' Calculate the cursor position
+
+        x = (gw / 2) + (((gw / 2) - (11 * dcs)) / 2)
+
+        y = 120
+
+        x = x + (currentCursor["x"] * dcs)
+
+        y = y + (currentCursor["y"] * dcs)
+
+        
+
+        ' Find a ship ?
+
+        If findShip = "." Then ' Draw a no ship information
+
+          cx=currentCursor["x"]
+
+          cy=currentCursor["y"]
+
+          Shapes.SetOpacity (ss[cx][cy][1] 0)
+
+          currentPlayer = "computer"
+
+          
+
+        Else ' Draw a ship information
+
+          GraphicsWindow.BrushColor = "Red"
+
+          cx=currentCursor["x"]
+
+          cy=currentCursor["y"]
+
+          LDCall.Function2 ("annul",cx-1,cy-1)
+
+          LDCall.Function2 ("annul",cx+1,cy+1)
+
+          LDCall.Function2 ("annul",cx-1,cy+1)
+
+          LDCall.Function2 ("annul",cx+1,cy-1)
+
+          
+
+          Shapes.SetOpacity (ss[cx][cy][1] 0)
+
+          Shapes.SetOpacity (ss[cx-1][cy-1][1] 0)
+
+          Shapes.SetOpacity (ss[cx-1][cy+1][1] 0)
+
+          Shapes.SetOpacity (ss[cx+1][cy-1][1] 0)
+
+          Shapes.SetOpacity (ss[cx+1][cy+1][1] 0)
+
+          
+
+          GraphicsWindow.FillRectangle(x + 2,y + 2, dcs - 4, dcs - 4)
+
+          '  Increase score
+
+          scores["player"]["score"] = scores["player"]["score"] + 1
+
+          UpdateScores()
+
+          ' Win ?
+
+          If scores["player"]["score"] >= scores["player"]["total"] Then
+
+            EndGame()
+
+            Goto xx
+
+          EndIf
+
+        EndIf
+
+      EndIf 
+
+      
+
+    EndIf
+
+    
+
+    ' Move the cursor move
+
+    x = (gw / 2) + (((gw / 2) - (11 * dcs)) / 2)
+
+    y = 120
+
+    x = x + (currentCursor["x"] * dcs)
+
+    y = y + (currentCursor["y"] * dcs)
+
+    Shapes.Move(moveCursor, x, y)
+
+    
+
+    ' Clean the key and mouse
+
+    lastKey = ""
+
+    lastMouseButtons = ""
+
+  EndIf
+
+  xx:
+
+EndSub
+
+
+
+'  End loop
+
+Sub GameEndLoop
+
+  Program.Delay (5555)
+
+  lastKey = ""
+
+  lastMouseButtons = ""
+
+  gameState="init
+
+EndSub
+
+
+
+Sub ComputeNextMove
+
+  
+
+  pos = Math.GetRandomNumber(100 - Array.GetItemCount(computerGameState["moves"])) - 1
+
+  
+
+  i = 1
+
+  While pos > 0
+
+    move["x"] = 1 + Math.Remainder(i, 10)
+
+    move["y"] = 1 + Math.Floor(i / 10)
+
+    If Array.ContainsIndex(computerGameState["moves"], move) = "False" Then
+
+      pos = pos - 1
+
+    EndIf
+
+    i = i + 1
+
+  EndWhile
+
+  
+
+  ' Search if we find a ship 
+
+  findShip = "."
+
+  For i = 1 To Array.GetItemCount(ships)
+
+    If findShip = "." Then
+
+      sx1 = ships[i]["x"]
+
+      sy1 = ships[i]["y"]
+
+      If ships[i]["dir"] = "r" Then
+
+        sx2 = sx1 + ships[i]["size"] - 1
+
+        sy2 = sy1
+
+      Else
+
+        sx2 = sx1
+
+        sy2 = sy1 + ships[i]["size"] - 1
+
+      EndIf 
+
+      If move["x"] >= sx1 And move["x"] <= sx2 and move["y"] >= sy1 And move["y"] <= sy2 Then
+
+        findShip = i
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  
+
+  ' Save the move
+
+  computerGameState["moves"][move] = findShip
+
+  computerGameState["movecount"] = computerGameState["movecount"] + 1
+
+  
+
+  ' Next turn
+
+  scores["turn"]["current"] = scores["turn"]["current"] + 1
+
+  UpdateScores()
+
+  
+
+  ' Calculate the cursor position
+
+  x = ((gw / 2) - (11 * dcs)) / 2
+
+  y = 120
+
+  dx = x + (move["x"] * dcs)
+
+  dy = y + (move["y"] * dcs)
+
+  ' Find a ship ?
+
+  cx=move["x"]
+
+  cy=move["y"]
+
+  
+
+  If findShip = "." Then
+
+    ' Draw a no ship information
+
+    Shapes.SetOpacity  (ss[cx][cy][2] 5)
+
+    ' Next player
+
+    currentPlayer = "player"
+
+  Else
+
+    ' Draw a ship information
+
+    Shapes.SetOpacity  (ss[cx][cy][2] 5)
+
+    GraphicsWindow.BrushColor = "Red"
+
+    GraphicsWindow.FillRectangle(dx + 2,dy + 2, dcs - 4, dcs - 4)
+
+    GraphicsWindow.BrushColor = "Black"
+
+    
+
+    ' Exclude impossible next moves by adding them in the moves list
+
+    If move["x"] > 1 And move["y"] > 1 Then
+
+      exclude["x"] = move["x"] - 1
+
+      exclude["y"] = move["y"] - 1
+
+      dx = x + (exclude["x"] * dcs)
+
+      dy = y + (exclude["y"] * dcs)
+
+      computerGameState["moves"][exclude] = "."
+
+      GraphicsWindow.FillEllipse(dx + ((dcs - 4)/2),dy + ((dcs - 4)/2), 4,4)
+
+    EndIf
+
+    If move["x"] < 10 And move["y"] > 1 Then
+
+      exclude["x"] = move["x"] + 1
+
+      exclude["y"] = move["y"] - 1
+
+      dx = x + (exclude["x"] * dcs)
+
+      dy = y + (exclude["y"] * dcs)
+
+      computerGameState["moves"][exclude] = "."
+
+      GraphicsWindow.FillEllipse(dx + ((dcs - 4)/2),dy + ((dcs - 4)/2), 4,4)
+
+    EndIf
+
+    If move["x"] > 1 And move["y"] < 10 Then
+
+      exclude["x"] = move["x"] - 1
+
+      exclude["y"] = move["y"] + 1
+
+      dx = x + (exclude["x"] * dcs)
+
+      dy = y + (exclude["y"] * dcs)
+
+      computerGameState["moves"][exclude] = "."
+
+      GraphicsWindow.FillEllipse(dx + ((dcs - 4)/2),dy + ((dcs - 4)/2), 4,4)
+
+    EndIf
+
+    If move["x"] < 10 And move["y"] < 10 Then
+
+      exclude["x"] = move["x"] + 1
+
+      exclude["y"] = move["y"] + 1
+
+      dx = x + (exclude["x"] * dcs)
+
+      dy = y + (exclude["y"] * dcs)
+
+      computerGameState["moves"][exclude] = "."
+
+      GraphicsWindow.FillEllipse(dx + ((dcs - 4)/2),dy + ((dcs - 4)/2), 4,4)
+
+    EndIf
+
+    '  Increase score
+
+    scores["computer"]["score"] = scores["computer"]["score"] + 1
+
+    UpdateScores()
+
+    ' Win ?
+
+    If scores["computer"]["score"] >= scores["computer"]["total"] Then
+
+      EndGame()
+
+      Goto xy
+
+    EndIf
+
+  EndIf
+
+  xy:
+
+EndSub
+
+
+
+Sub CreateboardScreen
+
+  GraphicsWindow.Clear()
+
+  DrawTitle()
+
+  dbx = ((gw / 2) - (11 * dcs)) / 2
+
+  dby = 120
+
+  op=30
+
+  bd=0
+
+  DrawBoard() 
+
+  BuildShips()
+
+  SetShipShapeProperties()
+
+  
+
+  For i= 1 To Array.GetItemCount(ships)
+
+    ships[i]["shape"] = Shapes.AddRectangle(ships[i]["size"] * dcs, dcs)
+
+    ships[i]["x"]=-1
+
+    ships[i]["y"]=-1
+
+    ships[i]["dir"]="r"
+
+    Shapes.Move(ships[i]["shape"], 432, 120 + ((i-1) * (dcs + 8)) )
+
+  EndFor
+
+  
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.DrawText(432, 400, "Press spacebar or right click to rotate the ship")
+
+  GraphicsWindow.DrawText(432, 432, "Press enter/return or left click to set the ship")
+
+  
+
+  currentShip = 0
+
+  currentCursor = "x=1;y=1"
+
+  gameState = "createboard"
+
+EndSub
+
+
+
+sub BuildComputerShips
+
+  GraphicsWindow.Clear()
+
+  DrawTitle()
+
+  GraphicsWindow.BrushColor = "Maroon"
+
+  GraphicsWindow.FontName = "Tahoma"
+
+  GraphicsWindow.FontSize = 22
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.DrawText(120, 240, "Please wait while the computer thinking is game...")
+
+  
+
+  computerShips=""
+
+  ' Get the same ships than the player
+
+  For i= 1 To Array.GetItemCount(ships)
+
+    computerShips[i]["name"] = ships[i]["name"]
+
+    computerShips[i]["size"] = ships[i]["size"]
+
+    computerships[i]["shape"] = ""
+
+    ' Search a random place for the ship
+
+    shipIsValid = ""
+
+    
+
+    While shipIsValid <> "True"   '  Place randomly the ship
+
+      validShip = i
+
+      validPosX = Math.GetRandomNumber(10)
+
+      validPosY = Math.GetRandomNumber(10)
+
+      If Math.Remainder(Math.GetRandomNumber(100), 2) = 1 Then
+
+        validDir = "r"
+
+      Else
+
+        validDir = "d"
+
+      EndIf
+
+      
+
+      ' Valid the ship position
+
+      validShipList = computerShips
+
+      ValidateShip()
+
+      
+
+      If shipIsValid = "True" Then
+
+        ' The ship is valid we save it
+
+        computerships[i]["x"] = validPosX
+
+        computerships[i]["y"] = validPosY
+
+        computerships[i]["dir"] = validDir
+
+      EndIf
+
+    EndWhile
+
+  EndFor
+
+  
+
+  'playscrn  
+
+  totalScore = 0
+
+  For i = 1 To Array.GetItemCount(ships)
+
+    totalScore = totalScore + ships[i]["size"]
+
+  EndFor
+
+  scores["player"]["score"] = 0
+
+  scores["player"]["total"] = totalScore
+
+  scores["computer"]["score"] = 0
+
+  scores["computer"]["total"] = totalScore
+
+  scores["turn"]["current"] = 1
+
+  ' Clear all
+
+  GraphicsWindow.Clear()
+
+  ' Build the screen
+
+  DrawTitle()
+
+  ' Draw the player board
+
+  dbx = ((gw / 2) - (11 * dcs)) / 2
+
+  dby = 120
+
+  op=95
+
+  bd=2
+
+  DrawBoard() 
+
+  GraphicsWindow.BrushColor="white
+
+  scorePlayer1 = Shapes.AddText("Score : " + scores["player"]["score"] + " / " + scores["player"]["total"])
+
+  Shapes.Move(scorePlayer1,dbx + 10, 88)
+
+  scores["player"]["shape"] = scorePlayer1
+
+  ' Draw turn information
+
+  scores["turn"]["shape"] = Shapes.AddText("Turn : " + scores["turn"]["current"])
+
+  Shapes.Move(scores["turn"]["shape"], dbx, 48)
+
+  ' Draw the current process caption
+
+  playProcessCaption = Shapes.AddText("Preparing game ...")
+
+  Shapes.Move(playProcessCaption,dbx + 80, 48)
+
+  ' Draw the opponent board
+
+  dbx = (gw / 2) + (((gw / 2) - (11 * dcs)) / 2)
+
+  dby = 120
+
+  bd=1
+
+  DrawBoard() 
+
+  GraphicsWindow.BrushColor="white
+
+  scorePlayer2 = Shapes.AddText("Score : " + scores["computer"]["score"] + " / " + scores["computer"]["total"])
+
+  Shapes.Move(scorePlayer2,dbx + 10, 88)
+
+  scores["computer"]["shape"] = scorePlayer2
+
+  
+
+  ' Create the ship
+
+  SetShipShapeProperties()
+
+  For i= 1 To 5
+
+    x = ((gw / 2) - (11 * dcs)) / 2
+
+    y = 120
+
+    x = x + (ships[i]["x"] * dcs)
+
+    y = y + (ships[i]["y"] * dcs)
+
+    If ships[i]["dir"] = "r" Then
+
+      ships[i]["shape"] = Shapes.AddRectangle(ships[i]["size"] * dcs, dcs)
+
+    Else
+
+      ships[i]["shape"] = Shapes.AddRectangle(dcs, ships[i]["size"] * dcs)
+
+    EndIf
+
+    Shapes.Move(ships[i]["shape"], x, y)    
+
+  EndFor
+
+  
+
+  ' Random the first player
+
+  If Math.GetRandomNumber(2) = 1 Then
+
+    currentPlayer = "player"
+
+  Else
+
+    currentPlayer = "computer"
+
+  EndIf
+
+  
+
+  ' Prepare the player elements
+
+  currentCursor = "x=1;y=1"
+
+  GraphicsWindow.BrushColor = "#4400FF00"
+
+  GraphicsWindow.PenColor = "Green"
+
+  GraphicsWindow.PenWidth = 1
+
+  moveCursor = Shapes.AddRectangle(dcs, dcs)
+
+  Shapes.SetOpacity(moveCursor, 0)  
+
+  Shapes.Move(moveCursor, dbx, dby)
+
+  playerGameState = ""
+
+  playerGameState = "movecount=0;"
+
+  
+
+  ' Prepare the computer game calculation
+
+  computerGameState = "movecount=0;"
+
+  
+
+  ' Change game state
+
+  gameState = "play"
+
+EndSub
+
+
+
+' Goto the End Game screen
+
+Sub EndGame
+
+  ' Cleanup some informations
+
+  scores["player"]["shape"] = ""
+
+  scores["computer"]["shape"] = ""
+
+  ' Clear all
+
+  GraphicsWindow.Clear()
+
+  ' Build the screen
+
+  DrawTitle()
+
+  
+
+  ' Who wins ?
+
+  If scores["player"]["score"] >= scores["player"]["total"] Then
+
+    winner = "You win"
+
+    moves = playerGameState["movecount"]
+
+  Else
+
+    winner = "Computer wins"
+
+    moves = computerGameState["movecount"]
+
+  EndIf
+
+  
+
+  GraphicsWindow.BrushColor = "white
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.FontSize = 18
+
+  GraphicsWindow.DrawText(42, 240, winner + " the game in " + moves + " moves")
+
+  
+
+  lastKey = ""
+
+  lastMouseButtons = ""
+
+  
+
+  ' Change game state
+
+  gameState = "end"
+
+EndSub
+
+
+
+Sub DrawBoard
+
+  GraphicsWindow.BrushColor ="white
+
+  GraphicsWindow.FillRectangle(dbx, dby, 11 * dcs, 11*dcs)
+
+  
+
+  GraphicsWindow.BrushColor = "#EEEEEE"
+
+  GraphicsWindow.FillRectangle(dbx, dby, dcs, 11 * dcs)
+
+  GraphicsWindow.FillRectangle(dbx, dby, 11 * dcs, dcs)
+
+  
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.PenWidth = 0.5
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontName = "Arial"
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.FontBold = "True"
+
+  
+
+  For i = 1 To 10
+
+    GraphicsWindow.DrawLine(dbX, dbY + (i * dcs), dbX + (11 * dcs), dbY + (i * dcs))
+
+    GraphicsWindow.DrawLine(dbX + (i * dcs), dbY, dbX + (i * dcs), dbY + (11 * dcs))
+
+    
+
+    For j = 1 To 10
+
+      
+
+      ss[i][j][bd]= Shapes.AddRectangle (dcs ,dcs )
+
+      GraphicsWindow.FillEllipse(dbx+i*dcs + ((dcs - 4)/2),dby+j*dcs+ ((dcs - 4)/2), 4,4)
+
+      Shapes.Move (ss[i][j][bd],dbx+i*dcs,dby+j*dcs)
+
+      LDShapes.BrushColour (ss[i][j][bd] "white")
+
+      LDShapes.PenWidth (ss[i][j][bd] 0)
+
+      Shapes.SetOpacity (ss[i][j][bd] op)
+
+    EndFor 
+
+  EndFor 
+
+  
+
+  For i = 0 To 11
+
+    If i >= 1 And i < 10 Then
+
+      GraphicsWindow.DrawText(dbx + 14, dby + (i * dcs) + 8, i)
+
+      GraphicsWindow.DrawText(dbx + (i * dcs) + 11, dby + 8, Text.GetCharacter( 64 + i ) )
+
+    elseIf i = 10 Then
+
+      GraphicsWindow.DrawText(dbx + 6, dby + (i * dcs) + 8, i)
+
+      GraphicsWindow.DrawText(dbx + (i * dcs) + 11, dby + 8, Text.GetCharacter( 64 + i ) )
+
+    Endif
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub UpdateScores
+
+  If scores["player"]["shape"] <> "" Then
+
+    Shapes.SetText(scores["player"]["shape"], "Score Player : " + scores["player"]["score"] + " / " + scores["player"]["total"])  
+
+  EndIf
+
+  If scores["computer"]["shape"] <> "" Then
+
+    Shapes.SetText(scores["computer"]["shape"], "Score Computer : " + scores["computer"]["score"] + " / " + scores["computer"]["total"])  
+
+  EndIf
+
+  If scores["turn"]["shape"] <> "" Then
+
+    Shapes.SetText(scores["turn"]["shape"], "Turn : " + scores["turn"]["current"])
+
+  EndIf
+
+EndSub
+
+
+
+Sub HandleMouseDownUp
+
+  lastMouseButtons = ""
+
+  If Mouse.IsLeftButtonDown Then
+
+    lastMouseButtons = "Left"
+
+  EndIf
+
+  If Mouse.IsRightButtonDown Then
+
+    If lastMouseButtons = "" Then
+
+      lastMouseButtons = "Right"
+
+    Else
+
+      lastMouseButtons = "Left+Right"
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub ValidateShip ' shipIsValid : returned by this sub : "True", "OutOfBoard" or "OnAnotherShip"
+
+  shipIsValid = "True"
+
+  vShip = validShipList[validShip]
+
+  ' Calculate limits of the ship 
+
+  sx1 = validPosX
+
+  sy1 = validPosY
+
+  If validDir = "r" Then
+
+    sx2 = sx1 - 1 + vShip["size"]
+
+    sy2 = sy1
+
+  Else
+
+    sx2 = sx1
+
+    sy2 = sy1 - 1 + vShip["size"]
+
+  EndIf
+
+  
+
+  '  Check out of board
+
+  If sx1 < 1 Or sy1 < 1 Or sx2 >10 Or sy2 > 10 Then
+
+    shipIsValid = "OutOfBoard"
+
+    Goto EndValidShip
+
+  EndIf
+
+  
+
+  ' Loop on the ships in the list
+
+  For vi = 1 To Array.GetItemCount(validShipList)
+
+    ' Get the position of the ship
+
+    ix1 = validShipList[vi]["x"]
+
+    iy1 = validShipList[vi]["y"]
+
+    '  If the ship is placed
+
+    If vi <> validShip And ix1 > 0 And iy1 > 0 Then
+
+      ' Calculate limits of the ship to tests
+
+      If validShipList[vi]["dir"] = "r" Then
+
+        ix2 = ix1 - 1 + validShipList[vi]["size"]
+
+        iy2 = iy1
+
+      Else
+
+        ix2 = ix1
+
+        iy2 = iy1 - 1 + validShipList[vi]["size"]
+
+      EndIf
+
+      ' Determine if the two ships are intersected.
+
+      ' The easiest way is to calculate the non-intersection, because only 4 conditions are required
+
+      If (sx2 < (ix1 - 1)) Or (sx1 > (ix2 + 1)) Or (sy2 < (iy1 - 1)) Or (sy1 > (iy2 + 1)) Then
+
+        '  Nothing to do here
+
+      Else
+
+        shipIsValid = "OnAnotherShip"
+
+        Goto EndValidShip
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  
+
+  EndValidShip:
+
+EndSub
+
+
+
+' Build the ships
+
+Sub BuildShips
+
+  ' Create the ships
+
+  ships=""
+
+  ships[1]["size"]=5
+
+  ships[1]["name"]="Aircraft Carrier"
+
+  
+
+  ships[2]["size"]=4
+
+  ships[2]["name"]="Battleship"
+
+  
+
+  ships[3]["size"]=3
+
+  ships[3]["name"]="Cruiser"
+
+  
+
+  ships[4]["size"]=2
+
+  ships[4]["name"]="Submarine"
+
+  
+
+  ships[5]["size"]=1
+
+  ships[5]["name"]="Destroyer"  
+
+EndSub
+
+
+
+Sub DrawTitle
+
+  GraphicsWindow.BrushColor = "darkblue
+
+  GraphicsWindow.FontName = "Verdana"
+
+  GraphicsWindow.FontSize = 24
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.DrawText(240, 10, "Small Basic - Battleship")
+
+EndSub
+
+
+
+Sub SetShipShapeProperties
+
+  GraphicsWindow.BrushColor = "#440000FF"
+
+  GraphicsWindow.PenColor = "Blue"
+
+  GraphicsWindow.PenWidth = 1
+
+EndSub
+
+

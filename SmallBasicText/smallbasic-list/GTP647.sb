@@ -1,0 +1,479 @@
+'initial player location
+
+playerX = 0
+
+playerY = 0
+
+
+
+maxLevel = 4
+
+level = 1
+
+
+
+maxHealth = 5
+
+health = maxHealth
+
+
+
+playerSightRadius = 9
+
+viewportSize = playerSightRadius * 2 - 1
+
+tileSize = 24
+
+
+
+center = ( playerSightRadius * tileSize ) + tileSize / 2
+
+
+
+'set the squares of the maze at the player location to be empty so that it will always draw the first time through
+
+ClearAroundPlayer()
+
+
+
+'move when the player releases the key so that they have to press it once for each movement
+
+GraphicsWindow.KeyUp = MoveKeyboard 
+
+GraphicsWindow.MouseUp = MoveMouse
+
+
+
+resourceMode = "online"
+
+'resourceMode = "local"
+
+If ( resourceMode = "online" ) Then
+
+  path = "http://dl.dropbox.com/u/26751885/Small%20Basic%20Tile%20Engine/"
+
+Else 
+
+  path = Program.Directory + "\"  
+
+EndIf
+
+
+
+imageName[ 1 ] = "Player"
+
+imageName[ 2 ] = "PowerUp"
+
+imageName[ 3 ] = "Floor"
+
+imageName[ 4 ] = "Wall"
+
+imageName[ 5 ] = "Breakable"
+
+imageName[ 6 ] = "Broken"
+
+imageName[ 7 ] = "Stairs"
+
+
+
+levelTilesStartIndex = 3
+
+
+
+blockings[ 1 ] = "Wall"
+
+blockings[ 2 ] = "Breakable"
+
+blockings[ 3 ] = "Stairs"
+
+
+
+steps = ( levelTilesStartIndex - 1 ) + ( ( ( Array.GetItemCount( imageName ) - levelTilesStartIndex ) + 1 ) * maxLevel )
+
+StartProgress()
+
+
+
+Sub StartProgress
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  GraphicsWindow.FillRectangle( 0, 0, ( viewportSize + 1 ) * tileSize, ( viewportSize + 1 ) * tileSize )
+
+  GraphicsWindow.BrushColor = "Black"
+
+  progressWidth = viewportSize - 1
+
+  GraphicsWindow.FillRectangle( tileSize, ( viewportSize / 2 ) * tileSize, progressWidth * tileSize, tileSize )
+
+
+
+  progress = 0
+
+  stepAmount = progressWidth / steps
+
+  GraphicsWindow.BrushColor = "Green"
+
+EndSub
+
+
+
+For i = 1 to Array.GetItemCount( imageName )
+
+  If ( i < levelTilesStartIndex ) Then
+
+    loadImageName = imageName[ i ]
+
+    LoadImage()
+
+  Else
+
+    For l = 1 To maxLevel
+
+      loadImageName = imageName[ i ] + l
+
+      LoadImage()
+
+    EndFor
+
+  EndIf
+
+  indexFromName[ imageName[ i ] ] = i  
+
+EndFor
+
+
+
+Sub Progress
+
+  progress = progress + 1
+
+  GraphicsWindow.FillRectangle( tileSize, ( viewportSize / 2 ) * tileSize, stepAmount * progress * tileSize, tileSize )   
+
+EndSub
+
+
+
+Sub LoadImage
+
+  fullPath = path + loadImageName + ".png"
+
+  tiles[ loadImageName ] = ImageList.LoadImage( fullPath )
+
+  Progress()
+
+EndSub
+
+
+
+Draw() 
+
+
+
+Sub MoveKeyboard
+
+  direction = GraphicsWindow.LastKey
+
+  
+
+  Move()
+
+EndSub
+
+
+
+Sub MoveMouse
+
+  upAmount = center - GraphicsWindow.MouseY
+
+  downAmount = GraphicsWindow.MouseY - center
+
+  leftAmount = center - GraphicsWindow.MouseX
+
+  rightAmount = GraphicsWindow.MouseX - center
+
+  
+
+  If( upAmount > downAmount And upAmount > leftAmount And upAmount > rightAmount ) Then
+
+    direction = "Up"
+
+  ElseIf( downAmount > leftAmount And downAmount > rightAmount ) Then
+
+    direction = "Down"
+
+  ElseIf( leftAmount > rightAmount ) Then 
+
+    direction = "Left"
+
+  Else
+
+    direction = "Right"
+
+  EndIf
+
+  
+
+  Move()
+
+EndSub
+
+
+
+Sub Move
+
+  'make a copy of the player's current location
+
+  newX = playerX 
+
+  newY = playerY
+
+  
+
+  'check if the player is moving and if so change the copy of the location accordingly
+
+  If ( direction = "Up" ) Then 
+
+    newY = newY - 1
+
+  ElseIf ( direction = "Down" ) Then
+
+    newY = newY + 1
+
+  ElseIf ( direction = "Left" ) Then
+
+    newX = newX - 1
+
+  ElseIf ( direction = "Right" ) Then
+
+    newX = newX + 1
+
+  EndIf
+
+  
+
+  'set location to the new position
+
+  location = newX + ":" + newY 
+
+  'the square of maze at this location might not have been created yet
+
+  CheckMazeAtLocation() 
+
+  
+
+  'only update position and draw if they're not trying to move into a wall
+
+  If ( Array.ContainsValue( blockings, maze[ location ] ) = "False" ) Then 
+
+    
+
+    'if the player walked onto a star...
+
+    If( maze[ location ] = "PowerUp" ) Then 
+
+      'give them a point
+
+      score = score + 1  
+
+      
+
+      'remove the star and place an empty floor here instead    
+
+      maze[ location ] = "Floor" 
+
+    EndIf
+
+    
+
+    'update the player location
+
+    playerX = newX 
+
+    playerY = newY
+
+    
+
+    Draw()
+
+    
+
+    'draw the score in the title bar
+
+    GraphicsWindow.Title = "Score: " + score 
+
+  Else
+
+    If ( maze[ location ] = "Breakable" ) Then
+
+      maze[ location ] = "Broken"
+
+      Draw()
+
+    ElseIf ( maze[ location ] = "Stairs" ) Then
+
+      NewLevel()
+
+      Draw()
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Draw
+
+  'draw a section of the maze that is 18 x 18 tiles in size  
+
+  For y = 0 To viewportSize 
+
+    For x = 0 to viewportSize
+
+      'turn x and y into a location relative to the player
+
+      location = ( x - playerSightRadius + playerX ) + ":" + ( y - playerSightRadius + playerY ) 
+
+      
+
+      'the part of the maze at this location might not have been created yet       
+
+      CheckMazeAtLocation() 
+
+      
+
+      'draw a floor first
+
+      GraphicsWindow.DrawImage( tiles[ "Floor" + level ],  x * tileSize,  y * tileSize )
+
+      
+
+      'if the current tile IS a floor then no point in drawing it again
+
+      If ( maze[ location ] <> "Floor" ) Then
+
+        tile = maze[ location ]
+
+        tileIndex = indexFromName[ tile ]
+
+        If ( tileIndex >= levelTilesStartIndex ) Then 
+
+          tile = tile + level
+
+        EndIf
+
+        GraphicsWindow.DrawImage( tiles[ tile ],  x * tileSize,  y * tileSize )
+
+      EndIf
+
+      
+
+      'now overlay the player sprite if the current location is the player's location
+
+      If ( x = playerSightRadius And y = playerSightRadius ) Then
+
+        GraphicsWindow.DrawImage( tiles[ "Player" ],  x * tileSize,  y * tileSize )
+
+      EndIf
+
+    EndFor
+
+  EndFor  
+
+EndSub  
+
+
+
+Sub NewLevel
+
+  If ( level < maxLevel ) Then
+
+    mazeIndices = Array.GetAllIndices( maze )    
+
+    steps = Array.GetItemCount( mazeIndices )
+
+    StartProgress()
+
+    level = level + 1    
+
+    For i = 1 to steps
+
+      maze[ mazeIndices[ i ] ] = "Empty"
+
+      Progress()
+
+    EndFor
+
+    playerX = 0
+
+    playerY = 0
+
+    ClearAroundPlayer()
+
+  EndIf  
+
+EndSub
+
+
+
+Sub ClearAroundPlayer
+
+  maze[ playerX + ":" + ( playerY - 1 ) ] = "Breakable" 
+
+  maze[ playerX + ":" + ( playerY + 1 ) ] = "Floor" 
+
+  maze[ ( playerX - 1 ) + ":" + playerY ] = "Breakable"
+
+  maze[ ( playerX + 1 ) + ":" + playerY ] = "Floor"
+
+  maze[ playerX + ":" + playerY ] = "Floor" 
+
+EndSub
+
+
+
+'check if the maze is empty at this location and if it is then randomly pick a tile to place here
+
+Sub CheckMazeAtLocation 
+
+  If ( Array.ContainsIndex( maze, location ) = "False" Or maze[ location ] = "Empty" ) Then
+
+    If ( Math.GetRandomNumber( 1000 ) = 1 ) Then
+
+      'Stairs - next level
+
+      maze[ location ] = "Stairs"      
+
+    ElseIf ( Math.GetRandomNumber( 100 ) = 1 ) Then            
+
+      'PowerUp - increases your score
+
+      maze[ location ] = "PowerUp" 
+
+    ElseIf ( Math.GetRandomNumber( 4 ) = 1 ) Then
+
+      'Wall - a square you can't move through
+
+      maze[ location ] = "Wall" 
+
+    ElseIf ( Math.GetRandomNumber( 3 ) = 1 ) Then
+
+      'Breakable - a wall you can break down
+
+      maze[ location ] = "Breakable" 
+
+    Else
+
+      'Floor - a square you can move over
+
+      maze[ location ] = "Floor" 
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+

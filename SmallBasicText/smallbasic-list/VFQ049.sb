@@ -1,0 +1,395 @@
+' Challenge of the Month - May 2012       Tower    of    Hanoi      by NaochanON     2012/-05/15
+
+'  small  rect can be stacked on the Large  one.  But   large rect  cannot  be  stacked on the small one.
+
+
+
+    init()
+
+    PoleandRect()
+
+    Controls.ButtonClicked=onbuttonclick
+
+    GraphicsWindow.MouseMove=onmousedown
+
+    GraphicsWindow.MouseUp=onmouseup
+
+ 
+
+
+
+Sub onmouseup 
+
+  MX = GraphicsWindow.MouseX
+
+  MY = GraphicsWindow.MouseY
+
+  RPN=math.Ceiling((MX-30)/420)             '  Released Pole Number
+
+  cnt= Array.GetItemCount(st[RPN])          '  count  of  array st[X]   before  release
+
+  TopN= st[RPN][1]                          '  Top number of st[X]
+
+  If (RPN=MPN And TopN="") Or (RPN=MPN And TopN>onmove)  Then '  released at other pole
+
+      PosY[onmove]=500-(cnt+1)*50
+
+      PosX[onmove]=(230+420*(RPN-1))-(50+20*onmove) 
+
+      Shapes.Animate(rect[onmove],PosX[onmove] ,PosY[onmove],1000) '   rect is stacked   
+
+      st[RPN][onmove]=onmove                         '  change  array  data 
+
+      onmove=0                                       '  Release  
+
+      If Array.GetItemCount(st[RPN])=N  And RPN>1 Then 
+
+         Shapes.Animate(cong,450,20,2000)  
+
+      EndIf
+
+  elseif RPN=MPN And TopN>0 and onmove>TopN then  '  if  rect number is larger than top's
+
+    GoBack()
+
+  elseif RPN=CPN then                             ' if  same pole 
+
+    GoBack()
+
+  EndIf
+
+  mm=mm+1                                        '  count up  turn number
+
+  Controls.SetTextBoxText(cntbox,msg3+mm)        '  show turn number 
+
+  catch=0
+
+EndSub
+
+
+
+Sub GoBack
+
+    PosY[onmove]=500-(cntmd+1)*50
+
+    PosX[onmove]=(230+420*(CPN-1))-(50+20*onmove) 
+
+    Shapes.Animate(rect[onmove],PosX[onmove] ,PosY[onmove],1000)
+
+    st[CPN][onmove]=onmove
+
+    onmove=0
+
+endsub    
+
+    
+
+Sub onmousedown
+
+ If Flag=1 and mouse.IsLeftButtonDown Then 
+
+    MX = GraphicsWindow.MouseX
+
+    MY = GraphicsWindow.MouseY
+
+    If catch=0 Then 
+
+    For i=1 To N
+
+      If math.abs(PosX[i]-MX)<200 and math.abs(Posy[i]-MY)<50 then 
+
+         onmove=i
+
+         CPN= math.Ceiling((MX-30)/420)                        '   CPN....  caught Pole Number  
+
+         st[CPN][onmove]=""                                    '  remove the number 
+
+         cntmd= Array.GetItemCount(st[CPN])                    '  array data number 
+
+         catch=1
+
+         i=N
+
+      endif      
+
+    Endfor 
+
+    endif
+
+    onmousemove()
+
+ endif
+
+endsub
+
+
+
+Sub  onmousemove
+
+    MX = GraphicsWindow.MouseX
+
+    MY = GraphicsWindow.MouseY
+
+    MPN=math.Ceiling((MX-30)/420)                        '   MPN....  moving Pole Number  
+
+    If MY>100 and onmove>0 And Mouse.IsLeftButtonDown Then 
+
+       PosX[onmove] = (230+420*(MPN-1))-(50+20*onmove)   '   rect  moves  vertically    
+
+       PosY[onmove] = GraphicsWindow.MouseY 
+
+       Shapes.Move(rect[onmove],posX[onmove],posY[onmove])    '    
+
+    elseIf MY<100 and Mouse.IsLeftButtonDown  Then 
+
+       PosX[onmove] = GraphicsWindow.Mousex -(50+20*onmove)   
+
+       PosY[onmove] = GraphicsWindow.MouseY 
+
+       Shapes.Move(rect[onmove],posX[onmove],posY[onmove])    '   rect  moves  freely  
+
+    EndIf     
+
+EndSub
+
+
+
+Sub Left_stacking      '   Initial   stacking
+
+  For i=1 To 6 
+
+    Shapes.Move(rect[i],0,-100)                   '   first of all  rects are hidden
+
+  EndFor
+
+  For i=N To 1 Step -1
+
+    PosX[i]=230-(50+20*(i))
+
+    PosY[i]=500-50*(N-i+1)
+
+    Shapes.Move(rect[i],PosX[i], PosY[i])          '   Rects are  stacked  at Left  pole 
+
+    st[1][i]=i                                     '   st1=123....    connected the number 
+
+    st[2][i]=""
+
+    st[3][i]=""
+
+  EndFor
+
+  MM=0
+
+  Controls.SetTextBoxText(cntbox,msg3+MM)          '  show   First  turn number 
+
+  Controls.SetTextBoxText(box2,msg2+minN[N])       '  show   minimum  turn number     
+
+  Flag=1                                           '  when  first left  stack  
+
+  catch=0
+
+  Shapes.Move(cong,Math.GetRandomNumber(1000),1000)'  hide  for next stage 
+
+  Program.Delay(100)
+
+endsub
+
+
+
+Sub init
+
+  GraphicsWindow.Width=1300
+
+  GraphicsWindow.Height=700
+
+  GraphicsWindow.Top=20
+
+  GraphicsWindow.Left=20
+
+  GraphicsWindow.Show()
+
+  GraphicsWindow.BackgroundColor="Black"
+
+  GraphicsWindow.FontSize=30
+
+  GraphicsWindow.BrushColor="Yellow"
+
+  GraphicsWindow.DrawText(300,300,"Wait a moment........")
+
+  Pic=Flickr.GetRandomPicture("Mountain")
+
+  GraphicsWindow.DrawResizedImage(pic,0,0,1300,700)
+
+  GraphicsWindow.BrushColor="Red"
+
+  '
+
+  LF=Text.GetCharacter(10)
+
+  Exp=Shapes.AddText("Select stack number and push EXE ")
+
+  Shapes.Move(exp,100,625)
+
+  GraphicsWindow.FontSize=16
+
+  box= Controls.AddTextBox(125,545)
+
+  N=3                                        '  minimum   stacking number 
+
+  msg="Number= "+LF+"    "
+
+  Controls.SetSize(box,100,50)
+
+  Controls.SetTextBoxText(box,msg+N)
+
+  box2= Controls.AddTextBox(500,545)
+
+  Controls.SetSize(box2,200,30)
+
+  msg2="Minimum turn= "
+
+  Controls.SetTextBoxText(box2,msg2)
+
+  cntbox=controls.AddTextBox(750,550)
+
+  msg3="Your turn = "
+
+  Controls.SetTextBoxText(cntbox,msg3)
+
+  '
+
+  GraphicsWindow.BrushColor="Darkcyan"
+
+  GraphicsWindow.FillRectangle(0,522,1300,300)
+
+  btn=Controls.AddButton("EXE",300,550)
+
+  Controls.SetSize(btn,100,30)
+
+  '
+
+  mark1=Controls.AddButton("?–²",100,540)
+
+  mark2=Controls.AddButton("?–¼",100,570)
+
+  '
+
+  Polename="1=Left;2=Center;3=Right"           '   Pole name
+
+  minN="1=1;2=3;3=7;4=15;5=31;6=63"            '   minimum  turn number   (gotten by  Net  :  2^n-1   )
+
+EndSub
+
+
+
+Sub getcolor
+
+  Retry:
+
+  color=GraphicsWindow.GetRandomColor()
+
+  If Text.IsSubText(s,color) Then 
+
+    Goto Retry
+
+  EndIf
+
+  s=s+color+":"
+
+EndSub
+
+
+
+Sub PoleandRect
+
+  For i=1 To 3
+
+    getcolor()
+
+    GraphicsWindow.BrushColor=color
+
+    GraphicsWindow.PenColor=color
+
+    base[i]=Shapes.AddRectangle(400,20)
+
+    Shapes.Move(base[i],30+(i-1)*420,500)
+
+    Pole[i]=Shapes.AddRectangle(20,400)          '   make poles 
+
+    Shapes.Move(pole[i],220+(i-1)*420,500-400)
+
+  EndFor
+
+  '
+
+  For j=1 To 7 
+
+    getcolor()
+
+    GraphicsWindow.BrushColor=color
+
+    GraphicsWindow.PenColor=color
+
+    rect[j]=Shapes.AddRectangle(100+40*j,50)     '  make  rects 
+
+    Shapes.SetOpacity(rect[j],90)
+
+    Shapes.Move(rect[j],0,-100)
+
+  EndFor
+
+  ' 
+
+  GraphicsWindow.BrushColor="Yellow"
+
+  cong= Shapes.AddText("Congratulation !  That's right ")
+
+  Shapes.Move(cong,Math.GetRandomNumber(1000),1000)
+
+  Shapes.Zoom(cong,3,3)
+
+EndSub 
+
+
+
+Sub onbuttonclick
+
+  nm= Controls.GetButtonCaption(Controls.LastClickedButton)
+
+  If nm="?–²" Or nm="?–¼" Then 
+
+    If nm="?–²" Then 
+
+       N=N+1
+
+      If N>6 Then 
+
+         N=6
+
+      EndIf
+
+    ElseIf nm="?–¼" then
+
+       N=N-1
+
+      If N<3 Then 
+
+         N=3
+
+      EndIf
+
+    EndIf
+
+    Controls.SetTextBoxText(box,msg+N)
+
+  ElseIf nm="EXE" then   
+
+    Left_stacking()
+
+  EndIf  
+
+EndSub
+
+  
+
+

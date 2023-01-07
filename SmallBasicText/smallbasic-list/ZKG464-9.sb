@@ -1,0 +1,485 @@
+' Snake Game 0.3
+
+' Copyright ¬© 2016 Nonki Takahashi.  The MIT License.
+
+'
+
+' History:
+
+'  0.3 2016-07-04 Rewrote for Challenge of the Month - July 2016. (ZKG464-9)
+
+'  0.2 2014-02-22 Completed as simple snake game. (ZKG464-1)
+
+'  0.1a 2014-02-21 Created as alpha verion. (ZKG464-0)
+
+'
+
+GraphicsWindow.Title = "Snake Game 0.3 - Use [?Üê] [?Üí] keys."
+
+Init()
+
+CreateSnake()
+
+CreateRabbit()
+
+StartSnake()
+
+ob = "False"
+
+moved = "False"
+
+ate = "False"
+
+key = ""
+
+While Not[ob]
+
+  If key <> "" Then
+
+    TurnSnake()
+
+    key = ""
+
+  EndIf
+
+  If moved Then
+
+    MoveRabbit()
+
+    MoveSnake()
+
+    moved = "False"
+
+  EndIf
+
+  If ate Then
+
+    EatRabbit()
+
+    ate = "False"
+
+  EndIf
+
+  Program.Delay(200)
+
+EndWhile
+
+CreateMask()
+
+GameOver()
+
+Sub GameOver
+
+  ShowMask()
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FontName = "Trebuchet MS"
+
+  fs = 60
+
+  GraphicsWindow.FontSize = fs
+
+  len = 326
+
+  x = Math.Floor((gw - len) / 2)
+
+  y = Math.Floor((gh - fs * 1.4) / 2)
+
+  msg = Shapes.AddText("GAME OVER")
+
+  Shapes.Move(msg, x, y)
+
+EndSub
+
+Sub CreateMask
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "Black"
+
+  mask = Shapes.AddRectangle(gw, gh)
+
+  Shapes.SetOpacity(mask, 0)
+
+EndSub
+
+Sub ShowMask
+
+  Shapes.SetOpacity(mask, 70)
+
+EndSub
+
+Sub StartSnake
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+  Timer.Interval = 400
+
+  Timer.Tick = OnTick
+
+EndSub
+
+Sub OnTick
+
+  moved = "True"
+
+EndSub
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+EndSub
+
+Sub TurnSnake
+
+  vx = snake["vx"]
+
+  vy = snake["vy"]
+
+  If key = "Left" Then
+
+    snake["vx"] = vy
+
+    snake["vy"] = -vx
+
+  ElseIf key = "Right" Then
+
+    snake["vx"] = -vy
+
+    snake["vy"] = vx
+
+  EndIf
+
+EndSub
+
+Sub MoveSnake
+
+  col = snake["head.col"]
+
+  row = snake["head.row"]
+
+  colLast = col
+
+  rowLast = row
+
+  col = col + snake["vx"]
+
+  If col < 1 Or nCols < col Then
+
+    ob = "True"
+
+    Goto MSEnd
+
+  EndIf
+
+  row = row + snake["vy"]
+
+  If row < 1 Or nRows < row Then
+
+    ob = "True"
+
+    Goto MSEnd
+
+  EndIf
+
+  CheckOnSnake()
+
+  If onSnake Then
+
+    ob = "True"
+
+    Goto MSEnd
+
+  EndIf
+
+  snake["head.col"] = col
+
+  snake["head.row"] = row
+
+  If col = rabbit["col"] And row = rabbit["row"] Then
+
+    ate = "True"
+
+  EndIf
+
+  CalcXYFromColRow()
+
+  Shapes.Move(snake["head.obj"], x, y)
+
+  For i = 1 To snake["length"] - 1
+
+    col = colLast
+
+    row = rowLast
+
+    CalcXYFromColRow()
+
+    Shapes.Move(snake["body" + i + ".obj"], x, y)
+
+    colLast = snake["body" + i + ".col"]
+
+    rowLast = snake["body" + i + ".row"]
+
+    snake["body" + i + ".col"] = col
+
+    snake["body" + i + ".row"] = row
+
+  EndFor
+
+  snake["next.col"] = colLast
+
+  snake["next.row"] = rowLast
+
+  MSEnd:
+
+EndSub
+
+Sub MoveRabbit
+
+  If count = 6 Then
+
+    count = 0
+
+    col = rabbit["col"]
+
+    row = rabbit["row"]
+
+    If Math.GetRandomNumber(2) = 1 Then
+
+      If 1 < col Then
+
+        col = col - 1
+
+      Else
+
+        col = col + 1
+
+      EndIf
+
+      rabbit["col"] = col
+
+    Else
+
+      If 1 < row Then
+
+        row = row - 1
+
+      Else
+
+        row = row + 1
+
+      EndIf
+
+      rabbit["row"] = row
+
+    EndIf
+
+    CalcXYFromColRow()
+
+    Shapes.Move(rabbit["obj"], x, y)
+
+  Else
+
+    count = count + 1
+
+  EndIf
+
+EndSub
+
+Sub CreateSnake
+
+  snake["head.color"] = "DarkCyan"
+
+  snake["body.color"] = "SeaGreen"
+
+  snake["dot.color"] = "Lime"
+
+  snake["length"] = 2
+
+  GraphicsWindow.PenWidth = size / 4
+
+  GraphicsWindow.PenColor = snake["head.color"]
+
+  GraphicsWindow.BrushColor = snake["dot.color"]
+
+  snake["head.obj"] = Shapes.AddRectangle(size, size)
+
+  snake["head.col"] = Math.Floor(nCols / 2)
+
+  snake["head.row"] = Math.Floor(nRows / 2)
+
+  col = snake["head.col"]
+
+  row = snake["head.row"]
+
+  CalcXYFromColRow()
+
+  Shapes.Move(snake["head.obj"], x, y)
+
+  GraphicsWindow.PenColor = snake["body.color"]
+
+  snake["body1.obj"] = Shapes.AddRectangle(size, size)
+
+  snake["body1.col"] = snake["head.col"] - 1
+
+  snake["body1.row"] = snake["head.row"]
+
+  col = snake["body1.col"] 
+
+  row = snake["body1.row"]
+
+  CalcXYFromColRow()
+
+  Shapes.Move(snake["body1.obj"], x, y)
+
+  snake["vx"] = 1 
+
+  snake["vy"] = 0
+
+EndSub
+
+Sub CreateRabbit
+
+  rabbit["color"] = "White"
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = rabbit["color"]
+
+  rabbit["obj"] = Shapes.AddRectangle(size, size)
+
+  rabbit["col"] = nCols - 2
+
+  rabbit["row"] = 2
+
+  col = rabbit["col"] 
+
+  row = rabbit["row"]
+
+  CalcXYFromColRow()
+
+  Shapes.Move(rabbit["obj"], x, y)
+
+EndSub
+
+Sub CheckOnSnake
+
+  ' param col, row - point to check
+
+  ' return onSnake - "True" if on snake
+
+  onSnake = "False"
+
+  If snake["head.col"] = col And snake["head.row"] = row Then
+
+    onSnake = "True"
+
+  Else
+
+    For i = 1 To snake["length"] - 1
+
+      scol = snake["body" + i + ".col"]
+
+      srow = snake["body" + i + ".row"]
+
+      If scol = col And srow = row Then
+
+        onSnake = "True"
+
+      EndIf 
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+Sub EatRabbit
+
+  onSnake = "True"
+
+  Shapes.HideShape(rabbit["obj"])
+
+  GraphicsWindow.PenWidth = size / 4
+
+  GraphicsWindow.PenColor = snake["body.color"]
+
+  GraphicsWindow.BrushColor = snake["dot.color"]
+
+  i = snake["length"]
+
+  snake["body" + i + ".obj"] = Shapes.AddRectangle(size, size)
+
+  col = snake["next.col"]
+
+  snake["body" + i + ".col"] = col
+
+  row = snake["next.row"]
+
+  snake["body" + i + ".row"] = row
+
+  snake["length"] = i + 1
+
+  CalcXYFromColRow()
+
+  Shapes.Move(snake["body" + i + ".obj"], x, y)
+
+  While onSnake
+
+    col = Math.GetRandomNumber(nCols)
+
+    row = Math.GetRandomNumber(nRows)
+
+    CheckOnSnake()
+
+  EndWhile
+
+  rabbit["col"] = col
+
+  rabbit["row"] = row
+
+  CalcXYFromColRow()
+
+  Shapes.Move(rabbit["obj"], x, y)
+
+  Shapes.ShowShape(rabbit["obj"])
+
+EndSub
+
+Sub CalcXYFromColRow
+
+  ' param col, row - co-ordinate of field
+
+  ' return x, y - co-ordinate of graphics
+
+  x = (col - 1) * size
+
+  y = (row - 1) * size
+
+EndSub
+
+Sub Init
+
+  Not = "True=False;False=True;"
+
+  size = 20
+
+  nRows = 18
+
+  nCols = 24
+
+  gw = nCols * size
+
+  gh = nRows * size
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+EndSub
+
+

@@ -1,0 +1,4997 @@
+' By Alex Marano
+
+
+
+' Hide while we load up images and shapes
+
+GraphicsWindow.Hide()
+
+Mouse.HideCursor() ' not working
+
+
+
+false = 0
+
+true = 1
+
+
+
+windowWidth = 640
+
+windowHeight = 480
+
+
+
+' Vertical location of scoreboard bottom
+
+scoreBoardTop = 30
+
+
+
+' Scanner location info
+
+scannerLeft = windowWidth / 3
+
+scannerTop = 4
+
+scannerWidth = windowWidth / 3
+
+scannerHeight = scoreBoardTop - 8
+
+
+
+' Desired frames per second (but will be lower on slower computers)
+
+fpsTarget = 30
+
+
+
+' Create 30 ground pieces
+
+groundPieces = 30
+
+groundSlope = 0.4   ' Slope of ground
+
+
+
+' Key controls
+
+leftKey  = "Left"
+
+rightKey = "Right"
+
+upKey = "Up"
+
+downKey = "Down"
+
+fireKey = "Space"
+
+pauseKey = "P"
+
+quitKey = "Escape"
+
+hyperspaceKey = "RightCtrl"
+
+
+
+leftKeyPressed = false
+
+rightKeyPressed = false
+
+upKeyPressed = false
+
+downKeyPressed = false
+
+fireKeyPressed = false
+
+hyperspaceKeyPressed = false
+
+
+
+leftRightPriority = rightKey
+
+upDownPriority = upKey
+
+
+
+' Dec2Hex conversion string
+
+hexaDecimal = "0123456789ABCDEF"
+
+
+
+' Debugging text string
+
+dText = ""
+
+
+
+' Determine speed of computer
+
+CalibrateDelay()
+
+
+
+' Determine resource path
+
+GetPath()
+
+
+
+' Init graphics display
+
+GraphicsWindow.BackgroundColor = "black"
+
+GraphicsWindow.Title = ""
+
+GraphicsWindow.Show()
+
+GraphicsWindow.Width = windowWidth
+
+GraphicsWindow.Height = windowHeight
+
+
+
+' Center it on desktop
+
+GraphicsWindow.Left = Desktop.Width / 2 - GraphicsWindow.Width / 2
+
+GraphicsWindow.Top = Desktop.Height / 2 - GraphicsWindow.Height / 2
+
+
+
+GraphicsWindow.BrushColor = "LightGray"
+
+GraphicsWindow.DrawText(10, windowHeight - 20, "Loading...")
+
+
+
+' Initialize player/enemy & game state variables
+
+LoadSounds()
+
+GetHighScores()
+
+InitVariables()
+
+CreateCharacters()
+
+InitExplosion()
+
+
+
+' Set up event handler functions for keypresses
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+
+
+Intro()
+
+ShowHighScores()
+
+
+
+' Clear high scores
+
+GraphicsWindow.PenColor = "black"
+
+GraphicsWindow.BrushColor = "black"
+
+GraphicsWindow.FillRectangle (0, 0, windowWidth, windowHeight)
+
+
+
+CreateGround()
+
+
+
+' Play spawning sound only 1st time
+
+Sound.Stop(resourcePath + "stargates_rez2.mp3")
+
+Sound.Play(resourcePath + "stargates_rez2.mp3")
+
+
+
+CreateScoreboard()
+
+PositionCharacters()
+
+InitScanner()
+
+
+
+' The Score has to be outside of the Timer
+
+GraphicsWindow.BrushColor = "White"
+
+GraphicsWindow.PenColor = "White"
+
+GraphicsWindow.FontSize = 24
+
+scoreText = Shapes.AddText(score)
+
+Shapes.Move(scoreText,windowWidth-100,0)
+
+
+
+' The game loop
+
+MainLoop()
+
+
+
+' Exit game
+
+Program.End()
+
+
+
+' Main game routine
+
+Sub MainLoop
+
+  
+
+  play = true
+
+  pause = false
+
+  
+
+  ' Initialize filter for frame rate estimation
+
+  dTLossy = 1000 / fpsTarget
+
+  tLast = Clock.Millisecond
+
+  
+
+  While(play = true)
+
+    
+
+    If (pause = false) Then
+
+      DoKey()
+
+      Move()
+
+      CollisionCheck()
+
+      ShowScanner()
+
+      ShowScore()
+
+      ShotAgeCheck()
+
+      Explode()
+
+      LevelCheck()
+
+      
+
+      ' Smooth estimate of time elapsed between frames
+
+      tNow = Clock.Millisecond
+
+      dT = tNow  - tLast
+
+      tLast = tNow
+
+      
+
+      ' Handle millisecond rollover at 1 second marks
+
+      If (dT < 0) Then
+
+        dT = dT + 1000
+
+      EndIf
+
+      
+
+      k = 0.1 ' 1 = no smoothing, values less than 1 smooths. 0.1 default
+
+      dTLossy = dTLossy * (1 - k) + dT * k
+
+      
+
+      ' Figure out how long we need to wait to achieve desired average frame rate
+
+      waitLoops = 1000 / fpsTarget - dTLossy
+
+      waitLoops = waitLoops * loopsPerMilliSec
+
+      For i = 1 to waitLoops
+
+        i=i
+
+      endfor
+
+      
+
+      ' Show FPS
+
+      'dText = 1000/dTLossy
+
+      'Debug()
+
+      
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+
+
+' Init variables for player/enemies/gamestate
+
+sub InitVariables
+
+  ' This grows as world blows up
+
+  destruct = 0
+
+  
+
+  ' Player info
+
+  playerVx = 0
+
+  playerVy = 0
+
+  playerSpeed = 10
+
+  score = 0
+
+  oldScore = -1
+
+  lives = 3
+
+  oldLives = -1
+
+  livesMax = 5
+
+  alive = true
+
+  level = 1
+
+  oldLevel = 1
+
+  warp = false
+
+  
+
+  ' How many motion frames we've played in level, used to respawn enemies
+
+  levelTimer = 0
+
+  
+
+  ' When we'll get a new ship
+
+  newShipScoreIncrement = 40000
+
+  scoreThreshold = newShipScoreIncrement
+
+  
+
+  ' Characters
+
+  enemies = 5
+
+  enemySpeed = 1.5
+
+  enemyShotChance = 0.002 ' Probability each frame that enemy will shoot
+
+  enemyShotChanceLevelIncrement = 0.0005 ' Higher probability of shooting at each new level
+
+  enemyShooting = false
+
+  enemyShotSpeed = 6
+
+  enemiesPerLevel = 10
+
+  enemiesKilled = 0
+
+  enemiesSpawned = 0
+
+  
+
+  peoples = 5
+
+  peopleSpeed = 0.2 ' Walking speed
+
+  peopleAltitude = windowHeight * 0.9
+
+  
+
+  ' Shots
+
+  shotSpeed = 30
+
+  shotLife = 60 ' frames before shot disappears
+
+  shotMax = 5
+
+  shotSize = 100
+
+  
+
+  ' Fire key repeat keepout
+
+  fireKeyTimeout = 0
+
+  
+
+  ' Arrays and possible states for your reference:
+
+  '
+
+  ' people[] = array of people shape objects
+
+  ' peopleState[] = "walking", "chosen", "abducted", "rescued", "falling", "dead",
+
+  ' peopleFallVelocity[] = if they are falling its their velocity down
+
+  ' enemy[] = array of enemy shape objects
+
+  ' enemyState[] = "berzerk", "seeking", "leaving", "dead"
+
+  ' enemyPersonFoundIndex[] = if enemy found person, this is their people array index
+
+  ' ground[] = array of ground shape objects
+
+  ' groundLeft[] = left side of ground[] object, faster to manipulate
+
+  ' groundWidth[] = width of above
+
+  ' groundTop[] = top of above
+
+  ' ships[] = array of player shape objects (left/right image)
+
+  ' shot[] = array of laser shape objects
+
+  ' shotDirection[] = 0, 1
+
+  ' shotAge[] = how long shot[] has been around
+
+  ' explosion[] = small array of explosion shape objects
+
+  ' explodeBigX[] = large array of players exploding bits, left position
+
+  ' explodeBigY[] = "" top
+
+  ' explodeBigVelocity[] = "" speed
+
+  ' stars[] = array of star shape objects for ShowStarField function
+
+  ' highScoreName[] = list of top 5 scorers in file
+
+  ' highScoreValue[] = list of top 5 scores
+
+  
+
+endsub
+
+
+
+Sub CalibrateDelay
+
+  ' Figure out dummy wait loops per millisecond
+
+  ' Used instead of Program.Delay()'s coarse resolution of 16 ms
+
+  tLast = Clock.Millisecond
+
+  For i = 1 to 20000
+
+    i = i
+
+  endfor
+
+  tNow = Clock.Millisecond
+
+  dT = tNow - tLast
+
+  If (dT < 0) Then
+
+    dT = dT + 1000
+
+  EndIf
+
+  loopsPerMilliSec = 20000 / dT
+
+endsub
+
+
+
+sub CreateScoreboard
+
+  ShowPanel()
+
+  
+
+  ' Load ships
+
+  For i = 1 to livesMax
+
+    temp = Shapes.AddImage(resourcePath + "stargates_shipright_small.png")
+
+    
+
+    ' Move them immediately off screen so they aren't ever seen
+
+    Shapes.Move(temp, 0, -100)
+
+    
+
+    ships[i] = temp
+
+  endfor
+
+  
+
+endsub
+
+
+
+' Show any static display graphics
+
+Sub ShowPanel
+
+  
+
+  ' Rectangle around whole panel
+
+  GraphicsWindow.PenColor = "blue"
+
+  GraphicsWindow.PenWidth = 3
+
+  GraphicsWindow.BrushColor = "black"
+
+  GraphicsWindow.DrawRectangle(1, 1, windowWidth - 2, scoreBoardTop - 2)
+
+  
+
+  ' Left hashes
+
+  GraphicsWindow.PenColor = "Orange"
+
+  GraphicsWindow.DrawLine(windowWidth / 2 - scannerWidth / 2 - 10, scannerHeight / 10 + 3, windowWidth / 2 - scannerWidth / 2 - 5, scannerHeight + 3)
+
+  GraphicsWindow.PenColor = "Red"
+
+  GraphicsWindow.DrawLine(windowWidth / 2 - scannerWidth / 2 - 14, scannerHeight / 10 + 3, windowWidth / 2 - scannerWidth / 2 - 9, scannerHeight + 3)
+
+  GraphicsWindow.PenColor = "DarkRed"
+
+  GraphicsWindow.DrawLine(windowWidth / 2 - scannerWidth / 2 - 18, scannerHeight / 10 + 3, windowWidth / 2 - scannerWidth / 2 - 13, scannerHeight + 3)
+
+  
+
+  ' Right hashes
+
+  GraphicsWindow.PenColor = "Orange"
+
+  GraphicsWindow.DrawLine(windowWidth / 2 + scannerWidth / 2 + 10, scannerHeight / 10 + 3, windowWidth / 2 + scannerWidth / 2 + 5, scannerHeight + 3)
+
+  GraphicsWindow.PenColor = "Red"
+
+  GraphicsWindow.DrawLine(windowWidth / 2 + scannerWidth / 2 + 14, scannerHeight / 10 + 3, windowWidth / 2 + scannerWidth / 2 + 9, scannerHeight + 3)
+
+  GraphicsWindow.PenColor = "DarkRed"
+
+  GraphicsWindow.DrawLine(windowWidth / 2 + scannerWidth / 2 + 18, scannerHeight / 10 + 3, windowWidth / 2 + scannerWidth / 2 + 13, scannerHeight + 3)
+
+  
+
+EndSub
+
+
+
+' Show scoreboard
+
+Sub ShowScore
+
+  
+
+  ' Show score
+
+  If oldScore <> score then
+
+    
+
+    ' Time to award a new ship, up to livesMax
+
+    If lives < livesMax Then
+
+      If score >= scoreThreshold Then
+
+        scoreThreshold = scoreThreshold + newShipScoreIncrement
+
+        lives = lives + 1
+
+        Sound.Stop(resourcePath + "stargates_new_ship.mp3")
+
+        Sound.Play(resourcePath + "stargates_new_ship.mp3")
+
+      EndIf
+
+    EndIf
+
+    
+
+    oldScore = score
+
+    
+
+    ' Wipe out old score on screen with black rectangle
+
+    GraphicsWindow.PenColor = "black"
+
+    GraphicsWindow.BrushColor = "black"
+
+    GraphicsWindow.FillRectangle(windowWidth - 100, 3, 97, 23)
+
+    
+
+    GraphicsWindow.BrushColor = "LightCyan"
+
+    GraphicsWindow.FontName = "courier"
+
+    GraphicsWindow.FontSize = 22
+
+    
+
+    ' Tried to get text to be right justified, but not quite working
+
+  endif
+
+  
+
+  ' Show ships
+
+  If oldLives <> lives then
+
+    oldLives = lives
+
+    
+
+    For i = 1 to lives
+
+      Shapes.Move(ships[i], 8 + (i - 1) * 40, 10)
+
+    endfor
+
+    
+
+    ' Hide the rest of the ships offscreen
+
+    For i = lives + 1 to livesMax
+
+      Shapes.Move(ships[i], 0, -50)
+
+    endfor
+
+  endif
+
+  
+
+endsub
+
+
+
+' Preload all sounds in game by loading then immediately stopping them.
+
+' Makes it quick to play later since retained in memory.
+
+Sub LoadSounds
+
+  ' All sounds were custom made for this game mainly using 80's style synthesizers
+
+  Sound.Play(resourcePath + "stargates_startup.mp3")
+
+  Sound.Stop(resourcePath + "stargates_startup.mp3")
+
+  Sound.Play(resourcePath + "stargates_laser.mp3")
+
+  Sound.Stop(resourcePath + "stargates_laser.mp3")
+
+  Sound.Play(resourcePath + "stargates_people.mp3")
+
+  Sound.Stop(resourcePath + "stargates_people.mp3")
+
+  Sound.Play(resourcePath + "stargates_explode.mp3")
+
+  Sound.Stop(resourcePath + "stargates_explode.mp3")
+
+  Sound.Play(resourcePath + "stargates_destruction.mp3")
+
+  Sound.Stop(resourcePath + "stargates_destruction.mp3")
+
+  Sound.Play(resourcePath + "stargates_abduct.mp3")
+
+  Sound.Stop(resourcePath + "stargates_abduct.mp3")
+
+  Sound.Play(resourcePath + "stargates_berzerk.mp3")
+
+  Sound.Stop(resourcePath + "stargates_berzerk.mp3")
+
+  Sound.Play(resourcePath + "stargates_scores.mp3")
+
+  Sound.Stop(resourcePath + "stargates_scores.mp3")
+
+  Sound.Play(resourcePath + "stargates_score_entered.mp3")
+
+  Sound.Stop(resourcePath + "stargates_score_entered.mp3")
+
+  Sound.Play(resourcePath + "stargates_chirp.mp3")
+
+  Sound.Stop(resourcePath + "stargates_chirp.mp3")
+
+  Sound.Play(resourcePath + "stargates_warp2.mp3")
+
+  Sound.Stop(resourcePath + "stargates_warp2.mp3")
+
+  Sound.Play(resourcePath + "stargates_score_entered.mp3")
+
+  Sound.Stop(resourcePath + "stargates_score_entered.mp3")
+
+  Sound.Play(resourcePath + "stargates_rez2.mp3")
+
+  Sound.Stop(resourcePath + "stargates_rez2.mp3")
+
+  Sound.Play(resourcePath + "stargates_new_ship.mp3")
+
+  Sound.Stop(resourcePath + "stargates_new_ship.mp3")
+
+  Sound.Play(resourcePath + "stargates_bigboom.mp3")
+
+  Sound.Stop(resourcePath + "stargates_bigboom.mp3")
+
+  
+
+  ' Play and wait for a quiet sound to finish. When done
+
+  ' all sounds are loaded & ready to go
+
+  Sound.PlayAndWait(resourcePath + "stargates_quiet.mp3")
+
+endsub
+
+
+
+' Create ground lines, all set in upper left corner so that their top/left
+
+' properties match their visible top/left
+
+Sub CreateGround
+
+  
+
+  GraphicsWindow.PenColor = "yellow"
+
+  GraphicsWindow.PenWidth = 2
+
+  
+
+  ' Screen location of start of first ground piece
+
+  currY = windowHeight * 0.8
+
+  currX = 0
+
+  
+
+  ' For all pieces except last piece
+
+  For i = 1 To groundPieces - 1
+
+    ' Get random width of piece
+
+    deltaX = Math.GetRandomNumber(130) + 30
+
+    
+
+    ' Get random slope polarity, keeping full line within screen bounds
+
+    If Math.GetRandomNumber(2) > 1.5 Then ' 50% chance
+
+      deltaY = deltaX * groundSlope
+
+      If currY+deltaY > windowHeight - 40 then
+
+        deltaY = - deltaX * groundSlope
+
+      EndIf
+
+    Else
+
+      deltaY = -deltaX * groundSlope
+
+      If currY+deltaY < windowHeight / 2 then
+
+        deltaY = deltaX * groundSlope
+
+      EndIf
+
+    EndIf
+
+    
+
+    ' Create a ground piece
+
+    temp = Shapes.AddLine(0, 0, deltaX, deltaY)
+
+    
+
+    ' Move it immediately off screen so it isn't ever seen
+
+    Shapes.Move(temp, 0, -500)
+
+    
+
+    ' Save line into array that will contain all of the ground lines
+
+    ground[i] = temp
+
+    
+
+    ' Save all info about this piece in arrays. Speeds up code dramatically by not using the shapes top/left later
+
+    groundLeft[i] = currX
+
+    groundWidth[i] = deltaX
+
+    groundTop[i] = currY
+
+    
+
+    ' Update the next visual screen location for the next piece
+
+    currX = currX + deltaX
+
+    currY = currY + deltaY
+
+    
+
+  EndFor
+
+  
+
+  ' Add last piece to match up to 1st piece start
+
+  deltaY = windowHeight * 0.8 - currY
+
+  deltaX = Math.Abs(deltaY)
+
+  temp = Shapes.AddLine(0, 0, deltaX, deltaY)
+
+  
+
+  ' Move it immediately off screen so it isn't ever seen
+
+  Shapes.Move(temp, 0, -500)
+
+  
+
+  ' Save in array
+
+  groundLeft[groundPieces] = currX
+
+  groundWidth[groundPieces] = deltaX
+
+  groundTop[groundPieces] = currY
+
+  ground[groundPieces] = temp
+
+  
+
+  groundWidthTotal = currX
+
+  
+
+EndSub
+
+
+
+' Delete the ground pieces for regeneration
+
+Sub DeleteGround
+
+  For z = 1 To groundPieces
+
+    Shapes.Remove(ground[z])
+
+    ground[z] = ""
+
+  EndFor
+
+EndSub
+
+
+
+' Create objects for all game characters
+
+Sub CreateCharacters
+
+  
+
+  ' Load player images
+
+  playerRight = Shapes.AddImage(resourcePath + "stargates_shipright.png")
+
+  
+
+  ' Move them immediately off screen so they aren't ever seen
+
+  Shapes.Move(playerRight, 0, -50)
+
+  
+
+  playerLeft = Shapes.AddImage(resourcePath + "stargates_shipleft.png")
+
+  
+
+  Shapes.Move(playerLeft, 0, -50)
+
+  
+
+  ' Add people
+
+  For i = 1 to peoples
+
+    temp = Shapes.AddImage(resourcePath + "stargates_people.png")
+
+    
+
+    ' Move them immediately off screen so they aren't ever seen
+
+    Shapes.Move(temp, 0, -50)
+
+    
+
+    ' Save array of people
+
+    people[i] = temp
+
+    
+
+    ' Make them walk
+
+    peopleState[i] = "walking"
+
+  endfor
+
+  
+
+  ' Add enemies
+
+  For i = 1 to enemies
+
+    temp = Shapes.AddImage(resourcePath + "stargates_lander.png")
+
+    
+
+    ' Move them immediately off screen so they aren't ever seen
+
+    Shapes.Move(temp, 0, -50)
+
+    
+
+    ' Save array of enemies
+
+    enemy[i] = temp
+
+  endfor
+
+  
+
+  ' Add enemy shot
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  GraphicsWindow.PenColor = "White"
+
+  enemyShot = Shapes.AddEllipse(5, 5)
+
+  
+
+  ' Move it immediately off screen so it isn't ever seen
+
+  Shapes.Move(enemyShot, 0, -50)
+
+  
+
+  ' Add stargate
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "Brown"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  stargate = Shapes.AddRectangle(45,25)
+
+  
+
+  ' Move it immediately off screen so it isn't ever seen
+
+  Shapes.Move(stargate, 0, -200)
+
+  
+
+EndSub
+
+
+
+' Place all initial position of characters
+
+Sub PositionCharacters
+
+  pX = windowWidth * 0.1
+
+  pY = windowHeight * 0.3
+
+  
+
+  playerVx = 0
+
+  playerVy = 0
+
+  
+
+  playerDirection = 1 ' right facing, 0 = left facing
+
+  
+
+  ' Place people
+
+  For i = 1 to peoples
+
+    ' For all living people
+
+    if peopleState[i] <> "dead" Then
+
+      ' Find them a nice random home
+
+      Shapes.Move(people[i], Math.GetRandomNumber(groundWidthTotal) * .9 + 20, peopleAltitude)
+
+    EndIf
+
+    
+
+  endfor
+
+  
+
+  ' Place enemies
+
+  For i = 1 to enemies
+
+    ' Find them a nice random start point away from player
+
+    
+
+    ' If too close to other ships, move somewhere else for j tries
+
+    For j = 1 to 5
+
+      Shapes.Move(enemy[i], Math.GetRandomNumber(groundWidthTotal) * .8 + 240, scoreBoardTop + windowHeight * 0.1)
+
+      For k = 1 to enemies
+
+        If i<>k Then
+
+          If Math.Abs(Shapes.GetLeft(enemy[k]) - Shapes.GetLeft(enemy[i])) < 100 Then
+
+            ' Bail out and try new position
+
+            k = enemies+10
+
+          EndIf
+
+        EndIf
+
+      EndFor
+
+      
+
+      ' If no enemies found nearby, break out of try loop
+
+      If k = 6 then
+
+        j = 1000
+
+      Endif
+
+    EndFor
+
+    
+
+    ' Fill array with state of each enemy
+
+    if destruct > 0 Then
+
+      enemyState[i] = "berzerk"
+
+    Else
+
+      enemyState[i] = "seeking"
+
+    EndIf
+
+    
+
+    enemiesSpawned = enemiesSpawned + 1
+
+  endfor
+
+  
+
+  ' Place enemy shot offscreen
+
+  Shapes.Move(enemyShot, 0, -50)
+
+  
+
+  ' Position stargate
+
+  Shapes.Move(stargate, Math.GetRandomNumber(groundWidthTotal) * 0.8 + 150, windowHeight / 2.4)
+
+EndSub
+
+
+
+' Create explosion pieces
+
+sub InitExplosion
+
+  ' Create small explosion pieces that are permanently available
+
+  For i = 1 to 4
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.PenColor = "White"
+
+    temp = Shapes.AddEllipse(3, 3)
+
+    
+
+    ' Move it immediately off screen so it isn't ever seen
+
+    Shapes.Move(temp, 0, -50)
+
+    
+
+    ' Save in array
+
+    explosion[i] = temp
+
+  endfor
+
+  
+
+  ' Center of explosion
+
+  explosionX = 0
+
+  explosionY = 0
+
+  explosionSize = 0
+
+  
+
+  exploding = false
+
+  
+
+  ' Remember last known big explosion state for player
+
+  explodingBigLast = false
+
+  explodingBigPieces = 30
+
+endsub
+
+
+
+Sub Explode
+
+  ' Animate exploding stuff (only 1 thing can explode at a time)
+
+  If exploding = true then
+
+    ' Move along with ground
+
+    explosionX = explosionX + playerVx
+
+    explosionSize = explosionSize + 4
+
+    
+
+    If explosionSize > 70 then
+
+      exploding = false
+
+      explosionSize = 0
+
+      
+
+      ' Move parts off screen
+
+      Shapes.Move(explosion[1], 0, -50)
+
+      Shapes.Move(explosion[2], 0, -50)
+
+      Shapes.Move(explosion[3], 0, -50)
+
+      Shapes.Move(explosion[4], 0, -50)
+
+    else
+
+      
+
+      ' Move all pieces of explosion in four directions
+
+      Shapes.Move(explosion[1], explosionX + explosionSize, explosionY + explosionSize)
+
+      Shapes.Move(explosion[2], explosionX + explosionSize, explosionY - explosionSize)
+
+      Shapes.Move(explosion[3], explosionX - explosionSize, explosionY + explosionSize)
+
+      Shapes.Move(explosion[4], explosionX - explosionSize, explosionY - explosionSize)
+
+      
+
+    endif
+
+  endif
+
+  
+
+  ' Animate huge explosion for player using an abnormal number
+
+  ' of shapes. Will slow down game but only temporary.
+
+  if explodingBig = true and explodingBigLast = false then
+
+    ' Initialize explosion by creating pieces
+
+    If destruct = 0 Then
+
+      ' Initial velocity
+
+      temp2 = 65
+
+      ' Gravity (none in space)
+
+      gravity = 3
+
+    else
+
+      temp2 = 15
+
+      gravity = 0
+
+    EndIf
+
+    
+
+    For i = 1 To explodingBigPieces
+
+      explodeBigX[i] = pX + 30 + Math.GetRandomNumber(19) - 10
+
+      explodeBigY[i] = pY + 10 + Math.GetRandomNumber(19) - 10
+
+      
+
+      explodeBigVelocity[i] = Math.GetRandomNumber(temp2)
+
+      temp = Math.GetRandomNumber(4)
+
+      If temp = 1 Then
+
+        temp = "White"
+
+      ElseIf temp = 2 then
+
+        temp = "Red"
+
+      ElseIf temp = 3 then
+
+        temp = "Yellow"
+
+      ElseIf temp = 4 then
+
+        temp = "WhiteSmoke"
+
+      EndIf
+
+      
+
+      GraphicsWindow.PenColor = temp
+
+      temp = Shapes.AddEllipse(3, Math.GetrandomNumber(9))
+
+      Shapes.Move(temp, explodeBigX[i], explodeBigY[i])
+
+      explodeBig[i] = temp
+
+    EndFor
+
+    
+
+    explodingBigCounter = 0
+
+    explodingBigLast = true
+
+    
+
+  elseif explodingBig = true then
+
+    
+
+    ' Animate explosion
+
+    For j = 1 To explodingBigPieces
+
+      
+
+      ' Get each axis distance from player
+
+      temp2 = explodeBigX[j] - (pX + 30)
+
+      temp3 = explodeBigY[j] - (pY + 10)
+
+      temp4 = Math.SquareRoot(temp2 * temp2 + temp3 * temp3) + 1
+
+      
+
+      ' Move away from player
+
+      explodeBigX[j] = explodeBigX[j] + explodeBigVelocity[j] * temp2 / temp4
+
+      explodeBigY[j] = explodeBigY[j] + explodeBigVelocity[j] * temp3 / temp4 + gravity
+
+      
+
+      ' Keep parts from hitting scoreboard area
+
+      If explodeBigY[j] > scoreBoardTop + 5 Then
+
+        Shapes.Move(explodeBig[j], explodeBigX[j], explodeBigY[j])
+
+        
+
+        ' Rotation effect of pieces ~ squared velocity
+
+        Shapes.Rotate(explodeBig[j], explodeBigVelocity[j] * explodeBigVelocity[j] * 10)
+
+      Else
+
+        ' Move offscreen
+
+        Shapes.Move(explodeBig[j], 0, -50)
+
+      EndIf
+
+      
+
+      ' Deceleration proportional to velocity squared (like real thing) when in atmosphere
+
+      If destruct = 0 Then
+
+        explodeBigVelocity[j] = explodeBigVelocity[j] - explodeBigVelocity[j] * explodeBigVelocity[j] * 0.015
+
+      EndIf
+
+      
+
+    EndFor
+
+    
+
+    ' Determine if exploding is completed
+
+    if explodingBigCounter > 75 then
+
+      ' Remove exploding pieces
+
+      for i = 1 to explodingBigPieces
+
+        Shapes.Remove(explodeBig[i])
+
+      endfor
+
+      
+
+      explodingBig = false
+
+    else
+
+      explodingBigCounter = explodingBigCounter + 1
+
+    endif
+
+  else
+
+    explodingBigLast = false
+
+  endif
+
+  
+
+endsub
+
+
+
+' Move everything
+
+Sub Move
+
+  
+
+  ' Move player
+
+  If alive = true then
+
+    ' Move player horizontally with dampening
+
+    playerVx = playerVx * 0.97 + playerAx
+
+    If playerVx > playerSpeed then
+
+      playerVx = playerSpeed
+
+    elseif playerVx < -playerSpeed then
+
+      playerVx = -playerSpeed
+
+    endif
+
+    
+
+    ' Update vertical velocity with dampening
+
+    playerVy = playerVy * 0.5 + playerAy
+
+    If playerVy > playerSpeed * 0.7 then
+
+      playerVy = playerSpeed * 0.7
+
+    elseif playerVy < -playerSpeed * 0.7 then
+
+      playerVy = -playerSpeed * 0.7
+
+    endif
+
+    
+
+    pY = pY + playerVy
+
+    
+
+    If pY > windowHeight - 30 then
+
+      pY = windowHeight - 30
+
+    ElseIf pY < scoreBoardTop + 10 then
+
+      pY = scoreBoardTop + 10
+
+    endif
+
+    
+
+    ' Show player facing
+
+    pA = playerAx ' Capture playerAx since can change with keyboard input
+
+    If pA < 0 then
+
+      playerDirection = 1
+
+    elseif pA > 0 then
+
+      playerDirection = 0
+
+    endif
+
+    
+
+    ' If going left
+
+    If playerDirection = 0 then
+
+      Shapes.Move(playerRight, 0, -50)  ' Off screen
+
+      Shapes.Move(playerLeft, pX, pY)
+
+      
+
+      ' Slide player to right side with limited velocity
+
+      slideX = (windowWidth * 0.85 - pX) * .04
+
+      If slideX > 5 then
+
+        slideX = 5
+
+      elseif slideX < -5 then
+
+        slideX = -5
+
+      endif
+
+      
+
+      pX = pX + slideX
+
+    else
+
+      Shapes.Move(playerRight, pX, pY)
+
+      Shapes.Move(playerLeft, 0, -50)   ' Off screen
+
+      
+
+      ' Slide player to left side with limited velocity
+
+      slideX = (windowWidth * 0.1 - pX) * .04
+
+      If slideX > 5 then
+
+        slideX = 5
+
+      elseif slideX < -5 then
+
+        slideX = -5
+
+      endif
+
+      
+
+      pX = pX + slideX
+
+    endif
+
+    
+
+  Else ' else not alive
+
+    ' Run timer to allow to come back
+
+    If deadTimeout > 1 then
+
+      deadTimeout = deadTimeout - 1
+
+    ElseIf lives > 0 then
+
+      alive = true
+
+      pX = windowWidth * 0.1
+
+      pY = windowHeight * 0.3
+
+    elseif lives < 1 then
+
+      ' Game over dude
+
+      GraphicsWindow.BrushColor = "Red"
+
+      GraphicsWindow.FontName = "courier"
+
+      GraphicsWindow.FontSize = 50
+
+      GraphicsWindow.DrawText(windowWidth / 2 - 50 * 3, windowHeight / 2.4, "GAME OVER")
+
+    endif
+
+    
+
+    ' Stop screen motion
+
+    playerVx = 0
+
+    playerVy = 0
+
+    playerDirection = 1
+
+  endif
+
+  
+
+  
+
+  ' Move ground
+
+  leftMost = 5000
+
+  rightMost = -5000
+
+  
+
+  For i = 1 To groundPieces
+
+    left = groundLeft[i]
+
+    
+
+    ' Keep track of the left and right most ground pieces, used later
+
+    If left > rightMost Then
+
+      rightMost = left
+
+      rightMostIndex = i
+
+    EndIf
+
+    
+
+    If left < leftMost Then
+
+      leftMost = left
+
+      leftMostIndex = i
+
+    EndIf
+
+    
+
+    ' If ground is destructing (all humans dead) then blow up ground
+
+    ' Parts fly off left or right depending on if odd or even part index
+
+    If destruct > 0 Then
+
+      ' Blow up till ground pieces are off screen
+
+      If destruct < windowHeight + 100 then
+
+        destruct = destruct + 0.12
+
+        
+
+        ' Flash display background
+
+        ' Are we on last pass through destruction? Then set background back to black
+
+        If destruct >= windowHeight + 100 Then
+
+          GraphicsWindow.PenColor = "Black"
+
+          GraphicsWindow.BrushColor = "Black"
+
+          GraphicsWindow.FillRectangle(0, scoreBoardTop + 3, windowWidth, windowHeight)
+
+        Else
+
+          ' Change color once in while, then random what color
+
+          If Math.GetRandomNumber(20) < 2 Then
+
+            If Math.GetRandomNumber(2) < 2 Then
+
+              GraphicsWindow.PenColor = "Black"
+
+              GraphicsWindow.BrushColor = "Black"
+
+              GraphicsWindow.FillRectangle(0, scoreBoardTop + 3, windowWidth, windowHeight)
+
+            Else
+
+              GraphicsWindow.PenColor = "LightCyan"
+
+              GraphicsWindow.BrushColor = "LightCyan"
+
+              GraphicsWindow.FillRectangle(0, scoreBoardTop + 3, windowWidth, windowHeight)
+
+            Endif
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+      If Math.Remainder(i, 2) = 0 Then
+
+        destructX = 5
+
+      Else
+
+        destructX = -5
+
+      endif
+
+      destructY = destruct
+
+    Else
+
+      destructX = 0
+
+      destructY = 0
+
+    EndIf
+
+    
+
+    groundLeft[i] = left + playerVx + destructX
+
+    Shapes.Move(ground[i], left + playerVx + destructX, groundTop[i] - destructY)
+
+    
+
+  EndFor
+
+  
+
+  ' Check if about to travel off left/right of ground
+
+  if rightMost < windowWidth * 1.2 then
+
+    'GraphicsWindow.Title = "time to flip left pieces to right"
+
+    j = leftMostIndex
+
+    For i = 1 To groundPieces
+
+      If groundLeft[j] < -windowWidth * 0.2 Then
+
+        ' Get position and width of right most piece
+
+        temp = groundWidth[rightMostIndex]
+
+        
+
+        temp2 = groundLeft[rightMostIndex]
+
+        
+
+        ' Move left most piece to right side of ground
+
+        groundLeft[j] = temp + temp2 - 1
+
+        
+
+        ' And now this moved piece is the rightmost piece
+
+        rightMostIndex = j
+
+        rightMost = temp + temp2 - 1
+
+        
+
+      EndIf
+
+      
+
+      ' Continue on ground pieces from left to right
+
+      j = j + 1
+
+      If j > groundPieces then
+
+        j = 1
+
+      EndIf
+
+    EndFor
+
+  elseif leftMost > -windowWidth * 1 then
+
+    'GraphicsWindow.Title = "time to flip right pieces to left"
+
+    j = rightMostIndex
+
+    For i = 1 To groundPieces
+
+      If groundLeft[j] > windowWidth * 2 Then
+
+        ' Get position and width of pieces
+
+        temp = groundWidth[j]
+
+        temp2 = groundLeft[leftMostIndex]
+
+        
+
+        ' Move right most piece to left side of ground
+
+        groundLeft[j] = temp2 - temp - 1
+
+        
+
+        ' And now this moved piece is the leftmost piece
+
+        leftMostIndex = j
+
+        leftMost = temp2 - temp - 1
+
+        
+
+      EndIf
+
+      
+
+      ' Continue on ground pieces from right to left
+
+      j = j - 1
+
+      If j < 1 then
+
+        j = groundPieces
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  
+
+  
+
+  ' Move people (note abducted people also move vertically in enemy move code below)
+
+  For i = 1 to peoples
+
+    temp = people[i]
+
+    left = Shapes.GetLeft(temp)
+
+    
+
+    ' Wrap people around the world
+
+    If left > groundWidthTotal * 0.7 Then
+
+      left = left - groundWidthTotal
+
+    ElseIf left < -groundWidthTotal * 0.7 Then
+
+      left = left + groundWidthTotal
+
+    EndIf
+
+    
+
+    top = Shapes.GetTop(temp)
+
+    
+
+    ' See if we're falling (having lost our ride with enemy)
+
+    state = peopleState[i]
+
+    
+
+    if state = "falling" Then
+
+      ' Accelerate downward to ground
+
+      temp2 = peopleFallVelocity[i] + 0.03
+
+      'temp2 = temp2 + 0.03
+
+      peopleFallVelocity[i] = temp2
+
+      
+
+      ' Move downward
+
+      top = top + temp2
+
+      
+
+      ' See if hit ground
+
+      If top > peopleAltitude then
+
+        ' If falling too fast to survive
+
+        If temp2 > 2.5 then
+
+          peopleState[i] = "dead"
+
+          
+
+          ' Move them off screen
+
+          Shapes.Move(temp, 0, -50)
+
+          
+
+          ' Show explosion - poor guys
+
+          explosionX = left
+
+          explosionY = top
+
+          explosionSize = 0
+
+          exploding = true
+
+          
+
+          Sound.Stop(resourcePath + "stargates_people.mp3")
+
+          Sound.Play(resourcePath + "stargates_people.mp3")
+
+          
+
+          ' See if any persons left
+
+          CheckPeopleRemaining()
+
+        else
+
+          peopleState[i] = "walking"
+
+          score = score + 500
+
+          Shapes.SetText(scoreText,score)
+
+        EndIf
+
+        
+
+      Else
+
+        Shapes.Move(temp, left + playerVx, top)
+
+      EndIf
+
+      
+
+    ElseIf state = "rescued" then   ' Player grabbed person in 'midair'
+
+      ' Keep person under our ship
+
+      Shapes.Move(temp, pX + 30, pY + 20)
+
+      
+
+      ' See if we dropped him off on the ground
+
+      If pY + 20 > peopleAltitude then
+
+        peopleState[i] = "walking"
+
+        ' Force him to perfect ground level
+
+        Shapes.Move(temp, pX + 30, peopleAltitude)
+
+        score = score + 1000
+
+        Shapes.SetText(scoreText,score)
+
+      EndIf
+
+      
+
+    ElseIf state <> "dead" then
+
+      
+
+      ' Let them walk if nothing else going on
+
+      If state = "walking" then
+
+        ' Direction based on even/odd index
+
+        If Math.Remainder(i, 2) = 0 then
+
+          left = left + peopleSpeed
+
+        Else
+
+          left = left - peopleSpeed
+
+        EndIf
+
+      EndIf
+
+      
+
+      ' Move with ground
+
+      Shapes.Move(temp, left + playerVx, top)
+
+    EndIf
+
+  endfor
+
+  
+
+  
+
+  ' Move enemies
+
+  For i = 1 to enemies
+
+    temp = enemy[i]
+
+    left = Shapes.GetLeft(temp) + playerVx
+
+    top = Shapes.GetTop(temp)
+
+    
+
+    ' What is enemy trying to do?
+
+    state = enemyState[i]
+
+    
+
+    ' See if we're near a person to pick up
+
+    If state = "seeking" Then
+
+      
+
+      ' Move to right or left based on even/odd index
+
+      If Math.Remainder(i, 2) = 0 then
+
+        left = left + enemySpeed
+
+      Else
+
+        left = left - enemySpeed
+
+      EndIf
+
+      
+
+      ' Move down to a level altitude based on enemy index
+
+      baseAlt = windowHeight * 0.5 + 0.3 * windowHeight * (i / enemies)
+
+      If top < baseAlt then
+
+        top = top + enemySpeed * 0.5
+
+        ' Move up to level altitude (if player shot person enemy was picking up)
+
+      elseIf top > baseAlt + enemySpeed + 2 then
+
+        top = top - enemySpeed * 0.5
+
+      EndIf
+
+      
+
+      doneLooking = false
+
+      j = 1
+
+      While doneLooking = false
+
+        ' If person is available
+
+        If peopleState[j] = "walking" then
+
+          ' If person is underneath enemy
+
+          If Math.Abs(Shapes.GetLeft(people[j]) - left - 6) <= enemySpeed * 1.1 then
+
+            ' We found someone
+
+            doneLooking = true
+
+            enemyState[i] = "landing"
+
+            enemyPersonFoundIndex[i] = j
+
+            peopleState[j] = "chosen"
+
+          endif
+
+        endif
+
+        
+
+        j = j + 1
+
+        If j > peoples then
+
+          doneLooking = true
+
+        endif
+
+      EndWhile
+
+      ' See if were landing for pickup
+
+    ElseIf state = "landing" then
+
+      ' Move downward to person for pickup
+
+      top = top + enemySpeed * 0.7
+
+      
+
+      ' Bring into perfect horizontal alignment
+
+      j = enemyPersonFoundIndex[i]
+
+      
+
+      if peopleState[j] = "chosen" then
+
+        ' Correct with small amount of alignment error if on same side of screen,
+
+        ' will eventually converge.
+
+        temp2 = Shapes.GetLeft(people[j]) - left - 6
+
+        If Math.Abs(temp2) < groundWidthTotal / 10 Then
+
+          left = left + 0.2 * temp2
+
+        EndIf
+
+        
+
+        ' If close then pickup and convert to rising lander
+
+        If Math.Abs(top - peopleAltitude) <= 18 then
+
+          ' If person still alive, they are now abducted
+
+          peopleState[j] = "abducted"
+
+          
+
+          Sound.Stop(resourcePath + "stargates_abduct.mp3")
+
+          Sound.Play(resourcePath + "stargates_abduct.mp3")
+
+          
+
+          ' And were up up and away
+
+          enemyState[i] = "leaving"
+
+        EndIf
+
+      endif
+
+      
+
+    ElseIf state = "leaving" then
+
+      ' Move upward with person that was picked up
+
+      top = top - enemySpeed * 0.5
+
+      
+
+      If top < scoreBoardTop + 10 then
+
+        enemyState[i] = "berzerk"
+
+        
+
+        Sound.Stop(resourcePath + "stargates_berzerk.mp3")
+
+        Sound.Play(resourcePath + "stargates_berzerk.mp3")
+
+        
+
+        ' Move attached person underneath enemy to off screen
+
+        temp = enemyPersonFoundIndex[i]
+
+        Shapes.Move(people[temp], 0, -50)
+
+        
+
+        ' Person dead
+
+        peopleState[temp] = "dead"
+
+        
+
+        ' See if any persons left
+
+        CheckPeopleRemaining()
+
+      Else
+
+        ' Move attached person underneath enemy vertically upward
+
+        temp2 = people[enemyPersonFoundIndex[i]]
+
+        'dText = enemyPersonFoundIndex[i]
+
+        'Debug()
+
+        Shapes.Move(temp2, Shapes.GetLeft(temp2), top + 24)
+
+      EndIf
+
+      
+
+    ElseIf state = "berzerk" then
+
+      ' Go towards player erratically at near speed of player,
+
+      ' unless player dead then move horizontally away so player can
+
+      ' get a break
+
+      If alive = true then
+
+        if left < pX then
+
+          left = left + playerSpeed * 0.7
+
+        Else
+
+          left = left - playerSpeed * 0.7
+
+        EndIf
+
+      else
+
+        if left < pX then
+
+          left = left - playerSpeed * 0.5
+
+        Else
+
+          left = left + playerSpeed * 0.5
+
+        EndIf
+
+      EndIf
+
+      
+
+      ' If onscreen then direct attack
+
+      if left > 0 and left < windowWidth then
+
+        if top < pY then
+
+          top = top + playerSpeed * 0.7
+
+        Else
+
+          top = top - playerSpeed * 0.7
+
+        EndIf
+
+      else ' Else go high or low (whatever's furthest from player)
+
+        if pY > windowHeight / 2 then
+
+          ' Go up
+
+          top = top - playerSpeed * 0.7
+
+        else
+
+          ' Go down
+
+          top = top + playerSpeed * 0.7
+
+        endif
+
+      endif
+
+      
+
+      ' Make motion jittery
+
+      left = left + Math.GetRandomNumber(5) - 3
+
+      top = top + Math.GetRandomNumber(5) - 3
+
+      
+
+      ' Keep within top/bottom of screen
+
+      If top < scoreBoardTop + 10 then
+
+        top = scoreBoardTop + 10
+
+      elseif top > windowHeight - 20 then
+
+        top = windowHeight - 20
+
+      EndIf
+
+      
+
+    EndIf
+
+    
+
+    ' Wrap them around the world
+
+    If left > groundWidthTotal * 0.7 Then
+
+      left = left - groundWidthTotal
+
+    ElseIf left < -groundWidthTotal * 0.7 Then
+
+      left = left + groundWidthTotal
+
+    EndIf
+
+    
+
+    ' Move enemy
+
+    Shapes.Move(temp, left, top)
+
+    
+
+    ' See if enemy should shoot at player
+
+    If enemyShooting = false and alive = true and state <> "dead" Then
+
+      ' See if enemy visible on screen
+
+      If left > 0 and left < windowWidth then
+
+        ' If chance of shot
+
+        If Math.GetRandomNumber(10000) / 10000 < enemyShotChance then
+
+          Sound.Stop(resourcePath + "stargates_chirp.mp3")
+
+          Sound.Play(resourcePath + "stargates_chirp.mp3")
+
+          
+
+          Shapes.Move(enemyShot, left + 8, top + 10)
+
+          
+
+          ' Get distance to player, compensate to centers of images
+
+          temp = pX - left + 18
+
+          temp2 = pY - top - 3
+
+          temp3 = Math.SquareRoot(temp * temp + temp2 * temp2)
+
+          
+
+          ' Get appropriate velocities to move towards player
+
+          enemyShotVx = enemyShotSpeed * temp / temp3
+
+          enemyShotVy = enemyShotSpeed * temp2 / temp3
+
+          
+
+          ' Let shot be animated & tested for collisions
+
+          enemyShooting = true
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  endfor
+
+  
+
+  
+
+  ' Move player shots
+
+  For i = 1 To Array.GetItemCount(shot)
+
+    temp = shot[i]
+
+    
+
+    ' If shot is to right then move to right
+
+    If shotDirection[i] = 1 Then
+
+      left = Shapes.GetLeft(temp) + shotSpeed
+
+    Else
+
+      left = Shapes.GetLeft(temp) - shotSpeed
+
+    EndIf
+
+    
+
+    top = Shapes.GetTop(temp)
+
+    Shapes.Move(temp, left + playerVx, top)
+
+    
+
+    ' Age shot and make sure shots off screen are removed
+
+    If left > windowWidth Or left < -shotSize Then
+
+      ' Offscreen, make age old to eliminate it
+
+      shotAge[i] = shotLife + 1
+
+    Else
+
+      ' Still visible, normally age shot
+
+      shotAge[i] = shotAge[i] + 1
+
+    EndIf
+
+    
+
+  EndFor
+
+  
+
+  
+
+  ' Move enemy shot
+
+  If enemyShooting = true then
+
+    left = Shapes.GetLeft(enemyShot)
+
+    top = Shapes.GetTop(enemyShot)
+
+    
+
+    ' If shot went offscreen then get rid of
+
+    If left > windowWidth or left < 0 or top < scoreBoardTop or top > windowHeight then
+
+      enemyShooting = false
+
+      Shapes.Move(enemyShot, 0, -50)
+
+    Else  ' Move shot
+
+      Shapes.Move(enemyShot, left + playerVx + enemyShotVx, top + enemyShotVy)
+
+    endif
+
+  endif
+
+  
+
+  
+
+  ' Move stargate
+
+  left = Shapes.GetLeft(stargate)
+
+  top = Shapes.GetTop(stargate)
+
+  
+
+  ' Wrap it around the world
+
+  If left > groundWidthTotal * 0.7 Then
+
+    left = left - groundWidthTotal
+
+  ElseIf left < -groundWidthTotal * 0.7 Then
+
+    left = left + groundWidthTotal
+
+  EndIf
+
+  
+
+  Shapes.Move(stargate, left + playerVx, top)
+
+  
+
+EndSub
+
+
+
+' Check if anything hit anything else
+
+sub CollisionCheck
+
+  ' Run into stargate?
+
+  if Math.Abs(pX - Shapes.GetLeft(stargate) + 4) < 41 and Math.Abs(pY - Shapes.GetTop(stargate) - 5) < 16 then
+
+    ' Are we carrying enough people to advance a level?
+
+    i = 0
+
+    For j = 1 to peoples
+
+      If peopleState[j] = "rescued" Then
+
+        i = i + 1
+
+      EndIf
+
+    EndFor
+
+    
+
+    ' If enough then warp a few levels
+
+    Program.Delay(300)
+
+    If i >= 3 then
+
+      warp = true
+
+    Else ' Else hyperspace off to an abductee, or 1/2 way across map
+
+      i = -1
+
+      For j = 1 to peoples
+
+        If peopleState[j] = "abducted" Then
+
+          ' Save person abducted
+
+          i = j
+
+          
+
+          ' Exit loop
+
+          j = 10000
+
+          
+
+        EndIf
+
+      EndFor
+
+      
+
+      ' If found abductee, go there, else go 1/2 way around world
+
+      if i > 0 and false = true then  ' disabled, makes game too easy
+
+        hyperspaceOffset = Shapes.GetLeft(people[i]) - 100
+
+      else
+
+        hyperspaceOffset = groundWidthTotal / 2
+
+      endif
+
+      
+
+      Hyperspace()
+
+    endif
+
+  endif
+
+  
+
+  ' Shot hits
+
+  For i = 1 To Array.GetItemCount(shot)
+
+    shotHit = false ' This shot hasn't hit anything yet
+
+    temp = shot[i]
+
+    left = Shapes.GetLeft(temp)
+
+    top = Shapes.GetTop(temp)
+
+    
+
+    ' Get direction of shot, to figure out what end of shot is used to determine hit.
+
+    ' Note: trailing edge of shot determines hit since need to see if nearby
+
+    ' enemies been hit with long laser.
+
+    if shotDirection[i] = 0 Then ' left
+
+      left = left + shotSize
+
+    Endif
+
+    
+
+    ' Hit people?
+
+    For j = 1 to peoples
+
+      state = peopleState[j]
+
+      
+
+      If state <> "dead" then
+
+        
+
+        temp2 = people[j]
+
+        left2 = Shapes.GetLeft(temp2)
+
+        top2 = Shapes.GetTop(temp2)
+
+        
+
+        If Math.Abs(left2 - left) < shotSpeed * 1.2 and Math.Abs(top2 + 7 - top) < 7 then
+
+          ' If was abducted, set abductor back to seeking mode
+
+          if state = "abducted" Or state = "chosen" then
+
+            For k = 1 to enemies
+
+              If enemyPersonFoundIndex[k] = j then
+
+                if enemyState[k] <> "dead" then 'new
+
+                  enemyState[k] = "seeking"
+
+                  k = k + 1000 ' Exit loop
+
+                endif 'new
+
+              EndIf
+
+            EndFor
+
+          endif
+
+          
+
+          ' Move person off screen
+
+          Shapes.Move(temp2, 0, -200)
+
+          peopleState[j] = "dead"
+
+          
+
+          ' Remove shot
+
+          shotRemoveIndex = i
+
+          RemoveShot()
+
+          shotHit = true  ' Dont let shot hit anything else
+
+          j = peoples + 1 ' Cause people loop to exit any other people tests
+
+          i = i - 1 ' Go back a shot index because we just deleted this one
+
+          
+
+          ' Show explosion
+
+          explosionX = left2
+
+          explosionY = top2
+
+          explosionSize = 0
+
+          exploding = true
+
+          
+
+          Sound.Stop(resourcePath + "stargates_people.mp3")
+
+          Sound.Play(resourcePath + "stargates_people.mp3")
+
+          
+
+          ' See if any people left
+
+          CheckPeopleRemaining()
+
+          
+
+        endif
+
+        
+
+      endif
+
+    endfor
+
+    
+
+    ' Hit enemies?
+
+    If shotHit = false Then
+
+      For j = 1 to enemies
+
+        state = enemyState[j]
+
+        
+
+        If state <> "dead" then
+
+          
+
+          temp2 = enemy[j]
+
+          left2 = Shapes.GetLeft(temp2)
+
+          top2 = Shapes.GetTop(temp2)
+
+          
+
+          If Math.Abs(left2 - left) < shotSpeed * 1.2 and Math.Abs(top2 - top + 9) < 11 then
+
+            ' Show explosion
+
+            explosionX = left2
+
+            explosionY = top2
+
+            explosionSize = 0
+
+            exploding = true
+
+            
+
+            Sound.Stop(resourcePath + "stargates_explode.mp3")
+
+            Sound.Play(resourcePath + "stargates_explode.mp3")
+
+            
+
+            score = score + 200
+
+            Shapes.SetText(scoreText,score)
+
+            enemiesKilled = enemiesKilled + 1
+
+            
+
+            ' If was carrying person, let them fall to ground
+
+            If state = "leaving" then
+
+              k = enemyPersonFoundIndex[j]
+
+              if peopleState[k] = "abducted" then
+
+                peopleState[k] = "falling"
+
+                peopleFallVelocity[k] = 0
+
+              endif
+
+              ' Else if was landing to pickup person, let person go on with their lives
+
+            elseif state = "landing" then
+
+              k = enemyPersonFoundIndex[j]
+
+              if peopleState[k] = "chosen" then
+
+                peopleState[k] = "walking"
+
+              endif
+
+            endif
+
+            
+
+            ' Move enemy off screen
+
+            Shapes.Move(temp2, 0, -200)
+
+            enemyState[j] = "dead"
+
+            
+
+            ' Remove shot
+
+            shotRemoveIndex = i
+
+            RemoveShot()
+
+            shotHit = true
+
+            j = enemies + 1 ' Cause enemy loop to exit any other enemy tests
+
+            i = i - 1 ' Go back a shot index because we just deleted this one
+
+          endif
+
+        endif
+
+      endfor
+
+    EndIf
+
+  EndFor
+
+  
+
+  ' Did player run into falling people for mid-air pickup?
+
+  For i = 1 to peoples
+
+    
+
+    If peopleState[i] = "falling" then
+
+      temp = people[i]
+
+      left = Shapes.GetLeft(temp)
+
+      top = Shapes.GetTop(temp)
+
+      
+
+      ' Did we catch him?
+
+      If Math.Abs(pX - left + 25) < 26 And Math.Abs(pY - top) < 13 then
+
+        peopleState[i] = "rescued"
+
+        score = score + 300
+
+        Shapes.SetText(scoreText,score)
+
+      endif
+
+    endif
+
+  endfor
+
+  
+
+  ' Collided with enemies?
+
+  If alive = true then
+
+    For i = 1 to enemies
+
+      state = enemyState[i]
+
+      
+
+      If state <> "dead" then
+
+        
+
+        temp = enemy[i]
+
+        left = Shapes.GetLeft(temp)
+
+        top = Shapes.GetTop(temp)
+
+        
+
+        If Math.Abs(pX - left + 18) < 35 and Math.Abs(pY - top - 2) < 17 then
+
+          score = score + 1000
+
+          Shapes.SetText(scoreText,score)
+
+          enemiesKilled = enemiesKilled + 1
+
+          
+
+          ' Show big explosion
+
+          explodingBig = true
+
+          
+
+          lives = lives - 1
+
+          alive = false
+
+          deadTimeout = 200
+
+          
+
+          Sound.Stop(resourcePath + "stargates_explode.mp3")
+
+          Sound.Play(resourcePath + "stargates_explode.mp3")
+
+          Sound.Stop(resourcePath + "stargates_bigboom.mp3")
+
+          Sound.Play(resourcePath + "stargates_bigboom.mp3")
+
+          
+
+          ' If enemy was carrying person, let them fall to ground
+
+          If state = "leaving" then
+
+            j = enemyPersonFoundIndex[i]
+
+            if peopleState[j] = "abducted" then
+
+              peopleState[j] = "falling"
+
+              peopleFallVelocity[j] = 0
+
+            endif
+
+            ' Else if was landing to pickup person, let person go on with their lives
+
+          elseif state = "landing" then
+
+            j = enemyPersonFoundIndex[i]
+
+            if peopleState[j] = "chosen" then
+
+              peopleState[j] = "walking"
+
+            endif
+
+          endif
+
+          
+
+          ' Move ship off screen
+
+          Shapes.Move(playerRight, 0, -50)
+
+          Shapes.Move(playerLeft, 0, -50)
+
+          
+
+          ' Move enemy off screen & dead
+
+          enemyState[i] = "dead"
+
+          Shapes.Move(temp, 0, -50)
+
+          
+
+          ' If player carrying anyone, drop them
+
+          For j = 1 to peoples
+
+            
+
+            If peopleState[j] = "rescued" then
+
+              peopleState[j] = "falling"
+
+            endif
+
+          endfor
+
+        endif
+
+      EndIf
+
+    endfor
+
+    
+
+    ' Check if enemy shot hit us
+
+    If enemyShooting = true then
+
+      If Math.Abs(pX - Shapes.GetLeft(enemyShot) + 28) < 26 and Math.Abs(pY - Shapes.GetTop(enemyShot) + 6) < 7 then
+
+        ' Move shot offscreen
+
+        Shapes.Move(enemyShot, 0, -50)
+
+        
+
+        enemyShooting = false
+
+        
+
+        ' Show explosion
+
+        explodingBig = true
+
+        
+
+        lives = lives - 1
+
+        alive = false
+
+        deadTimeout = 200
+
+        
+
+        Sound.Stop(resourcePath + "stargates_bigboom.mp3")
+
+        Sound.Play(resourcePath + "stargates_bigboom.mp3")
+
+        
+
+        ' Move ship off screen
+
+        Shapes.Move(playerRight, 0, -50)
+
+        Shapes.Move(playerLeft, 0, -50)
+
+        
+
+        ' If player carrying anyone, drop them
+
+        For j = 1 to peoples
+
+          
+
+          If peopleState[j] = "rescued" then
+
+            peopleState[j] = "falling"
+
+            peopleFallVelocity[j] = 0
+
+          endif
+
+        endfor
+
+        
+
+      endif
+
+    endif
+
+  endif ' endif alive
+
+  
+
+EndSub
+
+
+
+' Move player to hyperspaceOffset spot on map
+
+Sub Hyperspace
+
+  ' Move all characters/ground, let their move code check & correct for world wrap around
+
+  
+
+  ' Remove explosion (if any)
+
+  Shapes.Move(explosion[1], 0, -50)
+
+  Shapes.Move(explosion[2], 0, -50)
+
+  Shapes.Move(explosion[3], 0, -50)
+
+  Shapes.Move(explosion[4], 0, -50)
+
+  exploding = false
+
+  
+
+  ' Remove big explosion pieces, can slow down normal game
+
+  if explodingBig = true then
+
+    for i = 1 to explodingBigPieces
+
+      Shapes.Remove(explodeBig[i])
+
+    endfor
+
+    explodingBig = false
+
+  endif
+
+  
+
+  ' Move enemies
+
+  For k = 1 to enemies
+
+    temp = enemy[k]
+
+    Shapes.Move(temp, Shapes.GetLeft(temp) + hyperspaceOffset, Shapes.GetTop(temp))
+
+  endfor
+
+  
+
+  ' Move enemy shot
+
+  Shapes.Move(enemyShot, Shapes.GetLeft(enemyShot) + hyperspaceOffset, Shapes.GetTop(enemyShot))
+
+  
+
+  ' Move people
+
+  For k = 1 to peoples
+
+    temp = people[k]
+
+    Shapes.Move(temp, Shapes.GetLeft(temp) + hyperspaceOffset, Shapes.GetTop(temp))
+
+  endfor
+
+  
+
+  ' Move stargate
+
+  Shapes.Move(stargate, Shapes.GetLeft(stargate) + hyperspaceOffset, Shapes.GetTop(stargate))
+
+  
+
+  ' Init player
+
+  playerDirection = 1
+
+  pX = windowWidth * 0.1
+
+  pY = windowHeight * 0.3
+
+  
+
+  playerVx = 0
+
+  playerVy = 0
+
+  
+
+  ' Move player shots
+
+  For k = 1 To Array.GetItemCount(shot)
+
+    temp = shot[k]
+
+    Shapes.Move(temp, Shapes.GetLeft(temp) + hyperspaceOffset, Shapes.GetTop(temp))
+
+  EndFor
+
+  
+
+  ' Move ground
+
+  For k = 1 To groundPieces
+
+    
+
+    left = groundLeft[k]
+
+    
+
+    groundLeft[k] = left + destructX + hyperspaceOffset
+
+    Shapes.Move(ground[k], left + destructX + hyperspaceOffset, groundTop[k] - destructY)
+
+    
+
+  EndFor
+
+  
+
+EndSub
+
+
+
+' Fire away!
+
+Sub Fire
+
+  ' Remove oldest excess shot
+
+  While(Array.GetItemCount(shot) > (shotMax - 1))
+
+    shotRemoveIndex = 1
+
+    RemoveShot()
+
+  EndWhile
+
+  
+
+  ' Add the shot laser
+
+  GraphicsWindow.PenColor = "red"
+
+  GraphicsWindow.PenWidth = 2
+
+  shot[Array.GetItemCount(shot) + 1] = Shapes.AddLine(0, 0, shotSize, 0)
+
+  
+
+  ' If right facing player, position shot on right, else left, and place properly with respect to ship
+
+  If playerDirection = 1 then
+
+    Shapes.Move(shot[Array.GetItemCount(shot)], pX + 54, pY + 12)
+
+  else
+
+    Shapes.Move(shot[Array.GetItemCount(shot)], pX - shotSize + 2, pY + 12)
+
+  endif
+
+  
+
+  ' Save the direction of travel of shot
+
+  shotDirection[Array.GetItemCount(shot)] = playerDirection
+
+  
+
+  ' New shot age
+
+  shotAge[Array.GetItemCount(shot)] = 0
+
+  
+
+  ' Shot sound (stop for bug in SB 0.4)
+
+  Sound.Stop(resourcePath + "stargates_laser.mp3")
+
+  Sound.Play(resourcePath + "stargates_laser.mp3")
+
+EndSub
+
+
+
+' Check shot age, removing at most one per pass
+
+Sub ShotAgeCheck
+
+  If Array.GetItemCount(shotAge) > 0 then
+
+    If shotAge[1] > shotLife then
+
+      shotRemoveIndex = 1
+
+      RemoveShot()
+
+    endif
+
+  endif
+
+EndSub
+
+
+
+' Remove shot index of interest = shotRemoveIndex
+
+Sub RemoveShot
+
+  ' Remove graphic shot
+
+  Shapes.Remove(shot[shotRemoveIndex])
+
+  
+
+  ' Pack down the arrays to have a continuous index (don't leave holes)
+
+  For i = shotRemoveIndex To (Array.GetItemCount(shot) - 1)
+
+    shot[i] = shot[i+1]
+
+    shotAge[i] = shotAge[i+1]
+
+    shotDirection[i] = shotDirection[i+1]
+
+  EndFor
+
+  
+
+  ' Remove item at end of list, it's either the one requested or a duplicate from packing above
+
+  shot[Array.GetItemCount(shot)] = ""
+
+  shotAge[Array.GetItemCount(shotAge)] = ""
+
+  shotDirection[Array.GetItemCount(shotDirection)] = ""
+
+  
+
+EndSub
+
+
+
+' Read key event
+
+' Note that key priority is remembered in case both up/down pressed
+
+' we will do what the last key press indicates.
+
+' Also note that this is an event handler, so key presses can
+
+' interrupt code running elsewhere at any time, must be careful not to
+
+' change variables etc that could affect code undesireably.
+
+Sub OnKeyDown
+
+  
+
+  If(GraphicsWindow.LastKey = rightKey) Then
+
+    rightKeyPressed = true
+
+    
+
+    ' If both left & right pressed, this has higher priority since pressed last
+
+    leftRightPriority = rightKey
+
+  endif
+
+  
+
+  If(GraphicsWindow.LastKey = leftKey) Then
+
+    leftKeyPressed = true
+
+    leftRightPriority = leftKey
+
+  EndIf
+
+  
+
+  If(GraphicsWindow.LastKey = upKey) Then
+
+    upKeyPressed = true
+
+    upDownPriority = upKey
+
+  EndIf
+
+  
+
+  If(GraphicsWindow.LastKey = downKey) Then
+
+    downKeyPressed = true
+
+    upDownPriority = downKey
+
+  EndIf
+
+  
+
+  If(GraphicsWindow.LastKey = fireKey) Then
+
+    fireKeyPressed = true
+
+  endif
+
+  
+
+  If(GraphicsWindow.LastKey = pauseKey) Then
+
+    if (pause = true) then
+
+      pause = false
+
+    else
+
+      pause = true
+
+    endif
+
+  elseif(GraphicsWindow.LastKey = quitKey) Then
+
+    play = false
+
+  EndIf
+
+  
+
+  If GraphicsWindow.LastKey = hyperspaceKey Then
+
+    hyperspaceKeyPressed = true
+
+  Endif
+
+  
+
+  ' Save letters for high score input
+
+  highScoreLetter = GraphicsWindow.LastKey
+
+  
+
+  ' Show keypress text if we want to know what they all are
+
+  'dText = GraphicsWindow.LastKey
+
+  'Debug()
+
+  
+
+EndSub
+
+
+
+' Run on key release, see note above
+
+Sub OnKeyUp
+
+  
+
+  if GraphicsWindow.LastKey = rightKey Then
+
+    rightKeyPressed = false
+
+  EndIf
+
+  
+
+  if GraphicsWindow.LastKey = leftKey Then
+
+    leftKeyPressed = false
+
+  EndIf
+
+  
+
+  if GraphicsWindow.LastKey = upKey Then
+
+    upKeyPressed = false
+
+  EndIf
+
+  
+
+  if GraphicsWindow.LastKey = downKey Then
+
+    downKeyPressed = false
+
+  EndIf
+
+  
+
+  If(GraphicsWindow.LastKey = fireKey) Then
+
+    fireKeyPressed = false
+
+  endif
+
+  
+
+  If GraphicsWindow.LastKey = hyperspaceKey Then
+
+    hyperspaceKeyPressed = false
+
+  Endif
+
+  
+
+EndSub
+
+
+
+' Process user controls on our own time
+
+Sub DoKey
+
+  
+
+  If rightKeyPressed = true And leftKeyPressed = true then
+
+    ' Figure out which direction based on last pressed or released
+
+    If leftRightPriority = rightKey Then
+
+      playerAx = -3
+
+    Else
+
+      playerAx = 3
+
+    EndIf
+
+  Else
+
+    If rightKeyPressed = true Then
+
+      playerAx = -3
+
+    ElseIf leftKeyPressed = true Then
+
+      playerAx = 3
+
+    Else
+
+      playerAx = 0
+
+    EndIf
+
+  endif
+
+  
+
+  If upKeyPressed = true And downKeyPressed = true then
+
+    ' Figure out which direction based on last pressed or released
+
+    If upDownPriority = upKey Then
+
+      playerAy = -4
+
+    Else
+
+      playerAy = 4
+
+    EndIf
+
+  else
+
+    If upKeyPressed = true Then
+
+      playerAy = -4
+
+    ElseIf downKeyPressed = true Then
+
+      playerAy = 4
+
+    Else
+
+      playerAy = 0
+
+    EndIf
+
+  endif
+
+  
+
+  If fireKeyPressed = true then
+
+    ' If we're dead and some time elapsed since, restart game
+
+    If lives < 1 and deadTimeout < 2 then
+
+      RestartGame()
+
+    else
+
+      ' Only allow one shot per key press
+
+      if fireKeyTimeout < 1 then
+
+        if alive = true then
+
+          Fire()
+
+        endif
+
+        fireKeyTimeout = 3000 ' so long a lockout period that you have to keep hitting keyboard to fire (autofire's lazy...)
+
+      endif
+
+    EndIf
+
+  Else
+
+    fireKeyTimeout = 0
+
+  endif
+
+  If fireKeyTimeout > 0 then
+
+    fireKeyTimeout = fireKeyTimeout - 1
+
+  endif
+
+  
+
+  if hyperspaceKeyPressed = true then
+
+    hyperspaceKeyPressed = false
+
+    
+
+    if alive = true then
+
+      ' Delay to keep from having tons of hyperspaces
+
+      Program.Delay(500)
+
+      ' Determine random position shift
+
+      hyperspaceOffset = Math.GetRandomNumber(groundWidthTotal)
+
+      Hyperspace()
+
+    endif
+
+  endif
+
+  
+
+endsub
+
+
+
+' Check if any people left alive, if not then turn all enemies berzerk
+
+' and blow up the place
+
+Sub CheckPeopleRemaining
+
+  ' Only check if world hasn't blown up yet
+
+  If destruct = 0 then
+
+    peopleFound = false
+
+    for z = 1 To peoples
+
+      if peopleState[z] <> "dead" then
+
+        peopleFound = true
+
+      EndIf
+
+    endfor
+
+    
+
+    If peopleFound = false then
+
+      ' Blow up world
+
+      destruct = 1
+
+      
+
+      Sound.Stop(resourcePath + "stargates_destruction.mp3")
+
+      Sound.Play(resourcePath + "stargates_destruction.mp3")
+
+      
+
+      ' Turn all enemies into berzerkers
+
+      For z = 1 to enemies
+
+        enemyState[z] = "berzerk"
+
+      EndFor
+
+    endif
+
+  endif
+
+endsub
+
+
+
+' Do processing if level advanced or we warped. Also let new
+
+' enemies in if level time sufficient.
+
+Sub LevelCheck
+
+  levelTimer = levelTimer + 1
+
+  
+
+  ' See if we stargated
+
+  If warp = true then
+
+    level = level + 3
+
+    
+
+    ' Give points for each person carried through gate
+
+    for i = 1 To peoples
+
+      if peopleState[i] = "rescued" then
+
+        Shapes.Remove(scoreText)
+
+        score = score + 300
+
+        GraphicsWindow.BrushColor = "White"
+
+        GraphicsWindow.PenColor="White"
+
+        scoreText = Shapes.AddText(score)
+
+        Shapes.Move(scoreText,windowWidth-100,0)
+
+      EndIf
+
+    endfor
+
+    
+
+    Sound.Stop(resourcePath + "stargates_warp2.mp3")
+
+    Sound.Play(resourcePath + "stargates_warp2.mp3")
+
+    
+
+    ClearScreen()
+
+    ShowStarField()
+
+  Else
+
+    ' Check if time to let more enemies in
+
+    If levelTimer > 400 Then
+
+      levelTimer = 0
+
+      
+
+      ' Only allow so many enemies in a level
+
+      if enemiesSpawned < enemiesPerLevel Then
+
+        ' Spawn more by finding dead enemies
+
+        For i = 1 to enemies
+
+          
+
+          If (enemyState[i] = "dead") And (enemiesSpawned < enemiesPerLevel) then
+
+            enemiesSpawned = enemiesSpawned + 1
+
+            
+
+            temp = enemy[i]
+
+            
+
+            ' Find them a nice random start point away from player
+
+            
+
+            ' If too close to other ships, move somewhere else for j tries
+
+            For j = 1 to 5
+
+              Shapes.Move(temp, Math.GetRandomNumber(groundWidthTotal) * .8 + 240, scoreBoardTop + windowHeight * 0.1)
+
+              For k = 1 to enemies
+
+                If i<>k Then
+
+                  If Math.Abs(Shapes.GetLeft(enemy[k]) - Shapes.GetLeft(temp)) < 100 Then
+
+                    ' Bail out and try new position
+
+                    k = enemies+10
+
+                  EndIf
+
+                EndIf
+
+              EndFor
+
+              
+
+              ' If no enemies found nearby, break out of try loop
+
+              If k = 6 then
+
+                j = 1000
+
+              Endif
+
+            EndFor
+
+            
+
+            ' Fill array with state of each enemy
+
+            if destruct > 0 Then
+
+              enemyState[i] = "berzerk"  ' World blew up
+
+            Else
+
+              enemyState[i] = "seeking"
+
+            EndIf
+
+            
+
+          EndIf
+
+        EndFor
+
+      Endif
+
+    EndIf
+
+    
+
+    ' If killed enough enemies, advance level
+
+    If enemiesKilled >= enemiesPerLevel Then
+
+      level = level + 1
+
+    EndIf
+
+  endif
+
+  
+
+  ' See if level advanced
+
+  If oldLevel <> level then
+
+    
+
+    ' Give some points for making it through
+
+    Shapes.Remove(scoreText)
+
+    score = score + 1000 * (level - oldLevel)
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.PenColor="White"
+
+    scoreText = Shapes.AddText(score)
+
+    Shapes.Move(scoreText,windowWidth-100,0)
+
+    
+
+    ' Give points for each person alive
+
+    for i = 1 To peoples
+
+      if peopleState[i] <> "dead" then
+
+        Shapes.Remove(scoreText)
+
+        score = score + 200
+
+        GraphicsWindow.BrushColor = "White"
+
+        GraphicsWindow.PenColor="White"
+
+        scoreText = Shapes.AddText(score)
+
+        Shapes.Move(scoreText,windowWidth-100,0)
+
+        
+
+        ' Also return them to standing state (may be carried or abducted)
+
+        peopleState[i] = "walking"
+
+      EndIf
+
+      
+
+    endfor
+
+    
+
+    ' Show new level, pause for a bit
+
+    GraphicsWindow.BrushColor = "Crimson"
+
+    GraphicsWindow.FontName = "Courier New"
+
+    GraphicsWindow.FontSize = 40
+
+    GraphicsWindow.DrawText(windowWidth / 2 - 40 * 2, windowHeight / 2.4, "WAVE " + level)
+
+    
+
+    Program.Delay(4000)
+
+    
+
+    ' Erase level display, see Move() for where this is manipulated too since this becomes permanent...
+
+    GraphicsWindow.PenColor = "black"
+
+    GraphicsWindow.BrushColor = "black"
+
+    GraphicsWindow.FillRectangle(windowWidth / 2 - 40 * 3, windowHeight / 2.4, 40 * 11, 50)
+
+    
+
+    ' Eliminate shots on display by making them old
+
+    For i = 1 To Array.GetItemCount(shotAge)
+
+      shotAge[i] = shotLife + 1
+
+    EndFor
+
+    
+
+    ' No more explosions
+
+    exploding = false
+
+    
+
+    ' Move exploding parts off screen
+
+    Shapes.Move(explosion[1], 0, -50)
+
+    Shapes.Move(explosion[2], 0, -50)
+
+    Shapes.Move(explosion[3], 0, -50)
+
+    Shapes.Move(explosion[4], 0, -50)
+
+    
+
+    ' Remove big explosion pieces, can slow down normal game
+
+    if explodingBig = true then
+
+      for i = 1 to explodingBigPieces
+
+        Shapes.Remove(explodeBig[i])
+
+      endfor
+
+      explodingBig = false
+
+    endif
+
+    
+
+    ' Make enemies faster
+
+    enemySpeed = enemySpeed + 0.5 * (level - oldLevel)
+
+    
+
+    ' Make enemies shoot more often
+
+    enemyShotChance = enemyShotChance + enemyShotChanceLevelIncrement * (level - oldLevel)
+
+    
+
+    ' If every 5th level or warp past a 5th level restore dead people & terrain
+
+    If Math.Remainder(level, 5) = 0 Or (warp = true And (Math.Remainder(level - 1, 5) = 0 Or Math.Remainder(level - 2, 5) = 0)) Then
+
+      For i = 1 to peoples
+
+        peopleState[i] = "walking"
+
+      EndFor
+
+      
+
+      ' Reset ground to new terrain
+
+      destruct = 0
+
+      DeleteGround()
+
+      CreateGround()
+
+      
+
+      ' Slow down enemy a bit, little bit of a break
+
+      enemySpeed = enemySpeed - 1.5
+
+    Else
+
+      ' Reset ground to new terrain if it didn't destruct
+
+      if destruct = 0 then
+
+        DeleteGround()
+
+        CreateGround()
+
+      endif
+
+    endif
+
+    
+
+    ' Init characters/player, make enemies berzerk if world destructed
+
+    enemiesSpawned = 0
+
+    PositionCharacters()
+
+    
+
+    ' Init scanner scale for new world size
+
+    InitScanner()
+
+    
+
+    ' Redraw panel if needed (particularly after stargating)
+
+    ShowPanel()
+
+    
+
+    ' Redraw ships if needed (after stargating)
+
+    oldLives = -1
+
+    
+
+    oldLevel = level
+
+    
+
+    levelTimer = 0
+
+    
+
+    deadTimeout = 0
+
+    
+
+    enemiesKilled = 0
+
+    
+
+  endif
+
+  
+
+  warp = false
+
+endsub
+
+
+
+' Restart entire game over
+
+Sub RestartGame
+
+  
+
+  ' Move all visible objects off screen
+
+  ClearScreen()
+
+  
+
+  ' Get name if high score, show scoreboard
+
+  ShowHighScores()
+
+  
+
+  ' Move all visible objects off screen
+
+  ClearScreen()
+
+  
+
+  ' Reset all critical variables
+
+  InitVariables()
+
+  
+
+  ' Reset ground to new terrain
+
+  destruct = 0
+
+  DeleteGround()
+
+  CreateGround()
+
+  
+
+  ' Init characters/player
+
+  for i = 1 to enemies
+
+    enemyState[i] = "seeking"
+
+  endfor
+
+  
+
+  for i = 1 to peoples
+
+    peopleState[i] = "walking"
+
+  endfor
+
+  
+
+  Sound.Stop(resourcePath + "stargates_rez2.mp3")
+
+  Sound.Play(resourcePath + "stargates_rez2.mp3")
+
+  
+
+  PositionCharacters()
+
+  
+
+  ' Init scanner scale for new world size from CreateGround()
+
+  InitScanner()
+
+  
+
+  ' Redraw panel
+
+  ShowPanel()
+
+  
+
+  Program.Delay(1000)
+
+  
+
+Endsub
+
+
+
+Sub Intro
+
+  ' Move all visible objects off screen
+
+  ClearScreen()
+
+  
+
+  ' Give time for display to come up
+
+  Program.Delay(1000)
+
+  
+
+  ' Play startup sound
+
+  Sound.Play(resourcePath + "stargates_startup.mp3")
+
+  
+
+  GraphicsWindow.FontName = "courier"
+
+  GraphicsWindow.FontSize = 70
+
+  
+
+  ' Animate intro color from white to red - hex conversion technique borrowed from Rushworks "Gorillas"
+
+  For i = 15 to 1 Step -1
+
+    temp = Text.Append(Text.GetSubText(hexaDecimal, i, 1), "0")
+
+    temp2 = Text.Append("#FF", temp)
+
+    temp2 = Text.Append(temp2, temp)
+
+    
+
+    GraphicsWindow.BrushColor = temp2
+
+    GraphicsWindow.DrawText(windowWidth / 2 - 70 * 3, windowHeight / 2.4, "STARGATES")
+
+    Program.Delay(150)
+
+  endfor
+
+  
+
+  Program.Delay(3000)
+
+  
+
+  ' Animate intro color from red to black
+
+  For i = 15 to 1 Step -1
+
+    temp = Text.Append(Text.GetSubText(hexaDecimal, i, 1), "0")
+
+    temp2 = Text.Append("#", temp)
+
+    temp2 = Text.Append(temp2, "0000")
+
+    
+
+    GraphicsWindow.BrushColor = temp2
+
+    GraphicsWindow.DrawText(windowWidth / 2 - 70 * 3, windowHeight / 2.4, "STARGATES")
+
+    Program.Delay(30)
+
+  endfor
+
+  
+
+  ' Clear intro
+
+  GraphicsWindow.PenColor = "black"
+
+  GraphicsWindow.BrushColor = "black"
+
+  GraphicsWindow.FillRectangle (0, 0, windowWidth, windowHeight)
+
+  
+
+  Program.Delay(200)
+
+endsub
+
+
+
+' Initialize scanner viewport, needs call if new ground generated due to new groundWidthTotal
+
+Sub InitScanner
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "LightSlateGray"
+
+  GraphicsWindow.DrawRectangle(scannerLeft - 1, scannerTop - 1, scannerWidth + 2, scannerHeight + 2)
+
+  
+
+  ' Init decimate counter so that we don't update scanner all the time
+
+  scannerDecimate = 0
+
+  
+
+  ' Compute scanner parameters
+
+  scannerScaleX = scannerWidth / (groundWidthTotal + 70)
+
+  scannerScaleY = scannerHeight / (windowHeight - scoreBoardTop + 40)
+
+  scannerCenter = scannerLeft + scannerWidth / 2
+
+endsub
+
+
+
+' Show the world scanner. Note SetPixel() is incredibly slow.
+
+sub ShowScanner
+
+  
+
+  ' Only update the scanner so often
+
+  scannerDecimate = scannerDecimate + 1
+
+  if scannerDecimate > 10 then
+
+    scannerDecimate = 0
+
+    
+
+    ' Erase old scanner window
+
+    GraphicsWindow.PenColor = "black"
+
+    GraphicsWindow.BrushColor = "black"
+
+    GraphicsWindow.FillRectangle (scannerLeft, scannerTop, scannerWidth, scannerHeight)
+
+    
+
+    ' Show enemies
+
+    GraphicsWindow.PenColor = "White"
+
+    GraphicsWindow.PenWidth = 1
+
+    GraphicsWindow.BrushColor = "White"
+
+    
+
+    for i = 1 To enemies
+
+      if enemyState[i] <> "dead" then
+
+        temp = enemy[i]
+
+        left = Shapes.GetLeft(temp) + 8
+
+        top = Shapes.GetTop(temp)
+
+        
+
+        ' Make left +/- groundWidthTotal/2
+
+        If left > groundWidthTotal / 2 then
+
+          left = left - groundWidthTotal
+
+        ElseIf left < -groundWidthTotal / 2 then
+
+          left = left + groundWidthTotal
+
+        EndIf
+
+        
+
+        GraphicsWindow.FillRectangle(left * scannerScaleX + scannerCenter, top * scannerScaleY + scannerTop, 2, 2)
+
+      EndIf
+
+    endfor
+
+    
+
+    ' Show people on scanner
+
+    GraphicsWindow.PenColor = "RoyalBlue"
+
+    GraphicsWindow.PenWidth = 1
+
+    GraphicsWindow.BrushColor = "RoyalBlue"
+
+    
+
+    for i = 1 To peoples
+
+      if peopleState[i] <> "dead" then
+
+        temp = people[i]
+
+        left = Shapes.GetLeft(temp) + 1
+
+        top = Shapes.GetTop(temp)
+
+        
+
+        ' Make left +/- groundWidthTotal/2
+
+        If left > groundWidthTotal / 2 then
+
+          left = left - groundWidthTotal
+
+        ElseIf left < -groundWidthTotal / 2 then
+
+          left = left + groundWidthTotal
+
+        EndIf
+
+        
+
+        GraphicsWindow.FillRectangle(left * scannerScaleX + scannerCenter, top * scannerScaleY + scannerTop, 2, 3)
+
+      EndIf
+
+    endfor
+
+    
+
+    ' Show player
+
+    if alive = true then
+
+      GraphicsWindow.PenColor = "Red"
+
+      GraphicsWindow.PenWidth = 1
+
+      GraphicsWindow.BrushColor = "Red"
+
+      
+
+      GraphicsWindow.FillRectangle((pX + 26) * scannerScaleX + scannerCenter, pY * scannerScaleY + scannerTop, 2, 2)
+
+    endif
+
+    
+
+    ' Show stargate
+
+    left = Shapes.GetLeft(stargate) + 22
+
+    top = Shapes.GetTop(stargate)
+
+    ' Make left +/- groundWidthTotal/2
+
+    If left > groundWidthTotal / 2 then
+
+      left = left - groundWidthTotal
+
+    ElseIf left < -groundWidthTotal / 2 then
+
+      left = left + groundWidthTotal
+
+    EndIf
+
+    
+
+    GraphicsWindow.PenColor = "DarkOrange"
+
+    GraphicsWindow.PenWidth = 1
+
+    GraphicsWindow.BrushColor = "DarkOrange"
+
+    
+
+    GraphicsWindow.FillRectangle(left * scannerScaleX + scannerCenter, top * scannerScaleY + scannerTop, 2, 2)
+
+    
+
+  endif
+
+endsub
+
+
+
+sub ShowStarField
+
+  GraphicsWindow.PenColor = "White"
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.BrushColor = "FireBrick"
+
+  
+
+  numStars = 25
+
+  starVelocity = 0.10
+
+  
+
+  For i = 1 To numStars
+
+    temp = Shapes.AddEllipse(5, 5)
+
+    stars[i] = temp
+
+    
+
+    Shapes.Move(temp, Math.GetRandomNumber(windowWidth), Math.GetRandomNumber(windowHeight))
+
+  EndFor
+
+  
+
+  For i = 1 To 200
+
+    For j = 1 To numStars
+
+      temp = stars[j]
+
+      left = Shapes.GetLeft(temp)
+
+      top = Shapes.GetTop(temp)
+
+      
+
+      ' If offscreen then put to near middle
+
+      If left < 0 Or left > windowWidth Or top < 0 Or top > windowHeight Then
+
+        left2 = Math.GetRandomNumber(70) - 36
+
+        top2 = Math.GetRandomNumber(70) - 36
+
+        If left2 = 0 then
+
+          left2 = 1
+
+        EndIf
+
+        If top2 = 0 then
+
+          top2 = 1
+
+        EndIf
+
+        
+
+        left = left2 + windowWidth / 2
+
+        top = top2 + windowHeight / 2
+
+      EndIf
+
+      
+
+      ' Get each axis distance from center of display
+
+      temp2 = left - windowWidth / 2
+
+      temp3 = top - windowHeight / 2
+
+      
+
+      ' Move away from center at faster speeds as we move out
+
+      Shapes.Move(temp, left + starVelocity * temp2, top + starVelocity * temp3)
+
+    EndFor
+
+    starVelocity = starVelocity + 0.002
+
+  EndFor
+
+  
+
+  For i = 1 To numStars
+
+    Shapes.Remove(stars[i])
+
+    stars[i] = ""
+
+  EndFor
+
+  
+
+EndSub
+
+
+
+' Remove everything on screen (prepare for warping)
+
+Sub ClearScreen
+
+  ' Didn't do GraphicsWindow.Clear() because it deletes all screen objects
+
+  ' - just want to move offscreen temporarily
+
+  
+
+  ' Clear drawn graphics
+
+  GraphicsWindow.PenColor = "black"
+
+  GraphicsWindow.BrushColor = "black"
+
+  GraphicsWindow.FillRectangle (0, 0, windowWidth, windowHeight)
+
+  
+
+  ' Remove ground
+
+  DeleteGround()
+
+  
+
+  ' Remove enemies
+
+  For i = 1 to enemies
+
+    Shapes.Move(enemy[i], 0, -50)
+
+  endfor
+
+  
+
+  ' Remove enemy shot
+
+  Shapes.Move(enemyShot, 0, -50)
+
+  
+
+  ' Remove people
+
+  For i = 1 to peoples
+
+    Shapes.Move(people[i], 0, -50)
+
+  endfor
+
+  
+
+  ' Remove stargate
+
+  Shapes.Move(stargate, -100, Shapes.GetTop(stargate))
+
+  
+
+  ' Remove player
+
+  Shapes.Move(playerRight, 0, -50)
+
+  Shapes.Move(playerLeft, 0, -50)
+
+  
+
+  ' Remove player shots
+
+  While Array.GetItemCount(shotAge) > 0
+
+    shotRemoveIndex = 1
+
+    RemoveShot()
+
+  EndWhile
+
+  
+
+  ' Remove player ships accumulated
+
+  For i = 1 to livesMax
+
+    Shapes.Move(ships[i], 0, -50)
+
+  endfor
+
+  
+
+  ' Remove explosion
+
+  Shapes.Move(explosion[1], 0, -50)
+
+  Shapes.Move(explosion[2], 0, -50)
+
+  Shapes.Move(explosion[3], 0, -50)
+
+  Shapes.Move(explosion[4], 0, -50)
+
+  
+
+endsub
+
+
+
+' Pull in scores from file
+
+Sub GetHighScores
+
+  
+
+  ' Read in 5 scores, name then below it is score
+
+  For z = 1 to 5
+
+' The following line could be harmful and has been automatically commented.
+
+'     highScoreName[z] = File.ReadLine (Program.Directory + "\scores.txt", z * 2 - 1)
+
+' The following line could be harmful and has been automatically commented.
+
+'     highScoreValue[z] = File.ReadLine (Program.Directory + "\scores.txt", z * 2)
+
+  Endfor
+
+  
+
+EndSub
+
+
+
+' Get players score if higher than scoreboard, show scoreboard.
+
+' Show high scores with nice graphic effect - it's their only reward
+
+Sub ShowHighScores
+
+  
+
+  ' Look through all scores and see if player beat one, starting with highest score
+
+  For i = 1 To Array.GetItemCount(highScoreName)
+
+    If score > highScoreValue[i] Then
+
+      ' We beat a score, play tune
+
+      Sound.Stop(resourcePath + "stargates_scores.mp3")
+
+      Sound.Play(resourcePath + "stargates_scores.mp3")
+
+      
+
+      ' Shift all scores down 1 slot
+
+      For j = Array.GetItemCount(highScoreName)-1 to i Step -1
+
+        highScoreName[j+1] = highScoreName[j]
+
+        highScoreValue[j+1] = highScoreValue[j]
+
+      EndFor
+
+      
+
+      ' Get players name
+
+      GraphicsWindow.BrushColor = "Red"
+
+      GraphicsWindow.FontName = "courier"
+
+      GraphicsWindow.FontSize = 40
+
+      GraphicsWindow.DrawText(windowWidth / 2 - 40 * 5, windowHeight / 4, "YOU MADE THE TOP 5!")
+
+      GraphicsWindow.FontSize = 30
+
+      GraphicsWindow.DrawText(windowWidth / 2 - 30 * 4, windowHeight / 4 + 50, "ENTER INITIALS: ")
+
+      
+
+      k = 0 ' no letters entered yet
+
+      temp2 = ""
+
+      While k < 3
+
+        ' Only allow typical characters (may need tweak for other languages)
+
+        ' Get copy of entered key in uppercase, changes in event handler
+
+        temp = Text.ConvertToUpperCase(highScoreLetter)
+
+        
+
+        If Text.GetLength(temp) = 1 And Text.GetCharacterCode(temp) >= 64 And Text.GetCharacterCode(temp) <= 95 Then
+
+          ' Show letter entered
+
+          GraphicsWindow.BrushColor = "DarkOrange"
+
+          GraphicsWindow.FontName = "courier"
+
+          GraphicsWindow.FontSize = 50
+
+          GraphicsWindow.DrawText(windowWidth / 2 - 50 * (1.5 - k), windowHeight / 4 + 100, temp)
+
+          
+
+          ' Build name string
+
+          temp2 = Text.Append(temp2, temp)
+
+          
+
+          k = k + 1
+
+          
+
+          Program.Delay(200)
+
+          highScoreLetter = ""
+
+          
+
+        EndIf
+
+        
+
+      EndWhile
+
+      
+
+      Sound.Stop(resourcePath + "stargates_score_entered.mp3")
+
+      Sound.Play(resourcePath + "stargates_score_entered.mp3")
+
+      
+
+      Program.Delay(2000)
+
+      
+
+      ' Save name/score to array
+
+      highScoreName[i] = temp2
+
+      highScoreValue[i] = score
+
+      
+
+      ' Save score to file. Write 5 scores, name then below it is the score
+
+      For z = 1 to Array.GetItemCount(highScoreName)
+
+' The following line could be harmful and has been automatically commented.
+
+'         File.WriteLine(Program.Directory + "\scores.txt", z * 2 - 1, highScoreName[z])
+
+' The following line could be harmful and has been automatically commented.
+
+'         File.WriteLine(Program.Directory + "\scores.txt", z * 2, highScoreValue[z])
+
+      Endfor
+
+      
+
+      ' exit for
+
+      i = 100
+
+    EndIf
+
+  endfor
+
+  
+
+  ' Clear drawn graphics
+
+  GraphicsWindow.PenColor = "black"
+
+  GraphicsWindow.BrushColor = "black"
+
+  GraphicsWindow.FillRectangle (0, 0, windowWidth, windowHeight)
+
+  
+
+  ' Display list of scores
+
+  GraphicsWindow.FontName = "courier"
+
+  GraphicsWindow.FontSize = 30
+
+  GraphicsWindow.BrushColor = "Red"
+
+  GraphicsWindow.DrawText(windowWidth / 2 - 30 * 6, windowHeight / 4 - 50, "STARGATES HALL OF FAME")
+
+  
+
+  GraphicsWindow.BrushColor = "FireBrick"
+
+  
+
+  If Array.GetItemCount(highScoreName) = 0 Then
+
+    GraphicsWindow.FontSize = 10
+
+' The following line could be harmful and has been automatically commented.
+
+'     GraphicsWindow.DrawText(windowWidth / 2 - 10 * 25, windowHeight / 4, "Error Reading High Scores, Ensure 'File.' Uncommented In Source Code!")
+
+  Else
+
+    highScoreLetter = ""
+
+    
+
+    i = 6.28  ' 2 * pi
+
+    While highScoreLetter = ""
+
+      i = i - 0.15
+
+      If i < 0 Then
+
+        i = 6.28
+
+      EndIf
+
+      
+
+      For j = 1 to Array.GetItemCount(highScoreName)
+
+        k = Math.Floor(7.5 + 7.4 * Math.Sin(Math.Remainder(i + j * 0.6, 6.28)))
+
+        temp = Text.Append(Text.GetSubText(hexaDecimal, k, 1), "0")
+
+        temp2 = Text.Append("#FF", temp)
+
+        temp2 = Text.Append(temp2, temp)
+
+        
+
+        GraphicsWindow.BrushColor = temp2
+
+        
+
+        temp = Text.Append(highScoreName[j] + " - ", highScoreValue[j])
+
+        
+
+        GraphicsWindow.DrawText(windowWidth / 2 - 30 * 3, windowHeight / 4 + j * 35, temp)
+
+      Endfor
+
+      Program.Delay(33)
+
+      
+
+    EndWhile
+
+  Endif
+
+  
+
+  
+
+EndSub
+
+
+
+
+
+Sub GetPath
+
+  temp = false
+
+' The following line could be harmful and has been automatically commented.
+
+'   files = File.GetFiles(Program.Directory)
+
+  
+
+  For i = 1 to Array.GetItemCount(files)
+
+    If text.ConvertToUpperCase(files[i]) = text.ConvertToUpperCase(Program.Directory + "\stargates_lander.png") Then
+
+      ' Found local file, use local path for all files
+
+      temp = true
+
+      
+
+      ' Break out of loop
+
+      i = 100000
+
+    EndIf
+
+  endfor
+
+  
+
+  if temp = true then
+
+    resourcePath = Program.Directory + "\"
+
+  else
+
+    resourcePath = "http://smallbasic.com/drop/stargates/"
+
+  endif
+
+  
+
+EndSub
+
+
+
+
+
+sub Debug
+
+  
+
+  GraphicsWindow.PenColor = "black"
+
+  GraphicsWindow.BrushColor = "black"
+
+  GraphicsWindow.FillRectangle (0, 30, 500, 30)
+
+  
+
+  GraphicsWindow.BrushColor = "LightCyan"
+
+  GraphicsWindow.FontSize=20
+
+  GraphicsWindow.DrawText(0, 30, dText)
+
+  
+
+EndSub
+
+  
+
+

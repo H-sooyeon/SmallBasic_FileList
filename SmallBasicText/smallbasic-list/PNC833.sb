@@ -1,0 +1,737 @@
+' Maze 0.3
+
+' Copyright (c) 2012 Nonki Takahashi
+
+
+
+' History : 
+
+' 2012/06/08 0.1 Created.
+
+' 2012/06/08 0.2 Title added.
+
+' 2012/06/22 0.3 Maze genaration algorithm changed.
+
+
+
+' Reference :
+
+' [1] Wikipedia, Randomized Prim's algorithm, http://en.wikipedia.org/wiki/Maze_generation_algorithm#Randomized_Prim.27s_algorithm
+
+
+
+' Data structure :
+
+' start : cell[2][2]
+
+' goal : cell[2 * cols][2 * rows]
+
+
+
+' Example : (cols = 4, rows = 3)
+
+' ?– ?– ?– ?– ?– ?– ?– ?– ?– 
+
+' ?– ?—‹?????????????– 
+
+' ?– ???– ?– ?– ???– ???– 
+
+' ?– ???– ???????– ???– 
+
+' ?– ?– ?– ???– ?– ?– ???– 
+
+' ?– ???????????– ?—‹?– 
+
+' ?– ?– ?– ?– ?– ?– ?– ?– ?– 
+
+title = "Maze 0.3"
+
+GraphicsWindow.Title = title
+
+debug = "false"
+
+cols = 19 '30
+
+rows = 12 '19
+
+cols2 = 2 * cols + 1
+
+rows2 = 2 * rows + 1
+
+width = 30  '20  ' path width
+
+pen = 8     '6     ' wall width (even number)
+
+colorRoute = "White"
+
+colorWall = "#006600"
+
+colorPassage = "Tan"
+
+GraphicsWindow.PenWidth = pen
+
+GraphicsWindow.BackgroundColor = "DeepSkyBlue"
+
+x0 = (GraphicsWindow.Width - cols * width) / 2
+
+y0 = 0.6 * width
+
+colAdj = "0=1;1=0;2=-1;3=0;"
+
+rowAdj = "0=0;1=1;2=0;3=-1;"
+
+AddButtons()
+
+InitTurtle()
+
+bStart = "False"
+
+While bStart = "False"
+
+  GenerateMaze()
+
+  Controls.ShowControl(oNext)
+
+  Controls.ShowControl(oStart)
+
+  WaitButtonClick()
+
+  Controls.HideControl(oNext)
+
+  Controls.HideControl(oStart)
+
+  If bStart Then
+
+    t0 = Clock.ElapsedMilliseconds
+
+    SolveMaze()
+
+    t1 = Clock.ElapsedMilliseconds
+
+    title = title + " - time: " + (t1 - t0) + " [ms]"
+
+    GraphicsWindow.Title = title
+
+  EndIf
+
+EndWhile
+
+If debug Then
+
+  DumpMaze()
+
+  TextWindow.WriteLine(title)
+
+EndIf
+
+' program end
+
+
+
+Sub AddButtons
+
+  GraphicsWindow.BrushColor = "Black"
+
+  y1 = y0 + (rows + 0.6) * width
+
+  oNext = Controls.AddButton("Next", x0, y1)
+
+  Controls.HideControl(oNext)
+
+  oStart = Controls.AddButton("Start", x0 + 50, y1)
+
+  Controls.HideControl(oStart)
+
+  Controls.ButtonClicked = OnButtonClicked
+
+EndSub
+
+
+
+Sub AddWallToList
+
+  ' param col, row - cell
+
+  ' return nWalls - number of wall list
+
+  ' return iWalls - index of wall list
+
+  ' return colWalls[], rowWalls[] - wall list
+
+  ' return colOpp[], rowOpp[] - cell list (on the opposite side)
+
+  For d = 0 To 3
+
+    colw = col + colAdj[d]
+
+    roww = row + rowAdj[d]
+
+    If 1 < colw And colw < cols2 And 1 < roww And roww < rows2 And cell[colw][roww] = 1 Then
+
+      i = colw + (roww - 1) * cols2
+
+      ' find i in wall list
+
+      FindWallInList()
+
+      If i = iFound Then ' found
+
+        ' remove the wall
+
+        nWalls = nWalls - 1
+
+        iWalls[iPrev] = iWalls[iFound]
+
+      Else
+
+        ' add the wall to wall list
+
+        nWalls = nWalls + 1
+
+        iNext = iWalls[0]
+
+        iWalls[0] = i
+
+        iWalls[i] = iNext
+
+        colWall[i] = colw            ' wall
+
+        rowWall[i] = roww
+
+        colOpp[i] = colw + colAdj[d] ' cell on the opposite side
+
+        rowOpp[i] = roww + rowAdj[d]
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub ClearMaze
+
+  ' param x0, y0
+
+  ' param cols, rows
+
+  ' param width
+
+  GraphicsWindow.BrushColor = "Green"
+
+  GraphicsWindow.FillRectangle(x0, y0, width * cols, width * rows)
+
+  GraphicsWindow.BrushColor = colorPassage
+
+  col0 = cols 'Math.GetRandomNumber(cols) ' start cell of maze generate
+
+  row0 = 1    'Math.GetRandomNumber(rows)
+
+  x = x0 + (col0 - 1) * width
+
+  y = y0 + (row0 - 1) * width
+
+  GraphicsWindow.FillRectangle(x + (pen / 2), y + (pen / 2), width - pen, width - pen)  ' start cell
+
+  GraphicsWindow.PenColor = colorWall
+
+  GraphicsWindow.DrawRectangle(x0, y0, width * cols, width * rows)
+
+  y1 = y0 + width * rows
+
+  For col = 1 To cols - 1
+
+    x = x0 + width * col
+
+    GraphicsWindow.DrawLine(x, y0, x, y1)
+
+  EndFor
+
+  x1 = x0 + width * cols
+
+  For row = 1 To rows - 1
+
+    y = y0 + width * row
+
+    GraphicsWindow.DrawLine(x0, y, x1, y)
+
+  EndFor
+
+  For row = 1 To rows2
+
+    For col = 1 To cols2
+
+      cell[col][row] = 1
+
+    EndFor
+
+  EndFor
+
+  cell[2 * col0][2 * row0] = 0  ' generate start
+
+  nWalls = 0
+
+EndSub
+
+
+
+Sub DrawGoal
+
+  ' param x0, y0
+
+  ' param cols, rows
+
+  ' param width
+
+  xg = x0 + (cols - 1) * width
+
+  yg = y0 + (rows - 1) * width
+
+  GraphicsWindow.BrushColor = "Red"
+
+  GraphicsWindow.FillTriangle(xg + 0.3 * width, yg + 0.2 * width, xg + 0.7 * width, yg + 0.4 * width, xg + 0.3 * width, yg + 0.6 * width)
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.DrawTriangle(xg + 0.3 * width, yg + 0.2 * width, xg + 0.7 * width, yg + 0.4 * width, xg + 0.3 * width, yg + 0.6 * width)
+
+  GraphicsWindow.DrawLine(xg + 0.3  * width, yg + 0.6 * width, xg + 0.3 * width, yg + 0.8 * width)
+
+  GraphicsWindow.PenWidth = pen
+
+EndSub
+
+
+
+Sub DumpMaze
+
+  buf = ""
+
+  For row = 1 To rows2
+
+    For col = 1 To cols2
+
+      If cell[col][row] = 1 Then
+
+        buf = buf + "?– "
+
+      Else
+
+        buf = buf + "??"
+
+      EndIf
+
+    EndFor
+
+    buf = buf + Text.GetCharacter(13) + Text.GetCharacter(10)
+
+  EndFor
+
+  TextWindow.Write(buf)
+
+EndSub
+
+
+
+Sub FindPassage
+
+  xt = Turtle.X
+
+  yt = Turtle.Y
+
+  back = Math.Remainder(Turtle.Angle + 180, 360)
+
+  Turtle.TurnRight()
+
+  nturn = 1
+
+  IsWall()
+
+  If bWall Then
+
+    Turtle.TurnLeft()
+
+    nturn = nturn - 1
+
+    IsWall()
+
+  EndIf
+
+  While bWall
+
+    Turtle.TurnRight()
+
+    nturn = nturn + 1
+
+    IsWall()
+
+  EndWhile
+
+EndSub
+
+
+
+Sub FindWallInList
+
+  ' param i - index to remove of wall list
+
+  ' return iPrev - previous index of i
+
+  ' return iFound - i if found
+
+  iFound = 0
+
+  c = 1
+
+  While i <> iFound And c <= nWalls
+
+    c = c + 1
+
+    iPrev = iFound
+
+    iFound = iWalls[iFound]
+
+  EndWhile
+
+EndSub
+
+
+
+Sub GenerateMaze
+
+  ' Generate maze with randomized Prim's algorithm
+
+  ' param x0, y0
+
+  ' param cols, rows
+
+  ' param width
+
+  ' 1. Start with a grid full of walls.
+
+  ClearMaze()
+
+  ' 2. Pick a cell, mark it as part of the maze. Add the walls of the cell to the wall list.
+
+  col = 2 * col0
+
+  row = 2 * row0
+
+  AddWallToList()
+
+  ' 3. While there are walls in the list:
+
+  While nWalls > 0
+
+    ' 1. Pick a random wall from the list. If the cell on the opposite side isn't in the maze yet:
+
+    GetRandomIndex()
+
+    col = colOpp[i] 
+
+    row = rowOpp[i]
+
+    If cell[col][row] = 1 Then
+
+      ' 1. Make the wall a passage and mark the cell on the opposite side as part of the maze.
+
+      colw = colWall[i]
+
+      roww = rowWall[i]
+
+      RemoveWallFromList()
+
+      cell[colw][roww] = 0  ' wall
+
+      cell[col][row] = 0    ' cell on the opposite side
+
+      KnockDownWall()
+
+      If debug Then
+
+        Program.Delay(20)
+
+      EndIf
+
+      ' 2. Add the neighboring walls of the cell to the wall list.
+
+      AddWallToList()
+
+      If debug Then
+
+        TextWindow.WriteLine("iWalls=" + iWalls)
+
+        TextWindow.Write("nWalls=" + nWalls)
+
+        TextWindow.Read()
+
+      EndIf
+
+    Else
+
+    ' 2. If the cell on the opposite side already was in the maze, remove the wall from the list.
+
+      RemoveWallFromList()
+
+    EndIf
+
+  EndWhile
+
+  DrawGoal()
+
+EndSub
+
+
+
+Sub GetRandomIndex
+
+  ' get random index of wall list
+
+  ' return i - index
+
+  n = Math.GetRandomNumber(nWalls)
+
+  i = 0
+
+  For c = 1 To n
+
+    i = iWalls[i]
+
+  EndFor
+
+EndSub
+
+
+
+Sub InitTurtle
+
+  Turtle.Show()
+
+  Turtle.PenUp()
+
+  Turtle.Speed = 9
+
+  Turtle.MoveTo(x0 + width / 2, y0 + width / 2)  
+
+  Turtle.Turn(90 - Turtle.Angle)
+
+  Turtle.Speed = 10
+
+EndSub
+
+
+
+Sub IsWall
+
+  ' param xt - x coodinate of Turtle
+
+  ' param yt - y coodinate of Turtle
+
+  ' return a - angle of Turtle
+
+  ' return bWall - "True" if wall is in front of Turtle
+
+  a = Math.Remainder(Turtle.Angle, 360)
+
+  If a = back And nturn <= 2 Then
+
+    bWall = "True"
+
+  Else
+
+    x = xt + (width / 2) * Math.Sin(a / 180 * Math.Pi)
+
+    y = yt - (width / 2) * Math.Cos(a / 180 * Math.Pi)
+
+    color = GraphicsWindow.GetPixel(x, y)
+
+    If color = colorWall Then
+
+      bWall = "True"
+
+    Else
+
+      bWall = "False"
+
+    EndIf
+
+  EndIF
+
+EndSub
+
+
+
+Sub KnockDownWall
+
+  ' param colw, roww - wall
+
+  ' param col, row - cell on the opposite side
+
+  GraphicsWindow.BrushColor = colorPassage
+
+  x = x0 + (col / 2 - 1) * width
+
+  y = y0 + (row / 2 - 1) * width
+
+  GraphicsWindow.FillRectangle(x + (pen / 2), y + (pen / 2), width - pen, width - pen)
+
+  GraphicsWindow.PenColor = colorPassage
+
+  If Math.Remainder(colw, 2) = 1 Then ' vertical wall
+
+    x = x0 + (colw - 1) / 2 * width
+
+    y1 = y0 + (roww / 2 - 1) * width
+
+    y2 = y0 + (roww / 2) * width
+
+    GraphicsWindow.DrawLine(x, y1 + (pen / 2), x, y2 - (pen / 2))
+
+  ElseIf Math.Remainder(roww, 2) = 1 Then ' horizontal wall
+
+    x1 = x0 + (colw / 2 - 1) * width
+
+    x2 = x0 + (colw / 2) * width
+
+    y = y0 + (roww - 1) / 2 * width
+
+    GraphicsWindow.DrawLine(x1 + (pen / 2), y, x2 - (pen / 2), y)
+
+  EndIf
+
+EndSub
+
+
+
+Sub Move
+
+  ' param a - angle of Turtle
+
+  ' return pos - Turtle position
+
+  ' return moves - number of moves
+
+  Turtle.PenDown()
+
+  GraphicsWindow.PenColor = colorRoute
+
+  GraphicsWindow.PenWidth = 2
+
+  Turtle.Move(width)
+
+  If a = 0 Then
+
+    pos = pos - (cols + 1)
+
+  ElseIf a = 90 Then
+
+    pos = pos + 1
+
+  ElseIf a = 180 Then
+
+    pos = pos + (cols + 1)
+
+  ElseIf a = 270 Then    
+
+    pos = pos - 1
+
+  EndIf
+
+  moves = moves + 1
+
+EndSub
+
+
+
+Sub OnButtonClicked
+
+  bIdle = "False"
+
+EndSub
+
+
+
+Sub RemoveWallFromList
+
+  ' param i - index to remove of wall list
+
+  ' param wall[] - wall list
+
+  ' param nWalls - number of wall list
+
+  FindWallInList()
+
+  If i = iFound Then ' found
+
+    iWalls[iPrev] = iWalls[iFound]
+
+    iWalls[iFound] = ""
+
+    nWalls = nWalls - 1
+
+  EndIf
+
+EndSub
+
+
+
+Sub SolveMaze
+
+  pos = 1
+
+  goal = cols + (rows - 1) * (cols + 1)
+
+  moves = 0
+
+  maxmoves = cols * rows * 2
+
+  While pos <> goal
+
+    FindPassage()
+
+    Move()
+
+    If moves >= maxmoves Then
+
+      Goto break
+
+    EndIf
+
+  EndWhile
+
+  Sound.PlayBellRing()
+
+break:
+
+EndSub
+
+  
+
+Sub WaitButtonClick
+
+  bIdle = "True"
+
+  While bIdle
+
+    Program.Delay(300)
+
+  EndWhile
+
+  If Controls.LastClickedButton = oStart Then
+
+    bStart = "True"
+
+  Else
+
+    bStart = "False"
+
+  EndIf
+
+EndSub
+
+

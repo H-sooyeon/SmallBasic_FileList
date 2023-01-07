@@ -1,0 +1,381 @@
+'All LD extension methods can be safely deleted - only used for gradient brushes
+
+
+
+nBall = 50
+
+radius = 20
+
+gravity = 0.05
+
+elasticity = 0.95
+
+friction = 0.01
+
+freezeVel = 0.1
+
+gw = 800
+
+gh = 700
+
+
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+
+
+GraphicsWindow.PenWidth = 0
+
+GraphicsWindow.Left = (Desktop.Width-gw)/2
+
+GraphicsWindow.Top = 0
+
+GraphicsWindow.BackgroundColor = "Teal"
+
+LDGraphicsWindow.BackgroundBrush(LDShapes.BrushGradient("1=Teal;2=DarkBlue;","V"))
+
+
+
+GraphicsWindow.BrushColor = "Red"
+
+gradient = LDShapes.BrushGradient("1=Orange;2=Red;3=DarkRed;","R")
+
+
+
+For i = 1 To nBall
+
+  ball[i] = Shapes.AddEllipse(2*radius,2*radius)
+
+  posX[i] = radius + Math.GetRandomNumber(gw-2*radius)
+
+  posY[i] = radius + Math.GetRandomNumber(gh-2*radius)
+
+  velX[i] = Math.GetRandomNumber(11)-6
+
+  velY[i] = Math.GetRandomNumber(11)-6
+
+  LDShapes.BrushShape(ball[i],gradient)
+
+EndFor
+
+
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+
+
+While ("True")
+
+  start = Clock.ElapsedMilliseconds
+
+  
+
+  'Mouse click
+
+  If (mouseDown) Then
+
+    mouseDown = "False" 'Handled
+
+    For i = 1 To nBall
+
+      dx = GraphicsWindow.MouseX-posX[i]
+
+      dy = GraphicsWindow.MouseY-posY[i]      
+
+      dist = Math.SquareRoot(dx*dx + dy*dy)
+
+      If (dist < radius) Then
+
+        velY[i] = velY[i]-20 ' Up boost
+
+        frozen[i] = 0
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  
+
+  'keys
+
+  If (keys["Space"]) Then 'Stop
+
+    For i = 1 To nBall
+
+      frozen[i] = 1
+
+      velX[i] = 0
+
+      velY[i] = 0
+
+    EndFor
+
+  ElseIf (keys["Q"]) Then 'start
+
+    For i = 1 To nBall
+
+      frozen[i] = 0
+
+    EndFor
+
+  ElseIf (keys["Z"]) Then 'Jiggle
+
+    For i = 1 To nBall
+
+      frozen[i] = 0
+
+      velX[i] = (Math.GetRandomNumber(11)-6)/10
+
+      velY[i] = (Math.GetRandomNumber(11)-6)/10
+
+    EndFor
+
+  ElseIf (keys["A"]) Then 'Jiggle Up
+
+    For i = 1 To nBall
+
+      frozen[i] = 0
+
+      velX[i] = velX[i]+(Math.GetRandomNumber(11)-6)/10
+
+      velY[i] = velY[i]+(-Math.GetRandomNumber(11))/10
+
+    EndFor
+
+  EndIf
+
+  
+
+  For i = 1 To nBall
+
+    'Normal update position and wall bounces
+
+    If (frozen[i] = 0) Then
+
+      velX[i] = velX[i]*(1-friction)
+
+      velY[i] = velY[i]*(1-friction) + gravity
+
+    EndIf
+
+    
+
+    posX[i] = posX[i]+velX[i]
+
+    posY[i] = posY[i]+velY[i]
+
+    
+
+    If (posX[i] < radius) Then
+
+      velX[i] = -velX[i] * elasticity
+
+      posX[i] = radius
+
+    ElseIf (posX[i] > gw-radius) Then
+
+      velX[i] = -velX[i] * elasticity
+
+      posX[i] = gw-radius
+
+    EndIf
+
+    If (posY[i] < radius) Then
+
+      velY[i] = -velY[i] * elasticity
+
+      posY[i] = radius
+
+    ElseIf (posY[i] > gh-radius) Then
+
+      velY[i] = -velY[i] * elasticity
+
+      posY[i] = gh-radius
+
+    EndIf
+
+    
+
+    'Do collisions
+
+    For j = i+1 To nBall 'Only compare each ball others once
+
+      dx = posX[j]-posX[i]
+
+      dy = posY[j]-posY[i]      
+
+      
+
+      dist = Math.SquareRoot(dx*dx + dy*dy)
+
+      dist = Math.Max(dist,1) 'Prevent possible exact overlap (division by zero)
+
+      If (dist < 2*radius) Then 'A hit
+
+        'Centre of mass (momentum)
+
+        mX = (velX[j]+velX[i])/2 * elasticity
+
+        mY = (velY[j]+velY[i])/2 * elasticity
+
+        'Velocities transformed to CM frame
+
+        cX1 = velX[i]-mX
+
+        cY1 = velY[i]-mY
+
+        cX2 = velX[j]-mX
+
+        cY2 = velY[j]-mY
+
+        ''Unit vector from i to j
+
+        dx = dx/dist
+
+        dy = dy/dist
+
+        'Dot products
+
+        n1 = cX1*dx+cY1*dy
+
+        n2 = cX2*dx+cY2*dy
+
+        'Extra small push apart if balls significantly overlapping
+
+        If (dist < 1.9*radius) Then
+
+          n1 = n1+0.05
+
+          n2 = n2-0.05
+
+        EndIf
+
+        'Do bounce only if balls are moving towards each other (n1 > 0 & n2 < 0)
+
+        'Prevents weird internal double hits
+
+        If (n1 > 0 And n2 < 0) Then
+
+          cX1 = cX1-2*n1*dx
+
+          cY1 = cY1-2*n1*dy
+
+          cX2 = cX2-2*n2*dx
+
+          cY2 = cY2-2*n2*dy
+
+          'Velocities transformed back to True Frame
+
+          velX[i] = cX1+mX
+
+          velY[i] = cY1+mY
+
+          velX[j] = cX2+mX
+
+          velY[j] = cY2+mY
+
+          'Counter gravity on upper ball when hit to prevent collapsing when packing
+
+          If (posY[i] < posY[j]) Then
+
+            velY[i] = velY[i]-gravity
+
+          Else
+
+            velY[j] = velY[j]-gravity
+
+          EndIf
+
+        EndIf
+
+        'Freeze if stationary
+
+        speed1 = Math.SquareRoot(velX[i]*velX[i]+velY[i]*velY[i])
+
+        speed2 = Math.SquareRoot(velX[j]*velX[j]+velY[j]*velY[j])
+
+        If (speed1 < freezeVel And speed2 < freezeVel And dist > 1.95*radius) Then
+
+          frozen[i] = 1
+
+          frozen[j] = 1
+
+          velX[i] = 0
+
+          velY[i] = 0
+
+          velX[j] = 0
+
+          velY[j] = 0
+
+        Else
+
+          frozen[i] = 0
+
+          frozen[j] = 0            
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+    
+
+    'Update positions
+
+    Shapes.Move(ball[i],posX[i]-radius,posY[i]-radius)
+
+  EndFor
+
+  
+
+  delay = 20-(Clock.ElapsedMilliseconds-start)
+
+  GraphicsWindow.Title = Math.Round(1000/Math.Max(20,(20-delay)))+" fps"
+
+  If (delay > 0) Then
+
+    Program.Delay(delay)
+
+  EndIf
+
+EndWhile
+
+
+
+Sub OnMouseDown
+
+  mouseDown = "True"
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  keys[key] = "True"
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  key = GraphicsWindow.LastKey
+
+  keys[key] = ""
+
+EndSub
+
+

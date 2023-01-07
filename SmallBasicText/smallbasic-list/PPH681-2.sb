@@ -1,0 +1,433 @@
+' Earth Clock 0.31
+
+' Copyright (c) 2011, 2013 Nonki Takahashi.  All rights reserved.
+
+'
+
+' History:
+
+'  0.31 2013/02/21 Minor change for Silverlight. (216 lines PPH681-2)
+
+'  0.3 2013/02/21 Simplified for Challenge of the Month. (215 lines PPH681-1)
+
+'  v0.2 2011/04/26 Hour numerals and shadow added. (210 lines PPH681-0)
+
+'  v0.1 2011/04/25 Created from Alarm v0.1 MDW647. (85 lines PPH681)
+
+'
+
+sVersion = "0.31"
+
+GraphicsWindow.Title = "Earth Clock " + sVersion
+
+SB_Workaround()
+
+City_Select()
+
+Clock_Init()
+
+Earth_Init()
+
+Earth_DrawHourNumerals()
+
+Sub City_Select
+
+  ' time table initialization
+
+  rDelta["GMT"] = 0  ' Greenwich Mean Time
+
+  rDelta["Paris"] = 1
+
+  rDelta["Cairo"] = 2
+
+  rDelta["Moscow"] = 3
+
+  rDelta["Dubai"] = 4
+
+  rDelta["Karachi"] = 5
+
+  rDelta["Dhaka" ] = 6
+
+  rDelta["Bangkok"] = 7
+
+  rDelta["Hong Kong"] = 8
+
+  rDelta["Tokyo"] = 9
+
+  rDelta["Sydney"] = 10
+
+  rDelta["Noumea"] = 11
+
+  rDelta["Wellington"] = 12
+
+  rDelta["Midway Island"] = -11
+
+  rDelta["Honolulu"] = -10
+
+  rDelta["Los Angeles"] = -8
+
+  rDelta["Denver"] = -7
+
+  rDelta["Chicago"] = -6
+
+  rDelta["New York"] = -5
+
+  rDelta["Caracas"] = -4
+
+  rDelta["Rio de Janeiro"] = -3
+
+  rDelta["Azores"] = -1
+
+  iCities = Array.GetItemCount(rDelta)
+
+  sCities = Array.GetAllIndices(rDelta)
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  GraphicsWindow.BrushColor = "White"
+
+  iX = 260
+
+  For i = 1 To iCities
+
+    iY = 18 * i
+
+    If rDelta[sCities[i]] > 0 Then
+
+      sSign = "+"
+
+    Else
+
+      sSign = ""
+
+    EndIf
+
+    oCity[i] = Shapes.AddText(sCities[i] + " (" + sSign + rDelta[sCities[i]] + ")")
+
+    Shapes.SetOpacity(oCity[i], 50)
+
+    Shapes.Move(oCity[i], iX, iY)
+
+  EndFor
+
+  bNotSelected = "True"
+
+  iLast = 1
+
+  GraphicsWindow.MouseMove = City_OnMouseMove
+
+  GraphicsWindow.MouseDown = City_OnMouseDown
+
+  While bNotSelected
+
+    Program.Delay(500)
+
+  EndWhile
+
+  GraphicsWindow.Clear()
+
+EndSub
+
+Sub City_OnMouseDown
+
+  i = Math.Floor(GraphicsWindow.MouseY / 18)
+
+  If 0 < i And i <= iCities Then
+
+    sCity = sCities[i]
+
+    bNotSelected = "False"
+
+  EndIf  
+
+EndSub
+
+Sub City_OnMouseMove
+
+  i = Math.Floor(GraphicsWindow.MouseY / 18)
+
+  If 0 < i And i <= iCities Then
+
+    Shapes.SetOpacity(oCity[iLast], 50)
+
+    Shapes.SetOpacity(oCity[i], 100)
+
+    iLast = i
+
+  EndIf  
+
+EndSub
+
+Sub Clock_Init
+
+  ' Clock | Initialization
+
+  uFolder = "http://www.nonkit.com/smallbasic.files/"
+
+  iTX = 6 * 6   ' character size for time
+
+  iTY = 10 * 6
+
+  iTX0 = 260
+
+  iTY0 = 80
+
+  iHX = 9       ' character size for hour numerals
+
+  iHY = 13
+
+  iAX = 18      ' character size for date and city
+
+  iAY = 26
+
+  sBGColor = "Black"  ' background color
+
+  sFGColor = "White"  ' foreground color
+
+  Timer.Interval = 1000
+
+  Timer.Tick = Clock_OnTick
+
+  bTick = "False"
+
+  iDaySec = 24 * 60 * 60
+
+  GraphicsWindow.BackgroundColor = sBGColor
+
+EndSub
+
+Sub Clock_OnTick
+
+  ' Clock | Event processing on tick
+
+  iHour = Clock.Hour
+
+  iMin = Clock.Minute
+
+  iSec = Clock.Second
+
+  iYear = Clock.Year
+
+  iMonth = Clock.Month
+
+  iDay = Clock.Day
+
+  Clock_ShowDigitalTime()
+
+  Clock_ShowDigitalDate()
+
+  Earth_Rotate()
+
+EndSub
+
+Sub Clock_ShowDigitalDate
+
+  ' Clock | Show digital date
+
+  sDate = iYear + "/"
+
+  If iMonth < 10 Then
+
+    sDate = sDate + "0" + iMonth + "/"
+
+  Else
+
+    sDate = sDate + iMonth + "/"
+
+  EndIf
+
+  If iDay < 10 Then
+
+    sDate = sDate + "0" + iDay
+
+  Else
+
+    sDate = sDate + iDay
+
+  EndIf
+
+  If silverlight Then
+
+    Program.Delay(iDelay)
+
+  EndIf
+
+  GraphicsWindow.FontSize = iAY
+
+  GraphicsWindow.BrushColor = sBGColor
+
+  GraphicsWindow.FillRectangle(iAX * 3 + iTX0, iAY * 5 + iTY0, iAX * 10, iAY * 1.1) 
+
+  GraphicsWindow.BrushColor = sFGColor
+
+  GraphicsWindow.DrawText(iAX * 3 + iTX0, iAY * 5 - 3 + iTY0, sDate)
+
+EndSub
+
+Sub Clock_ShowDigitalTime
+
+  ' Clock | Show digital time
+
+  If iHour < 10 Then
+
+    sTime = Text.Append("0", iHour) + ":"
+
+  Else
+
+    sTime = iHour + ":"
+
+  EndIf
+
+  If iMin < 10 Then
+
+    sTime = sTime + "0" + iMin + ":"
+
+  Else
+
+    sTime = sTime + iMin + ":"
+
+  EndIf
+
+  If iSec < 10 Then
+
+    sTime = sTime + "0" + iSec
+
+  Else
+
+    sTime = sTime + iSec
+
+  EndIf
+
+  If silverlight Then
+
+    Program.Delay(iDelay)
+
+  EndIf
+
+  GraphicsWindow.FontSize = iTY
+
+  GraphicsWindow.BrushColor = sBGColor
+
+  GraphicsWindow.FillRectangle(iTX * 1.4 + iTX0, iTY + iTY0, iTX * 8, iTY * 1.1)
+
+  GraphicsWindow.BrushColor = sFGColor
+
+  GraphicsWindow.DrawText(iTX * 1.4 + iTX0, iTY - 3 + iTY0, sTime)
+
+EndSub
+
+Sub Earth_DrawHourNumerals
+
+  ' Earth | Draw hour numerals
+
+  GraphicsWindow.BrushColor = sFGColor
+
+  If silverlight Then
+
+    Program.Delay(iDelay)
+
+  EndIf
+
+  GraphicsWindow.FontSize = iHY
+
+  For iHour = 0 To 22 Step 2
+
+    iX = iXC - Math.Round(iR * 1.1 * Math.Sin(iHour * 2 * 3.14159 / 24) + iHX / 2)
+
+    iY = iYC - Math.Round(iR * 1.1 * Math.Cos(iHour * 2 * 3.14159 / 24) + iHY / 2)
+
+    GraphicsWindow.DrawText(iX, iY + iTY0, iHour)
+
+  EndFor
+
+EndSub
+
+Sub Earth_Init
+
+  ' Earth | Initialization
+
+  ' show city
+
+  GraphicsWindow.BrushColor = sFGColor
+
+  If rDelta[sCity] > 0 Then
+
+    sSign = "+"
+
+  Else
+
+    sSign = ""
+
+  EndIf
+
+  If silverlight Then
+
+    Program.Delay(iDelay)
+
+  EndIf
+
+  GraphicsWindow.FontSize = iAY
+
+  GraphicsWindow.DrawText(iAX * 3 + iTX0, iAY * 7 + iTY0, sCity + " (" + sSign + rDelta[sCity] + ")")
+
+  ' add north hemesphere image as shape
+
+  uNorth = uFolder + "North.png"
+
+  oNorth = Shapes.AddImage(uNorth) ' north hemesphere
+
+  iR = 100      ' radius for the Earth
+
+  iXC = 50 + iR ' center of the Earth
+
+  iYC = 40 + iR
+
+  Shapes.Move(oNorth, iXC - iR, iYC - iR + iTY0)
+
+  ' add shade image as shape
+
+  iMonth = Clock.Month
+
+  uShadow = uFolder + "Shadow" + iMonth + ".png"
+
+  oShadow = Shapes.AddImage(uShadow) ' shadow
+
+  Shapes.SetOpacity(oShadow, 60)
+
+  Shapes.Move(oShadow, iXC - iR, iYC - iR + iTY0)
+
+EndSub
+
+Sub Earth_Rotate
+
+  ' Earth | Rotate
+
+  rDegree = (((iHour - rDelta[sCity]) * 60 + iMin) * 60 + iSec) * 360 / iDaySec
+
+  Shapes.Rotate(oNorth, -1 * rDegree)
+
+EndSub
+
+Sub SB_Workaround
+
+  ' Small Basic | Workaround for Silverlight
+
+  ' returns silverlight - "True" if in remote
+
+  color = GraphicsWindow.GetPixel(0, 0)
+
+  If Text.GetLength(color) > 7 Then
+
+    silverlight = "True"
+
+    iDelay = 300
+
+  Else
+
+    silverlight = "False"
+
+  EndIf
+
+EndSub
+
+

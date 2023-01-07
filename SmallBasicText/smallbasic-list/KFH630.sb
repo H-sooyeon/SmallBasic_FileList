@@ -1,0 +1,769 @@
+'Tank Rampage
+
+'Copyright (c) 2012 by Timo Söchtig and Math Man
+
+Initialize()
+
+TankData()
+
+TowerData()
+
+LevelData()
+
+ToolBar()
+
+
+
+Sub OnTick
+
+  For h = 0 To Amount_Tanks+1
+
+    TankX[h] = TankX[h] + TankSpeed[TankType[h]]
+
+    If TankX[h]+35 > Width Then
+
+      TankX[h] = Width+200
+
+    EndIf
+
+    Shapes.Move(TankReady[h],TankX[h],TankY[h])
+
+  EndFor
+
+  For h = 1 To index
+
+    If notFiring[h] Then
+
+      notFiring[h] = "False"
+
+      DetermineTarget()
+
+      DetermineAngle()
+
+      If Target <> "" Then
+
+        GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
+
+        GraphicsWindow.PenColor = GraphicsWindow.BrushColor
+
+        Ammo[h] = Shapes.AddEllipse(8,8)
+
+        Shapes.SetOpacity(Ammo[h],60)
+
+        AmmoTarget[h] = Target
+
+        AmmoX[h] = TowerX[h]
+
+        AmmoY[h] = TowerY[h]
+
+        AmmoAngle[h] = angle
+
+        Dist[h] = 0
+
+      EndIf
+
+    EndIf
+
+    Target = AmmoTarget[h]
+
+    DetermineAngle()
+
+    AmmoAngle[h] = angle
+
+    Dist[h] = Dist[h]+TowerSpeed[TowerType[h]]
+
+    AmmoX[h] = AmmoX[h]+Math.Cos(AmmoAngle[h])*1/5*TowerSpeed[TowerType[h]]
+
+    AmmoY[h] = AmmoY[h]+Math.Sin(AmmoAngle[h])*1/5*TowerSpeed[TowerType[h]]
+
+    Shapes.Move(Ammo[h],AmmoX[h]-4,AmmoY[h]-4)
+
+    If Dist[h] > TowerRange[TowerType[h]] Then
+
+      notFiring[h] = "True"
+
+      Shapes.Remove(Ammo[h])
+
+    EndIf
+
+    If AmmoY[h] - TankY[Target] < 20 And AmmoY[h] - TankY[Target] > -20 And AmmoX[h] - TankX[Target] < 20 And AmmoX[h] - TankX[Target] > -20 Then
+
+      HP[Target] = HP[Target]-(TowerDamage[Target]-TankArmor[TankType[Target]])
+
+      notFiring[h] = "True"
+
+      Shapes.Remove(Ammo[h])
+
+      Shapes.Remove(TankReady[Target])
+
+      Money = Money+TankMoney[Target]
+
+      If HP[Target] <= 0 Then
+
+        For w = Target+1 To Amount_Tanks
+
+          TankReady[w-1] = TankReady[w]
+
+          TankReady[w] = TankReady[w+1]
+
+          TankX[w-1] = TankX[w]
+
+          TankX[w] = TankX[w+1]
+
+          TankY[w-1] = TankY[w]
+
+          TankY[w] = TankY[w+1]
+
+          TankType[w-1] = TankType[w]
+
+          TankType[w] = TankType[w+1]
+
+          HP[w-1] = HP[w]
+
+          HP[w] = HP[w+1]
+
+        EndFor
+
+        For r = 1 To index
+
+          If AmmoTarget[r] >= Target Then
+
+            AmmoTarget[r] = AmmoTarget[r]-1
+
+          EndIf
+
+        EndFor
+
+        Amount_Tanks = Amount_Tanks-1
+
+        Shapes.SetText(txtMoney,"Your money:"+Text.GetCharacter(10)+" $ "+Money)
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub Initialize
+
+  GraphicsWindow.CanResize = 0
+
+  Width = GraphicsWindow.Width
+
+  Height = GraphicsWindow.Height
+
+  GraphicsWindow.BrushColor = "DarkGray"
+
+  GraphicsWindow.PenColor = "DarkGray"
+
+  Road = Shapes.AddRectangle(Width,45)
+
+  Shapes.Move(Road,0,Height/2-22)
+
+  GraphicsWindow.BackgroundColor = "Green"
+
+  GraphicsWindow.Title = "Tank Rampage"
+
+  GraphicsWindow.MouseMove = MouseMove
+
+  GraphicsWindow.MouseUp = MouseUp
+
+  Controls.ButtonClicked = ButtonClick
+
+  GameInterval = 30
+
+  OnTick = ""
+
+  Timer.Tick = OnTick
+
+  Timer.Interval = GameInterval
+
+  Money = 550
+
+  GraphicsWindow.ShowMessage("Welcome to Tank Rampage! It is a simple TD game."+Text.GetCharacter(10)+"Grab towers from the right side."+Text.GetCharacter(10)+"Press start when you're ready to start the rampage! ","Tank Rampage")
+
+EndSub
+
+
+
+Sub TowerData
+
+  Dir = Program.Directory+"\Pictures\"
+
+  For i = 1 To 3
+
+    TowerImage[i] = ImageList.LoadImage(Dir+"Tower "+i+".gif")
+
+  EndFor
+
+  
+
+  TowerDamage[1] = 35
+
+  TowerRange[1] = 250
+
+  TowerSpeed[1] = 60
+
+  TowerCost[1] = 250
+
+  
+
+  TowerDamage[2] = 75
+
+  TowerRange[2] = 270
+
+  TowerSpeed[2] = 45
+
+  TowerCost[2] = 300
+
+  
+
+  TowerDamage[3] = 0
+
+  TowerRange[3] = 270
+
+  TowerSpeed[3] = 40
+
+  TowerCost[3] = 350
+
+  
+
+  TowerNum = Array.GetItemCount(TowerImage)
+
+EndSub
+
+
+
+Sub TankData
+
+  Dir = Program.Directory+"\Pictures\"
+
+  For i = 1 To 4
+
+    TankImage[i] = ImageList.LoadImage(Dir+"Tank "+i+".gif")
+
+  EndFor
+
+  TankImage[5] = ImageList.LoadImage(Dir+"Boss.gif")
+
+  
+
+  TankSpeed[1] = 3 'speed he goes per about ?? milliseconds
+
+  TankHP[1] = 50 'hit points
+
+  TankArmor[1] = 1 'damage reduction
+
+  TankMoney[1] = 50 'money for killing
+
+  TankProb[1] = 35 'probability of it appearing in percent
+
+  
+
+  TankSpeed[2] = 6
+
+  TankHP[2] = 20
+
+  TankArmor[2] = 1
+
+  TankMoney[2] = 40
+
+  TankProb[2] = 30
+
+  
+
+  TankSpeed[3] = 3
+
+  TankHP[3] = 70
+
+  TankArmor[3] = 2
+
+  TankMoney[3] = 80
+
+  TankProb[3] = 20
+
+  
+
+  TankSpeed[4] = 5
+
+  TankHP[4] = 80
+
+  TankArmor[4] = 3
+
+  TankMoney[4] = 140
+
+  TankProb[4] = 15
+
+  
+
+  TankSpeed[5] = 4
+
+  TankHP[5] = 200
+
+  TankArmor[5] = 4
+
+  TankMoney[5] = 450
+
+  TankProb[5] = 0
+
+EndSub
+
+
+
+Sub LevelData
+
+  Level_AmountTanks[1] = 5
+
+  LevelNum = 1
+
+EndSub
+
+
+
+Sub ToolBar
+
+  GraphicsWindow.Width = Width+100
+
+  GraphicsWindow.BrushColor = "LightGray"
+
+  GraphicsWindow.PenColor = "LightGray"
+
+  Bar = Shapes.AddRectangle(100,Height)
+
+  Shapes.Move(Bar,Width,0)
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  GraphicsWindow.PenColor = "Gray"
+
+  txtMoney = Shapes.AddText("Your money:"+Text.GetCharacter(10)+" $ "+Money)
+
+  Shapes.Move(txtMoney,Width+20,10)
+
+  For i = 1 To TowerNum
+
+    BackSquare[i] = Shapes.AddRectangle(30,30)
+
+    Icon[i] = Shapes.AddImage(TowerImage[i])
+
+    CostDisplay[i] = Shapes.AddText("$ "+TowerCost[i])
+
+    Shapes.Move(BackSquare[i],Width+50-15,i*80)
+
+    Shapes.Move(Icon[i],Width+50-13,i*80+3)
+
+    Shapes.Move(CostDisplay[i],Width+50-25,i*80+40)
+
+    Shapes.SetOpacity(BackSquare[i],20)
+
+  EndFor
+
+  btnStart = Controls.AddButton("Start!",Width+50-30,i*80+30)
+
+  btnPause = Controls.AddButton("Pause",Width+50-30,i*80+60)
+
+EndSub
+
+
+
+Sub StartTanksComing
+
+  For g = 1 To Level_AmountTanks[LevelNum]
+
+    NumOfTank = Math.GetRandomNumber(100)
+
+    If NumOfTank <= TankProb[1] Then
+
+      nowTank = 1
+
+    ElseIf NumOfTank <= TankProb[2]+TankProb[1] Then
+
+      nowTank = 2
+
+    ElseIf NumOfTank <= TankProb[3]+TankProb[2]+TankProb[1] Then
+
+      nowTank = 3
+
+    ElseIf NumOfTank <= TankProb[4]+TankProb[3]+TankProb[2]+TankProb[1] Then
+
+      nowTank = 4
+
+    EndIf
+
+    TankReady[g] = Shapes.AddImage(TankImage[nowTank])
+
+    TankX[g] = -g*80
+
+    TankY[g] = Height/2-20+Math.GetRandomNumber(20)
+
+    TankType[g] = nowTank
+
+    HP[g] = TankHP[nowTank]
+
+    Amount_Tanks = Amount_Tanks+1
+
+  EndFor
+
+EndSub
+
+
+
+Sub MouseMove
+
+  MX = GraphicsWindow.MouseX
+
+  MY = GraphicsWindow.MouseY
+
+  If waitingToBePlaced Then
+
+    Shapes.Move(TowerReady[index],MX-13,MY-13)
+
+  Else
+
+    For q = 1 To TowerNum
+
+      If MX > Width+50-15 And MX < Width+50+15 And MY > q*80 And MY < q*80+30 Then
+
+        If Money >= TowerCost[q] Then
+
+          Shapes.SetOpacity(BackSquare[q],90)
+
+        Else
+
+          Shapes.SetOpacity(BackSquare[q],20)
+
+        EndIf
+
+      Else
+
+        Shapes.SetOpacity(BackSquare[q],20)
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub MouseUp
+
+  If waitingToBePlaced And MY < Height/2-32 Or MY > Height/2+32 Then
+
+    TowerX[index] = MX-13
+
+    TowerY[index] = MY-13
+
+    notFiring[index] = "True"
+
+    waitingToBePlaced = "False"
+
+  Else
+
+    For q = 1 To TowerNum
+
+      If MX > Width+50-15 And MX < Width+50+15 And MY > q*80 And MY < q*80+30 Then
+
+        If Money >= TowerCost[q] Then
+
+          index = index+1
+
+          waitingToBePlaced = "True"
+
+          TowerReady[index] = Shapes.AddImage(TowerImage[q])
+
+          TowerType[index] = q
+
+          Shapes.Move(TowerReady[index],MX-12,MY-12)
+
+          Money = Money-TowerCost[q]
+
+          Shapes.SetText(txtMoney,"Your money:"+Text.GetCharacter(10)+" $ "+Money)
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub ButtonClick
+
+  Button = Controls.LastClickedButton
+
+  If Button = btnStart Then
+
+    StartTanksComing()
+
+  ElseIf Button = btnPause Then
+
+    Pause()
+
+  ElseIf Button = btnCancel Then
+
+    Controls.Remove(btnCancel)
+
+    Controls.Remove(btnNewSaveSlot)
+
+    For i = 1 To Array.GetItemCount(SavedGames)
+
+      Controls.Remove(btnSaveGame[i])
+
+    EndFor
+
+    Shapes.Remove(PauseScreen)
+
+    Pause()
+
+  ElseIf Button = btnUnpause Then
+
+    Timer.Tick = OnTick
+
+    Shapes.Remove(PauseScreen)
+
+    Controls.Remove(btnUnpause)
+
+    Controls.Remove(btnSaveGame)
+
+    Controls.Remove(btnLoadGame)
+
+    Controls.Remove(btnQuit)
+
+  ElseIf Button = btnSaveGame Then
+
+    SaveGame()
+
+  ElseIf Array.ContainsValue(btnSaveGame,Button) Then
+
+    OverwriteFile()
+
+  ElseIf Button = btnNewSaveSlot Then
+
+    AskForFileName()
+
+  ElseIf Button = btnLoadGame Then
+
+    LoadGame()
+
+  ElseIf Array.ContainsValue(btnLoadGame,Button) Then
+
+    LoadFile()
+
+  ElseIf Button = btnQuit Then
+
+    Quit()
+
+  EndIf
+
+EndSub
+
+
+
+Sub Pause
+
+  Timer.Tick = Nothing
+
+  GraphicsWindow.BrushColor = "DarkGray"
+
+  GraphicsWindow.PenColor = "Gray"
+
+  temp = GraphicsWindow.FontSize
+
+  GraphicsWindow.FontSize = 50
+
+  Amount_Buttons = 4
+
+  PauseScreen = Shapes.AddRectangle(Width+100,Height)
+
+  btnUnpause = Controls.AddButton("Resume",10,10)
+
+  Controls.SetSize(btnUnpause,Width+80,(Height-20)/Amount_Buttons)
+
+  btnSaveGame = Controls.AddButton("Save Game",10,10+(Height-20)/Amount_Buttons)
+
+  Controls.SetSize(btnSaveGame,Width+80,(Height-20)/Amount_Buttons)
+
+  btnLoadGame = Controls.AddButton("Load Game",10,10+(Height-20)/Amount_Buttons*2)
+
+  Controls.SetSize(btnLoadGame,Width+80,(Height-20)/Amount_Buttons)
+
+  btnQuit = Controls.AddButton("Quit",10,10+(Height-20)/Amount_Buttons*3)
+
+  Controls.SetSize(btnQuit,Width+80,(Height-20)/Amount_Buttons)
+
+  GraphicsWindow.FontSize = temp
+
+EndSub
+
+
+
+Sub SaveGame
+
+  Controls.Remove(btnUnpause)
+
+  Controls.Remove(btnSaveGame)
+
+  Controls.Remove(btnLoadGame)
+
+  Controls.Remove(btnQuit)
+
+' The following line could be harmful and has been automatically commented.
+
+'   SavedGames = File.GetFiles(Program.Directory+"\Saved games\")
+
+  btnCancel = Controls.AddButton("Cancel",10,10)
+
+  Controls.SetSize(btnCancel,Width+80,(Height-20)/(Array.GetItemCount(SavedGames)+2))
+
+  For i = 1 To Array.GetItemCount(SavedGames)
+
+    btnSaveGame[i] = Controls.AddButton(Text.GetSubTextToEnd(Text.GetSubText(SavedGames[i],1,Text.GetLength(SavedGames[i])-4),Text.GetLength(Program.Directory+"\Saved games\")+1),10,i*(Height-20)/(Array.GetItemCount(SavedGames)+2)+10)
+
+    Controls.SetSize(btnSaveGame[i],Width+80,(Height-20)/(Array.GetItemCount(SavedGames)+2))
+
+  EndFor
+
+  btnNewSaveSlot = Controls.AddButton("New save slot",10,(i)*(Height-20)/(Array.GetItemCount(SavedGames)+2)+10)
+
+  Controls.SetSize(btnNewSaveSlot,Width+80,(Height-20)/(Array.GetItemCount(SavedGames)+2))
+
+EndSub
+
+
+
+Sub OverwriteFile
+
+EndSub
+
+
+
+Sub AskForFileName
+
+EndSub
+
+
+
+Sub LoadGame
+
+  Controls.Remove(btnUnpause)
+
+  Controls.Remove(btnSaveGame)
+
+  Controls.Remove(btnLoadGame)
+
+  Controls.Remove(btnQuit)
+
+' The following line could be harmful and has been automatically commented.
+
+'   SavedGames = File.GetFiles(Program.Directory+"\Saved games\")
+
+  btnCancel = Controls.AddButton("Cancel",10,10)
+
+  Controls.SetSize(btnCancel,Width+80,(Height-20)/(Array.GetItemCount(SavedGames)+1))
+
+  For i = 1 To Array.GetItemCount(SavedGames)
+
+    btnLoadGame[i] = Controls.AddButton(Text.GetSubTextToEnd(Text.GetSubText(SavedGames[i],1,Text.GetLength(SavedGames[i])-4),Text.GetLength(Program.Directory+"\Saved games\")+1),10,i*(Height-20)/(Array.GetItemCount(SavedGames)+1)+10)
+
+    Controls.SetSize(btnLoadGame[i],Width+80,(Height-20)/(Array.GetItemCount(SavedGames)+1))
+
+  EndFor
+
+EndSub
+
+
+
+Sub LoadFile
+
+EndSub
+
+
+
+Sub Nothing
+
+EndSub
+
+
+
+Sub Quit
+
+  Program.End()
+
+EndSub
+
+
+
+Sub DetermineTarget
+
+  Target = ""
+
+  Greatest = ""
+
+  For r = 1 To Amount_Tanks
+
+    If TankX[r] > Greatest And Math.SquareRoot(Math.Power(TankX[r]-TowerX[h],2)+Math.Power(TankY[r]-TowerY[h],2)) < TowerRange[TowerType[h]] Then
+
+      Greatest = TankX[r]
+
+      Target = r
+
+    EndIf
+
+  EndFor
+
+  If Math.SquareRoot(Math.Power(TankX[Target]-TowerX[h],2)+Math.Power(TankY[Target]-TowerY[h],2)) > TowerRange[TowerType[h]] Then
+
+    notFiring[h] = "True"
+
+  EndIf
+
+EndSub
+
+
+
+Sub DetermineAngle
+
+  dx =  TowerX[h] - TankX[Target]
+
+  dy =  TowerY[h] - TankY[Target]
+
+  If (dx = 0) Then
+
+    angle = Math.Pi/2
+
+    If (dy[g] < 0) Then
+
+      angle = -angle
+
+    EndIf
+
+  Else
+
+    angle = Math.ArcTan(dy/dx)
+
+  EndIf
+
+  If (dx < 0) Then
+
+    angle = angle+Math.Pi
+
+  EndIf
+
+  angle = angle+Math.Pi
+
+EndSub
+
+

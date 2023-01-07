@@ -1,0 +1,2003 @@
+'Program By cvmarus 11-13-18
+
+TextWindow.WriteLine("Virtual Rubix Cube")
+
+Sub savefile
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(filename,filedat)
+
+EndSub
+
+Sub loadfile
+
+' The following line could be harmful and has been automatically commented.
+
+'   filedat = File.ReadContents(filename)
+
+EndSub
+
+' The following line could be harmful and has been automatically commented.
+
+' If LDFile.Exists(Program.Directory+"/block.obj") = "False" Then
+
+  makeblock()
+
+  filename = Program.Directory+"/block.obj"
+
+  filedat = tmp1
+
+  savefile()
+
+EndIf
+
+Sub loadcube
+
+  filename = LDDialogs.OpenFile("rbx",Program.Directory)
+
+' The following line could be harmful and has been automatically commented.
+
+'   If LDFile.Exists(filename) Then
+
+    loadfile()
+
+    filedat = LDText.Split(filedat,":")
+
+    For cnum = 1 To 27
+
+      i = 12*cnum-12
+
+      For ii = 1 To 3
+
+        pos[ii] = filedat[i+ii]
+
+        xaxis[cnum][ii] = filedat[i+ii+3]
+
+        yaxis[cnum][ii] = filedat[i+ii+6]
+
+        zaxis[cnum][ii] = filedat[i+ii+9]
+
+      EndFor
+
+      LD3DView.TranslateGeometry(view3d,cube[cnum],pos[1],pos[2],pos[3])
+
+      cfn = cnum
+
+      axisfind = xaxis[cfn][1]+":"+xaxis[cfn][2]+":"+xaxis[cfn][3]+":"+yaxis[cfn][1]+":"+yaxis[cfn][2]+":"+yaxis[cfn][3]+":"+zaxis[cfn][1]+":"+zaxis[cfn][2]+":"+zaxis[cfn][3]+":"
+
+      matchamt = LDArray.Search(cdat,axisfind,match)
+
+      skinindex[cfn] = (LDArray.GetValue(match,1)+1)/2
+
+      LD3DView.SetCentre(view3d,cube[cfn],-pos[1],-pos[2],-pos[3],"R1R2R3")
+
+      LD3DView.TranslateGeometry(view3d,cube[cfn],pos[1],pos[2],pos[3])
+
+      LD3DView.ResetMaterial(view3d,cube[cfn],"Black","D")
+
+      LD3DView.AddImage(view3d,cube[cfn],"",skin[skinindex[cfn]],"E")
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+var()
+
+buildskins()
+
+var2()
+
+view3d = LD3DView.AddView(gw,gh,"False")
+
+background()
+
+GraphicsWindow.Title = "Virtual Rubix Cube"
+
+'test
+
+'LD3DView.AutoControl("True","True",100,1)
+
+LD3DView.AddAmbientLight(view3d,"White")
+
+LDTimer.Tick = onldtimer
+
+randtimer = LDTimer.Add()
+
+LDTimer.Interval(randtimer,200)
+
+LDTimer.Pause(randtimer)
+
+playtimer = LDTimer.Add()
+
+LDTimer.Interval(playtimer,400)
+
+LDTimer.Pause(playtimer)
+
+orbittimer = LDTimer.Add()
+
+LDTimer.Interval(orbittimer,15)
+
+LDTimer.Pause(orbittimer)
+
+verttimer = LDTimer.Add()
+
+LDTimer.Interval(verttimer,15)
+
+LDTimer.Pause(verttimer)
+
+LD3DView.TranslationCompleted = ontransdone
+
+LD3DView.RotationCompleted = onrotatedone
+
+GraphicsWindow.KeyUp = onkeyup
+
+Controls.ButtonClicked = onbutton
+
+GraphicsWindow.MouseMove = onmousemove
+
+GraphicsWindow.MouseDown = onmousedown
+
+GraphicsWindow.MouseUp = onmouseup
+
+LDControls.RichTextBoxFontBackground = "PaleGoldenrod"
+
+LDControls.RichTextBoxFontForeground = "Black"
+
+LDControls.RichTextBoxFontSize=16
+
+LDControls.RichTextBoxMargins(40,40,25,25)
+
+helpbox = LDControls.AddRichTextBox(gw*.7,gh*.86)
+
+LDControls.RichTextBoxDefault(helpbox)
+
+Controls.Move(helpbox,gw*.15,gh*.08)
+
+Controls.HideControl(helpbox)
+
+helpdata()
+
+cube = LD3DView.LoadModel(view3d,Program.Directory+"/block.obj")
+
+LD3DView.ResetMaterial(view3d,cube[1],"Black","D")
+
+LD3DView.AddImage(view3d,cube[1],"",skin[24],"E")
+
+LD3DView.TranslateGeometry(view3d,cube[1],2,2,2)
+
+LD3DView.SetCentre(view3d,cube[1],-2,-2,-2,"R1R2R3S")
+
+addcubes()
+
+camtug = LD3DView.AddCube(view3d,.5,"Yellow","D")
+
+camtug2 = LD3DView.CloneObject(view3d,camtug)
+
+LD3DView.TranslateGeometry(view3d,camtug,12,12,12)
+
+LD3DView.TranslateGeometry(view3d,camtug2,100,12,100)
+
+LD3DView.SetCentre(view3d,camtug,-12,-12,-12,"R1R2R3")
+
+LDControls.ListBoxItemChanged = OnListBoxItemChanged
+
+setupclickcubes()
+
+makearrows()
+
+setuplistboxes()
+
+loadalgdata()
+
+clist[1] = 1
+
+LDCall.Function3("rotmatrix2",0,xv,clist)
+
+findaxisdat()
+
+cubeaction = "False"
+
+LDCall.Function2("setorbit",1,-1)
+
+
+
+Sub onbutton
+
+  but = Controls.LastClickedButton
+
+  If but = helpclose Then
+
+    Controls.HideControl(helpbox)
+
+    Controls.HideControl(helpclose)
+
+    For i = Text.GetSubTextToEnd(firstarrow,6) To Text.GetSubTextToEnd(lastarrow,6)
+
+      Shapes.ShowShape("Image"+i)
+
+    Endfor
+
+  EndIf
+
+EndSub
+
+
+
+Sub onldtimer
+
+  timername = LDTimer.LastTimer
+
+  If timername = playtimer Then
+
+    playalgorithm()
+
+  EndIf
+
+  If timername = randtimer Then
+
+    randomizer()
+
+  EndIf
+
+  If timername = orbittimer Then
+
+    orbitcamera()
+
+  EndIf
+
+  If timername = verttimer Then
+
+    vertcamera()
+
+  EndIf
+
+EndSub
+
+
+
+Sub setorbit  '    orbitcamera 
+
+  cubeaction = "True"
+
+  up = args[1]
+
+  orbitadd = args[2]
+
+  camtugangstart = camtugangend
+
+  camtugangend = camtugangend + 90 * orbitadd
+
+  LD3DView.AnimateRotation(view3d,camtug,0,up,0,camtugangstart,camtugangend,.5,1)
+
+  LDTimer.Resume(orbittimer)
+
+EndSub
+
+
+
+Sub vertcamera
+
+  mousetracking = "False"
+
+  campos = LD3DView.GetPosition(view3d,camtug)
+
+  campos2 = LD3DView.GetPosition(view3d,camtug2)
+
+  campos[2] = campos2[2]
+
+  camdir = LDVector.Normalise(LDVector.Multiply(campos,-1))
+
+  camup = LDVector.Normalise(LDVector.Subtract(campos,camtop))
+
+  'test
+
+  LD3DView.ResetCamera(view3d,campos[1],campos[2],campos[3],camdir[1],camdir[2],camdir[3],camup[1],camup[2],camup[3])
+
+EndSub
+
+
+
+Sub orbitcamera
+
+  mousetracking = "False"
+
+  campos = LD3DView.GetPosition(view3d,camtug)
+
+  tug2pos = LD3DView.GetPosition(view3d,camtug2)
+
+  campos[2] = tug2pos[2]
+
+  camdir = LDVector.Normalise(LDVector.Multiply(campos,-1))
+
+  camup = LDVector.Multiply(yv,up1)
+
+  'test  
+
+  LD3DView.ResetCamera(view3d,campos[1],campos[2],campos[3],camdir[1],camdir[2],camdir[3],camup[1],camup[2],camup[3])
+
+EndSub
+
+
+
+Sub turncube
+
+  sign = args[1] 'dir
+
+  xyzcmd = args[2] 'axis x y z   pos   neg
+
+  If cubeaction = "False" Then
+
+    If xyzcmd = "xpos" Then
+
+      LDCall.Function3("rotmatrix2",sign,xv,LDCall.Function("getcubelist",LDVector.Multiply(xv,sign)))  'direction,  vector     getcubelist vector needs minus work
+
+    ElseIf xyzcmd = "xneg" then
+
+      LDCall.Function3("rotmatrix2",-sign,xv,LDCall.Function("getcubelist",LDVector.Multiply(xv,sign)))
+
+    elseif xyzcmd = "ypos" then
+
+      LDCall.Function3("rotmatrix2",sign,yv,LDCall.Function("getcubelist",LDVector.Multiply(yv,sign)))
+
+    elseif xyzcmd = "yneg" then
+
+      LDCall.Function3("rotmatrix2",-sign,yv,LDCall.Function("getcubelist",LDVector.Multiply(yv,sign))) 
+
+    elseif xyzcmd = "zpos" then
+
+      LDCall.Function3("rotmatrix2",sign,zv,LDCall.Function("getcubelist",LDVector.Multiply(zv,sign)))
+
+    elseif xyzcmd = "zneg" then
+
+      LDCall.Function3("rotmatrix2",-sign,zv,LDCall.Function("getcubelist",LDVector.Multiply(zv,sign)))
+
+    EndIf
+
+    findaxisdat()
+
+  EndIf
+
+EndSub
+
+
+
+Sub findaxisdat
+
+  For f1 = 1 To 9
+
+    cfn = clist[f1]
+
+    axisfind = xaxis[cfn][1]+":"+xaxis[cfn][2]+":"+xaxis[cfn][3]+":"+yaxis[cfn][1]+":"+yaxis[cfn][2]+":"+yaxis[cfn][3]+":"+zaxis[cfn][1]+":"+zaxis[cfn][2]+":"+zaxis[cfn][3]+":"
+
+    matchamt = LDArray.Search(cdat,axisfind,match)
+
+    skinindex[f1] = (LDArray.GetValue(match,1)+1)/2
+
+  EndFor
+
+EndSub
+
+
+
+Sub getcubelist
+
+  cside = args[1]
+
+  clist = ""
+
+  c2 = 1
+
+  If cside[1] <> 0 Then
+
+    c1 = 1
+
+  ElseIf cside[2] <> 0 then
+
+    c1 = 2
+
+  elseif cside[3] <> 0 then
+
+    c1 = 3
+
+  EndIf
+
+  If cside[c1] > 0 Then
+
+    For i2 = 1 To 27
+
+      pos2 = LD3DView.GetPosition(view3d,cube[i2])
+
+      If pos2[c1] > 1 Then
+
+        clist[c2] = i2
+
+        c2 = c2 + 1
+
+      EndIf
+
+    EndFor
+
+  ElseIf cside[c1] < 0 then
+
+    For i2 = 1 To 27
+
+      pos2 = LD3DView.GetPosition(view3d,cube[i2])
+
+      If pos2[c1] < -1 Then
+
+        clist[c2] = i2
+
+        c2 = c2 + 1
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  return = clist
+
+EndSub
+
+
+
+sub rotmatrix2
+
+  cid = args[3]  'nine cube id's
+
+  rotvec = args[2]
+
+  dir = args[1]
+
+  For i = 1 To Array.GetItemCount(cid)
+
+    cnum = cid[i]
+
+    xaxis[cnum] = LDVector.Rotate(xaxis[cnum],rotvec,90*dir)
+
+    yaxis[cnum] = LDVector.Rotate(yaxis[cnum],rotvec,90*dir)
+
+    zaxis[cnum] = LDVector.Rotate(zaxis[cnum],rotvec,90*dir)
+
+    For i1 = 1 To 3
+
+      xaxis[cnum][i1] = LDMath.FixDecimal(xaxis[cnum][i1],0)
+
+      yaxis[cnum][i1] = LDMath.FixDecimal(yaxis[cnum][i1],0)
+
+      zaxis[cnum][i1] = LDMath.FixDecimal(zaxis[cnum][i1],0)
+
+    EndFor
+
+    LD3DView.AnimateRotation(view3d,cube[cnum],rotvec[1],rotvec[2],rotvec[3],0,90*dir,dur,1)
+
+  EndFor
+
+  cubeaction = "True"
+
+EndSub
+
+
+
+Sub ontransdone
+
+  If LD3DView.LastTranslationCompleted = transdone Then
+
+    transdone = ""
+
+    LDTimer.Pause(verttimer)
+
+    camdir = LD3DView.GetCameraDirection(view3d)
+
+    campos = LD3DView.GetCameraPosition(view3d)
+
+    tp = LD3DView.GetPosition(view3d,camtug2)
+
+    campos[2] = Math.Round(campos[2])
+
+    camdir = LDVector.Normalise(LDVector.Multiply(campos,-1))
+
+    camup = LD3DView.GetCameraUpDirection(view3d)
+
+    camup[1] = 0
+
+    camup[3] = 0
+
+    LD3DView.ResetCamera(view3d,campos[1],campos[2],campos[3],camdir[1],camdir[2],camdir[3],camup[1],camup[2],camup[3])
+
+    cubeaction = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub onrotatedone
+
+  If LD3DView.LastRotationCompleted = cube[clist[9]] Then
+
+    For ir = 1 To 9
+
+      crn = clist[ir]  'cube number
+
+      pos = LD3DView.GetPosition(view3d,cube[crn])
+
+      LD3DView.RotateGeometry2(view3d,cube[crn],rotvec[1],rotvec[2],rotvec[3],0)
+
+      LD3DView.SetCentre(view3d,cube[crn],-pos[1],-pos[2],-pos[3],"R1R2R3")
+
+      LD3DView.TranslateGeometry(view3d,cube[crn],pos[1],pos[2],pos[3])
+
+      LD3DView.ResetMaterial(view3d,cube[crn],"Black","D")
+
+      LD3DView.AddImage(view3d,cube[crn],"",skin[skinindex[ir]],"E")
+
+    EndFor
+
+    cubeaction = "False"
+
+  EndIf
+
+  If LD3DView.LastRotationCompleted = camtug Then
+
+    LDTimer.Pause(orbittimer)
+
+    orbitcamera()
+
+    cubeaction = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub var2
+
+  LDGraphicsWindow.State = 2
+
+  GraphicsWindow.Clear()
+
+  gw = GraphicsWindow.Width
+
+  dh = Desktop.Height
+
+  gh = GraphicsWindow.Height
+
+  tbh = dh-gh
+
+  args = ""
+
+  gwc = gw / 2
+
+  ghc = (gh / 2) - tbh 
+
+EndSub
+
+
+
+Sub var
+
+  listitem = ""
+
+  up1 = 1
+
+  dur = .25
+
+  playing = "False"
+
+  recordstate = "False"
+
+  algpic = 0
+
+  arrowstate = "S"
+
+  mousetracking = "False"
+
+  cubeaction = "False"
+
+  camdist = 20
+
+  camtugangend = 90
+
+  cr = Text.GetCharacter(13)
+
+  lf = Text.GetCharacter(10)
+
+  crlf = cr + lf
+
+  vup[1] = 0
+
+  vup[2] = 1
+
+  vup[3] = 0
+
+  xt = 0
+
+  yt = 0
+
+  zt = 0
+
+  t = 5
+
+  xang = 0
+
+  yang = 0
+
+  zang = 0
+
+  v0[1] = "0"
+
+  v0[2] = "0"
+
+  v0[3] = "0"
+
+  xvec[1] = 1
+
+  xvec[2] = 0
+
+  xvec[3] = 0
+
+  yvec[1] = 0
+
+  yvec[2] = 1
+
+  yvec[3] = 0
+
+  zvec[1] = 0
+
+  zvec[2] = 0
+
+  zvec[3] = 1
+
+  xv = xvec
+
+  yv = yvec
+
+  zv = zvec
+
+  W = "#FFFFFF"
+
+  R = "#FF0000"
+
+  B = "#0000FF"
+
+  G  = "#00FF00"
+
+  Y = "#FFFF00"
+
+  O = "#FF7901"
+
+  K = "#000000"
+
+  matrixnum = 1
+
+  match = LDArray.Create(48)
+
+  cdat = LDArray.Create(48)
+
+  LDArray.SetValue(cdat,1,"-1:0:0:0:-1:0:0:0:1:")
+
+  LDArray.SetValue(cdat,2,"#FFFFFF:#FFFF00:#0000FF:#00FF00:#FF7901:#FF0000:")
+
+  LDArray.SetValue(cdat,3,"-1:0:0:0:0:-1:0:-1:0:")
+
+  LDArray.SetValue(cdat,4,"#00FF00:#0000FF:#FFFFFF:#FFFF00:#FF7901:#FF0000:")
+
+  LDArray.SetValue(cdat,5,"-1:0:0:0:0:1:0:1:0:")
+
+  LDArray.SetValue(cdat,6,"#0000FF:#00FF00:#FFFF00:#FFFFFF:#FF7901:#FF0000:")
+
+  LDArray.SetValue(cdat,7,"-1:0:0:0:1:0:0:0:-1:")
+
+  LDArray.SetValue(cdat,8,"#FFFF00:#FFFFFF:#00FF00:#0000FF:#FF7901:#FF0000:")
+
+  LDArray.SetValue(cdat,9,"0:-1:0:-1:0:0:0:0:-1:")
+
+  LDArray.SetValue(cdat,10,"#FF0000:#FF7901:#00FF00:#0000FF:#FFFF00:#FFFFFF:")
+
+  LDArray.SetValue(cdat,11,"0:-1:0:0:0:-1:1:0:0:")
+
+  LDArray.SetValue(cdat,12,"#FF0000:#FF7901:#FFFFFF:#FFFF00:#00FF00:#0000FF:")
+
+  LDArray.SetValue(cdat,13,"0:-1:0:0:0:1:-1:0:0:")
+
+  LDArray.SetValue(cdat,14,"#FF0000:#FF7901:#FFFF00:#FFFFFF:#0000FF:#00FF00:")
+
+  LDArray.SetValue(cdat,15,"0:-1:0:1:0:0:0:0:1:")
+
+  LDArray.SetValue(cdat,16,"#FF0000:#FF7901:#0000FF:#00FF00:#FFFFFF:#FFFF00:")
+
+  LDArray.SetValue(cdat,17,"0:0:-1:-1:0:0:0:1:0:")
+
+  LDArray.SetValue(cdat,18,"#0000FF:#00FF00:#FF0000:#FF7901:#FFFF00:#FFFFFF:")
+
+  LDArray.SetValue(cdat,19,"0:0:-1:0:-1:0:-1:0:0:")
+
+  LDArray.SetValue(cdat,20,"#FFFFFF:#FFFF00:#FF0000:#FF7901:#0000FF:#00FF00:")
+
+  LDArray.SetValue(cdat,21,"0:0:-1:0:1:0:1:0:0:")
+
+  LDArray.SetValue(cdat,22,"#FFFF00:#FFFFFF:#FF0000:#FF7901:#00FF00:#0000FF:")
+
+  LDArray.SetValue(cdat,23,"0:0:-1:1:0:0:0:-1:0:")
+
+  LDArray.SetValue(cdat,24,"#00FF00:#0000FF:#FF0000:#FF7901:#FFFFFF:#FFFF00:")
+
+  LDArray.SetValue(cdat,25,"0:0:1:-1:0:0:0:-1:0:")
+
+  LDArray.SetValue(cdat,26,"#00FF00:#0000FF:#FF7901:#FF0000:#FFFF00:#FFFFFF:")
+
+  LDArray.SetValue(cdat,27,"0:0:1:0:-1:0:1:0:0:")
+
+  LDArray.SetValue(cdat,28,"#FFFFFF:#FFFF00:#FF7901:#FF0000:#00FF00:#0000FF:")
+
+  LDArray.SetValue(cdat,29,"0:0:1:0:1:0:-1:0:0:")
+
+  LDArray.SetValue(cdat,30,"#FFFF00:#FFFFFF:#FF7901:#FF0000:#0000FF:#00FF00:")
+
+  LDArray.SetValue(cdat,31,"0:0:1:1:0:0:0:1:0:")
+
+  LDArray.SetValue(cdat,32,"#0000FF:#00FF00:#FF7901:#FF0000:#FFFFFF:#FFFF00:")
+
+  LDArray.SetValue(cdat,33,"0:1:0:-1:0:0:0:0:1:")
+
+  LDArray.SetValue(cdat,34,"#FF7901:#FF0000:#0000FF:#00FF00:#FFFF00:#FFFFFF:")
+
+  LDArray.SetValue(cdat,35,"0:1:0:0:0:-1:-1:0:0:")
+
+  LDArray.SetValue(cdat,36,"#FF7901:#FF0000:#FFFFFF:#FFFF00:#0000FF:#00FF00:")
+
+  LDArray.SetValue(cdat,37,"0:1:0:0:0:1:1:0:0:")
+
+  LDArray.SetValue(cdat,38,"#FF7901:#FF0000:#FFFF00:#FFFFFF:#00FF00:#0000FF:")
+
+  LDArray.SetValue(cdat,39,"0:1:0:1:0:0:0:0:-1:")
+
+  LDArray.SetValue(cdat,40,"#FF7901:#FF0000:#00FF00:#0000FF:#FFFFFF:#FFFF00:")
+
+  LDArray.SetValue(cdat,41,"1:0:0:0:-1:0:0:0:-1:")
+
+  LDArray.SetValue(cdat,42,"#FFFFFF:#FFFF00:#00FF00:#0000FF:#FF0000:#FF7901:")
+
+  LDArray.SetValue(cdat,43,"1:0:0:0:0:-1:0:1:0:")
+
+  LDArray.SetValue(cdat,44,"#0000FF:#00FF00:#FFFFFF:#FFFF00:#FF0000:#FF7901:")
+
+  LDArray.SetValue(cdat,45,"1:0:0:0:0:1:0:-1:0:")
+
+  LDArray.SetValue(cdat,46,"#00FF00:#0000FF:#FFFF00:#FFFFFF:#FF0000:#FF7901:")
+
+  LDArray.SetValue(cdat,47,"1:0:0:0:1:0:0:0:1:")
+
+  LDArray.SetValue(cdat,48,"#FFFF00:#FFFFFF:#0000FF:#00FF00:#FF0000:#FF7901:")
+
+EndSub
+
+
+
+Sub buildskins
+
+  GraphicsWindow.Width = 255
+
+  GraphicsWindow.Height = 255
+
+  GraphicsWindow.Top = 1
+
+  GraphicsWindow.Left = 1
+
+  skin0 =  LDImage.NewImage(255,255,"Black")
+
+  For skinnum = 1 To 24
+
+    GraphicsWindow.DrawImage(skin0,0,0)
+
+    skincolors = LDText.Split(LDArray.GetValue(cdat,skinnum*2),":")
+
+    GraphicsWindow.BrushColor = skincolors[1]
+
+    GraphicsWindow.FillRectangle(3,3,81,81)
+
+    GraphicsWindow.BrushColor = skincolors[2]
+
+    GraphicsWindow.FillRectangle(3,87,81,81)
+
+    GraphicsWindow.BrushColor = skincolors[3]
+
+    GraphicsWindow.FillRectangle(87,87,81,81)
+
+    GraphicsWindow.BrushColor = skincolors[4]
+
+    GraphicsWindow.FillRectangle(3,172,81,81)
+
+    GraphicsWindow.BrushColor = skincolors[5]
+
+    GraphicsWindow.FillRectangle(87,172,81,81)
+
+    GraphicsWindow.BrushColor = skincolors[6]
+
+    GraphicsWindow.FillRectangle(172,172,81,81)
+
+    skin[skinnum] = LDGraphicsWindow.Capture("","False")
+
+  EndFor
+
+  GraphicsWindow.BrushColor = "Black"
+
+EndSub
+
+
+
+Sub addcubes
+
+  If listitem = "" Then
+
+    For i = 2 To 27
+
+      cube[i] = LD3DView.CloneObject(view3d,cube[1])
+
+    EndFor
+
+  EndIf
+
+  i=27
+
+  For z1 = -2 To 2 Step 2
+
+    For y1 = -2 To 2 Step 2
+
+      For x1 = -2 To 2 Step 2
+
+        LD3DView.TranslateGeometry(view3d,cube[i],x1,y1,z1)
+
+        pos = LD3DView.GetPosition(view3d,cube[i])
+
+        LD3DView.SetCentre(view3d,cube[i],-pos[1],-pos[2],-pos[3],"R1R2R3")
+
+        xaxis[i] = xvec
+
+        yaxis[i] = yvec
+
+        zaxis[i] = zvec
+
+        i=i-1
+
+      EndFor
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub  onmousedown
+
+  If Mouse.IsLeftButtonDown Then
+
+    msx = LDGraphicsWindow.MouseX
+
+    msy = LDGraphicsWindow.MouseY
+
+    hit = LD3DView.HitTest(view3d,msx,msy)
+
+    If recordstate = "True" Then
+
+      record = record+"Left"+":"+LDMath.FixDecimal(Mouse.MouseX/gw,3)+":"+LDMath.FixDecimal(Mouse.MouseY/gh,3)+":"
+
+    EndIf
+
+    If hit[1] = cube[13] or hit[1] = rdcube Then
+
+      LDCall.Function2("turncube",1,"xpos")
+
+    ElseIf hit[1] = cube[15] or hit[1] = orcube Then
+
+      LDCall.Function2("turncube",-1,"xpos")
+
+    ElseIf hit[1] = cube[11] or hit[1] = whcube Then
+
+      LDCall.Function2("turncube",1,"ypos")
+
+    ElseIf hit[1] = cube[17] or hit[1] = yecube Then
+
+      LDCall.Function2("turncube",-1,"ypos")
+
+    ElseIf hit[1] = cube[5] or hit[1] = grcube Then
+
+      LDCall.Function2("turncube",1,"zpos")
+
+    ElseIf hit[1] = cube[23] or hit[1] = blcube Then
+
+      LDCall.Function2("turncube",-1,"zpos")
+
+    ElseIf hit[1] = box then
+
+      mousetracking = "False"
+
+      Controls.HideControl(algbox)
+
+      Controls.HideControl(listbox)
+
+      clueshapesoff()
+
+      algpic = 0
+
+    EndIf
+
+  EndIf
+
+  If Mouse.IsRightButtonDown Then
+
+    msx = LDGraphicsWindow.MouseX
+
+    msy = LDGraphicsWindow.MouseY
+
+    hit = LD3DView.HitTest(view3d,msx,msy)
+
+    If recordstate = "True" Then
+
+      record = record+"Right"+":"+LDMath.FixDecimal(Mouse.MouseX/gw,3)+":"+LDMath.FixDecimal(Mouse.MouseY/gh,3)+":"
+
+    EndIf
+
+    If hit[1] = cube[13] or hit[1] = rdcube Then
+
+      LDCall.Function2("turncube",1,"xneg")
+
+    ElseIf hit[1] = cube[15] or hit[1] = orcube Then
+
+      LDCall.Function2("turncube",-1,"xneg")
+
+    ElseIf hit[1] = cube[11] or hit[1] = whcube Then
+
+      LDCall.Function2("turncube",1,"yneg")
+
+    ElseIf hit[1] = cube[17] or hit[1] = yecube Then
+
+      LDCall.Function2("turncube",-1,"yneg")
+
+    ElseIf hit[1] = cube[5] or hit[1] = grcube Then
+
+      LDCall.Function2("turncube",1,"zneg")
+
+    ElseIf hit[1] = cube[23] or hit[1] = blcube Then
+
+      LDCall.Function2("turncube",-1,"zneg")
+
+    ElseIf hit[1] = box then
+
+      mousetracking = "False"
+
+      Controls.Move(listbox,LDGraphicsWindow.MouseX,LDGraphicsWindow.MouseY)
+
+      Controls.ShowControl(listbox)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub onkeyup
+
+  key = GraphicsWindow.LastKey
+
+  If key = "A" Then
+
+    lp[1] = LDMath.FixDecimal(LDGraphicsWindow.MouseX/gw,3)
+
+    lp[2] = LDMath.FixDecimal(LDGraphicsWindow.Mousey/gh,3)
+
+  EndIf
+
+  If key = "B" Then
+
+    Shapes.ShowShape(line[1])
+
+    Shapes.ShowShape(line[2])
+
+    Shapes.ShowShape(line[3])
+
+    lp[3] = LDMath.FixDecimal(LDGraphicsWindow.MouseX/gw,3)
+
+    lp[4] = LDMath.FixDecimal(LDGraphicsWindow.Mousey/gh,3)
+
+    LDShapes.MoveLine(line[1],lp[1]*gw,lp[2]*gh,lp[3]*gw,lp[4]*gh)
+
+    lprad = LDMath.Convert2Radial(lp[3]*gw,lp[4]*gh,lp[1]*gw,lp[2]*gh)
+
+    lp2 = LDMath.Convert2Cartesian(lp[3]*gw,lp[4]*gh,gw*.03,lprad[2]+30)
+
+    LDShapes.MoveLine(line[2],lp2[1],lp2[2],lp[3]*gw,lp[4]*gh)
+
+    lp2 = LDMath.Convert2Cartesian(lp[3]*gw,lp[4]*gh,gw*.03,lprad[2]-30)
+
+    LDShapes.MoveLine(line[3],lp2[1],lp2[2],lp[3]*gw,lp[4]*gh)
+
+    LDClipboard.SetText(lp[1]+":"+lp[2]+":"+lp[3]+":"+lp[4]+":")
+
+  EndIf
+
+  If key = "L" Then
+
+    Shapes.ShowShape(line[1])
+
+    lp[3] = LDMath.FixDecimal(LDGraphicsWindow.MouseX/gw,3)
+
+    lp[4] = LDMath.FixDecimal(LDGraphicsWindow.Mousey/gh,3)
+
+    LDShapes.MoveLine(line[1],lp[1]*gw,lp[2]*gh,lp[3]*gw,lp[4]*gh)
+
+    LDClipboard.SetText(-lp[1]+":"+lp[2]+":"+lp[3]+":"+lp[4]+":")
+
+  EndIf
+
+  If key = "R" Then
+
+    record = ""
+
+    recordstate = "True"
+
+  EndIf
+
+  If key = "S" Then
+
+    LDClipboard.SetText(record)
+
+    recordstate = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub makeblock
+
+  tmp = "zzv 1.000000 -1.000000 -1.000000zv 1.000000 -1.000000 1.000000zv -1.000000 -1.000000 1.000000zv -1.000000 -1.000000 -1.000000z"
+
+  tmp = tmp+"v 1.000000 1.000000 -0.999999zv 0.999999 1.000000 1.000001zv -1.000000 1.000000 1.000000zv -1.000000 1.000000 -1.000000z"
+
+  tmp = tmp+"vt 0.0000 0.6667zvt 0.3333 0.6667zvt 0.3333 1.0000zvt 0.0000 1.0000zvt 0.3333 0.3333zvt 0.3333 0.6667zvt 0.0000 0.6667z"
+
+  tmp = tmp+"vt 0.0000 0.3333zvt 0.6667 0.3333zvt 0.3333 0.0000zvt 0.6667 0.0000zvt 0.0000 0.3333zvt 0.0000 0.0000zvt 0.3333 0.0000z"
+
+  tmp = tmp+"vt 0.3333 0.3333zvt 1.0000 0.3333zvt 0.6667 0.3333zvt 0.6667 0.0000zvt 1.0000 0.0000zvt 0.6667 0.6667z"
+
+  tmp = tmp+"vn 0.0000 -1.0000 0.0000zvn 0.0000 1.0000 0.0000zvn 1.0000 0.0000 0.0000zvn -0.0000 -0.0000 1.0000zvn -1.0000 -0.0000 -0.0000z"
+
+  tmp = tmp+"vn 0.0000 0.0000 -1.0000zusemtl Materialzs offzf 1/1/1 2/2/1 3/3/1 4/4/1zf 5/5/2 8/6/2 7/7/2 6/8/2zf 1/9/3 5/5/3 6/10/3 2/11/3z"
+
+  tmp = tmp+"f 2/12/4 6/13/4 7/14/4 3/15/4zf 3/16/5 7/17/5 8/18/5 4/19/5zf 5/5/6 1/9/6 4/20/6 8/6/6z"
+
+  len = Text.GetLength(tmp)
+
+  For i = 1 To len
+
+    txt = Text.GetSubText(tmp,i,1)
+
+    If txt = "z" Then
+
+      txt = Text.GetCharacter(10)
+
+    EndIf
+
+    tmp1 = tmp1 + txt
+
+  EndFor
+
+EndSub
+
+
+
+Sub setupclickcubes
+
+  orcube = LD3DView.AddCube(view3d,1.5,O,"D")
+
+  LD3DView.TranslateGeometry(view3d,orcube,-10,0,0)
+
+  LD3DView.AnimateRotation(view3d,orcube,1,1,0,0,360,5,-1)
+
+  rdcube = LD3DView.AddCube(view3d,1.5,R,"D")
+
+  LD3DView.TranslateGeometry(view3d,rdcube,10,0,0)
+
+  LD3DView.AnimateRotation(view3d,rdcube,1,1,0,0,360,5,-1)
+
+  blcube = LD3DView.AddCube(view3d,1.5,B,"D")
+
+  LD3DView.TranslateGeometry(view3d,blcube,0,0,-10)
+
+  LD3DView.AnimateRotation(view3d,blcube,1,1,0,0,360,5,-1)
+
+  grcube = LD3DView.AddCube(view3d,1.5,G,"D")
+
+  LD3DView.TranslateGeometry(view3d,grcube,0,0,10)
+
+  LD3DView.AnimateRotation(view3d,grcube,1,1,0,0,360,5,-1)
+
+  whcube = LD3DView.AddCube(view3d,1.5,W,"D")
+
+  LD3DView.TranslateGeometry(view3d,whcube,0,9,0)
+
+  LD3DView.AnimateRotation(view3d,whcube,1,1,0,0,360,5,-1)
+
+  yecube = LD3DView.AddCube(view3d,1.5,Y,"D")
+
+  LD3DView.TranslateGeometry(view3d,yecube,0,-9,0)
+
+  LD3DView.AnimateRotation(view3d,yecube,1,1,0,0,360,5,-1)
+
+EndSub
+
+
+
+Sub tempbackground
+
+  hue = ""
+
+  hue[1] = "White"
+
+  hue[2] = "Yellow"
+
+  hue[3] = "Green"
+
+  hue[4] = "Blue"
+
+  hue[5] = "Orange"
+
+  hue[6] = "Red"
+
+  For i = 1 To 6
+
+    hue[i] = LDColours.SetOpacity(hue[i],50)
+
+  EndFor
+
+  i = 1
+
+  For xt = 1 To gw Step gw/18
+
+    For yt = 1 To gh Step gh/12
+
+      GraphicsWindow.BrushColor = hue[i]
+
+      GraphicsWindow.PenColor = "Black"
+
+      GraphicsWindow.PenWidth = 3
+
+      GraphicsWindow.FillRectangle(xt,yt,gw/18,gh/12)
+
+      GraphicsWindow.DrawRectangle(xt,yt,gw/18,gh/12)
+
+      i = i + 1
+
+      If i > 6 Then
+
+        i=1
+
+      EndIf
+
+    EndFor
+
+    i = i + 2
+
+    If i > 6 Then
+
+      i=1
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub background
+
+  pen = GraphicsWindow.PenColor
+
+  bbrush = GraphicsWindow.BrushColor
+
+  hue = ""
+
+  hue[1] = "#666666"
+
+  hue[2] = "Yellow"
+
+  hue[3] = "Green"
+
+  hue[4] = "Blue"
+
+  hue[5] = "Orange"
+
+  hue[6] = "Red"
+
+  For i = 1 To 6
+
+    hue[i] = LDColours.SetOpacity(hue[i],75)
+
+  EndFor
+
+  For i = 6 To 18 Step 6
+
+    For ii = 1 To 6
+
+      hue[i+ii] = hue[ii]
+
+    EndFor
+
+  EndFor
+
+  grad = LDShapes.BrushGradient(hue,"DD")
+
+  LDGraphicsWindow.BackgroundBrush(grad)
+
+  image = LDGraphicsWindow.Capture("","False")
+
+  tempimage = LDImage.Copy(image)
+
+  grad = LDShapes.BrushGradient(hue,"R")
+
+  LDGraphicsWindow.BackgroundBrush(grad)
+
+  box = LD3DView.LoadModel(view3d,Program.Directory+"/block.obj")
+
+  box = box[1]
+
+  LD3DView.ScaleGeometry(view3d,box,50,50,50)
+
+  LD3DView.ResetMaterial(view3d,box,LDColours.SetOpacity("Black",0),"D")
+
+  LD3DView.AddImage(view3d,box,"",tempimage,"E")
+
+  LD3DView.AnimateRotation(view3d,box,0,1,0,0,360,60,-1)
+
+  LD3DView.ReverseNormals(view3d,box)
+
+  tempbackground()
+
+  hue=""
+
+  GraphicsWindow.PenColor = pen
+
+  GraphicsWindow.BrushColor = bbrush
+
+EndSub
+
+
+
+Sub onmousemove
+
+  If Mouse.IsleftButtonDown Then
+
+    If playing = "False" Then
+
+      If mousetracking = "False" Then
+
+        mosdir[1] = Mouse.MouseX
+
+        mosdir[2] = Mouse.MouseY
+
+        mousetracking = "True"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub onmouseup
+
+  hit = LD3DView.HitTest(view3d,LDGraphicsWindow.MouseX,LDGraphicsWindow.MouseY)
+
+  If hit[1] <> box Then
+
+    If mousetracking Then
+
+      mousetracking = "False"
+
+      mosdir[1] = Mouse.MouseX-mosdir[1]
+
+      mosdir[2] = mosdir[2]-Mouse.MouseY
+
+      If Math.Abs(mosdir[1]) >= Math.Abs(mosdir[2]) and cubeaction = "False" Then
+
+        If mosdir[1] > 0  Then
+
+          LDCall.Function2("setorbit",up1,-1)  'args= up, orbitadd
+
+        Else
+
+          LDCall.Function2("setorbit",up1,1)
+
+        EndIf
+
+      ElseIf cubeaction = "False" then
+
+        If up1 = -1 Then
+
+          If Math.Remainder(camtugangend,180) = 0 Then
+
+          Else
+
+            camtugangend = camtugangend + 180 ' * orbitadd
+
+          EndIf
+
+          fliptug()
+
+        ElseIf up1 = 1 Then
+
+          'up1 = -1
+
+          If Math.Remainder(camtugangend,180) = 0 Then
+
+          Else
+
+            camtugangend = camtugangend + 180 ' * orbitadd
+
+          EndIf
+
+          fliptug()
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub fliptug
+
+  up1 = -up1
+
+  cubeaction = "True"
+
+  camdir = LD3DView.GetCameraDirection(view3d)
+
+  tugpos = LD3DView.GetPosition(view3d,camtug)
+
+  camtop = LDVector.Add(tugpos,camdir)
+
+  camtop[2] = 0
+
+  tugavg = tugpos
+
+  tugavg[2] = 0
+
+  camtop = LDVector.RotatePoint(camtop,tugavg,LDVector.Multiply(yv,up1),90)
+
+  LD3DView.AnimateTranslation(view3d,camtug2,100,tugpos[2]*up1,100,dur*2)
+
+  LDTimer.Resume(verttimer)
+
+  transdone = camtug2
+
+EndSub
+
+
+
+Sub OnListBoxItemChanged
+
+  mousetracking = "False"
+
+  If LDControls.LastListBox = listbox Then
+
+    Controls.HideControl(listbox)
+
+    listitem = list[LDControls.LastListBoxIndex]
+
+    If listitem <> "Algorithm menu" and listitem <> "Get Help" Then
+
+      ans = LDDialogs.Confirm(listitem +"?","Are you sure you want to")
+
+      If ans <> "Yes" Then
+
+        listitem = ""
+
+      EndIf
+
+    ElseIf listitem = "Algorithm menu" Then
+
+      Controls.ShowControl(algbox)
+
+    EndIf
+
+    If listitem = "Start over" Then
+
+      addcubes()
+
+      For i = 1 To 27
+
+        LD3DView.ResetMaterial(view3d,cube[i],"Black","D")
+
+        LD3DView.AddImage(view3d,cube[i],"",skin[24],"E") 
+
+      EndFor
+
+    ElseIf listitem = "Randomize the cube" Then
+
+      setrandomizer()
+
+    ElseIf listitem = "Quit" Then
+
+      Program.End()
+
+    ElseIf listitem = "Save the game" Then
+
+      savecube()
+
+    ElseIf listitem = "Load a saved game" Then
+
+      loadcube()
+
+    ElseIf listitem = "Get Help" Then
+
+      For i = Text.GetSubTextToEnd(firstarrow,6) To Text.GetSubTextToEnd(lastarrow,6)
+
+        Shapes.HideShape("Image"+i)
+
+      Endfor
+
+      Controls.ShowControl(helpclose)
+
+      Controls.ShowControl(helpbox)
+
+    EndIf
+
+    mousetracking = "False"
+
+  ElseIf  LDControls.LastListBox = algbox Then
+
+    algnum = LDControls.LastListBoxIndex
+
+    If algnum = 1 then
+
+      If alg[1] = "Visual Algorithm Clues OFF" Then
+
+        alg[1] = "Visual Algorithm Clues ON"
+
+      Elseif alg[1] = "Visual Algorithm Clues ON" Then
+
+        alg[1] = "Visual Algorithm Clues OFF"
+
+      EndIf
+
+      LDControls.ListBoxContent(algbox,alg)
+
+      Controls.HideControl(algbox)
+
+    Else
+
+      algpic = algpic+1
+
+      If algnum2 <> algnum Then
+
+        clueshapesoff()
+
+        algpic = 1
+
+      EndIf
+
+      If algpic = 1 then
+
+        algnum2 = algnum
+
+      EndIf
+
+      If alg[1] = "Visual Algorithm Clues OFF" or alg[1] = "Visual Algorithm Clues ON"  and algpic > 1 Then
+
+        algpic = 0
+
+        Controls.HideControl(algbox)
+
+        clueshapesoff()
+
+        setplayalgorithm()
+
+      Elseif alg[1] = "Visual Algorithm Clues ON"  and algpic = 1 Then
+
+        showclueshapes()   'algnum
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  mousetracking = "False"
+
+EndSub
+
+
+
+Sub showclueshapes
+
+  cnd = LDText.Split(cluedata[algnum],":")
+
+  For i = 1 To Array.GetItemCount(cnd) Step 4
+
+    lp[1] = cnd[i]*gw
+
+    lp[2] = cnd[i+1]*gh
+
+    lp[3] = cnd[i+2]*gw
+
+    lp[4] = cnd[i+3]*gh
+
+    If lp[1] < 0 Then
+
+      lp[1] = - lp[1]
+
+      Shapes.ShowShape(line[i])
+
+      LDShapes.MoveLine(line[i],lp[1],lp[2],lp[3],lp[4])
+
+    Else
+
+      Shapes.ShowShape(line[i])
+
+      Shapes.ShowShape(line[i+1])
+
+      Shapes.ShowShape(line[i+2])
+
+      LDShapes.MoveLine(line[i],lp[1],lp[2],lp[3],lp[4])
+
+      lprad = LDMath.Convert2Radial(lp[3],lp[4],lp[1],lp[2])
+
+      lp2 = LDMath.Convert2Cartesian(lp[3],lp[4],gw*.03,lprad[2]+30)
+
+      LDShapes.MoveLine(line[i+1],lp2[1],lp2[2],lp[3],lp[4])
+
+      lp2 = LDMath.Convert2Cartesian(lp[3],lp[4],gw*.03,lprad[2]-30)
+
+      LDShapes.MoveLine(line[i+2],lp2[1],lp2[2],lp[3],lp[4])
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub clueshapesoff
+
+  For i = 1 To 20
+
+    Shapes.HideShape(line[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub setrandomizer
+
+  randcount = 1
+
+  dur1 = dur
+
+  dur = .05
+
+  LDTimer.Resume(randtimer)
+
+EndSub
+
+
+
+Sub randomizer
+
+  xyzpos = Math.GetRandomNumber(6)
+
+  dir = Math.GetRandomNumber(2)
+
+  If dir = 2 Then
+
+    dir = -1
+
+  EndIf
+
+  If xyzpos = 1 Then
+
+    xyzpos = "xpos"
+
+  ElseIf xyzpos = 2 Then
+
+    xyzpos = "xneg"
+
+  ElseIf xyzpos = 3 Then
+
+    xyzpos = "ypos"
+
+  ElseIf xyzpos = 4 Then
+
+    xyzpos = "yneg"
+
+  ElseIf xyzpos = 5 Then
+
+    xyzpos = "zpos"
+
+  ElseIf xyzpos = 6 Then
+
+    xyzpos = "zneg"
+
+  EndIf
+
+  LDCall.Function2("turncube",dir,xyzpos)
+
+  randcount = randcount + 1
+
+  If randcount > 29 Then
+
+    LDTimer.Pause(randtimer)
+
+    dur = dur1
+
+  EndIf
+
+EndSub
+
+
+
+Sub makearrows
+
+  arrowchar = Text.GetCharacter(11118)
+
+  arrow2char = Text.GetCharacter(11104)
+
+  fs =  GraphicsWindow.FontSize
+
+  GraphicsWindow.FontSize = fs*6
+
+  arrowimage = LDImage.NewImage(50,60,LDColours.SetOpacity("Cyan",00))
+
+  LDImage.AddText(arrowimage,arrowchar,-10,-20,"Black")
+
+  warrowimage = LDImage.NewImage(80,50,LDColours.SetOpacity("Cyan",00))
+
+  LDImage.AddText(warrowimage,arrow2char,-25,-40,"White")
+
+  rfarr = Shapes.AddImage(arrowimage)
+
+  firstarrow = rfarr
+
+  LDShapes.Centre(rfarr,gw*.578,gh*.62)
+
+  lfarr = Shapes.AddImage(arrowimage)
+
+  LDShapes.Centre(lfarr,gw*.391,gh*.584)   
+
+  toparr = Shapes.AddImage(arrowimage)
+
+  LDShapes.Centre(toparr,gw*.498,gh*.298)
+
+  lcrarr = Shapes.AddImage(arrowimage)
+
+  LDShapes.Centre(lcrarr,gw*.037,gh*.862)
+
+  rcrarr = Shapes.AddImage(arrowimage)
+
+  LDShapes.Centre(rcrarr,gw*.837,gh*.900)
+
+  botarr = Shapes.AddImage(warrowimage)
+
+  LDShapes.Centre(botarr,gw*.558,gh*.950)
+
+  Shapes.Rotate(botarr,-180)
+
+  lbkarr = Shapes.AddImage(warrowimage)
+
+  LDShapes.Centre(lbkarr,gw*.234,gh*.235)
+
+  Shapes.Rotate(lbkarr,-45)
+
+  rbkarr = Shapes.AddImage(warrowimage)
+
+  lastarrow = rbkarr
+
+  LDShapes.Centre(rbkarr,gw*.770,gh*.229)
+
+  Shapes.Rotate(rbkarr,45)
+
+  GraphicsWindow.FontSize = fs
+
+  GraphicsWindow.PenColor = "DeepPink"
+
+  For i = 1 To 20
+
+    line[i] = Shapes.AddLine(20,30,40,50)
+
+    LDShapes.PenWidth(line[i],5)
+
+    Shapes.HideShape(line[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub setuplistboxes
+
+  list[1] = "Algorithm menu"
+
+  list[2] = "Load a saved game"
+
+  list[3] = "Save the game"
+
+  list[4] = "Randomize the cube"
+
+  list[5] = "Start over"
+
+  list[6] = "Quit"
+
+  list[7] = "Get Help"
+
+  listbox = LDControls.AddListBox(list,150,200)
+
+  Shapes.Move(listbox,50,50)
+
+  Controls.HideControl(listbox)
+
+  alg[1] = "Visual Algorithm Clues ON"
+
+  alg[2] = "1a.Rotate to Top"
+
+  alg[3] = "1b.Rotate and Flip to Top"
+
+  alg[4] = "1c.Flip Face to Top"
+
+  alg[5] = "2a.Move to Top & Flip Face Up"
+
+  alg[6] = "2b.Move Right Face to Top"
+
+  alg[7] = "2c.Flip & Twist to Top"
+
+  alg[8] = "3a.Edges Mid Layer Right to Front Corner"
+
+  alg[9] = "3b.Edges Mid Layer Left to Front Corner"
+
+  alg[10] = "4.Orienting Last Layer Edge Pieces"
+
+  alg[11] = "5.Permuting Last Layer Corners(Careful)"
+
+  alg[12] = "6a.Orienting Last Layer Corners"
+
+  alg[13] = "6b.Orienting Last Layer Corners"
+
+  alg[14] = "7a.Permuting Last Layer Edge Pieces CCW"
+
+  alg[15] = "7b.Permuting Last Layer Edge Pieces CW"
+
+  algbox = LDControls.AddListBox(alg,300,350)
+
+  Shapes.Move(algbox,1,1)
+
+  Controls.HideControl(algbox)
+
+EndSub
+
+
+
+Sub setplayalgorithm
+
+  playlist = LDText.Split(algor[algnum],":")
+
+  play = 1
+
+  stop = Array.GetItemCount(playlist)
+
+  dur1 = dur
+
+  dur = .1
+
+  playing = "True"
+
+  LDTimer.Resume(playtimer)
+
+EndSub
+
+
+
+Sub playalgorithm
+
+  mousetracking = "False"
+
+  LDUtilities.SendClick(playlist[play+1]*gw,playlist[play+2]*(gh+tbh),playlist[play])
+
+  play = play+3
+
+  If play >= stop Then
+
+    LDTimer.Pause(playtimer)
+
+    dur = dur1
+
+    playing = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub loadalgdata   
+
+  algor[2] = "Right:0.406:0.642:Right:0.406:0.642:"'step 1a   
+
+  algor[3] = "Left:0.499:0.325:Right:0.590:0.635:Right:0.504:0.328:"'step 1b
+
+  algor[4] = "Left:0.404:0.635:Left:0.498:0.329:Right:0.586:0.659:Right:0.504:0.325:" 'step 1c
+
+  algor[5] = "Right:0.405:0.635:Right:0.501:0.977:Left:0.410:0.648:"'step 2a
+
+  algor[6] = "Left:0.600:0.644:Left:0.496:0.979:Right:0.598:0.607:"'step 2b
+
+  algor[7] = "Left:0.586:0.636:Right:0.506:0.974:Right:0.506:0.974:Right:0.598:0.631:Right:0.504:0.997:Left:0.595:0.638:Left:0.508:0.983:Right:0.592:0.640:"'step 2c
+
+  algor[9] = "Right:0.506:0.336:Right:0.606:0.634:Left:0.528:0.322:Left:0.600:0.634:Left:0.523:0.330:Left:0.411:0.646:Right:0.513:0.337:Right:0.418:0.662:"'step 3a
+
+  algor[8] = "Left:0.500:0.325:Left:0.408:0.631:Right:0.500:0.322:Right:0.410:0.634:Right:0.500:0.318:Right:0.586:0.651:Left:0.512:0.307:Left:0.592:0.626:"'step 3b
+
+  algor[10] = "Left:0.594:0.634:Left:0.497:0.323:Left:0.407:0.617:Right:0.494:0.318:Right:0.399:0.646:Right:0.583:0.643:"'step 4
+
+  algor[11] = "Right:0.275:0.291:Left:0.594:0.631:Left:0.524:0.328:Right:0.603:0.635:Right:0.526:0.329:Left:0.272:0.285:Left:0.510:0.341:Left:0.600:0.643:Right:0.523:0.330:Right:0.592:0.611:"'step 5
+
+  algor[12] = "Right:0.416:0.640:Right:0.520:0.338:Left:0.418:0.659:Right:0.520:0.323:Right:0.420:0.655:Right:0.515:0.323:Right:0.515:0.323:Left:0.415:0.638:Right:0.517:0.323:Right:0.517:0.323:"'step 6a
+
+  algor[13] = "Left:0.602:0.605:Left:0.523:0.333:Right:0.602:0.617:Left:0.518:0.334:Left:0.607:0.634:Right:0.519:0.318:Right:0.519:0.318:Right:0.598:0.630:Right:0.518:0.323:Right:0.518:0.323:"'step 6b
+
+  algor[14] = "Right:0.594:0.617:Left:0.501:0.318:Right:0.600:0.617:Right:0.501:0.326:Right:0.594:0.642:Right:0.502:0.332:Right:0.594:0.632:Left:0.510:0.321:Left:0.598:0.643:Left:0.505:0.311:Right:0.597:0.648:Right:0.597:0.648:"'step 7a
+
+  algor[15] = "Right:0.584:0.624:Right:0.584:0.624:Right:0.490:0.310:Right:0.593:0.647:Right:0.505:0.319:Left:0.588:0.639:Left:0.510:0.328:Left:0.596:0.638:Left:0.503:0.326:Left:0.597:0.632:Right:0.499:0.319:Left:0.592:0.635:"'step 7b
+
+  cluedata[2] = "-0.401:0.714:0.351:0.585:-0.351:0.585:0.357:0.485:0.357:0.485:0.392:0.460:"
+
+  cluedata[3] = "0.465:0.670:0.431:0.360:"
+
+  cluedata[4] = "0.405:0.714:0.430:0.357:"
+
+  cluedata[5] = "0.469:0.808:0.492:0.436:"
+
+  cluedata[6] = "0.529:0.803:0.503:0.432:"
+
+  cluedata[7] = "0.534:0.803:0.458:0.536:0.462:0.800:0.531:0.542:"
+
+  cluedata[9] = "0.395:0.458:0.463:0.675:"
+
+  cluedata[8] = "0.603:0.455:0.527:0.685:"
+
+  cluedata[10] = "0.496:0.293:0.440:0.240:0.569:0.360:0.499:0.297:0.497:0.295:0.559:0.238:"
+
+  cluedata[11] = "0.500:0.424:0.499:0.193:0.490:0.191:0.376:0.294:0.371:0.306:0.490:0.431:"
+
+  cluedata[12] = "0.499:0.044:0.499:0.196:0.712:0.450:0.659:0.400:0.412:0.577:0.457:0.533:0.269:0.252:0.307:0.293:"
+
+  cluedata[13] = "0.501:0.070:0.497:0.192:0.733:0.246:0.695:0.289:0.588:0.612:0.532:0.536:0.285:0.456:0.339:0.396:"
+
+  cluedata[14] = "0.571:0.341:0.451:0.235:0.438:0.240:0.420:0.342:0.443:0.370:0.548:0.361:"
+
+  cluedata[15] = "0.443:0.247:0.567:0.358:0.570:0.377:0.449:0.370:0.414:0.358:0.414:0.246:"
+
+EndSub
+
+Sub helpdata
+
+  help="VIRTUAL RUBIX CUBE HELP MENU"+crlf+crlf
+
+  help=help+"Everyone knows the ?úCUBE?ù‚??.so this menu will not help you to turn and twist a cube."+crlf
+
+  help=help+"This help menu will explain how to turn and twist the Virtual Cube with the mouse."+crlf+crlf
+
+  help=help+"TURNING FACES"+crlf+crlf
+
+  help=help+"Turn Clockwise direction right click the mouse."+crlf
+
+  help=help+"Turn Counter-clockwise direction left click the mouse."+crlf
+
+  help=help+"The direction is always as viewed facing the side to turn."+crlf
+
+  help=help+"The arrows on, or around the cube, show the right-click direction; counter-clockwise."+crlf
+
+  help=help+"You can turn any left, right or top face by clicking on the center of the face or; back, or bottom face by clicking on one of the rotating cubes."+crlf+crlf
+
+  help=help+"ROTATING OR FLIPPING THE CUBE"+crlf+crlf
+
+  help=help+"You can rotate the whole cube by dragging the mouse side to side, or flip the cube by dragging the mouse up to down with the cursor on the cube."+crlf+crlf
+
+  help=help+"VIEW THE MENU BY RIGHT CLICKING ON THE BACKGROUND"+crlf+crlf
+
+  help=help+"Show Algorithms:  Display the Algorithm Menu"+crlf
+
+  help=help+"Load a saved game: Open a file selection dialogue to select a previously saved game."+crlf
+
+  help=help+"Save the game: Open a file selection dialogue to enter a filename to save the cube state."+crlf
+
+  help=help+"Randomize the cube: Rearrange all the faces of the cube in an arbitrary way."+crlf
+
+  help=help+"Start over: Arrange all the faces by color, a New Cube."+crlf
+
+  help=help+"Quit: End the game."+crlf
+
+  help=help+"Help: This help menu."+crlf
+
+  help=help+"Cancel the menu by left clicking the background."+crlf+crlf
+
+  help=help+"ALGORITHM MENU"+crlf+crlf
+
+  help=help+"By clicking any Algorithm once will display arrows to show what the algorithm does."+crlf
+
+  help=help+"By clicking a second time on the same Algorithm; executes the algorithm."+crlf
+
+  help=help+"Visual Algorithm Clues On: Toggle the algorithm display arrows on or off."+crlf
+
+  help=help+"Cancel the Algorithm menu by left clicking the background."+crlf+crlf
+
+  help=help+"HOW TO USE THE ALGORITHMS"+crlf+crlf
+
+  help=help+"Visit      http://www.rubiksplace.com/"+crlf
+
+  LDControls.RichTextBoxSetText(helpbox,help,"False")
+
+  helpclose = Controls.AddButton("X",gw*.820,gh*.081)
+
+  LDControls.SetButtonStyle(helpclose,"DarkKhaki","Red","Blue","Black","Black","Black",0,"False")
+
+  Controls.HideControl(helpclose)
+
+EndSub
+
+
+
+Sub savecube
+
+  filedat = ""
+
+  For cnum = 1 To 27
+
+    pos = LD3DView.GetPosition(view3d,cube[cnum])
+
+    pos[1] = LDMath.FixDecimal(pos[1],3)
+
+    pos[2] = LDMath.FixDecimal(pos[2],3)
+
+    pos[3] = LDMath.FixDecimal(pos[3],3)
+
+    filedat = filedat + pos[1]+":"+pos[2]+":"+pos[3]+":"
+
+    filedat = filedat + xaxis[cnum][1]+":"+xaxis[cnum][2]+":"+xaxis[cnum][3]+":"
+
+    filedat = filedat + yaxis[cnum][1]+":"+yaxis[cnum][2]+":"+yaxis[cnum][3]+":"
+
+    filedat = filedat + zaxis[cnum][1]+":"+zaxis[cnum][2]+":"+zaxis[cnum][3]+":"
+
+  EndFor
+
+  filename = LDDialogs.SaveFile("rbx",Program.Directory)
+
+  savefile()
+
+EndSub
+
+

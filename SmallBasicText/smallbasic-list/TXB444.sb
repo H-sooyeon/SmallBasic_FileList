@@ -1,0 +1,465 @@
+' Production by Writing
+
+' Version 0.1
+
+' Copyright © 2016 Nonki Takahashi.  The MIT License.
+
+' Last update 2016-03-27
+
+' Program ID 
+
+'
+
+GraphicsWindow.Title = "Production 0.1"
+
+num1 = 67890
+
+num2 = 12345
+
+interval = 1000 ' [ms]
+
+Form()
+
+While "True"
+
+  If buttonClicked Then
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.FillRectangle(0, 0, gw, gh)
+
+    GraphicsWindow.PenColor = "LightGray"
+
+    DrawGrid()
+
+    GraphicsWindow.PenColor = "Black"
+
+    GraphicsWindow.BrushColor = "Black"
+
+    ' Input numbers
+
+    num1 = Controls.GetTextBoxText(tboxN1)
+
+    num2 = Controls.GetTextBoxText(tboxN2)
+
+    interval = Controls.GetTextBoxText(tboxInt)
+
+    ' Calculate each length and positon (column)
+
+    len1 = Text.GetLength(num1)
+
+    len2 = Text.GetLength(num2)
+
+    col1 = 1 + len2
+
+    col2 = 1 + len1
+
+    ' Write number1
+
+    param = "col=" + col1 + ";row=1;text=" + num1 + ";"
+
+    DrawText()
+
+    Program.Delay(interval)
+
+    ' Write a sign ×
+
+    param = "col=" + Math.Min(len1, len2) + ";row=2;text=×;"
+
+    DrawText()
+
+    Program.Delay(interval)
+
+    ' Write number2
+
+    param = "col=" + col2 + ";row=2;text=" + num2 + ";"
+
+    DrawText()
+
+    Program.Delay(interval)
+
+    ' Draw a line
+
+    param = "col=" + Math.Min(len1, len2) + ";row=2;"
+
+    param = param + "len=" + (Math.Max(len1, len2) + 1) + ";"
+
+    DrawUnderline()
+
+    Program.Delay(interval)
+
+    ' Multiply numbers from ones places
+
+    len = len1
+
+    For j = 1 To len2
+
+      d2 = Text.GetSubText(num2, len2 - j + 1, 1)
+
+      c = 0 ' carry
+
+      num[j] = ""
+
+      For i = 1 To len1
+
+        d1 = Text.GetSubText(num1, len1 - i + 1, 1) 
+
+        MulDigit()
+
+        col = 2 + len1 + len2 - i - j
+
+        param = "col=" + col + ";row=" + (2 + j) + ";text=" + d + ";"
+
+        DrawText()
+
+        num[j] = Text.Append(d, num[j])
+
+        If 0 < c Then
+
+          param = "col=" + (col - 1) + ";row=" + (2 + j) + ";text=" + c + ";"
+
+          If i = len1 Then
+
+            DrawText()
+
+            num[j] = Text.Append(c, num[j])
+
+          Else
+
+            DrawCarry()
+
+          EndIf
+
+        EndIf
+
+        Program.Delay(interval)
+
+      EndFor
+
+    EndFor
+
+    ' Draw a line
+
+    param = "col=1;row=" + (2 + len2) + ";"
+
+    param = param + "len=" + (len1 + len2) + ";"
+
+    DrawUnderline()
+
+    Program.Delay(interval)
+
+    c = 0 ' carry
+
+    For i = 1 To len1 + len2
+
+      n = 0
+
+      For j = 1 To len2
+
+        l = Text.GetLength(num[j])
+
+        p = l - i + j
+
+        _d = Text.GetSubText(num[j], p, 1)
+
+        If 0 < _d Then
+
+          n = n + 1
+
+          d[n] = _d
+
+        EndIf
+
+      EndFor
+
+      SumDigits()
+
+      col = 1 + len1 + len2 - i
+
+      If 0 < s Or ((s = 0) And (i < len1 + len2)) Then
+
+        param = "col=" + col + ";row=" + (3 + len2) + ";text=" + s + ";"
+
+        DrawText()
+
+      EndIf
+
+      If 0 < c Then
+
+        param = "col=" + (col - 1) + ";row=" + (3 + len2) + ";text=" + c + ";"
+
+        If i = len1 + len2 Then
+
+          DrawText()
+
+        Else
+
+          DrawCarry()
+
+        EndIf
+
+      EndIf
+
+      Program.Delay(interval)
+
+    EndFor
+
+    buttonClicked = "False"
+
+  Else
+
+    Program.Delay(200)  ' wait next button
+
+  EndIf
+
+EndWhile
+
+Sub DrawGrid
+
+  ' param gw, gh - width and height for the graphics window
+
+  ' param fw, fs - font width and font size (height)
+
+  For _x = 0 To gw Step fw
+
+    GraphicsWindow.DrawLine(_x, 0, _x, gh)
+
+  EndFor
+
+  For _y = 0 To gh Step fs
+
+    GraphicsWindow.DrawLine(0, _y, gw, _y)
+
+  EndFor
+
+EndSub
+
+Sub DrawCarry
+
+  ' param["col"] - column
+
+  ' param["row"] - row
+
+  ' param["text"] - text for carry
+
+  ' return carry - shape
+
+  _x = param["col"] * fw
+
+  _y = param["row"] * fs
+
+  GraphicsWindow.FontSize = fs * 0.25
+
+  GraphicsWindow.DrawText(_x + fw * 0.75, _y, param["text"])
+
+  GraphicsWindow.FontSize = fs
+
+EndSub
+
+Sub DrawText
+
+  ' param["col"] - column
+
+  ' param["row"] - row
+
+  ' param["text"] - text
+
+  _x = param["col"] * fw
+
+  _y = param["row"] * fs
+
+  GraphicsWindow.DrawText(_x, _y, param["text"])
+
+EndSub
+
+Sub DrawUnderline
+
+  ' param["col"] - column
+
+  ' param["row"] - row
+
+  ' param["len"] - length
+
+  _x = param["col"] * fw
+
+  _y = (param["row"] + 1) * fs
+
+  _len = param["len"] * fw
+
+  GraphicsWindow.DrawLine(_x, _y, _x + _len, _y)
+
+EndSub
+
+Sub Form
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.FontName = "Courier New"
+
+  fs = 30
+
+  fw = fs * 0.6
+
+  GraphicsWindow.PenColor = "LightGray"
+
+  DrawGrid()
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  GraphicsWindow.PenWidth = 0
+
+  yc = _y - fs * 3
+
+  panel = Shapes.AddRectangle(gw, gh - yc)
+
+  Shapes.SetOpacity(panel, 50)
+
+  Shapes.Move(panel, 0, yc)
+
+  GraphicsWindow.FontSize = fs / 3
+
+  GraphicsWindow.BrushColor = "Black"
+
+  txtN1 = Shapes.AddText("Number1")
+
+  Shapes.Move(txtN1, fw, yc + fs * 0.3)
+
+  tboxN1 = Controls.AddTextBox(fw * 3.5, yc + fs * 0.26)
+
+  Controls.SetSize(tboxN1, fw * 4, fs * 0.54)
+
+  Controls.SetTextBoxText(tboxN1, num1)
+
+  txtN2 = Shapes.AddText("Number2")
+
+  Shapes.Move(txtN2, fw, yc + fs * 1.3)
+
+  tboxN2 = Controls.AddTextBox(fw * 3.5, yc + fs * 1.26)
+
+  Controls.SetSize(tboxN2, fw * 4, fs * 0.54)
+
+  Controls.SetTextBoxText(tboxN2, num2)
+
+  txtInt = Shapes.AddText("Interval")
+
+  Shapes.Move(txtInt, fw * 8.5, yc + fs * 0.3)
+
+  tboxInt = Controls.AddTextBox(fw * 11.5, yc + fs * 0.26)
+
+  Controls.SetSize(tboxInt, fw * 4, fs * 0.54)
+
+  Controls.SetTextBoxText(tboxInt, interval)
+
+  Controls.AddButton("Calc", fw * 14, yc + fs * 1.22)
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.FontSize = fs
+
+EndSub
+
+Sub MulDigit
+
+  ' param d1 - digit1
+
+  ' param d2 - digit2
+
+  ' param c - carry
+
+  ' return d - digit
+
+  ' return c - new carry
+
+  d = d1 * d2 + c
+
+  If 10 <= d Then
+
+    c = Text.GetSubText(d, 1, 1)
+
+    d = Text.GetSubText(d, 2, 1)
+
+  Else
+
+    c = 0
+
+  EndIf
+
+EndSub
+
+Sub SumDigits
+
+  ' param d - array of digits
+
+  ' param n - number of digits
+
+  ' param c - carry
+
+  ' return s - sum
+
+  ' return c - new carry
+
+  s = c
+
+  For _i = 1 To n
+
+    s = s + d[_i]
+
+  EndFor
+
+  If 10 <= s Then
+
+    c = Text.GetSubText(s, 1, 1)
+
+    s = Text.GetSubText(s, 2, 1)
+
+  Else
+
+    c = 0
+
+  EndIf
+
+EndSub
+
+Sub OnButtonClicked
+
+  buttonClicked = "True"
+
+EndSub
+
+Sub RedrawText
+
+  ' param["col"] - column
+
+  ' param["row"] - row
+
+  ' param["text"] - text to redraw
+
+  ' return carry - shape
+
+  _x = param["col"] * fw
+
+  _y = param["row"] * fs
+
+  GraphicsWindow.FontSize = fs * 0.25
+
+  GraphicsWindow.DrawLine(_x, _y, _x + fw, _y + fs)
+
+  GraphicsWindow.DrawText(_x + fw * 0.75, _y, param["text"])
+
+  GraphicsWindow.FontSize = fs
+
+EndSub
+
+  
+
+

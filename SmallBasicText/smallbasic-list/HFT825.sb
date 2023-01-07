@@ -1,0 +1,881 @@
+' Small SVG Viewer
+
+' Copyright © 2014 Nonki Takahashi.  The MIT License.
+
+' Version (pilot)
+
+' Last update 2014-11-24
+
+'
+
+Not = "True=False;False=True;"
+
+LF = Text.GetCharacter(10)
+
+CR = Text.GetCharacter(13)
+
+QT = Text.GetCharacter(34)
+
+LT = Text.GetCharacter(60)
+
+SB_Workaround()
+
+gw = 598
+
+gh = 428
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.Title = "Small SVG Viewer"
+
+GraphicsWindow.BrushColor = "Black"
+
+fileBox = Controls.AddTextBox(0, 0)
+
+Controls.SetSize(fileBox, gw - 46, 26)
+
+openBtn = Controls.AddButton("Open", gw - 45, 0)
+
+buf = ""
+
+Controls.ButtonClicked = OnButtonClicked
+
+While buf = ""
+
+  clicked = "False"
+
+  While Not[clicked]
+
+    Program.Delay(200)
+
+  EndWhile
+
+  fname = Controls.GetTextBoxText(fileBox)
+
+  path = Program.Directory + "\" + fname
+
+' The following line could be harmful and has been automatically commented.
+
+'   buf = File.ReadContents(path)
+
+EndWhile
+
+Controls.Remove(openBtn)
+
+Controls.Remove(fileBox)
+
+textBox = Controls.AddMultiLineTextBox(0, gh / 2)
+
+Controls.SetSize(textBox, gw, gh / 2)
+
+Controls.SetTextBoxText(textBox, buf)
+
+Parse_SVG()
+
+Shapes_Add()
+
+Sub OnButtonClicked
+
+  clicked = "True"
+
+EndSub
+
+Sub Parse_SVG
+
+  ' param buf - SVG buffer
+
+  scale = 1
+
+  iMin = 1
+
+  iMax = 0
+
+  shX = 0
+
+  shY = 0
+
+  p = 1
+
+  Parse_Header()
+
+  Parse_Space()
+
+  While match
+
+    Parse_Ellipse()
+
+    iMax = iMax + 1
+
+    shape[iMax] = shp
+
+    If Not[match] Then
+
+      Parse_Rect()
+
+      iMax = iMax + 1
+
+      shape[iMax] = shp
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+Sub Parse_Header
+
+  ' param buf - SVG buffer
+
+  ' param p - pointer to SVG buffer
+
+  ' return match - "True" if match
+
+  ' return shp - shape entry
+
+  If Text.StartsWith(Text.GetSubTextToEnd(buf, p), LT + "svg") Then
+
+    len = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), ">")
+
+    If 0 < len Then
+
+      tag = Text.GetSubText(buf, p, len)
+
+      GetAttrAndText()
+
+      width = attr["width"]
+
+      height = attr["height"]
+
+      p = p + len
+
+      match = "True"
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub Parse_Ellipse
+
+  ' param buf - SVG buffer
+
+  ' param p - pointer to SVG buffer
+
+  ' return match - "True" if match
+
+  ' return shp - shape entry
+
+  match = "False"
+
+  If Text.StartsWith(Text.GetSubTextToEnd(buf, p), LT + "ellipse") Then
+
+    param = "tag=ellipse;"
+
+    FindTag()
+
+    GetAttrAndText()
+
+    cx = attr["cx"]
+
+    cy = attr["cy"]
+
+    rx = attr["rx"]
+
+    ry = attr["ry"]
+
+    SetStyle()
+
+    shp = ""
+
+    shp["func"] = "ell"
+
+    shp["pw"] = pw
+
+    shp["pc"] = pc
+
+    shp["bc"] = bc
+
+    shp["x"] = cx - rx - Math.Floor(shp["pw"] / 2)
+
+    shp["y"] = cy - ry - Math.Floor(shp["pw"] / 2)
+
+    shp["width"] = 2 * rx + shp["pw"]
+
+    shp["height"] = 2 * ry + shp["pw"]
+
+    p = p + len
+
+    match = "True"
+
+  EndIf
+
+EndSub
+
+Sub Parse_Rect
+
+  ' param buf - SVG buffer
+
+  ' param p - pointer to SVG buffer
+
+  ' return match - "True" if match
+
+  ' return shp - shape entry
+
+  match = "False"
+
+  If Text.StartsWith(Text.GetSubTextToEnd(buf, p), LT + "rect") Then
+
+    param = "tag=rect;"
+
+    FindTag()
+
+    GetAttrAndText()
+
+    width = attr["width"]
+
+    height = attr["height"]
+
+    x = attr["x"]
+
+    y = attr["y"]
+
+    SetStyle()
+
+    shp = ""
+
+    shp["func"] = "rect"
+
+    shp["pw"] = pw
+
+    shp["pc"] = pc
+
+    shp["bc"] = bc
+
+    shp["x"] = x - Math.Floor(shp["pw"] / 2)
+
+    shp["y"] = y - Math.Floor(shp["pw"] / 2)
+
+    shp["width"] = width + shp["pw"]
+
+    shp["height"] = height + shp["pw"]
+
+    p = p + len
+
+    match = "True"
+
+  EndIf
+
+EndSub
+
+Sub Math_CartesianToPolar
+
+  ' Math | convert cartesian coodinate to polar coordinate
+
+  ' param x, y - cartesian coordinate
+
+  ' return r, a - polar coordinate
+
+  r = Math.SquareRoot(x * x + y * y)
+
+  If x = 0 And y > 0 Then
+
+    a = 90 ' [degree]
+
+  ElseIf x = 0 And y < 0 Then
+
+    a = -90
+
+  Else
+
+    a = Math.ArcTan(y / x) * 180 / Math.Pi
+
+  EndIf
+
+  If x < 0 Then
+
+    a = a + 180
+
+  ElseIf x > 0 And y < 0 Then
+
+    a = a + 360
+
+  EndIf
+
+EndSub
+
+Sub SB_RotateWorkaround
+
+  ' Small Basic | Rotate workaround for Silverlight
+
+  ' param x, y - original coordinate
+
+  ' param alpha - angle [radian]
+
+  ' returns x, y - workaround coordinate
+
+  If shape[i]["func"] = "tri" Then
+
+    x1 = -Math.Floor(shape[i]["x3"] / 2)
+
+    y1 = -Math.Floor(shape[i]["y3"] / 2)
+
+  ElseIf shape[i]["func"] = "line" Then
+
+    x1 = -Math.Floor(Math.Abs(shape[i]["x1"] - shape[i]["x2"]) / 2)
+
+    y1 = -Math.Floor(Math.Abs(shape[i]["y1"] - shape[i]["y2"]) / 2)
+
+  EndIf
+
+  ox = x - x1
+
+  oy = y - y1
+
+  x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
+
+  y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
+
+EndSub
+
+Sub SB_Workaround
+
+  ' Small Basic | Workaround for Silverlight
+
+  ' returns silverlight - "True" if in remote
+
+  color = GraphicsWindow.GetPixel(0, 0)
+
+  If Text.GetLength(color) > 7 Then
+
+    silverlight = "True"
+
+    msWait = 300
+
+  Else
+
+    silverlight = "False"
+
+  EndIf
+
+EndSub
+
+Sub Shapes_Add
+
+  ' Shapes | add shapes as shapes data
+
+  ' param iMin, iMax - shape indices to add
+
+  ' param shape - array of shapes
+
+  ' param scale - 1 if same scale
+
+  ' return shWidth, shHeight - total size of shapes
+
+  ' return shAngle - current angle of shapes
+
+  Stack.PushValue("local", i)
+
+  Stack.PushValue("local", x)
+
+  Stack.PushValue("local", y)
+
+  Shapes_CalcWidthAndHeight()
+
+  s = scale
+
+  For i = iMin To iMax
+
+    GraphicsWindow.PenWidth = shape[i]["pw"] * s
+
+    If shape[i]["pw"] > 0 Then
+
+      GraphicsWindow.PenColor = shape[i]["pc"]
+
+    EndIf
+
+    If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) Then
+
+      GraphicsWindow.BrushColor = shape[i]["bc"]
+
+    EndIf
+
+    If shape[i]["func"] = "rect" Then
+
+      shape[i]["obj"] = Shapes.AddRectangle(shape[i]["width"] * s, shape[i]["height"] * s)
+
+    ElseIf shape[i]["func"] = "ell" Then
+
+      shape[i]["obj"] = Shapes.AddEllipse(shape[i]["width"] * s, shape[i]["height"] * s)
+
+    ElseIf shape[i]["func"] = "tri" Then
+
+      shape[i]["obj"] = Shapes.AddTriangle(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s, shape[i]["x3"] * s, shape[i]["y3"] * s)
+
+    ElseIf shape[i]["func"] = "line" Then
+
+      shape[i]["obj"] = Shapes.AddLine(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s)
+
+    ElseIf shape[i]["func"] = "text" Then
+
+      If silverlight Then
+
+        fs = Math.Floor(shape[i]["fs"] * 0.9)
+
+      Else
+
+        fs = shape[i]["fs"]
+
+      EndIf
+
+      GraphicsWindow.FontSize = fs * s
+
+      GraphicsWindow.FontName = shape[i]["fn"]
+
+      shape[i]["obj"] = Shapes.AddText(shape[i]["text"])
+
+    EndIf
+
+    x = shape[i]["x"]
+
+    y = shape[i]["y"]
+
+    shape[i]["rx"] = x
+
+    shape[i]["ry"] = y
+
+    If silverlight And Text.IsSubText("tri|line", shape[i]["func"]) Then
+
+      alpha = Math.GetRadians(shape[i]["angle"])
+
+      SB_RotateWorkaround()
+
+      shape[i]["wx"] = x
+
+      shape[i]["wy"] = y
+
+    EndIf
+
+    Shapes.Move(shape[i]["obj"], shX + x * s, shY + y * s)
+
+    If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) And shape[i]["angle"] <> 0 Then
+
+      Shapes.Rotate(shape[i]["obj"], shape[i]["angle"])
+
+    EndIf
+
+  EndFor
+
+  shAngle = 0
+
+  y = Stack.PopValue("local")
+
+  x = Stack.PopValue("local")
+
+  i = Stack.PopValue("local")
+
+EndSub
+
+Sub Shapes_CalcWidthAndHeight
+
+  ' Shapes | Calculate total width and height of shapes
+
+  ' param iMin, iMax - shape indices to add
+
+  ' return shWidth, shHeight - total size of shapes
+
+  For i = iMin To iMax
+
+    If shape[i]["func"] = "tri" Or shape[i]["func"] = "line" Then
+
+      xmin = shape[i]["x1"]
+
+      xmax = shape[i]["x1"]
+
+      ymin = shape[i]["y1"]
+
+      ymax = shape[i]["y1"]
+
+      If shape[i]["x2"] < xmin Then
+
+        xmin = shape[i]["x2"]
+
+      EndIf
+
+      If xmax < shape[i]["x2"] Then
+
+        xmax = shape[i]["x2"]
+
+      EndIf
+
+      If shape[i]["y2"] < ymin Then
+
+        ymin = shape[i]["y2"]
+
+      EndIf
+
+      If ymax < shape[i]["y2"] Then
+
+        ymax = shape[i]["y2"]
+
+      EndIf
+
+      If shape[i]["func"] = "tri" Then
+
+        If shape[i]["x3"] < xmin Then
+
+          xmin = shape[i]["x3"]
+
+        EndIf
+
+        If xmax < shape[i]["x3"] Then
+
+          xmax = shape[i]["x3"]
+
+        EndIf
+
+        If shape[i]["y3"] < ymin Then
+
+          ymin = shape[i]["y3"]
+
+        EndIf
+
+        If ymax < shape[i]["y3"] Then
+
+          ymax = shape[i]["y3"]
+
+        EndIf
+
+      EndIf
+
+      shape[i]["width"] = xmax - xmin
+
+      shape[i]["height"] = ymax - ymin
+
+    EndIf
+
+    If i = 1 Then
+
+      shWidth = shape[i]["x"] + shape[i]["width"]
+
+      shHeight = shape[i]["y"] + shape[i]["height"]
+
+    Else
+
+      If shWidth < shape[i]["x"] + shape[i]["width"] Then
+
+        shWidth = shape[i]["x"] + shape[i]["width"]
+
+      EndIf
+
+      If shHeight < shape[i]["y"] + shape[i]["height"] Then
+
+        shHeight = shape[i]["y"] + shape[i]["height"]
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub SetStyle
+
+  pStyle = 1
+
+  kw = "fill"
+
+  GetStyleAttr()
+
+  bc = value
+
+  kw = "stroke"
+
+  GetStyleAttr()
+
+  pc = value
+
+  kw = "stroke-width"
+
+  GetStyleAttr()
+
+  pw = value
+
+EndSub
+
+Sub GetStyleAttr
+
+  ' param kw - keyword
+
+  ' param attr["style"] - style attribute
+
+  ' param pStyle - pointer to search in style attribute
+
+  ' return value - value
+
+  pKw = Text.GetIndexOf(Text.GetSubTextToEnd(attr["style"], pStyle), kw)
+
+  If pKw = 0 Then
+
+    value = ""
+
+  Else
+
+    pValue = pStyle + pKw + Text.GetLength(kw)
+
+    pColon = Text.GetIndexOf(Text.GetSubTextToEnd(attr["style"], pValue), ";")
+
+    If pColon = 0 Then
+
+      pColon = Text.GetLength(kw) + 1
+
+    EndIf
+
+    value = Text.GetSubText(attr["style"], pValue, pColon - 1)
+
+  EndIf
+
+EndSub
+
+Sub FindTag
+
+  ' find tag from html buffer
+
+  ' param["tag"] - tag name
+
+  ' param["class"] - class name
+
+  ' param p - pointer for buffer
+
+  ' param buf - html buffer
+
+  ' return tag - found tag
+
+  pSave = p
+
+  tag = ""
+
+  findNext = "True"
+
+  While findNext
+
+    findNext = "False"        ' tag may be not found
+
+    pTag = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), LT + param["tag"])
+
+    If 0 < pTag Then
+
+      lTag = Text.GetLength(param["tag"]) + 1
+
+      pTag = p + pTag - 1
+
+      len = Text.GetIndexOf(Text.GetSubTextToEnd(buf, pTag), "/" + param["tag"] + ">")
+
+      If len = 0 Then
+
+        lTag = 1
+
+        len = Text.GetIndexOf(Text.GetSubTextToEnd(buf, pTag), "/>")
+
+      EndIf
+
+      If param["class"] = "" Then
+
+        len = len + lTag
+
+        tag = Text.GetSubText(buf, pTag, len)
+
+        findNext = "False"    ' found the tag
+
+      ElseIf 0 < len Then
+
+        findNext = "True"     ' tag may have different class
+
+        len = len + lTag
+
+        attr = "class=" + QT + param["class"] + QT
+
+        pAttr = pTag + lTag + 1
+
+        lAttr = Text.GetLength(attr)
+
+        If Text.GetSubText(buf, pAttr, lAttr) = attr Then
+
+          tag = Text.GetSubText(buf, pTag, len)
+
+          findNext = "False"  ' found the tag
+
+        EndIf
+
+      EndIf
+
+      p = pTag + len
+
+    EndIf
+
+  EndWhile
+
+  If tag = "" Then
+
+    p = pSave
+
+  EndIf
+
+EndSub
+
+Sub GetAttrAndText
+
+  ' get attributes and text from given tag
+
+  ' param tag - given tag
+
+  ' return attr[] - array of attributes in the tag
+
+  ' return txt - text in the tag
+
+  ' return len - length of the tag
+
+  pTag = Text.GetIndexOf(tag, " ") + 1
+
+  pEnd = Text.GetIndexOf(tag, ">")
+
+  attr = ""
+
+  While pTag <= pEnd
+
+    SkipSpaceInTag()
+
+    pEq = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), "=")
+
+    If 0 < pEq Then
+
+      pEq = pTag + pEq - 1
+
+      If Text.GetSubText(tag, pEq + 1, 1) = QT Then
+
+        pQ = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pEq + 2), QT)
+
+        If 0 < pQ Then
+
+          pQ = pEq + 2 + pQ - 1
+
+          attr[Text.GetSubText(tag, pTag, pEq - pTag)] = Text.GetSubText(tag, pEq + 2, pQ - pEq - 2)
+
+          pTag = pQ + 2
+
+        EndIf
+
+      EndIf
+
+    Else
+
+      pTag = pEnd + 1
+
+    EndIf
+
+  EndWhile
+
+  If pEnd + 1 < pTag Then
+
+    pTag = pEnd + 1
+
+  EndIf
+
+  len = Text.GetLength(tag)
+
+  txt = ""
+
+  While pTag <= len
+
+    pL = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), LT)
+
+    If pL = 0 Then
+
+      txt = Text.Append(txt, Text.GetSubTextToEnd(tag, pTag))
+
+      pTag = len + 1
+
+    Else
+
+      pL = pTag + pL - 1
+
+      txt = Text.Append(txt, Text.GetSubText(tag, pTag, pL - pTag))
+
+      pR = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), ">")
+
+      If 0 < pR Then
+
+        pTag = pTag + pR
+
+      Else
+
+        pTag = len + 1
+
+      EndIf
+
+    EndIf  
+
+  EndWhile
+
+EndSub
+
+Sub SkipSpaceInTag
+
+  ' param pTag - pointer to tag
+
+  ' param tag - tag
+
+  ' return pTag - updated pointer to tag
+
+  isSpace = "True"
+
+  While isSpace
+
+    char = Text.GetSubText(tag, pTag, 1)
+
+    If Text.IsSubText(" " + CR + LF, char) Then
+
+      pTag = pTag + 1
+
+    Else
+
+      isSpace = "False"
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+Sub Parse_Space
+
+  ' param p - pointer to buffer
+
+  ' param buf - buffer
+
+  ' return p - updated pointer to buffer
+
+  isSpace = "True"
+
+  While isSpace
+
+    char = Text.GetSubText(buf, p, 1)
+
+    If Text.IsSubText(" " + CR + LF, char) Then
+
+      p = p + 1
+
+    Else
+
+      isSpace = "False"
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+

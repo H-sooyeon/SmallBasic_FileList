@@ -1,0 +1,1847 @@
+
+
+' Found original code at http://www.wurb.com/if/game/306
+
+' Originally written in TRS-80 basic, guess would be around 1980
+
+
+
+version = "1.0 6/26/09 ported to Microsoft SmallBasic by Daddyo"
+
+' Added hints among other tiny things to improve playability."
+
+
+
+' Normally set this to 1, this gives more moves to figure things out w/o starting over.
+
+' Make it an integer only, 1 to 4 are typical values.
+
+easyMovesScale = 2
+
+
+
+TextWindow.Left = Desktop.Width / 4
+
+TextWindow.Top = Desktop.Height / 3
+
+TextWindow.Show()
+
+TextWindow.BackgroundColor = "darkblue"
+
+TextWindow.ForegroundColor = "white"
+
+TextWindow.Title = ""
+
+
+
+MainLoop()
+
+
+
+Program.End()
+
+
+
+Sub MainLoop
+
+  While quit = FALSE 
+
+
+
+    Initialize()
+
+    Intro()
+
+
+
+    ' While not dead or won
+
+    While lifeState = 0 
+
+      ' Handle commands
+
+      GetInputAndParse()
+
+      
+
+      ' See how were doing
+
+      Checks()  
+
+    EndWhile
+
+   
+
+    ' Finished, what happened?
+
+    ShowEnding()
+
+    
+
+  Endwhile  
+
+EndSub 
+
+
+
+' Accept 1 to 2 word commands only.  First 3 characters of each word only used.
+
+Sub GetInputAndParse
+
+  dontUnderstand = TRUE 
+
+  
+
+  While dontUnderstand = TRUE
+
+    ' Assume we understand user input unless something wrong
+
+    ' comes up which we then ask them again 
+
+    dontUnderstand = FALSE
+
+    
+
+    theVerb = ""' Clear verb, is the 1st word in the response from the player.
+
+    theVo = ""  ' Clear verb object, is the 2nd word in the response, if any.
+
+    
+
+    TextWindow.CursorTop = 18
+
+    TextWindow.WriteLine("")
+
+    TextWindow.WriteLine("")
+
+    TextWindow.WriteLine("   What do you do next?")
+
+    TextWindow.WriteLine("")
+
+    TextWindow.Write("     ")
+
+    TextWindow.ForegroundColor = "yellow"
+
+    
+
+    ' Get their input
+
+    response = Text.ConvertToLowerCase(TextWindow.Read())
+
+    
+
+    TextWindow.Clear() 
+
+    TextWindow.CursorTop = 8
+
+    TextWindow.ForegroundColor = "white"
+
+    
+
+    ' TBD might want to get rid of spaces before/after response
+
+
+
+    ' Split out the two parts of their command    
+
+    length = Text.GetLength(response)
+
+    For i = 1 to length 
+
+      If Text.GetSubText(response, i, 1) = " " Then
+
+        ' Get 3 character verb
+
+        If length < 3 then
+
+          numCharsToGet = length
+
+        Else
+
+          numCharsToGet = 3
+
+        EndIf 
+
+
+
+        theVerb = Text.GetSubText(response, 1, numCharsToGet)
+
+
+
+        ' Get 3 character verb object
+
+        If length - 4 < 3 then
+
+          numCharsToGet = length - 4
+
+          If numCharsToGet < 0 then
+
+            numCharsToGet = 0
+
+          EndIf 
+
+        Else
+
+          numCharsToGet = 3
+
+        EndIf 
+
+
+
+        theVo = Text.GetSubText(response, i+1, numCharsToGet)
+
+
+
+        i = 99 ' Exit for loop
+
+      EndIf 
+
+    Endfor 
+
+    
+
+    ' If one word found, add verb or verb object to make complete
+
+    If theVo = "" then
+
+      If length < 3 then
+
+        numCharsToGet = length
+
+        If numCharsToGet < 0 then
+
+          numCharsToGet = 0
+
+        EndIf 
+
+      Else
+
+        numCharsToGet = 3
+
+      EndIf 
+
+      response = Text.GetSubText(response, 1, numCharsToGet)
+
+      
+
+      ' Make "east" movement into "go east" etc
+
+      If response = "nor" or response = "sou" or response = "eas" or response = "wes" then
+
+        theVerb = "go "
+
+        theVo = response
+
+        
+
+      ' Make 'help' into 'help doo' for single word commands, 
+
+      ' done to pass verb object word test coming up
+
+      ElseIf response = "hel" or response = "inv" or response = "loo" or response = "sle" then
+
+        theVerb = response
+
+        theVo = "doo" ' Dummy meaningless word
+
+      Else
+
+        dontUnderstand = TRUE
+
+      endif 
+
+      
+
+    endif 
+
+    
+
+    If dontUnderstand = FALSE Then 
+
+    
+
+      ' Determine what verb[] and verb object vo[] index the commands are,
+
+      ' see if they are valid
+
+      verbIndex = 0
+
+      voIndex = 0
+
+      
+
+      For i = 1 To VERBS 
+
+        If theVerb = Text.GetSubText(verb[i], 1, 3) Then
+
+          verbIndex = i
+
+          i = 99  ' exit for
+
+        EndIf 
+
+      EndFor 
+
+          
+
+      For i = 1 To VERB_OBJECTS 
+
+        If theVo = Text.GetSubText(vo[i], 1, 3) Then
+
+          voIndex = i
+
+          i = 99  ' exit for
+
+        EndIf 
+
+      EndFor 
+
+      
+
+      ' Were either invalid?
+
+      If verbIndex = 0 or voIndex = 0 then
+
+        dontUnderstand = TRUE
+
+      Else
+
+        ' Do the requested command
+
+        If verbIndex = 1 then
+
+          Go()
+
+        Elseif verbIndex = 2 then
+
+          Get()
+
+        Elseif verbIndex = 3 then
+
+          Feed()
+
+        Elseif verbIndex = 4 then
+
+          Melt()
+
+        Elseif verbIndex = 5 then
+
+          Drink()
+
+        Elseif verbIndex = 6 then
+
+          Eat()
+
+        Elseif verbIndex = 7 then
+
+          Make()
+
+        Elseif verbIndex = 8 then
+
+          Light()
+
+        Elseif verbIndex = 9 then
+
+          Inventory()
+
+          ' Don't penalize for this,  original code did
+
+          moves = moves - 1
+
+        Elseif verbIndex = 10 then
+
+          Help()
+
+          ' Don't penalize for this,  original code did
+
+          moves = moves - 1
+
+        Elseif verbIndex = 11 then
+
+          Look()
+
+          ' Don't penalize for this,  original code did
+
+          moves = moves - 1
+
+        Elseif verbIndex = 12 then
+
+          Drain()
+
+        Elseif verbIndex = 13 then
+
+          Sleep()
+
+        Endif   
+
+      endif 
+
+    EndIf 
+
+    
+
+    If dontUnderstand = TRUE Then 
+
+      TextWindow.WriteLine(" I don't understand that.")
+
+    EndIf 
+
+  endwhile  
+
+  
+
+EndSub 
+
+
+
+' Move around
+
+Sub Go
+
+  If voIndex > 4 then 
+
+    TextWindow.WriteLine(" Go where?")
+
+  Else
+
+    ' See if desired direction is blocked
+
+    If loc[currentLocation][voIndex] = BLOCKED then
+
+      TextWindow.WriteLine(" No movement possible that way.")
+
+      
+
+    ' See if direction is a cliff
+
+    ElseIf loc[currentLocation][voIndex] = CLIFF then
+
+      lifeState = 2   ' You're toast
+
+    Else
+
+      ' Certain map locations drag you down, sit in location for a couple rounds no matter what
+
+      ' way you want to go
+
+      if (currentLocation = 10 or currentLocation = 14 or currentLocation = 15) and struggleDelay < 2 then
+
+        struggleDelay = struggleDelay + 1
+
+        Look()
+
+      Else
+
+        struggleDelay = 0
+
+
+
+        If dark = TRUE Then
+
+          lifeState = 8
+
+        Else
+
+          ' Make sure map is complete, warn if not
+
+          If loc[currentLocation][voIndex] > LOCATIONS or loc[currentLocation][voIndex] < 1 then
+
+            TextWindow.WriteLine("    !!MAP INCOMPLETE FROM LOCATION " + currentLocation)
+
+          else
+
+            ' Set new location desired
+
+            currentLocation = loc[currentLocation][voIndex]
+
+            
+
+            ' Show them where they are now
+
+            Look()
+
+          endif 
+
+        Endif 
+
+
+
+      Endif 
+
+    endif 
+
+  Endif 
+
+Endsub 
+
+
+
+' Allow picking up of items
+
+Sub Get
+
+  If voIndex < 7 then 
+
+    TextWindow.WriteLine(" Don't be silly!")
+
+  elseif object[voIndex - OBJECT_TO_VERB_OBJECT_OFFSET][LOCATION] = ON_HAND then
+
+    TextWindow.WriteLine(" You already got it!")
+
+  else
+
+    ' Let them take object if here
+
+    If object[voIndex - OBJECT_TO_VERB_OBJECT_OFFSET][LOCATION] = currentLocation Then
+
+      TextWindow.WriteLine(" O.K.")
+
+      object[voIndex - OBJECT_TO_VERB_OBJECT_OFFSET][LOCATION] = ON_HAND
+
+      itemsCarried = itemsCarried + 1
+
+      
+
+      '  Show them candybar if they took coat and didn't eat it yet or carry yet
+
+      If voIndex - OBJECT_TO_VERB_OBJECT_OFFSET = 1 then
+
+        if object[9][LOCATION] <> EATEN and object[9][LOCATION] <> ON_HAND then
+
+          object[9][LOCATION] = 3
+
+          Look()
+
+        EndIf 
+
+      endif 
+
+    Else
+
+      ' If they wanted to 'get gas' let them 'drain gas' from the plane
+
+      If voIndex = 18 then
+
+        Drain()
+
+      else
+
+        TextWindow.WriteLine(" It isn't here!")
+
+      endif 
+
+    endif
+
+  endif 
+
+    
+
+EndSub 
+
+
+
+' Feed the fire more sticks or timber
+
+Sub Feed
+
+  If voIndex < 13 then 
+
+    TextWindow.WriteLine(" Don't be silly!")
+
+  elseif object[3][LOCATION] <> ON_HAND and object[6][LOCATION] <> ON_HAND then
+
+    TextWindow.WriteLine(" You don't have anything to use!")
+
+  ElseIf currentLocation <> 4 and currentLocation <> 23 then
+
+    TextWindow.WriteLine(" You can't here") ' annoying but original...
+
+  Elseif fire1Lit = FALSE then
+
+    TextWindow.WriteLine(" It isn't lit yet!")
+
+  Elseif currentLocation = 23 and fire2Lit = FALSE Then
+
+    TextWindow.WriteLine(" It isn't lit yet!")
+
+  elseif currentLocation = 4 then
+
+    object[3][LOCATION] = NOT_AVAILABLE
+
+    TextWindow.WriteLine(" O.K.")
+
+  elseif currentLocation = 23 then
+
+    object[6][LOCATION] = NOT_AVAILABLE
+
+    TextWindow.WriteLine(" O.K.  A very large size bonfire is now burning!") ' Added the hint
+
+    fireSize = fireSize + 1
+
+    ' Let helo swing by & find us since fire's big enough.  Added feature to end game sooner.
+
+    movesWhenDiscovered = moves + 3
+
+  Endif 
+
+
+
+EndSub 
+
+
+
+' Melt snow into water for drinking
+
+Sub Melt
+
+  If currentLocation <> 4 Then
+
+    TextWindow.WriteLine(" You can't here!")
+
+  ElseIf object[4][LOCATION] <> ON_HAND Then
+
+    TextWindow.WriteLine(" You don't have anything to use.")
+
+  ElseIf fire1Lit = FALSE Then
+
+    TextWindow.WriteLine(" You can't... yet.")
+
+  ElseIf voIndex <> 16 Then
+
+    TextWindow.WriteLine(" Melt what?")
+
+  Else
+
+    TextWindow.WriteLine(" O.K.  A pool of water appears on the ground.")   ' Added a pool of water...
+
+    melted = TRUE
+
+  EndIf 
+
+
+
+EndSub 
+
+
+
+' Drink water that we made
+
+Sub Drink
+
+  If voIndex <> 17 Then
+
+    TextWindow.WriteLine(" Drink what?")
+
+  ElseIf melted = FALSE Then
+
+    TextWindow.WriteLine(" You don't have any!")
+
+  Else
+
+    TextWindow.WriteLine(" That's refreshing")
+
+    drank = TRUE
+
+  EndIf 
+
+  
+
+EndSub 
+
+
+
+' Eat candy bar
+
+Sub Eat
+
+  ' Let them eat candy bar if we have it
+
+  If object[9][LOCATION] <> ON_HAND Then
+
+    TextWindow.WriteLine(" You don't have anything")
+
+  ElseIf voIndex <> 15 Then
+
+    TextWindow.WriteLine(" Eat what?")
+
+  Else
+
+    TextWindow.WriteLine(" It's hard but tastes mighty good.")
+
+    object[9][LOCATION] = EATEN
+
+  EndIf 
+
+  
+
+EndSub 
+
+
+
+' Make a splint from the straight stick
+
+Sub Make
+
+  If voIndex = 13 and currentLocation <> 4 Then
+
+    TextWindow.WriteLine(" You can't here.")
+
+  ElseIf voIndex = 14 and (currentLocation = 4 or currentLocation = 23) Then
+
+    Light()
+
+  ElseIf object[5][LOCATION] <> ON_HAND Then
+
+    TextWindow.WriteLine(" You don't have one.")
+
+  ElseIf voIndex = 13 and object[5][LOCATION] = ON_HAND Then
+
+    TextWindow.WriteLine(" O.K.  That feels better")
+
+    ' Change to a splint
+
+    object[5][DESCRIPTION] = "splint"
+
+  Else
+
+    TextWindow.WriteLine(" Make what?")
+
+  EndIf 
+
+  
+
+EndSub 
+
+
+
+' Light one of two fires required
+
+Sub Light
+
+  ' Do we have a lighter?
+
+  If object[2][LOCATION] <> ON_HAND  Then
+
+    TextWindow.WriteLine(" You don't have anything to light it with!") ' used to say "any matches" which aren't in game
+
+  ElseIf currentLocation = 4 and object[3][LOCATION] <> ON_HAND Then
+
+    TextWindow.WriteLine(" You don't have any fuel")
+
+  ElseIf currentLocation = 4 and gasInCan = FALSE Then
+
+    TextWindow.WriteLine(" They won't burn... yet.")
+
+  ElseIf currentLocation = 23 and object[6][LOCATION] <> ON_HAND Then
+
+    TextWindow.WriteLine(" You don't have any fuel")
+
+  ElseIf currentLocation <> 4 and currentLocation <> 23 Then
+
+    TextWindow.WriteLine(" You can't here.")  ' why not, annoying!
+
+  Else
+
+    TextWindow.WriteLine(" O.K.")
+
+    fire1Lit = TRUE
+
+    If currentLocation = 4 then
+
+      ' Create new sticks and have fire here
+
+      object[3][LOCATION] = 5
+
+      object[8][LOCATION] = 4
+
+    elseif currentLocation = 23 then
+
+      ' Put some fallen timber /large pieces of wood nearby, keep feeding to allow helicopter to see us
+
+      object[6][LOCATION] = 25
+
+      fire2Lit = TRUE
+
+      fireSize = fireSize + 1
+
+      object[8][LOCATION] = 23  ' Put fire here when looked at, old 1st fire gone if were to look but ok, not needed
+
+      TextWindow.WriteLine(" A moderately sized fire has begun.") ' Added this hint
+
+
+
+      ' Let helo swing by & not find us since fire's not big enough.  Added feature.
+
+      movesWhenDiscovered = moves + 3
+
+    endif 
+
+  EndIf 
+
+  
+
+Endsub 
+
+
+
+' Show what we have on hand
+
+Sub Inventory
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine(" You are carrying:")
+
+  If itemsCarried < 1 then
+
+    TextWindow.WriteLine(" Nothing!") 
+
+  else
+
+    For i = 1 To OBJECTS
+
+      if object[i][LOCATION] = ON_HAND then 
+
+        TextWindow.Write(" a " + object[i][DESCRIPTION] + ",")
+
+      endif 
+
+    EndFor 
+
+    TextWindow.WriteLine("")
+
+  endif 
+
+EndSub
+
+
+
+Sub Help
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine(" Use up to two words for actions, a verb & object.") ' Added
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine(" These are the verbs you may use:")
+
+  TextWindow.WriteLine("")
+
+  For i = 1 to VERBS
+
+    TextWindow.Write(verb[i] + ", ")
+
+    if i = 5 then 
+
+      TextWindow.WriteLine("")
+
+    EndIf 
+
+  Endfor 
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine(" (You need only type the first three letters.)")
+
+EndSub 
+
+
+
+' Say what we see, including objects
+
+Sub Look
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine(" " + loc[currentLocation][DESCRIPTION])
+
+  TextWindow.WriteLine("")
+
+  
+
+  If currentLocation = 22 or currentLocation = 11 then
+
+    lifeState = 1
+
+  else
+
+    For i = 1 To OBJECTS
+
+      If object[i][LOCATION] = currentLocation Then
+
+        TextWindow.WriteLine(" A " + object[i][DESCRIPTION] + " is here")
+
+      EndIf
+
+    EndFor
+
+    
+
+    TextWindow.WriteLine("")
+
+    TextWindow.Write("               < Possible movement: ")
+
+    If loc[currentLocation][NORTH] <> BLOCKED Then
+
+      TextWindow.Write("north ")
+
+    EndIf 
+
+    If loc[currentLocation][SOUTH] <> BLOCKED Then
+
+      TextWindow.Write("south ")
+
+    EndIf 
+
+    If loc[currentLocation][EAST] <> BLOCKED Then
+
+      TextWindow.Write("east ")
+
+    EndIf 
+
+    If loc[currentLocation][WEST] <> BLOCKED Then
+
+      TextWindow.Write("west ")
+
+    EndIf 
+
+    
+
+    TextWindow.WriteLine(">")
+
+    TextWindow.WriteLine("")
+
+  endif 
+
+Endsub  
+
+
+
+' You can drain plane gas into aluminum can
+
+Sub Drain
+
+  If voIndex = 18 or voIndex = 6 Then
+
+    If currentLocation <> 3 Then
+
+      TextWindow.WriteLine(" There's none here...")
+
+    ElseIf object[4][LOCATION] <> ON_HAND Then  ' Can on hand?
+
+      TextWindow.WriteLine(" Into what?")
+
+    Else
+
+      TextWindow.WriteLine(" O.K.  The plane's gas is now in the can.") ' added planes gas in can 
+
+      object[4][DESCRIPTION] = "aluminum can with gas"                  ' added can full
+
+      gasInCan = TRUE
+
+    EndIf 
+
+  Else
+
+    TextWindow.WriteLine(" Drain what?")
+
+  EndIf
+
+  
+
+EndSub 
+
+
+
+' Need sleep if it starts getting dark
+
+Sub Sleep
+
+  If fire1Lit = FALSE or currentLocation <> 4 Then
+
+    TextWindow.WriteLine(" It's too cold here!")
+
+  ElseIf drank = FALSE Then
+
+    TextWindow.WriteLine(" You're too thirsty to sleep")
+
+  Else
+
+    TextWindow.WriteLine(" You quickly doze off by the fire.")
+
+    Program.Delay(5000)
+
+    TextWindow.WriteLine("")
+
+    TextWindow.WriteLine("")
+
+    TextWindow.WriteLine(" AFTER FIRST LIGHT THE SOUND OF A NEARBY PLANE AWAKENS YOU!")
+
+    Sound.PlayBellRing()
+
+    Program.Delay(4000)
+
+    TextWindow.WriteLine("     TOO BAD THE FOG'S SO THICK.")
+
+    slept = TRUE    
+
+  EndIf 
+
+  
+
+EndSub 
+
+
+
+Sub Checks
+
+  moves = moves + 1
+
+  return = FALSE
+
+  
+
+  ' There's gotta be a better way to code this...
+
+  ' Added easyMoves for a less annoying time
+
+  
+
+  ' If we havent made a splint
+
+  If object[5][DESCRIPTION] <> "splint" Then
+
+    TextWindow.WriteLine(" Your leg is very painful")
+
+    If moves > 6 * easyMovesScale then
+
+      lifeState = 3
+
+      return = TRUE
+
+    endif 
+
+  Endif 
+
+    
+
+  ' If we dont have coat
+
+  If return = FALSE and object[1][LOCATION] <> ON_HAND Then
+
+    TextWindow.WriteLine(" It's very cold.")
+
+    If moves > 8 * easyMovesScale then
+
+      lifeState = 4
+
+      return = TRUE
+
+    endif 
+
+  endif 
+
+
+
+  ' If not moved much then dont do further tests
+
+  If return = FALSE and moves < 10 * easyMovesScale Then
+
+    ' do nothing
+
+    return = TRUE
+
+  Endif 
+
+    
+
+  ' Thirsty?
+
+  If return = FALSE and drank = FALSE and Math.Remainder(moves, 2) = 0 Then ' even moves
+
+    TextWindow.WriteLine(" You're very thirsty")
+
+    If moves > 24 * easyMovesScale then
+
+      lifeState = 5
+
+      return = TRUE
+
+    endif 
+
+    
+
+  Endif 
+
+  
+
+  ' Hungry?
+
+  If return = FALSE and object[9][LOCATION] <> EATEN and Math.Remainder(moves, 2) <> 0 Then ' odd moves
+
+    TextWindow.WriteLine(" You're very hungry")
+
+    If moves > 20 * easyMovesScale then
+
+      lifeState = 6
+
+      return = TRUE
+
+    endif 
+
+  Endif 
+
+    
+
+  ' Report dark, sleep is necessary then
+
+  If return = FALSE and moves > 18 * easyMovesScale and slept = FALSE and Math.Remainder(moves, 2) <> 0 Then ' odd moves
+
+    TextWindow.WriteLine(" It's getting dark.")
+
+    If moves > 25 * easyMovesScale then
+
+      dark = TRUE
+
+      return = TRUE
+
+    endif 
+
+  Endif 
+
+  
+
+  ' Rescue helo coming?  Bigger bonfire is only way out
+
+  If (return = FALSE and moves = 45 * easyMovesScale) or (return = FALSE and moves = movesWhenDiscovered) Then
+
+    TextWindow.WriteLine(" You hear a helicopter approaching...")
+
+    Sound.PlayBellRing()
+
+    Program.Delay(3000)
+
+    If fireSize > 1 then
+
+      TextWindow.WriteLine(" They seem to see your large fire...")
+
+      Program.Delay(4000)
+
+      lifeState = -1   ' you made it!
+
+      return = TRUE
+
+    Else
+
+      TextWindow.WriteLine(" But they don't see you...")
+
+      Program.Delay(2000)
+
+      return = TRUE
+
+    endif 
+
+    
+
+  Endif 
+
+  
+
+  '  Didn't survive
+
+  If return = FALSE and moves > 49 * easyMovesScale Then
+
+    lifeState = 7
+
+    return = TRUE
+
+  Endif 
+
+        
+
+EndSub 
+
+
+
+Sub Intro
+
+  TextWindow.Clear()
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("                              CAN YOU SURVIVE?")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  Program.Delay(2000)
+
+  TextWindow.WriteLine("                                By Russ Hall")
+
+  Program.Delay(5000)
+
+  TextWindow.Clear()
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine(" You were on a business trip in a single engine plane.  Bad weather crossing")
+
+  TextWindow.WriteLine(" high mountains suddenly came up, causing you to crash into a rough slope.")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine(" You much later awake to consciousness in a cold, quiet, and foggy world with")
+
+  TextWindow.WriteLine(" a terrible pain inside your right leg.")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("    (If you need game assistance, type 'help')")
+
+  Program.Delay(6000)
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  
+
+  Look()
+
+
+
+EndSub 
+
+
+
+Sub ShowEnding
+
+  TextWindow.WriteLine("")
+
+  If lifeState = -1 then
+
+    TextWindow.WriteLine(" THE RESCUE COPTER LOWERS A LADDER AND MAN TO ASSIST YOU GRATEFULLY UP.")
+
+    TextWindow.WriteLine("")
+
+    TextWindow.WriteLine("         CONGRATULATIONS!  YOU HAVE SURVIVED!")
+
+  Elseif lifeState = 1 and currentLocation=22 Then 
+
+    TextWindow.WriteLine("   YOU SLIP ON THE SNOW AND SLIDE INTO THE ROCKS BELOW.")
+
+  Elseif lifeState = 1 Then 
+
+    TextWindow.WriteLine("   YOU SLIP AND TUMBLE OVER THE ROCKS.")
+
+  Elseif lifeState = 2 Then 
+
+    TextWindow.WriteLine("   YOU HAVE FALLEN OFF THE CLIFF!")
+
+  Elseif lifeState = 3 Then 
+
+    TextWindow.WriteLine("   YOUR PAIN KEEPS YOU FROM MOVING FURTHER, AND YOU CANNOT KEEP WARM.")
+
+  Elseif lifeState = 4 Then 
+
+    TextWindow.WriteLine("   HYPOTHERMIA SETS IN AND YOU SHIVVER UNCONTROLLABLY.")
+
+  Elseif lifeState = 5 Then 
+
+    TextWindow.WriteLine("   ONE CAN'T LAST LONG WITHOUT WATER.")
+
+  Elseif lifeState = 6 Then 
+
+    TextWindow.WriteLine("   WITHOUT THE ENERGY OF FOOD, HYPOTHERMIA SETS IN.")
+
+  Elseif lifeState = 7 Then 
+
+    TextWindow.WriteLine("   YOU HAVE BEEN TOO LONG IN THE COLD.")
+
+  Elseif lifeState = 8 Then 
+
+    TextWindow.WriteLine("   YOU CAN'T SEE TO MANEUVER SAFELY AND STUMBLE IN THE ROCKS,")
+
+    TextWindow.WriteLine("   KNOCKING YOURSELF UNCONSCIOUS.")
+
+  Elseif lifeState = 9 Then 
+
+    TextWindow.WriteLine("   YOU HAVE FAILED TO SURVIVE.")
+
+  endif 
+
+  
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("")
+
+  
+
+  Program.Delay(3000)
+
+  
+
+  TextWindow.WriteLine(" Do you wish to try again?")
+
+  TextWindow.Write("    ")
+
+  
+
+  response = Text.ConvertToLowerCase(TextWindow.Read())
+
+  
+
+  If Text.GetSubText(response, 1, 1) = "n" then
+
+    quit = TRUE
+
+    TextWindow.WriteLine(" BYE-BYE")
+
+    Program.Delay(2000)
+
+  endif 
+
+EndSub 
+
+
+
+Sub Initialize
+
+  ' Uppercase variables in this listing are non-changing constant values for ease of readability
+
+  TRUE = 1
+
+  FALSE = 0
+
+  
+
+  ' Game states & variables
+
+  moves = 0           ' How many moves we've made
+
+  lifeState = 0       ' How we died, or won if -1
+
+  currentLocation = 3 ' What loc[] index we're at
+
+  quit = FALSE        ' Quit?
+
+  dark = FALSE        ' Dark?
+
+  gasInCan = FALSE    ' Gas is in can
+
+  fire1Lit = FALSE    ' Small fire started?
+
+  fire2Lit = FALSE    ' Bonfire started?
+
+  melted = FALSE      ' Melted snow?
+
+  drank = FALSE       ' Drank water?
+
+  slept = FALSE       ' Got sleep?
+
+  itemsCarried = 0    ' Variable not really needed
+
+  fireSize = 0        ' Size of large timber fire, must be big enough for helo to find us
+
+  struggleDelay = 0   ' long time to get through certain locations
+
+  movesWhenDiscovered = 9999  ' If we light the fire, what move # we have helo come by to help end game quicker.  Added feature.
+
+    
+
+  ' Verbs (action words!)  - lowercase only, 3 characters minimum, 1st 3 characters unique
+
+  VERBS = 13
+
+  verb[1] = "go "
+
+  verb[2] = "get"
+
+  verb[3] = "feed"
+
+  verb[4] = "melt"
+
+  verb[5] = "drink"
+
+  verb[6] = "eat"
+
+  verb[7] = "make"
+
+  verb[8] = "light"
+
+  verb[9] = "inventory"
+
+  verb[10] = "help"
+
+  verb[11] = "look"
+
+  verb[12] = "drain"
+
+  verb[13] = "sleep"
+
+  
+
+  ' Verb objects (action directed upon) - lowercase only, 3 characters minimum, 1st 3 characters unique
+
+  ' Indexes past OBJECT_TO_VERB_OBJECT_OFFSET must match object[1 to OBJECTS]
+
+  ' Note: this really should be combined in the object[][] array 
+
+  VERB_OBJECTS = 18
+
+  vo[1] = "north"
+
+  vo[2] = "south"
+
+  vo[3] = "east"
+
+  vo[4] = "west"
+
+  vo[5] = "doo"     'dummy filler to make code work, looks like door...
+
+  vo[6] = "plane"
+
+  vo[7] = "coat"
+
+  vo[8] = "light"
+
+  vo[9] = "sticks"
+
+  vo[10] = "can"
+
+  vo[11] = "limb"
+
+  vo[12] = "timber"
+
+  vo[13] = "splint"
+
+  vo[14] = "fire"
+
+  vo[15] = "bar"
+
+  vo[16] = "snow"
+
+  vo[17] = "water"
+
+  vo[18] = "gas"
+
+  
+
+  ' Objects usable in the game, must match vo[7 to 15] indexes
+
+  DESCRIPTION = 0 ' Also used for loc[][] 2nd index
+
+  LOCATION = 1
+
+  
+
+  ' LOCATION possible entries
+
+  ON_HAND = 99
+
+  EATEN = 100
+
+  NOT_AVAILABLE = 0
+
+  
+
+  OBJECTS = 9
+
+  OBJECT_TO_VERB_OBJECT_OFFSET = 6  ' subtract this from verb object index (vo[]) to get this object
+
+  object[1][DESCRIPTION] = "coat"
+
+  object[1][LOCATION] = 3   ' What location (loc[x][]) is this object is currently at, or if on hand = ON_HAND
+
+  object[2][DESCRIPTION] = "butane lighter"
+
+  object[2][LOCATION] = 2
+
+  object[3][DESCRIPTION] = "bunch of sticks"
+
+  object[3][LOCATION] = 5
+
+  object[4][DESCRIPTION] = "empty aluminum gas can" ' added empty and gas, will change when filled from plane
+
+  object[4][LOCATION] = 1
+
+  object[5][DESCRIPTION] = "straight limb, possibly useful for making a splint" ' Original code had no hint here, only "straight limb"
+
+  object[5][LOCATION] = 4
+
+  object[6][DESCRIPTION] = "mess of fallen timber"
+
+  object[6][LOCATION] = 25
+
+  object[7][DESCRIPTION] = "splint"
+
+  object[7][LOCATION] = NOT_AVAILABLE
+
+  object[8][DESCRIPTION] = "fire"
+
+  object[8][LOCATION] = NOT_AVAILABLE
+
+  object[9][DESCRIPTION] = "bar of chocolate"
+
+  object[9][LOCATION] = NOT_AVAILABLE
+
+    
+
+  ' Map locations description & movement possibilities / connections for each location
+
+  LOCATIONS = 25
+
+    
+
+  ' loc[][] location information index constants
+
+  NORTH = 1
+
+  SOUTH = 2
+
+  EAST = 3
+
+  WEST = 4
+
+    
+
+  ' Possible values
+
+  BLOCKED = 0
+
+  CLIFF = 99
+
+  
+
+  ' Location 1
+
+  loc[1][DESCRIPTION] = "THE MOUNTAIN SIDE SLOPES DOWN STEEPLY TO THE SOUTH.  THE WAY WEST IS BLOCKED BY A ROCKSLIDE."
+
+  loc[1][NORTH] = BLOCKED     ' Can't go north from here
+
+  loc[1][SOUTH] = 6                 ' If we go south, move to location 6
+
+  loc[1][EAST] = 2                    ' If we go east, move to location 2
+
+  loc[1][WEST] = BLOCKED       ' Can't go west from here
+
+  
+
+  ' Location 2 and so on
+
+  loc[2][DESCRIPTION] = "SOME CRASH DEBRIS SHOWS HERE THROUGH THE FOG AND SNOW COVERING."
+
+  loc[2][NORTH] = BLOCKED
+
+  loc[2][SOUTH] = BLOCKED
+
+  loc[2][EAST] = 3
+
+  loc[2][WEST] = 1
+
+  
+
+  loc[3][DESCRIPTION] = "YOU ARE AT THE CRASH SITE.  PIECES OF THE PLANE SURROUND YOU.  YOU NOTICE GAS    STILL IN THE PLANE." ' added gas for hint, needed with wood & lighter to start fires
+
+  loc[3][NORTH] = BLOCKED
+
+  loc[3][SOUTH] = BLOCKED
+
+  loc[3][EAST] = 4
+
+  loc[3][WEST] = 2
+
+  
+
+  loc[4][DESCRIPTION] = "YOU ARE ON A GENTLE, SOUTHERN SLOPING, SNOWY MOUNTAIN SIDE.  A PERFECT PLACE     FOR A SMALL FIRE." ' added a perfect place for a fire
+
+  loc[4][NORTH] = BLOCKED
+
+  loc[4][SOUTH] = 9
+
+  loc[4][EAST] = 5
+
+  loc[4][WEST] = 3
+
+  
+
+  loc[5][DESCRIPTION] = "YOU CAN SEE VERY DENSE FOREST TO THE SOUTH AND EAST."
+
+  loc[5][NORTH] = BLOCKED
+
+  loc[5][SOUTH] = 10
+
+  loc[5][EAST] = BLOCKED
+
+  loc[5][WEST] = 4
+
+  
+
+  loc[6][DESCRIPTION] = "THE MOUNTAIN SIDE HERE IS VERY STEEP, YOU HAVE TROUBLE MANEUVERING"
+
+  loc[6][NORTH] = 1
+
+  loc[6][SOUTH] = 11
+
+  loc[6][EAST] = 7
+
+  loc[6][WEST] = BLOCKED
+
+  
+
+  loc[7][DESCRIPTION] = "HERE YOU SEE THE HILLSIDE SLOPE DOWN MORE STEEPLY ON THE WEST."
+
+  loc[7][NORTH] = BLOCKED
+
+  loc[7][SOUTH] = 12
+
+  loc[7][EAST] = 8
+
+  loc[7][WEST] = 6
+
+  
+
+  loc[8][DESCRIPTION] = "THE FOG SEEMS TO BE THINNING DOWN THE MOUNTAIN, AND A ROCKY CLIFF EDGE RUNS      ALONG THE SOUTH HERE."
+
+  loc[8][NORTH] = BLOCKED
+
+  loc[8][SOUTH] = CLIFF
+
+  loc[8][EAST] = 9
+
+  loc[8][WEST] = 7
+
+  
+
+  loc[9][DESCRIPTION] = "A CLIFF EDGE IS TO THE SOUTH AND DENSE FOREST ON THE EAST."
+
+  loc[9][NORTH] = 4
+
+  loc[9][SOUTH] = CLIFF
+
+  loc[9][EAST] = 10
+
+  loc[9][WEST] = 8
+
+  
+
+  loc[10][DESCRIPTION] =  "YOU ARE IN THE THICK FOREST.  IT'S DIFFICULT TO KNOW YOUR WAY."
+
+  loc[10][NORTH] = 5
+
+  loc[10][SOUTH] = 15
+
+  loc[10][EAST] = BLOCKED
+
+  loc[10][WEST] = 9
+
+  
+
+  loc[11][DESCRIPTION] = "THE MOUNTAIN SIDE HERE IS VERY STEEP, YOU HAVE TROUBLE MANEUVERING"
+
+  loc[11][NORTH] = 6
+
+  loc[11][SOUTH] = 16
+
+  loc[11][EAST] = 12
+
+  loc[11][WEST] = BLOCKED
+
+  
+
+  loc[12][DESCRIPTION] = "THIS IS A BEAUTIFUL, WIDE MORAINE FIELD WITH STEEP SLOPES WEST."
+
+  loc[12][NORTH] = 7
+
+  loc[12][SOUTH] = 17
+
+  loc[12][EAST] = 13
+
+  loc[12][WEST] = 11
+
+  
+
+  loc[13][DESCRIPTION] = "YOU ARE AT THE BASE OF A ROCKY CLIFF TO THE NORTH, DENSE FOREST TO THE EAST."
+
+  loc[13][NORTH] = BLOCKED
+
+  loc[13][SOUTH] = 18
+
+  loc[13][EAST] = 14
+
+  loc[13][WEST] = 12
+
+  
+
+  loc[14][DESCRIPTION] = "YOU ARE IN THE THICK FOREST.  IT'S  DIFFICULT TO KNOW YOUR WAY."
+
+  loc[14][NORTH] = BLOCKED
+
+  loc[14][SOUTH] = 19
+
+  loc[14][EAST] = 15
+
+  loc[14][WEST] = 13
+
+  
+
+  loc[15][DESCRIPTION] = "YOU ARE IN THE THICK FOREST.  IT'S  DIFFICULT TO KNOW YOUR WAY."
+
+  loc[15][NORTH] = 10
+
+  loc[15][SOUTH] = BLOCKED
+
+  loc[15][EAST] = BLOCKED
+
+  loc[15][WEST] = 14
+
+  
+
+  loc[16][DESCRIPTION] = "YOU ARE ON A BEAUTIFUL FORESTED MOUNTAINSIDE."
+
+  loc[16][NORTH] = 11
+
+  loc[16][SOUTH] = 21
+
+  loc[16][EAST] = 17
+
+  loc[16][WEST] = BLOCKED
+
+  
+
+  loc[17][DESCRIPTION] = "THERE IS A LARGE, STEEP SNOWFIELD TO THE SOUTH."
+
+  loc[17][NORTH] = 12
+
+  loc[17][SOUTH] = 22
+
+  loc[17][EAST] = 18
+
+  loc[17][WEST] = 16
+
+  
+
+  loc[18][DESCRIPTION] = "YOU ARE ON A ROCKY, SLOPING MOUNTAIN SIDE."
+
+  loc[18][NORTH] = 13
+
+  loc[18][SOUTH] = 23
+
+  loc[18][EAST] = 19
+
+  loc[18][WEST] = 17
+
+  
+
+  loc[19][DESCRIPTION] = "THE FOREST IS THINNER HERE BUT MUCH DENSER TO THE NORTH."
+
+  loc[19][NORTH] = 14
+
+  loc[19][SOUTH] = 24
+
+  loc[19][EAST] = 20
+
+  loc[19][WEST] = 18
+
+  
+
+  loc[20][DESCRIPTION] = "YOU ARE ON A BEAUTIFUL FORESTED MOUNTAINSIDE."
+
+  loc[20][NORTH] = 15
+
+  loc[20][SOUTH] = BLOCKED
+
+  loc[20][EAST] = BLOCKED
+
+  loc[20][WEST] = 19
+
+  
+
+  loc[21][DESCRIPTION] = "A STEEP, SLICK SNOWFIELD BLOCKS YOUR WAY EAST."
+
+  loc[21][NORTH] = 16
+
+  loc[21][SOUTH] = BLOCKED
+
+  loc[21][EAST] = 22
+
+  loc[21][WEST] = BLOCKED
+
+  
+
+  loc[22][DESCRIPTION] = "YOU ARE ON A STEEP, SLICK SNOWFIELD."
+
+  loc[22][NORTH] = 17
+
+  loc[22][SOUTH] = BLOCKED
+
+  loc[22][EAST] = 23
+
+  loc[22][WEST] = 21
+
+  
+
+  loc[23][DESCRIPTION] = "YOU'RE IN A CLEARING HERE, WITH A STEEP SNOWFIELD WEST.  AN IDEAL PLACE FOR A LARGE FIRE." ' added a perfect place for a fire
+
+  loc[23][NORTH] = 18
+
+  loc[23][SOUTH] = BLOCKED
+
+  loc[23][EAST] = 24
+
+  loc[23][WEST] = 22
+
+  
+
+  loc[24][DESCRIPTION] = "YOU'RE ON A SLOPING MOUNTAIN SIDE WITH CLOUDS HIGH ABOVE YOU."
+
+  loc[24][NORTH] = 19
+
+  loc[24][SOUTH] = BLOCKED
+
+  loc[24][EAST] = 25
+
+  loc[24][WEST] = 23
+
+  
+
+  loc[25][DESCRIPTION] = "YOU ARE ON A BEAUTIFUL FORESTED MOUNTAINSIDE."
+
+  loc[25][NORTH] = 20
+
+  loc[25][SOUTH] = BLOCKED
+
+  loc[25][EAST] = BLOCKED
+
+  loc[25][WEST] = 24
+
+  
+
+EndSub 
+
+

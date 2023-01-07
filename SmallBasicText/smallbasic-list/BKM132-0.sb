@@ -1,0 +1,423 @@
+' Word List 0.9
+
+' Copyright (c) 2010-2014 Nonki Takahashi.
+
+'
+
+' History:
+
+'  0.9 2014-05-13 Translated to English (209 lines, BKM132-0)
+
+'  0.8 2010-06-29 Added operator to delimiter (208 lines)
+
+'  0.7 2010-06-23 Removed performance test, rewrote comments (205 lines, BKM132)
+
+'  0.6 2010-06-14 Performance upgrade (313 lines, program ID HBQ757)
+
+'  0.5 2010-06-12 Added performance test (232 lines, program ID XLQ213)
+
+'  0.4 2010-06-10 Completed (175 lines, program ID XFX546)
+
+'  0.3 2010-06-09 Output word list (111 lines, program ID LDG385)
+
+'  0.2 2010-05-05 Under debbuging (37 lines)
+
+'  0.1 2010-05-05 Initial version: only pseudo code (11 lines)
+
+'
+
+' character code for tab
+
+TAB = 9
+
+' character code for double quotation mark
+
+WQUOTE = 34
+
+' initialze word list pointer
+
+ptr[0] = 1
+
+' get filename from keyboard
+
+TextWindow.Write("File name? ")
+
+filename = TextWindow.Read()
+
+' initialize line number
+
+lno = 1
+
+' initialize word number
+
+wno = 0
+
+' read a line from input file
+
+' The following line could be harmful and has been automatically commented.
+
+' line = File.ReadLine(filename, lno)
+
+' repeat the block in { } until EOF comes
+
+While (line <> "")
+
+  ' {
+
+  ' write the line with line number 
+
+  TextWindow.WriteLine(lno + " " + line)
+
+  ' get separator between words from line
+
+  GetSeparator()
+
+  ' get a word from line
+
+  GetWord()
+
+  ' repeat the block in { } until EOL comes 
+
+  While (word <> "")
+
+    ' {
+
+    ' register given word to the word list
+
+    InsertWordList()
+
+    ' get separator between words from line
+
+    GetSeparator()
+
+    ' get a word from line
+
+    GetWord()
+
+    ' }
+
+  EndWhile
+
+  ' count up line number
+
+  lno = lno + 1
+
+  ' read a line from input file
+
+' The following line could be harmful and has been automatically commented.
+
+'   line = File.ReadLine(filename, lno)
+
+  ' }
+
+EndWhile
+
+' print the word list
+
+PrintWordList()
+
+Sub GetWord
+
+  ' Get word from line
+
+  ' param line
+
+  ' work c - character
+
+  ' return line - remaining characters in the line
+
+  ' return word
+
+  word = ""
+
+  While (line <> "")
+
+    c = Text.GetSubText(line, 1, 1)
+
+    If (c = " " Or Text.GetCharacterCode(c) = TAB Or c = "," Or c = ";" Or c = ":" Or c = ".") Then 
+
+      Goto endword
+
+    ElseIf (Text.GetCharacterCode(c) = WQUOTE Or c = "(" Or c = ")" Or c = "[" Or c = "]") Then
+
+      Goto endword
+
+    ElseIf (c = "<" Or c = ">" Or c = "+" Or c = "-" Or c = "*" Or c = "/" Or c = "=") Then
+
+      Goto endword
+
+    Else
+
+      line = Text.GetSubText(line, 2, Text.GetLength(line) - 1)
+
+      word = word + c
+
+    EndIf  
+
+  EndWhile
+
+  endword:
+
+EndSub
+
+Sub GetSeparator
+
+  ' Get separator between words in line
+
+  ' param line
+
+  ' work  s - separator
+
+  ' work space - "True" if there is space, tab or other delimiters
+
+  ' return separator
+
+  separator = ""
+
+  space = "False"
+
+  While (line <> "")
+
+    s = Text.GetSubText(line, 1, 1)
+
+    While (s = " " Or Text.GetCharacterCode(s) = TAB)
+
+      line = Text.GetSubText(line, 2, Text.GetLength(line) - 1)
+
+      s = Text.GetSubText(line, 1, 1)
+
+      space = "True"
+
+    EndWhile
+
+    If (Text.GetCharacterCode(s) = WQUOTE Or s = "," Or s = ";" Or s = ":" Or s = "." Or s = "(" Or s = ")" Or s = "[" Or s = "]" Or s ="<" Or s = ">" Or s = "+" Or s = "-" Or s = "*" Or s = "/" Or s = "=") Then 
+
+      line = Text.GetSubText(line, 2, Text.GetLength(line) - 1)
+
+      separator = separator + s
+
+    Else
+
+      Goto endseparator
+
+    EndIf  
+
+  EndWhile
+
+  endseparator:
+
+  If (separator = "" And space) Then
+
+    separator = " "
+
+  EndIf
+
+EndSub
+
+Sub InsertWordList
+
+  ' Insert a word to the word list
+
+  ' param word
+
+  ' param ptr - pointer to the next entry in word list
+
+  ' param wordlist - array for word list
+
+  ' param lnolist - array for line number list
+
+  ' param wno - registered number of words
+
+  ' work  lastptr - pointer to the previous entry
+
+  ' work currentptr - pointer to the current entry
+
+  ' work i - index for word list
+
+  ' work j - counter for entry
+
+  ' return ptr - updated pointer to next entry in word list
+
+  ' return wordlist - updated array for word list
+
+  ' return lnolist - updated array for line number list
+
+  ' return wno - updated number of words
+
+  lastptr = 0
+
+  currentptr = ptr[lastptr]
+
+  For j = 1 To wno
+
+    i = currentptr
+
+    ' compare word and wordlist[i]
+
+    CompareWord()
+
+    ' if word < wordlist[i] then
+
+    If (cwresult = "<") Then
+
+      Goto exitiwl
+
+    EndIf
+
+    lastptr = currentptr
+
+    currentptr = ptr[lastptr]
+
+  EndFor    
+
+  exitiwl:
+
+  ' insert word and line number at index i
+
+  ptr[lastptr] = wno + 1
+
+  ptr[wno + 1] = currentptr
+
+  wordlist[wno + 1] = word
+
+  lnolist[wno + 1] = lno
+
+  wno = wno + 1
+
+EndSub
+
+Sub PrintWordList
+
+  ' Print word list to display (text window)
+
+  ' param ptr - pointer to the next entry in word list
+
+  ' param wordlist - array for word list
+
+  ' param lnolist - array for line number list
+
+  ' param wno - registered number of words
+
+  ' work i - index to word list
+
+  ' work j - counter for entry
+
+  ' work currentword
+
+  ' work lower - word converted into lower case letters
+
+  ' work lastptr - pointer to the previous entry in word list
+
+  ' word currentptr - pointer to the current entry
+
+  lastptr = 0
+
+  currentptr = ptr[lastptr]
+
+  currentword = ""
+
+  For j = 1 To wno
+
+    i = currentptr
+
+    lower = Text.ConvertToLowerCase(wordlist[i])
+
+    If (lower = currentword) Then
+
+      ' output only line numbers while continuing the current word
+
+      TextWindow.Write(", " + lnolist[i])
+
+    Else
+
+      ' output word ... line number when new word appears
+
+      TextWindow.WriteLine("")
+
+      TextWindow.Write(wordlist[i] + " ... " + lnolist[i])
+
+      currentword = lower
+
+    EndIf
+
+    lastptr = currentptr
+
+    currentptr = ptr[lastptr]
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+Sub CompareWord
+
+  ' Compare word with wordlist[i]
+
+  ' param word
+
+  ' param wordlist - array for word list
+
+  ' param i - index to the word list
+
+  ' work k - character position in the word to compare
+
+  ' work l, l1, l2 - length of words to compare
+
+  ' work w1, w2 - words to compare
+
+  ' work c1, c2 - characters to compare
+
+  ' return cwresult - result: ">", "=" or "<"
+
+  w1 = Text.ConvertToLowerCase(word)
+
+  w2 = Text.ConvertToLowerCase(wordlist[i])
+
+  l1 = Text.GetLength(w1)
+
+  l2 = Text.GetLength(w2)
+
+  l = Math.Min(l1, l2)
+
+  For k = 1 To l
+
+    c1 = Text.GetCharacterCode(Text.GetSubText(w1, k, 1))
+
+    c2 = Text.GetCharacterCode(Text.GetSubText(w2, k, 1))
+
+    If (c1 > c2) Then
+
+      cwresult = ">"
+
+      Goto cwexit
+
+    ElseIf (c1 < c2) Then
+
+      cwresult = "<"
+
+      Goto cwexit
+
+    EndIf
+
+  EndFor
+
+  If (l1 > l2) Then
+
+    cwresult = ">"
+
+  ElseIf (l1 < l2) Then
+
+    cwresult = "<"
+
+  Else
+
+    cwresult = "="
+
+  EndIf
+
+  cwexit:
+
+EndSub
+
+

@@ -1,0 +1,457 @@
+' SmallBasic Version 1.2
+
+' Program: SBSnake Game
+
+' Changelog: 
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/a7044ab9-4c12-4e71-ac27-bb42767efc65/how-to-move-more-than-one-of-a-shapes-array-to-a-certain-area
+
+' ImportURL: http://smallbasic.com/program/?
+
+' Extension: ---
+
+' Comment: 
+
+'  
+
+' Variables: arr field-properties: 0 .. default, 1 .. border/snake, -dLen .. food (default: -2)
+
+' ToDo: d*(X-1)  -> d*X - d    (personal maxScore: 74)
+
+'  wooden style
+
+'  increase speed (intv -10 ...  bis 100 ?)
+
+'===============================================================================
+
+'' Konstanten
+
+d = 20  ' 10
+
+w = 40    'Breite Spielfeld
+
+h = 30    'Höhe Spielfeld
+
+maxLen = 200
+
+dLen = 2
+
+cBG = "#232323"       ' "Yellow"  ' (Abdeckung)
+
+cBorder = "Blue"
+
+cHead = "DarkViolet"  ' "DarkRed"
+
+cSnake = "#EE204D"    ' "Red"
+
+cFruit = "Lime"       ' "DeepPink"  ' fruit/candy
+
+lf = Text.GetCharacter(10)
+
+snk = Text.GetCharacter(55357) + Text.GetCharacter(56333)
+
+bDbg = ""   ' "True"  ' DbgView with P-Pause
+
+
+
+'' Variablen
+
+ResetVariables()
+
+
+
+BuildGUI()
+
+
+
+Timer.Interval = 200  '150
+
+Timer.Tick = OnTimerTick
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+
+
+
+
+' //////////  EVENTs  \\\\\\\\\\
+
+Sub OnTimerTick
+
+  If dx <> 0 Or dy <> 0 Then
+
+    If bReady Then
+
+      bReady = ""
+
+      If foodGone Then    ' offer food
+
+        fx = Math.GetRandomNumber(w - 2) + 1
+
+        fy = Math.GetRandomNumber(h - 2) + 1
+
+        If arr[fx][fy] = 0 Then
+
+          arr[fx][fy] = -dLen      ' -2, -nutritional value,  eg. -5  ->  snake grows 5 limbs longer / fruit
+
+          GraphicsWindow.BrushColor = cFruit
+
+          GraphicsWindow.FillEllipse(d*(fx-1),d*(fy-1), d,d)
+
+          foodGone = ""
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+    
+
+    If iHead > 0 Then
+
+      GraphicsWindow.BrushColor = cSnake
+
+      GraphicsWindow.FillEllipse(d*(x-1),d*(y-1), d,d)
+
+    EndIf
+
+    
+
+    ' move
+
+    x = x + dx
+
+    y = y + dy
+
+    If arr[x][y] = 1 Then   ' position already ocupied by snake itself or wall/border -> End
+
+      Timer.Pause()
+
+      GraphicsWindow.ShowMessage("Fehler!"+ lf +"Schade, das war's.", "SBSnake")
+
+      'Program.End()                ' OR ...
+
+      ResetVariables()    ' .. start over
+
+      ResetGUI()          ' .. start over
+
+    ElseIf arr[x][y] < 0 Then   ' food at head position
+
+      wait = wait - arr[x][y]   ' hold tail for some moves
+
+      foodGone = "True"
+
+    EndIf
+
+    
+
+    ' draw head
+
+    GraphicsWindow.BrushColor = cHead
+
+    GraphicsWindow.FillEllipse(d*(x-1),d*(y-1), d,d)
+
+    arr[x][y] = 1
+
+    
+
+    ' draw tail/snake
+
+    iHead = iHead + 1
+
+    sx[iHead] = x
+
+    sy[iHead] = y
+
+    If wait <= 0 Then   ' keep length & remove last limb (tail)
+
+      iTail = iTail + 1
+
+      len = len + 1
+
+      GraphicsWindow.BrushColor = cBG
+
+      GraphicsWindow.FillRectangle(d*(sx[iTail]-1),d*(sy[iTail]-1), d,d)
+
+      arr[sx[iTail]][sy[iTail]] = 0
+
+    Else            ' temporary holding tail -> snake grows longer (at the beginning)
+
+      wait = wait - 1
+
+      pts = pts + 1
+
+      GraphicsWindow.Title = "SBSnake "+ pts
+
+    EndIf
+
+    
+
+    If len >= maxLen Then
+
+      TrimLeft()
+
+    EndIf
+
+  EndIf
+
+  bReady = "True"
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  If lastKey = "Escape" Then
+
+    Program.End()
+
+  ElseIf lastKey = "Left" Then
+
+    dx = -1
+
+    dy = 0
+
+  ElseIf lastKey = "Right" Then
+
+    dx = 1
+
+    dy = 0
+
+  ElseIf lastKey = "Up" Then
+
+    dx = 0
+
+    dy = -1
+
+  ElseIf lastKey = "Down" Then
+
+    dx = 0
+
+    dy = 1
+
+    
+
+  ElseIf lastKey = "P" Then
+
+    If paused Then
+
+      Shapes.HideShape(shp)
+
+      TextWindow.Hide()
+
+      paused = ""
+
+      Timer.Resume()
+
+    Else
+
+      paused = "True"
+
+      Timer.Pause()
+
+      Shapes.ShowShape(shp)
+
+      If bDbg Then
+
+        DbgInfo()
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+
+
+' //////////  SUBs  \\\\\\\\\\
+
+Sub BuildGUI
+
+  GraphicsWindow.Top = 0
+
+  GraphicsWindow.Left = (Desktop.Width - w*d) / 2
+
+  GraphicsWindow.CanResize = ""
+
+  GraphicsWindow.Height= h * d
+
+  GraphicsWindow.Width = w * d
+
+  GraphicsWindow.BackgroundColor = cBG
+
+  LDGraphicsWindow.Icon = "C:\Program Files (x86)\Microsoft\Small Basic\Projects\Icons\SBSnake.ico"
+
+  
+
+  ' Randbalken (gefüllt mit 1) + Nummerierung
+
+  GraphicsWindow.FontBold = ""
+
+  For i = 1 To w
+
+    arr[i][1] = 1
+
+    arr[i][h] = 1
+
+    GraphicsWindow.BrushColor = cBorder
+
+    GraphicsWindow.FillRectangle(d*(i-1),0, d,d)        ' oberer Rand
+
+    GraphicsWindow.FillRectangle(d*(i-1),d*(h-1), d,d)  ' unterer Rand
+
+    GraphicsWindow.BrushColor = "Black"                 ' Spalten # oben
+
+    GraphicsWindow.DrawText(d*(i-1),2, i)
+
+  EndFor
+
+  For i = 2 To h
+
+    arr[1][i] = 1
+
+    arr[w][i] = 1
+
+    GraphicsWindow.BrushColor = cBorder
+
+    GraphicsWindow.FillRectangle(0,d*(i-1), d,d)        ' linker Rand
+
+    GraphicsWindow.FillRectangle(d*(w-1),d*(i-1), d,d)  ' rechter Rand
+
+    GraphicsWindow.BrushColor = "Black"                 ' Zeilen # links
+
+    GraphicsWindow.DrawText(2,d*(i-1), i)
+
+  EndFor
+
+  '' Pause-Shape
+
+  GraphicsWindow.FontSize = 72
+
+  shp = Shapes.AddText(snk + " PAUSE ('P' continue)")
+
+  Shapes.Move(shp, 30,230)
+
+  Shapes.HideShape(shp)
+
+  
+
+  GraphicsWindow.ShowMessage("Start mit Pfeiltasten."+ lf +"P  .... Pause"+ lf +"Esc .. Ende", "SBSnake")
+
+EndSub
+
+
+
+Sub ResetVariables
+
+  pts = 0
+
+  dx = 0
+
+  dy = 0
+
+  bReady = "True"
+
+  foodGone = "True"
+
+  ' Startposition/Head in center
+
+  x = w / 2
+
+  y = h / 2
+
+  wait = 10
+
+  len = 0
+
+  iHead = 0
+
+  iTail = iHead
+
+  sx = ""
+
+  sy = ""
+
+  sx[iTail] = x
+
+  sy[iTail] = y
+
+  For i = 2 To w-1
+
+    For j = 2 To h-1
+
+      arr[i][j] = 0     ' arr füllen mit 0 (nur Spielfeld, nicht Rand)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub ResetGUI  ' nicht Rand
+
+  GraphicsWindow.BrushColor = cBG
+
+  GraphicsWindow.FillRectangle(d,d, d*(w-2),d*(h-2))
+
+  Timer.Resume()
+
+EndSub
+
+
+
+Sub TrimLeft ' arrays sx,sy -> current right ends only
+
+  iMax = maxLen * Math.Floor(iTail / maxLen)
+
+  sx = Text.GetSubTextToEnd(sx, Text.GetIndexOf(sx, ";"+ iMax +"=")+1)
+
+  sy = Text.GetSubTextToEnd(sy, Text.GetIndexOf(sy, ";"+ iMax +"=")+1)
+
+  len = 0
+
+EndSub
+
+
+
+Sub DbgInfo
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("x: " +x)
+
+  TextWindow.WriteLine("y: " +y)
+
+  TextWindow.WriteLine("iHead: " +iHead)
+
+  TextWindow.WriteLine("iTail: " +iTail)
+
+  TextWindow.WriteLine("len: " +len)
+
+  TextWindow.WriteLine("wait: " +wait)
+
+  TextWindow.WriteLine("pts: " +pts)
+
+  TextWindow.WriteLine("sx: " +sx)
+
+  TextWindow.WriteLine("sy: " +sy)
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+
+
+

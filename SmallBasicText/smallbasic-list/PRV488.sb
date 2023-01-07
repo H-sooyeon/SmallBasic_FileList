@@ -1,0 +1,601 @@
+' A* Search
+
+' Copyright © 2018 Nonki Takahashi.  The MIT License.
+
+' Last update 2018-11-19
+
+
+
+GraphicsWindow.Title = "A* Search"
+
+Not = "False=True;True=False;"
+
+gw = GraphicsWindow.Width
+
+gh = GraphicsWindow.Height
+
+GraphicsWindow.BrushColor = "White"
+
+GraphicsWindow.FillRectangle(0, 0, gw, gh)
+
+maze = "https://social.msdn.microsoft.com/Forums/getfile/1354354"
+
+GraphicsWindow.DrawResizedImage(maze, 0, 0, gw, gh)
+
+dx = 18
+
+dy = 18
+
+alpha = "FF"
+
+InitNodes()
+
+'EraseNodes()
+
+n = 0 ' parent of start node
+
+m = startNode
+
+Node2Pos()
+
+Turtle.Speed = 9
+
+Turtle.PenUp()
+
+Turtle.MoveTo(x, y)
+
+CalcH()
+
+f = h
+
+AddNodeToOpenList()
+
+GraphicsWindow.BrushColor = "Cyan"
+
+rMark = rNode + 1
+
+found = "False"
+
+While (open[0] <> "") And Not[found]
+
+  GetNearestNode()
+
+  If Array.ContainsValue(goalNodes, n) Then
+
+    found = "True"
+
+  EndIf
+
+  If Not[found] Then
+
+    m = n
+
+    CalcH()
+
+    g = fOpen[n] - h
+
+    RemoveNodeFromOpenList()
+
+    AddNodeToCloseList()
+
+    For iDir = 0 To 7
+
+      m = n + dir[iDir]
+
+      If (node[m] = "passage") Or (node[m] = "goal") Then
+
+        Node2Pos()
+
+        GraphicsWindow.FillEllipse(x - rMark, y - rMark, 2 * rMark, 2 * rMark)
+
+        CalcH()
+
+        fDash = g + cost[iDir] + h
+
+        CheckNodeInLists()
+
+        If Not[inOpen] And Not[inClose] Then
+
+          f = fDash
+
+          AddNodeToOpenList()
+
+        ElseIf inOpen Then
+
+          If fDash < fOpen[m] Then
+
+            RemoveNodeFromOpenList()
+
+            f = fDash
+
+            AddNodeToOpenList()
+
+          EndIf
+
+        ElseIf inClose Then
+
+          If fDash < fOpen[m] Then
+
+            RemoveNodeFromCloseList()
+
+            f = fDash
+
+            AddNodeToOpenList()
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndWhile
+
+If found Then
+
+  i = 0
+
+  While node[n] <> "start"
+
+    i = i + 1
+
+    route[i] = n
+
+    n = parent[n]
+
+  EndWhile
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = "Black"
+
+  Turtle.PenDown()
+
+  For i = Array.GetItemCount(route) To 1 Step -1
+
+    m = route[i]
+
+    Node2Pos()
+
+    Turtle.MoveTo(x, y)
+
+  EndFor
+
+EndIf
+
+
+
+Sub AddNodeToCloseList
+
+  ' param m - to add
+
+  close[m] = "True"
+
+EndSub
+
+
+
+Sub AddNodeToOpenList
+
+  ' param n - parent node
+
+  ' param m - node to add
+
+  ' param f - f(node)
+
+  p = 0
+
+  If Array.ContainsValue(open, m) Then
+
+    TextWindow.WriteLine("AddNodeToOpenList Error: node " + m + " already exists.")
+
+  Else
+
+    While (open[p] <> "") And (fOpen[p] <= f)
+
+      p = open[p]
+
+    EndWhile
+
+    _m = open[p]
+
+    open[p] = m
+
+    fOpen[m] = f
+
+    open[m] = _m
+
+    parent[m] = n
+
+  EndIf
+
+EndSub
+
+
+
+Sub CalcH
+
+  ' param m - node
+
+  ' return h - minimum cost from node to goal
+
+  Node2Pos()
+
+  _x = x
+
+  _y = y
+
+  Stack.PushValue("local", m)
+
+  For iGoal = 1 To nGoal
+
+    m = goalNodes[iGoal]
+
+    Node2Pos()
+
+    xx = x - _x
+
+    yy = y - _y
+
+    _h = Math.SquareRoot(xx * xx + yy * yy)
+
+    If (iGoal = 1) Or (_h < h) Then
+
+      h = _h
+
+    EndIf
+
+  EndFor
+
+  m = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub CheckNodeInLists
+
+  ' param m - node
+
+  ' return inOpen - "True" if  node m is in open list
+
+  ' return inClose - "True" if node m is in close list
+
+  If Array.ContainsValue(open, m) Then
+
+    inOpen = "True"
+
+  Else
+
+    inOpen = "False"
+
+  EndIf
+
+  If close[m] Then
+
+    inClose = "True"
+
+  Else
+
+    ' needed because close[m] is "True" or ""
+
+    inClose = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub EraseNodes
+
+  For i = 1 To nodes
+
+    Shapes.Remove(ell[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub GetNearestNode
+
+  ' return n - nearest node
+
+  nCand = 1 ' number of candidate nodes
+
+  candNodes[nCand] = open[0]
+
+  candNodes[nCand + 1] = open[candNodes[nCand]]
+
+  While (candNodes[nCand + 1] <> "") And (fOpen[candNodes[nCand]] = fOpen[candNodes[nCand + 1]])
+
+    nCand = nCand + 1
+
+    candNodes[nCand + 1] = open[candNodes[nCand]]
+
+  EndWhile
+
+  n = candNodes[Math.GetRandomNumber(nCand)]
+
+EndSub
+
+
+
+Sub InitNodes
+
+  rNode = 4
+
+  GraphicsWindow.PenColor = "Gray"
+
+  GraphicsWindow.PenWidth = 1
+
+  rows = 0
+
+  nodes = 0
+
+  For y = 0 To gh Step dy
+
+    rows = rows + 1
+
+    cols = 0
+
+    For x = 0 To gw Step dx
+
+      cols = cols + 1
+
+      nodes = nodes + 1
+
+      Scan()
+
+      GraphicsWindow.BrushColor = color
+
+      ell[nodes] = Shapes.AddEllipse(2 * rNode, 2 * rNode)
+
+      Shapes.Move(ell[nodes], x - rNode, y - rNode)
+
+    EndFor
+
+  EndFor
+
+  ' initialize direction array
+
+  sqr = Math.SquareRoot(dx * dx + dy * dy)
+
+  dir[0] = 1
+
+  cost[0] = dx
+
+  dir[1] = cols + 1
+
+  cost[1] = sqr
+
+  dir[2] = cols
+
+  cost[2] = dy
+
+  dir[3] = cols - 1
+
+  cost[3] = sqr
+
+  dir[4] = -1
+
+  cost[4] = dx
+
+  dir[5] = -cols - 1
+
+  cost[5] = sqr
+
+  dir[6] = -cols
+
+  cost[6] = dy
+
+  dir[7] = -cols + 1
+
+  cost[7] = sqr
+
+EndSub
+
+
+
+Sub InitOpenList
+
+  open[0] = ""
+
+EndSub
+
+
+
+Sub Node2Pos
+
+  ' param m - node
+
+  ' return x, y - coordinate of the node position
+
+  x = Math.Remainder(m - 1, cols) * dx
+
+  y = Math.Floor((m - 1) / cols) * dy
+
+EndSub
+
+
+
+Sub RemoveNodeFromCloseList
+
+  ' param m - node to remove
+
+  close[m] = ""
+
+EndSub
+
+
+
+Sub RemoveNodeFromOpenList
+
+  ' param m - node to remove
+
+  p = 0
+
+  While (open[p] <> m)
+
+    p = open[p]
+
+  EndWhile
+
+  If p <> "" Then
+
+    open[p] = open[open[p]]
+
+    open[m] = ""
+
+  Else
+
+    TextWindow.WriteLine("RemoveNodeFromOpenList Error: node " + m + " not found.")
+
+  EndIf
+
+EndSub
+
+
+
+Sub Scan
+
+  totalR = 0
+
+  totalG = 0
+
+  totalB = 0
+
+  totalN = 0
+
+  For _y = y - dy / 2 To y + dy / 2 Step 4
+
+    For _x = x - dx / 2 To x + dx / 2 Step 4
+
+      If _x < 0 Or gw <=_x Or _y < 0 Or gh <= _y Then
+
+        color = "#000000"
+
+      Else
+
+        color = GraphicsWindow.GetPixel(_x, _y)
+
+      EndIf
+
+      Color_ColorToRGB()
+
+      totalR = totalR + r
+
+      totalG = totalG + g
+
+      totalB = totalB + b
+
+      totalN = totalN + 1
+
+    EndFor
+
+  EndFor
+
+  r = Math.Round(totalR / totalN)
+
+  g = Math.Round(totalG / totalN)
+
+  b = Math.Round(totalB / totalN)
+
+  If r = 255 And g = 255 And b = 255 Then
+
+    color = "#FFFFFF"
+
+    node[nodes] = "passage"
+
+  ElseIf g < r And b < r Then
+
+    color = "#FF0000"
+
+    node[nodes] = "start"
+
+    startNode = nodes
+
+  ElseIf r < g And b < g Then
+
+    color = "#00CC00"
+
+    node[nodes] = "goal"
+
+    nGoal = nGoal + 1
+
+    goalNodes[nGoal] = nodes
+
+  Else
+
+    color = "#000000"
+
+    node[nodes] = "wall"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Color_ColorToRGB
+
+  ' Color | Convert color To RGB values
+
+  ' param color - "#rrggbb" (hexadecimal values)
+
+  ' return r, g, b - RGB values 0..255
+
+  sR = Text.GetSubText(color, 2, 2)
+
+  sG = Text.GetSubText(color, 4, 2)
+
+  sB = Text.GetSubText(color, 6, 2)
+
+  hex = sR
+
+  Math_Hex2Dec()
+
+  r = dec
+
+  hex = sG
+
+  Math_Hex2Dec()
+
+  g = dec
+
+  hex = sB
+
+  Math_Hex2Dec()
+
+  b = dec
+
+EndSub
+
+
+
+Sub Math_Hex2Dec
+
+  ' Math | Convert hexadecimal To decimal
+
+  ' param hex
+
+  ' return dec
+
+  dec = 0
+
+  len = Text.GetLength(hex)
+
+  For ptr = 1 To len
+
+    dec = dec * 16 + Text.GetIndexOf("123456789ABCDEF", Text.GetSubText(hex, ptr, 1))
+
+  EndFor
+
+EndSub
+
+

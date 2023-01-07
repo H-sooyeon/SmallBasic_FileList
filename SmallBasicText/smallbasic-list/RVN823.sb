@@ -1,0 +1,2693 @@
+DECLARE SUB Lecturelisting (M!)
+
+DECLARE SUB lecture (M!)
+
+DECLARE SUB Message (Msg$, Lgn%, Col%)
+
+DECLARE SUB ecriture ()
+
+DECLARE SUB OptionBasEcran (T#)
+
+DECLARE SUB SuiteNumero (i!, M!, N!())
+
+DECLARE SUB TITRE (T$)
+
+DECLARE SUB EntreeNumero (N$)
+
+ON ERROR GOTO TraitErreur
+
+CLS
+
+DEFDBL D, P-Z:
+
+DIM l(200), N(1000), X(1000), Y(1000), ag(200), z(1000), com$(1000), tlg(1000), tnlg(1000)
+
+PI = 3.141592654#
+
+LIGNE$ = STRING$(80, 126)
+
+LEPOL1$ = "No point   Coord. X        Coord. Y        Coord. Z          Natpt "
+
+LEPOL2$ = "--------  ------------      --------        --------        --------"
+
+LEPOL3$ = "######      ######.###    ######.###  ####.###     "
+
+CLS
+
+TIT1$ = "      Point No        Coord. X         Coord. Y         Distance"
+
+TIT2$ = "      --------        --------         --------         --------"
+
+LIG1$ = "     #########        ######.###       ######.###       ######.###"
+
+'===========================================                                             i
+
+'===impression du menu general a l'ecran====
+
+'===========================================
+
+TYPE Coordonnees
+
+NumPoint AS INTEGER
+
+XPoint AS DOUBLE
+
+YPoint AS DOUBLE
+
+ZPoint AS DOUBLE
+
+END TYPE
+
+DIM Enregistrement AS Coordonnees
+
+T$ = "Calculs topographiques"
+
+
+
+CLS
+
+LOCATE 8, 9: COLOR 1, 7: prt = 10
+
+COLOR 7, 1
+
+
+
+Nbr = 10000
+
+donnees$ = "Calculs.TOP":
+
+CLS
+
+OPEN donnees$ FOR RANDOM AS #2 LEN = LEN(Enregistrement)
+
+LOCATE 10, 25: PRINT "  Prï¿½paration de votre disque dur  "
+
+FOR i = 1 TO Nbr
+
+		Enregistrement.NumPoint = 0
+
+		Enregistrement.XPoint = 0
+
+		Enregistrement.YPoint = 0
+
+		Enregistrement.ZPoint = 0
+
+		PUT #2, i, Enregistrement
+
+NEXT
+
+LOCATE 15, 25
+
+INPUT "Nom de fichier ", Fichier$
+
+d$ = Fichier$
+
+Fichier$ = "c:\qb\" + Fichier$ + ".txt"
+
+
+
+REM dossier de rangement des donnï¿½es!!!
+
+
+
+LOCATE prt, 22: COLOR 7, 1
+
+IF ERR = 53 THEN GOTO afficadre
+
+
+
+OPEN Fichier$ FOR INPUT AS #1
+
+charge:
+
+en = 0: i = 0
+
+DO WHILE NOT EOF(1)
+
+	 LINE INPUT #1, pol$
+
+	 IF LEN(pol$) = 74 THEN i = 1
+
+	 IF LEN(pol$) = 75 THEN i = 2
+
+	 IF LEN(pol$) = 76 THEN i = 3
+
+	 IF LEN(pol$) = 77 THEN i = 4
+
+	 
+
+	 X = VAL(MID$(pol$, (32 + i), 10))
+
+	 Y = VAL(MID$(pol$, (46 + i), 10))
+
+	 z = VAL(MID$(pol$, (58 + i), 8))
+
+	 N = VAL(MID$(pol$, (2), (2 + i)))
+
+	 IF bloc$ <> "Id" THEN
+
+		Enregistrement.NumPoint = N
+
+		Enregistrement.XPoint = X
+
+		Enregistrement.YPoint = Y
+
+		Enregistrement.ZPoint = z
+
+		en = en + 1: i = 0
+
+		PUT #2, en, Enregistrement
+
+	 END IF
+
+LOOP
+
+ 
+
+ Ndeb = 1: Nfin = en
+
+ PRINT "Compteur de ligne : "; en
+
+
+
+a = 1
+
+afficadre:
+
+	  CLS
+
+	  c = 0
+
+	  ch$ = "123"
+
+	  LOCATE 1, 1: PRINT "ï¿?" + STRING$(78, "ï¿?") + "ï¿?";
+
+	  FOR z = 1 TO 18
+
+	  LOCATE 1 + z, 1: PRINT "ï¿?" + SPACE$(78) + "ï¿?";
+
+	  NEXT z
+
+	  LOCATE 1 + z, 1: PRINT "ï¿?" + STRING$(78, "ï¿?") + "ï¿?";
+
+	  LOCATE 2, 3: PRINT "Ver. HP200LX"
+
+	  LOCATE 2, 70: PRINT DATE$
+
+	  LOCATE 3, 60: PRINT "Points chargï¿½s "; en
+
+	  LOCATE 2, ((80 - LEN("    Topographie    ")) / 2): PRINT "    Topographie    "
+
+  LOCATE 3, 25: PRINT " 1. Calcul de points polaires      ":
+
+  LOCATE 5, 25: PRINT " 2. Calcul de points orthogonaux   ":
+
+  LOCATE 7, 25: PRINT " 3. Calcul de surface              ":
+
+  LOCATE 9, 25: PRINT " 4. Rabattements polaires          ":
+
+  LOCATE 11, 25: PRINT " 5. Rabattements orthogonaux       ":
+
+  LOCATE 13, 25: PRINT " 6. Intersection de droites        ":
+
+  LOCATE 15, 25: PRINT " 7. Gestion des Fichiers           ":
+
+  LOCATE 17, 24: PRINT "        10. Fin des calculs          ":
+
+	  
+
+  LOCATE 19, 24: INPUT "        Votre choix   ", ch$
+
+ CLS
+
+		SELECT CASE ch$
+
+	 CASE IS = "1"
+
+		 GOTO LEVERPOLAIRES
+
+	 CASE IS = "2"
+
+		 GOTO LEVERORTHOGONAUX
+
+	 CASE IS = "3"
+
+		 GOTO surface
+
+	 CASE IS = "4"
+
+		 GOTO RABATTEMENTSPOLAIRES
+
+	 CASE IS = "5"
+
+		 GOTO RABATTEMENTSORTHOGONAUX
+
+	 CASE IS = "10"
+
+		  GOTO FINDESCALCULS
+
+	 CASE IS = "6"
+
+		  GOTO INTERSECTION
+
+	 CASE IS = "7"
+
+		  GOTO LECTUREDEDONNEESSURDISQUE
+
+	 CASE IS = ""
+
+		  GOTO afficadre
+
+		END SELECT
+
+
+
+
+
+'==================================================================
+
+'============== Module du Calcul de Surface========================
+
+'==================================================================
+
+surface:
+
+CLS
+
+T$ = "   S U R F A C E   "
+
+TITRE (T$)
+
+c = 1
+
+M = 1: i = 1
+
+		IF c = 0 THEN
+
+	GOTO afficadre
+
+		ELSEIF c = 1 THEN
+
+	CLS
+
+	GOTO LEC
+
+		ELSE
+
+	GOTO surface
+
+		END IF
+
+LEC:
+
+TITRE (T$)
+
+LOCATE 23, 10: PRINT "Pour une suite de numï¿½ros Tapez . puis le dernier numero"
+
+
+
+LECTUREDISQUE:
+
+  
+
+	CALL EntreeNumero(N$)
+
+	N(i) = VAL(N$)
+
+	IF i = 1 THEN
+
+	LOCATE 3, 14:  PRINT , "Le premier point de la surface est  "; N(i); " ":
+
+	END IF
+
+	IF N$ = "." THEN
+
+		CALL SuiteNumero(i, M, N())
+
+	ELSEIF N(i) = 0 THEN
+
+	GOTO LECTUREDONNEES
+
+	ELSEIF N(i) > 1010 THEN
+
+	GOTO LECTUREDISQUE
+
+ 
+
+	ELSEIF M = 18 THEN
+
+	GOSUB EFFACEMENTECRAN
+
+	M = O: LOCATE 5 + M, 25: PRINT "NUMERO DU POINT  "; N(i)
+
+	END IF
+
+	i = i + 1: M = M + 1
+
+	GOTO LECTUREDISQUE
+
+
+
+LECTUREDONNEES:
+
+	FOR b = 1 TO i - 1
+
+		 a = b
+
+		 M = N(b)
+
+		 CALL lecture(M)
+
+	NEXT b
+
+RESET
+
+CALCULSURFACE:
+
+	 max = i - 1: S = 0
+
+	 Y(0) = Y(max): Y(max + 1) = Y(1): X(max + 1) = X(1)
+
+	FOR i = 1 TO max
+
+	l(i) = SQR((X(i + 1) - X(i)) ^ 2 + (Y(i + 1) - Y(i)) ^ 2)
+
+	p = X(i) * (Y(i + 1) - Y(i - 1))
+
+	S = S + p
+
+	 NEXT i
+
+	 S = S / 2
+
+	 S = INT(S + .5)
+
+
+
+'--impression ecran---
+
+'---------------------
+
+CLS : TITRE (T$)
+
+LOCATE 3, 13:
+
+PRINT , "Pour la suite de l'affichage appuyer sur une touche ":
+
+LOCATE 5, 13:
+
+PRINT "Nï¿? pt           X                Y              Dist ":
+
+PRINT
+
+	a = 1: i = 1
+
+	DO
+
+		 IF N(i) < Nbr THEN
+
+		PRINT USING LIG1$; N(i); X(i); Y(i); l(i)
+
+		 END IF
+
+		i = i + 1: a = a + 1
+
+		
+
+		 IF a = 16 THEN
+
+		WHILE INKEY$ = "": WEND
+
+		a = 0
+
+		 CLS
+
+		 TITRE (T$)
+
+		 LOCATE 3, 13:
+
+		 PRINT , "Pour la suite de l'affichage appuyer sur une touche ":
+
+	LOCATE 5, 13:
+
+	PRINT , "Nï¿? pt           X                Y             Dist ":
+
+	PRINT
+
+		 END IF
+
+	LOOP WHILE i < max + 1
+
+PRINT
+
+PRINT "      S U R F A C E  : "; S; "M2":
+
+N(max + 1) = N(1)
+
+ECRAN:
+
+CALL OptionBasEcran(T)
+
+	IF T = 4 THEN
+
+		RUN "droites"
+
+	ELSEIF T = 1 THEN
+
+		CLS
+
+		GOTO surface
+
+	ELSEIF T = 3 THEN
+
+		GOTO CALCULSURFACE
+
+	ELSEIF T = 5 THEN
+
+		GOTO afficadre
+
+	END IF
+
+'===========================================================================
+
+'--------- CALCULS DE POINTS LEVES PAR LA METHODE POLAIRE
+
+'===========================================================================
+
+LEVERPOLAIRES:
+
+T$ = "  LEVERS  POLAIRES    "
+
+CLS : TITRE (T$): l = 0: i = 1: flag = 0
+
+
+
+
+
+REM Nom des fichiers de donnï¿½es ï¿? calculer !!!
+
+
+
+INPUT "Calculs fichier **.gsi O/N  ", z$
+
+z$ = UCASE$(z$)
+
+
+
+
+
+
+
+REM A voire???????????????????????????????????????????????????????????????
+
+
+
+IF z$ = "O" THEN
+
+	  a = 1
+
+	  N(a) = 1000: M = 1000
+
+		 XS = 1000: YS = 1000: NS = 1000: ZS = 10
+
+	  LOCATE 6, 2: PRINT USING LEPOL3$; N(a); XS; YS; ZS
+
+	  a = a + 1
+
+	  N(a) = 1001: M = N(a)
+
+	  XO = 1000: YO = 1200: NO = N(a): ZO = 10
+
+	  LOCATE 7, 2: PRINT USING LEPOL3$; N(a); XO; YO; ZO
+
+	  l = 0
+
+	  Dx = XO - XS: Dy = YO - YS
+
+	  IF Dy = 0 THEN Dy = .00000001#
+
+	  IF Dx = 0 THEN Dx = .00000001#
+
+	  gt = ATN(Dx / Dy)
+
+	  IF Dy < 0 AND Dx > 0 THEN gt = gt - PI
+
+	  IF Dy < 0 AND Dx < 0 THEN gt = PI + gt
+
+	  IF Dy > 0 AND Dx < 0 THEN gt = 2 * PI + gt
+
+	  gt = gt * 200 / PI
+
+	  DB = SQR(Dx ^ 2 + Dy ^ 2)
+
+	  LOCATE 8, 20: : PRINT "DIT.BASE: "; USING "####.###"; DB:
+
+	  h = 0
+
+	  LOCATE 9, 1: PRINT LIGNE$
+
+	  LOCATE 10, 1: PRINT "No pt        Com    Angle horizontal  Distance  horizontal  Delta H "
+
+	  pol$ = ""
+
+
+
+CLOSE : OPEN d$ + ".gsi" FOR INPUT AS #3
+
+suitelec:
+
+WHILE NOT EOF(3)
+
+	 LINE INPUT #3, pol$
+
+			 PRINT pol$
+
+			 bloc = VAL(MID$(pol$, 1, 2))
+
+			 IF bloc = 41 THEN GOTO suitelec
+
+			 numpt = VAL(MID$(pol$, 10, 6))
+
+			 anghz = VAL(MID$(pol$, 24, 8))
+
+			 anghz = anghz / 100000
+
+			 anghz = anghz - angouvhz
+
+			 IF anghz < 0 THEN anghz = 400 + anghz
+
+			 angve = VAL(MID$(pol$, 40, 8))
+
+			 angve = angve / 100000
+
+			 disto = VAL(MID$(pol$, 56, 8))
+
+			 disto = disto / 1000
+
+			 T = angve * PI / 200
+
+		a = SIN(T): b = COS(T)
+
+		Dh = disto * a
+
+		PRINT Dh
+
+		Dz = disto * -b
+
+		PRINT Dz
+
+			 ag = anghz + gt
+
+			 IF ag < 0 THEN ag = ag + 400
+
+			 T = ag * PI / 200
+
+			 a = SIN(T): b = COS(T)
+
+			 X(i) = XS + disto * a
+
+			 Y(i) = YS + disto * b
+
+			 z(i) = ZS + Dz
+
+			 N(i) = numpt
+
+			 PRINT USING LEPOL3$; N(i); X(i); Y(i); z(i);
+
+			 IF Nfin < N(i) THEN Nfin = N(i)
+
+			 CALL ecriture
+
+			 i = i + 1
+
+WEND
+
+Ndeb = N(1): Nfin = N(i - 1)
+
+GOTO IMPRESSIONPOLAIREECRAN
+
+END IF
+
+manuel:
+
+a = 1
+
+CLS
+
+LOCATE 10, 5: INPUT " No de Station     ", nstat
+
+LOCATE 12, 5: INPUT " No de l'Ouverture ", nouv
+
+LOCATE 14, 5: INPUT " Angle d'Ouverture ", angouvhz
+
+CLS
+
+GOSUB calculbase
+
+
+
+introdonnees:
+
+			LOCATE 14, 10
+
+			INPUT "Nï¿? Pt ï¿? calculer ", numpt
+
+
+
+			IF Ndeb > N(i) THEN Ndeb = N(i)
+
+			IF Nfin < N(i) THEN Nfin = N(i)
+
+			
+
+			IF numpt = 0 THEN GOTO IMPRESSIONPOLAIREECRAN:
+
+			LOCATE 15, 10
+
+			INPUT "Angle horizontal    ", anghz
+
+			angouvhz = anghz - angouvhz
+
+			IF anghz < 0 THEN anghz = 400 + anghz
+
+			LOCATE 16, 10
+
+			INPUT "Distance horizontale ", dist
+
+			LOCATE 17, 10
+
+			INPUT "Dï¿½nivelï¿½e            ", deltaH
+
+			Dz = deltaH
+
+			ag = anghz + gt
+
+			IF ag < 0 THEN ag = ag + 400
+
+			T = ag * PI / 200
+
+			a = SIN(T): b = COS(T)
+
+			X(i) = XS + dist * a
+
+			Y(i) = YS + dist * b
+
+			z(i) = ZS + Dz
+
+			N(i) = numpt
+
+			PRINT USING LEPOL3$; N(i); X(i); Y(i); z(i)
+
+			IF Nfin < N(i) THEN Nfin = N(i)
+
+			CALL ecriture
+
+			i = i + 1
+
+			LOCATE 14, 10: PRINT "                                                                "
+
+			LOCATE 15, 10: PRINT "                                                                "
+
+			LOCATE 16, 10: PRINT "                                                                "
+
+			LOCATE 17, 10: PRINT "                                                                "
+
+			GOTO introdonnees
+
+
+
+'--- impression a l'ecran--
+
+'---------------------------
+
+IMPRESSIONPOLAIREECRAN:
+
+CLS : TITRE (T$)
+
+CLS
+
+LOCATE 2, 15: PRINT "              COORDONNEES   DE   LA   BASE              "
+
+LOCATE 3, 15: PRINT LEPOL1$
+
+LOCATE 4, 15: PRINT LEPOL2$
+
+LOCATE 6, 1: PRINT "ST=>"; USING LIG1$; NS; XS; YS; ZS
+
+PRINT "OR=>"; USING LIG1$; NO; XO; YO; ZO
+
+PRINT
+
+LOCATE 8, 19: PRINT "DIT.BASE: "; USING "####.###"; DB
+
+ PRINT
+
+
+
+c = 1
+
+FOR a = 1 TO i - 1
+
+	CALL lecture(N(a))
+
+	PRINT USING LEPOL3$; N(a); X(a); Y(a); z(a)
+
+	IF c = 13 THEN
+
+	PRINT "Appuyez sur une touche pour la suite des points "
+
+	SLEEP
+
+	CLS
+
+	LOCATE 2, 15: PRINT "              COORDONNEES   DE   LA   BASE              "
+
+	LOCATE 3, 15: PRINT LEPOL1$
+
+	LOCATE 4, 15: PRINT LEPOL2$
+
+	LOCATE 6, 1: PRINT "ST=>"; USING LIG1$; NS; XS; YS; ZS
+
+	PRINT "OR=>"; USING LIG1$; NO; XO; YO; ZO
+
+	c = 0
+
+	END IF
+
+NEXT
+
+SLEEP
+
+CLOSE #3
+
+GOTO afficadre
+
+'================================================
+
+'Calcul d'une base en conaissant nstat et nouv  =  polaire HP LX200
+
+'================================================
+
+GOTO afficadre
+
+
+
+'--------------------------------------------------------------
+
+'-------Calcul de points par la methode orthogonale------------
+
+'--------------------------------------------------------------
+
+
+
+LEVERORTHOGONAUX:
+
+	T$ = "LEVERS ORTHOGONAUX"
+
+CLS : TITRE (T$): l = 1
+
+LOCATE 5, 10
+
+INPUT "Numï¿½ro de station : ", nstat
+
+LOCATE 6, 10
+
+INPUT "Numï¿½ro de station : ", nouv
+
+GOSUB calculbase
+
+LOCATE 11, 46: PRINT " Distance mesurï¿½e : ":
+
+LOCATE 11, 65: INPUT DM: IF DM = 0 THEN DM = DB
+
+cm = DB / DM
+
+BASE$ = "Base calculï¿½e : " + MID$(STR$(DB), 1, 7) + "  Distance mesurï¿?e : " + MID$(STR$(DM), 1, 7)
+
+lg = LEN(BASE$)
+
+Col = INT((85 - lg) / 2)
+
+LOCATE 10, Col: PRINT STRING$(lg - 10, 45)
+
+LOCATE 11, 1: PRINT STRING$(78, 32)
+
+LOCATE 11, Col: PRINT BASE$:
+
+LOCATE 12, Col: PRINT STRING$(lg, 45)
+
+LOCATE 13, 7: PRINT "   N?¿½                Abscisse        Ordonnee"
+
+i = 1: M = 1
+
+DONNEESLEVERSORTHOGONAUX:
+
+	LOCATE 13 + M, 8: INPUT ; N(i)
+
+IF Ndeb > N(i) THEN Ndeb = N(i)
+
+IF Nfin < N(i) THEN Nfin = N(i)
+
+	
+
+
+
+IF N(i) = 0 THEN GOTO ECRANLEVERORTHOGONAUX
+
+LOCATE 13 + M, 28: INPUT T:
+
+IF T = 0 THEN T = .000001
+
+T = T * cm
+
+LOCATE 13 + M, 44: INPUT z
+
+ag = ATN(z / T)
+
+ag = (gt * PI / 200) - ag
+
+IF T < 0 THEN ag = ag + PI
+
+a = SIN(ag)
+
+b = COS(ag)
+
+l = SQR(T ^ 2 + z ^ 2)
+
+X(i) = XS + l * a
+
+Y(i) = YS + l * b
+
+IF Nfin < N(i) THEN Nfin = N(i)
+
+CALL ecriture
+
+'LOCATE 13 + M, 65: INPUT ; z(i)
+
+IF M = 7 THEN
+
+	  FOR M = -2 TO 7
+
+	  LOCATE 15 + M, 22
+
+	  PRINT SPACE$(65)
+
+	  NEXT M: M = 0
+
+	  LOCATE 13 + M, 28: PRINT N(i), T, z
+
+END IF
+
+i = i + 1: M = M + 1
+
+GOTO DONNEESLEVERSORTHOGONAUX
+
+'---------------------
+
+'-- IMPRESSION ECRAN--
+
+'---------------------
+
+ECRANLEVERORTHOGONAUX:
+
+CLS : TITRE (T$)
+
+ LOCATE 4, 21: PRINT "       COORDONNEES  DE  LA  BASE        "
+
+LOCATE 5, 21: PRINT LEPOL1$
+
+LOCATE 6, 21: PRINT LEPOL2$
+
+LOCATE 8, 4: PRINT "ST=>";
+
+PRINT USING LEPOL3$; NS; XS; YS; ZS
+
+LOCATE 9, 4: PRINT "OV=>";
+
+PRINT USING LEPOL3$; NO; XO; YO; ZO
+
+LOCATE 12, Col: PRINT STRING$(lg, 45)
+
+: LOCATE 13, Col: PRINT BASE$: : PRINT
+
+LOCATE 14, Col: PRINT STRING$(lg, 45)
+
+	FOR a = 1 TO i - 1
+
+		 PRINT USING LEPOL3$; N(a); X(a); Y(a); z(a)
+
+	NEXT a
+
+RESET
+
+SLEEP
+
+GOTO afficadre
+
+
+
+calculbase:
+
+	  a = 1
+
+	  N(a) = nstat: M = nstat
+
+	  CALL lecture(M)
+
+	  XS = X(a): YS = Y(a): NS = N(a): ZS = z(a)
+
+	  LOCATE 6, 2: PRINT USING LEPOL3$; N(a); XS; YS; ZS
+
+	  a = a + 1
+
+	  N(a) = nouv: M = N(a)
+
+	  CALL lecture(M)
+
+	  XO = X(a): YO = Y(a): NO = N(a): ZO = z(a)
+
+	  LOCATE 7, 2: PRINT USING LEPOL3$; N(a); XO; YO; ZO
+
+	  l = 0
+
+	  Dx = XO - XS: Dy = YO - YS
+
+	  IF Dy = 0 THEN Dy = .00000001#
+
+	  IF Dx = 0 THEN Dx = .00000001#
+
+	  gt = ATN(Dx / Dy)
+
+	  IF Dy < 0 AND Dx > 0 THEN gt = gt - PI
+
+	  IF Dy < 0 AND Dx < 0 THEN gt = PI + gt
+
+	  IF Dy > 0 AND Dx < 0 THEN gt = 2 * PI + gt
+
+	  gt = gt * 200 / PI
+
+	  DB = SQR(Dx ^ 2 + Dy ^ 2)
+
+	  LOCATE 8, 20: : PRINT "DIT.BASE: "; USING "####.###"; DB:
+
+	  h = 0
+
+	  LOCATE 9, 1: PRINT angouvhz
+
+	  pol$ = ""
+
+RETURN
+
+
+
+'-----------------------------------------------
+
+'------------CALCUL D'INTERSECTION--------------
+
+'-----------------------------------------------
+
+INTERSECTION:
+
+	T$ = "  INTERSECTION     "
+
+ CLS : TITRE (T$)
+
+ c = 1
+
+			 IF c = 0 THEN
+
+		  GOTO afficadre
+
+			 ELSEIF c = 1 THEN
+
+		  CLS
+
+		  TITRE (T$)
+
+		  LOCATE 10, 10
+
+		  GOTO LECTUREI
+
+			 ELSE GOTO INTERSECTION
+
+			 END IF
+
+LECTUREI:
+
+	
+
+	FOR i = 1 TO 4
+
+		LOCATE 4 + i, 10: PRINT "              NUMERO DU POINT "; : INPUT N(i)
+
+		 IF N(i) < 0 OR N(i) > 1010 THEN GOTO LECTUREI
+
+		 a = i: M = N(i)
+
+		 CALL lecture(M)
+
+		 N(i) = N(a): X(i) = X(a): Y(i) = Y(a)
+
+	NEXT i
+
+CALCULINTERSECTION:
+
+LOCATE 14, 16: PRINT LEFT$(LIGNE$, 48)
+
+LOCATE 16, 6: INPUT "Nï¿? pt d'int. "; N(5): IF X(1) = 0 THEN X(1) = 1: IF X(3) = 0 THEN X(3) = 1
+
+'LOCATE 16, 28: INPUT "Nï¿½lg"; lg(5)
+
+LOCATE 16, 38: INPUT "Nï¿½ptlg "; nlg(5)
+
+LOCATE 16, 54: INPUT " Com."; com$(5)
+
+	i = 2: z = X(2) - X(1): IF z = 0 THEN X(1) = X(1) + 1
+
+	K = (Y(2) - Y(1)) / (X(2) - X(1)): i = 4: z = X(4) - X(3): IF z = 0 THEN X(3) = X(3) + 1
+
+	J = (Y(4) - Y(3)) / (X(4) - X(3)): i = 1: z = (K - J): IF z = 0 THEN J = J + 1
+
+	X5 = (K * X(1) - J * X(3) - Y(1) + Y(3)) / (K - J)
+
+	Y5 = X5 * K - K * X(1) + Y(1)
+
+	X(5) = X5 + .005
+
+	Y(5) = Y5 + .005
+
+
+
+'--- impression ecran------
+
+' -------------------------
+
+CLS : TITRE (T$)
+
+INTER1$ = "Pt d'intersec         Coord. X        Coord. Y    Ligne  Nï¿?/Ligne   "
+
+INTER2$ = "-------------         --------        --------                      "
+
+INTER3$ = " #####   ######.##        ######.##  ####   ####    "
+
+LOCATE 5, 14: PRINT INTER1$
+
+LOCATE 6, 14: PRINT INTER2$
+
+LOCATE 8, 14: PRINT USING INTER3$; N(5); X(5); Y(5); lg(5); nlg(5)
+
+LOCATE 11, 6: PRINT LEFT$(LIGNE$, 67)
+
+	FOR i = 1 TO 4
+
+		l(i) = SQR((X(i) - X(5)) ^ 2 + (Y(i) - Y(5)) ^ 2)
+
+		l(i) = l(i) + .005
+
+		LOCATE 13 + i, 6
+
+		PRINT USING "Du point No #####  au point d'intersection #####  ...  ######.##"; N(i); N(5); l(i)
+
+	NEXT i
+
+		a = 5
+
+		IF Nfin < N(i) THEN Nfin = N(i)
+
+		CALL ecriture
+
+RESET
+
+SLEEP
+
+GOTO afficadre
+
+
+
+'-----------------------------------------------------------
+
+'----------------  RABATTEMENTS POLAIRES  ------------------
+
+'-----------------------------------------------------------
+
+RABATTEMENTSPOLAIRES:
+
+		T$ = "RABATTEMENTS POLAIRES"
+
+		CLS : TITRE (T$)
+
+LOCATE 5, 10
+
+INPUT "Numï¿½ro de station : ", nstat
+
+LOCATE 6, 10
+
+INPUT "Numï¿½ro de station : ", nouv
+
+
+
+GOSUB calculbase
+
+
+
+FOR l = 13 TO 23: LOCATE l, 1: PRINT SPACE$(80): NEXT l
+
+
+
+suite:
+
+LOCATE 13, 22: PRINT "LECTURE D'UNE SUITE DE POINTS            : < 1 >"
+
+LOCATE 14, 22: PRINT "LECTURE DE POINTS SPECIFIQUES            : < 2 >"
+
+LOCATE 16, 22: INPUT "V o t r e    c h o i x :                   "; c
+
+
+
+
+
+i = 1: h = 1
+
+FOR l = 13 TO 22: LOCATE l, 13: PRINT SPACE$(65): NEXT l: LI = 13
+
+IF c = 1 THEN GOTO SUITEENREGISTREMENT
+
+ENREGISTREMENTSALIRE:
+
+	LOCATE LI, 25
+
+	PRINT "No de point ï¿? rabattre : "; : INPUT N(i): M = N(i)
+
+	IF N(i) < 0 OR N(i) > 1010 THEN GOTO ENREGISTREMENTSALIRE
+
+	IF N(i) = 0 THEN
+
+		
+
+		GOTO IMPRESSIONECRANRABATTEMENTPOLAIRES
+
+	END IF
+
+	a = i
+
+		 CALL lecture(M)
+
+		 N(i) = N(a): X(i) = X(a): Y(i) = Y(a)
+
+		 GOSUB CALCULRP
+
+	i = i + 1: LI = LI + 1
+
+	IF LI = 23 THEN
+
+		FOR l = 13 TO 22
+
+		LOCATE l, 15
+
+		PRINT SPACE$(55)
+
+		NEXT l
+
+		LI = 15
+
+	END IF
+
+GOTO ENREGISTREMENTSALIRE
+
+
+
+SUITEENREGISTREMENT:
+
+LOCATE 16, 25: PRINT "Du numï¿½ro de point ..... "
+
+LOCATE 18, 25: PRINT "Au numï¿½ro de point ..... "
+
+LOCATE 16, 58: INPUT c
+
+IF c < 0 OR c > 1010 THEN GOTO SUITEENREGISTREMENT
+
+LOCATE 18, 58: INPUT d
+
+IF d < 0 OR d > 1010 THEN GOTO SUITEENREGISTREMENT
+
+f = 1
+
+h = 1: IF c > d THEN f = -1
+
+	FOR b = c TO d STEP f
+
+		N(h) = b: M = b
+
+		a = h
+
+		CALL lecture(M)
+
+		N(h) = N(a): X(h) = X(a): Y(h) = Y(a)
+
+		GOSUB CALCULRP
+
+	NEXT b
+
+	
+
+	RESET: GOTO IMPRESSIONECRANRABATTEMENTPOLAIRES
+
+CALCULRP:
+
+Dx = X(h) - XS: IF Dx = 0 THEN Dx = .000001
+
+Dy = Y(h) - YS: IF Dy = 0 THEN Dy = .000001
+
+a = Dx / Dy
+
+T = ATN(a)
+
+	  IF Dy < 0 AND Dx > 0 THEN T = T - PI
+
+	  IF Dy < 0 AND Dx < 0 THEN T = PI + T
+
+	  IF Dy > 0 AND Dx < 0 THEN T = 2 * PI + T
+
+T = T * 200 / PI
+
+T = T - gt
+
+Dx = Dx ^ 2: Dy = Dy ^ 2
+
+l(h) = SQR(Dx + Dy)
+
+ag(h) = T: IF ag(h) < 0 THEN ag(h) = 400 + ag(h)
+
+IF ag(h) > 400 THEN ag(h) = ag(h) - 400
+
+h = h + 1
+
+RETURN
+
+
+
+
+
+IMPRESSIONECRANRABATTEMENTPOLAIRES:
+
+'--- impression ecran
+
+'---------------------
+
+CLS : TITRE (T$)
+
+
+
+PRINT : PRINT TIT1$: PRINT TIT2$: PRINT
+
+
+
+LOCATE 4, 25: PRINT "      COORDONNEES   DE   LA   BASE      "
+
+LOCATE 6, 15: PRINT USING LEPOL3$; NS; XS; YS; ZS
+
+LOCATE 7, 15: PRINT USING LEPOL3$; NO; XO; YO; ZO
+
+LOCATE 9, 5: PRINT "DISTANCE DE LA BASE : "; : PRINT USING "####.##"; DB
+
+PRINT
+
+	a = 1: i = 1
+
+	DO
+
+		PRINT
+
+		LOCATE 12 + a, 15:  PRINT USING "#####   ###.####   #####.### "; N(i); ag(i); l(i)
+
+		i = i + 1: a = a + 1
+
+		 IF a = 10 THEN
+
+		WHILE INKEY$ = "": WEND
+
+		a = 0
+
+		 CLS
+
+		 TITRE (T$)
+
+		 LOCATE 3, 13:
+
+		 PRINT , "Pour la suite de l'affichage appuyer sur une touche ":
+
+	LOCATE 5, 13:
+
+	PRINT , "Nï¿? pt           X                Y             Dist ":
+
+	PRINT
+
+		 END IF
+
+	LOOP WHILE i < h
+
+PRINT
+
+
+
+	FOR a = 1 TO h
+
+	e = e + 1
+
+	
+
+	IF e > 10 THEN e = 1
+
+	NEXT a: RESET
+
+PRINT CHR$(7)
+
+'---------------------------------------------
+
+'impression rabattements polaires imprimante--
+
+'---------------------------------------------
+
+SLEEP
+
+GOTO afficadre
+
+'-----------------------------------------------------------
+
+'-----------------RABATTEMENTS ORTHOGONAUX------------------
+
+'-----------------------------------------------------------
+
+
+
+RABATTEMENTSORTHOGONAUX:
+
+	T$ = " RABATTEMENTS  ORTHOGONAUX "
+
+	CLS : TITRE (T$)
+
+LOCATE 5, 10
+
+INPUT "Numï¿½ro de station : ", nstat
+
+LOCATE 6, 10
+
+INPUT "Numï¿½ro de station : ", nouv
+
+
+
+GOSUB calculbase
+
+
+
+
+
+FOR l = 13 TO 23: LOCATE l, 1: PRINT SPACE$(80): NEXT l
+
+: LOCATE 14, 18
+
+PRINT "             Pour   le   rabattement            ":
+
+suiteo:
+
+LOCATE 16, 22: PRINT "LECTURE D'UNE SUITE DE POINTS          :   < 1 >"
+
+LOCATE 17, 22: PRINT "LECTURE DE POINTS SPECIFIQUES          :   < 2 >"
+
+LOCATE 20, 22: INPUT "V o t r e    c h o i x :                   "; c
+
+
+
+
+
+i = 1: h = 1
+
+FOR l = 15 TO 22: LOCATE l, 15: PRINT SPACE$(55): NEXT l: LI = 15
+
+IF c = 1 THEN GOTO SUITEENREGISTREMENTO
+
+ENREGISTREMENTSALIREO:
+
+	LOCATE LI, 25
+
+	PRINT "No de point ï¿? rabattre : "; : INPUT N(i): M = N(i)
+
+	IF N(i) < 0 OR N(i) > 1010 THEN GOTO ENREGISTREMENTSALIREO
+
+	IF N(i) = 0 THEN
+
+	  GOTO IMPRESSIONECRANRABATTEMENTO
+
+	END IF
+
+	a = i
+
+		 CALL lecture(M)
+
+		 N(i) = N(a): X(i) = X(a): Y(i) = Y(a)
+
+		 GOSUB CALCULRO
+
+	i = i + 1: LI = LI + 1
+
+	IF LI = 23 THEN
+
+		FOR l = 15 TO 22
+
+		LOCATE l, 15
+
+		PRINT SPACE$(55)
+
+		NEXT l
+
+		LI = 15
+
+	END IF
+
+GOTO ENREGISTREMENTSALIREO
+
+
+
+SUITEENREGISTREMENTO:
+
+LOCATE 16, 25: PRINT "Du numï¿½ro de point ..... "
+
+LOCATE 18, 25: PRINT "Au numï¿½ro de point ..... "
+
+LOCATE 16, 58: INPUT c
+
+IF N(i) < 0 OR N(i) > 1010 THEN GOTO SUITEENREGISTREMENTO
+
+LOCATE 18, 58: INPUT d
+
+IF N(i) < 0 OR N(i) > 1010 THEN GOTO SUITEENREGISTREMENTO
+
+f = 1
+
+h = 1: IF c > d THEN f = -1
+
+	FOR b = c TO d STEP f
+
+	N(h) = b: M = b
+
+	a = h
+
+		CALL lecture(M)
+
+		N(h) = N(a): X(h) = X(a): Y(h) = Y(a)
+
+		GOSUB CALCULRO
+
+	NEXT b
+
+	GOTO IMPRESSIONECRANRABATTEMENTO
+
+CALCULRO:
+
+Dx = X(h) - XS: IF Dx = 0 THEN Dx = .00001
+
+Dy = Y(h) - YS: IF Dy = 0 THEN Dy = .00001
+
+a = Dx / Dy
+
+T = ATN(a)
+
+T = ATN(a)
+
+	  IF Dy < 0 AND Dx > 0 THEN T = T - PI
+
+	  IF Dy < 0 AND Dx < 0 THEN T = PI + T
+
+	  IF Dy > 0 AND Dx < 0 THEN T = 2 * PI + T
+
+T = T * 200 / PI
+
+T = T - gt
+
+T = T / 200 * PI
+
+Dx = Dx ^ 2: Dy = Dy ^ 2
+
+l(h) = SQR(Dx + Dy)
+
+c = COS(T): d = SIN(T)
+
+ag(h) = l(h) * c: z(h) = l(h) * d
+
+l(h) = -z(h)
+
+h = h + 1
+
+RETURN
+
+IMPRESSIONECRANRABATTEMENTO:
+
+' impression ecran------
+
+'-----------------------
+
+CLS : TITRE (T$)
+
+PRINT :
+
+LOCATE 4, 25: PRINT "      COORDONNEES   DE   LA   BASE      "
+
+LOCATE 5, 25: PRINT NXY1$
+
+LOCATE 6, 25: PRINT NXY2$
+
+LOCATE 7, 5: PRINT "ST==>  ";
+
+PRINT USING LEPOL3$; NS; XS; YS; ZS
+
+LOCATE 8, 5: PRINT "OV==>  ";
+
+PRINT USING LEPOL3$; NO; XO; YO; ZO
+
+LOCATE 10, 5: PRINT "DISTANCE DE LA BASE : "; : PRINT USING "####.###"; DB
+
+PRINT
+
+	a = 1: i = 1
+
+	DO
+
+PRINT
+
+		LOCATE 12 + a, 25: PRINT USING "  #####   #####.###  #####.### "; N(i); ag(i); l(i)
+
+		 i = i + 1: a = a + 1
+
+		 IF a = 10 THEN
+
+		WHILE INKEY$ = "": WEND
+
+		a = 0
+
+		 CLS
+
+		 TITRE (T$)
+
+		 LOCATE 3, 13:
+
+		 PRINT , "Pour la suite de l'affichage appuyer sur une touche ":
+
+	LOCATE 5, 13:
+
+	PRINT , "Nï¿? pt           X                Y             Dist ":
+
+	PRINT
+
+		 END IF
+
+	LOOP WHILE i < h
+
+PRINT
+
+
+
+PRINT CHR$(7)
+
+SLEEP
+
+GOTO afficadre
+
+
+
+'--------------------------------------------------------------
+
+'----------- LECTURE D'ENREGISTREMENT SUR DISQUE --------------
+
+'--------------------------------------------------------------
+
+
+
+LECTUREDEDONNEESSURDISQUE:
+
+T$ = " LISTING DE COORDONNEES "
+
+CLS : TITRE (T$)
+
+	LOCATE 7, 10:
+
+	PRINT "   Lecture de donnees pour   "; T$:
+
+	LOCATE 10, 18: PRINT "Lecture d'une suite de points ......  < 1 >"
+
+	LOCATE 12, 18: PRINT "Lecture de points spï¿½cifiques ......  < 2 >"
+
+	LOCATE 14, 18: PRINT "Introduction de points .............. < 3 >"
+
+	LOCATE 16, 18: PRINT "Fichier Design Cad .................. < 4 >"
+
+	LOCATE 18, 18: PRINT "V o t r e    c h o i x :"
+
+	LOCATE 18, 45: INPUT c
+
+
+
+		IF c = 0 THEN
+
+	 GOTO afficadre
+
+		ELSEIF c = 1 THEN
+
+	 CLS
+
+	 TITRE (T$)
+
+	 GOTO POINTALIRE
+
+		ELSEIF c = 2 THEN
+
+	 i = 1
+
+	 LI = 22
+
+	 GOTO POINTALIRE
+
+		ELSEIF c = 3 THEN
+
+	 GOTO correct
+
+		ELSEIF c = 4 THEN
+
+	 GOTO Dessincad
+
+		ELSE GOTO LECTUREDEDONNEESSURDISQUE
+
+		END IF
+
+CLS : TITRE (T$)
+
+correct:
+
+ i = 1: a = 1: CLS
+
+LOCATE 9, 5:
+
+Nouveaupoint:
+
+LOCATE 10, 3: INPUT "N.pt: "; N(a)
+
+		 M = N(a)
+
+		 IF M < 0 OR M > Nbr THEN GOTO correct
+
+		 IF M = 0 THEN GOTO afficadre
+
+'LOCATE 10, 15: INPUT "Comm.: "; com$(a): com$(a) = UCASE$(com$(a))
+
+'LOCATE 10, 24: PRINT com$(a)
+
+LOCATE 10, 30: INPUT "X ", X(a)
+
+LOCATE 10, 40: INPUT "Y ", Y(a)
+
+LOCATE 10, 50: INPUT "Z ", z(a)
+
+IF Nfin < N(a) THEN Nfin = N(a)
+
+	CALL ecriture
+
+	
+
+	GOTO correct
+
+POINTALIRE:
+
+IF LI = 22 THEN
+
+	CLS : CALL TITRE(T$)
+
+	LI = 5
+
+END IF
+
+LOCATE LI, 15: PRINT "No  du point ï¿? lire:         ";
+
+INPUT N(i)
+
+IF N(i) < 0 OR N(i) > 1010 THEN GOTO POINTALIRE
+
+IF N(i) = 0 THEN GOTO COORDONNEESECRAN2
+
+	a = i: M = N(i)
+
+		CALL Lecturelisting(M)
+
+		N(i) = N(a): X(i) = X(a): Y(i) = Y(a): z(i) = z(a): com$(i) = com$(a)
+
+LOCATE LI + 1, 1: PRINT "                                                       "
+
+LOCATE LI, 15: PRINT "No  du point ï¿? lire:         "; N(i)
+
+i = i + 1: LI = LI + 1: GOTO POINTALIRE
+
+COORDONNEESECRAN2:
+
+ PRINT LEPOL1$
+
+ PRINT LEPOL2$
+
+PRINT
+
+FOR c = 1 TO i - 1
+
+		IF N(c) <> 0 THEN
+
+	PRINT USING LEPOL3$; N(c); X(c); Y(c); z(c)
+
+		END IF
+
+NEXT c
+
+SLEEP
+
+
+
+PRINT CHR$(7)
+
+EFFACEMENTECRAN:
+
+	FOR M = 0 TO 19: LOCATE 4 + M
+
+	: PRINT SPACE$(50): NEXT M
+
+RETURN
+
+
+
+FINDESCALCULS:
+
+CLS
+
+LOCATE 13, 9:
+
+PRINT "Vous etes certain ?  Si oui appuyez sur la touche Enter <---"
+
+LOCATE 15, 19: PRINT " Vous allez recrï¿½er un fichier  ASCII  "
+
+LOCATE 17, 30
+
+PRINT " Votre Choix? "; : INPUT c$: c$ = UCASE$(c$)
+
+
+
+IF (c$) = "" THEN
+
+PRINT ""
+
+PRINT : PRINT
+
+CLOSE
+
+END IF
+
+PRINT "        J. LECOMTE vous remercie et vous souhaite bonne continuation"
+
+CLS
+
+LOCATE 10, 5: PRINT "  Transfert du fichier calculs vers le fichier origine "
+
+GOTO fin
+
+Dessincad:
+
+REM ****************************************************
+
+REM **** Formation d'un fichier au format Designcad ****
+
+REM **** pour  le modifier en Designcad2D **************
+
+REM ****************************************************
+
+CLS
+
+
+
+LOCATE 8, 9:
+
+ d$ = "calculs.top"
+
+
+
+T$ = "Dessin sur DESIGNCAD"
+
+LOCATE 10, 22:
+
+CLOSE : OPEN "calculs.top" FOR RANDOM AS #2 LEN = LEN(Enregistrement)
+
+LOCATE 10, 25: PRINT "  Prï¿½paration du fichier dessin  "
+
+		 i = Ndeb
+
+	GET #2, i, Enregistrement
+
+	N = Enregistrement.NumPoint
+
+	Xg = Enregistrement.XPoint
+
+	Yb = Enregistrement.YPoint
+
+	Xd = Enregistrement.XPoint
+
+	Yh = Enregistrement.YPoint
+
+		 
+
+		FOR i = Ndeb TO Nfin
+
+	GET #2, i, Enregistrement
+
+	X = Enregistrement.XPoint
+
+	Y = Enregistrement.YPoint
+
+	IF X < Xg AND X <> 0 THEN SWAP X, Xg
+
+	IF Y < Yb AND Y <> 0 THEN SWAP Y, Yb
+
+	IF X > Xd AND X <> 0 THEN SWAP X, Xd
+
+	IF Y > Yh AND Y <> 0 THEN SWAP Y, Yh
+
+		NEXT
+
+
+
+lg = Xd - Xg
+
+ht = Yh - Yb
+
+M = 5
+
+CLOSE
+
+CLS
+
+LOCATE M, 32: M = M + 1
+
+PRINT "X min.: "; USING "######.##"; Xg
+
+LOCATE M, 32: M = M + 1
+
+PRINT "Y min.: "; USING "######.##"; Yb
+
+LOCATE M, 32: M = M + 1
+
+PRINT "lg: "; USING "#####.##"; lg
+
+LOCATE M, 32: M = M + 2
+
+PRINT "ht: "; USING "#####.##"; ht
+
+CLOSE
+
+INPUT "Nom du fichier dessin : ", d$
+
+OPEN "c:\MAE\" + d$ + ".DC2" FOR OUTPUT AS #4
+
+OPEN "calculs.top" FOR RANDOM AS #2 LEN = LEN(Enregistrement)
+
+INPUT "Choix de l'Echelle du plan : ", ech
+
+lgdes = lg / ech: htdes = ht / ech
+
+Xg = Xg - ((ech * .406) - lg) + (.02 * ech)
+
+Yb = Yb - (ech * .005)
+
+h = ech / 500
+
+PRINT #4, USING "######.## "; Xg;
+
+PRINT #4, USING "######.## "; Yb;
+
+PRINT #4, USING "######.## "; lg;
+
+PRINT #4, USING "######.## "; ht
+
+PRINT #4, "40 1 0 0 0 0"
+
+PRINT #4, "1.000000 1.000000 1.000000"
+
+REM ----------------------------
+
+REM Dessin du cadre layer 11 coleur 3
+
+REM -----------------------------
+
+PRINT #4, "21 11 0 0 0 0"
+
+REM         PRINT #4, "1 5 1 0 0 1 255 0  0"
+
+REM         PRINT #4, USING "######.### "; Xg; Yb
+
+REM         PRINT #4, USING "######.### "; (Xg + (.406 * ech)); Yb
+
+REM         PRINT #4, USING "######.### "; (Xg + (.406 * ech)); (Yb + (.283 * ech))
+
+REM         PRINT #4, USING "######.### "; Xg; (Yb + (.283 * ech))
+
+REM         PRINT #4, USING "######.### "; Xg; Yb
+
+REM----------------------------
+
+REM Dessin des points et symbole
+
+REM -----------------------------
+
+PRINT #4, "21 6 0 0 0 0"
+
+	FOR i = 0 TO (Nfin - Ndeb - 1)
+
+		GET #2, Ndeb + i, Enregistrement
+
+		X(i) = Enregistrement.XPoint
+
+		Y(i) = Enregistrement.YPoint
+
+	
+
+		 PRINT #4, "1 2 1 0 0 1 0 0 255 "
+
+		 PRINT #4, USING "######.### "; X(i); Y(i)
+
+		 PRINT #4, USING "######.### "; X(i); Y(i)
+
+		 PRINT #4, "16 4 16 0 0 1 0 1 0 255 0 0"
+
+		 PRINT #4, USING "######.### "; X(i); Y(i)
+
+		 PRINT #4, USING "######.### "; X(i); (Y(i) + (.5 * h))
+
+		PRINT #4, USING "######.### "; X(i); (Y(i) + (.5 * h))
+
+		PRINT #4, USING "######.### "; (X(i) + 2); (Y(i) + (.5 * h))
+
+	NEXT
+
+REM---------------------------
+
+REM Gï¿½nï¿½ration des numeros "
+
+REM---------------------------
+
+compteur = 0
+
+CLOSE #2: OPEN "calculs.top" FOR RANDOM AS #2 LEN = LEN(Enregistrement)
+
+PRINT #4, "21 5 0 0 0 0"
+
+FOR i = 0 TO (Nfin - Ndeb - 1)
+
+     GET #2, Ndeb + i, Enregistrement
+
+     N = Enregistrement.NumPoint
+
+     X(i) = Enregistrement.XPoint
+
+     Y(i) = Enregistrement.YPoint
+
+	IF N > 0 THEN l = 1
+
+	IF N > 9 THEN l = 2
+
+	IF N > 99 THEN l = 3
+
+	IF N > 999 THEN l = 4
+
+  IF N > 0 THEN
+
+		
+
+     PRINT #4, "3 4 10 0 0 2"
+
+     PRINT #4, USING "######.### "; (X(i) + 2); (Y(i) + 1)
+
+     PRINT #4, USING "######.### "; (X(i) + 2 + (2.33 * h)); (Y(i) + 1)
+
+     PRINT #4, USING "######.### "; (X(i) + 2); (Y(i) + 1 + h)
+
+     PRINT #4, USING "######.### "; (X(i) + 2 + (2.33 * h)); (Y(i) + 1 + h)
+
+     PRINT #4, N
+
+  END IF
+
+		 
+
+
+
+NEXT
+
+
+
+REM-------------------------
+
+REM Generation lignes
+
+REM-------------------------
+
+PRE = 3
+
+generationligne:
+
+PRINT #4, "21 4 0 0 0 0"
+
+PLU = 2
+
+	FOR a = 0 TO (Nfin - Ndeb - 2)
+
+		GET #2, Ndeb + a, Enregistrement
+
+		X(a) = Enregistrement.XPoint
+
+		Y(a) = Enregistrement.YPoint
+
+		IF (Ndeb + a + 1) > Nfin THEN EXIT FOR
+
+		GET #2, (Ndeb + a + 1), Enregistrement
+
+		X(a + 1) = Enregistrement.XPoint
+
+		Y(a + 1) = Enregistrement.YPoint
+
+		Dx = X(a) - X(a + 1): Dy = Y(a) - Y(a + 1)
+
+		Dx = Dx * Dx: Dy = Dy * Dy
+
+		lligne = SQR(Dx + Dy)
+
+	    IF lligne < 1000 THEN
+
+		PRINT #4, "1 2 1 0 0 1"
+
+		PRINT #4, USING "######.### "; X(a); Y(a)
+
+		PRINT #4, USING "######.### "; X(a + 1); Y(a + 1)
+
+	    END IF
+
+	NEXT
+
+
+
+GET #2, Ndeb, Enregistrement
+
+		X(1) = Enregistrement.XPoint
+
+		Y(1) = Enregistrement.YPoint
+
+		GET #2, Nfin, Enregistrement
+
+		X(2) = Enregistrement.XPoint
+
+		Y(2) = Enregistrement.YPoint
+
+		IF lligne < 1000 THEN
+
+			PRINT #4, "1 2 1 0 0 1"
+
+			PRINT #4, USING "######.### "; X(1); Y(1)
+
+			PRINT #4, USING "######.### "; X(2); Y(2)
+
+fin:            END IF
+
+CLOSE
+
+OPEN donnees$ FOR RANDOM AS #1 LEN = LEN(Enregistrement)
+
+OPEN "C:\MAE\" + d$ + ".txt" FOR OUTPUT AS #3
+
+OPEN "C:\MAE\" + d$ + ".dc" FOR OUTPUT AS #4
+
+REM LPRINT
+
+REM LPRINT fichier$
+
+REM LPRINT "**********************************"
+
+REM LPRINT
+
+	FOR a = 0 TO (Nfin - Ndeb)
+
+		GET #1, Ndeb + a, Enregistrement
+
+		X = Enregistrement.XPoint: Y = Enregistrement.YPoint
+
+		z = Enregistrement.ZPoint
+
+		N = Enregistrement.NumPoint
+
+		IF N > 0 THEN
+
+			PRINT #3, USING "  #####"; N;
+
+			PRINT #3, USING "  ######.###"; X;
+
+			PRINT #3, USING "  ######.###"; Y;
+
+			PRINT #3, USING "  ####.###"; z
+
+
+
+			PRINT #4, USING "  ######.###"; X;
+
+			PRINT #4, USING "  ######.###"; Y;
+
+			PRINT #4, USING "  ####.###"; z
+
+		       
+
+		END IF
+
+NEXT a
+
+CLOSE
+
+KILL donnees$
+
+END
+
+IF c$ = "F" THEN
+
+	END
+
+END IF
+
+
+
+TraitErreur:
+
+PRINT ERR
+
+SELECT CASE ERR
+
+		CASE 25            'Imprimante eteinte
+
+		PRINT "** ERREUR - Imprimante NON prï¿½te"
+
+	 PRINT "Appuyez sur C pour continuer, R pour relancer, Q pour quitter : "
+
+	 DO
+
+		 Car$ = UCASE$(INPUT$(1))
+
+		 IF Car$ = "C" THEN
+
+			 RESUME           'Reprendre au point
+
+				'd'arrï¿½t.
+
+		 ELSEIF Car$ = "R" THEN
+
+			 Relance = TRUE   'Reprendre au dï¿½but.
+
+			 RESUME 0
+
+		 ELSEIF Car$ = "M" THEN
+
+			 GOTO afficadre
+
+		 ELSEIF Car$ = "Q" THEN
+
+			 END              'Ne pas reprendre.
+
+		 END IF
+
+	 LOOP
+
+		CASE 53:      'Fichier inexistant.
+
+	 LOCATE 23, 5
+
+	 PRINT "** ERREUR - Fichier ï¿? crï¿½er  "; ""
+
+	 RESUME afficadre
+
+		CASE 76: LOCATE 24, 5: PRINT "**Erreur mauvais chemin d'accï¿½s "
+
+	 RESUME afficadre
+
+		CASE 63: LOCATE 24, 5: PRINT "**Erreur mauvais chemin d'accï¿½s "
+
+	 RESUME afficadre
+
+		CASE ELSE:         'Erreur imprï¿½visible
+
+	 ' Dï¿½sactiver l'interception d'erreurs et
+
+	 ' afficher le message standard du systï¿½meï¿?:
+
+	 RESUME afficadre
+
+	  END SELECT
+
+
+
+SUB ecriture
+
+SHARED donnees$, N(), X(), Y(), z(), i, choisi, Nbr
+
+DIM Enregistrement AS Coordonnees
+
+c = 1
+
+CLOSE #2:
+
+OPEN donnees$ FOR RANDOM AS #2 LEN = LEN(Enregistrement)
+
+maxi = LOF(2) / LEN(Enregistrement)
+
+  IF N(i) = 0 THEN
+
+		EXIT SUB
+
+  ELSEIF N(i) > Nbr THEN
+
+	PRINT "Mauvais numï¿½ro, entrez un numï¿½ro infï¿½rieur ï¿?"; Nbr + 1;
+
+	INPUT "nouveau numï¿½ro "; N(i)
+
+	CALL ecriture
+
+  ELSEIF N(i) <> 0 THEN
+
+		T = N(i)
+
+		'c$ = com$(i)
+
+		tx = X(i)
+
+		ty = Y(i)
+
+		tz = z(i)
+
+	 GET #2, T, Enregistrement
+
+	 NT = Enregistrement.NumPoint
+
+	 IF N(i) = NT THEN
+
+		 ch = 1
+
+		 X(c) = Enregistrement.XPoint: Y(c) = Enregistrement.YPoint
+
+		 z(c) = Enregistrement.ZPoint
+
+		 tol = SQR((tx - X(c)) ^ 2 + (ty - Y(c)) ^ 2): tol = ABS(tol)
+
+		 tolz = z(c) - tz: tolz = ABS(tolz)
+
+	 
+
+	 IF tol > .002 THEN
+
+		PRINT
+
+		PRINT "    Ce point existe dï¿½ja avec comme coordonees"
+
+		LEPOL3$ = "######      ######.###    ######.###  ####.###   ####   ####  "
+
+		PRINT USING LEPOL3$; NT; X(c); Y(c); z(c) ' lg(c); nlg(c);
+
+		PRINT d$
+
+		PRINT "    Le point est calculï¿? avec les coordonees suivantes"
+
+		PRINT USING LEPOL3$; NT; tx; ty; tz
+
+		PRINT
+
+
+
+choix:
+
+		 PRINT "              Si vous - voulez ecraser le point, O/N "
+
+		 ch$ = INPUT$(1)
+
+		 ch$ = UCASE$(ch$)
+
+		 IF ch$ = "O" THEN
+
+			 Enregistrement.NumPoint = T
+
+			 Enregistrement.XPoint = tx
+
+			 Enregistrement.YPoint = ty
+
+			 Enregistrement.ZPoint = tz
+
+			 PUT #2, T, Enregistrement
+
+			 CLS
+
+			 PRINT USING LEPOL3$; NT; tx; ty; tz
+
+			 EXIT SUB
+
+		 ELSEIF ch$ = "N" THEN
+
+			 CLS
+
+			 PRINT USING LEPOL3$; NT; X(c); Y(c); z(c)
+
+			 EXIT SUB
+
+		 ELSEIF ch$ <> "N" OR ch$ <> "O" THEN
+
+			 GOTO choix
+
+		 END IF
+
+	 END IF
+
+	 END IF
+
+			 Enregistrement.NumPoint = T
+
+			 Enregistrement.XPoint = tx
+
+			 Enregistrement.YPoint = ty
+
+			 Enregistrement.ZPoint = tz
+
+			 PUT #2, T, Enregistrement
+
+  
+
+	END IF
+
+CLOSE #2
+
+END SUB
+
+
+
+DEFSNG D, P-Z
+
+	SUB EntreeNumero (N$)
+
+	SHARED M
+
+		LOCATE 5 + M, 25: INPUT "Numero du Point  ", N$
+
+		LongeurChaine = LEN(N$)
+
+			IF LEN(N$) > 3 THEN
+
+				LOCATE 5 + M, 42: PRINT "                       "
+
+				CALL EntreeNumero(N$)
+
+			ELSEIF N$ = "." THEN
+
+				EXIT SUB
+
+			END IF
+
+		Car1$ = ""
+
+			FOR c% = 1 TO LongeurChaine
+
+				Car$ = MID$(N$, c%, 1)
+
+					IF INSTR("0123456789", Car$) > 0 THEN
+
+				Car1$ = Car1$ + Car$
+
+					ELSEIF INSTR("0123456789", Car$) = 0 THEN
+
+				LOCATE 5 + M, 42: PRINT "                       "
+
+				CALL EntreeNumero(N$)
+
+					END IF
+
+			 NEXT c%
+
+	END SUB
+
+
+
+DEFDBL D, P-Z
+
+SUB lecture (M)
+
+SHARED N(), X(), Y(), z(), tlg(), tnlg(), a, donnees$, com$(), Nbr
+
+DIM Enregistrement AS Coordonnees
+
+c = 1:  b = M
+
+CLOSE #2: OPEN donnees$ FOR RANDOM AS #2 LEN = LEN(Enregistrement)
+
+maxi = LOF(2) \ LEN(Enregistrement)
+
+IF maxi = 0 THEN
+
+	EXIT SUB
+
+END IF
+
+IF a <> 0 THEN
+
+	
+
+	 GET #2, M, Enregistrement
+
+	 NT = Enregistrement.NumPoint
+
+	 IF b = NT THEN
+
+		X(a) = Enregistrement.XPoint: Y(a) = Enregistrement.YPoint
+
+		z(a) = Enregistrement.ZPoint
+
+		N(a) = Enregistrement.NumPoint
+
+		ch = 1
+
+	 END IF
+
+END IF
+
+
+
+IF ch <> 1 THEN
+
+	Msg$ = "Ce point n'existe pas ? Voulez vous changer ce point, "
+
+	CALL Message(Msg$, 23, 1): PRINT b: BEEP
+
+	IF b < Nbr THEN
+
+	INPUT "                 Nouveau Numï¿½ro de point : "; M
+
+	CALL lecture(M)
+
+	ELSEIF b > Nbr THEN
+
+		 PRINT "Numï¿½ro ignorï¿? ???."
+
+		 EXIT SUB
+
+		 N(a) = N(a)
+
+	END IF
+
+END IF
+
+END SUB
+
+
+
+SUB Lecturelisting (M)
+
+SHARED N(), X(), Y(), z(), tlg(), tnlg(), a, donnees$, com$()
+
+DIM Enregistrement AS Coordonnees
+
+c = 1: b = M
+
+CLOSE #2: OPEN donnees$ FOR RANDOM AS #2 LEN = LEN(Enregistrement)
+
+maxi = LOF(2) \ LEN(Enregistrement)
+
+IF maxi = 0 THEN
+
+	EXIT SUB
+
+END IF
+
+IF a <> 0 THEN
+
+  
+
+	 GET #2, M, Enregistrement
+
+	 NT = Enregistrement.NumPoint
+
+	 IF b = NT THEN
+
+		X(a) = Enregistrement.XPoint: Y(a) = Enregistrement.YPoint
+
+		z(a) = Enregistrement.ZPoint
+
+		N(a) = Enregistrement.NumPoint
+
+		ch = 1
+
+	 END IF
+
+END IF
+
+
+
+IF ch <> 1 THEN
+
+	Msg$ = "Ce point n'existe pas ?  "
+
+	CALL Message(Msg$, 23, 1): PRINT b: BEEP
+
+	N(a) = 0
+
+	EXIT SUB
+
+END IF
+
+
+
+END SUB
+
+
+
+SUB Message (Msg$, Lgn%, Col%)
+
+	LgnAct% = CSRLIN
+
+	ColAct% = POS(0)
+
+	LOCATE Lgn%, Col%: PRINT SPACE$(79)
+
+	LOCATE Lgn%, Col%: PRINT Msg$
+
+	LOCATE LgnAct%, ColAct%
+
+END SUB
+
+
+
+DEFDBL A-C, M
+
+SUB OptionBasEcran (T)
+
+	PRINT CHR$(7)
+
+	LOCATE 22, 1: PRINT LIGNE$
+
+	LOCATE 22, 20
+
+		 
+
+	PRINT " <N>ouv. Calcul  <A>ffichage Surface  <F>in "
+
+		
+
+	ch$ = INPUT$(1): ch$ = UCASE$(ch$)
+
+	IF ch$ = "C" THEN
+
+		T = 4
+
+	ELSEIF ch$ = "N" THEN
+
+		T = 1
+
+	ELSEIF ch$ = "A" THEN
+
+		T = 3
+
+	ELSEIF ch$ = "F" THEN
+
+		T = 5
+
+	ELSEIF ch$ = "" THEN
+
+		T = 3
+
+	ELSEIF ch$ <> "C" OR ch$ <> "N" OR ch$ <> "I" OR ch$ <> "A" OR ch$ <> "F" OR ch$ <> "D" THEN
+
+		CALL OptionBasEcran(T)
+
+	END IF
+
+END SUB
+
+
+
+DEFSNG A-D, M, P-Z
+
+SUB SuiteNumero (i, M, N())
+
+	a = N(i - 1)
+
+	LOCATE 5 + M, 25: PRINT "1er Point de la suite "; a
+
+	LOCATE 6 + M, 25: INPUT "Dernier Point de la suite ", b
+
+	M = M + 1
+
+	IF b > a THEN
+
+		DO
+
+			a = a + 1
+
+			N(i) = a
+
+			i = i + 1
+
+		LOOP WHILE a < b
+
+		i = i - 1
+
+	ELSEIF b < a THEN
+
+		DO
+
+			a = a - 1
+
+			N(i) = a
+
+			i = i + 1
+
+		LOOP WHILE a > b
+
+		i = i - 1
+
+	END IF
+
+END SUB
+
+
+
+DEFDBL D, P-Z
+
+SUB TITRE (T$)
+
+	SHARED d$
+
+		tit$ = T$ + SPACE$(71 - (LEN(T$) + LEN(d$))) + "FICHIER " + d$
+
+		: PRINT tit$:
+
+END SUB
+
+
+
+

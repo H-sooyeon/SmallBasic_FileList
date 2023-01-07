@@ -1,0 +1,259 @@
+''''''''''''''''''''''''''''''''''''''''''''''''
+
+'  for  Zock77  GotoLoop
+
+'''''''''''''''''''''''''''''''''''''''''''''''
+
+init()
+
+AddTanks()
+
+GraphicsWindow.MouseDown=Onmousedown 
+
+GraphicsWindow.MouseMove=Onmousemove
+
+
+
+While "true"  
+
+  erase()            
+
+  missilemove() 
+
+  Movetanks()
+
+  hitcheck()
+
+endWhile
+
+
+
+Sub hitcheck                            '     tankoffset is necessary 
+
+  For L= 1 To Numoftanks
+
+    For LL = startmsl to count
+
+     If (Tankx[L]-tankoffset<MslX[LL]  And  MslX[LL]<Tankx[L]-tankoffset+40) And (Tanky[L]<MslY[LL]  And MslY[LL]<Tanky[L]+15) Then
+
+      Shapes.Remove(Tank[L])
+
+      Shapes.Remove(missile[LL])
+
+     EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub erase                                     '   erase missiles if  mslx>GW 
+
+  For K=startmsl To count
+
+    mslX[K]= Shapes.GetLeft(missile[K])
+
+    mslY[K]= Shapes.Gettop(missile[K])
+
+    If mslX[K]>0.95*GW Then 
+
+      Shapes.reMove(missile[K]) 
+
+      startmsl=K                             '   missile remains   (count  -  startmsl)   
+
+    endif      '  
+
+  EndFor 
+
+  If Math.Remainder(count,10)=0 Then         '    romove remained shapes  again ( sometimes some missile remains)
+
+    For K=1 To startmsl
+
+      Shapes.reMove(missile[K])  
+
+    EndFor 
+
+  endif  
+
+endsub
+
+
+
+Sub missilemove   '  move  remained missiles
+
+  For P=startmsl To count
+
+    TimeNow [p] = (Clock.ElapsedMilliseconds - misstart[p])/1000
+
+    MslX[p] = vCos[p]*TimeNow[p] + StartX
+
+    MslY[p] = vSin[p]*TimeNow[p] + TimeNow[p]*TimeNow[p] * Gravity/2 + StartY
+
+    Shapes.Move( Missile[p],MslX[p],MslY[p] )
+
+  EndFor
+
+EndSub
+
+
+
+Sub Movetanks
+
+  Tankoffset=100*(clock.ElapsedMilliseconds-t0)/1000
+
+  For Move = 1 To Numoftanks
+
+    Shapes.Move(Tank[Move], (Tankx[Move] - Tankoffset), Tanky[Move])
+
+  EndFor
+
+EndSub
+
+
+
+Sub onmousemove
+
+  gx= GraphicsWindow.MouseX
+
+  gy= GraphicsWindow.MouseY
+
+  If gx<startX+1 Then
+
+    gx=startX+1
+
+  EndIf
+
+  '------------------------     aim positon   ---------------------------------- 
+
+  angle= math.ArcTan((gy-startY)/(gx-startX))   '  radian 
+
+  deg= Math.GetDegrees(angle)
+
+  saimx= rad*math.Cos(angle)+startX
+
+  saimY= rad*math.sin(angle)+startY  
+
+  shapes.Move(saim,saimX,saimY)                '  move  aim mark
+
+  '------------------------    turret rotation -------------------------------- 
+
+  Shapes.Rotate(stur,deg)                      '  rotate  turret 
+
+endsub
+
+
+
+Sub onmousedown
+
+  count=Count+1                               '   Last count 
+
+  GraphicsWindow.PenColor=GraphicsWindow.GetRandomColor()
+
+  missile[count]= Shapes.AddEllipse(10,5) 
+
+  Shapes.Move(missile[count],startX,startY)
+
+  misstart[count]= Clock.ElapsedMilliseconds 
+
+  vCos[count] = Math.Cos(angle) * 300
+
+  vSin[count] = Math.Sin(angle) * 300
+
+EndSub
+
+
+
+Sub AddTanks
+
+  Ylist=""
+
+  GraphicsWindow.PenColor="Red"
+
+  GraphicsWindow.BrushColor="white"
+
+  For i = 1 To Numoftanks
+
+    Tank[i] =  Shapes.AddRectangle(40,15)
+
+    Tankx[i] = Math.GetRandomNumber(200) + GraphicsWindow.Width   '<----- Add tanks to a random position
+
+    Reposition:
+
+    posY = Math.GetRandomNumber(GraphicsWindow.Height)
+
+    posy2= Math.Floor(posY/25)                                    ' 100.....   4       200  .....  8   250 .....   12   
+
+    If Text.IsSubText(Ylist,posy2) Then 
+
+      Goto Reposition
+
+    EndIf
+
+    Ylist=Ylist+posy2+":"
+
+    Tanky[i] =posY  
+
+    Shapes.Move(Tank[i], Tankx[i], Tanky[i])
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub init
+
+  GW=800
+
+  GH=600
+
+  GraphicsWindow.BackgroundColor="khaki"
+
+  GraphicsWindow.Width=GW
+
+  GraphicsWindow.Height=GH
+
+  '----------------  images   ----------------------
+
+  path = "http://Sean.Alyrica.net/"
+
+  saim= Shapes.AddImage(path + "crosshair.png")            '    +  mark
+
+  Tur = ImageList.LoadImage(path + "Turrit.png")
+
+  turW= ImageList.GetWidthOfImage(tur)
+
+  turh= ImageList.GetHeightOfImage(tur)
+
+  stur= Shapes.AddImage(Tur)                               '    turrit 
+
+  startx=10+turw/2
+
+  startY=300+turh/2
+
+  Shapes.Move(stur,10,300)
+
+  '---------------- initial value   ----------------------
+
+  speed = 8
+
+  Rad=200                                                  '  aim point radius
+
+  startmsl=0                                               '  remained missile number
+
+  Gravity=0
+
+  Numoftanks = 10
+
+  t0=Clock.ElapsedMilliseconds                             '  tank  start  time 
+
+EndSub
+
+

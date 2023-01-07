@@ -1,0 +1,447 @@
+setup()
+
+GraphicsWindow.Title   = "Slider Demo
+
+GraphicsWindow.KeyDown =  OnKeyDown
+
+GraphicsWindow.KeyUp   =  OnKeyUp
+
+
+
+While 1=1'-----------------------mainloop-------------------
+
+  DoKey()
+
+  Move()
+
+  Program.Delay(1)
+
+EndWhile'---------------------------------------------------
+
+
+
+Sub CreateGround                                 ' Create ground lines, all set in upper left corner so that their top/left properties match their visible top/left
+
+  GraphicsWindow.PenColor = "yellow"
+
+  GraphicsWindow.PenWidth = 2.5
+
+  currY = windowHeight * 0.8
+
+  currX = 0
+
+  
+
+  For i = 1 To groundPieces - 1
+
+    deltaX = Math.GetRandomNumber(130) + 30
+
+    If Math.GetRandomNumber(2) > 1.5 Then
+
+      deltaY = deltaX * groundSlope
+
+      If currY+deltaY > windowHeight - 40 Then
+
+        deltaY = - deltaX * groundSlope
+
+      EndIf
+
+    Else
+
+      deltaY = -deltaX * groundSlope
+
+      If currY+deltaY < windowHeight / 2 Then
+
+        deltaY = deltaX * groundSlope
+
+      EndIf
+
+    EndIf
+
+    
+
+    temp = Shapes.AddLine(0, 0, deltaX, deltaY)
+
+    Shapes.Move(temp, 0, -500)
+
+    ground[i] = temp
+
+    groundLeft[i] = currX
+
+    groundWidth[i] = deltaX
+
+    groundTop[i] = currY
+
+    currX = currX + deltaX
+
+    currY = currY + deltaY
+
+  EndFor
+
+  
+
+  deltaY = windowHeight * 0.8 - currY
+
+  deltaX = Math.Abs(deltaY)
+
+  temp = Shapes.AddLine(0, 0, deltaX, deltaY)
+
+  Shapes.Move(temp, 0, -500)                     ' Move it immediately off screen so it isn't ever seen
+
+  groundLeft[groundPieces] = currX
+
+  groundWidth[groundPieces] = deltaX
+
+  groundTop[groundPieces] = currY
+
+  ground[groundPieces] = temp
+
+  groundWidthTotal = currX
+
+EndSub
+
+
+
+Sub Move'---------------------------------------------------
+
+  playerVx = playerVx * 0.97 + playerAx
+
+  If playerVx > playerSpeed Then
+
+    playerVx = playerSpeed
+
+  ElseIf playerVx < -playerSpeed Then
+
+    playerVx = -playerSpeed
+
+  EndIf
+
+  
+
+ ' Show player facing
+
+  pA = playerAx '                                 Capture playerAx since can change with keyboard input
+
+  If pA < 0 Then
+
+    playerDirection = 1
+
+  ElseIf pA > 0 Then
+
+    playerDirection = 0
+
+  EndIf
+
+  
+
+  If playerDirection = 0 Then                    ' If going left
+
+    slideX = (windowWidth * 0.85 - pX) * .04     ' Slide player to right side with limited velocity
+
+    If slideX > 5 Then
+
+      slideX = 5
+
+    ElseIf slideX < -5 Then
+
+      slideX = -5
+
+    EndIf
+
+    pX = pX + slideX
+
+    
+
+  Else                                           ' Slide player to left side with limited velocity
+
+    slideX = (windowWidth * 0.1 - pX) * .04
+
+    If slideX > 5 Then
+
+      slideX = 5
+
+    ElseIf slideX < -5 Then
+
+      slideX = -5
+
+    EndIf
+
+    pX = pX + slideX
+
+  EndIf
+
+  
+
+  leftMost = 5000
+
+  rightMost = -5000
+
+  
+
+  For i = 1 To groundPieces
+
+    left = groundLeft[i]
+
+    
+
+    If left > rightMost Then                     ' Keep track of the left and right most ground pieces, used later
+
+      rightMost = left
+
+      rightMostIndex = i
+
+    EndIf
+
+    
+
+    If left < leftMost Then
+
+      leftMost = left
+
+      leftMostIndex = i
+
+    EndIf
+
+    
+
+    If destruct > 0 Then                         ' Blow up till ground pieces are off screen
+
+      If destruct < windowHeight + 100 Then
+
+        destruct = destruct + 0.12
+
+      EndIf
+
+      If Math.Remainder(i, 2) = 0 Then
+
+        destructX = 5
+
+      Else
+
+        destructX = -5
+
+      EndIf
+
+    Else
+
+      destructX = 0
+
+    EndIf
+
+    
+
+    groundLeft[i] = left + playerVx + destructX
+
+    Shapes.Move(ground[i], left + playerVx + destructX, groundTop[i])
+
+    
+
+  EndFor
+
+  
+
+  If rightMost < windowWidth * 1.2 Then          ' Check if about to travel off left/right of ground
+
+    j = leftMostIndex
+
+    For i = 1 To groundPieces
+
+      If groundLeft[j] < -windowWidth * 0.2 Then ' Get position and width of right most piece
+
+        temp = groundWidth[rightMostIndex]
+
+        temp2 = groundLeft[rightMostIndex]
+
+        groundLeft[j] = temp + temp2 - 1         ' Move left most piece to right side of ground
+
+        rightMostIndex = j                       ' And now this moved piece is the rightmost piece
+
+        rightMost = temp + temp2 - 1
+
+      EndIf
+
+      
+
+      j = j + 1                                  ' Continue on ground pieces from left to right
+
+      If j > groundPieces Then
+
+        j = 1
+
+      EndIf
+
+    EndFor
+
+    
+
+  ElseIf leftMost > -windowWidth * 1 Then
+
+    j = rightMostIndex
+
+    For i = 1 To groundPieces
+
+      If groundLeft[j] > windowWidth * 2 Then
+
+        temp = groundWidth[j]
+
+        temp2 = groundLeft[leftMostIndex]
+
+        groundLeft[j] = temp2 - temp - 1        ' Move right most piece to left side of ground
+
+        leftMostIndex = j                       ' And now this moved piece is the leftmost piece
+
+        leftMost = temp2 - temp - 1
+
+      EndIf
+
+      
+
+      j = j - 1                                 ' Continue on ground pieces from right to left
+
+      If j < 1 Then
+
+        j = groundPieces
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  
+
+  If left > groundWidthTotal * 0.7 Then         ' Wrap it around the world
+
+    left = left - groundWidthTotal
+
+  ElseIf left < -groundWidthTotal * 0.7 Then
+
+    left = left + groundWidthTotal
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown'==============================================
+
+  If(GraphicsWindow.LastKey = "Right") Then
+
+    rightKeyPressed = true                      ' If both left & right pressed, this has higher priority since pressed last
+
+    leftRightPriority = "Right
+
+  ElseIf(GraphicsWindow.LastKey = "Left") Then
+
+    leftKeyPressed = true
+
+    leftRightPriority = "Left
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyUp'================================================
+
+  If GraphicsWindow.LastKey     = "Right" Then
+
+    rightKeyPressed = false
+
+  ElseIf GraphicsWindow.LastKey = "Left"  Then
+
+    leftKeyPressed = false
+
+  EndIf
+
+EndSub
+
+
+
+Sub DoKey'==================================================
+
+  If rightKeyPressed  And leftKeyPressed  Then' Figure out which direction based on last pressed or released
+
+    If leftRightPriority = "Right" Then
+
+      playerAx = -3
+
+    Else
+
+      playerAx = 3
+
+    EndIf
+
+  Else
+
+    If rightKeyPressed Then
+
+      playerAx = -3
+
+    ElseIf leftKeyPressed  Then
+
+      playerAx = 3
+
+    Else
+
+      playerAx = 0
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub setup
+
+  false = "false
+
+  true = "true
+
+  scoreBoardTop=0
+
+  windowWidth = 940
+
+  windowHeight = 480
+
+  groundPieces = 30
+
+  groundSlope = 0.6
+
+  leftKeyPressed = false
+
+  rightKeyPressed = false
+
+  upKeyPressed = false
+
+  downKeyPressed = false
+
+  leftRightPriority = "Right
+
+  upDownPriority = "Up
+
+  destruct = 0
+
+  playerVx = 0
+
+  playerSpeed = 10
+
+  GraphicsWindow.BackgroundColor = "darkgreen
+
+  GraphicsWindow.Width  = windowWidth
+
+  GraphicsWindow.Height = windowHeight
+
+  GraphicsWindow.Left = 5
+
+  GraphicsWindow.Top = 5
+
+  CreateGround()
+
+EndSub
+
+

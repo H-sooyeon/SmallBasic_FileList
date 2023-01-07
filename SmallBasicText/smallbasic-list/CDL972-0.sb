@@ -1,0 +1,989 @@
+' LearnMyKeyboard - Yanos - February 2015  - CDL972-0
+
+'
+
+' A small game for learning to write on keyboard
+
+
+
+' The rules :
+
+' - Some letters fall from the top to the bottom of th screen, you need to type the correct letter on the keyboard  to remove the letter.
+
+' - Each level you finished add a new life if you lost one
+
+' - If a letter reach the bottom before to be removed, you lost one life
+
+' - If you type an letter on the keyboard wich is not on the screen, you lost one life
+
+' - If you  have no more life, you lost the game
+
+' - When a level is finished you win some points for each life that you not lost
+
+
+
+'  = Initialize variables
+
+CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
+
+LoadLevels()
+
+' Number of the current level
+
+levelNumber = 1
+
+'  Informations about the level
+
+level = levels[levelNumber]
+
+' Score
+
+score = 0
+
+' Lifes count
+
+lifes = 3
+
+
+
+' Letters list
+
+' letters is an array of array for each letter show in the game
+
+' x : Position X
+
+' y : Position Y
+
+' speed : Speed of move
+
+' letter : Letter shown
+
+' form :  Form shown
+
+letters = ""
+
+lettersCount = 0
+
+
+
+' level : Present the level
+
+' pause : Pausing
+
+' game : In game
+
+' end : Game over
+
+gameState = "level"
+
+
+
+message = ""
+
+messageForm = ""
+
+
+
+' Show the screen
+
+GraphicsWindow.Width = 800
+
+GraphicsWindow.Height = 480
+
+GraphicsWindow.CanResize = "False"
+
+GraphicsWindow.Title = "Learn My Keyboard"
+
+GraphicsWindow.Show()
+
+GraphicsWindow.TextInput = HandleLetterKeyboard
+
+GraphicsWindow.KeyDown = HandleKeyKeyboard
+
+
+
+'  Create game element
+
+CreateHeader()
+
+
+
+' Main loop
+
+While "True"
+
+  '  What is the game state
+
+  If gameState = "level" Then
+
+    '  Present the level
+
+    PresentLevel()
+
+  ElseIf gameState = "pause" Then
+
+    '  Pausing
+
+    DoPause()
+
+  ElseIf gameState = "game" Then  
+
+    ' Game loop
+
+    Game()
+
+  Else 
+
+    ' GameOver
+
+    DoGameOver()
+
+  EndIf
+
+EndWhile
+
+
+
+'  === Loop game
+
+Sub Game
+
+  letterPress = ""
+
+  keyPress = ""
+
+  lastLoop = Clock.ElapsedMilliseconds
+
+  While "True"
+
+    ' Save the milliseconds count at the moment when the loop start
+
+    loopStart = Clock.ElapsedMilliseconds
+
+    timeElapsed = loopStart - lastLoop
+
+    
+
+    ' Test the keyboard to check the pause
+
+    If keyPress = "Escape" Then
+
+      gameState = "pause"
+
+      Goto endGame
+
+    EndIf
+
+    
+
+    '  Check to add a letter
+
+    AddLetter()
+
+    
+
+    ' Check if we pressed a letter
+
+    CheckLetterPress()
+
+    
+
+    ' Move the letter to the next place
+
+    For i = 1 To lettersCount
+
+      If letters[i] <> "" Then
+
+        letters[i]["y"] = letters[i]["y"] + (timeElapsed * letters[i]["speed"])
+
+        ' Check if the letter is out of screen
+
+        If letters[i]["y"] <= GraphicsWindow.Height - 30 Then
+
+          Shapes.Move(letters[i]["form"], letters[i]["x"], letters[i]["y"])
+
+        Else
+
+          '  Remove the letter
+
+          Shapes.Remove(letters[i]["form"])
+
+          letters[i] = ""
+
+          ' Lost a life
+
+          message = "Letter missing"
+
+          lifes = lifes - 1
+
+          UpdateHeader()
+
+        EndIf 
+
+      EndIf
+
+    EndFor
+
+    
+
+    ' Game over ?
+
+    If lifes < 0 Then
+
+      Goto gameOver
+
+    EndIf
+
+    
+
+    ' Reach the end of the level ?
+
+    If lettersRemoved >= level["nextLevel"] Then
+
+      levelNumber = levelNumber + 1
+
+      gameState = "level"
+
+      Goto endGame
+
+    EndIf
+
+    
+
+    ' Check to display a message
+
+    DisplayMessage()
+
+    
+
+    ' Calc the loop delay
+
+    'loopDelay = Clock.ElapsedMilliseconds - loopStart
+
+    'GraphicsWindow.Title = loopDelay
+
+    lastLoop = loopStart
+
+    
+
+    ' We make a pause 
+
+    Program.Delay(25)
+
+  EndWhile
+
+  gameOver:
+
+  RemoveAllLetters()
+
+  gameState="end"
+
+  endGame:  
+
+  keyPress = ""
+
+  letterPress = ""
+
+EndSub
+
+
+
+'  === Present the level to play
+
+Sub PresentLevel
+
+  RemoveAllLetters()
+
+  
+
+  '  New game ?
+
+  If levelNumber = 1 Then
+
+    score = 0
+
+    lifes = 3
+
+  EndIf
+
+  
+
+  '  If we are out of level count, we loop on it with increase difficulty
+
+  
+
+  ' Repeat count for the level
+
+  mLevel = Math.Floor((levelNumber-1) / levelsCount)
+
+  ' Real level
+
+  nLevel = Math.Remainder((levelNumber-1), levelsCount) + 1
+
+  level = levels[nLevel]
+
+  '  Calc the max of lifes
+
+  level["maxLifes"] = 3 + mLevel
+
+  
+
+  ' Calc the difficulty
+
+  If mLevel>0 Then
+
+    ' Increase spped :  add repeats count
+
+    level["speed"] = level["speed"] + mLevel + 1
+
+    ' Increase the letter shown :  add repeats count
+
+    level["lettersShown"] = level["lettersShown"] + mLevel
+
+    ' If mLevel >2 adding upper cases
+
+    If mLevel>2 Then
+
+      level["letters"] = level["letters"] + Text.ConvertToUpperCase(level["letters"])
+
+    EndIf
+
+  EndIf
+
+  
+
+  If levelNumber > 1 Then
+
+    lastScoreLevel = scoreLevel
+
+    lastLifes = lifes
+
+    lastScorePerLife = 50 * (mLevel + 1)
+
+  EndIf
+
+  
+
+  letters = ""
+
+  lettersCount = level["lettersShown"]
+
+  lifes = Math.Min(lifes + 1, level["maxLifes"])
+
+  lettersRemoved = 0
+
+  scoreLevel = 0
+
+  score = score + (lastLifes * lastScorePerLife)
+
+  UpdateHeader()
+
+  
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.BrushColor = "Aqua"
+
+  background = Shapes.AddRectangle(GraphicsWindow.Width,GraphicsWindow.Height-48)
+
+  Shapes.Move(background, 0, 48)
+
+  
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.FontSize = 48
+
+  GraphicsWindow.BrushColor = "Black"
+
+  textLevel = Shapes.AddText("Level " + levelNumber)
+
+  Shapes.Move(textLevel, 16, 48+16)
+
+  
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.BrushColor = "Black"
+
+  desc = ""
+
+  If lastScoreLevel > 0 Then
+
+    desc = desc + "Score in the last level : " + lastScoreLevel + CRLF
+
+    If levelNumber>1 Then
+
+      desc = desc + "Score for the lifes not lost : "  + lastLifes + " x " + lastScorePerLife + " = " + (lastLifes * lastScorePerLife) + CRLF
+
+    EndIf
+
+    desc = desc + CRLF
+
+  EndIf
+
+  desc = desc + "Letters to used : " + level["letters"] + CRLF 
+
+  desc = desc + "Letters count before next level : " + level["nextLevel"] + CRLF + CRLF + CRLF 
+
+  desc = desc + "In the game press 'Escape' to pause the game" + CRLF  + CRLF 
+
+  desc = desc + "Press Escape' to quit the game" + CRLF 
+
+  desc = desc + "Press 'Space' to start the level"
+
+  textDescription = Shapes.AddText(desc)
+
+  Shapes.Move(textDescription, 16, 48+80)
+
+  
+
+  keyPress=""
+
+  While "True"
+
+    If keyPress = "Escape" Then
+
+      Program.End()
+
+    ElseIf keyPress = "Space" Then
+
+      gameState = "game"
+
+      Goto endPresentLevel
+
+    EndIf
+
+    Program.Delay(200)
+
+  EndWhile
+
+  endPresentLevel:
+
+  Shapes.Remove(textDescription)
+
+  Shapes.Remove(textLevel)
+
+  Shapes.Remove(background)
+
+  keyPress=""
+
+EndSub
+
+
+
+'  === Do the pause
+
+Sub DoPause
+
+  
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.BrushColor = "Aqua"
+
+  background = Shapes.AddRectangle(GraphicsWindow.Width,GraphicsWindow.Height-48)
+
+  Shapes.Move(background, 0, 48)
+
+  
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.FontSize = 48
+
+  GraphicsWindow.BrushColor = "Black"
+
+  textLevel = Shapes.AddText("PAUSE")
+
+  Shapes.Move(textLevel, 16, 48+16)
+
+  
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.BrushColor = "Black"
+
+  desc = ""
+
+  desc = desc + "Press 'Escape' to quit the game" + CRLF 
+
+  desc = desc + "Press 'Space' to continue"
+
+  textDescription = Shapes.AddText(desc)
+
+  Shapes.Move(textDescription, 16, 48+80)
+
+  
+
+  keyPress=""
+
+  While "True"
+
+    If keyPress = "Escape" Then
+
+      Program.End()
+
+    ElseIf keyPress = "Space" Then
+
+      gameState = "game"
+
+      Goto endDoPause
+
+    EndIf
+
+    Program.Delay(200)
+
+  EndWhile
+
+  endDoPause:
+
+  Shapes.Remove(textDescription)
+
+  Shapes.Remove(textLevel)
+
+  Shapes.Remove(background)
+
+  keyPress=""
+
+EndSub
+
+
+
+'  === Do game over
+
+Sub DoGameOver
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.BrushColor = "Violet"
+
+  background = Shapes.AddRectangle(GraphicsWindow.Width,GraphicsWindow.Height-48)
+
+  Shapes.Move(background, 0, 48)
+
+  
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.FontSize = 48
+
+  GraphicsWindow.BrushColor = "Black"
+
+  textLevel = Shapes.AddText("GAME OVER")
+
+  Shapes.Move(textLevel, 16, 48+16)
+
+  
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.BrushColor = "Black"
+
+  desc = "You lost on level " + levelNumber + " with " + score + " points." + CRLF + CRLF
+
+  desc = desc + "Press 'Escape' to quit the game" + CRLF 
+
+  desc = desc + "Press 'Space' to start a new game"
+
+  textDescription = Shapes.AddText(desc)
+
+  Shapes.Move(textDescription, 16, 48+80)
+
+  
+
+  keyPress=""
+
+  While "True"
+
+    If keyPress = "Escape" Then
+
+      Program.End()
+
+    ElseIf keyPress = "Space" Then
+
+      levelNumber = 1
+
+      gameState = "level"
+
+      Goto endDoGameOver
+
+    EndIf
+
+    Program.Delay(200)
+
+  EndWhile
+
+  endDoGameOver:
+
+  Shapes.Remove(textDescription)
+
+  Shapes.Remove(textLevel)
+
+  Shapes.Remove(background)
+
+  keyPress=""
+
+EndSub
+
+
+
+'  === Subroutine that search if we need a new letter in te game
+
+Sub AddLetter
+
+  ' Search a free place in the letter list
+
+  For i = 1 To lettersCount
+
+    If letters[i] = "" Then
+
+      letters[i]["letter"] = Text.GetSubText(level["letters"], Math.GetRandomNumber(Text.GetLength(level["letters"])), 1)
+
+      GraphicsWindow.FontBold = "True"
+
+      GraphicsWindow.FontName = "Arial"
+
+      GraphicsWindow.FontSize = 38
+
+      GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
+
+      letters[i]["form"] = Shapes.AddText(letters[i]["letter"])
+
+      Shapes.Move(letters[i]["form"], -100, -100)
+
+      letters[i]["x"] = Math.GetRandomNumber(GraphicsWindow.Width - 32)
+
+      letters[i]["y"] = 48
+
+      letters[i]["speed"] = (level["speed"] + Math.GetRandomNumber(10) - 1) / 250
+
+      Shapes.Move(letters[i]["form"], letters[i]["x"], letters[i]["y"])
+
+      ' We stop because we find
+
+      Goto endAddLetter
+
+    EndIf
+
+  EndFor
+
+  endAddLetter:
+
+EndSub
+
+
+
+' === Remove all the letters 
+
+Sub RemoveAllLetters
+
+  For i = 1 To lettersCount
+
+    If letters[i] <> "" Then
+
+      Shapes.Remove(letters[i]["form"])
+
+      letters[i] = ""
+
+    EndIf
+
+  EndFor
+
+  letters = ""
+
+EndSub
+
+
+
+' === Manage the letter pressed
+
+Sub CheckLetterPress
+
+  If letterPress <> "" Then
+
+    '  Search if the letter match the pressed letter and wich is the more bottom on the screen
+
+    letterFind = 0
+
+    For i = 1 To lettersCount
+
+      If letters[i] <> "" And letters[i]["letter"] = letterPress Then
+
+        If letterFind < 1 Or (letters[i]["y"] > letters[letterFind]["y"]) Then
+
+          letterFind = i
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+    ' Check if we find a letter
+
+    If letterFind > 0 Then
+
+      ' Increase the score
+
+      sTmp = ((letters[letterFind]["y"] - 48) * 100) / (GraphicsWindow.Height - 48 - 30)
+
+      sTmp = (100 - (Math.Floor(sTmp / 10)*10) )
+
+      score = score + sTmp
+
+      scoreLevel = scoreLevel + sTmp
+
+      lettersRemoved = lettersRemoved + 1
+
+      ' Remove the letter
+
+      Shapes.Remove(letters[letterFind]["form"])
+
+      letters[letterFind] = ""
+
+    Else
+
+      ' Here we don't find letter so we loose a life
+
+      message = "Bad letter"
+
+      lifes = lifes - 1
+
+    EndIf
+
+    UpdateHeader()
+
+  EndIf
+
+  letterPress = ""
+
+EndSub
+
+
+
+' === Handle the keyboard letter
+
+Sub HandleLetterKeyboard
+
+  ' Get the letter pressed
+
+  letterPress = GraphicsWindow.LastText  
+
+  ' If it's space we forget it
+
+  If letterPress = " " Then
+
+    letterPress = "" 
+
+  EndIf
+
+EndSub
+
+
+
+' === Handle the keyboard key
+
+Sub HandleKeyKeyboard
+
+  ' Get the key pressed
+
+  keyPress = GraphicsWindow.LastKey
+
+EndSub
+
+
+
+' === Create the header
+
+Sub CreateHeader
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.BrushColor = "Lime"
+
+  GraphicsWindow.PenColor = "Lime"
+
+  Shapes.AddRectangle(1080, 48)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontName = "Verdana"
+
+  GraphicsWindow.FontSize = 32
+
+  scoreForm = Shapes.AddText("Score : " + score)
+
+  Shapes.Move(scoreForm, 12, 6)
+
+  GraphicsWindow.BrushColor = "Red"
+
+  lifesForm = Shapes.AddText("Lifes : " + lifes)
+
+  Shapes.Move(lifesForm, GraphicsWindow.Width - 180, 6)
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  GraphicsWindow.FontSize = 20
+
+  levelForm = Shapes.AddText("Level : " + levelNumber)
+
+  Shapes.Move(levelForm, GraphicsWindow.Width - 520, 6)
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.FontSize = 12
+
+  nextLevelForm = Shapes.AddText("Next level in : " + (level["nextLevel"] - lettersRemoved))
+
+  Shapes.Move(nextLevelForm, GraphicsWindow.Width - 520, 32)
+
+EndSub
+
+
+
+' === Update the header
+
+Sub UpdateHeader
+
+  Shapes.SetText(scoreForm, "Score : " + score)
+
+  Shapes.SetText(lifesForm, "Lifes : " + Math.Max(0, lifes))
+
+  Shapes.SetText(levelForm, "Level : " + levelNumber)
+
+  Shapes.SetText(nextLevelForm, "Next level in : " + (level["nextLevel"] - lettersRemoved))
+
+EndSub
+
+
+
+' === Display a message
+
+Sub DisplayMessage
+
+  If message<>"" Then
+
+    ' Need to restart a display
+
+    If messageForm = "" Then
+
+      messageForm["message"] = message
+
+      GraphicsWindow.FontBold = "True"
+
+      GraphicsWindow.FontSize = 48
+
+      GraphicsWindow.BrushColor = "Maroon"
+
+      messageForm["form"] = Shapes.AddText(messageForm["message"])
+
+      Shapes.Move(messageForm["form"], (GraphicsWindow.Width - Text.GetLength(messageForm["message"])*24 )/2, GraphicsWindow.Height/2)
+
+      messageForm["step"] = 100
+
+      messageForm["start"] = Clock.ElapsedMilliseconds
+
+    ElseIf messageForm["message"] <> message Then
+
+      ' The message changed, remove the message to be rebuild
+
+      Shapes.Remove(messageForm["form"])
+
+      messageForm = ""
+
+    Else
+
+      ' Go to the next step of the display
+
+      messageForm["step"] = (800 - (Clock.ElapsedMilliseconds - messageForm["start"])) / 10
+
+      'TextWindow.WriteLine(messageForm["step"])
+
+      ' Final step ?
+
+      If messageForm["step"]<=0 Then
+
+        ' Remove the message
+
+        Shapes.Remove(messageForm["form"])
+
+        messageForm = ""
+
+        message = ""
+
+      Else  
+
+        ' Calc display
+
+        Shapes.SetOpacity(messageForm["form"], messageForm["step"])
+
+        Shapes.Zoom(messageForm["form"], 1+(100 - messageForm["step"])/20, 1+(100 - messageForm["step"])/20)
+
+      EndIf
+
+    EndIf 
+
+  Else
+
+    ' Remove if we have a form
+
+    If messageForm<>"" Then
+
+      ' Remove the message
+
+      Shapes.Remove(messageForm["form"])
+
+      messageForm = ""
+
+      message = ""
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+' === Load the levels
+
+Sub LoadLevels
+
+  levels[1] = "nextLevel=10;lettersShown=3;letters=asdfg;speed=1;"
+
+  levels[2] = "nextLevel=10;lettersShown=3;letters=hjkl\;;speed=1;"
+
+  levels[3] = "nextLevel=10;lettersShown=3;letters=qwert;speed=1;"
+
+  levels[4] = "nextLevel=10;lettersShown=3;letters=yuiop;speed=1;"
+
+  levels[5] = "nextLevel=10;lettersShown=3;letters=zxcvb;speed=1;"
+
+  levels[6] = "nextLevel=10;lettersShown=3;letters=nm,./;speed=1;"
+
+  levels[7] = "nextLevel=15;lettersShown=3;letters=asdfghjkl\;;speed=1;"
+
+  levels[8] = "nextLevel=15;lettersShown=3;letters=qwertyuiop;speed=1;"
+
+  levels[9] = "nextLevel=15;lettersShown=3;letters=zxcvbnm,./;speed=1;"
+
+  levels[10] = "nextLevel=20;lettersShown=3;letters=qwertasdfgwxcvb;speed=1;"
+
+  levels[11] = "nextLevel=20;lettersShown=3;letters=yuiophjkl\;nm,./;speed=1;"
+
+  levels[12] = "nextLevel=25;lettersShown=3;letters=qwertasdfgzxcvbyuiophjkl\;nm,./;speed=1;"
+
+  levelsCount = 12
+
+EndSub
+
+
+
+

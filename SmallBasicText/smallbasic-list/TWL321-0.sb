@@ -1,0 +1,227 @@
+' Newton's Cradle
+
+' Copyright © 2015 Nonki Takahashi.  The MIT License.
+
+' Last update 2015-11-22
+
+' Program ID TWL321-0
+
+'
+
+GraphicsWindow.Title = "Newton's Cradle"
+
+r = 140
+
+n = 5
+
+d = 40
+
+h = 300
+
+gw = 598
+
+gh = 428
+
+g = 600
+
+xc = (gw - (n - 1) * d) / 2
+
+yc = gh - h
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.BrushColor = "#777777"
+
+GraphicsWindow.PenColor = "#999999"
+
+angle = 0
+
+For i = 1 To n
+
+  If i = n Then
+
+    angle = -45
+
+  EndIf
+
+  GraphicsWindow.PenWidth = 0
+
+  pd["weight"] = Shapes.AddEllipse(d, d)
+
+  GraphicsWindow.PenWidth = 1
+
+  pd["rod"] = Shapes.AddLine(0, 0, 0, -(r - d / 2))
+
+  Shapes.Move(pd["rod"], xc, yc)
+
+  pd["xc"] = xc
+
+  pd["yc"] = yc
+
+  pendulum[i] = pd
+
+  MovePendulum()
+
+  xc = xc + d
+
+EndFor
+
+GraphicsWindow.BrushColor = "#00FFFFFF"
+
+GraphicsWindow.PenColor = "#999999"
+
+GraphicsWindow.PenWidth = 10
+
+frame = Shapes.AddRectangle(d * (n + 2), r + d * 1.5)
+
+Shapes.Move(frame, xc - d * 6.5 , yc)
+
+dt = 1 / 30
+
+While "True"
+
+  t = Clock.ElapsedMilliseconds / 1000
+
+  For i = 1 To n
+
+    pi = pendulum[i]
+
+    _a = Math.GetRadians(pi["angle"])
+
+    vaLast = pi["va"]
+
+    pi["va"] = pi["va"] - g * Math.Sin(_a) / r * dt
+
+    pi["va"] = pi["va"] * 0.996
+
+    _a = _a + (pi["va"] + vaLast) * dt / 2
+
+    pendulum[i] = pi
+
+    angle = Math.GetDegrees(_a)
+
+    MovePendulum()
+
+    Collision()
+
+  EndFor
+
+  ms = dt * 1000 - (Clock.ElapsedMilliseconds - t * 1000)
+
+  If 0 < ms Then 
+
+    Program.Delay(ms)
+
+  EndIf
+
+EndWhile
+
+Sub MovePendulum
+
+  ' param i - index of pendulum
+
+  ' param angle
+
+  pi = pendulum[i]
+
+  _a = Math.GetRadians(angle)
+
+  pi["angle"] = angle
+
+  pi["x"] = pi["xc"] - r * Math.Sin(_a)
+
+  pi["y"] = pi["yc"] + r * Math.Cos(_a)
+
+  Shapes.Move(pi["weight"], pi["x"] - d / 2, pi["y"] - d / 2)
+
+  Shapes.Rotate(pi["rod"], angle + 180)
+
+  pendulum[i] = pi
+
+EndSub
+
+Sub Collision
+
+  ' param i - index of pendulum
+
+  pi = pendulum[i]
+
+  For j = 1 To n
+
+    If j <> i Then
+
+      pj = pendulum[j]
+
+      dx = pi["x"] - pj["x"]
+
+      dy = pi["y"] - pj["y"]
+
+      dij = Math.SquareRoot(dx * dx + dy * dy)
+
+      If dij < d *0.99 Then
+
+        dv = (pi["va"] - pj["va"]) * 0.998
+
+        pi["va"] = pi["va"] - dv
+
+        pj["va"] = pj["va"] + dv
+
+        pendulum[j] = pj
+
+        pendulum[i] = pi
+
+        While dij < d * 0.99
+
+          angle = pi["angle"]
+
+          angle = angle - dx / Math.Abs(dx) * 0.01
+
+          pi = pendulum[i]
+
+          MovePendulum()
+
+          pi = pendulum[i]
+
+          Stack.PushValue("local", i)
+
+          Stack.PushValue("local", pi)
+
+          angle = pj["angle"]
+
+          angle = angle + dx / Math.Abs(dx) * 0.01
+
+          i = j
+
+          MovePendulum()
+
+          pi = Stack.PopValue("local")
+
+          i = Stack.PopValue("local")
+
+          pj = pendulum[j]
+
+          dx = pi["x"] - pj["x"]
+
+          dy = pi["y"] - pj["y"]
+
+          dij = Math.SquareRoot(dx * dx + dy * dy)
+
+        EndWhile
+
+        pendulum[j] = pj
+
+        pendulum[i] = pi
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+        
+
+

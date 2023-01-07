@@ -1,0 +1,529 @@
+Initialise()
+
+
+
+'================================================
+
+' EVENTS
+
+'================================================
+
+
+
+LDServer.ClientConnected = OnClientConnected
+
+LDServer.ClientDisconnected = OnClientDisconnected
+
+LDServer.ClientMessage = OnClientMessage
+
+
+
+'================================================
+
+' GAME LOOP
+
+'================================================
+
+
+
+While ("True")
+
+  start = Clock.ElapsedMilliseconds
+
+  
+
+  UpdateEvents() 
+
+  UpdateGame() 
+
+  LDPhysics.DoTimestep() 
+
+  UpdateSprites() 
+
+  UpdateClients()
+
+  
+
+  'True time update- so pixel/s etc are honoured
+
+  delay = 1000*LDPhysics.TimeStep - (Clock.ElapsedMilliseconds-start)
+
+  If (delay > 0) Then
+
+    Program.Delay(delay)
+
+  EndIf
+
+EndWhile
+
+
+
+'================================================
+
+' SUBROUTINES
+
+'================================================
+
+
+
+Sub Initialise
+
+  'Server
+
+  connect = LDServer.Start("False")
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(Program.Directory+"\PhysicsConnect.txt",connect)
+
+  TextWindow.Title = "Physics Server"
+
+  
+
+  'GraphicsWindow - must be the same size as clients
+
+  gw = 600
+
+  gh = 600
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Title = "Server"
+
+  'GraphicsWindow.Hide()
+
+  
+
+  'Game Objects and Physics Engine
+
+  'We must set all objects here to be sure clients create them with the same names
+
+  'Coordinates are shape top-left to be consistent with LDFastShapes in clients that uses a Move method
+
+  LDPhysics.Reset()
+
+  LDPhysics.SetGravity(0,0)
+
+  numBlock = 25
+
+  For i = 1 To numBlock
+
+    block = Shapes.AddRectangle(50,50)
+
+    sprite["Shape"] = block
+
+    sprite["X"] = 50+Math.GetRandomNumber(gw-100)-25
+
+    sprite["Y"] = 50+Math.GetRandomNumber(gh-100)-25
+
+    sprite["Angle"] = 0
+
+    sprite["Status"] = 1 '0-Inactive 1-Active
+
+    Shapes.Move(sprite["Shape"],sprite["X"],sprite["Y"])
+
+    Shapes.Rotate(sprite["Shape"],sprite["Angle"])
+
+    LDPhysics.AddMovingShape(sprite["Shape"],0.5,0.5,1)
+
+    sprites["Block"+i] = sprite
+
+  EndFor
+
+  numBullet = 30
+
+  For i = 1 To numBullet
+
+    bullet = Shapes.AddEllipse(20,20)
+
+    sprite["Shape"] = bullet
+
+    sprite["X"] = 0
+
+    sprite["Y"] = 0
+
+    sprite["Angle"] = 0
+
+    sprite["Status"] = 0 '0-Inactive 1-Active
+
+    sprites["Bullet"+i] = sprite
+
+  EndFor
+
+  numPlayer = 10
+
+  For i = 1 To numPlayer
+
+    player = Shapes.AddEllipse(50,50)
+
+    sprite["Shape"] = player
+
+    sprite["X"] = 50+Math.GetRandomNumber(gw-100)-25
+
+    sprite["Y"] = 50
+
+    sprite["Angle"] = 0
+
+    sprite["Status"] = 0 '0-Inactive 1-Active
+
+    Shapes.Move(sprite["Shape"],sprite["X"],sprite["Y"])
+
+    Shapes.Rotate(sprite["Shape"],sprite["Angle"])
+
+    sprites["Player"+i] = sprite
+
+  EndFor
+
+EndSub
+
+
+
+Sub UpdateEvents
+
+  While (LDQueue.GetCount("Events") > 0)
+
+    'Get next queued event
+
+    event = LDQueue.Dequeue("Events")
+
+    'Get client originator and message
+
+    client = event[1]
+
+    message = event[2]
+
+    'Add or remove a client
+
+    If (message = "Add") Then
+
+      AddClient()
+
+    ElseIf (message = "Remove") Then
+
+      DeleteClient()
+
+    Else
+
+      keys = Array.GetAllIndices(message)
+
+      'Check for keys pressed - move with arrows or space to fire
+
+      For i = 1 To Array.GetItemCount(keys)
+
+        key = keys[i]
+
+        'TextWindow.WriteLine(client+" Key Down : "+key)
+
+        If (key = "Space" And Array.IsArray(message[key])) Then 'message[key] is not an array if we don't want auto-repeat
+
+          'Fire a bullet
+
+          data = message[key]
+
+          label = "Player"+Text.GetSubTextToEnd(client,7)  
+
+          sprite = sprites[label]
+
+          'u and v are direction vector to fire
+
+          'x and y are the firing start point - just outside player
+
+          x = sprite["X"]+25-10
+
+          y = sprite["Y"]+25-10  
+
+          u = data[1]-10 - x
+
+          v = data[2]-10 - y
+
+          speed = Math.SquareRoot(u*u+v*v)
+
+          x = x + (25+10)*u/speed
+
+          y = y + (25+10)*v/speed
+
+          'Find an unused bullet sprite
+
+          'Set is at active and fire it and record the time it was fired (bulletStarts)
+
+          For j = 1 To  numBullet           
+
+            label = "Bullet"+j
+
+            sprite = sprites[label]
+
+            If (sprite["Status"] = 0) Then
+
+              shapeName = sprite["Shape"]
+
+              sprite["X"] = x
+
+              sprite["Y"] = y
+
+              sprite["Angle"] = 0
+
+              sprite["Status"] = 1
+
+              sprites[label] = sprite
+
+              Shapes.Move(shapeName,sprite["X"],sprite["Y"])
+
+              Shapes.Rotate(shapeName,sprite["Angle"])
+
+              'TextWindow.WriteLine(client+" data "+data)
+
+              LDPhysics.AddMovingShape(shapeName,0.5,0.5,1)
+
+              LDPhysics.SetBullet(shapeName)
+
+              mass = LDPhysics.GetMass(shapeName)
+
+              LDPhysics.SetImpulse(shapeName,mass*u*10,mass*v*10)
+
+              bulletStarts[label] = Clock.ElapsedMilliseconds
+
+              j = numBullet 'Finished loop
+
+            EndIf
+
+          EndFor
+
+        Else
+
+          'Move player sprite
+
+          data = message[key]
+
+          label = "Player"+Text.GetSubTextToEnd(client,7)         
+
+          sprite = sprites[label]
+
+          shapeName = sprite["Shape"]
+
+          mass = LDPhysics.GetMass(shapeName)
+
+          If (key = "Left") Then
+
+            LDPhysics.SetImpulse(shapeName,-mass*10,0)
+
+          ElseIf (key = "Right") Then
+
+            LDPhysics.SetImpulse(shapeName,mass*10,0)
+
+          ElseIf (key = "Up") Then
+
+            LDPhysics.SetImpulse(shapeName,0,-mass*10)
+
+          ElseIf (key = "Down") Then
+
+            LDPhysics.SetImpulse(shapeName,0,mass*10)
+
+          EndIf
+
+        EndIf
+
+      EndFor
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+
+
+Sub UpdateGame
+
+  'Remove dead bullets (active > 1 sec)
+
+  indices = Array.GetAllIndices(bulletStarts)
+
+  For i = 1 To Array.GetItemCount(indices)
+
+    label = indices[i]
+
+    bulletStart = bulletStarts[label]
+
+    If (Clock.ElapsedMilliseconds - bulletStart > 1000) Then
+
+      sprite = sprites[label]
+
+      sprite["Status"] = 0
+
+      bulletStarts[label] = ""
+
+      shapeName = sprite["Shape"]
+
+      LDPhysics.DisconnectShape(shapeName)
+
+      sprites[label] = sprite
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub AddClient
+
+  TextWindow.WriteLine(client+" Connected") 
+
+  label = "Player"+Text.GetSubTextToEnd(client,7)
+
+  sprite = sprites[label]
+
+  shapeName = sprite["Shape"]
+
+  sprite["Status"] = 1
+
+  sprites[label] = sprite
+
+  LDPhysics.AddMovingShape(shapeName,0.5,0.5,1)
+
+EndSub
+
+
+
+Sub DeleteClient
+
+  TextWindow.WriteLine(client+" Disconnected")
+
+  label = "Player"+Text.GetSubTextToEnd(client,7)
+
+  sprite = sprites[label]
+
+  sprite["Status"] = 0
+
+  shapeName = sprite["Shape"]
+
+  LDPhysics.DisconnectShape(shapeName)
+
+  sprites[label] = sprite
+
+EndSub
+
+
+
+Sub UpdateSprites
+
+  'Set the top left and rotation of all active sprites
+
+  indices = Array.GetAllIndices(sprites)
+
+  For i = 1 To Array.GetItemCount(indices)
+
+    label = indices[i]
+
+    sprite = sprites[label] 'get sprite to modify
+
+    If (sprite["Status"] = 1) Then
+
+      pos = LDPhysics.GetPosition(sprite["Shape"])
+
+      angle = LDPhysics.GetAngle(sprite["Shape"])
+
+      If (Text.StartsWith(label,"Block")) Then
+
+        sprite["X"] = pos[1]-25
+
+        sprite["Y"] = pos[2]-25
+
+      ElseIf (Text.StartsWith(label,"Bullet")) Then
+
+        sprite["X"] = pos[1]-10
+
+        sprite["Y"] = pos[2]-10
+
+      ElseIf (Text.StartsWith(label,"Player")) Then
+
+        sprite["X"] = pos[1]-25
+
+        sprite["Y"] = pos[2]-25
+
+      EndIf
+
+      sprite["Angle"] = angle
+
+    EndIf
+
+    sprites[label] = sprite 'set modified sprite to array of sprites
+
+  EndFor
+
+EndSub
+
+
+
+Sub UpdateClients
+
+  'Send the sprite data to all clients
+
+  clients = LDServer.GetClients()
+
+  For i = 1 To Array.GetItemCount(clients)
+
+    LDServer.SendMessage(clients[i],sprites)
+
+  EndFor
+
+EndSub
+
+
+
+'================================================
+
+' EVENT SUBROUTINES
+
+'================================================
+
+
+
+Sub OnClientConnected
+
+  client = LDServer.LastClientConnected
+
+  info[1] = client
+
+  info[2] = "Add"
+
+  LDQueue.Enqueue("Events",info)
+
+EndSub
+
+
+
+Sub OnClientDisconnected
+
+  client = LDServer.LastClientDisconnected
+
+  info[1] = client
+
+  info[2] = "Remove"
+
+  LDQueue.Enqueue("Events",info)
+
+EndSub
+
+
+
+Sub OnClientMessage
+
+  client = LDServer.LastClient
+
+  message = LDServer.LastClientMessage
+
+  info[1] = client
+
+  info[2] = message
+
+  LDQueue.Enqueue("Events",info)
+
+EndSub
+
+
+
+

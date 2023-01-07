@@ -1,0 +1,927 @@
+' SmallBasic Version 1.2
+
+' Program: Symmetric SB
+
+' Changelog: 
+
+' Author: Pappa Lapub
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/ca8db35c-abc7-4a9f-9e92-a1e4ae7c4ea4/colors-shapes-and-brushes
+
+'  https://ystr.github.io/apps/symmetric/web/
+
+' ImportURL: http://smallbasic.com/program/?FWZ818-1
+
+' Extension: LitDev
+
+' Comment: Symmetrical Scratchpad
+
+'  https://ystr.github.io/apps/symmetric/
+
+'  https://ystr.github.io/apps/symmetric/Symmetric.exe
+
+' Variables: 
+
+' ToDo: 
+
+' ================================================================================
+
+gw = 1200                   '' GW Width
+
+gh = 705                    '' GW Height
+
+penMin = 2                  '' minimal PenWidth
+
+penMax = 10                 '' maximal PenWidth
+
+penWidth = 2                '' used PenWidth - if outside range, will be corrected to range [penMin, penMax]
+
+bDefaultPenWidth = ""       '' reset penWidth after ClearGW (to 'penWidth') ?  True|False
+
+penColor = "Red"            '' used PenColor
+
+bDefaultPenColor = ""       '' reset penColor after ClearGW (to 'penColor') ?  True|False
+
+styleNo = 1                 '' 0 .. NONE, 1 .. Vertical, 2 .. Horizontal, 3 .. Quadrilateral
+
+bDefaultStyle = ""          ' reset style after ClearGW (to 'styleNo') ?  True|False
+
+
+
+' ----------------------------------------------------------------------------------------------------------
+
+
+
+tab = Text.GetCharacter(9)
+
+lf = Text.GetCharacter(10)
+
+title = "Symmetric  [Pen: "
+
+penW = Math.Max(penMin, Math.Min(penMax, penW))
+
+penCol = penColor
+
+style = styleNo
+
+btnCol = "Transparent"        '' Buttons BackgroundColor
+
+actCol = "Lime"               '' Active Button BackgroundColor
+
+opac = 255                    '' 255, 223, 191, 159, 127, 95, 63, 31
+
+
+
+arrText[1] = "?ïî?ïê?ï¶?ïê?ïó"+ lf +"?ïë  ?ïë ?ïë"+ lf +"?ïö?ïê?ï©?ïê?ïù"
+
+arrText[2] = "?ïî?ïê?ïê?ïê?ïó"+ lf +"?ï†?ïê?ïê?ïê?ï£"+ lf +"?ïö?ïê?ïê?ïê?ïù"
+
+arrText[3] = "?ïî?ïê?ï¶?ïê?ïó"+ lf +"?ï†?ïê?ï¨?ïê?ï£"+ lf +"?ïö?ïê?ï©?ïê?ïù"
+
+arrMenu = "Options=Main;PenColor [C]=Options;BGColor [B]=Options;Clear Drawing [D]=Options;Save Image [S]=Options;"
+
+arrMenu = arrMenu +"Reset [Z]=Options;Help [H|?]=Options;Exit [Esc]=Options;"
+
+arrItems = Array.GetAllIndices(arrMenu)
+
+args = ""
+
+
+
+'' Setup Window
+
+LDGraphicsWindow.TransparentGW()
+
+bgCol = "White"           '' canvas default GW.BackgroundColor = "White"
+
+GraphicsWindow.BackgroundColor = LDColours.SetOpacity(bgCol,opac)
+
+
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.Height = gh
+
+GraphicsWindow.Top = 0
+
+GraphicsWindow.Left = (Desktop.Width - gw) / 2
+
+GraphicsWindow.Title = title + penW +"]"
+
+LDGraphicsWindow.Icon = Program.Directory +"\Icons\Symmetric.ico" ' \Symmetric.png
+
+GraphicsWindow.FontBold = ""
+
+
+
+LDClipboard.ImageTransparency = ""     '' NO clipboard transparency
+
+LDUtilities.ShowNoShapeErrors = ""
+
+BuildGUI()
+
+
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.MouseUp = OnMouseUp
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+Controls.ButtonClicked = OnButtonClick
+
+LDControls.MenuClicked = OnMenuClick
+
+LDEvents.MouseWheel = OnMouseWheel
+
+
+
+While "True"
+
+  If saveToImage Then
+
+    CaptureCanvas()
+
+    SaveCanvas()
+
+    saveToImage = ""
+
+  EndIf
+
+  Program.Delay(10)
+
+EndWhile
+
+
+
+
+
+' //////////  EVENTs  \\\\\\\\\\
+
+Sub OnButtonClick
+
+  lastBtnNo = ""
+
+  lastBtn = Controls.LastClickedButton
+
+  For n = 1 To 3    ' Array.GetItemCount(btn)
+
+    If lastBtn = btn[n] Then
+
+      lastBtnNo = n
+
+    EndIf
+
+  EndFor
+
+  
+
+  If lastBtnNo <> style Then            '' change Style 1-3
+
+    style = LDCall.Function("SetStyle", lastBtnNo)
+
+  Else                                  '' Active Button clicked AGAIN -> Style0 (None)
+
+    style = LDCall.Function("SetStyle", 0)
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  If mx > gw-56 And my < 32 Then        '' Minimize or Hand
+
+    If mx > gw-28 Then                  '' Minimize or WinSwitcher3D
+
+      If Mouse.IsRightButtonDown Then   '' SwitchWindows
+
+        LDShell.Switch3D()
+
+      Else                              '' Minimize
+
+        LDGraphicsWindow.State = 1
+
+      EndIf
+
+      
+
+    Else                                '' Hand (DragWin)
+
+      If Mouse.IsRightButtonDown Then
+
+        LDGraphicsWindow.TopMost = LDLogic.Not(LDGraphicsWindow.TopMost)
+
+        LDShapes.PenColour(shpHand, LDLogic.Switch(LDGraphicsWindow.TopMost, "Red","Black"))
+
+      Else
+
+        xOff = mx
+
+        yOff = my
+
+        dragOn = "True"  
+
+      EndIf
+
+    EndIf
+
+    
+
+  Else
+
+    If Mouse.IsRightButtonDown Then       '' RightMouse: PenColor
+
+      SetPenCol()
+
+    ElseIf Mouse.IsLeftButtonDown Then    '' LeftMouse: Draw
+
+      drawOn = "True"
+
+      x = GraphicsWindow.MouseX
+
+      y = GraphicsWindow.MouseY
+
+    Else                                  '' MiddleMouse: Clear
+
+      ClearGW()
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseUp
+
+  dragOn = ""
+
+  drawOn = ""
+
+EndSub
+
+
+
+Sub OnMouseMove
+
+  If dragOn Then
+
+    GraphicsWindow.Left = Mouse.MouseX - xOff
+
+    GraphicsWindow.Top = Mouse.MouseY - yOff
+
+    
+
+  Else
+
+    mx = GraphicsWindow.MouseX
+
+    my = GraphicsWindow.MouseY
+
+    
+
+    If drawOn And LDLogic.Not(rubberOn) Then
+
+      GraphicsWindow.DrawLine(x,y, mx,my)
+
+      
+
+      If style = 1 Then
+
+        GraphicsWindow.DrawLine(gw-x,y, gw-mx,my)
+
+      ElseIf style = 2 Then
+
+        GraphicsWindow.DrawLine(x,gh-y, mx,gh-my)
+
+      ElseIf style = 3 Then
+
+        GraphicsWindow.DrawLine(gw-x,y, gw-mx,my)
+
+        GraphicsWindow.DrawLine(x,gh-y, mx,gh-my)
+
+        GraphicsWindow.DrawLine(gw-x,gh-y, gw-mx,gh-my)
+
+      EndIf
+
+      x = mx
+
+      y = my
+
+      
+
+    ElseIf drawOn And rubberOn Then
+
+      GraphicsWindow.FillEllipse(mx-penW,my-penW, 2*penW,2*penW)
+
+    EndIf
+
+    
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  lastKey = GraphicsWindow.LastKey
+
+  
+
+  If lastKey = "Escape" Then
+
+    Program.End()
+
+    
+
+  ElseIf lastKey = "H" Or lastKey = "OemOpenBrackets" Then
+
+    ShowHelp()
+
+    
+
+  ElseIf lastKey = "B" Then
+
+    SetBGColor()
+
+    
+
+  ElseIf lastKey = "C" And LDLogic.Not(rubberOn) Then
+
+    SetPenCol()
+
+    
+
+  ElseIf lastKey = "D" Then '  = "Space"  ' -> Problem with focused Button
+
+    'LDFocus.SetFocus("Background")   ' ?? remove ButtonFocus if Space key pressed (interacts with btn[#])
+
+    ClearGW()
+
+    
+
+  ElseIf lastKey = "R" Then
+
+    ToggleRubber()
+
+    
+
+  ElseIf lastKey = "S" Then
+
+    saveToImage = "True"
+
+    'CaptureCanvas()
+
+    'SaveCanvas()
+
+    
+
+  ElseIf lastKey = "F" Then
+
+    LDGraphicsWindow.FloodFill(mx,my, GraphicsWindow.GetRandomColor())
+
+    
+
+  ElseIf lastKey = "Down" Then  ' And penW > penMin Then  '' (for NON cyclic)
+
+    d = -1
+
+    SetPenWidth()
+
+  ElseIf lastKey = "Up" Then    'And penW < penMax Then  '' (for NON cyclic)
+
+    d = 1
+
+    SetPenWidth()
+
+    
+
+  ElseIf lastKey = "Left" Then  ' And opac > 62 Then  '' (for NON cyclic)
+
+    dOp = -32                   '' -256/8
+
+    SetTransparency()
+
+  ElseIf lastKey = "Right" Then ' And opac < 224 Then  '' (for NON cyclic)
+
+    dOp = 32                    '' 256/8
+
+    SetTransparency()
+
+    
+
+  ElseIf lastKey = "D0" Or lastKey = "D1" Or lastKey = "D2" Or lastKey = "D3" Then
+
+    style = LDCall.Function("SetStyle", Text.GetSubTextToEnd(lastKey,2))
+
+    
+
+  ElseIf lastKey = "Z" Then
+
+    Reset()
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMenuClick
+
+  lastItem = LDControls.LastMenuItem
+
+  If lastItem = arrItems[2] Then      ' "PenColor [C]" Then
+
+    SetPenCol()
+
+  ElseIf lastItem = arrItems[3] Then  ' "BGColor [B]" Then
+
+    SetBGColor()
+
+  ElseIf lastItem = arrItems[4] Then  ' "Clear Drawing [D]" Then
+
+    ClearGW()
+
+  ElseIf lastItem = arrItems[5] Then  ' "Save Image [S]" Then
+
+    saveToImage = "True"
+
+    'CaptureCanvas()
+
+    'SaveCanvas()
+
+  ElseIf lastItem = arrItems[6] Then  ' "Reset [Z]" Then
+
+    Reset()
+
+  ElseIf lastItem = arrItems[7] Then  ' "Help [H|?]" Then
+
+    ShowHelp()
+
+  ElseIf lastItem = arrItems[8] Then  ' "Exit [Esc]" Then
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnMouseWheel
+
+  d = LDEvents.LastMouseWheelDelta
+
+  SetPenWidth()
+
+EndSub
+
+
+
+
+
+' ////////// SUBs  \\\\\\\\\\
+
+Sub BuildGUI
+
+  '' Buttons
+
+  GraphicsWindow.FontSize = 7
+
+  GraphicsWindow.BrushColor = "Black"
+
+  For n = 1 To 3
+
+    btn[n] = Controls.AddButton(arrText[n], 32*(n-1),-3)
+
+    Controls.SetSize(btn[n], 32,35)
+
+    LDShapes.BrushColour(btn[n], btnCol)
+
+  EndFor
+
+  
+
+  '' Menu
+
+  GraphicsWindow.FontSize = 24
+
+  menu = LDControls.AddMenu(105,35, arrMenu, "","")
+
+  LDShapes.BrushColour(menu, btnCol)
+
+  Controls.Move(menu, 95,-1)
+
+  LDControls.MenuBackground(menu, "AliceBlue")
+
+  
+
+  '' Hand, Minimize
+
+  GraphicsWindow.FontSize = 32
+
+  GraphicsWindow.FontName = "Wingdings"
+
+  shpHand = Shapes.AddText("I")       '' Hand
+
+  LDDialogs.ToolTip(shpHand, "RightClick: TopMost<->Default")
+
+  Shapes.Move(shpHand, gw-56,0)
+
+  GraphicsWindow.FontName = "Webdings"
+
+  shpMin = Shapes.AddText("0")        '' Minimize
+
+  LDDialogs.ToolTip(shpMin, "RightClick: WinSwitch3D")
+
+  Shapes.Move(shpMin, gw-32,0)
+
+  GraphicsWindow.FontName = "Tahoma"  '' default Font
+
+  
+
+  '' Horz/Vert Lines
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "Gray"
+
+  shpVert = Shapes.AddLine(gw/2,0, gw/2,gh)
+
+  shpHorz = Shapes.AddLine(0,gh/2, gw,gh/2)
+
+  
+
+  '' PenInfo
+
+  If bDefaultPenWidth Then
+
+    penW = penWidth
+
+  EndIf
+
+  If bDefaultPenColor Then
+
+    penCol = penColor
+
+  EndIf
+
+  GraphicsWindow.FontSize = 26
+
+  GraphicsWindow.BrushColor = penCol
+
+  shpPen = Shapes.AddText(" "+ penW +" ")
+
+  Shapes.Move(shpPen, 190,0)
+
+  
+
+  '' Activate Style
+
+  If bDefaultStyle Then
+
+    style = styleNo
+
+  EndIf
+
+  style = LDCall.Function("SetStyle", style)
+
+  
+
+  GraphicsWindow.PenColor = penCol    '' PenColor in use
+
+  GraphicsWindow.PenWidth = penW      '' PenWidth in use
+
+  If rubberOn Then
+
+    ToggleRubber()
+
+  EndIf
+
+  arrShp[1] = shpPen
+
+  arrShp[2] = shpHand
+
+  arrShp[3] = shpMin
+
+  arrLines[1] = shpHorz
+
+  arrLines[2] = shpVert
+
+EndSub
+
+
+
+Sub ClearGW
+
+  btn = ""
+
+  arrShp = ""
+
+  arrLines = ""
+
+  GraphicsWindow.Clear()
+
+  BuildGUI()
+
+EndSub
+
+
+
+Sub SetPenCol
+
+  selCol = LDDialogs.Colour()
+
+  If selCol <> "" Then
+
+    penCol = selCol
+
+    GraphicsWindow.PenColor = penCol
+
+    LDShapes.PenColour(shpPen, penCol)
+
+  EndIf
+
+EndSub
+
+
+
+Sub SetPenWidth
+
+  penW = Math.Remainder(penMax+ Math.Remainder(penW+d -penMax-penMin, penMax-penMin+1), penMax-penMin+1)+penMin
+
+  GraphicsWindow.PenWidth = penW
+
+  Shapes.SetText(shpPen, " "+ penW +" ")
+
+  GraphicsWindow.Title = title + penW +"]"
+
+EndSub
+
+
+
+Sub SetBGColor
+
+  selCol = LDDialogs.Colour()
+
+  If selCol <> "" Then
+
+    bgCol = selCol
+
+    GraphicsWindow.BackgroundColor = LDColours.SetOpacity(bgCol,opac)
+
+  EndIf
+
+  If rubberOn Then
+
+    tmpCol = penCol
+
+    GraphicsWindow.BrushColor = bgCol
+
+  EndIf
+
+EndSub
+
+
+
+Sub SetTransparency
+
+  opac = Math.Remainder(255+ Math.Remainder(opac+dOp -255, 256), 256)   '' [31, 255]
+
+  GraphicsWindow.BackgroundColor = LDColours.SetOpacity(bgCol,opac)
+
+EndSub
+
+
+
+Sub ToggleRubber
+
+  If rubberOn Then      '' -> Rubber OFF
+
+    LDShapes.BrushColour(shpPen, "Transparent")
+
+    GraphicsWindow.BrushColor = tmpCol
+
+    rubberOn = ""
+
+  Else                  '' -> Rubber ON
+
+    LDShapes.BrushColour(shpPen, "DarkOrange")    '' marks active Eraser
+
+    tmpCol = penCol
+
+    GraphicsWindow.BrushColor = bgCol
+
+    rubberOn = "True"
+
+  EndIf
+
+EndSub
+
+
+
+Sub CaptureCanvas
+
+  Controls.HideControl(menu)
+
+  For n = 1 To Array.GetItemCount(btn)
+
+    Controls.HideControl(btn[n])
+
+  EndFor
+
+  For n = 1 To Array.GetItemCount(arrShp)
+
+    Shapes.HideShape(arrShp[n])
+
+  EndFor
+
+  For n = 1 To Array.GetItemCount(arrLines)
+
+    LDShapes.PenColour(arrLines[n], "Transparent")
+
+  EndFor
+
+  
+
+  imgShot = LDGraphicsWindow.Capture("","")
+
+  
+
+  Controls.ShowControl(menu)
+
+  For n = 1 To Array.GetItemCount(btn)
+
+    Controls.ShowControl(btn[n])
+
+  EndFor
+
+  For n = 1 To Array.GetItemCount(arrShp)
+
+    Shapes.ShowShape(arrShp[n])
+
+  EndFor
+
+  For n = 1 To Array.GetItemCount(arrLines)
+
+    LDShapes.PenColour(arrLines[n], "Gray")
+
+  EndFor
+
+EndSub
+
+
+
+Sub SaveCanvas
+
+  picPath = LDDialogs.SaveFile("1=jpg;2=png;","")     '' default JPG if no .ext specified
+
+  If picPath <> "" Then
+
+    LDImage.SaveAs(imgShot, picPath)
+
+    GraphicsWindow.ShowMessage("Image saved to"+lf+ picPath, "SymmetricSB")
+
+  Else
+
+    LDClipboard.SetImage(imgShot)
+
+    GraphicsWindow.ShowMessage("Image copied to clipboard.", "SymmetricSB")
+
+  EndIf
+
+  LDImage.Remove(imgShot)
+
+EndSub
+
+
+
+Sub SetStyle
+
+  Shapes.HideShape(shpHorz)
+
+  Shapes.HideShape(shpVert)
+
+  
+
+  If args[1] = 2 Or args[1] = 3 Then
+
+    Shapes.ShowShape(shpHorz)
+
+  EndIf
+
+  If args[1] = 1 Or args[1] = 3 Then
+
+    Shapes.ShowShape(shpVert)
+
+  EndIf
+
+  
+
+  LDShapes.BrushColour(actBtn, btnCol)
+
+  actBtn = btn[args[1]]
+
+  LDFocus.SetFocus(actBtn)  ''
+
+  LDShapes.BrushColour(actBtn, actCol)
+
+  return = args[1]
+
+EndSub
+
+
+
+Sub Reset
+
+  bgCol = "White"
+
+  opac = 255
+
+  GraphicsWindow.BackgroundColor = bgCol
+
+  penCol = penColor
+
+  GraphicsWindow.PenColor = penCol
+
+  LDShapes.PenColour(shpPen, penCol)
+
+  penW = penWidth
+
+  GraphicsWindow.PenWidth = penW
+
+  Shapes.SetText(shpPen, " "+ penW +" ")
+
+  GraphicsWindow.Title = title + penW +"]"
+
+  If rubberOn Then
+
+    ToggleRubber()
+
+  EndIf
+
+  style = LDCall.Function("SetStyle", styleNo)
+
+EndSub
+
+
+
+Sub ShowHelp
+
+  helpTxt = "Keys:"+ lf
+
+  helpTxt = helpTxt +"B"+ tab +"select Background color"+ lf
+
+  helpTxt = helpTxt +"C"+ tab +"select pen Color"+ lf
+
+  helpTxt = helpTxt +"D"+ tab +"clear Drawing"+ lf
+
+  helpTxt = helpTxt +"F"+ tab +"FloodFill from cursor position"+ lf
+
+  helpTxt = helpTxt +"R"+ tab +"toggle eRaser on?Üîoff (works only for opaque and steady background)"+ lf
+
+  helpTxt = helpTxt +"S"+ tab +"Save canvas to JPG|png file (dialog, to clipboard on 'Cancel')"+ lf
+
+  helpTxt = helpTxt +"Z"+ tab +"reZet all default settings (keep drawing)"+ lf
+
+  helpTxt = helpTxt +"0, 1, 2, 3"+ tab +"Select style (none, ?îÇ, ?? , ?îº)"+ lf
+
+  helpTxt = helpTxt +"?Üì ?Üë"+ tab +"De|Increase Pen-/Rubber width (cycl. "+penMin+"-"+penMax+")"+ lf
+
+  helpTxt = helpTxt +"?Üê ?Üí"+ tab +"De|Increase Opacity (cycl. 12-100%, 8 levels)"+ lf
+
+  helpTxt = helpTxt +"Space|OK"+ tab +"Toggle CURRENT?ÜîNO style" +lf
+
+  helpTxt = helpTxt +"H | ?"+ tab +"Help"+ lf
+
+  helpTxt = helpTxt +"Esc"+ tab +"Exit"+ lf+lf
+
+  helpTxt = helpTxt +"Mouse:"+ lf
+
+  helpTxt = helpTxt +"Left"+ tab +"Draw | Erase"+ lf
+
+  helpTxt = helpTxt +"Right"+ tab +"Select Pen color"+ lf
+
+  helpTxt = helpTxt +"Middle"+ tab +"Clear drawing"+ lf
+
+  helpTxt = helpTxt +"Wheel:"+ tab +"In|Decrease Pen-/Rubber width (cycl.)"+ lf+lf
+
+  helpTxt = helpTxt +"Select the current style AGAIN to toggle NO style."+ lf
+
+  helpTxt = helpTxt +"Grab down the Hand to drag the window (RClick: toggle Top?ÜîDefault)." +lf
+
+  helpTxt = helpTxt +"Click '_' to minimize window (RClick: switch windows)." +lf+lf
+
+  GraphicsWindow.ShowMessage(helpTxt, "Symmetric Help  [pappalapub]")
+
+EndSub
+
+

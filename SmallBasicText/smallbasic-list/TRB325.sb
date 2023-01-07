@@ -1,0 +1,813 @@
+'Monitor for Space Flight Now Launch Scheudle: https://spaceflightnow.com/launch-schedule/
+
+
+
+'Load the page from the website
+
+SetInitialValues()
+
+xx = 1
+
+WindowSetup()
+
+Controls.SetTextBoxText(displayBox,"Loading...")
+
+LoadLastSessionFromFile()
+
+
+
+LoadAndProcessWebPage()
+
+PopulateListBox()
+
+
+
+EnableAutoUpdate()
+
+
+
+always = "true"
+
+flash = "off"
+
+While always = "true"
+
+  If pageUpdated = "true" Then
+
+    str = "Updated"
+
+    If flash = "on" then
+
+      flash = "off"
+
+    else 
+
+      flash = "on"
+
+      str = str + " *"
+
+    endif
+
+    GraphicsWindow.Title = str
+
+  EndIf
+
+  
+
+  Program.Delay(500)
+
+Endwhile
+
+
+
+
+
+'-------------------------------------------------------------------------------------------
+
+'Subroutines
+
+'-------------------------------------------------------------------------------------------
+
+
+
+Sub SetInitialValues
+
+  startMeUp = "true"
+
+  flaToggle = "true"
+
+  detailToggle = "true"  
+
+  TextWindow.WriteLine("reset and copy")
+
+  prevDateList = ""
+
+  dateList = ""
+
+  prevMissionList = ""
+
+  missionList = ""
+
+  PrevLaunchPeriodList = ""
+
+  launchPeriodList = ""
+
+  prevLaunchWindowList = ""
+
+  launchWindowList = ""
+
+  prevLaunchSiteList = ""
+
+  launchSiteList = ""
+
+  prevLaunchTimeList = ""
+
+  launchTimeList = ""
+
+  prevDescriptionList = ""
+
+  descriptionList = ""
+
+EndSub
+
+
+
+Sub WindowSetup
+
+  GraphicsWindow.Show()
+
+  backgroundColor = GraphicsWindow.GetColorFromRGB(235,235,235)
+
+  GraphicsWindow.BackgroundColor = backgroundColor
+
+  GraphicsWindow.Width = 825
+
+  GraphicsWindow.Top = (Desktop.Height / 2) - (GraphicsWindow.Height / 2) - 100
+
+  If GraphicsWindow.Top < 0 then
+
+    GraphicsWindow.Top = 0
+
+  endif
+
+  GraphicsWindow.Left = (Desktop.Width / 2) - (GraphicsWindow.Width / 2)
+
+  If GraphicsWindow.Left < 0 then
+
+    GraphicsWindow.left = 0
+
+  endif
+
+  GraphicsWindow.FontName = "Calibri Light"
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.BrushColor = "black"
+
+  displayBox = Controls.AddMultiLineTextBox(5,45)
+
+  Controls.SetSize(displaybox, GraphicsWindow.Width - 10,GraphicsWindow.Height - 50)
+
+  
+
+  GraphicsWindow.FontBold = "true"
+
+  GraphicsWindow.FontSize = 18
+
+  GraphicsWindow.DrawText(500,9,"Displaying with")
+
+  
+
+  flaToggleButton = Controls.AddButton("Florida Only",720,5)
+
+  Controls.SetSize(flaToggleButton, 100,30)
+
+  detailToggleButton = Controls.AddButton("Details On",615,5)
+
+  Controls.SetSize(detailToggleButton, 100,30)  
+
+  
+
+  Controls.ButtonClicked = onButtonClick
+
+EndSub
+
+
+
+sub LoadAndProcessWebPage
+
+  TextWindow.WriteLine("Loading from web page")
+
+  LaunchPage = Network.GetWebPageContents("https://spaceflightnow.com/launch-schedule/")
+
+  CheckUpdateStatus()
+
+  If pageUpdated = "false" Or startMeUp = "true" then
+
+    ProcessWebPage()
+
+  EndIf
+
+EndSub
+
+
+
+Sub ProcessWebPage
+
+  SetSearchFields()
+
+  
+
+  'Reset the Lists holding the launch data
+
+  ResetLists()
+
+  entryCount = 0
+
+  
+
+  entryStartPos = Text.GetIndexOf(LaunchPage,entryStartStr)
+
+  While entryStartPos > 0
+
+    clipToStart()                                             'Lose everything before this entry
+
+    entryStartPos = Text.GetIndexOf(LaunchPage,entryStartStr) 'Mark the start of next entry
+
+    entryCount = entryCount + 1
+
+    ProcessEntry()
+
+  EndWhile
+
+  startMeUp = "false"
+
+EndSub
+
+
+
+Sub ResetLists
+
+  TextWindow.WriteLine("reset and copy")
+
+  prevDateList = dateList
+
+  dateList = ""
+
+  prevMissionList = missionList
+
+  missionList = ""
+
+  PrevLaunchPeriodList = launchPeriodList
+
+  launchPeriodList = ""
+
+  prevLaunchWindowList = launchWindowList
+
+  launchWindowList = ""
+
+  prevLaunchSiteList = launchSiteList
+
+  launchSiteList = ""
+
+  prevLaunchTimeList = launchTimeList
+
+  launchTimeList = ""
+
+  prevDescriptionList = descriptionList
+
+  descriptionList = ""
+
+  
+
+  differenceList = ""
+
+EndSub
+
+
+
+Sub CheckUpdateStatus
+
+  pageUpdated = "false"
+
+  If savedPage <> LaunchPage then
+
+    savedPage = LaunchPage
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteContents(savedfile, savedPage)
+
+    pageUpdated = "true"
+
+  Else
+
+    GraphicsWindow.Title = "Space Launch Monitor"
+
+  endif
+
+EndSub
+
+
+
+Sub PopulateListBox
+
+  displayStr = ""
+
+  For plbCnt = 1 To entryCount
+
+    If flaToggle = "true" then
+
+      If Text.GetIndexOf(Text.ConvertToLowerCase(launchSiteList[plbCnt]),"florida") <> 0 then
+
+        SetDisplayData()
+
+      EndIf
+
+    Else
+
+      SetDisplayData()
+
+    EndIf
+
+  endfor
+
+EndSub
+
+
+
+Sub SetDisplayData
+
+  nl = Text.GetCharacter(13) + text.GetCharacter(10)
+
+  tb = Text.GetCharacter(9)
+
+  If differenceList[plbCnt] = "true" Then
+
+    displayStr = displayStr + "[["
+
+  EndIf
+
+  displayStr = displayStr + dateList[plbCnt]
+
+  displayStr = displayStr + " -- "
+
+  displayStr = displayStr + missionList[plbCnt]
+
+  If differenceList[plbCnt] = "true" Then
+
+    displayStr = displayStr + "]]"
+
+  EndIf
+
+  displayStr = displayStr + nl
+
+  timeGiven = "false"
+
+  if launchPeriodList[plbCnt] <> "" Then
+
+    displayStr = displayStr + tb + launchPeriodList[plbCnt]
+
+    timeGiven = "true"
+
+  EndIf
+
+  if launchTimeList[plbCnt] <> "" Then
+
+    displayStr = displayStr + tb + launchTimeList[plbCnt]
+
+    timeGiven = "true"
+
+  EndIf
+
+  if launchWindowList[plbCnt] <> "" Then
+
+    displayStr = displayStr + tb + launchWindowList[plbCnt]
+
+    timeGiven = "true"
+
+  EndIf
+
+  if launchSiteList[plbCnt] <> "" Then
+
+    displayStr = displayStr
+
+    If timeGiven = "true" Then
+
+      displayStr = displayStr + "   -- at   " 
+
+    Else
+
+      displayStr = displayStr  + tb 
+
+    EndIf
+
+    displayStr = displayStr + launchSiteList[plbCnt] + nl
+
+  EndIf
+
+  If detailToggle = "true" Then
+
+    displayStr = displayStr + tb + "Details - " + tb
+
+    pos = 1
+
+    linPos = 1
+
+    While pos < Text.GetLength(descriptionList[plbCnt])
+
+      thisChar = Text.GetSubText(descriptionList[plbCnt],pos,1)
+
+      If linPos > 85 And (thisChar = " " Or thisChar = "," Or thisChar = "-" Or thisChar = "." Or thisChar = ";") then
+
+        If thisChar <> " " then
+
+          displayStr = displayStr + thisChar
+
+        EndIf
+
+        displayStr = displayStr + nl
+
+        displayStr = displayStr + tb + tb
+
+        linPos = 0
+
+      Else
+
+        displayStr = displayStr + thisChar
+
+      EndIf
+
+      pos = pos + 1
+
+      linPos = linPos + 1
+
+    EndWhile
+
+    displayStr = displayStr + nl + nl
+
+  EndIf
+
+  
+
+  Controls.SetTextBoxText(displayBox, displayStr)
+
+EndSub
+
+
+
+Sub onButtonClick
+
+  button = Controls.LastClickedButton
+
+  If button = flaToggleButton Then
+
+    If flaToggle = "true" Then
+
+      flaToggle = "false"
+
+      Controls.SetButtonCaption(flaToggleButton,"All Locations")
+
+    Else
+
+      flaToggle = "true"
+
+      Controls.SetButtonCaption(flaToggleButton,"Florida Only")
+
+    EndIf
+
+    'ProcessWebPage()
+
+    PopulateListBox()
+
+    
+
+  ElseIf button = detailToggleButton Then
+
+    If detailToggle = "true" Then
+
+      detailToggle = "false"
+
+      Controls.SetButtonCaption(detailToggleButton,"Detials On")
+
+    Else
+
+      detailToggle = "true"
+
+      Controls.SetButtonCaption(detailToggleButton,"Details Off")
+
+    EndIf
+
+    'ProcessWebPage()
+
+    PopulateListBox()
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+Sub ProcessEntry
+
+  If entryStartPos > 0 Then
+
+    entryStr = Text.GetSubText(LaunchPage, 1, entryStartPos-1)
+
+  Else
+
+    endPos = Text.GetIndexOf(LaunchPage, listEndStr)
+
+    entryStr = Text.GetSubText(LaunchPage, 1, endPos - 17)
+
+  EndIf
+
+  ClipAmpCodes()
+
+  
+
+  date = ""
+
+  mission = ""
+
+  launchPeriod = ""
+
+  launchWindow = ""
+
+  launchSite = ""
+
+  launchTime = ""
+
+  description = ""
+
+  
+
+  ProcessLaunchDate()
+
+  ProcessMission()
+
+  ProcessLaunchPeriod()
+
+  ProcessLaunchWindow()
+
+  ProcessLaunchSite()
+
+  ProcessLaunchTime()
+
+  ProcessDescription()
+
+  
+
+  If prevDateList[entryCount] <> dateList[entryCount] Or prevMissionList[entryCount] <> missionList[entryCount] Or PrevLaunchPeriodList[entryCount] <> launchPeriodList[entryCount] Or prevLaunchWindowList[entryCount] <> launchWindowList[entryCount] Or prevLaunchSiteList[entryCount] <> launchSiteList[entryCount] Or prevLaunchTimeList[entryCount] <> launchTimeList[entryCount] Or prevDescriptionList[entryCount] <> descriptionList[entryCount] Then
+
+    If xx = 0 Then
+
+      
+
+      If prevDateList[entryCount] <> dateList[entryCount] Then
+
+        TextWindow.WriteLine("dt [" + prevDateList[entryCount] + "] -- [" + dateList[entryCount] + "]")
+
+      EndIf
+
+      If prevMissionList[entryCount] <> missionList[entryCount] Then
+
+        TextWindow.WriteLine("ml [" + prevMissionList[entryCount] + "] -- [" + missionList[entryCount] + "]")
+
+      EndIf
+
+      If PrevLaunchPeriodList[entryCount] <> launchPeriodList[entryCount] Then
+
+        TextWindow.WriteLine("lp [" + PrevLaunchPeriodList[entryCount] + "] -- [" + LaunchPeriodList[entryCount] + "]")
+
+        If PrevLaunchPeriodList[entryCount] = launchPeriodList[entryCount] Then
+
+          TextWindow.WriteLine("That's impossible")
+
+        EndIf
+
+        If PrevLaunchPeriodList[entryCount] = "" Then 
+
+          TextWindow.WriteLine("prev empty " + Text.GetLength(PrevLaunchPeriodList[entryCount]))
+
+        EndIf
+
+        If launchPeriodList[entryCount] = "" Then
+
+          TextWindow.WriteLine("     empty " + Text.GetLength(launchPeriodList[entryCount]))
+
+        EndIf
+
+        
+
+        textwindow.WriteLine("[" + launchPeriodList + "]")
+
+        TextWindow.WriteLine("[" + prevlaunchPeriodList + "]")
+
+      EndIf
+
+      If prevLaunchWindowList[entryCount] <> launchWindowList[entryCount] Then
+
+        TextWindow.WriteLine("lw [" + prevLaunchWindowList[entryCount] + "] -- [" + LaunchWindowList[entryCount] + "]")
+
+      EndIf
+
+      If prevLaunchSiteList[entryCount] <> launchSiteList[entryCount] Then
+
+        TextWindow.WriteLine("ls [" + prevLaunchSiteList[entryCount] + "] -- [" + LaunchSiteList[entryCount] + "]")
+
+      EndIf
+
+      If prevLaunchTimeList[entryCount] <> launchTimeList[entryCount] Then
+
+        TextWindow.WriteLine("lt [" + prevLaunchTimeList[entryCount] + "] -- [" + LaunchTimeList[entryCount] + "]")
+
+      EndIf
+
+      If prevDescriptionList[entryCount] <> descriptionList[entryCount] Then
+
+        TextWindow.WriteLine("ds [" + prevDescriptionList[entryCount] + "] -- [" + DescriptionList[entryCount] + "]")
+
+      EndIf
+
+      TextWindow.Read()
+
+    EndIf
+
+    differenceList[entryCount] = "true"
+
+  EndIf
+
+EndSub
+
+
+
+Sub ProcessLaunchTime
+
+  startPos = Text.GetIndexOf(entryStr, timStr)
+
+  If startPos > 0 Then
+
+    partialEntry = Text.GetSubText(entryStr, startPos + Text.GetLength(TimStr), Text.GetLength(entryStr))
+
+    endPos = Text.GetIndexOf(partialEntry, timEndStr)
+
+    launchTime = Text.GetSubText(partialEntry, 2 , endPos - 2)
+
+    launchTimeList[entryCount] = launchTime
+
+  EndIf
+
+EndSub
+
+
+
+Sub ProcessLaunchSite
+
+  startPos = Text.GetIndexOf(entryStr, sitStr)
+
+  If startPos > 0 Then
+
+    partialEntry = Text.GetSubText(entryStr, startPos + Text.GetLength(sitStr), Text.GetLength(entryStr))
+
+    endPos = Text.GetIndexOf(partialEntry, sitEndStr)
+
+    launchSite = Text.GetSubText(partialEntry, 2 , endPos - 2)
+
+    launchSiteList[entryCount] = launchSite
+
+  EndIf
+
+EndSub
+
+
+
+Sub ProcessLaunchWindow
+
+  startPos = Text.GetIndexOf(entryStr, winStr)
+
+  If startPos > 0 Then
+
+    partialEntry = Text.GetSubText(entryStr, startPos + Text.GetLength(winStr), Text.GetLength(entryStr))
+
+    endPos = Text.GetIndexOf(partialEntry, winEndStr)
+
+    launchWindow = Text.GetSubText(partialEntry, 2 , endPos - 2)
+
+    launchWindowList[entryCount] = launchWindow
+
+  EndIf
+
+EndSub
+
+
+
+Sub ProcessLaunchPeriod
+
+  startPos = Text.GetIndexOf(entryStr, perStr)
+
+  If startPos > 0 Then
+
+    partialEntry = Text.GetSubText(entryStr, startPos + Text.GetLength(perStr), Text.GetLength(entryStr))
+
+    endPos = Text.GetIndexOf(partialEntry, perEndStr)
+
+    launchPeriod = Text.GetSubText(partialEntry, 2 , endPos - 2)
+
+    launchPeriodList[entryCount] = launchPeriod
+
+  EndIf
+
+EndSub
+
+
+
+Sub ProcessDescription
+
+  startPos = Text.GetIndexOf(entryStr, desStr)
+
+  If startPos > 0 Then
+
+    partialEntry = Text.GetSubText(entryStr, startPos, Text.GetLength(entryStr))
+
+    endPos = Text.GetIndexOf(partialEntry, desEndStr)
+
+    If endPos = 0 Then
+
+      description = Text.GetSubText(partialEntry, 1 + Text.GetLength(desStr), text.GetLength(partialEntry))
+
+    Else
+
+      description = Text.GetSubText(partialEntry, 1 + Text.GetLength(desStr), endPos - (0 + Text.GetLength(desStr)))
+
+    EndIf
+
+    ClipFromDescription()
+
+    descriptionList[entryCount] = description
+
+  EndIf
+
+EndSub
+
+
+
+Sub ProcessMission
+
+  startPos = Text.GetIndexOf(entryStr, misStr)
+
+  If startPos > 0 Then
+
+    partialEntry = Text.GetSubText(entryStr, startPos, Text.GetLength(entryStr))
+
+    endPos = Text.GetIndexOf(partialEntry, misEndStr)
+
+    mission = Text.GetSubText(partialEntry, 1 + Text.GetLength(misStr), endPos - (1 + Text.GetLength(misStr)))
+
+    missionList[entryCount] = mission
+
+  EndIf
+
+EndSub
+
+
+
+Sub ProcessLaunchDate
+
+  startPos = Text.GetIndexOf(entryStr, datStr)
+
+  If startPos > 0 Then
+
+    partialEntry = Text.GetSubText(entryStr, startPos, Text.GetLength(entryStr))
+
+    endPos = Text.GetIndexOf(partialEntry, datEndStr)
+
+    date = Text.GetSubText(partialEntry, 1 + Text.GetLength(datStr), endPos - (1 + Text.GetLength(datStr)))
+
+    dateList[entryCount] = date
+
+  EndIf
+
+EndSub
+
+
+
+Sub clipToStart
+
+  clipPos = entryStartPos + Text.GetLength(entryStartStr)
+
+  clipStartKeepEnd()
+
+EndSub
+
+
+
+Sub clipStartKeepEnd
+
+  LaunchPage = Text.GetSubText(LaunchPage, clipPos, Text.GetLength(LaunchPage))
+
+EndSub
+
+
+
+
+
+Sub SetSearchFields
+
+  entryStartStr = "<div class=" + Text.GetCharacter(34)  + "datename" + Text.GetCharacter(34)  + ">"
+
+  listEndStr = "</article>"
+
+  datStr = "<span class=" + Text.GetCharacter(34)  + "launchdate" + Text.GetCharacter(34)  + ">"
+
+  datEndStr = "</span>"
+
+  misStr = "<span class=" + Text.GetCharacter(34)  + "mission" + Text.GetCharacter(34)  + ">"
+
+  misEndStr = "</span>"
+
+  desStr = "<div class=" + Text.GetCharacter(34)  + "missdescrip" + Text.GetCharacter(34)  + ">"
+
+  desEndStr = "

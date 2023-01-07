@@ -1,0 +1,475 @@
+' Cue GUI for Billiard 0.1b
+
+' Copyright (c) 2013 Nonki Takahashi.  All rights reserved.
+
+'
+
+' History:
+
+' 0.1b 2013-09-26 Created.
+
+'
+
+debug = "False"
+
+Init()
+
+Mouse_Move()
+
+Sub Mouse_Move
+
+  not = "False=True;True=False;"
+
+  semaphore = "False"
+
+  up = "True"
+
+  GraphicsWindow.MouseMove = OnMouseMove
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+  GraphicsWindow.MouseUp = OnMouseUp
+
+EndSub
+
+Sub Init
+
+  GraphicsWindow.Title = "Billiard 0.1a"
+
+  scale = 1.5 ' [pixel/cm]
+
+  Floor_Init()
+
+  Table_Init()
+
+  Ball_Init()
+
+  Cue_Init()
+
+EndSub
+
+Sub OnMouseDown
+
+  button = "down"
+
+EndSub
+
+Sub OnMouseUp
+
+  button = "up"
+
+  OnMouseMove()
+
+EndSub
+
+Sub OnMouseMove
+
+  semaphore = not[semaphore]
+
+  If semaphore Then
+
+    If Mouse.IsLeftButtonDown = "False" Then
+
+      button = "up"
+
+    EndIf
+
+    If button = "up" Then
+
+      If up = "False" Then
+
+        If debug Then
+
+          Cross_Clear()
+
+          Line_Clear()
+
+        EndIf
+
+        up = "True"
+
+      EndIf
+
+    ElseIf button = "down" Then
+
+      mx = GraphicsWindow.MouseX
+
+      my = GraphicsWindow.MouseY
+
+      If up Then
+
+        If debug Then
+
+          Cross_Draw()
+
+        EndIf
+
+        cue["x0"] = mx
+
+        cue["y0"] = my
+
+        cue["grip"] = "False"
+
+        up = "False"
+
+      Else
+
+        If debug Then
+
+          Line_Draw()
+
+        EndIf
+
+        tx = cue["x0"]
+
+        ty = cue["y0"]
+
+        x = mx - tx
+
+        y = my - ty
+
+        Math_CartesianToPolar()
+
+        If cue["length"] * 0.8 * scale < r Then
+
+          cue["grip"] = "True"
+
+        EndIf
+
+        If cue["grip"] Then
+
+          _a = Math.GetRadians(a)
+
+          tx = mx - cue["length"] * 0.8 * scale * Math.Cos(_a)
+
+          ty = my - cue["length"] * 0.8 * scale * Math.Sin(_a)
+
+        EndIf
+
+        angle = a
+
+        Cue_Move()
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  semaphore = not[semaphore]
+
+EndSub
+
+Sub Cross_Draw
+
+  For i = 1 To 2
+
+    If cross[i]["obj"] <> "" Then
+
+      Shapes.Remove(cross[i]["obj"])
+
+    EndIf
+
+  EndFor
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "Black"
+
+  cross[1]["obj"] = Shapes.AddLine(0, 0, 20, 20)
+
+  cross[2]["obj"] = Shapes.AddLine(0, 20, 20, 0)
+
+  Shapes.SetOpacity(cross[1]["obj"], 50)
+
+  Shapes.SetOpacity(cross[2]["obj"], 50)
+
+  Shapes.Move(cross[1]["obj"], mx - 10, my - 10)
+
+  Shapes.Move(cross[2]["obj"], mx - 10, my - 10)
+
+  cross["x"] = mx
+
+  cross["y"] = my
+
+EndSub
+
+Sub Cross_Clear
+
+  For i = 1 To 2
+
+    If cross[i]["obj"] <> "" Then
+
+      Shapes.Remove(cross[i]["obj"])
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub Line_Draw
+
+  If line["obj"] <> "" Then
+
+    Shapes.Remove(line["obj"])
+
+  EndIf
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "Black"
+
+  line["obj"] = Shapes.AddLine(cross["x"], cross["y"], mx, my)
+
+  Shapes.SetOpacity(line["obj"], 50)
+
+EndSub
+
+Sub Line_Clear
+
+  If line["obj"] <> "" Then
+
+    Shapes.Remove(line["obj"])
+
+  EndIf
+
+EndSub
+
+Sub Floor_Init
+
+  gw = 800
+
+  gh = 600
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "#444444"
+
+  GraphicsWindow.BrushColor = "#333333"
+
+  draw1 = "False"
+
+  For y = 0 To gh Step (25 * scale)
+
+    draw = draw1
+
+    If draw1 Then
+
+      draw1 = "False"
+
+    Else
+
+      draw1 = "True"
+
+    EndIf
+
+    For x = 0 To gw Step (25 * scale)
+
+      If draw Then
+
+        GraphicsWindow.FillRectangle(x, y, 25 * scale, 25 * scale)
+
+        draw = "False"
+
+      Else
+
+        draw = "True"
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub Table_Init
+
+  table["width"] = 300    ' [cm]
+
+  table["height"] = 150   ' [cm]
+
+  table["colorTable"] = "ForestGreen"
+
+  table["colorCushon"] = "Green"
+
+  table["widthCushon"] = 3 ' [cm]
+
+  table["colorRail"] = "#773300"
+
+  table["widthRail"] = 5  ' [cm]
+
+  x = (gw - table["width"] * scale) / 2
+
+  table["x"] = x          ' [pixel]
+
+  y = (gh - table["height"] * scale) / 2
+
+  table["y"] = y          ' [pixel]
+
+  GraphicsWindow.BrushColor = table["colorRail"]
+
+  param["x"] = x - (table["widthRail"] + table["widthCushon"]) * scale
+
+  param["y"] = y - (table["widthRail"] + table["widthCushon"]) * scale
+
+  param["width"] = (table["width"] + table["widthRail"] * 2 + table["widthCushon"] * 2) * scale
+
+  param["height"] =  (table["height"] + table["widthRail"] * 2 + table["widthCushon"] * 2) * scale
+
+  param["border-radius"] = table["widthRail"] * scale / 2
+
+  FillRoundRectangle()
+
+  GraphicsWindow.BrushColor = table["colorCushon"]
+
+  GraphicsWindow.FillRectangle(x - table["widthCushon"] * scale, y - table["widthCushon"] * scale, (table["width"] + table["widthCushon"] * 2) * scale, (table["height"] + table["widthCushon"] * 2) * scale)
+
+  GraphicsWindow.BrushColor = table["colorTable"]
+
+  GraphicsWindow.FillRectangle(x, y, table["width"] * scale, table["height"] * scale)
+
+EndSub
+
+Sub Ball_Init
+
+  ball["diameter"] = 5.7  ' [cm]
+
+  ball["num"] = 1
+
+  ball[1]["color"] = "White"
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = ball[1]["color"]
+
+  d = ball["diameter"] * scale
+
+  ball[1]["obj"] = Shapes.AddEllipse(d, d)
+
+  x = table["x"] + table["width"] * scale * 7 / 8
+
+  ball[1]["x"] = x        ' [pixel]
+
+  y = table["y"] + table["height"] * scale / 2
+
+  ball[1]["y"] = y        ' [pixel]
+
+  Shapes.Move(ball[1]["obj"], x - d / 2, y - d / 2)
+
+EndSub
+
+Sub Cue_Init
+
+  cue["length"] = 145     ' [cm]
+
+  cue["width"] = 1        ' [cm]
+
+  cue["color"] = "GoldenRod"
+
+  cue["angle"] = 90       ' [degree]
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = cue["color"]
+
+  cue["obj"] = Shapes.AddRectangle(cue["length"] * scale, cue["width"] * scale)
+
+  tx = 5 * scale
+
+  ty = 5 * scale
+
+  angle = cue["angle"]
+
+  Cue_Move()
+
+EndSub
+
+Sub Cue_Move
+
+  ' param tx, ty - tip
+
+  ' param angle
+
+  a = Math.GetRadians(angle)
+
+  cx = tx + cue["length"] * scale / 2 * Math.Cos(a)
+
+  cy = ty + cue["length"] * scale / 2 * Math.Sin(a)
+
+  x = cx - cue["length"] * scale / 2
+
+  y = cy - cue["width"] * scale / 2
+
+  Shapes.Move(cue["obj"], x, y)
+
+  Shapes.Rotate(cue["obj"], angle)
+
+EndSub
+
+Sub FillRoundRectangle
+
+  Stack.PushValue("local", param)
+
+  If (param["width"] / 2 < param["border-radius"]) Or (param["height"] / 2 < param["border-radius"]) Then
+
+    param["border-radius"] = Math.Min(param["width"] / 2, param["height"] / 2)
+
+  EndIf
+
+  GraphicsWindow.FillEllipse(param["x"], param["y"], param["border-radius"] * 2, param["border-radius"] * 2)
+
+  GraphicsWindow.FillRectangle(param["x"] + param["border-radius"], param["y"], param["width"] - param["border-radius"] * 2, param["height"])
+
+  GraphicsWindow.FillEllipse(param["x"] + param["width"] - param["border-radius"] * 2, param["y"], param["border-radius"] * 2, param["border-radius"] * 2)
+
+  GraphicsWindow.FillRectangle(param["x"], param["y"] + param["border-radius"], param["width"], param["height"] - param["border-radius"] * 2)
+
+  GraphicsWindow.FillEllipse(param["x"], param["y"] + param["height"] - param["border-radius"] * 2, param["border-radius"] * 2, param["border-radius"] * 2)
+
+  GraphicsWindow.FillEllipse(param["x"] + param["width"] - param["border-radius"] * 2, param["y"] + param["height"] - param["border-radius"] * 2, param["border-radius"] * 2, param["border-radius"] * 2)
+
+  param = Stack.PopValue("local")
+
+EndSub
+
+Sub Math_CartesianToPolar
+
+  ' Math | convert cartesian coodinate to polar coordinate
+
+  ' param x, y - cartesian coordinate
+
+  ' return r, a - polar coordinate
+
+  r = Math.SquareRoot(x * x + y * y)
+
+  If x = 0 And y > 0 Then
+
+    a = 90 ' [degree]
+
+  ElseIf x = 0 And y < 0 Then
+
+    a = -90
+
+  Else
+
+    a = Math.ArcTan(y / x) * 180 / Math.Pi
+
+  EndIf
+
+  If x < 0 Then
+
+    a = a + 180
+
+  ElseIf x > 0 And y < 0 Then
+
+    a = a + 360
+
+  EndIf
+
+EndSub
+
+

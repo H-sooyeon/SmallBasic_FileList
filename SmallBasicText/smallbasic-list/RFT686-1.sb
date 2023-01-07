@@ -1,0 +1,683 @@
+' 16x16 Plain PPM Icon Editor
+
+' Copyright © 2015 Nonki Takahashi.  The MIT License.
+
+' Version 0.3a
+
+' Last update 2015-02-17
+
+' Program ID RFT686-1
+
+' Repository https://iconeditorsb.codeplex.com/
+
+'
+
+' set graphics window title
+
+title = "Icon Editor 0.3a"
+
+GraphicsWindow.Title = "Untitled - " + title
+
+' define variables as constants or functions
+
+debug = "False"
+
+If debug Then
+
+  TextWindow.Title = "Debug - " + title
+
+EndIf
+
+CR = Text.GetCharacter(13)
+
+LF = Text.GetCharacter(10)
+
+TAB = Text.GetCharacter(19)
+
+Not = "False=True;True=False;"
+
+' width/height [%] of each character in Trebuchet MS font
+
+ratio = "32=30;48=58;49=58;50=58;51=58;52=58;53=58;54=58;55=58;56=58;57=58;97=53;98=58;99=51;100=58;101=57;102=37;103=50;104=59;105=30;106=37;107=55;108=29;109=86;110=59;111=56;112=58;113=58;114=43;115=43;116=39;117=59;118=53;119=78;120=55;121=53;122=53;65=63;66=59;67=61;68=64;69=57;70=58;71=67;72=68;73=28;74=53;75=62;76=55;77=74;78=67;79=70;80=59;81=71;82=61;83=51;84=61;85=68;86=62;87=88;88=60;89=61;90=56;"
+
+' initialize mouse and keyboard events
+
+Mouse_Init()
+
+KB_Init()
+
+' show menu, white icon, and edit field in graphics window
+
+Form()
+
+Msg_Init()
+
+color = "Black"
+
+Color_SetPenColor()
+
+For y = 0 To iconHeight - 1
+
+  For x = 0 To iconWidth - 1
+
+    Icon_GetPixel()
+
+    Icon_SetPixel()
+
+  EndFor
+
+EndFor
+
+While "True"
+
+  If clicked Then
+
+    ' find clicked object - menu item or pixel of the icon
+
+    Mouse_DetectObject()
+
+    ' create message (command) for the object if found
+
+    If name = "pen color" Then
+
+      param = "cmd=color;"
+
+      Msg_Set()
+
+    ElseIf name <> "" Then
+
+      param = "cmd=" + name + ";"
+
+      Msg_Set()
+
+    EndIf
+
+    clicked = "False"
+
+  EndIf
+
+  While keyOut < keyIn
+
+    KB_InKey()
+
+    ' create message (command) for the shortcut if found
+
+    If c = "^N" Then
+
+      param = "cmd=new;"
+
+      Msg_Set()
+
+      c = ""
+
+    ElseIf c = "^O" Then
+
+      param = "cmd=open;"
+
+      Msg_Set()
+
+      c = ""
+
+    ElseIf c = "^S" Then
+
+      param = "cmd=save;"
+
+      Msg_Set()
+
+      c = ""
+
+    ElseIf c = "^Z" Then
+
+      param = "cmd=undo;"
+
+      Msg_Set()
+
+      c = ""
+
+    ElseIf c = "^Y" Then
+
+      param = "cmd=redo;"
+
+      Msg_Set()
+
+      c = ""
+
+    ElseIf debug Then
+
+      TextWindow.ForegroundColor = "Red"
+
+      TextWindow.WriteLine("Unknown = '" + c + "'")
+
+      TextWindow.ForegroundColor = "Gray"
+
+      c = ""
+
+    EndIf
+
+  EndWhile
+
+  If msgOut < msgIn Then
+
+    ' do action for the message (command)
+
+    msgOut = msgOut + 1
+
+    msg = message[msgOut]
+
+    GraphicsWindow.Title = msg["cmd"] + " - " + title
+
+  EndIf
+
+  If debug Then
+
+    Debug_StateChanged()
+
+    If changed Then
+
+      Debug_Dump()
+
+    EndIf
+
+  EndIf
+
+EndWhile
+
+Sub Debug_StateChanged
+
+  ' Debug | Check state changed
+
+  ' return changed - "True" if state changed
+
+  changed = "False"
+
+  If keyIn <> lastKeyIn Then
+
+    lastKeyIn = keyIn
+
+    changed = "True"
+
+  EndIf
+
+  If keyOut <> lastKeyOut Then
+
+    lastKeyOut = keyOut
+
+    changed = "True"
+
+  EndIf
+
+  If msgIn <> lastMsgIn Then
+
+    lastMsgIn = msgIn
+
+    changed = "True"
+
+  EndIf
+
+  If msgOut <> lastMsgOut Then
+
+    lastMsgOut = msgOut
+
+    changed = "True"
+
+  EndIf
+
+EndSub
+
+Sub Debug_Dump
+
+  ' Debug | Dump state
+
+  TextWindow.WriteLine("fifo = " + fifo)
+
+  TextWindow.WriteLine("keyIn = " + keyIn)
+
+  TextWindow.WriteLine("keyOut = " + keyOut)
+
+  TextWindow.WriteLine("message = " + message)
+
+  TextWindow.WriteLine("msgIn = " + msgIn)
+
+  TextWindow.WriteLine("msgOut = " + msgOut)
+
+EndSub
+
+Sub Form
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "DimGray"
+
+  iconWidth = 16  '40
+
+  iconHeight = 16 '40
+
+  itemSize = 40
+
+  itemGap = 10
+
+  menuHeight = 60
+
+  size = 16       '6
+
+  gap = 2
+
+  Menu_Draw()
+
+  xEdit = Math.Floor((gw - (size + gap + 1) * iconWidth) / 2) + iconWidth
+
+  yEdit = Math.Floor((gh - menuHeight - (size + gap) * iconHeight) / 2) + menuHeight
+
+  xIcon = Math.Floor((xEdit - iconWidth) / 2)
+
+  yIcon = yEdit
+
+  add = "True"
+
+  Icon_Clear()
+
+  add = "False"
+
+EndSub
+
+Sub Array_GetIndexOfValue
+
+  ' param arry - array
+
+  ' param value - value to get index
+
+  ' return index - index if found or "" if not found
+
+  nValue = Array.GetItemCount(arry)
+
+  indices = Array.GetAllIndices(arry)
+
+  index = ""
+
+  For iArry = 1 To nValue
+
+    If value = arry[indices[iArry]] Then
+
+      index = indices[iArry]
+
+      iArry = nValue + 1  ' break
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub Color_SetPenColor
+
+  ' param color
+
+  GraphicsWindow.BrushColor = color
+
+  padding = 4
+
+  arry = item
+
+  value = "Pen Color"
+
+  Array_GetIndexOfValue()
+
+  y = Math.Floor((menuHeight - itemSize - 10) / 2) + padding
+
+  x = (index - 1) * (itemSize + itemGap) + itemGap + padding
+
+  GraphicsWindow.FillRectangle(x, y, itemSize - 2 * padding, itemSize - 2 * padding)
+
+EndSub
+
+Sub Icon_Clear
+
+  ' param add - "True" to add menu to mouse object
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillRectangle(xIcon, yIcon, iconWidth, iconHeight)
+
+  For row = 0 To iconHeight - 1
+
+    y = yEdit + row * (size + gap)
+
+    For col = 0 To iconWidth - 1
+
+      x = xEdit + col * (size + gap)
+
+      GraphicsWindow.FillRectangle(x, y, size, size)
+
+    EndFor
+
+  EndFor
+
+  If add Then
+
+    param = ""
+
+    param["name"] = "icon"
+
+    param["xLeft"] = xEdit
+
+    param["xRight"] = xEdit + iconWidth * (size + gap) - gap
+
+    param["yTop"] = yEdit
+
+    param["yBottom"] = yEdit + iconHeight * (size + gap) - gap
+
+    Mouse_AddObject()
+
+  EndIf
+
+EndSub
+
+Sub Icon_GetPixel
+
+  ' param x, y - position in icon
+
+  ' return color - got color
+
+  color = GraphicsWindow.GetPixel(xIcon + x, yIcon + y)
+
+EndSub
+
+Sub Icon_SetPixel
+
+  ' param x, y - position in icon
+
+  ' param color - set color
+
+  GraphicsWindow.SetPixel(xIcon + x, yIcon + y, color)
+
+  GraphicsWindow.BrushColor = color
+
+  GraphicsWindow.FillRectangle(xEdit + x * (size + gap), yEdit + y * (size + gap), size, size)
+
+EndSub
+
+Sub KB_Init
+
+  ' Keyboard | Initialization (use only ^n, ^o, ^s, ^z, ^y)
+
+  shift = ""
+
+  ctrl = ""
+
+  keyIn = 0
+
+  keyOut = 0
+
+  GraphicsWindow.KeyDown = KB_OnKeyDown
+
+  GraphicsWindow.KeyUp = KB_OnKeyUp
+
+EndSub
+
+Sub KB_InKey
+
+  ' Keyboard | In key
+
+  ' return c - input key
+
+  If keyOut < keyIn Then
+
+    keyOut = keyOut + 1
+
+    Program.Delay(1)  ' workaround 29976
+
+    c = fifo[keyOut]
+
+    'fifo[keyOut] = ""
+
+  EndIf
+
+EndSub
+
+Sub KB_OnKeyDown
+
+  ' Keyboard | Key down event handler
+
+  key = GraphicsWindow.LastKey
+
+  If key = "LeftShift" Or key = "RightShift" Or key = "Shift" Then
+
+    shift = "+"
+
+  ElseIf key = "LeftCtrl" Or key = "RightCtrl" Then
+
+    ctrl = "^"
+
+  Else
+
+    keyIn = keyIn + 1
+
+    fifo[keyIn] = shift + ctrl + key
+
+  EndIf
+
+EndSub
+
+Sub KB_OnKeyUp
+
+  ' Keyboard | Key up event handler
+
+  key = GraphicsWindow.LastKey
+
+  If key = "LeftShift" Or key = "RightShift" Or key = "Shift" Then
+
+    shift = ""
+
+  ElseIf key = "LeftCtrl" Or key = "RightCtrl" Then
+
+    ctrl = ""
+
+  EndIf
+
+EndSub
+
+Sub Menu_Draw
+
+  GraphicsWindow.BrushColor = "#EEEEEE"
+
+  GraphicsWindow.FillRectangle(0, 0, gw, menuHeight)
+
+  item = "1=New;2=Open;3=Save;4=Undo;5=Redo;6=Pen Color;"
+
+  nItem = Array.GetItemCount(item)
+
+  add = "True"
+
+  For i = 1 To nItem
+
+    Menu_DrawItem()
+
+  EndFor
+
+  add = "False"
+
+EndSub
+
+Sub Menu_DrawItem
+
+  ' param i - index number of the menu item
+
+  ' param add - "True" to add menu to mouse object
+
+  y = Math.Floor((menuHeight - itemSize - 10) / 2)
+
+  x = (i - 1) * (itemSize + itemGap) + itemGap
+
+  url = "http://www.nonkit.com/smallbasic.files/" + Text.ConvertToLowerCase(item[i]) + ".png"
+
+  GraphicsWindow.DrawImage(url, x, y)
+
+  If add Then
+
+    param = ""
+
+    param["name"] = Text.ConvertToLowerCase(item[i])
+
+    param["xLeft"] = x
+
+    param["xRight"] = x + itemSize
+
+    param["yTop"] = y
+
+    param["yBottom"] = y + itemSize
+
+    Mouse_AddObject()
+
+  EndIf
+
+  fs = 10
+
+  GraphicsWindow.FontSize = fs
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.FontName = "Trebuchet MS"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  txt = item[i]
+
+  Text_GetWidthInPx()
+
+  dx = Math.Floor((itemSize - px) / 2)
+
+  GraphicsWindow.DrawText(x + dx, y + itemSize, item[i])
+
+EndSub
+
+Sub Mouse_AddObject
+
+  ' Mouse | Add object to click
+
+  ' param["name"] - name of the object to add
+
+  ' param["xLeft"] - left x coordinate of the object
+
+  ' param["xRight"] - right x coordinate of the object
+
+  ' param["yTop"] - top y coordinate of the object
+
+  ' param["yBottom"] - bottom y coordinate of the object
+
+  ' return object
+
+  ' return nObject
+
+  nObject = nObject + 1
+
+  object[nObject] = param
+
+EndSub
+
+Sub Mouse_DetectObject
+
+  ' param mxD, myD - mouse clicked coordinate
+
+  ' return name - clicked object name if found, "" if not found
+
+  name = ""               ' not found
+
+  For iObject = 1 To nObject
+
+    obj = object[iObject]
+
+    If obj["xLeft"] <= mxD And mxD <= obj["xRight"] And obj["yTop"] <= myD And myD <= obj["yBottom"] Then
+
+      name = obj["name"]  ' found
+
+      iObject = nObject   ' break
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+Sub Mouse_Init
+
+  ' Mouse | Initialize for common event handler
+
+  clicked = "False"
+
+  object = ""
+
+  nObject = 0
+
+  GraphicsWindow.MouseDown = Mouse_OnDown
+
+EndSub
+
+Sub Mouse_OnDown
+
+  ' Mouse | Common event handler on mouse down
+
+  ' return mxD, myD - position on mouse down
+
+  mxD = Math.Floor(GraphicsWindow.MouseX)
+
+  myD = Math.Floor(GraphicsWindow.MouseY)
+
+  clicked = "True"
+
+EndSub
+
+Sub Msg_Init
+
+  ' Message | Initialize
+
+  msgIn = 0
+
+  msgOut = 0
+
+EndSub
+
+Sub Msg_Set
+
+  ' Message | Set message to fifo
+
+  ' param["cmd"] - massage command
+
+  ' param["*"].. - message operands
+
+  msgIn = msgIn + 1
+
+  message[msgIn] = param
+
+EndSub
+
+Sub Text_GetWidthInPx
+
+  ' param txt - text to get width in px
+
+  ' param ratio - character width/height in a font
+
+  ' param fs - font size (height)
+
+  ' return px - width in px (pixels)
+
+  len = Text.GetLength(txt)
+
+  px = 0
+
+  For p = 1 To len
+
+    px = px + ratio[Text.GetCharacterCode(Text.GetSubText(txt, p, 1))]
+
+  EndFor
+
+  px = Math.Floor(px * fs / 100)
+
+EndSub
+
+

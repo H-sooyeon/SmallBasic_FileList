@@ -1,0 +1,929 @@
+gh = 400
+
+gw = 400
+
+GraphicsWindow.Height=gh 
+
+GraphicsWindow.Width = gw
+
+GraphicsWindow.CanResize = "False"
+
+init() ' initialize the saving
+
+
+
+variables()' final variables that create the graphics window and all that.
+
+GraphicsWindow.KeyDown = move ' key events that tell the player to move.
+
+GraphicsWindow.KeyUp = stop ' nothing there 
+
+'if you want the player to stop when you let go of the key, go to this method and remove the ' on pressed="False"
+
+
+
+framestart = Clock.ElapsedMilliseconds ' getsthe time
+
+For i = 0 to 13 Step 1 'sets the level you are not on at false, refers to the enemy spawn
+
+  levelat[i] = "False"
+
+endfor
+
+smartenemyexists="False" ' refers to the smart enemy, not yet created in this program yet
+
+numEnemy=1
+
+createenemy()'initial enemy
+
+
+
+'========GAME LOOP===========
+
+While 1=1
+
+  ProcessKey() 'processes the key at the current frame
+
+  moveenemy() 'moves enemy
+
+  If(smartenemyexists) Then ' if we are starting to cook smartenenemies, then it will start to run the appropriate subroutine
+
+    movesmartenemy() ' nothing there, enemy will follow player around to prevent player from hiding in corners
+
+    checkcollisionofplayersmartenemy() 
+
+  EndIf
+
+  setlevel()'sets the level and updates it
+
+  checkcollisionofplayer() ' healthloss and collision
+
+  
+
+  addscore() ' adds score
+
+  updatehighscore() ' updates the highscore if score goes over it
+
+  adjusthealth() ' event to change number of health
+
+  
+
+  
+
+  enemyspawn() ' depending on level put an enemy, can be changed
+
+  framedelay()'frame delay
+
+endwhile
+
+
+
+Sub init
+
+  path = Program.Directory + "/Collision Game/"
+
+  name = "High Score"
+
+  ext = ".txt"
+
+' The following line could be harmful and has been automatically commented.
+
+'   filesave = File.ReadContents(path+name+ext) ' reads the last thing in there, your highest score
+
+  
+
+  highscoredisplay =Shapes.AddText("High Score: " +filesave[1])
+
+  Shapes.Move(highscoredisplay, 0,50)
+
+endsub
+
+
+
+Sub variables
+
+  frames = 60
+
+  frameLength = 1000/frames  ' really smooth 0.016 millisecond frame. 1 frame every 0.016 millisecond.
+
+  '==============================  
+
+  player = Shapes.AddRectangle(20, 20)
+
+  playerx = Math.GetRandomNumber(gh)
+
+  playery = Math.GetRandomNumber(gh)
+
+  Shapes.Move(player, playerx, playery)
+
+  '==============================
+
+  
+
+  health = 100
+
+  GraphicsWindow.BrushColor= "Green"
+
+  healthdisplay = Shapes.AddText(health)
+
+  Shapes.Move(healthdisplay, 0, 30)
+
+  '==============================  
+
+  level = 1
+
+  leveldisplay = Shapes.AddText("Level" + level)
+
+  Shapes.Move(leveldisplay, 350,0)
+
+  '==============================  
+
+  GraphicsWindow.BrushColor= "BLue"
+
+  scoredisplay = Shapes.AddText(score)
+
+  Shapes.Move(scoredisplay, 0, 0)  
+
+endsub
+
+Sub createenemy
+
+  GraphicsWindow.BrushColor="Red"
+
+  vel = 1
+
+  'each enemy has its own id. 
+
+  touchingtr[numEnemy]="False"
+
+  touchingtl[numEnemy] = "False"
+
+  touchingbl[numEnemy] = "False"
+
+  touchingbr[numEnemy] = "False"
+
+  enemy[numEnemy] = Shapes.AddRectangle(15, 15)
+
+  velX[numEnemy] = vel'Math.GetRandomNumber(vel)
+
+  velY[numEnemy] = 0'Math.GetRandomNumber(vel)
+
+  
+
+  enemyx[numEnemy] = Math.GetRandomNumber(gh-15)
+
+  enemyy[numEnemy] = Math.GetRandomNumber(gh-15)
+
+endsub
+
+
+
+Sub createsmartenemy
+
+  GraphicsWindow.BrushColor="Yellow"
+
+  smartenemy[snumEnemy] = Shapes.AddRectangle(10, 10)
+
+  smartenemyx[snumEnemy] = Math.GetRandomNumber(gh)
+
+  smartenemyy[snumEnemy] = Math.GetRandomNumber(gh)
+
+  touchings[snumEnemy] = "False"
+
+  vels = 2
+
+EndSub
+
+
+
+Sub ProcessKey
+
+  'process the keys once per frame
+
+  If pressed = "True" Then
+
+    key = GraphicsWindow.LastKey
+
+    If (key = "A") then
+
+      pdX = -5
+
+      pdY=0
+
+    ElseIf (key = "D") then
+
+      pdX =5
+
+      pdY=0 
+
+    elseif (key = "W") then
+
+      pdY = -5
+
+      pdX =0
+
+    elseif(key = "S") then
+
+      pdY =5
+
+      pdX =0  
+
+    EndIf
+
+    '===========this is the bounds check, makes sure the player doesnt leave the field.
+
+    If(Shapes.GetLeft(player) <0) or (Shapes.GetLeft(player) > (gw-15)) Then
+
+      
+
+      If(Shapes.GetLeft(player) <0) Then
+
+        playerx = 0
+
+      ElseIf(Shapes.GetLeft(player) > (gw-15)) then
+
+        playerx = gw -15
+
+      EndIf
+
+    Else
+
+      playerx = playerx+pdX
+
+    EndIf
+
+    If((Shapes.Gettop(player) <0) or (Shapes.Gettop(player) > (gh-15))) Then
+
+      
+
+      If(Shapes.Gettop(player) <0) Then
+
+        playery = 0
+
+      ElseIf(Shapes.Gettop(player) > (gh-15)) then
+
+        playery = (gh-15)
+
+      EndIf
+
+    Else
+
+      playery = playery + pdY
+
+    EndIf
+
+    
+
+    Shapes.Move(player, playerx, playery)
+
+    
+
+  EndIf
+
+EndSub
+
+
+
+
+
+Sub updatehighscore
+
+  If score > filesave[1] Then
+
+    filesave[1] = score
+
+    Shapes.SetText(highscoredisplay,  "Highest score: " +score)
+
+  endif  
+
+endsub
+
+
+
+Sub addscore
+
+  If ( health >0) Then
+
+    score = score +1 
+
+  Else
+
+    GraphicsWindow.ShowMessage("You have lost, your score was " + score, "Game Over")
+
+    savescore()
+
+    Program.End()
+
+  EndIf
+
+  Shapes.SetText(scoredisplay, "Score: " +score)
+
+EndSub
+
+
+
+Sub adjusthealth
+
+  Shapes.SetText(healthdisplay,"Health: " + health)
+
+endsub
+
+
+
+Sub setlevel
+
+  
+
+  If(score < 40) Then ' had issue where the level will jump once, so you will be already on level two.
+
+    Goto skip
+
+  endif  
+
+  If(Math.Remainder(score, 200) = 0) then
+
+    level = level +1 
+
+  EndIf
+
+  skip:
+
+  Shapes.SetText(leveldisplay,"Level: " +level)
+
+  
+
+endsub
+
+Sub moveenemy
+
+  For i = 1 To (numEnemy) step 1 ' going through all the objects
+
+    ey = Shapes.GetTop(enemy[i])
+
+    ex = Shapes.GetLeft(enemy[i])   
+
+    '===========simple collision================very rudamentary================
+
+    If (ex >= gw-10) Or ( ex < 0) Then
+
+      velX[i] = velX[i] * -1
+
+    else
+
+      velX[i] = velX[i]      
+
+    endif
+
+    
+
+    If (ey >= gh - 10) Or ( ey < 0) Then
+
+      velY[i] = velY[i] * -1
+
+    Else
+
+      velY[i] = velY[i]    
+
+    EndIf
+
+    
+
+    enemyx[i] = enemyx[i]+ velX[i]
+
+    enemyy[i] = enemyy[i] + velY[i]
+
+    Shapes.Move(enemy[i], enemyx[i], enemyy[i]) 
+
+    
+
+  endfor
+
+endsub
+
+
+
+Sub enemyspawn
+
+  
+
+  If(level<9) Then
+
+    If (levelat[level] ="False") Then
+
+      numEnemy=numEnemy+1
+
+      createenemy()
+
+      levelat[level]= "True"
+
+    endif
+
+    
+
+  ElseIf(level>9) then
+
+    if (smartenemyexists="False") then
+
+      smartenemyexists="True"
+
+      If (levelat[level] ="False") Then
+
+        
+
+        snumEnemy=snumEnemy+1
+
+        createsmartenemy()
+
+        levelat[level]= "True"
+
+      endif
+
+    EndIf
+
+  endif
+
+endsub
+
+
+
+Sub movesmartenemy
+
+  For i = 1 To snumEnemy
+
+    sex = Shapes.GetLeft(smartenemy[i])'SmartEnemyX
+
+    sey = Shapes.Gettop(smartenemy[i])
+
+    positionx = (playerx-sex)
+
+    positiony = (playery-sey)
+
+    If (positionx < 0) Then 
+
+      velXS[i]= -vels
+
+    ElseIf (positionx>0) then
+
+      velXS[i] = vels
+
+    Else
+
+      velXS[i]=0
+
+    EndIf
+
+    
+
+    If (positiony < 0) Then 
+
+      velYS[i]= -vels
+
+    ElseIf (positiony>0) then
+
+      velYS[i] = vels
+
+    Else
+
+      velYS[i]=0
+
+    EndIf
+
+    
+
+    smartenemyx[i] =smartenemyx[i] + velXS[i]
+
+    smartenemyy[i] =smartenemyy[i] + velYS[i]
+
+    Shapes.Move(smartenemy[i], smartenemyx[i], smartenemyy[i])
+
+    
+
+  endfor
+
+EndSub
+
+
+
+Sub move
+
+  pressed = "True"
+
+  
+
+EndSub
+
+Sub checkcollisionofplayersmartenemy
+
+  For i = 1 To snumEnemy 
+
+    ey = Shapes.GetTop(smartenemy[i])
+
+    ex = Shapes.GetLeft(smartenemy[i])   
+
+    
+
+    'checks for top left
+
+    If(touchings[i]="False") Then
+
+      If ((ey >= py) and (ey <= (py+20))) Then
+
+        If ((ex >= px) and (ex <= (px+20)))Then
+
+          numhit = numhit + 1
+
+          losshealth = "True"
+
+          TextWindow.WriteLine("collision with " + i)
+
+          touching[i]="True"
+
+        Else
+
+          
+
+        EndIf
+
+        
+
+      Else  
+
+        touchings[i]="False"  
+
+        
+
+      EndIf  
+
+      
+
+      'checks for top right 
+
+      If ((ey >= py) and (ey <= (py+20))) Then
+
+        If (((ex+10) >= px) and ((ex+10) <= (px+20)))Then
+
+          numhit = numhit + 1
+
+          losshealth = "True"
+
+          
+
+          touchings[i]="True"
+
+        Else
+
+          touching[i]="False" 
+
+        EndIf
+
+      Else  
+
+        
+
+        
+
+      EndIf 
+
+      'checks for bottom right
+
+      If (((ey+10) >= py) and ((ey+10) <= (py+20))) Then
+
+        If (((ex+10) >= px) and ((ex+10) <= (px+20)))Then
+
+          numhit = numhit + 1
+
+          
+
+          losshealth = "True"
+
+          
+
+          touchings[i]="True"
+
+        Else
+
+          touchings[i]="False" 
+
+        EndIf  
+
+      Else  
+
+        
+
+      EndIf  
+
+      'checks for bottom left
+
+      If (((ey+10) >= py) and ((ey+10) <= (py+20))) Then
+
+        If ((ex >= px) and (ex <= (px+20)))Then
+
+          
+
+          numhit = numhit + 1
+
+          
+
+          losshealth = "True"
+
+          touchings[i]="True"
+
+        Else
+
+          touchings[i]="False" 
+
+        EndIf
+
+      Else  
+
+        
+
+      EndIf 
+
+      
+
+      If losshealth = "True" Then
+
+        health = health - healthloss
+
+      endif
+
+      losshealth="False"
+
+    endif 
+
+    
+
+  endfor
+
+endsub
+
+'===========================================================================================
+
+Sub checkcollisionofplayer
+
+  healthloss = 2
+
+  py = Shapes.GetTop(player)
+
+  px = Shapes.GetLeft(player)
+
+  For i = 1 To numEnemy 
+
+    ey = Shapes.GetTop(enemy[i])
+
+    ex = Shapes.GetLeft(enemy[i])   
+
+    
+
+    'checks for top left
+
+    
+
+    If ((ey >= py) and (ey <= (py+20))) Then
+
+      If ((ex >= px) and (ex <= (px+20)))Then
+
+        If(touchingtl[i] = "False") then
+
+          health = health - healthloss
+
+          
+
+          touchingtl[i]="True"
+
+          TextWindow.WriteLine(touchingtl[i] + ". collided with the top left. health at" + health)
+
+          Goto stophurt
+
+        EndIf
+
+      Else
+
+        touchingtl[i] = "False"
+
+      EndIf
+
+    Else  
+
+         touchingtl[i] = "False"
+
+    EndIf
+
+    
+
+    
+
+    
+
+    'checks for top right 
+
+    
+
+    
+
+    
+
+    If ((ey >= py) and (ey <= (py+20))) Then
+
+      If (((ex+15) >= px) and ((ex+15) <= (px+20)))Then
+
+        If(touchingtr[i] = "False") then
+
+          health = health - healthloss
+
+          
+
+          touchingtr[i]="True"
+
+          TextWindow.WriteLine(touchingtr[i] + ". collided with the top right. health at" + health)
+
+          Goto stophurt
+
+        EndIf
+
+      Else
+
+        touchingtr[i] = "False"
+
+      EndIf
+
+    Else   
+
+         touchingtr[i] = "False"
+
+    EndIf 
+
+    
+
+    
+
+    'checks for bottom right
+
+    
+
+    
+
+    If (((ey+15) >= py) and ((ey+15) <= (py+20))) Then
+
+      If (((ex+15) >= px) and ((ex+15) <= (px+20)))Then
+
+        If(touchingbr[i] = "False") then
+
+          health = health - healthloss
+
+          
+
+          touchingbr[i]="True"
+
+          TextWindow.WriteLine(touchingbr[i] + ". collided with the bottom right. health at" + health)
+
+          Goto stophurt
+
+        EndIf
+
+      Else
+
+        touchingbr[i] = "False"
+
+      EndIf
+
+    Else
+
+    touchingbr[i] = "False"
+
+    EndIf  
+
+    
+
+    
+
+    'checks for bottom left
+
+    
+
+    If (((ey+15) >= py) and ((ey+15) <= (py+20))) Then ' if the bottom corner is within the player
+
+      If ((ex >= px) and (ex <= (px+20)))Then ' if the bottom corner is withing the player
+
+        
+
+        If(touchingbl[i] = "False") then
+
+          health = health - healthloss
+
+          
+
+          touchingbl[i]="True"
+
+          TextWindow.WriteLine(touchingbl[i] + ". collided with the bottom left. health at" + health)
+
+          Goto stophurt
+
+        EndIf
+
+      Else 'else if the bottom corner is not aligned
+
+        touchingbl[i]= "False"
+
+      EndIf 
+
+    else 'if the bottom corner is not even in player
+
+      touchingbl[i]= "False"
+
+    EndIf  
+
+    
+
+    stophurt:
+
+    
+
+  endfor
+
+  
+
+EndSub
+
+
+
+Sub stop
+
+  'pressed="False"
+
+  'Shapes.Move(player, playerx, playery)
+
+  
+
+EndSub
+
+
+
+Sub frameDelay'codingCat is the person to thank for this.
+
+  
+
+  
+
+  'Precise frame timing. More exact that program.delay() because it only
+
+  'pauses for the length of time remiaining in the current frame, rather than for the 
+
+  'entire time slice of the frame. Even with longer, or shorter frame processing
+
+  'times, each fram will still be exactly frameLength in duration.
+
+  While Clock.ElapsedMilliseconds - framestart < frameLength ' if the time right now subtracted from the start time is les than frame length, then keep it.
+
+    'do nothing
+
+    
+
+    
+
+  EndWhile
+
+  framestart = Clock.ElapsedMilliseconds
+
+EndSub
+
+
+
+Sub savescore
+
+  path = Program.Directory + "/Collision Game/"
+
+  name = "High Score"
+
+  ext = ".txt"
+
+  
+
+  If(score <= filesave[1]) Then 'if the score you got was less than your highscore, 
+
+    'do not update the score, because that will become the score you got making the high score just a counter for the score you recently got.
+
+    
+
+  Else
+
+    filesave[1] = score
+
+  endif
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.CreateDirectory(path)
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(path+name+ext, filesave)
+
+  
+
+  
+
+endsub
+
+

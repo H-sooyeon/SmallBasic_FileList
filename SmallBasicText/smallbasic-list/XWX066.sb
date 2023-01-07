@@ -1,0 +1,1895 @@
+' Small Basic Parser Generator 0.4
+
+' Copyright (c) 2012 Nonki Takahashi.  All rights reserved.
+
+'
+
+' History :
+
+' 0.4 2012/10/06 Rewrote as Parser Generator.
+
+' 0.3 2012/09/01 Modified for all GraphicsWindows operations (*).
+
+' 0.2 2012/09/01 Support more statements (*).
+
+' 0.1 2012/08/31 Created (*).
+
+' (*) as Small Basic Compiler Compiler
+
+'
+
+version = "0.4"
+
+title = "Small Basic Parser Generator " + version
+
+dir = Program.Directory
+
+filename = dir + "/ParserGenerator04.smallbasic"
+
+targetname = dir + "/SBGInterpreter04.smallbasic"
+
+TextWindow.Title = title
+
+TextWindow.WriteLine("Wait a moment...")
+
+traceC = "False"    ' debug
+
+PG_Init()
+
+PG_Main()
+
+TextWindow.Write(code)
+
+' The following line could be harmful and has been automatically commented.
+
+' File.WriteContents(targetname, code)
+
+
+
+Sub Exec_Expr
+
+  ' Excecution | Expression
+
+  ' expr ::= <term>[[]{+|-}[]<term>]
+
+  If match Then
+
+    If traceX Then
+
+      TextWindow.Write("Expr:_opt=" + WQ + _opt + WQ + ",_val=" + WQ + _val + WQ)
+
+    EndIf
+
+    If _opt[1] = "+" Then ' array
+
+      val = _val[1] + _val[2]
+
+    ElseIf _opt[1] = "-" Then
+
+      val = _val[1] - _val[2]
+
+    ElseIf _opt[1] = "" Then
+
+      val = _val[1]
+
+    EndIf
+
+    If traceX Then
+
+      TextWindow.WriteLine(",val=" + WQ + val + WQ)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exec_Factor
+
+  ' Excecution | Factor
+
+  ' factor ::= {<val>|([]<term>[])}
+
+  If match Then
+
+    If traceX Then
+
+      TextWindow.Write("Factor:_val=" +  WQ + _val + WQ)
+
+    EndIf
+
+    If _opt[1] = "val" Then
+
+      val = _val[1]
+
+    ElseIf _opt[1] = ")" Then
+
+      val = _val[2]
+
+    EndIf
+
+    If traceX Then
+
+      TextWindow.WriteLine(",val=" + WQ + val + WQ)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exec_Let
+
+  ' Excecution | Let
+
+  ' let ::= {<prop>|<var>}[]=[]<expr>
+
+  If match Then
+
+    If traceX Then
+
+      TextWindow.WriteLine("Let:_opt=" + WQ + _opt + WQ + ",_val=" + WQ + _val + WQ)
+
+    EndIf
+
+    If _opt[1] = "_var" Then
+
+      var[name] = val
+
+      If traceX Then
+
+        TextWindow.WriteLine("! " + name + "=" + val)
+
+      EndIf
+
+    ElseIf _opt[1] = "prop" Then
+
+      If prop = "bg" Then
+
+        GraphicsWindow.BackgroundColor = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.BackgroundColor=" + val)
+
+        EndIf
+
+      ElseIf prop = "bc" Then
+
+        GraphicsWindow.BrushColor = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.BrushColor=" + val)
+
+        EndIf
+
+      ElseIf prop = "fb" Then
+
+        GraphicsWindow.FontBold = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.FontBold=" + val)
+
+        EndIf
+
+      ElseIf prop = "fi" Then
+
+        GraphicsWindow.FontItalic = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.FontItalic=" + val)
+
+        EndIf
+
+      ElseIf prop = "fn" Then
+
+        GraphicsWindow.FontName = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.FontName=" + val)
+
+        EndIf
+
+      ElseIf prop = "fs" Then
+
+        GraphicsWindow.FontBold = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.FontSize=" + val)
+
+        EndIf
+
+      ElseIf prop = "hi" Then
+
+        GraphicsWindow.Height = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.Height=" + val)
+
+        EndIf
+
+      ElseIf prop = "le" Then
+
+        GraphicsWindow.Left = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.Left=" + val)
+
+        EndIf
+
+      ElseIf prop = "pc" Then
+
+        GraphicsWindow.PenColor = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.PenColor=" + val)
+
+        EndIf
+
+      ElseIf prop = "pw" Then
+
+        GraphicsWindow.PenWidth = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.PenWidth=" + val)
+
+        EndIf
+
+      ElseIf prop = "ti" Then
+
+        GraphicsWindow.Title = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.Title=" + val)
+
+        EndIf
+
+      ElseIf prop = "to" Then
+
+        GraphicsWindow.Top = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.Top=" + val)
+
+        EndIf
+
+      ElseIf prop = "wi" Then
+
+        GraphicsWindow.Width = val
+
+        If traceX Then
+
+          TextWindow.WriteLine("! GraphicsWindow.Width=" + val)
+
+        EndIf
+
+      EndIf
+
+    EndIf ' _opt[1]
+
+    If traceX Then
+
+      TextWindow.WriteLine("Let:val=" + WQ + val + WQ)
+
+    EndIf
+
+  EndIf ' match
+
+EndSub
+
+
+
+Sub Exec_Literal
+
+  ' Excecution | Literal
+
+  ' literal ::= {<real>|<_str>}
+
+  If match Then
+
+    If traceX Then
+
+      TextWindow.Write("Literal:_opt=" + WQ + _opt + WQ + ",_val=" +  WQ + _val + WQ)
+
+    EndIf
+
+    If _opt[1] = "real" Then
+
+      val = _val[1]
+
+    ElseIf _opt[1] = "_str" Then
+
+      val = _val[2]
+
+    EndIf
+
+    If traceX Then
+
+      TextWindow.WriteLine(",val=" + WQ + val + WQ)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exec_Real
+
+  ' Excecution | Real
+
+  ' real ::= [-]<_num>[.<_num>]
+
+  If match Then
+
+    If traceX Then
+
+      TextWindow.Write("Real:_const=" + WQ + _const + WQ + ",_val=" + WQ + _val + WQ)
+
+    EndIf
+
+    val = _const[1] + _val[1] ' sign + int
+
+    If _const[2] = "." Then
+
+      val = Text.Append(val + ".", _val[2]) ' sign + int + "." + frac
+
+    EndIf
+
+    If traceX Then
+
+      TextWindow.WriteLine(",val=" + WQ + val + WQ)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Exec_Term
+
+  ' Excecution | Term
+
+  ' term ::= <factor>[[]{'*'|/}[]<factor>]
+
+  If match Then
+
+    If traceX Then
+
+      TextWindow.Write("Term:_opt=" + WQ + _opt + WQ + ",_val=" + WQ + _val + WQ)
+
+    EndIf
+
+    If _opt[1] = "*" Then ' array
+
+      val = _val[1] * _val[2]
+
+    ElseIf _opt[1] = "/" Then
+
+      val = _val[1] / _val[2]
+
+    ElseIf _opt[1] = "" Then
+
+      val = _val[1]
+
+    EndIf
+
+    If traceX Then
+
+      TextWindow.WriteLine(",val=" + WQ + val + WQ)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Init
+
+  UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+  LOWER = "abcdefghijklmnopqrstuvwxyz"
+
+  DIGIT = "0123456789"
+
+  FCHAR = UPPER + LOWER         ' first charcters for label/variable/sub
+
+  TCHAR = FCHAR + DIGIT + "_"   ' trailing characters for label/variable/sub
+
+  WQ = Text.GetCharacter(34)                            ' double quote
+
+  SQ = "'"                                              ' single quote
+
+  CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)  ' carriage return + line feed
+
+EndSub
+
+
+
+Sub Lex_Label
+
+  ' param buf - buffer
+
+  ' param ptr - pointer
+
+  ' return match - "True" if match
+
+  ' return ptr - next pointer
+
+  ' return label[] - label name array
+
+  ' return val - label name
+
+  If traceC Then
+
+    TextWindow.WriteLine("<Lex_Label> " + ptr)
+
+  EndIf
+
+  Lex_Name()
+
+  If match And (Array.ContainsValue(label, val) = "False") Then
+
+    nLabel = nLabel + 1
+
+    label[nLabel] = val
+
+  EndIf
+
+  If traceC Then
+
+    TextWindow.WriteLine("</Lex_Label> " + ptr)
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Name
+
+  ' param buf - buffer
+
+  ' param ptr - pointer
+
+  ' return match - "True" if match
+
+  ' return ptr - next pointer
+
+  ' return name - name
+
+  If traceC Then
+
+    TextWindow.WriteLine("<Lex_Name> " + ptr)
+
+  EndIf
+
+  ch = Text.GetSubText(buf, ptr, 1)
+
+  If Text.GetIndexOf(FCHAR, ch) > 0 Then
+
+    name = ch
+
+    ptr = ptr + 1
+
+    match = "True"
+
+    While match
+
+      ch = Text.GetSubText(buf, ptr, 1)
+
+      If Text.GetIndexOf(TCHAR, ch) > 0 Then
+
+        ptr = ptr + 1
+
+        name = name + ch
+
+      Else
+
+        match = "False"
+
+      EndIf
+
+    EndWhile
+
+    match = "True"
+
+  Else
+
+    name = ""
+
+    match = "False"
+
+  EndIf
+
+  If traceC Then
+
+    TextWindow.WriteLine("</Lex_Name> " + ptr)
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Num
+
+  ' param buf - buffer
+
+  ' param ptr - pointer
+
+  ' return match - "True"
+
+  ' return ptr - next pointer
+
+  ' return val - number
+
+  ch = Text.GetSubText(buf, ptr, 1)
+
+  If Text.GetIndexOf(DIGIT, ch) > 0 Then
+
+    val = ch
+
+    ptr = ptr + 1
+
+    match = "True"
+
+    While match
+
+      ch = Text.GetSubText(buf, ptr, 1)
+
+      If Text.GetIndexOf(DIGIT, ch) > 0 Then
+
+        ptr = ptr + 1
+
+        val = Text.Append(val, ch)
+
+      Else
+
+        match = "False"
+
+      EndIf
+
+    EndWhile
+
+    match = "True"
+
+  Else
+
+    val = ""
+
+    match = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Space0
+
+  ' param buf - buffer
+
+  ' param ptr - pointer
+
+  ' return match - "True"
+
+  ' return ptr - next pointer
+
+  txt = " "
+
+  match = "True"
+
+  While match
+
+    Lex_Text()
+
+  EndWhile
+
+  match = "True"
+
+EndSub
+
+
+
+Sub Lex_Space1
+
+  ' param buf - buffer
+
+  ' param ptr - pointer
+
+  ' return match - "True"
+
+  ' return ptr - next pointer
+
+  If traceC Then
+
+    TextWindow.WriteLine("<Lex_Space1> " + ptr)
+
+  EndIf
+
+  txt = " "
+
+  Lex_Text()
+
+  If match Then
+
+    While match
+
+      Lex_Text()
+
+    EndWhile
+
+    match = "True"
+
+  Else
+
+    TextWindow.WriteLine("Syntax Error: space not found")
+
+  EndIf
+
+  If traceC Then
+
+    TextWindow.WriteLine("</Lex_Space1> " + ptr)
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Str
+
+  ' param buf - buffer
+
+  ' param ptr - pointer
+
+  ' return match - "True"
+
+  ' return ptr - next pointer
+
+  ' return val - string
+
+  Stack.PushValue("local", ptr)
+
+  txt = WQ
+
+  Lex_Text()
+
+  If match Then
+
+    ch = Text.GetSubText(buf, ptr, 1)
+
+    str = ""
+
+    While ch <> WQ
+
+      str = str + ch
+
+      ptr = ptr + 1
+
+      ch = Text.GetSubText(buf, ptr, 1)
+
+    EndWhile
+
+  EndIf
+
+  If match Then
+
+    txt = WQ
+
+    Lex_Text()
+
+  EndIf
+
+  _ptr = Stack.PopValue("local")
+
+  If match Then
+
+    val = str
+
+  Else
+
+    val = ""
+
+    ptr = _ptr
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Text
+
+  ' param buf - buffer
+
+  ' param ptr - pointer
+
+  ' param txt - text to lexical analysis
+
+  ' return match - "True" if match
+
+  ' return ptr - next pointer
+
+  ' return val - txt if match
+
+  If traceC Then
+
+    If txt = CRLF Then
+
+      _txt = "CRLF"
+
+    ElseIf txt = WQ Then
+
+      _txt = SQ + txt + SQ
+
+    Else
+
+      _txt = WQ + txt + WQ
+
+    EndIf
+
+    TextWindow.WriteLine("<Lex_Text " + _txt + "> " + ptr)
+
+  EndIf
+
+  val = ""
+
+  txtlen = Text.GetLength(txt)
+
+  lotxt = Text.ConvertToLowerCase(txt)
+
+  lobuf = Text.ConvertToLowerCase(Text.GetSubText(buf, ptr, txtlen))
+
+  If lobuf = lotxt Then
+
+    match = "True"
+
+    ptr = ptr + txtlen
+
+    val = txt
+
+  Else
+
+    match = "False"
+
+  EndIf
+
+  If traceC Then
+
+    TextWindow.WriteLine("</Lex_Text> " + ptr)
+
+  EndIf
+
+EndSub
+
+
+
+Sub Lex_Var
+
+  ' _var ::= <_name>['['[]<val>[]']'['['[]<val>[]']']]
+
+  ' param buf - buffer
+
+  ' param ptr - pointer
+
+  ' return match - "True" if match
+
+  ' return ptr - next pointer
+
+  ' return var[] - variable name array
+
+  ' return name - variable name
+
+  ' return val - variable
+
+  Stack.PushValue("local", _val)
+
+  _val = ""
+
+  Lex_Name()
+
+  _val[1] = val
+
+  Stack.PushValue("local", name)
+
+  If match Then
+
+    Stack.PushValue("ptr",ptr)
+
+    If match Then
+
+      txt = "["
+
+      Lex_Text()
+
+    EndIf
+
+    If match Then
+
+      Lex_Space0()
+
+    EndIf
+
+    If match Then
+
+      Parse_Val()
+
+      _val[2] = val
+
+    EndIf
+
+    If match Then
+
+      Lex_Space0()
+
+    EndIf
+
+    If match Then
+
+      txt = "]"
+
+      Lex_Text()
+
+    EndIf
+
+    If match Then
+
+      Stack.PushValue("ptr",ptr)
+
+      If match Then
+
+        txt = "["
+
+        Lex_Text()
+
+      EndIf
+
+      If match Then
+
+        Lex_Space0()
+
+      EndIf
+
+      If match Then
+
+        Parse_Val()
+
+        _val[3] = val
+
+      EndIf
+
+      If match Then
+
+        Lex_Space0()
+
+      EndIf
+
+      If match Then
+
+        txt = "]"
+
+        Lex_Text()
+
+      EndIf
+
+      _ptr = Stack.PopValue("ptr")
+
+      If match = "False" Then
+
+        ptr = _ptr
+
+        match = "True"
+
+      EndIf
+
+    EndIf
+
+    _ptr = Stack.PopValue("ptr")
+
+    If match = "False" Then
+
+      ptr = _ptr
+
+      match = "True"
+
+    EndIf
+
+  EndIf
+
+  name = Stack.PopValue("local")
+
+  If match Then
+
+    If _val[3] <> "" Then
+
+      name = name + "[" + _val[2] + "][" + _val[3] + "]"
+
+    ElseIf _Val[2] <> "" Then
+
+      name = name + "[" + _val[2] + "]
+
+    EndIf
+
+    If Array.ContainsIndex(var, name) Then
+
+      val = var[name]
+
+      If val = "N/A" Then
+
+        val = ""
+
+      EndIf
+
+    Else
+
+      var[name] = "N/A"
+
+      val = ""
+
+    EndIf
+
+  EndIf
+
+  _val = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub SBGI_Main
+
+  ' Small Basic Graphics Interpreter | Main
+
+  title = "Small Basic Graphics Interpreter " + version
+
+  traceC = "False"  ' trace subroutine call
+
+  traceX = "False"  ' trace operation execution
+
+  traceV = "False"  ' dump variable array after parse
+
+  TextWindow.Title = title
+
+  GraphicsWindow.Left = 0
+
+  TextWindow.Left = Desktop.Width - 680
+
+  Lex_Init()
+
+  TextWindow.WriteLine("Enter statements (Graphics operations) below.")
+
+  TextWindow.WriteLine("")
+
+  While "True"
+
+    buf = TextWindow.Read()
+
+    TextWindow.ForegroundColor = "Green"
+
+    len = Text.GetLength(buf)
+
+    ptr = 1
+
+    Parse_State()
+
+    If ptr <= len Then
+
+      TextWindow.WriteLine("Syntax Error")
+
+    EndIf
+
+    If traceV Then
+
+      TextWindow.WriteLine("var=" + WQ + var + WQ)
+
+    EndIf
+
+    TextWindow.ForegroundColor = "Gray"
+
+  EndWhile
+
+EndSub
+
+
+
+Sub Parse_State
+
+  ' dummy
+
+  _opt = ""
+
+  _val = ""
+
+  _const = ""
+
+  prop = ""
+
+EndSub
+
+
+
+Sub Parse_Val
+
+  ' dummy
+
+EndSub
+
+  
+
+Sub PG_DumpBuf  ' for debug
+
+  ' Parser Generator | Dump buf (buffer)
+
+  ' param buf
+
+  ' param ptr
+
+  TextWindow.ForegroundColor = "Green"
+
+  TextWindow.WriteLine(buf)
+
+  TextWindow.WriteLine(Text.GetSubText(SP60, 1, ptr - 1) + "^")
+
+  TextWindow.ForegroundColor = "Gray"
+
+EndSub
+
+
+
+Sub PG_DumpCode ' for debug
+
+  ' Parser Generator | Dump code
+
+  ' param code
+
+  TextWindow.ForegroundColor = "Green"
+
+  TextWindow.Write(code)
+
+  TextWindow.ForegroundColor = "Gray"
+
+EndSub
+
+
+
+Sub PG_ExecCode
+
+  ' Parser Generator | Execute code
+
+  ' param index[i] - syntax name
+
+  name = "<" + index[i] + ">"
+
+  If Text.GetIndexOf(syntax["prop"], name) > 0 Then
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "If match Then" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  prop = " + WQ + index[i] + WQ + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  val = " + syntax[index[i]] + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "EndIf" + CRLF
+
+  ElseIf Text.GetIndexOf(syntax["valOpe"], name) > 0 Then
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "If match Then" + CRLF
+
+    ptrb = Text.GetIndexOf(syntax[index[i]], "[")
+
+    ope = Text.GetSubText(syntax[index[i]], 1, ptrb - 1)
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  val = " + ope + "("
+
+    For n = 1 To nVal
+
+      If n > 1 Then
+
+        code = code + ", "
+
+      EndIf
+
+      code = code + "_val[" + n + "]"
+
+    EndFor
+
+    code = code + ")" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  If traceX Then" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "    TextWindow.WriteLine("
+
+    code = code + WQ + "! " + WQ + " + val + " + WQ + "=" + ope + "("
+
+    If nVal > 0 Then
+
+      code = code + WQ + " + "
+
+    EndIf
+
+    For n = 1 To nVal
+
+      If n > 1 Then
+
+        code = code + " + " + WQ + "," + WQ + " + "
+
+      EndIf
+
+      code = code + "_val[" + n + "]"
+
+    EndFor
+
+    If nVal > 0 Then
+
+      code = code + " + " + WQ
+
+    EndIf
+
+    code = code + ")" + WQ + ")" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  EndIf" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "EndIf" + CRLF
+
+  ElseIf Text.GetIndexOf(syntax["voidOpe"], name) > 0 Then
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "If match Then" + CRLF
+
+    ptrb = Text.GetIndexOf(syntax[index[i]], "[")
+
+    ope = Text.GetSubText(syntax[index[i]], 1, ptrb - 1)
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  " + ope + "("
+
+    For n = 1 To nVal
+
+      If n > 1 Then
+
+        code = code + ", "
+
+      EndIf
+
+      code = code + "_val[" + n + "]"
+
+    EndFor
+
+    code = code + ")" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  If traceX Then" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "    TextWindow.WriteLine("
+
+    code = code + WQ + "! " + ope + "("
+
+    If nVal > 0 Then
+
+      code = code + WQ + " + "
+
+    EndIf
+
+    For n = 1 To nVal
+
+      If n > 1 Then
+
+        code = code + " + " + WQ + "," + WQ + " + "
+
+      EndIf
+
+      code = code + "_val[" + n + "]"
+
+    EndFor
+
+    If nVal > 0 Then
+
+      code = code + " + " + WQ
+
+    EndIf
+
+    code = code + ")" + WQ + ")" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  EndIf" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "EndIf" + CRLF
+
+  EndIf
+
+EndSub
+
+  
+
+Sub PG_Init
+
+  ' Parser Generator | Initialize
+
+  ' return subs[] - subroutine names to copy
+
+  ' return syntax[] - BNF syntax array to parse
+
+
+
+  ' initialize subroutine names to copy
+
+  subs[1] = "SBGI_Main"   ' will be used in PG_Main as subs[1]
+
+  subs[2] = "Exec_Expr"
+
+  subs[3] = "Exec_Factor"
+
+  subs[4] = "Exec_Let"
+
+  subs[5] = "Exec_Literal"
+
+  subs[6] = "Exec_Real"
+
+  subs[7] = "Exec_Term"
+
+  subs[8] = "Lex_Init"
+
+  subs[9] = "Lex_Label"
+
+  subs[10] = "Lex_Name"
+
+  subs[11] = "Lex_Num"
+
+  subs[12] = "Lex_Space0"
+
+  subs[13] = "Lex_Space1"
+
+  subs[14] = "Lex_Sub"
+
+  subs[15] = "Lex_Str"
+
+  subs[16] = "Lex_Text"
+
+  subs[17] = "Lex_Var"
+
+  ' initialize constants
+
+  Lex_Init()
+
+  SP60 = "                                                            "
+
+  nIndent = 0
+
+  ' initialize syntax array
+
+  syntax["state"] = "[]{<ope>|<let>|[]}[_SQ*]"          ' statement
+
+  syntax["let"] = "{<prop>|<_var>}[]=[]<expr>"          ' assignment
+
+  syntax["expr"] = "<term>[[]{+|-}[]<term>]"            ' expression
+
+  syntax["term"] = "<factor>[[]{'*'|/}[]<factor>]"      ' term
+
+  syntax["factor"] = "{<val>|([]<term>[])}"             ' factor
+
+  syntax["val"] = "{<literal>|<prop>|<ope>|<_var>}"     ' value
+
+  syntax["literal"] = "{<real>|<_str>}"                 ' literal
+
+  syntax["real"] = "[-]<_num>[.<_num>]"                 ' real number
+
+  ' (operation)
+
+  syntax["ope"] = "{<voidOpe>|<valOpe>}"
+
+  syntax["voidOpe"] = "{<clear>|<dBText>|<dEll>|<dIma>|<dLine>|<dRect>|<dRIma>|<dText>|<dTri>|<fEll>|<fRect>|<fTri>|<sPix>|<show>|<sMsg>}"
+
+  syntax["clear"] = "GraphicsWindow.Clear[]([])"
+
+  syntax["dBText"] = "GraphicsWindow.DrawBoundText[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["dEll"] = "GraphicsWindow.DrawEllipse[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["dIma"] = "GraphicsWindow.DrawImage[]([]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["dLine"] = "GraphicsWindow.DrawLine[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["dRect"] = "GraphicsWindow.DrawRectangle[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["dRIma"] = "GraphicsWindow.DrawResizedImage[]([]<val>[],[]<val>[],[]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["dText"] = "GraphicsWindow.DrawText[]([]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["dTri"] = "GraphicsWindow.DrawTriangle[]([]<val>[],[]<val>[],[]<val>[],[]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["fEll"] = "GraphicsWindow.FillEllipse[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["fRect"] = "GraphicsWindow.FillRectangle[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["fTri"] = "GraphicsWindow.FillTriangle[]([]<val>[],[]<val>[],[]<val>[],[]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["sPix"] = "GraphicsWindow.SetPixel[]([]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["show"] = "GraphicsWindow.Show[]([])"
+
+  syntax["sMsg"] = "GraphicsWindow.ShowMessage[]([]<val>[],[]<val>[])"
+
+  syntax["valOpe"] = "{<gRGB>|<gPix>|<gCol>}"
+
+  syntax["gRGB"] = "GraphicsWindow.GetColorFromRGB[]([]<val>[],[]<val>[],[]<val>[])"
+
+  syntax["gPix"] = "GraphicsWindow.GetPixel[]([]<val>[],[]<val>[])"
+
+  syntax["gCol"] = "GraphicsWindow.GetRandomColor[]([])"
+
+  ' (property)
+
+  syntax["prop"] = "{<bg>|<bc>|<fb>|<fi>|<fn>|<fs>|<hi>|<le>|<pc>|<pw>|<ti>|<to>|<wi>}"
+
+  syntax["bg"] = "GraphicsWindow.BackgroundColor"
+
+  syntax["bc"] = "GraphicsWindow.BrushColor"
+
+  syntax["fb"] = "GraphicsWindow.FontBold"
+
+  syntax["fi"] = "GraphicsWindow.FontItalic"
+
+  syntax["fn"] = "GraphicsWindow.FontName"
+
+  syntax["fs"] = "GraphicsWindow.FontSize"
+
+  syntax["hi"] = "GraphicsWindow.Height"
+
+  syntax["le"] = "GraphicsWindow.Left"
+
+  syntax["pc"] = "GraphicsWindow.PenColor"
+
+  syntax["pw"] = "GraphicsWindow.PenWidth"
+
+  syntax["ti"] = "GraphicsWindow.Title"
+
+  syntax["to"] = "GraphicsWindow.Top"
+
+  syntax["wi"] = "GraphicsWindow.Width"
+
+EndSub
+
+  
+
+Sub PG_Main
+
+  ' Parser Generator | Main
+
+  ' return code
+
+  code = "' " + Clock.Date + " " + Clock.Time + " Code generated "
+
+  code = code + "by " + title + CRLF + CRLF
+
+  code = code + "version = " + WQ + version + WQ + CRLF
+
+  code = code + subs[1] + "()" + CRLF + CRLF
+
+  count = Array.GetItemCount(subs)
+
+  For i = 1 To count
+
+    subname = subs[i]
+
+    SB_GetSub()
+
+    code = code + buf + CRLF + CRLF
+
+  EndFor
+
+  count = Array.GetItemCount(syntax)
+
+  index = Array.GetAllIndices(syntax)
+
+  For i = 1 To count
+
+    exec = ""
+
+    nExec = 0
+
+    nVal = 0
+
+    nConst = 0
+
+    buf = syntax[index[i]]
+
+    len = Text.GetLength(buf)
+
+    ptr = 1
+
+    i1 = Text.ConvertToUpperCase(Text.GetSubText(index[i], 1, 1))
+
+    i2 = Text.GetSubTextToEnd(index[i], 2)
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "Sub Parse_" + i1 + i2 + CRLF
+
+    nIndent = nIndent + 2
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "' " + index[i] + " ::= " + buf + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "If traceC Then" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  TextWindow.WriteLine(" + WQ + "<Parse_" + i1 + i2 + "> " + WQ + " + ptr)" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "EndIf" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "_const = " + WQ + WQ + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "Stack.PushValue(" + WQ + "local" + WQ + ", _opt)" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "_opt = " + WQ + WQ + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "Stack.PushValue(" + WQ + "local" + WQ + ", _val)" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "_val = " + WQ + WQ + CRLF
+
+    delim = "&"
+
+    PG_Syntax()
+
+    PG_ExecCode()
+
+    If Array.ContainsValue(subs, "Exec_" + i1 + i2) Then
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "Exec_" + i1 + i2 + "()" + CRLF
+
+    EndIf
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "_val = Stack.PopValue(" + WQ + "local" + WQ + ")" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "_opt = Stack.PopValue(" + WQ + "local" + WQ + ")" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "If traceC Then" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  TextWindow.WriteLine(" + WQ + "</Parse_" + i1 + i2 + "> " + WQ + " + ptr)" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "EndIf" + CRLF
+
+    nIndent = nIndent - 2
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "EndSub" + CRLF
+
+    If i < count Then
+
+      code = code + CRLF
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub PG_Syntax
+
+  ' Parser Generator | BNF Syntax
+
+  ' syntax ::= <term> *[ <term> ]
+
+  ' param buf - program buffer
+
+  ' param ptr - program pointer
+
+  ' param len - program buffer length
+
+  ' param delim - delimiter
+
+  ' return match - "True" if match
+
+  ' return code - generated code
+
+  Stack.PushValue("local", code)
+
+  nOpt = 0
+
+  code = ""
+
+  PG_Term()
+
+  code1 = code
+
+  code = Stack.PopValue("local")
+
+  If (ptr <= len) And (Text.GetIndexOf(delim, Text.GetSubText(buf, ptr, 1)) = 0) Then
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "Stack.PushValue(" + WQ + "ptr" + WQ + ",ptr)" + CRLF
+
+    code = code + code1
+
+    While (ptr <= len) And (Text.GetIndexOf(delim, Text.GetSubText(buf, ptr, 1)) = 0)
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "If match Then" + CRLF
+
+      nIndent = nIndent + 2
+
+      PG_Term()
+
+      nIndent = nIndent - 2
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "EndIf" + CRLF
+
+    EndWhile
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "_ptr = Stack.PopValue(" + WQ + "ptr" + WQ + ")" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "If match = " + WQ + "False" + WQ + " Then" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  ptr = _ptr" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "EndIf" + CRLF
+
+  Else
+
+    code = code + code1
+
+  EndIf
+
+EndSub
+
+
+
+Sub PG_Term
+
+  ' Parser Generator | BNF Term
+
+  ' term ::= { '[' ']' | '[' <syntax> ']' | '*[' <syntax> ']' | '{' <syntax> [ '|' <syntax> ] '}' | '<' <non-terminal symbol> '>' | <terminal symbol>}
+
+  ' param buf - program buffer
+
+  ' param ptr - program pointer
+
+  ' param len - program buffer length
+
+  ' return match - "True" if match
+
+  ' return code - generated code
+
+  ' return term - terminal symbol | non-terminal symbol
+
+  term = ""
+
+  If Text.GetSubText(buf, ptr, 1) = "[" Then
+
+    ptr = ptr + 1
+
+    If Text.GetSubText(buf, ptr, 1) = "]" Then
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "Lex_Space0()" + CRLF
+
+    Else
+
+      Stack.PushValue("local", delim)
+
+      delim = "]"
+
+      PG_Syntax()
+
+      delim = Stack.PopValue("local")
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "match = " + WQ + "True" + WQ + CRLF
+
+    EndIf
+
+    ptr = ptr + 1
+
+  ElseIf Text.StartsWith(Text.GetSubTextToEnd(buf, ptr), "*[") Then
+
+    ptr = ptr + 2
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "match = " + WQ + "True" + WQ + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "While match" + CRLF
+
+    nIndent = nIndent + 2
+
+    Stack.PushValue("local", delim)
+
+    delim = "]"
+
+    PG_Syntax()
+
+    delim = Stack.PopValue("local")
+
+    ptr = ptr + 1
+
+    nIndent = nIndent - 2
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "EndWhile" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "match = " + WQ + "True" + WQ + CRLF
+
+  ElseIf Text.GetSubText(buf, ptr, 1) = "{" Then
+
+    ptr = ptr + 1
+
+    nOr = 0
+
+    nOpt = nOpt + 1
+
+    While (Text.GetSubText(buf, ptr, 1) <> "}") And (ptr <= len)
+
+      Stack.PushValue("local", delim)
+
+      Stack.PushValue("local", nOr)
+
+      Stack.PushValue("local", nOpt)
+
+      delim = "|}"
+
+      PG_Syntax()
+
+      nOpt = Stack.PopValue("local")
+
+      nOr = Stack.PopValue("local")
+
+      delim = Stack.PopValue("local")
+
+      If Text.GetSubText(buf, ptr, 1) = "|" Then
+
+        nOr = nOr + 1
+
+        ptr = ptr + 1
+
+        If nOr > 1 Then
+
+          nIndent = nIndent - 2
+
+          code = code + Text.GetSubText(SP60, 1, nIndent) + "EndIf" + CRLF
+
+        EndIf
+
+        code = code + Text.GetSubText(SP60, 1, nIndent) + "If match Then" + CRLF
+
+        code = code + Text.GetSubText(SP60, 1, nIndent) + "  _opt[" + nOpt + "] = " + WQ + term + WQ + CRLF
+
+        code = code + Text.GetSubText(SP60, 1, nIndent) + "Else" + CRLF
+
+        nIndent = nIndent + 2
+
+      EndIf
+
+    EndWhile
+
+    ptr = ptr + 1
+
+    If nOr > 0 Then
+
+      nIndent = nIndent - 2
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "  If match Then" + CRLF
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "    _opt[" + nOpt + "] = " + WQ + term + WQ + CRLF
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "  EndIf" + CRLF
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "EndIf" + CRLF
+
+    EndIf
+
+  ElseIf Text.GetSubText(buf, ptr, 1) = "<" Then ' non-terminal symbol
+
+    ptr = ptr + 1
+
+    term = ""
+
+    While (Text.GetSubText(buf, ptr, 1) <> ">") And (ptr <= len)
+
+      term = Text.Append(term, Text.GetSubText(buf, ptr, 1))
+
+      ptr = ptr + 1
+
+    EndWhile
+
+    ptr = ptr + 1
+
+    t1 = Text.ConvertToUpperCase(Text.GetSubText(term, 1, 1))
+
+    If t1 = "_" Then
+
+      t1 = Text.ConvertToUpperCase(Text.GetSubText(term, 2, 1))
+
+      t2 = Text.GetSubTextToEnd(term, 3)
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "Lex_" + t1 + t2 + "()" + CRLF
+
+      nVal = nVal + 1
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "_val[" + nVal + "] = val" + CRLF
+
+    Else
+
+      t2 = Text.GetSubTextToEnd(term, 2)
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "Parse_" + t1 + t2 + "()" + CRLF
+
+      nVal = nVal + 1
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "_val[" + nVal + "] = val" + CRLF
+
+    EndIf
+
+  ElseIf Text.GetSubText(buf, ptr, 1) = "'" Then ' (quoted) terminal symbol
+
+    ptr = ptr + 1
+
+    term = ""
+
+    While (Text.GetSubText(buf, ptr, 1) <> "'") And (ptr <= len)
+
+      term = Text.Append(term, Text.GetSubText(buf, ptr, 1))
+
+      ptr = ptr + 1
+
+    EndWhile
+
+    ptr = ptr + 1
+
+    If term = "_SQ" Then
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "txt = SQ" + CRLF
+
+    Else
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "txt = " + WQ + term + WQ + CRLF
+
+    EndIf
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "Lex_Text()" + CRLF
+
+    nConst = nConst + 1
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "_const[" + nConst + "] = val" + CRLF
+
+  ElseIf Text.GetSubText(buf, ptr, 1) = " " Then
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "Lex_Space1()" + CRLF
+
+    ptr = ptr + 1
+
+  ElseIf Text.GetSubText(buf, ptr, 1) = "*" Then
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "_ptr = Text.GetIndexOf(buf, CRLF)" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "If _ptr = 0 Then" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "  _ptr = len + 1" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "EndIf" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "ptr = _ptr" + CRLF
+
+    code = code + Text.GetSubText(SP60, 1, nIndent) + "match = " + WQ + "True" + WQ + CRLF
+
+    ptr = ptr + 1
+
+  Else ' terminal symbol
+
+    term = ""
+
+    While (Text.GetIndexOf("[]*{|}<>' ", Text.GetSubText(buf, ptr, 1)) = 0) And (ptr <= len)
+
+      term = term + Text.GetSubText(buf, ptr, 1)
+
+      ptr = ptr + 1
+
+    EndWhile
+
+    If term <> "" Then
+
+      If term = "_SQ" Then
+
+        code = code + Text.GetSubText(SP60, 1, nIndent) + "txt = SQ" + CRLF
+
+      Else
+
+        code = code + Text.GetSubText(SP60, 1, nIndent) + "txt = " + WQ + term + WQ + CRLF
+
+      EndIf
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "Lex_Text()" + CRLF
+
+      nConst = nConst + 1
+
+      code = code + Text.GetSubText(SP60, 1, nIndent) + "_const[" + nConst + "] = val" + CRLF
+
+    EndIF
+
+  EndIf
+
+EndSub
+
+
+
+Sub SB_GetSub
+
+  ' Small Basic | Get subroutine from Small Basic source file
+
+  ' param filename - file name
+
+  ' param subname - subroutine name
+
+  ' return buf - subroutine buffer
+
+  len = Text.GetLength(subname)
+
+' The following line could be harmful and has been automatically commented.
+
+'   buf = File.ReadContents(filename)
+
+  ptr = 1
+
+  notFound = "True"
+
+  While notFound
+
+    _ptr = Text.GetIndexOf(Text.GetSubTextToEnd(buf, ptr), "Sub")
+
+    If _ptr = 0 Then
+
+      buf = ""
+
+      Goto sbgs_exit
+
+    EndIf
+
+    ptrSub = ptr + _ptr - 1
+
+    ptr = ptrSub + 3
+
+    While Text.GetSubText(buf, ptr, 1) = " "
+
+      ptr = ptr + 1
+
+    EndWhile
+
+    If Text.GetSubText(buf, ptr, len) = subname Then
+
+      notFound = "False"
+
+    EndIf
+
+  EndWhile
+
+  _ptr = Text.GetIndexOf(Text.GetSubTextToEnd(buf, ptr), "EndSub")
+
+  If _ptr = 0 Then
+
+    buf = ""
+
+    Goto sbgs_exit
+
+  EndIf
+
+  ptrEndSub = ptr + _ptr - 1
+
+  ptr = ptrEndSub + 6
+
+  len = ptr - ptrSub
+
+  buf = Text.GetSubText(buf, ptrSub, len)
+
+sbgs_exit:
+
+EndSub
+
+  
+
+

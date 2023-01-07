@@ -1,0 +1,681 @@
+'===========================================================================================
+
+'Driving Game Skeleton Program for Microsoft Small Basic
+
+'Software designed and coded by Anthony Yarrell
+
+
+
+'Several arrays are used to hold data used for animation"
+
+' - BackgroundImageQueue[ ]: stores images that scroll left and right on the horizon.
+
+' - LeftSideImages[ ]: stores images drawn along the left side of the road.
+
+' - RightSideImages[ ]: stores images drawn along the left side of the road.
+
+
+
+'Images should be added to top of these queues during game play (e.g. to add a tree to the left side of the road add the tree image to
+
+'LeftSideImages[0]. The tree should then move from the vanishing point toward the player).
+
+'
+
+'The curve in the road is not a true curve but instead is created by drawing several straight lines in a curved shaped.
+
+'============================================================================================
+
+GraphicsWindow.Title      = "Small Basic Racer"
+
+GraphicsWindow.Width      = 600
+
+GraphicsWindow.Height     = 500
+
+GraphicsWindow.CanResize  = "false"
+
+'=============================================================================================
+
+bottomRoadSegment   = 16
+
+topRoadSegment      = 0
+
+roadColor           = GraphicsWindow.GetColorFromRGB(128,64,0)
+
+
+
+'Sets the properties of the road. All other road and placement calculations are based on these variables:
+
+RoadCenterY[bottomRoadSegment]         = 440
+
+RoadCenterX[bottomRoadSegment]         = 300
+
+RoadSegmentWidth[bottomRoadSegment]    = 1500
+
+RoadSegmentHeight[bottomRoadSegment]   = 50
+
+ZoomFactor[bottomRoadSegment]          = 1
+
+
+
+roadCurve = 0 'Negative value causes left curve. Positive value causes right curve.
+
+
+
+GAME_OVER     = "false"
+
+frameCounter  = 0
+
+gameSpeed     = 195
+
+imageCounter  = bottomRoadSegment
+
+directionFlag = "LEFT"
+
+'==============================================================================================
+
+'Initialization:
+
+CalculateRoadCenterPoints()
+
+CalculateRoadSidePoints()
+
+CreateCityScape()
+
+isRedrawRoadLines = "TRUE"
+
+DrawEraseRoadLines()
+
+LoadRoadStripes()
+
+LoadRoadSideObjects()
+
+DrawRoadImages()
+
+GraphicsWindow.BrushColor="black"
+
+GraphicsWindow.FontSize=24
+
+q = Shapes.AddText("Starting test after 3 secs...")
+
+Shapes.Move(q,0,0)
+
+Program.Delay(3000)
+
+
+
+GameLoop()
+
+'===============================================================================================
+
+Sub GameLoop
+
+  
+
+  While(GAME_OVER="false")
+
+    start = Clock.ElapsedMilliseconds    
+
+    ShiftImageQueue()
+
+    DrawRoadImages()    
+
+    
+
+    RoadTest()   
+
+    
+
+    frameCounter=frameCounter+1
+
+    delay = gameSpeed - (Clock.ElapsedMilliseconds-start)
+
+    If (delay > 0) Then
+
+      Program.Delay(delay)
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+'===============================================================================================
+
+'This routine calculates the center of the road and calculates the angle to use when the road curves. In order for any curves to be created properly, the XY points 
+
+'must be calculated from bottom road segment to top road segment. The road segments get thinner and shorter as they reach the vanishing point to give the
+
+'illusion that you are looking into the distance:
+
+
+
+Sub CalculateRoadCenterPoints
+
+  
+
+  middleRoadSegment = (0.5 * bottomRoadSegment)
+
+  zoomScale = 1/bottomRoadSegment
+
+  
+
+  For i = bottomRoadSegment To 1 Step -1  
+
+    
+
+    RoadSegmentWidth[i-1]   = RoadSegmentWidth[i] * 0.81
+
+    RoadSegmentHeight[i-1]  = RoadSegmentHeight[i] * 0.81
+
+    RoadCenterY[i-1]        = RoadCenterY[i] - RoadSegmentHeight[i-1]
+
+    
+
+    '-->Hack to improve the shape of the road:
+
+    If (i <= bottomRoadSegment) and (i > middleRoadSegment) Then
+
+      j = j * 1.50
+
+    EndIf 
+
+    '<-- 
+
+    RoadCenterX[i-1]  = RoadCenterX[i] + roadCurve
+
+    ZoomFactor[i-1]   = ZoomFactor[i] - zoomScale 
+
+    
+
+    'Angle calculation. To improve performance, the angles are calculated and then stored in a table for later use. 
+
+    'The distance between StartXY and NextXY form the hypotenuse of a hidden, upside-down right trangle, the sin
+
+    'of which is used to determine the angle at which items are drawn:
+
+    StartX        = RoadCenterX[i]
+
+    NextX         = RoadCenterX[i-1]
+
+    adjacentSide  = RoadSegmentHeight[i]
+
+    oppositeSide  = (NextX-StartX)
+
+    hypotenuseSide =  Math.SquareRoot((adjacentSide*adjacentSide) + (oppositeSide*oppositeSide))
+
+    _sin = (oppositeSide / hypotenuseSide)
+
+    angles[i] = (Math.GetDegrees(Math.ArcSin(_sin))) 
+
+  EndFor
+
+  
+
+EndSub
+
+'=====================================================================================================
+
+'This routine calculates the XY points for the left and right sides of the road and is used for placement of trees, road signs, etc. For performance 
+
+'reasons, these XY points are stored in a table for later use:
+
+Sub CalculateRoadSidePoints
+
+  For i = bottomRoadSegment To 0 Step -1
+
+    RoadLeftX[i]  = (RoadCenterX[i] - RoadSegmentWidth[i]*0.25)
+
+    RoadLeftY[i]  = RoadCenterY[i]
+
+    RoadRightX[i] = (RoadCenterX[i] + RoadSegmentWidth[i]*0.25)
+
+    RoadRightY[i] = RoadCenterY[i]
+
+  EndFor
+
+EndSub
+
+'=====================================================================================================
+
+Sub DrawEraseRoadLines
+
+  If isRedrawRoadLines = "TRUE" Then
+
+    GraphicsWindow.PenColor = "white"
+
+    GraphicsWindow.PenWidth = 0.5
+
+  Else
+
+    GraphicsWindow.PenColor = roadColor
+
+    GraphicsWindow.PenWidth = 4
+
+  EndIf  
+
+  
+
+  For i = bottomRoadSegment To 1 Step -1    
+
+    GraphicsWindow.DrawLine(RoadLeftX[i], RoadLeftY[i],  RoadLeftX[i-1], RoadLeftY[i-1])
+
+    GraphicsWindow.DrawLine(RoadRightX[i],RoadRightY[i], RoadRightX[i-1],RoadLeftY[i-1])
+
+  EndFor
+
+EndSub
+
+'=====================================================================================================
+
+'Loads the yellow stripes that will be drawn down the center of the road. Shape objects are used as stand-ins during testing:
+
+Sub LoadRoadStripes
+
+  GraphicsWindow.PenColor     = "yellow"
+
+  GraphicsWindow.PenWidth     = 1
+
+  GraphicsWindow.BrushColor   = "yellow"
+
+  For i = bottomRoadSegment To 0 Step -3
+
+    roadStripImages[i] = Shapes.AddRectangle(4, 24)
+
+  EndFor
+
+EndSub
+
+'======================================================================================================
+
+'Loads the images for used for objects that will be drawn along the right and left sides of the road (trees, signs, etc). Shapes objects are stand-ins
+
+'during testing:
+
+Sub LoadRoadSideObjects
+
+  For i = bottomRoadSegment To 0 Step -1
+
+    
+
+    If Math.Remainder(i,4) = 0 then
+
+      GraphicsWindow.PenColor   = "black" 
+
+      GraphicsWindow.PenWidth   = 1
+
+      GraphicsWindow.BrushColor = "green"
+
+      LeftSideImages[i]         = Shapes.AddEllipse(10, 80)
+
+    EndIf 
+
+    
+
+    If Math.Remainder(i,2) = 0 then
+
+      GraphicsWindow.PenColor   = "blue" 
+
+      GraphicsWindow.PenWidth   = 1
+
+      GraphicsWindow.BrushColor = "black"
+
+      RightSideImages[i]        = Shapes.AddRectangle(10, 80)
+
+    endif 
+
+  EndFor
+
+  
+
+EndSub
+
+'=======================================================================================================
+
+'Shift register used to move the road stripes from the vanishing point toward the player. This is my poor
+
+'implementation of a circular queue, but it works as it should:
+
+Sub ShiftImageQueue  
+
+  _t1 = LeftSideImages[bottomRoadSegment]
+
+  _t2 = RightSideImages[bottomRoadSegment]
+
+  _t3 = roadStripImages[bottomRoadSegment]
+
+  For i = bottomRoadSegment To 1 Step -1
+
+    LeftSideImages[i] = LeftSideImages[i-1]
+
+    RightSideImages[i] = RightSideImages[i-1]
+
+    roadStripImages[i] = roadStripImages[i-1]
+
+  EndFor
+
+  LeftSideImages[0] = _t1
+
+  RightSideImages[0]= _t2
+
+  roadStripImages[0]= _t3
+
+EndSub
+
+'=======================================================================================================
+
+'Draws all moving images:
+
+Sub DrawRoadImages
+
+  
+
+  For imageCounter = bottomRoadSegment To 0 Step -1
+
+    
+
+    'Draw images along the left side of road:
+
+    Shapes.zoom(LeftSideImages[imageCounter], ZoomFactor[imageCounter], ZoomFactor[imageCounter])  
+
+    Shapes.Move(LeftSideImages[imageCounter], RoadLeftX[imageCounter]-8,RoadLeftY[imageCounter]-45)  '<- offset/compensation
+
+    
+
+    'Draw images along the right side of road:
+
+    Shapes.zoom(RightSideImages[imageCounter], ZoomFactor[imageCounter], ZoomFactor[imageCounter]) 
+
+    Shapes.Move(RightSideImages[imageCounter], RoadRightX[imageCounter]+8,RoadRightY[imageCounter]-45)  '<- offset/compensation
+
+    
+
+    'Draw center road stripes:
+
+    Shapes.Rotate(roadStripImages[imageCounter], angles[imageCounter])
+
+    Shapes.zoom(roadStripImages[imageCounter], ZoomFactor[imageCounter], ZoomFactor[imageCounter]) 
+
+    Shapes.Move(roadStripImages[imageCounter], RoadCenterX[imageCounter],RoadCenterY[imageCounter]-8)  '<- offset/compensation
+
+  endfor
+
+  
+
+EndSub
+
+'========================================================================================================
+
+'Draws the background (buildings, mountains, etc) and adds them to the queue so that they can be animated later. Shapes objects used as stand-ins during testing.
+
+Sub CreateCityScape
+
+  
+
+  GraphicsWindow.BackgroundColor=roadColor   
+
+  
+
+  GraphicsWindow.PenColor=GraphicsWindow.GetColorFromRGB(128,128,192)
+
+  GraphicsWindow.BrushColor=GraphicsWindow.GetColorFromRGB(128,128,192)
+
+  GraphicsWindow.FillRectangle(0, 0,640,RoadCenterY[1]-3)
+
+  
+
+  cityScapeX = 0
+
+  cityScapeY = 0
+
+  GraphicsWindow.BrushColor=GraphicsWindow.GetColorFromRGB(114,114,114)
+
+  GraphicsWindow.PenColor=GraphicsWindow.GetColorFromRGB(114,114,114)
+
+  For i = 0 To 60
+
+    If Math.Remainder(i,3)=0 Then
+
+      BackgroundImageQueue[i] = Shapes.AddRectangle(20,10)
+
+    EndIf    
+
+  EndFor 
+
+  
+
+  'Clouds:  
+
+  GraphicsWindow.PenColor="white"
+
+  GraphicsWindow.BrushColor="white"
+
+  For i = -5 To 25
+
+    cloudX = Math.GetRandomNumber(800)
+
+    cloudY= Math.GetRandomNumber(200)    
+
+    GraphicsWindow.fillEllipse(cloudX, cloudY, 40, 10)
+
+    GraphicsWindow.fillEllipse(cloudX+10, cloudY + 10, 40, 10)
+
+    GraphicsWindow.fillEllipse(cloudX+40, cloudY, 40, 10)
+
+  EndFor
+
+  ShiftBackgroundImageQueue()
+
+  MoveBackgroundImages()
+
+EndSub  
+
+'================================================================================================================
+
+'Shift register used to scroll the background left and right. This is my poor implementation of a circular queue, but it works as it should:
+
+Sub ShiftBackgroundImageQueue
+
+  _bottomSegment = 60
+
+  _topSegment = 0
+
+  
+
+  If (directionFlag = "LEFT") then
+
+    
+
+    _temp1 =  BackgroundImageQueue[_bottomSegment] 
+
+    For i = _bottomSegment To _topSegment+1 Step -1  
+
+      BackgroundImageQueue[i] = BackgroundImageQueue[i-1]
+
+    endfor  
+
+    BackgroundImageQueue[_topSegment] = _temp1
+
+    
+
+  ElseIf (directionFlag = "RIGHT") then
+
+    
+
+    _temp1 =  BackgroundImageQueue[_topSegment] 
+
+    For i = _topSegment to _bottomSegment -1
+
+      BackgroundImageQueue[i] = BackgroundImageQueue[i+1]
+
+    endfor  
+
+    BackgroundImageQueue[_bottomSegment] = _temp1
+
+    
+
+  EndIf
+
+  
+
+EndSub
+
+'=================================================================================================================
+
+'Draws the background images off in the distance:
+
+Sub MoveBackgroundImages
+
+  cityScapeX = 0
+
+  cityScapeY = RoadCenterY[topRoadSegment]-10
+
+  For i = _topSegment To _bottomSegment
+
+    Shapes.Move(BackgroundImageQueue[i], cityScapeX, cityScapeY)
+
+    cityScapeX = cityScapeX + 20
+
+  EndFor
+
+EndSub
+
+'==================================================================================================================
+
+'Tests various features of the program:
+
+Sub RoadTest
+
+  
+
+  If roadCurve > 0 Then
+
+    directionFlag="RIGHT"
+
+    ShiftBackgroundImageQueue()
+
+    MoveBackgroundImages()
+
+  ElseIf roadCurve<0 then
+
+    directionFlag="LEFT"
+
+    ShiftBackgroundImageQueue()
+
+    MoveBackgroundImages()
+
+  EndIf
+
+  
+
+  'Speed up the imaginary car gradually:
+
+  If (frameCounter >0) And (frameCounter <40) Then
+
+    gameSpeed=gameSpeed-3
+
+  EndIf
+
+  
+
+  'Curve the road to the right for 20 frames and then hold:
+
+  If (frameCounter>60) and (frameCounter < 80) Then
+
+    roadCurve=roadCurve+0.2
+
+    CurveTheRoad()
+
+  EndIf
+
+  
+
+  'Curve the road back to the center for 20 frames and then hold:
+
+  If (frameCounter>100) and (frameCounter < 120) Then
+
+    roadCurve=roadCurve-0.2
+
+    CurveTheRoad()
+
+  EndIf
+
+  
+
+  'Curve the road to the left for 50 frames:
+
+  If (frameCounter>200) and (frameCounter < 250) Then
+
+    roadCurve=roadCurve-0.2
+
+    CurveTheRoad()
+
+  EndIf
+
+  
+
+  'Curve the road back to the center:
+
+  If (frameCounter>400) and (frameCounter < 450) Then
+
+    roadCurve=roadCurve+0.2
+
+    CurveTheRoad()
+
+  EndIf
+
+  
+
+  'Slow down our imaginary car:
+
+  If (frameCounter >580) Then
+
+    gameSpeed=gameSpeed+6
+
+  EndIf
+
+  
+
+  'End of test:
+
+  If (frameCounter >= 600) Then
+
+    GraphicsWindow.BrushColor="black"
+
+    GraphicsWindow.FontSize=24
+
+    Shapes.Remove(q)
+
+    q = Shapes.AddText("End of Test...")
+
+    Shapes.Move(q,0,0)
+
+    GAME_OVER="TRUE"
+
+  EndIf
+
+  
+
+EndSub
+
+'====================================================================================
+
+Sub CurveTheRoad
+
+  isRedrawRoadLines="FALSE"
+
+  DrawEraseRoadLines()
+
+  CalculateRoadCenterPoints()
+
+  CalculateRoadSidePoints()
+
+  isRedrawRoadLines="TRUE"
+
+  DrawEraseRoadLines()
+
+EndSub
+
+  
+
+

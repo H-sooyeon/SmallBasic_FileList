@@ -1,0 +1,457 @@
+' Dice Probability
+
+' Versioin 0.2a
+
+' Copyright © 2018 Nonki Takahashi.  The MIT License.
+
+' Program ID LVP196-0
+
+
+
+title = "Dice Probability 0.2a"
+
+GraphicsWindow.Title = title
+
+Form()
+
+Controls.ButtonClicked = OnButtonClicked
+
+Timer.Tick = OnTick
+
+Timer.Interval = 1000
+
+Timer.Pause()
+
+While "True"
+
+  If buttonClicked Then
+
+    nDice = Controls.GetTextBoxText(tboxDice)
+
+    case = Controls.GetTextBoxText(tboxCase)
+
+    Timer.Resume()
+
+    t = Clock.ElapsedMilliseconds
+
+    DrawGraph()
+
+    t = Math.Floor((Clock.ElapsedMilliseconds - t) / 1000)
+
+    Timer.Pause()
+
+    GraphicsWindow.Title = title + " | " + t + "s"
+
+    buttonClicked = "False"
+
+  Else
+
+    Program.Delay(200)
+
+  EndIf
+
+EndWhile
+
+
+
+Sub Dec2Sen
+
+  ' Decimal to senary conversion
+
+  ' param dec - decimal
+
+  ' param sen - senary
+
+  Stack.PushValue("local", dec)
+
+  sen = ""
+
+  While 0 < dec
+
+    rem = Math.Remainder(dec, 6)
+
+    sen = Text.Append(rem, sen)
+
+    dec = Math.Floor(dec / 6)
+
+  EndWhile
+
+  dec = Stack.PopValue("local")
+
+EndSub
+
+
+
+Sub DrawGraph
+
+  ' param nDice
+
+  score = ""
+
+  emax = Math.Power(6, nDice) - 1
+
+  For each = 0 To emax
+
+    dec = each
+
+    Dec2Sen()
+
+    s = 0
+
+    For d = 1 To nDice
+
+      len = Text.GetLength(sen)
+
+      If len < d Then
+
+        s = s + 1
+
+      Else
+
+        s = s + Text.GetSubText(sen, d, 1) + 1
+
+      EndIf
+
+    EndFor
+
+    score[s] = score[s] + 1
+
+  EndFor
+
+  ParseCase()
+
+  count = ""
+
+  n = Array.GetItemCount(score)
+
+  index = Array.GetAllIndices(score)
+
+  max = 0
+
+  For i = 1 To n
+
+    s = index[i]
+
+    If max < score[s] Then
+
+      max = score[s]
+
+    EndIf
+
+    If (op = "<=") And (s <= right) Then
+
+      count[s] = "True"
+
+    ElseIf (op = ">=") And (s >= right) Then
+
+      count[s] = "True"
+
+    ElseIf (op = "<>") And (s <> right) Then
+
+      count[s] = "True"
+
+    ElseIf (op = "<") And (s < right) Then
+
+      count[s] = "True"
+
+    ElseIf (op = ">") And (s > right) Then
+
+      count[s] = "True"
+
+    ElseIf (op = "=") And (s = right) Then
+
+      count[s] = "True"
+
+    EndIf
+
+  EndFor
+
+  w = Math.Floor(gw / (n + 1))
+
+  x1 = Math.Floor((gw - (n * (w + 1))) / 2)
+
+  x2 = x1 + (n * (w + 1))
+
+  y1 = gh
+
+  y2 = 40
+
+  i = 1
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillRectangle(0, 36, gw , gh - 36)
+
+  match = 0
+
+  For x = x1 To x2 Step w + 1
+
+    s = index[i]
+
+    h = Math.Floor(score[s] * (y1 - y2) / max)
+
+    y = y1 - h
+
+    If count[s] Then
+
+      GraphicsWindow.BrushColor = "Blue"
+
+      match = match + score[s]
+
+    Else
+
+      GraphicsWindow.BrushColor = "Gray"
+
+    EndIf
+
+    GraphicsWindow.FillRectangle(x, y, w, h)
+
+    i = i + 1
+
+  EndFor
+
+  prob = Math.Floor(match / (emax + 1) * 1000) / 10
+
+  Shapes.SetText(txtProb, "P = " + prob + "%") 
+
+EndSub
+
+
+
+Sub Form
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BrushColor = "LightGray"
+
+  GraphicsWindow.FillRectangle(0, 0, gw, 36)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawText(10, 10, "Number of dice")
+
+  tboxDice = Controls.AddTextBox(110, 7)
+
+  Controls.SetSize(tboxDice, 50, 20)
+
+  GraphicsWindow.DrawText(170, 10, "Case")
+
+  tboxCase = Controls.AddTextBox(210, 7)
+
+  Controls.AddButton("OK", 380, 5)
+
+  txtProb = Shapes.AddText("P = 0%")
+
+  Shapes.Move(txtProb, 520, 40)
+
+EndSub
+
+
+
+Sub OnButtonClicked
+
+  buttonClicked = "True"
+
+EndSub
+
+
+
+Sub OnTick
+
+  p = Math.Floor(each / emax * 1000) / 10 
+
+  l = Math.Floor((Clock.ElapsedMilliseconds - t) / 1000)
+
+  GraphicsWindow.Title = title + " | " + l + "s (" + p + "%)"
+
+EndSub
+
+
+
+Sub ParseCase
+
+  ' param case
+
+  ' return op - the operation
+
+  ' return right - the number as the right operand
+
+  If Text.IsSubText(case, "<=") Then
+
+    op = "<="
+
+    ParseLeft()
+
+    ParseRight()
+
+    If right = "score" Then
+
+      right = left
+
+      op = ">="
+
+      left = "score"
+
+    EndIf
+
+  ElseIf Text.IsSubText(case, ">=") Then
+
+    op = ">="
+
+    ParseLeft()
+
+    ParseRight()
+
+    If right = "score" Then
+
+      right = left
+
+      op = "<="
+
+      left = "score"
+
+    EndIf
+
+  ElseIf Text.IsSubText(case, "<>") Then
+
+    op = "<>"
+
+    ParseLeft()
+
+    ParseRight()
+
+    If right = "score" Then
+
+      right = left
+
+      left = "score"
+
+    EndIf
+
+  ElseIf Text.IsSubText(case, "<") Then
+
+    op = "<"
+
+    ParseLeft()
+
+    ParseRight()
+
+    If right = "score" Then
+
+      right = left
+
+      op = ">"
+
+      left = "score"
+
+    EndIf
+
+  ElseIf Text.IsSubText(case, ">") Then
+
+    op = ">"
+
+    ParseLeft()
+
+    ParseRight()
+
+    If right = "score" Then
+
+      right = left
+
+      op = "<"
+
+      left = "score"
+
+    EndIf
+
+  ElseIf Text.IsSubText(case, "=") Then
+
+    op = "="
+
+    ParseLeft()
+
+    ParseRight()
+
+    If right = "score" Then
+
+      right = left
+
+      left = "score"
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub ParseLeft
+
+  ' param case - the text to parse
+
+  ' param op - the operator
+
+  ' return pOp - the pointer to the operator
+
+  ' return left - the left operand
+
+  pOp = Text.GetIndexOf(case, op)
+
+  txt = Text.GetSubText(case, 1, pOp - 1)
+
+  Trim()
+
+  left = txt
+
+EndSub
+
+
+
+Sub ParseRight
+
+  ' param case - the text to parse
+
+  ' param op - the operator
+
+  ' param pOp - the pointer to the operator
+
+  ' return right - the right operand
+
+  txt = Text.GetSubTextToEnd(case, pOp + Text.GetLength(op))
+
+  Trim()
+
+  right = txt
+
+EndSub
+
+
+
+Sub Trim
+
+  ' param txt
+
+  ' return txt
+
+  While Text.StartsWith(txt, " ")
+
+    txt = Text.GetSubTextToEnd(txt, 2)
+
+  EndWhile
+
+  While Text.EndsWith(txt, " ")
+
+    txt = Text.GetSubText(txt, 1, Text.GetLength(txt) - 1)
+
+  EndWhile
+
+EndSub
+
+

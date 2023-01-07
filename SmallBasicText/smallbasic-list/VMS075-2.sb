@@ -1,0 +1,1203 @@
+'   mml to mid file exchanger made by NaochanON  2016/07/26  // 20160925 VMS075-0   // 20161002 VMS075-1
+
+'  This uses  Free compiler  mml2mid.exe.        Redistribute free
+
+'  mml2mid compiles MML(Music Macro Language) file into  SMF(Standard MIDI File format 0 and 1).
+
+'   mml2mid.exe is  made by  Akito Monden, Hideki Fujii,  Hisayasu Kuroda and  Naoyuki Nide
+
+'  See    http://hpc.jp/~mml2mid/index-e.html
+
+'  you can dowload it from here.     http://hpc.jp/~mml2mid/download.html
+
+'  select     mml530.zip -> download -> unzip 
+
+'  mml2mid.exe is in the "bin_w32" folder.     copy this in your mml file folder.
+
+' mml readme is refered to   http://tutorial.jp/music/mml/mmlman.pdf#search=%27mml2mid+%E8%A7%A3%E8%AA%AC%27
+
+' Use Litdev extension  // see  http://litdev.co.uk/
+
+'  MML tutorial is here. (Manabu Daikoku )      http://tutorial.jp/music/mml/mmlman.pdf   (  Japanese )  Redistribute free
+
+
+
+' < Usage > 
+
+' Click  .... You can  select  a mml file and its data is shown in the textbox. mml file path is shown in the textbox.
+
+' save .....   Edited mml data is saved (doesnt play)
+
+' save&Play.... mml data is saved and  changed to mid file and  played.(LDmediaplayer)
+
+' stop ..... stop player
+
+' Readme, Sample , Instrument  buttons  ..   show  readme, mml samples,instruments list
+
+
+
+Controls.ButtonClicked=Clicked
+
+LDControls.ListBoxItemChanged = OnListBoxItemChanged
+
+init()
+
+Timer.Interval=50
+
+Timer.Tick=Tick
+
+Timer.Pause()
+
+
+
+Sub Tick
+
+  position = LDControls.MediaPlayerPosition(player)
+
+  playTime = LDControls.MediaPlayerPlayTime(player)+0.00001
+
+  shapes.SetText(msg,position+"/"+text.GetCharacter(10)+math.Floor(playTime)+"mS")
+
+  If position/playTime>0.995 Then 
+
+    Timer.Pause()
+
+    LDControls.MediaPlayerStop(player)
+
+  EndIf
+
+EndSub
+
+
+
+Sub Clicked
+
+  nm= Controls.GetButtonCaption( Controls.LastClickedButton)
+
+  If nm="Save" then 
+
+    mmlsave()
+
+  elseif nm="Clear" then 
+
+    Controls.setTextBoxText(Mbox[1],"")
+
+    Controls.SetTextBoxText(box[1],path) 
+
+  elseif  nm="Stop" then
+
+    playdumy()
+
+    Timer.Pause()
+
+  elseif Text.IsSubText(nm,"Play") then 
+
+    Timer.Pause()
+
+    mmlsave()
+
+    midfile=LDText.Replace(_thisfile,".mml",".mid")  '  .mml  --> .mid
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.DeleteFile(midfile)                         '  delete its mid file
+
+    fname= LDShell.GetDetail(Controls.GetTextBoxText(box[1]) ,0)  '  file name  
+
+    res= LDProcess.Start(path+"mml2mid.exe", fname)
+
+    LDControls.MediaPlayerStop(player)
+
+    GraphicsWindow.Title= fname+"  :  "+res
+
+    Program.Delay(500)
+
+    LDControls.MediaPlayerLoad(player,midfile)
+
+    Program.Delay(1500)
+
+    LDControls.MediaPlayerPlay(player)
+
+    Program.Delay(50)
+
+    Timer.Resume()
+
+    folderlist()
+
+  elseif Text.IsSubText(nm,"Readme") then 
+
+    Controls.SetTextBoxText(Mbox[2],Readme)   '  show readme
+
+  elseif Text.IsSubText(nm,"Sample") then 
+
+    Controls.SetTextBoxText(Mbox[2],Sample)   '  show mml samples
+
+  elseif Text.IsSubText(nm,"Instrument") then 
+
+    Controls.SetTextBoxText(Mbox[2],Instruments) '  show  instruments list 
+
+  EndIf
+
+EndSub
+
+
+
+Sub folderlist
+
+  Shapes.Remove(box[2])
+
+' The following line could be harmful and has been automatically commented.
+
+'   fls= File.GetFiles(path)
+
+  NN=0
+
+  For i=1 To Array.GetItemCount(fls)
+
+    If Text.IsSubText(text.ConvertToLowerCase(fls[i]),".mml") Then 
+
+      NN=NN+1
+
+      List[NN]=LDShell.GetDetail(fls[i],0)  '  sample.mml
+
+    EndIf
+
+  EndFor
+
+  box[2]=LDControls.AddListBox(List,230,270)  '  mml file list 
+
+  Shapes.Move(box[2],680,10)
+
+EndSub
+
+
+
+Sub playdumy
+
+  LDControls.MediaPlayerStop(player)
+
+  Program.Delay(100)
+
+  LDControls.MediaPlayerLoad(player,path+"Dumy.mid") ' to kill previous player
+
+  Program.Delay(500)
+
+  LDControls.MediaPlayerPlay(player)
+
+  Program.Delay(500)
+
+EndSub
+
+
+
+Sub mmlsave
+
+  Timer.Pause()
+
+  _thisfile=Controls.GetTextBoxText(box[1])   '  fullpath
+
+  RD= Controls.GetTextBoxText(Mbox[1])
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.DeleteFile(_thisfile)
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(_thisfile,RD)
+
+  folderlist()
+
+EndSub
+
+
+
+Sub OnListBoxItemChanged
+
+  _mml=list[LDControls.LastListBoxIndex]'+".mml"
+
+' The following line could be harmful and has been automatically commented.
+
+'   RD= File.ReadContents(path+_mml)
+
+  Controls.SetTextBoxText(Mbox[1],RD)
+
+  Controls.SetTextBoxText(box[1],path+_mml)
+
+EndSub 
+
+
+
+Sub init
+
+  GraphicsWindow.BackgroundColor="#69B076"
+
+  GraphicsWindow.Width=1000
+
+  GraphicsWindow.Height=650
+
+  Controls.AddButton("Save",930,340)
+
+  Controls.AddButton("Save&"+text.GetCharacter(10)+"Play",930,380)
+
+  Controls.AddButton("Stop",930,430)
+
+  Controls.AddButton("Clear",930,460)
+
+  box[1]= Controls.AddTextBox(10,290)
+
+  Controls.SetSize(box[1],900,30) 
+
+  Mbox[1]= Controls.AddMultiLineTextBox(10,330)
+
+  Controls.SetSize(mbox[1],900,300)
+
+  Mbox[2]= Controls.AddMultiLineTextBox(10,10)
+
+  Controls.SetSize(mbox[2],560,270)
+
+  button[1]= controls.AddButton("Readme",575,50)
+
+  button[2]= controls.AddButton("Samples",575,90)
+
+  button[3]= controls.AddButton("Instruments",575,130)
+
+  '-----------------------------------------------------------------------------------
+
+  path= Program.Directory+"\"
+
+  '-----------------------------------------------------------------------------------
+
+  conts="A o4 l8"
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(path+"Dumy.mid",conts)  '  make dumy.mid 
+
+  res= LDProcess.Start(path+"mml2mid.exe", path+"Dumy")
+
+  '-----------------------------------------------------------------------------------
+
+  player = LDControls.AddMediaPlayer(80,100)     '   Media Player // not visible
+
+  Shapes.Move(player,905,520)
+
+  GraphicsWindow.BrushColor="Lightcyan"
+
+  rec= Shapes.AddRectangle(80,100)
+
+  Shapes.Move(rec,915,120)
+
+  GraphicsWindow.BrushColor="Navy"
+
+  msg=Shapes.AddText(" mS")
+
+  Shapes.Move(msg,925,150)
+
+  CRLF=text.GetCharacter(13)+Text.GetCharacter(10)
+
+  dq=text.GetCharacter(34)
+
+  '-----------------------------------------------------------------------------------------------------------------------------------
+
+  Readme="NaochanON translated Japanese text to English by using Google Translator .  2016/09/30"+CRLF
+
+  Readme=Readme+"              mml2mid command chart"+CRLF
+
+  Readme=Readme+"'----------------------------------------------------------------------------------------"+CRLF
+
+  Readme=Readme+"#title     ....."+dq+" Title"+dq+CRLF
+
+  Readme=Readme+"#copyright ....."+dq+" Copyright notice"+dq+CRLF
+
+  Readme=Readme+"#timebase n        timebase"+CRLF
+
+  Readme=Readme+"#include .....   Reading of the external file"+CRLF
+
+  Readme=Readme+"#swap<>            swap raising and lowering of the octave mark >, <"+CRLF
+
+  Readme=Readme+"#swap()            swap raising and lowering of the velocity mark >, <"+CRLF
+
+  Readme=Readme+"#german            Use the note name of Germany flow?‚h =si ?b =si flat??"+CRLF
+
+  Readme=Readme+"#number  "+dq+"Name"+dq+"    Cooperation function with external preprocessor"+CRLF
+
+  Readme=Readme+""+CRLF
+
+  Readme=Readme+"a b c d e f g      la, si. do, re, mi, fa, sol"+CRLF
+
+  Readme=Readme+"h                  if "+dq+"#german"+dq+" si  "+CRLF
+
+  Readme=Readme+"-                  flat"+CRLF
+
+  Readme=Readme+"+                  sharp"+CRLF
+
+  Readme=Readme+"*                  natural"+CRLF
+
+  Readme=Readme+"<                  octave 1 down ??"+CRLF
+
+  Readme=Readme+">                  octave 1 up??"+CRLF
+
+  Readme=Readme+"ln                 Sound length. The initial value is 4. 4 ,  l8,  l%5 also OKï¼?"+CRLF
+
+  Readme=Readme+"(n                 velocity n down??"+CRLF
+
+  Readme=Readme+")n                 velocity n up??"+CRLF
+
+  Readme=Readme+"on                 octave. The initial value is 4. "+CRLF
+
+  Readme=Readme+"vn                 Volume?‚range: 0ï½?127??"+CRLF
+
+  Readme=Readme+"r                  rest"+CRLF
+
+  Readme=Readme+"tn                 Setting the tempo?‚range: 1ï½?65535?‚The initial value is undefined"+CRLF
+
+  Readme=Readme+"Cn                 MIDI channel?? range:1ï½?16?‚Track name written in Cn ...??"+CRLF
+
+  Readme=Readme+"C                  Character that represents the current MIDI channel??"+CRLF
+
+  Readme=Readme+"P                  Damper pedal ONï¼ˆControl change number 64ï¼‰ã??"+CRLF
+
+  Readme=Readme+"X                  Turn off the damper pedal??"+CRLF
+
+  Readme=Readme+"!                  ignore the later data  of the track??"+CRLF
+
+  Readme=Readme+"/*                 comment starts from here ??"+CRLF
+
+  Readme=Readme+";                  comment starts from here??"+CRLF
+
+  Readme=Readme+"$n                 Macro??$0aï½?$9a, ..., $0zï½?$9z"+CRLF
+
+  Readme=Readme+"[...]n             repeat '[]' section n timesï¼?"+CRLF
+
+  Readme=Readme+"@n                 program change?‚range:0ï½?127??"+CRLF
+
+  Readme=Readme+"@+n                Increase the value of the program change by n ??"+CRLF
+
+  Readme=Readme+"|                  Bar lineï¼?"+CRLF
+
+  Readme=Readme+"'----------------------------------------------------------------------------------------"+CRLF
+
+  Readme=Readme+"i                  --"+CRLF
+
+  Readme=Readme+"j                  --"+CRLF
+
+  Readme=Readme+"kn1(,n2,n3)        Velocity, change value, switch"+CRLF
+
+  Readme=Readme+"krn1(,n2)          Random velocity, type"+CRLF
+
+  Readme=Readme+"m                  --"+CRLF
+
+  Readme=Readme+"n                  --"+CRLF
+
+  Readme=Readme+"pn1(,n2,n3)        Pan pot, change value, switch"+CRLF
+
+  Readme=Readme+"qn1,n2             Gate time, the lowest note length"+CRLF
+
+  Readme=Readme+"s                  Released omitted features, such as Control Change only once."+CRLF
+
+  Readme=Readme+"u                  --"+CRLF
+
+  Readme=Readme+"wn                 Key-off velocity?‚Initial value is 0??"+CRLF
+
+  Readme=Readme+"xnn                Hexadecimal specified??"+CRLF
+
+  Readme=Readme+"yn1,n2             Control Change?‚range: 0ï½?127??"+CRLF
+
+  Readme=Readme+"zn                 valuable z0ï½žz255"+CRLF
+
+  Readme=Readme+"An1(,n2)           Polyphonic key pressure"+CRLF
+
+  Readme=Readme+"BSn                Bend?‚range:0ï½?12 "+CRLF
+
+  Readme=Readme+"BRn                Bend range??"+CRLF
+
+  Readme=Readme+"BTn1,n2            Beat?‚The denominator is the n2 in the molecule is n1?‚ï¼ˆEX;BT6,8 = 6/8ï¼?"+CRLF
+
+  Readme=Readme+"BWn                2 bytes Bend?‚range:0ï½?16383?‚BS64=BW8192,BS127=BW16383??"+CRLF
+
+  Readme=Readme+"Dn                 Detuneï¼Žn??range:-64ï½?63??"+CRLF
+
+  Readme=Readme+"En                 Expression??"+CRLF
+
+  Readme=Readme+"EEn1,n2,n3,n4....  Output data directly to SMF??"+CRLF
+
+  Readme=Readme+"EXn1,n2,n3,n4....  Exclusive?‚if enclosed in {...} ,checksum automatically calculated??"+CRLF
+
+  Readme=Readme+"FBn1,n2,n3,n4....  Envelope (Bend)"+CRLF
+
+  Readme=Readme+"FWn1,n2,n3,n4....  Envelope (2 bytes of Bend)"+CRLF
+
+  Readme=Readme+"FEn1,n2,n3,n4....  Envelope (Expressionï¼?"+CRLF
+
+  Readme=Readme+"FPn1,n2,n3,n4....  Envelope (pan pot)"+CRLF
+
+  Readme=Readme+"FVn1,n2,n3,n4....  Envelope (volume)"+CRLF
+
+  Readme=Readme+"FCn1,n2,n3,n4....  Envelope (cut-off frequency)"+CRLF
+
+  Readme=Readme+"FRn1,n2,n3,n4....  Envelope (Resonance)"+CRLF
+
+  Readme=Readme+"FMn1,n2,n3,n4....  Envelope (Modulation)"+CRLF
+
+  Readme=Readme+"FAn1,n2,n3,n4....  Envelope (after touch)"+CRLF
+
+  Readme=Readme+"FTn1,n2,n3,n4....  Envelope (tempo)"+CRLF
+
+  Readme=Readme+"Gn                 Channel Pressure.(0 <= n <=127)"+CRLF
+
+  Readme=Readme+"Hn1,n2             Bank changeï¼ˆHn1, n2 are the same as y0, n1 y32, n2ï¼?"+CRLF
+
+  Readme=Readme+"IBn1,n2,n3,n4(,n5)     Amplitude modulation (Bend)"+CRLF
+
+  Readme=Readme+"IWn1,n2,n3,n4(,n5)     Amplitude modulation (2 bytes of Bend)"+CRLF
+
+  Readme=Readme+"IEn1,n2,n3,n4(,n5)     Amplitude modulation (Expressionï¼?"+CRLF
+
+  Readme=Readme+"IPn1,n2,n3,n4(,n5)     Amplitude modulation (pan pot)"+CRLF
+
+  Readme=Readme+"IVn1,n2,n3,n4(,n5)     Amplitude modulation (volume)ï¼?"+CRLF
+
+  Readme=Readme+"ICn1,n2,n3,n4(,n5)     Amplitude modulation (cut-off frequencyï¼?"+CRLF
+
+  Readme=Readme+"IRn1,n2,n3,n4(,n5)     Amplitude modulation (Resonance)"+CRLF
+
+  Readme=Readme+"IMn1,n2,n3,n4(,n5)     Amplitude modulation (Modulation)"+CRLF
+
+  Readme=Readme+"IAn1,n2,n3,n4(,n5)     Amplitude modulation (after touch)"+CRLF
+
+  Readme=Readme+"ITn1,n2,n3,n4(,n5)     Amplitude modulation (tempo)"+CRLF
+
+  Readme=Readme+"Jn                 Specify the scale in the number, ignore the subsequent scale. Released by J0.??"+CRLF
+
+  Readme=Readme+"Kn1(,n2)           Key-on, the velocity"+CRLF
+
+  Readme=Readme+"KI                 Specify key signature (minor)"+CRLF
+
+  Readme=Readme+"KJ                 Specify key signature (major)"+CRLF
+
+  Readme=Readme+"L                  --"+CRLF
+
+  Readme=Readme+"Mn1,n2             Delay time (n1) with modulation (n2)"+CRLF
+
+  Readme=Readme+"MOF                Cancellation of MONn and Mn1, n2 commandï¼Žsame as MON0ï¼?"+CRLF
+
+  Readme=Readme+"MONn               Unconditional modulation?‚range:0ï½?127??"+CRLF
+
+  Readme=Readme+"Nn1,n2,n3          NRPNcommand?‚n1...MSB?n2...LSB?n3...data"+CRLF
+
+  Readme=Readme+"O                  --"+CRLF
+
+  Readme=Readme+"Qn                 Percentage specified gate time?‚Initial value is 8??"+CRLF
+
+  Readme=Readme+"R                  Characters representing the channel number of the Rowland-style??"+CRLF
+
+  Readme=Readme+"RT                 Specify the track to the rhythm part??"+CRLF
+
+  Readme=Readme+"S                  Displays (at compile time) information such as the current number of steps??"+CRLF
+
+  Readme=Readme+"TCn                Specify the cut-off frequency??(0<=n<=127)"+CRLF
+
+  Readme=Readme+"TRn                It specifies the resonance??(0<=n<=127)"+CRLF
+
+  Readme=Readme+"UBn1,n2,n3,n4....  The second envelope(Bend)"+CRLF
+
+  Readme=Readme+"UWn1,n2,n3,n4....  The second envelope(2 bytes of Bend)"+CRLF
+
+  Readme=Readme+"UEn1,n2,n3,n4....  The second envelope(Expression)"+CRLF
+
+  Readme=Readme+"UPn1,n2,n3,n4....  The second envelope(pan pot)"+CRLF
+
+  Readme=Readme+"UVn1,n2,n3,n4....  The second envelope(volume)"+CRLF
+
+  Readme=Readme+"UCn1,n2,n3,n4....  The second envelope(cut-off frequencyï¼?"+CRLF
+
+  Readme=Readme+"URn1,n2,n3,n4....  The second envelope(Resonance)"+CRLF
+
+  Readme=Readme+"UMn1,n2,n3,n4....  The second envelope(Modulation)"+CRLF
+
+  Readme=Readme+"UAn1,n2,n3,n4....  The second envelope(after touch)"+CRLF
+
+  Readme=Readme+"UTn1,n2,n3,n4....  The second envelope(tempo)"+CRLF
+
+  Readme=Readme+"Vn                 ??(n?and??)n?set n value . Initial value is 4??"+CRLF
+
+  Readme=Readme+"WT....           Text description?‚It describes the text characters, such as the memo"+CRLF
+
+  Readme=Readme+"WI....           Instrument names description??"+CRLF
+
+  Readme=Readme+"WL....           Lyrics description??"+CRLF
+
+  Readme=Readme+"WM....           marker?‚It describes the rehearsal marks and section name??"+CRLF
+
+  Readme=Readme+"WC....           It describes the memos such as cue points??"+CRLF
+
+  Readme=Readme+"Y                  --"+CRLF
+
+  Readme=Readme+"Z{...}             Variable operation command?‚Assignment of value, addition, subtraction??"+CRLF
+
+  Readme=Readme+"&                  Do not key off the front of the sound??"+CRLF
+
+  Readme=Readme+":                  exit from the last iteration in the loop '[]'??"+CRLF
+
+  Readme=Readme+"_n                 modulation"+CRLF
+
+  Readme=Readme+"__n                relative modulation"+CRLF
+
+  Readme=Readme+"&n                 Specifying  note number nï¼?"+CRLF
+
+  Readme=Readme+"%n                 Specifying the sound length due to clock speed??"+CRLF
+
+  Readme=Readme+"=n                 Performance switch??=1 Playing skip??=0 Play start??"+CRLF
+
+  Readme=Readme+"~n                 Bend?‚same as BSn??"+CRLF
+
+  Readme=Readme+"?                  Track designation of wild cardï¼?'?' represents'A'ï½?'Z'ï¼?"+CRLF
+
+  Readme=Readme+"\                  Line wrapping"+CRLF
+
+  Controls.SetTextBoxText(Mbox[2],readme)
+
+  '-----------------------------------------------------------------------------------------------------------------------------------
+
+  Instruments=Instruments+"        <  Instrument  >  "+CRLF
+
+  Instruments=Instruments+"0.      Acoustic Grand Piano            64.     Soprano Sax"+CRLF
+
+  Instruments=Instruments+"1.      Bright Acoustic Piano           65.     Alto Sax"+CRLF
+
+  Instruments=Instruments+"2.      Electric Grand Piano            66.     Tenor Sax"+CRLF
+
+  Instruments=Instruments+"3.      Honky-tonk Piano                67.     Baritone Sax"+CRLF
+
+  Instruments=Instruments+"4.      Electric Piano 1                68.     Oboe"+CRLF
+
+  Instruments=Instruments+"5.      Electric Piano 2                69.     English Horn"+CRLF
+
+  Instruments=Instruments+"6.      Harpsichord                     70.     Bassoon"+CRLF
+
+  Instruments=Instruments+"7.      Clavi                           71.     Clarinet"+CRLF
+
+  Instruments=Instruments+"8.      Celesta                         72.     Piccolo"+CRLF
+
+  Instruments=Instruments+"9.      Glockenspiel                    73.     Flute"+CRLF
+
+  Instruments=Instruments+"10.     Music Box                       74.     Recorder"+CRLF
+
+  Instruments=Instruments+"11.     Vibraphone                      75.     Pan Flute"+CRLF
+
+  Instruments=Instruments+"12.     Marimba                         76.     Blown Bottle"+CRLF
+
+  Instruments=Instruments+"13.     Xylophone                       77.     Shakuhachi"+CRLF
+
+  Instruments=Instruments+"14.     Tubular Bells                   78.     Whistle"+CRLF
+
+  Instruments=Instruments+"15.     Dulcimer                        79.     Ocarina"+CRLF
+
+  Instruments=Instruments+"16.     Drawbar Organ                   80.     Lead 1 (square)"+CRLF
+
+  Instruments=Instruments+"17.     Percussive Organ                81.     Lead 2 (sawtooth)"+CRLF
+
+  Instruments=Instruments+"18.     Rock Organ                      82.     Lead 3 (calliope)"+CRLF
+
+  Instruments=Instruments+"19.     Church Organ                    83.     Lead 4 (chiff)"+CRLF
+
+  Instruments=Instruments+"20.     Reed Organ                      84.     Lead 5 (charang)"+CRLF
+
+  Instruments=Instruments+"21.     Accordion                       85.     Lead 6 (voice)"+CRLF
+
+  Instruments=Instruments+"22.     Harmonica                       86.     Lead 7 (fifths)"+CRLF
+
+  Instruments=Instruments+"23.     Tango Accordion                 87.     Lead 8 (bass + lead)"+CRLF
+
+  Instruments=Instruments+"24.     Acoustic Guitar (nylon)         88.     Pad 1 (new age)"+CRLF
+
+  Instruments=Instruments+"25.     Acoustic Guitar (steel)         89.     Pad 2 (warm)"+CRLF
+
+  Instruments=Instruments+"26.     Electric Guitar (jazz)          90.     Pad 3 (polysynth)"+CRLF
+
+  Instruments=Instruments+"27.     Electric Guitar (clean)         91.     Pad 4 (choir)"+CRLF
+
+  Instruments=Instruments+"28.     Electric Guitar (muted)         92.     Pad 5 (bowed)"+CRLF
+
+  Instruments=Instruments+"29.     Overdriven Guitar               93.     Pad 6 (metallic)"+CRLF
+
+  Instruments=Instruments+"30.     Distortion Guitar               94.     Pad 7 (halo)"+CRLF
+
+  Instruments=Instruments+"31.     Guitar harmonics                95.     Pad 8 (sweep)"+CRLF
+
+  Instruments=Instruments+"32.     Acoustic Bass                   96.     FX 1 (rain)"+CRLF
+
+  Instruments=Instruments+"33.     Electric Bass (finger)          97.     FX 2 (soundtrack)"+CRLF
+
+  Instruments=Instruments+"34.     Electric Bass (pick)            98.     FX 3 (crystal)"+CRLF
+
+  Instruments=Instruments+"35.     Fretless Bass                   99.     FX 4 (atmosphere)"+CRLF
+
+  Instruments=Instruments+"36.     Slap Bass 1                     100.    FX 5 (brightness)"+CRLF
+
+  Instruments=Instruments+"37.     Slap Bass 2                     101.    FX 6 (goblins)"+CRLF
+
+  Instruments=Instruments+"38.     Synth Bass 1                    102.    FX 7 (echoes)"+CRLF
+
+  Instruments=Instruments+"39.     Synth Bass 2                    103.    FX 8 (sci-fi)"+CRLF
+
+  Instruments=Instruments+"40.     Violin                          104.    Sitar"+CRLF
+
+  Instruments=Instruments+"41.     Viola                           105.    Banjo"+CRLF
+
+  Instruments=Instruments+"42.     Cello                           106.    Shamisen"+CRLF
+
+  Instruments=Instruments+"43.     Contrabass                      107.    Koto"+CRLF
+
+  Instruments=Instruments+"44.     Tremolo Strings                 108.    Kalimba"+CRLF
+
+  Instruments=Instruments+"45.     Pizzicato Strings               109.    Bag pipe"+CRLF
+
+  Instruments=Instruments+"46.     Orchestral Harp                 110.    Fiddle"+CRLF
+
+  Instruments=Instruments+"47.     Timpani                         111.    Shanai"+CRLF
+
+  Instruments=Instruments+"48.     String Ensemble 1               112.    Tinkle Bell"+CRLF
+
+  Instruments=Instruments+"49.     String Ensemble 2               113.    Agogo"+CRLF
+
+  Instruments=Instruments+"50.     SynthStrings 1                  114.    Steel Drums"+CRLF
+
+  Instruments=Instruments+"51.     SynthStrings 2                  115.    Woodblock"+CRLF
+
+  Instruments=Instruments+"52.     Choir Aahs                      116.    Taiko Drum"+CRLF
+
+  Instruments=Instruments+"53.     Voice Oohs                      117.    Melodic Tom"+CRLF
+
+  Instruments=Instruments+"54.     Synth Voice                     118.    Synth Drum"+CRLF
+
+  Instruments=Instruments+"55.     Orchestra Hit                   119.    Reverse Cymbal"+CRLF
+
+  Instruments=Instruments+"56.     Trumpet                         120.    Guitar Fret Noise"+CRLF
+
+  Instruments=Instruments+"57.     Trombone                        121.    Breath Noise"+CRLF
+
+  Instruments=Instruments+"58.     Tuba                            122.    Seashore"+CRLF
+
+  Instruments=Instruments+"59.     Muted Trumpet                   123.    Bird Tweet"+CRLF
+
+  Instruments=Instruments+"60.     French Horn                     124.    Telephone Ring"+CRLF
+
+  Instruments=Instruments+"61.     Brass Section                   125.    Helicopter"+CRLF
+
+  Instruments=Instruments+"62.     SynthBrass 1                    126.    Applause"+CRLF
+
+  Instruments=Instruments+"63.     SynthBrass 2                    127.    Gunshot"+CRLF
+
+  '-----------------------------------------------------------------------------------------------------------------------------------
+
+  Sample=Sample+"'These mml samples are made by Manabu Daikoku // Redistribute free"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample arpeggio.mml"+CRLF
+
+  Sample=Sample+"A o4 l1"+CRLF
+
+  Sample=Sample+"A c4&e4&g1-2 c4&e4&g1-2 <a8&>c8&e1-4 <a8&>c8&e1-4"+CRLF
+
+  Sample=Sample+"A d16&f16&a1-8 d16&f16&a1-8"+CRLF
+
+  Sample=Sample+"A <g32&b32&>d32&f1-16. <g32&b32&>d32&f1-16. c64&e64&g1^1-32"+CRLF
+
+  Sample=Sample+"A g4&e4&c1-2 g4&e4&c1-2 e8&c8&<a1-4> e8&c8&<a1-4>"+CRLF
+
+  Sample=Sample+"A a16&f16&d1-8 a16&f16&d1-8"+CRLF
+
+  Sample=Sample+"A f32&d32&<b32&g1-16.> f32&d32&<b32&g1-16.> g64&e64&c1^1-32"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample bflatma.mml"+CRLF
+
+  Sample=Sample+"A o3 b->cde-fgab- b-agfe-dc<b-"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample break.mml"+CRLF
+
+  Sample=Sample+"A o4 l8"+CRLF
+
+  Sample=Sample+"A [ c4.defg4 f4.ga:b>c4< ]4 gf4 e4.dc2"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample channel.mml"+CRLF
+
+  Sample=Sample+"$d dafa"+CRLF
+
+  Sample=Sample+"$g dbgb"+CRLF
+
+  Sample=Sample+"$a caga"+CRLF
+
+  Sample=Sample+"A l1 t120"+CRLF
+
+  Sample=Sample+"B C1 @82 p64 v100 KJd- o4 l8 k80 V10 q4 ; calliope"+CRLF
+
+  Sample=Sample+"C C2 @12 p117 v70 KJd- o3 l8 k80 V10 q0 ; marimba"+CRLF
+
+  Sample=Sample+"D C3 @11 p10 v110 KJd- o3 l1 k80 V10 q0 ; vibraphone"+CRLF
+
+  Sample=Sample+"A r r"+CRLF
+
+  Sample=Sample+"B r1 r1"+CRLF
+
+  Sample=Sample+"C [$d]2 [$d]2"+CRLF
+
+  Sample=Sample+"D d d"+CRLF
+
+  Sample=Sample+"A r r r r"+CRLF
+
+  Sample=Sample+"B f4.ga2 abagf2 b4fgabf4 ( d4e4f2"+CRLF
+
+  Sample=Sample+"C [$d]2 [$d]2 [$g]2 ( [$d]2"+CRLF
+
+  Sample=Sample+"D d d g ( d"+CRLF
+
+  Sample=Sample+"A r r t-20 r t-20"+CRLF
+
+  Sample=Sample+"B ) f4.ga2 ) ag>c<ba2 ( b4.a>d<ba>d< ( f4e4d2"+CRLF
+
+  Sample=Sample+"C ) [$d]2 ) [$g]2 ( $d$a ( $dd2"+CRLF
+
+  Sample=Sample+"D ) d ) g ( d2a2 ( d"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample chord.mml"+CRLF
+
+  Sample=Sample+"A o4 l2"+CRLF
+
+  Sample=Sample+"A c0e0g c0e0g c0e0g c0e0g"+CRLF
+
+  Sample=Sample+"A <a0>c0e <a0>c0e <a0>c0e <a0>c0e"+CRLF
+
+  Sample=Sample+"A d0f0a d0f0a d0f0a d0f0a"+CRLF
+
+  Sample=Sample+"A <g0b0>d0f <g0b0>d0f <g0b0>d0f <g0b0>d0f"+CRLF
+
+  Sample=Sample+"A c0e0g c0e0g c0e0g1"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample chords.mml"+CRLF
+
+  Sample=Sample+"$c c0e0g"+CRLF
+
+  Sample=Sample+"$a <a0>c0e"+CRLF
+
+  Sample=Sample+"$d d0f0a"+CRLF
+
+  Sample=Sample+"$g <g0b0>d0f"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample comment.mml"+CRLF
+
+  Sample=Sample+"A cdefgab>c ; ascending scale of C major"+CRLF
+
+  Sample=Sample+"/* This comment"+CRLF
+
+  Sample=Sample+"contains"+CRLF
+
+  Sample=Sample+"newlines. */"+CRLF
+
+  Sample=Sample+"A c<bagfedc ; descending scale of C major"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample defrel.mml"+CRLF
+
+  Sample=Sample+"A o4 l8 V10"+CRLF
+
+  Sample=Sample+"A c4.(d(e(f(g4 (f4.(g(a(b>(c4<"+CRLF
+
+  Sample=Sample+"A c4.)d)e)f)g4 )f4.)g)a)b>)c4<"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample defvelo.mml"+CRLF
+
+  Sample=Sample+"A o4 l8"+CRLF
+
+  Sample=Sample+"A c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A k40 c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A k127 c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample depend.mml"+CRLF
+
+  Sample=Sample+"A o4 l8"+CRLF
+
+  Sample=Sample+"A c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"1A o3 l8"+CRLF
+
+  Sample=Sample+"1A g4.ab>cd4 c4.defg4<"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample dmajor.mml"+CRLF
+
+  Sample=Sample+"A o4 def+gab>c+d dc+<bagf+ed"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample dotted.mml"+CRLF
+
+  Sample=Sample+"A o4 c4.d8e8f8g4 f4.g8a8b8>c4"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample fmajor.mml"+CRLF
+
+  Sample=Sample+"A o3 fgab->cdef fedc<b-agf"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample gmajor.mml"+CRLF
+
+  Sample=Sample+"A o3 gab>cdef+g gf+edc<bag"+CRLF
+
+  Sample=Sample+"MML sample include.mml XX"+CRLF
+
+  Sample=Sample+"#include "+dq+"chords.mml"+dq+CRLF
+
+  Sample=Sample+"A o4 l2"+CRLF
+
+  Sample=Sample+"A [$c]4 [$a]4 [$d]4 [$g]4 [$c]2 l1$c"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample grace.mml"+CRLF
+
+  Sample=Sample+"A o4 c2 e16 g2-16 b2 g16a16 e2-8 a2 l24ded c2^1-8"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample keysig.mml"+CRLF
+
+  Sample=Sample+"A o3"+CRLF
+
+  Sample=Sample+"A KJg gab>cdefg gfedc<bag   ; G major"+CRLF
+
+  Sample=Sample+"A KJf+ fgab>cdef fedc<bagf  ; F sharp major"+CRLF
+
+  Sample=Sample+"A KJb- b>cdefgab bagfedc<b  ; B flat major"+CRLF
+
+  Sample=Sample+"A KIe efgab>cde edc<bagfe   ; E minor (natural minor scale)"+CRLF
+
+  Sample=Sample+"A efgab>cd+e ed+c<bagfe     ; E minor (harmonic minor scale)"+CRLF
+
+  Sample=Sample+"A efgab>c+d+e edc<bagfe     ; E minor (melodic minor scale)"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample legato.mml"+CRLF
+
+  Sample=Sample+"A o4 l8"+CRLF
+
+  Sample=Sample+"A c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A q-12 c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample length.mml"+CRLF
+
+  Sample=Sample+"A o4 c1 f2a2 g4f4e4d4 e8f8g8a8g8f8g8a8"+CRLF
+
+  Sample=Sample+"A d16f16g16e16d16f16g16e16d16e16f16g16f16e16f16g16"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample length2.mml"+CRLF
+
+  Sample=Sample+"A o4 l1 c l2 fa l4 gfed l8 efgagfga l16 dfgedfgedefgfefg"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample macro.mml"+CRLF
+
+  Sample=Sample+"$a [cd]8"+CRLF
+
+  Sample=Sample+"$b [cdefgfed]2"+CRLF
+
+  Sample=Sample+"$c cdefgab>cdc<bagfed"+CRLF
+
+  Sample=Sample+"A o4 l16"+CRLF
+
+  Sample=Sample+"A $a $c $a $b $c $b $a $c $a c1"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample natural.mml"+CRLF
+
+  Sample=Sample+"A KJa- o3"+CRLF
+
+  Sample=Sample+"A ab>cdefga agfedc<ba   ; A flat major"+CRLF
+
+  Sample=Sample+"A >cd*e*fga*b*>c c<b*a*gfe*d*c ; C major"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample nested.mml"+CRLF
+
+  Sample=Sample+"A o4 l16"+CRLF
+
+  Sample=Sample+"A [ [cd]8 [cdefgfed]2 ]4 c1"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample octave.mml"+CRLF
+
+  Sample=Sample+"A o2 cdefgab o3 cdefgab o4 cdefgab o5 cdefgab o6 cc"+CRLF
+
+  Sample=Sample+"A o5 bagfedc o4 bagfedc o3 bagfedc o2 bagfedc"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample octave2.mml"+CRLF
+
+  Sample=Sample+"A o2 cdefgab > cdefgab > cdefgab > cdefgab > cc"+CRLF
+
+  Sample=Sample+"A < bagfedc < bagfedc < bagfedc < bagfedc"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample panpot.mml"+CRLF
+
+  Sample=Sample+"$m c4.d8e8f8g4 f4.g8a8b8>c4<"+CRLF
+
+  Sample=Sample+"A C1 p0"+CRLF
+
+  Sample=Sample+"o3 ; left"+CRLF
+
+  Sample=Sample+"B C2 p127 o4 ; right"+CRLF
+
+  Sample=Sample+"A $m r1r1 $m"+CRLF
+
+  Sample=Sample+"B r1r1 $m $m"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample pitch.mml  "+CRLF
+
+  Sample=Sample+"A cdefgab"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample relvelo.mml"+CRLF
+
+  Sample=Sample+"A o4 l8"+CRLF
+
+  Sample=Sample+"A c4.d (20 efg4 (20 f4.g (20 ab>c4<"+CRLF
+
+  Sample=Sample+"A c4.d )20 efg4 )20 f4.g )20 ab>c4<"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample repeat.mml"+CRLF
+
+  Sample=Sample+"A o4 l8"+CRLF
+
+  Sample=Sample+"A [ c4.defg4 f4.gab>c4< ]4"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample rest.mml"+CRLF
+
+  Sample=Sample+"A o4 c8r8c8d8e8r8e8f8 g8r8g8a8b8r4b8 >c1"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample rest2.mml"+CRLF
+
+  Sample=Sample+"A o4 l4 cder efgr gabr >c1"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample rhythm.mml"+CRLF
+
+  Sample=Sample+"$h [f+8]16 ; closed hi-hat"+CRLF
+
+  Sample=Sample+"$s [r4d4]4 ; snare drum"+CRLF
+
+  Sample=Sample+"$b [c4r4]3c8c8r4 ; bass drum"+CRLF
+
+  Sample=Sample+"A RT C10 o2 k60 [$h]4"+CRLF
+
+  Sample=Sample+"B RT C10 o2 k50 [$s]4"+CRLF
+
+  Sample=Sample+"C RT C10 o2 k120 [$b]4"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample stacca.mml"+CRLF
+
+  Sample=Sample+"A o4 l8"+CRLF
+
+  Sample=Sample+"A c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A q12 c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A q24,1 c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A q48,1 c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A q72,1 c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample tempo.mml"+CRLF
+
+  Sample=Sample+"A o4 l8"+CRLF
+
+  Sample=Sample+"A t120 c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A t60 c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A t240 c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample tie.mml"+CRLF
+
+  Sample=Sample+"A o4 l4"+CRLF
+
+  Sample=Sample+"A efgaa1 agfee1"+CRLF
+
+  Sample=Sample+"A efga^1 agfe^1"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample timbre.mml"+CRLF
+
+  Sample=Sample+"$m c4.d8e8f8g4 f4.g8a8b8>c4<"+CRLF
+
+  Sample=Sample+"A C1 @11 o4 ; vibraphone"+CRLF
+
+  Sample=Sample+"B C2 @19 o3 ; church organ"+CRLF
+
+  Sample=Sample+"A $m r1r1 $m"+CRLF
+
+  Sample=Sample+"B r1r1 $m $m"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample track.mml"+CRLF
+
+  Sample=Sample+"$d dafa"+CRLF
+
+  Sample=Sample+"$g dbgb"+CRLF
+
+  Sample=Sample+"$a caga"+CRLF
+
+  Sample=Sample+"A l1 t120"+CRLF
+
+  Sample=Sample+"B KJd- o4 l8 k80 V10 q0"+CRLF
+
+  Sample=Sample+"C KJd- o3 l8 k80 V10 q0"+CRLF
+
+  Sample=Sample+"D KJd- o2 l1 k80 V10 q0"+CRLF
+
+  Sample=Sample+"A r r"+CRLF
+
+  Sample=Sample+"B r1 r1"+CRLF
+
+  Sample=Sample+"C [$d]2 [$d]2"+CRLF
+
+  Sample=Sample+"D d d"+CRLF
+
+  Sample=Sample+"A r r r r"+CRLF
+
+  Sample=Sample+"B f4.ga2 abagf2 b4fgabf4 ( d4e4f2"+CRLF
+
+  Sample=Sample+"C [$d]2 [$d]2 [$g]2 ( [$d]2"+CRLF
+
+  Sample=Sample+"D d d g ( d"+CRLF
+
+  Sample=Sample+"A r r t-20 r t-20"+CRLF
+
+  Sample=Sample+"B ) f4.ga2 ) ag>c<ba2 ( b4.a>d<ba>d< ( f4e4d2"+CRLF
+
+  Sample=Sample+"C ) [$d]2 ) [$g]2 ( $d$a ( $dd2"+CRLF
+
+  Sample=Sample+"D ) d ) g ( d2a2 ( d"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"A cdefg2"+CRLF
+
+  Sample=Sample+"A fgab>c2"+CRLF
+
+  Sample=Sample+"1A defga2"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample tree.mml"+CRLF
+
+  Sample=Sample+"$1a o4  c0e0g cgeg"+CRLF
+
+  Sample=Sample+"$1b <a0>c0e caea"+CRLF
+
+  Sample=Sample+"$1c d0f0a dafa"+CRLF
+
+  Sample=Sample+"$1d  <g0b0>d0f  <b>gfg"+CRLF
+
+  Sample=Sample+"$a [$1a]2 [$1b]2 [$1c]2 [$1d]2"+CRLF
+
+  Sample=Sample+"A o4 l8 [$a]3  [$1d]2 c1"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample tuplet.mml"+CRLF
+
+  Sample=Sample+"A o4 c4 e4 l12gfe a4 d4 f4 l20efgfe c4"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample velo.mml"+CRLF
+
+  Sample=Sample+"A o4 l8"+CRLF
+
+  Sample=Sample+"A c4.defg4 f4.gab>c4<"+CRLF
+
+  Sample=Sample+"A c4.,100 d,90 e,80 f,70 g4,60 f4.,50 g,40 a,30 b,20 > c4,10"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  Sample=Sample+"MML sample volume.mml"+CRLF
+
+  Sample=Sample+"$m c4.d8e8f8g4 f4.g8a8b8>c4<"+CRLF
+
+  Sample=Sample+"A C1 @19 p0 v30 o3 ; small"+CRLF
+
+  Sample=Sample+"B C2 @19 p127 v120 o4 ; large"+CRLF
+
+  Sample=Sample+"A $m r1r1 $m"+CRLF
+
+  Sample=Sample+"B r1r1 $m $m"+CRLF
+
+  Sample=Sample+""+CRLF
+
+  '-----------------------------------------------------------------------------------------------------------------------------------
+
+  Controls.SetTextBoxText(box[1],path)   '   show its folder
+
+  folderlist()
+
+EndSub
+
+

@@ -1,0 +1,3895 @@
+' Igo08.smallbasic - ?›²ç¢? Igo v0.8
+
+' Copyright (c) 2010 NonkiTakahashi
+
+'
+
+' å±¥æ?´ï¼š
+
+' v0.1 2010/07/21 ?ˆ?‰ˆï¼šç¢?›¤?®è¡¨ç¤º (243è¡? NBK992)
+
+' v0.2 2010/07/23 ?‰‹?•°?®è¡¨ç¤º (265è¡? JVR185)
+
+' v0.3 2010/07/24 äººã«?‚ˆ?‚‹æ¬¡ã®?‰‹?®?‡¦?† (378è¡? HHF931)
+
+' v0.4 2010/07/31 æ£‹è­œ?®?†?”Ÿ (706è¡? HHF931-0)
+
+' v0.5 2010/08/03 æ£‹è­œ?ƒ•?‚¡?‚¤?ƒ«?®?…¥?‡º?Š› (1088è¡? HHF931-1)
+
+' v0.6 2010/08/08 ?‹?•—?®è¡¨ç¤º ?è‡ª?‹•?š„?«?Ÿ³?‚’?–?‚‹ (1312è¡? HHF931-2)
+
+' v0.7 2010/08/19 ?œ°?®èªè­˜?ç??‰‹ç¦æ?¢ã®?ˆ¤å®šã?Territory (1801è¡? HHF931-3)
+
+' v0.8 2010/08/28 bEyes?ãƒ¢?ƒ³?ƒ†?‚«?ƒ«?ƒ­æ³? (1945è¡?)
+
+'
+
+' ?‚?ƒæ–‡?Œ®ï¼?
+
+' [1]æ¸…æ„¼ä¸?, å±±ä¸‹å®?, ä½ã?…æœ¨å®£ä»‹: ?ã‚³?ƒ³?ƒ”?ƒ¥?ƒ¼?‚¿?›²ç¢ã®?…¥????, ?…±ç«‹å‡º?‰ˆ, 2005.
+
+' [2]?Ÿ³?‰æ˜‡, æ¢…æ²¢?”±é¦™é‡Œ, é»’ç?§æ?£æ†², ?…µ? ­ä¿Šå¤«: ?æ±å¤§æ•™é¤Šå›²ç¢è¬›åº§ã??, ?…‰?–‡ç¤¾æ–°?›¸, 2007.
+
+' [3]Anders Kierulf: File Format FF[1], http://www.red-bean.com/sgf/, 1990.
+
+' [4]Karl Baker: The Way to Go, American Go Association, 1986.
+
+' [5]ç¾æ·»ä¸?æ¨?: ?ƒ¢?ƒ³?ƒ†?‚«?ƒ«?ƒ­?œ¨æ¤œç´¢, ?ƒ…? ±?‡¦?†, Vol.49 No.6, pp.686-693 (2008).
+
+' [6]å±±ä¸‹å®?:?å¼·è±ªå›²ç¢ã‚½?ƒ•?ƒˆ?Œå½©?ã«?¤?„?¦??,http://www32.ocn.ne.jp/~yss/index_j.html, 2009. 
+
+' 
+
+' ---------------------------------
+
+' ?ƒ¡?‚¤?ƒ³?ƒ—?ƒ­?‚°?ƒ©?ƒ 
+
+' ---------------------------------
+
+'
+
+sVersion = "v0.8"
+
+bDebug = "False"
+
+bSound = "False"
+
+InitProgram()   ' ?ƒ—?ƒ­?‚°?ƒ©?ƒ ?®?ˆ?œŸ?Œ–
+
+InitBoard()     ' ?›¤?®?ˆ?œŸ?Œ–
+
+InitControls()  ' ?‚³?ƒ³?ƒˆ?ƒ­?ƒ¼?ƒ«?ƒ¨?®?ˆ?œŸ?Œ–
+
+' ?ƒ—?ƒ­?‚°?ƒ©?ƒ çµ‚äº†?Œ?Œ‡å®šã•?‚Œ?‚‹?¾?§ï½›ï½?†…ç¹°ã‚Šè¿”ã—
+
+While bInProgram
+
+'ï½?
+
+  ' ?–°è¦?
+
+  ClearBoard()    ' ?›¤?¢?®?‚¯?ƒª?‚¢
+
+  ShowBoard()     ' ?›¤?®è¡¨ç¤º
+
+lRetry:
+
+  InputGameInfo() ' å¯¾æˆ¦?…åï¼ˆã¾?Ÿ?¯æ£‹è­œ?ï¼‰ã®?…¥?Š›
+
+  StartClock()
+
+  If bOpen Then
+
+    ReadRecord()  ' æ£‹è­œ?®èª??¿è¾¼ã¿
+
+    If bError Then
+
+      Goto lRetry
+
+    EndIf
+
+    ReplayGame()  ' æ£‹è­œ?®?†?”Ÿ
+
+  Else
+
+    Shapes.SetText(oPrisoner[BLACK], 0) ' ?‚¢?‚²?ƒ?ƒ?®?‚¯?ƒª?‚¢
+
+    Shapes.SetText(oPrisoner[WHITE], 0) ' ?‚¢?‚²?ƒ?ƒ?®?‚¯?ƒª?‚¢
+
+    InitRecord()    ' æ£‹è­œ?®?ˆ?œŸ?Œ–
+
+    SaveGameDate()  ' å¯¾å??—¥?®ä¿å­˜
+
+    iMove = 0       ' ?‰‹?•°?®?‚¯?ƒª?‚¢
+
+    ' å¯¾å??¾?Ÿ?¯æ£‹è­œèª??¿è¾¼ã¿ - çµ‚å??«?ª?‚‹?¾?§ï½›ï½?†…ç¹°ã‚Šè¿”ã—
+
+    While bInGame 
+
+    'ï½?
+
+      EachTurn()  ' é»’ç•ª
+
+      If bInGame Then
+
+        EachTurn()  ' ?™½?•ª
+
+      EndIf    
+
+    ' ï½?
+
+    EndWhile
+
+  EndIf
+
+  StopClock()
+
+  PrintTime()
+
+  ' ?†?”Ÿ?¾?Ÿ?¯æ£‹è­œ?›¸??‡º?—
+
+  ' å¯¾æˆ¦?…åï¼ˆã¾?Ÿ?¯æ£‹è­œ?ï¼‰ã®?…¥?Š›
+
+  bInGame = "True"
+
+  While bInGame
+
+    InputGameEndInfo()
+
+    If??bReplay Then
+
+      ReplayGame()  ' æ£‹è­œ?®?†?”Ÿ
+
+    ElseIf bSave Then
+
+      WriteRecord() ' æ£‹è­œ?®ä¿å­˜
+
+    EndIf
+
+  EndWhile
+
+' ï½?
+
+EndWhile
+
+'
+
+' ??‚Œ??‚Œ?®?‰‹?•ª
+
+Sub EachTurn
+
+  iMove = iMove + 1
+
+  iColor = Math.Remainder((iMove - 1), 2) + 1
+
+  If iColor = BLACK Then 
+
+    ' é»’ç•ª?ƒ©?ƒ³?ƒ—è¡¨ç¤º
+
+    iX = iBLX
+
+    iY = iBLY
+
+    bOn = "True"
+
+    DrawLamp()
+
+    iX = iWLX
+
+    iY = iWLY
+
+    bOn = "False"
+
+    DrawLamp()
+
+  Else  
+
+    ' ?™½?•ª?ƒ©?ƒ³?ƒ—è¡¨ç¤º
+
+    iX = iWLX
+
+    iY = iWLY
+
+    bOn = "True"
+
+    DrawLamp()
+
+    iX = iBLX
+
+    iY = iBLY
+
+    bOn = "False"
+
+    DrawLamp()
+
+  EndIf  
+
+  ' æ¬¡ã®?‰‹?‚’?‰“?¤
+
+  If bReplay Then
+
+    Replay()    
+
+  Else
+
+    ' ???‰‹?¯?ƒ½?ª?‰‹?‚’èª¿ã¹?‚‹
+
+    If sPlayer[iColor] = "Random" Or sPlayer[iColor] = "CPU" Or sPlayer[iColor] = "Easy" Then
+
+      bEyes = "True"
+
+    Else
+
+      bEyes = "False"
+
+    EndIf
+
+    GetPossiblePuts()
+
+    If sPlayer[iColor] = "Random" Then
+
+      bEasy = "False"
+
+      Random()
+
+    ElseIf sPlayer[iColor] = "Easy" Then
+
+      bEasy = "True"
+
+      Random()
+
+    ElseIf sPlayer[iColor] = "Territory" Then
+
+      Territory()
+
+    ElseIf sPlayer[iColor] = "CPU" Then
+
+      PlayOut() ' ?ƒ¢?ƒ³?ƒ†?‚«?ƒ«?ƒ­æ³•ã§æ¬¡ã®?‰‹?‚’æ±ºã‚?‚‹
+
+    Else
+
+      Human()
+
+    EndIf
+
+  EndIf    
+
+  ' ?Š•äº†ãª?‚‰çµ‚å?
+
+  If bResign Then
+
+    bInGame = "False"
+
+    If (Math.Remainder(iMove, 2) = 1) Then
+
+      sScore = "W+R"  ' é»’ã®?Š•äº?
+
+      GraphicsWindow.Title = "Igo " + sVersion + " - ?™½?®ä¸??Š¼?—?‹?¡"
+
+    Else 
+
+      sScore = "B+R"  ' ?™½?®?Š•äº?
+
+      GraphicsWindow.Title = "Igo " + sVersion + " - é»’ã®ä¸??Š¼?—?‹?¡"
+
+    EndIf
+
+  Else
+
+    ' ?ƒ‘?‚¹?ª?‚‰?ƒ‘?‚¹?›?•°?‚’?‚«?‚¦?ƒ³?ƒˆ?‚¢?ƒƒ?ƒ—
+
+    If bPass Then
+
+      iPass = iPass + 1
+
+    Else
+
+      iPass = 0
+
+    EndIf
+
+    ' æ£‹è­œ?®è¨˜éŒ²
+
+    If bReplay = "False" Then
+
+      Record()
+
+    EndIf
+
+    ' ?›¤?®è¡¨ç¤º
+
+    bShow = "True" ' çµæœ?‚’è¡¨ç¤º?™?‚‹
+
+    If bPass = "False" Then
+
+      DrawStone()
+
+      If bSound Then
+
+        Sound.PlayClickAndWait()
+
+      EndIf
+
+      ' ?››?–¹?®?Ÿ³?Œ?›²?¾?‚Œ?Ÿ?‚‰?–?‚Š?™¤?
+
+      RemoveCapturedStones()
+
+      If iRemoved > 0 Then  
+
+        Shapes.SetText(oPrisoner[iColor], iPrisoner[iColor])
+
+      EndIf
+
+    EndIf
+
+    ' çµ‚å??®?ˆ¤å®?
+
+    Judge()
+
+  EndIf
+
+EndSub    
+
+'
+
+' ?››?–¹?®?Ÿ³?Œ?›²?¾?‚Œ?Ÿ?‚‰?–?‚Š?™¤?
+
+Sub RemoveCapturedStones
+
+  iRemoved = 0
+
+  bEnclosed = "True"  ' ?››?–¹?‚’?›²?‚?‚Œ?¦?„?‚‹
+
+  iCTurn = iColor
+
+  If iColor = BLACK Then
+
+    iColor = WHITE
+
+  ElseIf iColor = WHITE Then
+
+    iColor = BLACK
+
+  ElseIf iColor = SPACE Then
+
+    Goto lSkipRemove
+
+  EndIf
+
+  iXTurn = iX
+
+  iYTurn = iY
+
+  For iET = 1 To 4
+
+    iX = iXTurn + idX4[iET]
+
+    iY = iYTurn + idY4[iET]
+
+    If iBoard[iX][iY] = iCTurn Or iBoard[iX][iY] = SPACE Then
+
+      bEnclosed = "False"
+
+    EndIf
+
+    If iX >=1 And iX <= iRo And iY >=1 And iY <= iRo Then
+
+      InitLiberty()
+
+      CountLiberty()
+
+      If iLiberty = 0 Then
+
+        RemoveUnit()
+
+        iRemoved = iRemoved + iUnit
+
+        iRX = iX
+
+        iRY = iY
+
+        iPrisoner[iCTurn] = iPrisoner[iCTurn] + iUnit
+
+      EndIf
+
+    EndIf
+
+  EndFor  
+
+  iColor = iCTurn
+
+  iX = iXTurn
+
+  iY = iYTurn
+
+  If bEnclosed And iRemoved = 1 Then
+
+    iKo = iMove
+
+    iKX = iRX
+
+    iKY = iRY
+
+  EndIf
+
+lSkipRemove:
+
+EndSub
+
+'
+
+' ---------------------------------
+
+' ?ƒ—?ƒ­?‚°?ƒ©?ƒ ?–¢??
+
+' ---------------------------------
+
+' ?ƒ—?ƒ­?‚°?ƒ©?ƒ ?®?ˆ?œŸ?Œ–
+
+Sub InitProgram
+
+  SPACE = 0 ' ç©ºç‚¹
+
+  BLACK = 1 ' é»?
+
+  WHITE = 2 ' ?™½
+
+  OB = 3 ' ?›¤å¤?
+
+  BANDW = 4 ' é»’ã¨?™½ï¼ˆCheckSpaceUnit()ç­‰ã§ä½¿ç”¨ï¼?
+
+  UPPERA = Text.GetCharacterCode("A") ' A?®?–‡å­—ã‚³?ƒ¼?ƒ‰
+
+  UPPERZ = Text.GetCharacterCode("Z") ' Z?®?–‡å­—ã‚³??¼ãƒ‰
+
+  LOWERA = Text.GetCharacterCode("a") ' a?®?–‡å­—ã‚³?ƒ¼?ƒ‰
+
+  LOWERZ = Text.GetCharacterCode("z") ' z?®?–‡å­—ã‚³?ƒ¼?ƒ‰
+
+  LETTER0 = Text.GetCharacterCode("0") ' 0?®?–‡å­—ã‚³?ƒ¼?ƒ‰
+
+  LETTER9 = Text.GetCharacterCode("9") ' 9?®?–‡å­—ã‚³?ƒ¼?ƒ‰
+
+  CR = 13 ' ?‚­?ƒ£?ƒª?ƒƒ?‚¸?ƒª?‚¿?ƒ¼?ƒ³ï¼ˆå¾©?”¹ï¼‰ã®?–‡å­—ã‚³?ƒ¼?ƒ‰
+
+  LF = 10 ' ?ƒ©?‚¤?ƒ³?ƒ•?‚£?ƒ¼?ƒ‰ï¼ˆè¡Œ?ã‚Šï¼‰ã®?–‡å­—ã‚³?ƒ¼?ƒ‰
+
+  sNL = Text.GetCharacter(CR) + Text.GetCharacter(LF)
+
+  iRo = 4 ' è·??•°
+
+  rCX = 15.6
+
+  rCY = 24
+
+  GraphicsWindow.FontSize = rCY
+
+  sBoardColor = "Wheat"
+
+  For i = 0 To iRo
+
+    sAlpha[i] = Text.GetSubText(" abcdefghijklmnopqrs", i + 1, 1)
+
+  EndFor
+
+  sAlpha[iRo + 1] = "t" ' ?ƒ‘?‚¹  
+
+  iPass = 0
+
+  sStone[SPACE] = "SPACE"
+
+  sStone[BLACK] = "BLACK"
+
+  sStone[WHITE] = "WHITE"
+
+  sStone[OB] = "OB"
+
+  sGame = "å¯¾å?"
+
+  sOpen = "?–‹?"
+
+  sIsNotExist = "?¯å­˜åœ¨?—?¾?›?‚“??"
+
+  sIsNotGoFormat = "?¯?›²ç¢ã®æ£‹è­œ?§?¯?‚?‚Š?¾?›?‚“??"
+
+  sSave = "=" ' Windings ä¿å­˜?ƒ?ƒ¼?‚¯  
+
+  sSave2 = "ä¿å­˜"
+
+  sAlreadyExists = "?¯?™?§?«å­˜åœ¨?—?¾?™??"
+
+  sNew = "?–°è¦?"
+
+  sReplay = "4" ' Windings ?†?”Ÿ?ƒ?ƒ¼?‚¯
+
+  sPause = ";" ' Windings ?ƒ?ƒ¼?‚º?ƒ?ƒ¼?‚¯
+
+  sPass = "?ƒ‘?‚¹"
+
+  sResign = "?Š•äº?"
+
+  GraphicsWindow.Title = "Igo " + sVersion
+
+  bInProgram = "True"
+
+  InitEffect()  ' å½±éŸ¿ç¯„å›²åº§æ¨™?®?ˆ?œŸ?Œ–
+
+  Init4()       ' ?››?–¹?®åº§æ¨™?®?ˆ?œŸ?Œ–
+
+  iPlayOut = 1  ' ?ƒ¢?ƒ³?ƒ†?‚«?ƒ«?ƒ­æ³•ã®?ƒ—?ƒ¬?‚¤?‚¢?‚¦?ƒˆ?›?•°
+
+EndSub
+
+'
+
+' ?‚³?ƒ³?ƒˆ?ƒ­?ƒ¼?ƒ«?ƒ¨?®?ˆ?œŸ?Œ–
+
+Sub InitControls
+
+  GraphicsWindow.BackgroundColor = "Silver"
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FillEllipse(iBX1 + rCX, iBY0 + idLY, iSR * 2, iSR * 2)
+
+  iBHX = iBX1 + rCX + iSR * 2.5
+
+  iBHY = iBY0 + rCY * 2.5
+
+  oPrisoner[BLACK] = Shapes.AddText(0)
+
+  Shapes.Move(oPrisoner[BLACK], iBHX, iBHY)
+
+  iBLX = iBHX + rCX * 5
+
+  iBLY = iBHY
+
+  bOn = "True"
+
+  iX = iBLX
+
+  iY = iBLY
+
+  DrawLamp()
+
+  sPlayer[BLACK] = "Random" ' é»’ãƒ—?ƒ¬?‚¤?ƒ¤?ƒ¼?ˆ?œŸ??
+
+  oBlack = Controls.AddTextBox(iBX1 + rCX, iBY0)
+
+  Controls.SetTextBoxText(oBlack, sPlayer[BLACK])
+
+  oWhite = Controls.AddTextBox(iBX1 + rCX, iBY0 + idLY * iRo / 2)
+
+  sPlayer[WHITE] = "CPU" ' ?™½?ƒ—?ƒ¬?‚¤?ƒ¤?ƒ¼?ˆ?œŸ??
+
+  Controls.SetTextBoxText(oWhite, sPlayer[WHITE])
+
+  oPass = Controls.AddButton(sPass, iBX1 + rCX, iBY0 + idLY * iRo)
+
+  oResign = Controls.AddButton(sResign, iBX1 + rCX * 6, iBY0 + idLY * iRo)
+
+  Shapes.HideShape(oPass)
+
+  Shapes.HideShape(oResign)
+
+  oSGF = Controls.AddTextBox(iBX1 + rCX, iBY0 + idLY * iRo)
+
+  sSGF = "temp.sgf"
+
+  Controls.SetTextBoxText(oSGF, sSGF)
+
+  oNewGame = Controls.AddButton(sGame, iBX1 + rCX, iBY0 + idLY * iRo + rCY * 2)
+
+  oOpen = Controls.AddButton(sOpen, iBX1 + rCX * 6, iBY0 + idLY * iRo + rCY * 2)
+
+  oNew = Controls.AddButton(sNew, iBX1 + rCX, iBY0 + idLY * iRo + rCY * 2)
+
+  Controls.HideControl(oNew)
+
+  GraphicsWindow.FontName = "Webdings"
+
+  oReplay = Controls.AddButton(sReplay, iBX1 + rCX * 6, iBY0 + idLY * iRo + rCY * 2)
+
+  GraphicsWindow.BrushColor = "Red"
+
+  oSave = Controls.AddButton(sSave, iBX1 + rCX * 9, iBY0 + idLY * iRo + rCY * 2)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontName = "Tahoma"
+
+  Controls.HideControl(oReplay)
+
+  Controls.HideControl(oSave)
+
+  iWHX = iBX1 + rCX + iSR * 2.5
+
+  iWHY = iBY0 + idLY * (iRo / 2) + rCY * 2.5
+
+  oPrisoner[WHITE] = Shapes.AddText(0)
+
+  Shapes.Move(oPrisoner[WHITE], iWHX, iWHY)
+
+  iWLX = iWHX + rCX * 5
+
+  iWLY = iWHY
+
+  bOn = "False"
+
+  iX = iWLX
+
+  iY = iWLY
+
+  DrawLamp()
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillEllipse(iBX1 + rCX, iBY0 + idLY * (iRo / 2 + 1), iSR * 2, iSR * 2)
+
+  Controls.TextTyped = OnTextTyped
+
+EndSub
+
+'
+
+' ?ƒ©?ƒ³?ƒ—?®è¡¨ç¤º
+
+Sub DrawLamp
+
+  sSavedColor = GraphicsWindow.BrushColor
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillRectangle(iX + 1, iY + 1, 21, 7)
+
+  GraphicsWindow.BrushColor = "DimGray"
+
+  GraphicsWindow.FillRectangle(iX - 2, iY - 2, 21, 7)
+
+  If bOn Then
+
+    GraphicsWindow.BrushColor = "Lime"
+
+  Else
+
+    GraphicsWindow.BrushColor = "Black"
+
+  EndIf
+
+  GraphicsWindow.FillRectangle(iX, iY, 20, 6)
+
+  GraphicsWindow.BrushColor = sSavedColor
+
+EndSub
+
+'
+
+' ---------------------------------
+
+' ?‚²?ƒ¼?ƒ ?–¢??
+
+' ---------------------------------
+
+' ?–°è¦ãƒ¢?ƒ¼?ƒ‰ - å¯¾æˆ¦?…åï¼ˆã¾?Ÿ?¯æ£‹è­œ?ï¼‰ã®?…¥?Š›
+
+Sub InputGameInfo
+
+  bShowMove = "False"
+
+  bInGame = "True"
+
+  bReplay = "False"
+
+  bResign = "False"
+
+  GraphicsWindow.Title = "Igo " + sVersion
+
+  Controls.ShowControl(oNewGame)
+
+  Controls.ShowControl(oOpen)
+
+  Controls.ShowControl(oSGF)
+
+  Controls.HideControl(oPass)
+
+  Controls.HideControl(oResign)
+
+  Controls.ButtonClicked = OnButtonClicked1
+
+  bNotClicked = "True"
+
+  While bNotClicked
+
+    Program.Delay(200)
+
+  EndWhile
+
+  Controls.HideControl(oNewGame)
+
+  Controls.HideControl(oOpen)
+
+  Controls.HideControl(oSGF)
+
+  Controls.ShowControl(oPass)
+
+  Controls.ShowControl(oResign)
+
+EndSub
+
+'
+
+' TextBox?‚¤?ƒ™?ƒ³?ƒˆ?‡¦?†
+
+Sub OnTextTyped
+
+  If Controls.LastTypedTextBox = oBlack Then
+
+    sPlayer[BLACK] = Controls.GetTextBoxText(oBlack)
+
+  ElseIf Controls.LastTypedTextBox = oWhite Then
+
+    sPlayer[WHITE] = Controls.GetTextBoxText(oWhite)
+
+  ElseIf Controls.LastTypedTextBox = oSGF Then
+
+    sSGF = Controls.GetTextBoxText(oSGF)
+
+  EndIf
+
+EndSub
+
+'
+
+' ?–°è¦ãƒ¢?ƒ¼?ƒ‰?®?ƒœ?‚¿?ƒ³?‚¤?ƒ™?ƒ³?ƒˆ?‡¦?†
+
+Sub OnButtonClicked1
+
+  If Controls.LastClickedButton = oNewGame Then
+
+    bNotClicked = "False"
+
+    bOpen = "False"
+
+  ElseIf Controls.LastClickedButton = oOpen Then
+
+    bNotClicked = "False"
+
+    bOpen = "True"  
+
+  EndIf
+
+EndSub
+
+'
+
+' çµ‚äº†?ƒ¢?ƒ¼?ƒ‰ - ?†?”Ÿ, ä¿å­˜?¾?Ÿ?¯?–°è¦ãƒœ?‚¿?ƒ³?®?…¥?Š›
+
+Sub InputGameEndInfo
+
+  bShowMove = "True"
+
+  bInGame = "True"
+
+  bReplay = "False"
+
+  bSave = "False"
+
+  bResign = "False"
+
+  Controls.HideControl(oPass)
+
+  Controls.HideControl(oResign)
+
+  Controls.ShowControl(oNew)
+
+  Controls.ShowControl(oReplay)
+
+  Controls.ShowControl(oSave)
+
+  Controls.ShowControl(oSGF)
+
+  Controls.ButtonClicked = OnButtonClicked2
+
+  bNotClicked = "True"
+
+  While bNotClicked
+
+    Program.Delay(200)
+
+  EndWhile
+
+  Controls.HideControl(oNew)
+
+  Controls.HideControl(oReplay)
+
+  Controls.HideControl(oSave)
+
+  Controls.HideControl(oSGF)
+
+EndSub
+
+'
+
+'  çµ‚äº†?ƒ¢?ƒ¼?ƒ‰?®?ƒœ?‚¿?ƒ³?‚¤?ƒ™?ƒ³?ƒˆ?‡¦?†
+
+Sub OnButtonClicked2
+
+  If Controls.LastClickedButton = oNew Then
+
+    bNotClicked = "False"
+
+    bSave = "False"
+
+    bReplay = "False"
+
+    bInGame = "False"
+
+  ElseIf Controls.LastClickedButton = oSave Then
+
+    bNotClicked = "False"
+
+    bSave = "True"
+
+    bReplay = "False"
+
+    bInGame = "True"
+
+  ElseIf Controls.LastClickedButton = oReplay Then
+
+    If iNumRec > 0 Then
+
+      bNotClicked = "False"
+
+      bReplay = "True"
+
+      bSave = "False"  
+
+      bInGame = "True"
+
+    Else
+
+      If bSound Then
+
+        Sound.PlayChimeAndWait()
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+'
+
+' ?£ã‚’?–?‚Š?™¤?
+
+Sub RemoveUnit
+
+  For i = 1 To iUnit
+
+    iX = iXU[i]
+
+    iY = iYU[i]
+
+    iBoard[iX][iY] = SPACE
+
+    If bShow Then
+
+      EraseStone()
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+'
+
+' æ´»è·¯?‚’?•°?ˆ?‚‹æº–å‚™
+
+Sub InitLiberty
+
+  For iXL = 0 To iRo + 1
+
+    For iYL = 0 To iRo + 1
+
+      bNotChecked[iXL][iYL] = "True"
+
+    EndFor
+
+  EndFor
+
+  iLiberty = 0  
+
+  iUnit = 0
+
+EndSub
+
+'
+
+' ?œªç¢ºèª?ƒ•?ƒ©?‚°?®ä¿å­˜
+
+Sub SaveNC
+
+  For iXC = 0 To iRo + 1
+
+    For iYC = 0 To iRo + 1
+
+      bSavedNC[iXC][iYC] = bNotChecked[iXC][iYC]
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+'
+
+' ?œªç¢ºèª?ƒ•?ƒ©?‚°?®å¾©å…ƒ
+
+Sub RestoreNC
+
+  For iXC = 0 To iRo + 1
+
+    For iYC = 0 To iRo + 1
+
+      bNotChecked[iXC][iYC] = bSavedNC[iXC][iYC]
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+'
+
+' ?£ã®æ´»è·¯?‚’?•°?ˆ?‚‹
+
+Sub CountLiberty
+
+  Stack.PushValue("liberty", iXSave)
+
+  Stack.PushValue("liberty", iYSave)
+
+  Stack.PushValue("liberty", i)
+
+  iXSave = iX
+
+  iYSave = iY
+
+  If bNotChecked[iX][iY] Then
+
+    bNotChecked[iX][iY] = "False"
+
+    If iBoard[iX][iY] = SPACE Then
+
+      iLiberty = iLiberty + 1
+
+    ElseIf iBoard[iX][iY] = iColor Then
+
+      iUnit = iUnit + 1
+
+      iXU[iUnit] = iX
+
+      iYU[iUnit] = iY
+
+      For i = 1 To 4
+
+        iX = iXSave + idX4[i]
+
+        iY = iYSave + idY4[i]
+
+        CountLiberty()
+
+      EndFor
+
+    EndIf
+
+  EndIf
+
+  i = Stack.PopValue("liberty")  
+
+  iYSave = Stack.PopValue("liberty")
+
+  iXSave = Stack.PopValue("liberty")
+
+EndSub
+
+'  
+
+' ?œ°?®ç©ºç‚¹?®?£ã‚’èª¿ã¹?‚‹
+
+Sub CheckSpaceUnitInTerritory
+
+  Stack.PushValue("space", iXSave)
+
+  Stack.PushValue("space", iYSave)
+
+  Stack.PushValue("space", i)
+
+  iXSave = iX
+
+  iYSave = iY
+
+  If bNotChecked[iX][iY] Then
+
+    bNotChecked[iX][iY] = "False"
+
+    If iTerritory[iX][iY] = SPACE Then
+
+      iUnit = iUnit + 1
+
+      iXU[iUnit] = iX
+
+      iYU[iUnit] = iY
+
+      For i = 1 To 4
+
+        iX = iXSave + idX4[i]
+
+        iY = iYSave + idY4[i]
+
+        CheckSpaceUnitInTerritory()
+
+      EndFor
+
+    ElseIf iTerritory[iX][iY] = BLACK Then
+
+      If iColor = SPACE Then
+
+        iColor = BLACK
+
+      ElseIf iColor = WHITE Then
+
+        iColor = BANDW
+
+      EndIf
+
+    ElseIf iTerritory[iX][iY] = WHITE Then
+
+      If iColor = SPACE Then
+
+        iColor = WHITE
+
+      ElseIf iColor = BLACK Then
+
+        iColor = BANDW
+
+      EndIf
+
+    EndIf
+
+  EndIf    
+
+  i = Stack.PopValue("space")
+
+  iYSave = Stack.PopValue("space")
+
+  iXSave = Stack.PopValue("space")
+
+EndSub
+
+'  
+
+' ç©ºç‚¹?®?£ã‚’èª¿ã¹?‚‹
+
+Sub CheckSpaceUnit
+
+  Stack.PushValue("space", iXSave)
+
+  Stack.PushValue("space", iYSave)
+
+  Stack.PushValue("space", i)
+
+  iXSave = iX
+
+  iYSave = iY
+
+  If bNotChecked[iX][iY] Then
+
+    bNotChecked[iX][iY] = "False"
+
+    If iBoard[iX][iY] = SPACE Then
+
+      iUnit = iUnit + 1
+
+      iXU[iUnit] = iX
+
+      iYU[iUnit] = iY
+
+      For i = 1 To 4
+
+        iX = iXSave + idX4[i]
+
+        iY = iYSave + idY4[i]
+
+        CheckSpaceUnit()
+
+      EndFor
+
+    ElseIf iBoard[iX][iY] = BLACK Then
+
+      If iColor = SPACE Then
+
+        iColor = BLACK
+
+      ElseIf iColor = WHITE Then
+
+        iColor = BANDW
+
+      EndIf
+
+    ElseIf iBoard[iX][iY] = WHITE Then
+
+      If iColor = SPACE Then
+
+        iColor = WHITE
+
+      ElseIf iColor = BLACK Then
+
+        iColor = BANDW
+
+      EndIf
+
+    EndIf
+
+  EndIf    
+
+  i = Stack.PopValue("space")
+
+  iYSave = Stack.PopValue("space")
+
+  iXSave = Stack.PopValue("space")
+
+EndSub
+
+'
+
+' ï¼ˆå˜?‹¬?®ï¼‰çœ¼?‹?©?†?‹èª¿ã¹?‚‹
+
+Sub CheckMyEye
+
+  bMyEye = "False"
+
+  If iBoard[iX][iY] = SPACE Then
+
+    For i = 1 To 4
+
+      iX1 = iX + idX4[i]
+
+      iY1 = iY + idY4[i]
+
+      iC1 = iBoard[iX1][iY1]
+
+      If iC1 = 3 - iColor Or iC1 = SPACE Then ' ?›¸?‰‹?®?Ÿ³?‹ç©?
+
+        Goto lNotMyEye
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  bMyEye = "True"
+
+lNotMyEye:
+
+EndSub
+
+'
+
+' ï¼ˆå˜?‹¬?®ï¼‰çœ¼?‹?©?†?‹èª¿ã¹?‚‹
+
+Sub CheckEye
+
+  If iBoard[iX][iY] = SPACE Then
+
+    iColor = SPACE
+
+    For i = 1 To 4
+
+      iX1 = iX + idX4[i]
+
+      iY1 = iY + idY4[i]
+
+      iC1 = iBoard[iX1][iY1]
+
+      If iC1 = SPACE Then
+
+        iColor = SPACE
+
+        Goto lCExit
+
+      ElseIf iC1 <> OB Then
+
+        If iColor = 3 - iC1 Then
+
+          iColor = SPACE
+
+          Goto lCExit
+
+        EndIf
+
+        iColor = iC1
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+lCExit:    
+
+EndSub
+
+'
+
+' çµ‚å??®?ˆ¤å®?
+
+Sub Judge
+
+  bInGame = "True"
+
+  If iPass >= 2 Then
+
+    bInGame = "False"
+
+    CountScore()      ' ?‹?•—?®?ˆ¤å®?
+
+    If bEasy = "False" Then
+
+      AdjustTerritory() ' ?œ°?®èª¿æ•´
+
+    EndIf
+
+    If bShow Then
+
+      DrawTerritory()   ' ?œ°?®??”»
+
+      XDeadStones()     ' æ­»ã«?Ÿ³?«Ã—?‚’ä»˜ã‘?‚‹
+
+      If iScore > 0 Then
+
+        sScore = "B+" + iScore
+
+        GraphicsWindow.Title = "Igo " + sVersion + " - é»’ã®" + iScore + "?›®?‹?¡"
+
+      ElseIf iScore < 0 Then
+
+        sScore = "W+" + (-iScore)
+
+        GraphicsWindow.Title = "Igo " + sVersion + " - ?™½?®" + (-iScore) + "?›®?‹?¡"
+
+      Else  ' iScore = 0
+
+        sScore = "0"
+
+        GraphicsWindow.Title = "Igo " + sVersion + " - å¼•ã?ˆ†?‘ï¼ˆæŒç¢ï¼‰"
+
+      EndIf
+
+    EndIf  
+
+  EndIf
+
+EndSub
+
+'
+
+' ?‹?•—?®?ˆ¤å®?
+
+Sub CountScore
+
+  EvalBoard()     ' ?œ°?®èªè­˜
+
+  iBlackScore = iBlackScore + iPrisoner[BLACK]  ' ?‚¢?‚²?ƒ?ƒ?‚’?Š ?ˆ?‚‹
+
+  iWhiteScore = iWhiteScore + iPrisoner[WHITE]  ' ?‚¢?‚²?ƒ?ƒ?‚’?Š ?ˆ?‚‹
+
+  iBlackScore = iBlackScore + iDead[WHITE]      ' æ­»ã«?Ÿ³?‚’?Š ?ˆ?‚‹
+
+  iWhiteScore = iWhiteScore + iDead[BLACK]      ' æ­»ã«?Ÿ³?‚’?Š ?ˆ?‚‹
+
+  iScore = iBlackScore - iWhiteScore
+
+EndSub
+
+'
+
+' ?œ°?®èª¿æ•´
+
+Sub AdjustTerritory
+
+  ' ä¸??–¹?®?Ÿ³?«?›²?¾?‚Œ?¦?„?‚‹ç©ºç™½?¯?œ°iTerritory[][]?«?Š ?ˆ?‚‹
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If iTerritory[iX][iY] = SPACE Then
+
+        InitLiberty()
+
+        iColor = SPACE
+
+        iXSave = iX
+
+        iYSave = iY
+
+        CheckSpaceUnitInTerritory()
+
+        iX = iXSave
+
+        iY = iYSave
+
+        If iColor = BLACK Then
+
+          For i = 1 To iUnit
+
+            iTerritory[iXU[i]][iYU[i]] = BLACK
+
+          EndFor
+
+          iBlackScore = iBlackScore + iUnit
+
+        ElseIf iColor = WHITE Then
+
+          For i = 1 To iUnit
+
+            iTerritory[iXU[i]][iYU[i]] = WHITE
+
+          EndFor
+
+          iWhiteScore = iWhiteScore + iUnit
+
+        EndIf    
+
+      EndIf    
+
+    EndFor  ' iX
+
+  EndFor  ' iY
+
+  iScore = iBlackScore - iWhiteScore
+
+EndSub
+
+'
+
+' ?›¤?¢?®è©•ä¾¡
+
+Sub EvalBoard
+
+  iCSave = iColor
+
+If bEasy Then
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If iBoard[iX][iY] = SPACE Then
+
+        CheckEye()
+
+        If iColor = BLACK Then
+
+          iBlackScore = iBlackScore + 1
+
+        ElseIf iColor = WHITE Then
+
+          iWhiteScore = iWhiteScore + 1
+
+        EndIf
+
+      EndIf
+
+    EndFor  ' iX
+
+  EndFor  ' iY
+
+Else
+
+  iDead[BLACK] = 0
+
+  iDead[WHITE] = 0
+
+  iDeadSum = 0
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      iBlackEffect[iX][iY] = 0
+
+      iWhiteEffect[iX][iY] = 0 
+
+      iTerritory[iX][iY] = SPACE
+
+    EndFor
+
+  EndFor
+
+  SaveBoard()
+
+  ' æ´»è·¯ iLiberty =1 ?®?£ã‚’iBoard[][]?‹?‚‰æ¶ˆã—?æ?»ã«?Ÿ³?¨?—?¦è¨˜æ†¶?™?‚‹
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If iBoard[iX][iY] <> SPACE Then
+
+        iColor = iBoard[iX][iY]
+
+        iXSave = iX
+
+        iYSave = iY
+
+        InitLiberty()
+
+        CountLiberty()
+
+        If iLiberty = 1 Then
+
+          For i = 1 To iUnit
+
+            iX = iXU[i]
+
+            iY = iYU[i]
+
+            iBoard[iX][iY] = SPACE
+
+            iDeadSum = iDeadSum + 1
+
+            iDX[iDeadSum] = iX
+
+            iDY[iDeadSum] = iY
+
+          EndFor
+
+          iDead[iColor] = iDead[iColor] + iUnit 
+
+        EndIf
+
+        iX = iXSave
+
+        iY = iYSave
+
+      EndIf
+
+    EndFor  ' iX
+
+  EndFor  ' iY
+
+  ' ?Ÿ³?®å½±éŸ¿ç¯„å›²?‚’è¨ˆç®—?™?‚‹
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If iBoard[iX][iY] = BLACK Then
+
+        SetBlackEffect()
+
+      ElseIf iBoard[iX][iY] = WHITE Then
+
+        SetWhiteEffect()
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  iBlackScore = 0 ' é»’ã®?œ°?‚’?•°?ˆ?‚‹
+
+  iWhiteScore = 0 ' ?™½?®?œ°?‚’?•°?ˆ?‚‹
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If iBoard[iX][iY] = BLACK Then
+
+        iTerritory[iX][iY] = BLACK
+
+      ElseIf iBoard[iX][iY] = WHITE Then
+
+        iTerritory[iX][iY] = WHITE
+
+      Else
+
+        If iBlackEffect[iX][iY] > iWhiteEffect[iX][iY] Then
+
+          iTerritory[iX][iY] = BLACK
+
+          iBlackScore = iBlackScore + 1
+
+        ElseIf iBlackEffect[iX][iY] < iWhiteEffect[iX][iY] Then
+
+          iTerritory[iX][iY] = WHITE
+
+          iWhiteScore = iWhiteScore + 1
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  RestoreBoard()
+
+EndIf
+
+  iColor = iCSave
+
+EndSub
+
+'
+
+' ç¢ç›¤?®ä¿å­˜ï¼ˆç›¤?¢?®è©•ä¾¡?”¨ï¼?
+
+Sub SaveBoard
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      iSaved[iX][iY] = iBoard[iX][iY]
+
+    EndFor
+
+  EndFor
+
+EndSub  
+
+'
+
+' ç¢ç›¤?®å¾©å…ƒï¼ˆç›¤?¢?®è©•ä¾¡?”¨ï¼?
+
+Sub RestoreBoard
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      iBoard[iX][iY] = iSaved[iX][iY]
+
+    EndFor
+
+  EndFor
+
+EndSub  
+
+'
+
+' ç¢ç›¤?®ä¿å­˜2ï¼ˆãƒ¢?ƒ³?ƒ†?‚«?ƒ«?ƒ­?”¨ï¼?
+
+Sub SaveBoard2
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      iSaved2[iX][iY] = iBoard[iX][iY]
+
+    EndFor
+
+  EndFor
+
+EndSub  
+
+'
+
+' ç¢ç›¤?®å¾©å…ƒ2ï¼ˆãƒ¢?ƒ³?ƒ†?‚«?ƒ«?ƒ­?”¨ï¼?
+
+Sub RestoreBoard2
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      iBoard[iX][iY] = iSaved2[iX][iY]
+
+    EndFor
+
+  EndFor
+
+EndSub  
+
+'
+
+' ?‚²?ƒ¼?ƒ å±æ?§ã®ä¿å­˜
+
+Sub SaveGameProperties
+
+  iSKo = iKo
+
+  iSKX = iKX
+
+  iSKY = iKY
+
+  iSPrisoner[BLACK] = iPrisoner[BLACK]
+
+  iSPrisoner[WHITE] = iPrisoner[WHITE]
+
+  iSPass = iPass
+
+EndSub
+
+'
+
+' ?‚²?ƒ¼?ƒ å±æ?§ã®å¾©å…ƒ
+
+Sub RestoreGameProperties
+
+  iKo = iSKo
+
+  iKX = iSKX
+
+  iKY = iSKY
+
+  iPrisoner[BLACK] = iSPrisoner[BLACK]
+
+  iPrisoner[WHITE] = iSPrisoner[WHITE]
+
+  iPass = iSPass
+
+EndSub
+
+'
+
+' ?››?–¹?®åº§æ¨™å·??ˆ†?®?ˆ?œŸ?Œ–
+
+Sub Init4
+
+  idX4[1] =  1  ' ?³
+
+  idY4[1] =  0
+
+  idX4[2] =  0  ' ä¸?
+
+  idY4[2] = -1
+
+  idX4[3] = -1  ' å·?
+
+  idY4[3] =  0
+
+  idX4[4] =  0  ' ä¸?
+
+  idY4[4] =  1
+
+EndSub
+
+'
+
+' å½±éŸ¿ç¯„å›²ï¼ˆè·?›¢2ï¼‰ã®åº§æ¨™å·??ˆ†?®?ˆ?œŸ?Œ–
+
+Sub InitEffect
+
+  idXE[1] =  0  ' ä¸??•ªä¸?
+
+  idYE[1] = -2
+
+  idXE[2] = -1  ' å·¦ä¸Š
+
+  idYE[2] = -1
+
+  idXE[3] =  0  ' ä¸?
+
+  idYE[3] = -1
+
+  idXE[4] =  1  ' ?³ä¸?
+
+  idYE[4] = -1
+
+  idXE[5] = -2  ' ä¸??•ªå·?
+
+  idYE[5] =  0
+
+  idXE[6] = -1  ' å·?
+
+  idYE[6] =  0
+
+  idXE[7] =  0  ' ä¸?å¤?
+
+  idYE[7] =  0
+
+  idXE[8] =  1  ' ?³
+
+  idYE[8] =  0
+
+  idXE[9] =  2  ' ä¸??•ª?³
+
+  idYE[9] =  0
+
+  idXE[10] = -1 ' å·¦ä¸‹
+
+  idYE[10] =  1 
+
+  idXE[11] =  0 ' ä¸?
+
+  idYE[11] =  1
+
+  idXE[12] =  1 ' ?³ä¸?
+
+  idYE[12] =  1
+
+  idXE[13] =  0 ' ä¸???ªä¸‹
+
+  idYE[13] =  2
+
+EndSub
+
+' 
+
+Sub SetBlackEffect
+
+  For i = 1 To 13
+
+    iXE = iX + idXE[i]
+
+    iYE = iY + idYE[i]
+
+    If iXE > 0 And iXE <= iRo And iYE > 0 And iYE <= iRo Then
+
+      iBlackEffect[iXE][iYE] = iBlackEffect[iXE][iYE] + 1
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+'
+
+Sub SetWhiteEffect
+
+  For i = 1 To 13
+
+    iXE = iX + idXE[i]
+
+    iYE = iY + idYE[i]
+
+    If iXE > 0 And iXE <= iRo And iYE > 0 And iYE <= iRo Then
+
+      iWhiteEffect[iXE][iYE] = iWhiteEffect[iXE][iYE] + 1
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+'
+
+' ?›¤?®?ˆ?œŸ?Œ–
+
+Sub InitBoard
+
+  For i = 0 To iRo + 1
+
+    iBoard[0][i] = OB
+
+    iBoard[iRo + 1][i] = OB
+
+    iBoard[i][0] = OB
+
+    iBoard[i][iRo + 1] = OB
+
+  EndFor
+
+  idLX = rCX * 3 ' ç·šã®?–“?š”
+
+  iSR = idLX / 2 - 2??' ç¢çŸ³?®?Šå¾?
+
+  idLY = rCY * 2 ' ç·šã®?–“?š”
+
+  iLX0 = rCX * 6.5 ' å·?ç«??®ç·?
+
+  iLY0 = rCY * 4.5 ' ä¸Šç«¯?®ç·?
+
+  iLX1 = iLX0 + idLX * (iRo - 1) ' ?³ç«??®ç·?
+
+  iLY1 = iLY0 + idLY * (iRo - 1) ' ä¸‹ç«¯?®ç·?
+
+  iBX0 = iLX0 - idLX * 1.5 ' ?›¤?®å·?ç«?
+
+  iBY0 = iLY0 - idLY * 1.5 ' ?›¤?®ä¸Šç«¯
+
+  iBX1 = iLX1 + idLX ' ?›¤?®?³ç«?
+
+  iBY1 = iLY1 + idLY ' ?›¤?®ä¸‹ç«¯
+
+EndSub
+
+'
+
+' ?›¤?¢?®?‚¯?ƒª?‚¢
+
+Sub ClearBoard
+
+  For iX = 1 To iRo
+
+    For iY = 1 To iRo
+
+      iBoard[iX][iY] = SPACE
+
+    EndFor
+
+  EndFor
+
+  iPrisoner[BLACK] = 0
+
+  iPrisoner[WHITE] = 0
+
+  Controls.SetTextBoxText(oPrisoner[BLACK], 0)
+
+  Controls.SetTextBoxText(oPrisoner[WHITE], 0)
+
+EndSub
+
+'
+
+' ?›¤?®è¡¨ç¤º
+
+Sub ShowBoard
+
+  ' ?›¤?®?‰²?‚’å¡—ã‚‹
+
+  GraphicsWindow.BrushColor = sBoardColor
+
+  GraphicsWindow.FillRectangle(iBX0, iBY0, iBX1 - iBX0, iBY1 - iBY0)
+
+  ' ? ?‚’??
+
+  iPW = GraphicsWindow.PenWidth
+
+  GraphicsWindow.PenWidth = 4
+
+  GraphicsWindow.DrawRectangle(iLX0, iLY0, idLX * (iRo - 1), idLY * (iRo - 1))
+
+  GraphicsWindow.PenWidth = iPW
+
+  ' ç·šã‚’??
+
+  GraphicsWindow.PenColor = "Black"
+
+  For iX = iLX0 To iLX1 Step idLX
+
+    GraphicsWindow.DrawLine(iX, iLY0, iX, iLY1)
+
+  EndFor
+
+  For iY = iLY0 To iLY1 Step idLY
+
+    GraphicsWindow.DrawLine(iLX0, iY, iLX1, iY)
+
+  EndFor
+
+  ' ?•°å­—ã‚’?›¸?
+
+  GraphicsWindow.BrushColor = "Black"
+
+  For iX = 1 To iRo
+
+    GraphicsWindow.DrawText(iLX0 + (iX - 1.2) * idLX, iLY0 - idLY - 3, iX)
+
+  EndFor  
+
+  For iY = 1 To iRo
+
+    GraphicsWindow.DrawText(iLX0 - idLX, iLY0 + (iY - 1.25) * idLY - 3, iY)
+
+  EndFor  
+
+EndSub
+
+'
+
+' ç¢çŸ³?‚’??
+
+Sub DrawStone
+
+  If iColor = WHITE Then
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.FillEllipse(iLX0 + (iX - 1) * idLX - iSR, iLY0 + (iY - 1) * idLY - iSR, iSR * 2, iSR * 2) 
+
+    If bShowMove Then
+
+      GraphicsWindow.BrushColor = "Black"
+
+      If iMove > 9 Then
+
+        iND = 2
+
+      Else
+
+        iND = 1
+
+      EndIf
+
+      iNX = iLX0 + (iX - 1) * idLX - rCX / (3 - iND)
+
+      iNY = iLY0 + (iY - 1) * idLY - rCY / 2 - 3
+
+      GraphicsWindow.DrawText(iNX, iNY, iMove)
+
+    EndIf
+
+  ElseIf iColor = BLACK Then
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.FillEllipse(iLX0 + (iX - 1) * idLX - iSR, iLY0 + (iY - 1) * idLY - iSR, iSR * 2, iSR * 2) 
+
+    If bShowMove Then
+
+      GraphicsWindow.BrushColor = "White"
+
+      If iMove > 9 Then
+
+        iND = 2
+
+      Else
+
+        iND = 1
+
+      EndIf
+
+      iNX = iLX0 + (iX - 1) * idLX - rCX / (3 - iND)
+
+      iNY = iLY0 + (iY - 1) * idLY - rCY / 2 - 3
+
+      GraphicsWindow.DrawText(iNX, iNY, iMove)
+
+    EndIf
+
+  EndIf  
+
+EndSub
+
+'
+
+' ç¢çŸ³?‚’æ¶ˆã™
+
+Sub EraseStone
+
+  ' ç¢çŸ³?‚’ç¢ç›¤?®?‰²?§æ¶ˆã™
+
+  GraphicsWindow.BrushColor = sBoardColor
+
+  GraphicsWindow.FillRectangle(iLX0 + (iX - 1) * idLX - iSR, iLY0 + (iY - 1) * idLY - iSR, iSR * 2, iSR * 2) 
+
+  GraphicsWindow.PenColor = "Black"
+
+  ' æ¨ªç·š?®å¼•ã?›´?—
+
+  If iX = 1 Then
+
+    iEX0 = iLX0
+
+  Else
+
+    iEX0 = iLX0 + (iX - 1) * idLX - iSR
+
+  EndIf
+
+  If iX = iRo Then  
+
+    iEX1 = iLX0 + (iX - 1) * idLX
+
+  Else
+
+    iEX1 = iLX0 + (iX - 1) * idLX + iSR
+
+  EndIf
+
+  iEY0 = iLY0 + (iY - 1) * idLY  
+
+  iEY1 = iLY0 + (iY - 1) * idLY
+
+  iPW = GraphicsWindow.PenWidth
+
+  If iY = 1 Or iY = iRo Then
+
+    GraphicsWindow.PenWidth = 4
+
+    GraphicsWindow.DrawLine(iEX0 - 2, iEY0, iEX1 + 2, iEY1)    
+
+  Else
+
+    GraphicsWindow.DrawLine(iEX0, iEY0, iEX1, iEY1)    
+
+  EndIf
+
+  GraphicsWindow.PenWidth = iPW 
+
+  ' ç¸?ç·šã®å¼•ã?›´?—
+
+  iEX0 = iLX0 + (iX - 1) * idLX
+
+  iEX1 = iLX0 + (iX - 1) * idLX
+
+  If iY = 1 Then
+
+    iEY0 = iLY0
+
+  Else
+
+    iEY0 = iLY0 + (iY - 1) * idLY - iSR  
+
+  EndIf
+
+  If iY = iRo Then  
+
+    iEY1 = iLY0 + (iY - 1) * idLY 
+
+  Else
+
+    iEY1 = iLY0 + (iY - 1) * idLY + iSR 
+
+  EndIf  
+
+  If iX = 1 Or iX = iRo Then
+
+    GraphicsWindow.PenWidth = 4
+
+    GraphicsWindow.DrawLine(iEX0, iEY0 - 2, iEX1, iEY1 + 2)    
+
+  Else
+
+    GraphicsWindow.DrawLine(iEX0, iEY0, iEX1, iEY1)    
+
+  EndIf
+
+  GraphicsWindow.PenWidth = iPW 
+
+EndSub
+
+'
+
+' ç¢çŸ³?«Ã—?‚’ä»˜ã‘?‚‹
+
+Sub XDeadStones
+
+  If iDeadSum > 0 Then
+
+    sPC = GraphicsWindow.PenColor
+
+    GraphicsWindow.PenColor = "Red"
+
+    iPW = GraphicsWindow.PenWidth
+
+    GraphicsWindow.PenWidth = 4
+
+    For i = 1 To iDeadSum
+
+      iX = iDX[i]
+
+      iY = iDY[i] 
+
+      GraphicsWindow.DrawLine(iLX0 + (iX - 1) * idLX - iSR / 2, iLY0 + (iY - 1) * idLY - iSR / 2, iLX0 + (iX - 1) * idLX + iSR / 2, iLY0 + (iY - 1) * idLY + iSR / 2) 
+
+      GraphicsWindow.DrawLine(iLX0 + (iX - 1) * idLX + iSR / 2, iLY0 + (iY - 1) * idLY - iSR / 2, iLX0 + (iX - 1) * idLX - iSR / 2, iLY0 + (iY - 1) * idLY + iSR / 2) 
+
+    EndFor  
+
+    GraphicsWindow.PenColor = sPC
+
+    GraphicsWindow.PenWidth = iPW
+
+  EndIf
+
+EndSub
+
+'
+
+' ?œ°?«?››è§’ã‚’??
+
+Sub DrawTerritory
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If iBoard[iX][iY] = SPACE And iTerritory[iX][iY] = BLACK Then
+
+        GraphicsWindow.BrushColor = "Black"
+
+        GraphicsWindow.FillRectangle(iLX0 + (iX - 1) * idLX - iSR / 2, iLY0 + (iY - 1) * idLY - iSR / 2, iSR, iSR) 
+
+      ElseIf iBoard[iX][iY] = SPACE And iTerritory[iX][iY] = WHITE Then
+
+        GraphicsWindow.BrushColor = "White"
+
+        GraphicsWindow.FillRectangle(iLX0 + (iX - 1) * idLX - iSR / 2, iLY0 + (iY - 1) * idLY - iSR / 2, iSR, iSR) 
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+'
+
+' ---------------------------------
+
+' ?è?ƒãƒ«?ƒ¼?ƒ?ƒ³?–¢??
+
+' ---------------------------------
+
+' ???‰‹?¯?ƒ½?ª?‰‹?®?ƒª?‚¹?ƒˆä½œæˆ
+
+Sub GetPossiblePuts
+
+  iPossible = 0
+
+  iColor = Math.Remainder((iMove - 1), 2) + 1
+
+  For iY = 1 To iRo
+
+    For iX = 1 To iRo
+
+      If iBoard[iX][iY] <> SPACE Then
+
+        Goto lNotPossible
+
+      EndIf  
+
+      If iMove > 1 And iKo = iMove - 1 And iKX = iX And iKY = iY Then
+
+        Goto lNotPossible ' ?‚³?‚¦???ƒ†?Œå¿…è¦
+
+      EndIf
+
+      CheckSuiside()  ' ?‡ªæ®ºæ‰‹?®?ƒ?‚§?ƒƒ?‚¯
+
+      If bSuiside Then
+
+        Goto lNotPossible
+
+      EndIf
+
+      If bEyes Then     ' ?œ¼?‚’å®ˆã‚‹
+
+        CheckMyEye()    ' ?œ¼?‹?©?†?‹èª¿ã¹?‚‹
+
+        If bMyEye Then  ' ?œ¼?ª?‚‰?‰“?Ÿ?ª?„ï¼ˆãŸ? ?—?‚³?‚¦?‚’?Ÿ‹?‚?‚‹?‰‹?‚’?™¤?ï¼?
+
+          If iMove = 1 Or iKo <> iMove - 2 Or iKX <> iX Or iKY <> iY Then
+
+            Goto lNotPossible
+
+          EndIf
+
+        EndIf
+
+      EndIf
+
+      iPossible = iPossible + 1 
+
+      iPX[iPossible] = iX
+
+      iPY[iPossible] = iY
+
+lNotPossible:
+
+    EndFor  ' iX
+
+  EndFor    ' iY
+
+EndSub
+
+'
+
+' ?‡ªæ®ºæ‰‹?®?ƒ?‚§?ƒƒ?‚¯
+
+Sub CheckSuiside
+
+  bSuiside = "False"
+
+  iBoard[iX][iY] = iColor ' ä»??«ç½??
+
+  iXSave = iX
+
+  iYSave = iY
+
+  InitLiberty()
+
+  CountLiberty() ' æ´»è·¯?‚’?•°?ˆ?‚‹
+
+  If iLiberty = 0 Then ' ?‡ªæ®ºæ‰‹?‹?‚‚?—?‚Œ?ª?„
+
+    iCSave = iColor
+
+    iColor = 3 - iColor ' ?›¸?‰‹?®?Ÿ³
+
+    For i = 1 To 4  ' ?¥?‚¹?®?Ÿ³?Œ?–?‚Œ?‚‹?‹
+
+      iX = iXSave + idX4[i]
+
+      iY = iYSave + idY4[i]
+
+      If iX >= 1 And iX <= iRo And iY >= 1 And iY <= iRo And iBoard[iX][iY] = iColor Then
+
+        InitLiberty()
+
+        CountLiberty() ' æ´»è·¯?‚’?•°?ˆ?‚‹
+
+        If iLiberty = 0 Then
+
+          Goto lNotSuiside
+
+        EndIf
+
+      EndIf
+
+    EndFor    
+
+    bSuiside = "True"    
+
+lNotSuiside:
+
+    iColor = iCSave
+
+  EndIf 
+
+  iX = iXSave
+
+  iY = iYSave
+
+  iBoard[iX][iY] = SPACE  ' ?…ƒ?«?ˆ»?™
+
+EndSub
+
+'
+
+' æ¬¡ã®?‰‹?‚’?‰“?¤ - Random (?‚³?ƒ³?ƒ”?ƒ¥?ƒ¼?‚¿?ƒ¼)
+
+Sub Random
+
+  bPass = "False"
+
+  bResign = "False"
+
+  If iPossible > 0 Then
+
+    i = Math.GetRandomNumber(iPossible)
+
+    iX = iPX[i]
+
+    iY = iPY[i]
+
+    iColor = Math.Remainder((iMove - 1), 2) + 1
+
+    iBoard[iX][iY] = iColor
+
+  Else
+
+    bPass = "True"
+
+  EndIf
+
+EndSub
+
+'
+
+' æ¬¡ã®?‰‹?‚’?‰“?¤ - Territory (?‚³?ƒ³?ƒ”?ƒ¥?ƒ¼?‚¿?ƒ¼)
+
+Sub Territory
+
+  bPass = "False"
+
+  bResign = "False"
+
+  If iPossible > 0 Then
+
+    iMax = -999
+
+    For iP = 1 To iPossible
+
+      iX = iPX[iP]
+
+      iY = iPY[iP]
+
+      iColor = Math.Remainder((iMove - 1), 2) + 1
+
+      iBoard[iX][iY] = iColor ' ä»??«ç½??„?¦?¿?‚‹
+
+      CountScore()
+
+      iX = iPX[iP]
+
+      iY = iPY[iP]
+
+      If iColor = WHITE Then
+
+        iScore = - iScore
+
+      EndIf
+
+      If iScore > iMax Then
+
+        iXMax = iX
+
+        iYMax = iY
+
+        iMax = iScore
+
+      EndIf
+
+      iBoard[iX][iY] = SPACE  ' ?…ƒ?«?ˆ»?™
+
+    EndFor
+
+    If iMax > -10 Then
+
+      iX = iXMax
+
+      iY = iYMax  
+
+      iBoard[iX][iY] = iColor
+
+    Else
+
+      bPass = "True"
+
+    EndIf
+
+  Else
+
+    bPass = "True"
+
+  EndIf
+
+EndSub
+
+'
+
+' æ¬¡ã®?‰‹?‚’?‰“?¤ - Montecarlo (?‚³?ƒ³?ƒ”?ƒ¥?ƒ¼?‚¿?ƒ¼)
+
+Sub PlayOut
+
+  If iPossible = 0 Then
+
+    bPass = "True"
+
+    Goto lPass
+
+  EndIf
+
+  If iPossible > 12 Then
+
+    iPlayOut = 1
+
+  ElseIf iPossible > 8 Then
+
+    iPlayOut = 2
+
+  Else
+
+    iPlayOut = 10
+
+  EndIf
+
+  SaveBoard2()          ' ç¢ç›¤?‚’ä¿å­˜
+
+  SavePossiblePuts()    ' ???‰‹?¯?ƒ½?ª?‰‹?‚’ä¿å­˜
+
+  SaveGameProperties()  ' ?‚³?‚¦?ã‚¢?‚²?ƒ?ƒ?ãƒ‘?‚¹?‚’ä¿å­˜
+
+  iSMove = iMove    ' ?‰‹?•°?‚’ä¿å­˜
+
+  iSColor = iColor  ' ?Ÿ³?®?‰²?‚’ä¿å­˜
+
+  For i = 1 To iSNP ' ???‰‹?¯?ƒ½?ª?‰‹?«å¯¾ã—
+
+    rWin[i] = 0.0   ' ?‹?¡?•°?‚’?‚¯?ƒª?‚¢
+
+    rLose[i] = 0.0  ' è² ã‘?•°?‚’?‚¯?ƒª?‚¢
+
+  EndFor
+
+  bEyes = "True"  ' ???‰‹?¯?ƒ½?ª?‰‹?«?‡ª?ˆ†?®?œ¼?‚’?«?‚?ª?„
+
+  bShow = "False" ' çµ‚å??ˆ¤å®šã§çµæœ?‚’è¡¨ç¤º?—?ª?„
+
+  For iCP = 1 To iSNP
+
+    iX = iSX[iCP]
+
+    iY = iSY[iCP]
+
+    DumpPoint()
+
+    For iG = 1 To iPlayOut
+
+      iMove = iSMove - 1 ' ?‰‹?•°?‚’1?¤?ˆ»?™
+
+      RestoreBoard2() ' ç¢ç›¤?‚’?…ƒ?«?ˆ»?™
+
+      RestoreGameProperties() ' ?‚³?‚¦?ã‚¢?‚²?ƒ?ƒ?ãƒ‘?‚¹?‚’?…ƒ?«?ˆ»?™
+
+      iColor = BLACK
+
+      If Math.Remainder(iSMove, 2) = 0 Then
+
+        iColor = WHITE
+
+        Goto lNextWhite
+
+      EndIf
+
+'
+
+lNextBlack:
+
+      ' é»’ç•ª
+
+      iMove = iMove + 1
+
+      GetPossiblePuts()
+
+      If iMove = iSMove Then
+
+        iX = iSX[iCP] ' ???ˆ?®?‰‹
+
+        iY = iSY[iCP] ' ???ˆ?®?‰‹
+
+        bPass = "False"
+
+      Else
+
+        Random()
+
+      EndIf
+
+      If bPass Then
+
+        iPass = iPass + 1
+
+      Else
+
+        iPass = 0
+
+        RemoveCapturedStones() ' ?–?‚‰?‚Œ?Ÿ?Ÿ³?‚’?–?‚Š?™¤?
+
+      EndIf
+
+      Judge()
+
+      If bInGame <> "True" Then
+
+        Goto lEndGame
+
+      EndIf
+
+'
+
+lNextWhite:
+
+      ' ?™½?•ª
+
+      iMove = iMove + 1
+
+      GetPossiblePuts()
+
+      If iMove = iSMove Then
+
+        iX = iSX[iCP] ' ???ˆ?®?‰‹
+
+        iY = iSY[iCP] ' ???ˆ?®?‰‹
+
+        bPass = "False"
+
+      Else
+
+        Random()
+
+      EndIf
+
+      If bPass Then
+
+        iPass = iPass + 1
+
+      Else
+
+        iPass = 0
+
+        RemoveCapturedStones() ' ?–?‚‰?‚Œ?Ÿ?Ÿ³?‚’?–?‚Š?™¤?
+
+      EndIf
+
+      Judge()
+
+      If bInGame Then
+
+        Goto lNextBlack
+
+      EndIf
+
+'
+
+lEndGame:
+
+      If iScore > 0 And iSColor = BLACK Or iScore < 0 And iSColor = WHITE Then
+
+        rWin[iCP] = rWin[iCP] + 1.0
+
+      ElseIf iScore = 0 then
+
+        rWin[iCP] = rWin[iCP] + 0.5
+
+        rLose[iCP] = rLose[iCP] + 0.5
+
+      Else
+
+        rLose[iCP] = rLose[iCP] + 1.0
+
+      EndIf  
+
+    EndFor
+
+  EndFor
+
+  DumpNewLine()
+
+'
+
+  rMax = 0.0
+
+  For i = 1 To iSNP
+
+    rAve[i] = rWin[i] / (rWin[i] + rLose[i])
+
+    If rAve[i] > rMax Then
+
+      rMax = rAve[i]
+
+    EndIf
+
+  EndFor
+
+  iPossible = 0
+
+  For i = 1 To iSNP
+
+    If rAve[i] = rMax Then
+
+      iPossible = iPossible + 1
+
+      iPX[iPossible] = iSX[i]
+
+      iPY[iPossible] = iSY[i]
+
+    EndIf
+
+  EndFor
+
+  RestoreBoard2()         ' ç¢ç›¤?‚’?…ƒ?«?ˆ»?™
+
+  RestoreGameProperties() ' ?‚³?‚¦?ã‚¢?‚²?ƒ?ƒ?ãƒ‘?‚¹?‚’?…ƒ?«?ˆ»?™
+
+  iMove = iSMove          ' ?‰‹?•°?‚’?…ƒ?«?ˆ»?™
+
+  iColor = iSColor        ' ?Ÿ³?®?‰²?‚’?…ƒ?«?ˆ»?™
+
+  Random()  ' ?Œ?˜?‹?‡?®?‰‹?‹?‚‰?ƒ©?ƒ³???ƒ ?«?¸?¶
+
+  RestorePossiblePuts()   ' ???‰‹?¯?ƒ½?ª?‰‹?‚’?…ƒ?«?ˆ»?™ 
+
+lPass:
+
+EndSub
+
+'
+
+' ???‰‹?¯?ƒ½?ª?‰‹?®ä¿å­˜
+
+Sub SavePossiblePuts
+
+  iSNP = iPossible
+
+  For i = 1 To iSNP
+
+    iSX[i] = iPX[i]
+
+    iSY[i] = iPY[i]
+
+  EndFor
+
+EndSub
+
+'
+
+' ???‰‹?¯?ƒ½?ª?‰‹?®å¾©å…ƒ
+
+Sub RestorePossiblePuts
+
+  iPossible = iSNP
+
+  For i = 1 To iPossible
+
+    iPX[i] = iSX[i]
+
+    iPY[i] = iSY[i]
+
+  EndFor
+
+EndSub
+
+'
+
+' æ¬¡ã®?‰‹?‚’?‰“?¤ - Human (äº?)
+
+Sub Human
+
+  bPass = "False"
+
+  bResign = "False"
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  While "True"
+
+    bOutOfBoard = "True"
+
+    While bOutOfBoard
+
+      bNotClicked = "True"  
+
+      While bNotClicked
+
+        Program.Delay(200)
+
+      EndWhile
+
+      If bPass Or bResign Then
+
+        Goto lPossiblePut
+
+      EndIf  
+
+      GetPosition()
+
+    EndWhile
+
+    For i = 1 To iPossible
+
+      If iPX[i] = iX And iPY[i] = iY Then
+
+        Goto lPossiblePut
+
+      EndIf  
+
+    EndFor
+
+    If bSound Then
+
+      Sound.PlayChimeAndWait()
+
+    EndIf
+
+  EndWhile  
+
+lPossiblePut:  
+
+  iColor = Math.Remainder((iMove - 1), 2) + 1
+
+  If bPass = "False" And bResign = "False" Then
+
+    iBoard[iX][iY] = iColor
+
+  EndIf    
+
+EndSub
+
+'
+
+' ?ƒ?‚¦?‚¹?Œ?Š¼?•?‚Œ?Ÿ?¨??®?‡¦?†
+
+Sub OnMouseDown
+
+  iMX = GraphicsWindow.MouseX
+
+  iMY = GraphicsWindow.MouseY
+
+  bNotClicked = "False"  
+
+EndSub
+
+'
+
+' ?ƒ?‚¦?‚¹?Œ?Š¼?•?‚Œ?Ÿ?¨??®?‡¦?†
+
+Sub OnButtonClicked
+
+  If Controls.LastClickedButton = oResign Then
+
+    bResign = "True"
+
+    bNotClicked = "False"  
+
+  ElseIf Controls.LastClickedButton = oPass Then
+
+    bPass = "True"
+
+    bNotClicked = "False"  
+
+  EndIf  
+
+EndSub
+
+'
+
+' ?ƒ?‚¦?‚¹?‚’?‚¯?ƒª?ƒƒ?‚¯?—?Ÿåº§æ¨™?‹?‚‰ç¢ç›¤?®åº§æ¨™?‚’å¾—ã‚‹
+
+Sub GetPosition
+
+  iX = Math.Floor((iMX - iLX0 + idLX / 2) / idLX) + 1
+
+  iY = Math.Floor((iMY - iLY0 + idLY / 2) / idLY) + 1
+
+  If iX < 1 Or iX > iRo Or iY < 1 Or iY > iRo Then
+
+    bOutOfBoard = "True"
+
+  Else
+
+    bOutOfBoard = "False"
+
+  EndIf
+
+EndSub
+
+'
+
+' æ¬¡ã®?‰‹?‚’?‰“?¤ - Replay (æ£‹è­œ?®?†?”Ÿ)
+
+Sub Replay
+
+  If iMove > iNumRec Then
+
+    bResign = "True"
+
+  Else
+
+    iColor = iRecord[iMove]["turn"]
+
+    iX = iRecord[iMove]["x"]
+
+    iY = iRecord[iMove]["y"]
+
+    If iX = iRo + 1 Then
+
+      bPass = "True"
+
+    Else
+
+      iBoard[iX][iY] = iColor
+
+      bPass = "False"
+
+    EndIf
+
+  EndIf
+
+  Program.Delay(200)
+
+lReplayExit:
+
+EndSub
+
+'
+
+' ---------------------------------
+
+' æ£‹è­œ?ƒ•?‚¡?‚¤?ƒ«?–¢??
+
+' ---------------------------------
+
+' æ£‹è­œ?®?ˆ?œŸ?Œ–
+
+Sub InitRecord
+
+  iNumRec = 0
+
+EndSub
+
+'
+
+' æ£‹è­œ?®è¨˜éŒ²
+
+Sub Record
+
+  iNumRec = iNumRec + 1
+
+  If bPass Then
+
+    iX = iRo + 1
+
+    iY = iRo + 1
+
+  EndIf
+
+  iRecord[iNumRec]["x"] = iX
+
+  iRecord[iNumRec]["y"] = iY
+
+  iRecord[iNumRec]["turn"] = iColor
+
+EndSub  
+
+'
+
+' æ£‹è­œ?«?‚ˆ?‚‹å¯¾å??®?†?”Ÿ
+
+Sub ReplayGame
+
+  bShowMove = "True"
+
+  ClearBoard()    ' ?›¤?¢?®?‚¯?ƒª?‚¢
+
+  ShowBoard()     ' ?›¤?®è¡¨ç¤º
+
+  Shapes.SetText(oPrisoner[BLACK], 0) ' ?‚¢?‚²?ƒ?ƒ?®?‚¯?ƒª?‚¢
+
+  Shapes.SetText(oPrisoner[WHITE], 0) ' ?‚¢?‚²?ƒ?ƒ?®?‚¯?ƒª?‚¢
+
+  iMove = 0       ' ?‰‹?•°?®?‚¯?ƒª?‚¢
+
+  bInGame = "True"
+
+  bReplay = "True"
+
+  While bInGame
+
+    'ï½?
+
+    EachTurn()    ' é»’ç•ª
+
+    If bInGame Then
+
+      EachTurn()  ' ?™½?•ª
+
+    EndIf    
+
+    ' ï½?
+
+  EndWhile
+
+  bInGame = "True"
+
+EndSub      
+
+'      
+
+' æ£‹è­œ?ƒ•?‚¡?‚¤?ƒ«?®?›¸??‡º?—ï¼ˆä¿å­˜ï¼‰
+
+Sub WriteRecord
+
+  sBuf = "" ' Silverlightå¯¾ç­–
+
+' The following line could be harmful and has been automatically commented.
+
+'   sBuf = File.ReadContents(sSGF)
+
+  If Text.GetLength(sBuf) > 0 Then
+
+    GraphicsWindow.ShowMessage("'" + sSGF + "'" + sAlreadyExists, sSave2)
+
+  Else
+
+    iSGFLine = 1
+
+    sBuf = sBuf + "(;GM[1]FF[1]SZ[" + iRo + "]PB[" + sPlayer[BLACK] + "]PW[" + sPlayer[WHITE] + "]RE[" + sScore + "]" + sNL
+
+    iSGFLine = 2
+
+    sBuf = sBuf + "DT[" + sDate + "]KM[0.0]RU[Japanese]" + sNL
+
+    iSGFLine = 3
+
+    sLine = ""
+
+    For i = 1 To iNumRec
+
+      iX = iRecord[i]["x"]
+
+      iY = iRecord[i]["y"]
+
+      iColor = iRecord[i]["turn"]
+
+      If (iColor = BLACK) Then
+
+        sLine = sLine + ";B[" + sAlpha[iX] + sAlpha[iY] + "]"
+
+      ElseIf (iColor = WHITE) Then
+
+        sLine = sLine + ";W[" + sAlpha[iX] + sAlpha[iY] + "]"
+
+      EndIf  
+
+      If Math.Remainder(i, 10) = 0 Then
+
+        sBuf = sBuf + sLine + sNL
+
+        iSGFLine = iSGFLine + 1
+
+        sLine = ""
+
+      EndIf
+
+    EndFor
+
+    sBuf = sBuf + sLine + ")" + sNL
+
+    iSGFLine = iSGFLine + 1
+
+    sLine = ""
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteContents(sSGF, sBuf)
+
+  EndIf   
+
+EndSub    
+
+'
+
+' æ£‹è­œ?ƒ•?‚¡?‚¤?ƒ«?®èª??¿è¾¼ã¿ï¼ˆé–‹?ï¼?
+
+Sub ReadRecord
+
+  InitRecord()
+
+  sBuf = "" ' Silverlightå¯¾ç­–
+
+' The following line could be harmful and has been automatically commented.
+
+'   sBuf = File.ReadContents(sSGF)
+
+  iBufPtr = 1
+
+  iBufLen = Text.GetLength(sBuf)
+
+  If iBufLen = 0 Then
+
+    GraphicsWindow.ShowMessage("'" + sSGF + "'" + sIsNotExist, sOpen)
+
+    bError = "True"
+
+  Else
+
+    ParsePL()       ' (
+
+    ParseSemicolon() ' ;
+
+    ParseNewLine()  ' ?”¹è¡? for CgfGoBan
+
+    ParseGame()     ' GM[1]
+
+    If sValue <> "1" Then
+
+      GraphicsWindow.ShowMessage("'" + sSGF + "'" + sIsNotGoFormat +" GM[" + sValue + "]", sOpen)
+
+      bError = "True"
+
+      Goto lErrorExit
+
+    EndIf
+
+    ParseFF()       ' FF[1]
+
+    ParseSize()     ' SZ[6]
+
+    ParseNewLine()  ' ?”¹è¡? ... for CgfGoBan
+
+    ParsePB()       ' PB[é»’ã®?ƒ—?ƒ¬?‚¤?ƒ¤?ƒ¼?]
+
+    ParseNewLine()  ' ?”¹è¡? ... for CgfGoBan
+
+    ParsePW()       ' PW[?™½?®?ƒ—?ƒ¬?‚¤?ƒ¤?ƒ¼?]
+
+    ParseNewLine()  ' ?”¹è¡? ... for CgfGoBan
+
+    ParseBS()       ' BS[é»’ã®ç¨??ˆ¥] ... for ?Š?ˆ¶?•?‚“?®?›²ç¢?3 FMV
+
+    ParseWS()       ' WS[?™½?®ç¨??ˆ¥] ... for ?Š?ˆ¶?•?‚“?®?›²ç¢?3 FMV
+
+    ParseDate()     ' DT[YYYY-MM-DD] for CgfGoBan
+
+    ParseNewLine()  ' ?”¹è¡? ... for CgfGoBan
+
+    ParseRE()       ' RE[çµæœ]
+
+    ParseNewLine()  ' ?”¹è¡?
+
+    ParseDate()     ' DT[YYYY-MM-DD]
+
+    ParseKomi()     ' KM[0.0] ... for CgfGoBan
+
+    ParseTime()     ' TM[?Œ?¡?™‚?–“] ... for CgfGoBan
+
+    ParseHA()       ' HA[?ƒ?ƒ³?ƒ‡?‚£] ... for ?Š?ˆ¶?•?‚“?®?›²ç¢?3 FMV
+
+    ParseRule()     ' RU[Japanese] ... for CgfGoBan
+
+    ParsePlace()    ' PC[å¯¾å?? ´??]
+
+    ParseEvent()    ' EV[?‚¤?ƒ™?ƒ³?ƒˆ]
+
+    ParseGN()       ' GN[?‚²?ƒ¼?ƒ ?]
+
+    ParseAP()       ' AP[?ƒ—?ƒ­?‚°?ƒ©?ƒ ?] ... for CgfGoBan
+
+    ParseView()     ' VW[è¡¨ç¤ºç¯„å›²] ... for ?Š?ˆ¶?•?‚“?®?›²ç¢?3 FMV
+
+    ParseNewLine()  ' ?”¹è¡? ... for CgfGoBan
+
+    ParseTime()     ' TM[?Œ?¡?™‚?–“]
+
+    ParseKomi()     ' KM[0.0]
+
+    ParseRule()     ' RU[Japanese]
+
+    ParseKomi()     ' KM[0.0] ... for ?‹ä¹?
+
+    ParseRE()       ' RE[çµæœ] ... for ?Š?ˆ¶?•?‚“?®?›²ç¢?3 FMV
+
+    ParsePlayer()   ' PL[?‰‹?•ª] ... for ?Š?ˆ¶?•?‚“?®?›²ç¢?3 FMV
+
+    ParseComment()  ' C[?‚³?ƒ¡?ƒ³?ƒˆ] ... for CgfGoBan
+
+    ParseNewLine()  ' ?”¹è¡? ... for CgfGoBan
+
+    ParseComment()  ' C[?‚³?ƒ¡?ƒ³?ƒˆ] ... for CgfGoBan
+
+    ParseNewLine()  ' ?”¹è¡? ... for CgfGoBan
+
+    ParseComment()  ' C[?‚³?ƒ¡?ƒ³?ƒˆ] ... for CgfGoBan
+
+    ParseNewLine()  ' ?”¹è¡?
+
+    bError = "True"
+
+    While bError
+
+      ParsePR()     ' )
+
+      If bError Then
+
+        ParseSemicolon()  ' ;
+
+        ParseBlack()      ' B[xy]
+
+        ParseWhite()      ' W[xy]
+
+        ParseErase()      ' E[xy] äº’æ›?®?Ÿ?‚?—?°?‚‰?æ®‹ã™
+
+        ParseComment()    ' C[?‚³?ƒ¡?ƒ³?ƒˆ] ... for ?‹ä¹?
+
+        ParseT()          ' T[æ¶ˆè²»?™‚?–“] ... for CgfGoBan
+
+        ParseNewLine()    ' ?”¹è¡?
+
+        bError = "True"
+
+      EndIf
+
+    EndWhile
+
+    bError = "False"
+
+  EndIf    
+
+lErrorExit:
+
+EndSub    
+
+'
+
+' æ£‹è­œ?‡º?Š›?”¨?®?—¥ä»˜ã‚’ä¿å­˜
+
+Sub SaveGameDate
+
+  sDate = Clock.Year + "-"
+
+  If Clock.Month <= 9 Then
+
+    sDate = sDate + "0"
+
+  EndIf
+
+  sDate = sDate + Clock.Month + "-"
+
+  If Clock.Day <= 9 Then
+
+    sDate = sDate + "0"
+
+  EndIf
+
+  sDate = sDate + Clock.Day
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ GM[1] - game ?‚²?ƒ¼?ƒ 
+
+Sub ParseGame
+
+  sID = "GM"
+
+  ParseProperty()
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ FF[1] - file format ?ƒ•?‚¡?‚¤?ƒ«?ƒ•?‚©?ƒ¼?ƒ?ƒƒ?ƒˆ
+
+Sub ParseFF 
+
+  sID = "FF"
+
+  ParseProperty()
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ SZ[6] - size ?‚µ?‚¤?‚º
+
+Sub ParseSize
+
+  sID = "SZ"
+
+  ParseProperty()
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ PB[é»’ã®?ƒ—?ƒ¬?‚¤?ƒ¤?ƒ¼?]
+
+Sub ParsePB
+
+  cChar = "P"
+
+  ParseChar()
+
+  cChar = "B"
+
+  ParseChar()
+
+  ParseText()
+
+  sPlayer[BLACK] = sText
+
+  Controls.SetTextBoxText(oBlack, sPlayer[BLACK])
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ PW[?™½?®?ƒ—?ƒ¬?‚¤?ƒ¤?ƒ¼?]
+
+Sub ParsePW
+
+  cChar = "P"
+
+  ParseChar()
+
+  cChar = "W"
+
+  ParseChar()
+
+  ParseText()
+
+  sPlayer[WHITE] = sText
+
+  Controls.SetTextBoxText(oWhite, sPlayer[WHITE])
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ RE[1] - result çµæœ
+
+Sub ParseRE
+
+  sID = "RE"
+
+  ParseProperty()
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ DT[yyyy-mm-dd] - date ?—¥ä»?
+
+Sub ParseDate 
+
+  sID = "DT"
+
+  ParseProperty()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ PC[Place] - ? ´??
+
+Sub ParsePlace
+
+  sID = "PC"
+
+  ParseProperty()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ EV[event name] - ?‚¤?ƒ™?ƒ³?ƒˆ?
+
+Sub ParseEvent
+
+  sID = "EV"
+
+  ParseProperty()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ GN[game name] - ?‚²?ƒ¼?ƒ ?
+
+Sub ParseGN
+
+  sID = "GN"
+
+  ParseProperty()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ AP[application program name:version] - ?ƒ—?ƒ­?‚°?ƒ©?ƒ ?
+
+Sub ParseAP
+
+  sID = "AP"
+
+  ParseProperty()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ TM[time] - ?Œ?¡?™‚?–“
+
+Sub ParseTime
+
+  sID = "TM"
+
+  ParseProperty()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ T[time] - æ¶ˆè²»?™‚?–“ ï¼ˆSGF?®ä»•æ§˜?«?ª?„?ŒCgfGoBan?ã‚ª?ƒª?‚¸?ƒŠ?ƒ«ï¼?
+
+Sub ParseT
+
+  sID = "T"
+
+  ParseProperty()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ KM[0.0] - ?‚³?ƒŸ
+
+Sub ParseKomi
+
+  sID = "KM"
+
+  ParseProperty()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ C[comment] - ?‚³?ƒ¡?ƒ³?ƒˆ
+
+Sub ParseComment
+
+  sID = "C"
+
+  ParseProperty()
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ RU[Japanese] - ?ƒ«?ƒ¼?ƒ«
+
+Sub ParseRule 
+
+  sID = "RU"
+
+  ParseProperty()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ PL[turn] - ?©?¡?‚‰?®?•ª?‹?‚‰?‹
+
+Sub ParsePlayer
+
+  sID = "PL"
+
+  ParseProperty()
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ HA[0] - handicap stones ç½???Ÿ³
+
+Sub ParseHA
+
+  sID = "HA"
+
+  ParseProperty()
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ VW[range] - view è¡¨ç¤ºç¯„å›²
+
+Sub ParseView
+
+  sID = "VW"
+
+  ParseProperty()
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ BS[0] - é»’ã®ä½•ã‹ï¼ˆSGF?®ä»•æ§˜?«?ª?„?ŒãŠ?ˆ¶?•?‚“?ã‚ª?ƒª?‚¸?ƒŠ?ƒ«ï¼?
+
+Sub ParseBS
+
+  sID = "BS"
+
+  ParseProperty()
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ WS[4] - ?™½?®ä½•ã‹ï¼ˆSGF?®ä»•æ§˜?«?ª?„?ŒãŠ?ˆ¶?•?‚“?ã‚ª?ƒª?‚¸?ƒŠ?ƒ«ï¼?
+
+Sub ParseWS
+
+  sID = "WS"
+
+  ParseProperty()
+
+EndSub
+
+'
+
+' å­—å¥è§£æ ";" - ?‚»?ƒŸ?‚³?ƒ­?ƒ³
+
+Sub ParseSemicolon
+
+  cChar = ";"
+
+  ParseChar()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ B[xy] - é»’ã®???‰‹
+
+Sub ParseBlack
+
+  cChar = "B"
+
+  ParseChar()
+
+  If bError = "False" Then
+
+    iColor = BLACK
+
+    ParsePoint()
+
+    iX = Text.GetIndexOf("abcdefghijklmnopqrst", cX)
+
+    iY = Text.GetIndexOf("abcdefghijklmnopqrst", cY)
+
+    If iX = 20 Then
+
+      bPass = "True"
+
+    Else
+
+      bPass = "False"
+
+    EndIf
+
+    Record()
+
+  EndIf    
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ W[xy] - ?™½?®???‰‹ 
+
+Sub ParseWhite
+
+  cChar = "W"
+
+  ParseChar()
+
+  If bError = "False" Then
+
+    iColor = WHITE
+
+    ParsePoint()
+
+    iX = Text.GetIndexOf("abcdefghijklmnopqrst", cX)
+
+    iY = Text.GetIndexOf("abcdefghijklmnopqrst", cY)
+
+    If iX = 20 Then
+
+      bPass = "True"
+
+    Else
+
+      bPass = "False"
+
+    EndIf
+
+    Record()
+
+  EndIf    
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ E[xy] - erase ?Ÿ³?‚’?–?‚Š?™¤?
+
+' v0.6?§ä¸è¦?«?ª?£?Ÿ?Œ?ã—?°?‚‰?æ®‹ã™
+
+Sub ParseErase
+
+  cChar = "E"
+
+  ParseChar()
+
+  If bError = "False" Then
+
+    ParsePoint()
+
+  EndIf    
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ [xy] - ä½ç½®
+
+Sub ParsePoint
+
+  ParseBL()
+
+  ParseLower()
+
+  cX = c
+
+  ParseLower()
+
+  cY = c
+
+  ParseBR()
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ [text] - ?ƒ†?‚­?‚¹?ƒˆ
+
+Sub ParseText
+
+  sText = ""
+
+  ParseBL()
+
+  bError = "True"
+
+  While bError
+
+    ParseBR()
+
+    If bError Then
+
+      sText = sText + Text.GetSubText(sBuf, iBufPtr, 1)
+
+      iBufPtr = iBufPtr + 1
+
+    EndIf
+
+  EndWhile    
+
+EndSub
+
+' 
+
+' SGFå­—å¥è§£æ ID[value] - property ?ƒ—?ƒ­?ƒ‘?ƒ†?‚£
+
+Sub ParseProperty
+
+  ParseID()
+
+  If bError Then
+
+    Goto lNotProperty
+
+  EndIf
+
+  ParseBL()
+
+  If bError Then
+
+    Goto lNotProperty
+
+  EndIf
+
+  bError = "True"
+
+  sValue = ""
+
+  While bError
+
+    ParseBR()
+
+    If bError Then
+
+      sValue = sValue + Text.GetSubText(sBuf,iBufPtr, 1)
+
+      iBufPtr = iBufPtr + 1
+
+    EndIf
+
+  EndWhile    
+
+lNotProperty:
+
+EndSub
+
+'
+
+' SGFå­—å¥è§£æ ID
+
+Sub ParseID
+
+  iPtrSaved = iBufPtr
+
+  For iPtr = 1 To Text.GetLength(sID)
+
+    cChar = Text.GetSubText(sID, iPtr, 1)
+
+    ParseChar()
+
+    If bError Then
+
+      iBufPtr = iPtrSaved
+
+      Goto lNotID
+
+    EndIf
+
+  EndFor
+
+lNotID:
+
+EndSub
+
+'
+
+' å­—å¥è§£æ ?‹±å¤§æ–‡å­?
+
+Sub ParseUpper
+
+  c = Text.GetSubText(sBuf,iBufPtr, 1)
+
+  iCode = Text.GetCharacterCode(c)
+
+  If iCode >= UPPERA And iCode <= UPPERZ Then
+
+    bError = "False"
+
+    iBufPtr = iBufPtr + 1
+
+  Else
+
+    bError = "True"
+
+  EndIf
+
+EndSub
+
+'
+
+' å­—å¥è§£æ ?‹±å°æ–‡å­?
+
+Sub ParseLower
+
+  c = Text.GetSubText(sBuf,iBufPtr, 1)
+
+  iCode = Text.GetCharacterCode(c)
+
+  If iCode >= LOWERA And iCode <= LOWERZ Then
+
+    bError = "False"
+
+    iBufPtr = iBufPtr + 1
+
+  Else
+
+    bError = "True"
+
+  EndIf
+
+EndSub
+
+'
+
+' å­—å¥è§£æ ?•°å­?
+
+Sub ParseDigit
+
+  c = Text.GetSubText(sBuf,iBufPtr, 1)
+
+  iCode = Text.GetCharacterCode(c)
+
+  If iCode >= LETTER0 And iCode <= LETTER9 Then
+
+    bError = "False"
+
+    iBufPtr = iBufPtr + 1
+
+  Else
+
+    bError = "True"
+
+  EndIf
+
+EndSub
+
+'
+
+' å­—å¥è§£æ å·¦ã‹?£?“
+
+Sub ParsePL
+
+  cChar = "("
+
+  ParseChar()
+
+EndSub
+
+'
+
+' å­—å¥è§£æ ?³?‹?£?“
+
+Sub ParsePR
+
+  cChar = ")"
+
+  ParseChar()
+
+EndSub
+
+'
+
+' å­—å¥è§£æ å·¦ã‚«?‚®?‹?£?“
+
+Sub ParseBL
+
+  cChar = "["
+
+  ParseChar()
+
+EndSub
+
+'
+
+' å­—å¥è§£æ ?³?‚«?‚®?‹?£?“
+
+Sub ParseBR
+
+  cChar = "]"
+
+  ParseChar()
+
+EndSub
+
+'
+
+' å­—å¥è§£æ ?Œ‡å®šã—?Ÿ?–‡å­?
+
+Sub ParseChar
+
+  c = Text.GetSubText(sBuf,iBufPtr, 1)
+
+  If c = cChar Then
+
+    bError = "False"
+
+    iBufPtr = iBufPtr + 1
+
+  Else
+
+    bError = "True"
+
+  EndIf
+
+EndSub
+
+'
+
+' å­—å¥è§£æ ?”¹è¡? (CR + LF)
+
+Sub ParseNewLine
+
+  c = Text.GetSubText(sBuf,iBufPtr, 1)
+
+  i1 = Text.GetCharacterCode(c)
+
+  c = Text.GetSubText(sBuf,iBufPtr + 1, 1)
+
+  i2 = Text.GetCharacterCode(c)
+
+  If i1 = CR And i2 = LF Then
+
+    bError = "False"
+
+    iBufPtr = iBufPtr + 2
+
+  Else
+
+    bError = "True"
+
+  EndIf
+
+EndSub
+
+'
+
+' ---------------------------------
+
+' ?ƒ‡?ƒ?ƒƒ?‚°?–¢??
+
+' ---------------------------------
+
+Sub DumpPoint
+
+  TextWindow.Write("(" + iX + "," + iY + ")")
+
+EndSub
+
+'
+
+Sub DumpNewLine
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+'
+
+' ?‚µ?ƒ–?ƒ«?ƒ¼?ƒ?ƒ³ StartClock (?™‚è¨ˆã‚’?–‹å§‹ã™?‚‹)
+
+Sub StartClock
+
+  iBeginTime = Clock.ElapsedMilliseconds
+
+  iEms = iBeginTime
+
+  TextWindow.Write("Start: ")
+
+  PrintClock()
+
+EndSub
+
+'
+
+' ?‚µ?ƒ–?ƒ«?ƒ¼?ƒ?ƒ³ StopClock (?™‚è¨ˆã‚’çµ‚äº†?™?‚‹)
+
+Sub StopClock
+
+  iEndTime = Clock.ElapsedMilliseconds
+
+  iEms = iEndTime
+
+  TextWindow.Write("Stop: ")
+
+  PrintClock()
+
+EndSub
+
+'
+
+' ?‚µ?ƒ–?ƒ«?ƒ¼?ƒ?ƒ³ PrintTime (?™‚?–“?‚’?‡º?Š›?™?‚‹)
+
+Sub PrintTime
+
+  iEms = iEndtime - iBeginTime
+
+  TextWindow.Write("Time: ")
+
+  PrintClock()
+
+EndSub
+
+'
+
+' ?‚µ?ƒ–?ƒ«?ƒ¼?ƒ?ƒ³ PrintClock (?™‚?ˆ»?‚’?‡º?Š›?™?‚‹)
+
+Sub PrintClock
+
+  ConvertEmsToTime()
+
+  TextWindow.WriteLine(iTime["Hour"] + ":" + iTime["Munite"] + ":" + iTime["Second"])
+
+EndSub
+
+'
+
+' ?‚µ?ƒ–?ƒ«?ƒ¼?ƒ?ƒ³ ConvertEmsToTime (Ems?‚’?™‚?ˆ†ç§’ã«å¤‰æ›?™?‚‹)
+
+Sub ConvertEmsToTime
+
+  iHMSMs = Math.Remainder(iEms, 24 * 60 * 60 * 1000)
+
+  iTime["Hour"] = Math.Floor(iHMSMs / (60 * 60 * 1000))
+
+  iMSMs = Math.Remainder(iHMSMs, 60 * 60 * 1000)
+
+  iTime["Munite"] = Math.Floor(iMSMs / (60 * 1000))
+
+  iSMs = Math.Remainder(iMSMs, 60 * 1000)
+
+  iTime["Second"] = Math.Floor(iSMs / 1000)
+
+EndSub
+
+

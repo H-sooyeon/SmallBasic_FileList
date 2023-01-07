@@ -1,0 +1,627 @@
+' Minesweeper for Small Basic 0.2
+
+' Copyright (c) 2013 Nonki Takahashi.  All rights reserved.
+
+'
+
+' History:
+
+'  0.2 13/05/2013 Supported mouse right button. (FMN979-0)
+
+'  0.1b 07/05/2013 Created. (FMN979)
+
+'
+
+GraphicsWindow.Title = "Minesweeper for Small Basic 0.2"
+
+Init()
+
+While "True"
+
+  Game()
+
+  playing = "True"
+
+  While playing
+
+    Program.Delay(500)
+
+  EndWhile
+
+EndWhile
+
+Sub Init
+
+  CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
+
+  nMines = 10
+
+  nCols = 9
+
+  nRows = 9
+
+  bgColor = "#949FB5"
+
+  cellColor = "#D6E3F3"
+
+  coverColor = "#4A64CF"
+
+  frameColor = "#222323"
+
+  markColor = "White"
+
+  flagColor = "Red"
+
+  color = "1=#414FBD;2=#206602;3=#AA0406;4=#020282;5=#790101;6=#06787F;7=#A70604;8=#AA0808;?œ¸=Black;"
+
+  GraphicsWindow.BackgroundColor = bgColor
+
+  x0 = 31
+
+  y0 = 30
+
+  sizeX = 31
+
+  sizeY = 30
+
+  GraphicsWindow.Width = (nCols + 2) * sizeX
+
+  GraphicsWindow.Height = (nRows + 3) * sizeY
+
+  GraphicsWindow.BrushColor = "Black"
+
+  x = x0
+
+  y = y0 + (nRows + 0.5) * sizeY
+
+  GraphicsWindow.FontSize = sizeY
+
+  GraphicsWindow.DrawText(x, y - 0.12 * sizeY, "?—¯")
+
+  GraphicsWindow.FontSize = sizeY * 0.8
+
+  GraphicsWindow.DrawText(x + 0.09 * sizeX, y + 0.02 * sizeY, "?””")
+
+  GraphicsWindow.FontSize = sizeY
+
+  x = x0 + (nCols - 1) * sizeX
+
+  GraphicsWindow.DrawText(x, y - 0.12 * sizeY, "?œ¸")
+
+  x = x0 + sizeX
+
+  GraphicsWindow.FontSize = sizeY * 0.6
+
+  oTime = Controls.AddTextBox(x, y)
+
+  Controls.SetSize(oTime, 2 * sizeX, sizeY)
+
+  x = x0 + (nCols - 3) * sizeX
+
+  oMines = Controls.AddTextBox(x, y)
+
+  GraphicsWindow.FontSize = sizeY
+
+  Controls.SetSize(oMines, 2 * sizeX, sizeY)
+
+  dirCol = "1=1;2=1;3=0;4=-1;5=-1;6=-1;7=0;8=1;"
+
+  dirRow = "1=0;2=-1;3=-1;4=-1;5=0;6=1;7=1;8=1;"
+
+' The following line could be harmful and has been automatically commented.
+
+'   path = File.GetSettingsFilePath()
+
+' The following line could be harmful and has been automatically commented.
+
+'   settings = File.ReadContents(path)
+
+  If settings["nWins"] = "" Then
+
+    settings["nWins"] = 0
+
+  EndIf
+
+  If settings["nPlays"] = "" Then
+
+    settings["nPlays"] = 0
+
+  EndIf
+
+  If settings["record"] = "" Then
+
+    settings["record"] = 999
+
+  EndIf
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(path, settings)
+
+EndSub
+
+Sub Game
+
+  time = 0
+
+  remain = nMines
+
+  covered = nCols * nRows
+
+  Controls.SetTextBoxText(oTime, time)
+
+  Controls.SetTextBoxText(oMines, remain)
+
+  CreateStage()
+
+  ShowStage()
+
+  waiting = "True"
+
+  Timer.Interval = 1000
+
+  Timer.Pause()
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+EndSub
+
+Sub OnMouseDown
+
+  GraphicsWindow.MouseDown = DoNothing
+
+  x = GraphicsWindow.MouseX
+
+  y = GraphicsWindow.MouseY
+
+  iCol = Math.Floor((x - x0) / sizeX) + 1
+
+  iRow = Math.Floor((y - y0) / sizeY) + 1
+
+  If cover[iCol][iRow] <> "" Then
+
+    If waiting Then
+
+      waiting = "False"
+
+      Timer.Tick = OnTick
+
+      Timer.Resume()
+
+    EndIf
+
+    If Mouse.IsLeftButtonDown Then
+
+      If toggle[iCol][iRow] <> 1 Then
+
+        OpenCover()
+
+      EndIf
+
+    Else
+
+      ToggleMark()
+
+    EndIf
+
+  EndIf
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+EndSub
+
+Sub DoNothing
+
+  OnMouseDown = ""
+
+EndSub
+
+Sub OnTick
+
+  time = time + 1
+
+  Controls.SetTextBoxText(oTime, time)  
+
+EndSub
+
+Sub OpenCover
+
+  Shapes.Remove(question[iCol][iRow])
+
+  Shapes.Remove(flag[iCol][iRow])
+
+  Shapes.Remove(pole[iCol][iRow])
+
+  Shapes.Remove(cover[iCol][iRow])
+
+  cover[iCol][iRow] = ""
+
+  covered = covered - 1
+
+  If stage[iCol][iRow] = "" Then
+
+    If nMines < covered Then
+
+      checked = ""
+
+      OpenAdjacents()
+
+    EndIf
+
+    If nMines = covered Then
+
+      Win()
+
+    EndIf
+
+  ElseIf stage[iCol][iRow] = "?œ¸" Then
+
+    Lose()
+
+  Else ' numbers
+
+    If covered = nMines Then
+
+      Win()
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub ToggleMark
+
+  toggle[iCol][iRow] = toggle[iCol][iRow] + 1
+
+  If toggle[iCol][iRow] = 3 Then
+
+    toggle[iCol][iRow] = 0
+
+  EndIf
+
+  If toggle[iCol][iRow] = 0 Then
+
+    Shapes.HideShape(question[iCol][iRow])
+
+  ElseIf toggle[iCol][iRow] = 1 Then
+
+    Shapes.ShowShape(flag[iCol][iRow])
+
+    Shapes.ShowShape(pole[iCol][iRow])
+
+    remain = remain - 1
+
+    Controls.SetTextBoxText(oMines, remain)
+
+  ElseIf toggle[iCol][iRow] = 2 Then
+
+    Shapes.HideShape(flag[iCol][iRow])
+
+    Shapes.HideShape(pole[iCol][iRow])
+
+    Shapes.ShowShape(question[iCol][iRow])
+
+    remain = remain + 1
+
+    Controls.SetTextBoxText(oMines, remain)
+
+  EndIf
+
+EndSub
+
+Sub Win
+
+  Timer.Pause()
+
+  If time < settings["record"] Then
+
+    settings["record"] = time
+
+  EndIf
+
+  settings["nWins"] = settings["nWins"] + 1
+
+  settings["nPlays"] = settings["nPlays"] + 1
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(path, settings)
+
+  SetMessage()
+
+  GraphicsWindow.ShowMessage(msg, "You win")
+
+  time = 0
+
+  playing = "False"
+
+EndSub
+
+Sub Lose
+
+  Timer.Pause()
+
+  OpenMines()
+
+  settings["nPlays"] = settings["nPlays"] + 1
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(path, settings)
+
+  SetMessage()
+
+  GraphicsWindow.ShowMessage(msg, "You lose")
+
+  time = 0
+
+  playing = "False"
+
+EndSub
+
+Sub SetMessage
+
+  msg = "Time: " + time + " sec" + CRLF
+
+  msg = msg + "High Score: " + settings["record"] + " sec" + CRLF
+
+  msg = msg + "Game Play Times: " + settings["nPlays"] + CRLF
+
+  msg = msg + "Wins: " + settings["nWins"] + CRLF
+
+  msg = msg + "Rate: " + Math.Floor(settings["nWins"] / settings["nPlays"] * 100) + " %"
+
+EndSub  
+
+Sub OpenAdjacents
+
+  ' param iCol, iRow - space cell
+
+  checked[iCol][iRow] = "True" 
+
+  For dir = 1 To 8
+
+    Stack.PushValue("local", iCol)
+
+    Stack.PushValue("local", iRow)
+
+    Stack.PushValue("local", dir)
+
+    iCol = iCol + dirCol[dir]
+
+    iRow = iRow + dirRow[dir]
+
+    If (1 <= iCol) And (iCol <= nCols) And (1 <= iRow) And (iRow <= nRows) Then
+
+      If checked[iCol][iRow] = "" Then
+
+        If cover[iCol][iRow] <> "" And toggle[iCol][iRow] <> 1 Then
+
+          Shapes.Remove(question[iCol][iRow])
+
+          Shapes.Remove(flag[iCol][iRow])
+
+          Shapes.Remove(pole[iCol][iRow])
+
+          Shapes.Remove(cover[iCol][iRow])
+
+          cover[iCol][iRow] = ""
+
+          covered = covered - 1
+
+        EndIf
+
+        If stage[iCol][iRow] = "" Then
+
+          OpenAdjacents()
+
+        Else
+
+          checked[iCol][iRow] = "True" 
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+    dir = Stack.PopValue("local")
+
+    iRow = Stack.PopValue("local")
+
+    iCol = Stack.PopValue("local")
+
+  EndFor
+
+EndSub
+
+Sub OpenMines
+
+  For iRow = 1 To nRows
+
+    For iCol = 1 To nCols
+
+      If stage[iCol][iRow] = "?œ¸" Then
+
+        Shapes.HideShape(cover[iCol][iRow])
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub CreateStage
+
+  stage = ""
+
+  toggle = ""
+
+  For iMine = 1 To nMines
+
+    iCol = Math.GetRandomNumber(nCols)
+
+    iRow = Math.GetRandomNumber(nRows)
+
+    While stage[iCol][iRow] = "?œ¸"
+
+      iCol = Math.GetRandomNumber(nCols)
+
+      iRow = Math.GetRandomNumber(nRows)
+
+    EndWhile
+
+    stage[iCol][iRow] = "?œ¸"
+
+  EndFor
+
+  For iRow = 1 To nRows
+
+    For iCol = 1 To nCols
+
+      AddNumbers()
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub AddNumbers
+
+  If stage[iCol][iRow] = "?œ¸" Then
+
+    For dir = 1 To 8
+
+      jCol = iCol + dirCol[dir]
+
+      jRow = iRow + dirRow[dir]
+
+      If (1 <= jCol) And (jCol <= nCols) And (1 <= jRow) And (jRow <= nRows) And (stage[jCol][jRow] <> "?œ¸") Then
+
+        stage[jCol][jRow] = stage[jCol][jRow] + 1
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+Sub ShowStage
+
+  GraphicsWindow.FontSize = sizeY
+
+  For iRow = 1 To nRows
+
+    For iCol = 1 To nCols
+
+      x = x0 + (iCol - 1) * sizeX
+
+      y = y0 + (iRow - 1) * sizeY
+
+      ShowCover()
+
+      ShowCell()
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+Sub ShowCover
+
+  ' param iCol, iRow - to show
+
+  ' param x, y - left top coordinate
+
+  If cover[iCol][iRow] = "" Then
+
+    GraphicsWindow.BrushColor = coverColor
+
+    GraphicsWindow.PenWidth = 2
+
+    GraphicsWindow.PenColor = frameColor
+
+    cover[iCol][iRow] = Shapes.AddRectangle(sizeX, sizeY)
+
+    Shapes.HideShape(cover[iCol][iRow])
+
+    Shapes.Move(cover[iCol][iRow], x, y)
+
+    GraphicsWindow.BrushColor = flagColor
+
+    GraphicsWindow.PenWidth = 0
+
+    flag[iCol][iRow] = Shapes.AddTriangle(0, 0.2 * sizeY, 0.6 * sizeX, 0, 0.6 * sizeX, 0.4 * sizeY)
+
+    Shapes.HideShape(flag[iCol][iRow])
+
+    Shapes.Move(flag[iCol][iRow], x + 0.2 * sizeX, y + 0.2 * sizeY)
+
+    GraphicsWindow.BrushColor = markColor
+
+    pole[iCol][iRow] = Shapes.AddRectangle(0.1 * sizeX, 0.6 * sizeY)
+
+    Shapes.HideShape(pole[iCol][iRow])
+
+    Shapes.Move(pole[iCol][iRow], x + 0.7 * sizeX, y + 0.2 * sizeY)
+
+    question[iCol][iRow] = Shapes.AddText("?")
+
+    Shapes.HideShape(question[iCol][iRow])
+
+    Shapes.Move(question[iCol][iRow], x + 0.2 * sizeX, y - 0.12 * sizeY)
+
+  Else
+
+    Shapes.HideShape(flag[iCol][iRow])
+
+    Shapes.HideShape(pole[iCol][iRow])
+
+    Shapes.HideShape(question[iCol][iRow])
+
+  EndIf
+
+  Shapes.ShowShape(cover[iCol][iRow])
+
+EndSub
+
+Sub ShowCell
+
+  ' param iCol, iRow - to show
+
+  ' param x, y - left top coordinate
+
+  GraphicsWindow.BrushColor = cellColor
+
+  GraphicsWindow.FillRectangle(x, y, sizeX, sizeY)
+
+  GraphicsWindow.PenWidth = 2
+
+  GraphicsWindow.PenColor = frameColor
+
+  GraphicsWindow.DrawRectangle(x, y, sizeX, sizeY)
+
+  GraphicsWindow.BrushColor = color[stage[iCol][iRow]]
+
+  If stage[iCol][iRow] = "?œ¸" Then
+
+    dx = 0
+
+  Else
+
+    dx = 0.2 * sizeX
+
+  EndIf
+
+  GraphicsWindow.DrawText(x + dx, y - 0.12 * sizeY, stage[iCol][iRow])
+
+EndSub
+
+

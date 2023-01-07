@@ -1,0 +1,1105 @@
+'==============================================================
+
+' PROTOTYPE MARIONETTE PROGRAM FOR SMALL BASIC BIG CHALLENGE
+
+' Original prototype VTD423 coded by litdev 
+
+' Turtle version coded by Nonki Takahashi
+
+'Do the initialisation and set up events for user interaction
+
+'==============================================================
+
+
+
+Initialise()
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+GraphicsWindow.MouseUp= OnMouseUp
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+Controls.ButtonClicked = OnButttonClicked
+
+
+
+'While(mouseDown <> "True")
+
+'  Program.Delay(100)
+
+'EndWhile
+
+
+
+'==============================================================
+
+' MAIN PROGRAM LOOP
+
+'Keep looping
+
+'==============================================================
+
+
+
+While ("True")
+
+  start = Clock.ElapsedMilliseconds
+
+  
+
+  If (mouseDown) Then
+
+    Movement()
+
+  EndIf
+
+  If (keyDown) Then
+
+    KeyChange()
+
+    Rotation()
+
+  EndIf
+
+  If (buttonPressed) Then
+
+    ButtonChange()
+
+  EndIf
+
+  Update()
+
+  Draw()
+
+  
+
+  delay = 10-(Clock.ElapsedMilliseconds-start)
+
+  If (delay > 0) Then
+
+    Program.Delay(delay)
+
+  EndIf
+
+EndWhile
+
+
+
+'==============================================================
+
+' INITIALISATION
+
+'Do the main setup and additionally create the marionette geometry (GetPuppet)
+
+'==============================================================
+
+
+
+' Create all the strings and limbs - nodes are initiated from these
+
+Sub Initialise
+
+  'Basic window and main variables
+
+  gw = 600
+
+  gh = 600
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Title = "Marionette Prototype / Turtle"
+
+  GraphicsWindow.BackgroundColor = "SkyBlue"
+
+  GraphicsWindow.PenWidth = 0 'Stroke hinders rotation visualisation due to Z ordering
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.DrawText(5,5,"Select string with number key or keypad, then move with mouse button down") 
+
+  GraphicsWindow.DrawText(5,20,"Select and move plan view of strings with mouse") 
+
+  GraphicsWindow.DrawText(5,35,"Rotate using Left and Right keys or compass with mouse") 
+
+  GraphicsWindow.DrawText(5,50,"F1 to reset, Space to toggle show strings, Esc to exit") 
+
+  nNode = 0 'Number of nodes
+
+  nLimb = 0 'Number of limbs (and strings)
+
+  nString = 0 'Number of strings
+
+  rotate = 0 'Rotation
+
+  showString = 1 'Show strings 0-false 1-true
+
+  cos = Math.Cos(rotate)
+
+  sin = Math.Sin(rotate)
+
+  Xcen = gw/2 'Center of viewing
+
+  deg = " "+Text.GetCharacter(176)
+
+  label = Shapes.AddText(rotate+deg) 'Report current angle of rotation
+
+  Shapes.Move(label,gw-47,22)
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.DrawEllipse(gw-50,10,40,40)
+
+  GraphicsWindow.DrawRectangle(gw-100,gh-100,100,100) 'For bottom right box
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "Red"
+
+  compass = Shapes.AddEllipse(6,6)
+
+  
+
+  'Each limb links 2 nodes and has a shape or image with a width and height - strings are width <=2 rectangles
+
+  'Coded for 3D , rotation is about Y axis at X=Z=0, then offset for viewing + Xcen
+
+  '*** It is sufficient to define a model completely by creating a limbs array so this could be loaded from a file ***
+
+  
+
+  GetPuppet() 'Set the limbs array
+
+  
+
+  'Nodes - static string nodes (only move with user interaction) have one limb with small width (a string)
+
+  For i = 1 To nLimb
+
+    limb = limbs[i]
+
+    For j = 1 To 2
+
+      nNode = Math.Max(nNode,limb[j]) 'This allows non-contiguous node numbers connecting the limbs
+
+      node = nodes[limb[j]]
+
+      node["Shape"] = ""
+
+      node["Moving"] = "True"
+
+      'Add limb connected to node
+
+      node["nLimb"] = node["nLimb"]+1
+
+      node[node["nLimb"]] = i
+
+      nodes[limb[j]] = node
+
+    EndFor
+
+  EndFor
+
+  'Set static user movable nodes
+
+  GraphicsWindow.BrushColor = "Red"
+
+  For i = 1 To nNode
+
+    node = nodes[i]
+
+    If (node["nLimb"] = 1 And limbs[node[1]]["W"] <= 2) Then
+
+      nString = nString+1
+
+      node["Shape"] = Shapes.AddText(i) 'Only used for string labeling
+
+      node["Moving"] = "False"
+
+      strings[i] = Shapes.AddEllipse(6,6)
+
+      buttonString[i] = Controls.AddButton(i,50+30*i,gh-30)
+
+    EndIf
+
+    nodes[i] = node
+
+  EndFor
+
+  Reset() 'Initial coordinates
+
+  
+
+  'Buttons
+
+  GraphicsWindow.BrushColor = "Black"
+
+  buttonExit = Controls.AddButton("Exit",5,gh-30)
+
+  buttonReset = Controls.AddButton("Reset",5,gh-60)
+
+  buttonShowStrings = Controls.AddButton("Toggle Strings",5,gh-90)
+
+EndSub
+
+
+
+'Set the puppet topology and properties (strings and limbs)
+
+Sub GetPuppet
+
+  GraphicsWindow.BrushColor = "Black"
+
+  
+
+  'Strings - The top string nodes should usually be numbered first from 1
+
+  limb[1] = 1 'First node connected to shape
+
+  limb[2] = 8 'Second node connected to shape
+
+  limb["L"] = 300 'Length - distance between nodes
+
+  limb["W"] = 1 'Width
+
+  limb["Shape"] = Shapes.AddRectangle(limb["L"],limb["W"]) 'Can be any shape or control type including images
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  limb[1] = 2
+
+  limb[2] = 6
+
+  limb["L"] = 150
+
+  limb["W"] = 1
+
+  limb["Shape"] = Shapes.AddRectangle(limb["L"],limb["W"])
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  limb[1] = 3
+
+  limb[2] = 10
+
+  limb["L"] = 30
+
+  limb["W"] = 1
+
+  limb["Shape"] = Shapes.AddRectangle(limb["L"],limb["W"])
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  limb[1] = 4
+
+  limb[2] = 7
+
+  limb["L"] = 150
+
+  limb["W"] = 1
+
+  limb["Shape"] = Shapes.AddRectangle(limb["L"],limb["W"])
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  limb[1] = 5
+
+  limb[2] = 9
+
+  limb["L"] = 300
+
+  limb["W"] = 1
+
+  limb["Shape"] = Shapes.AddRectangle(limb["L"],limb["W"])
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  GraphicsWindow.BrushColor = "Brown"
+
+  
+
+  'Left Arm
+
+  limb[1] = 6
+
+  limb[2] = 11
+
+  limb["L"] = 71  'Not 19 as a test of non-contiguous nodes
+
+  limb["W"] = 31
+
+  url = "http://i1.gallery.technet.s-msft.com/small-basic-deck-another-2f724b78/image/file/125624/1/ftleg.png"
+
+  limb["Shape"] = Shapes.AddImage(url)
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  'Right Arm
+
+  limb[1] = 7
+
+  limb[2] = 11
+
+  limb["L"] = 71
+
+  limb["W"] = 31
+
+  limb["Shape"] = Shapes.AddImage(url)
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  'Left Leg
+
+  limb[1] = 8
+
+  limb[2] = 12
+
+  limb["L"] = 71
+
+  limb["W"] = 31
+
+  limb["Shape"] = Shapes.AddImage(url)
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  'Right Leg
+
+  limb[1] = 9
+
+  limb[2] = 12
+
+  limb["L"] = 71
+
+  limb["W"] = 31
+
+  limb["Shape"] = Shapes.AddImage(url)
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  'Head
+
+  limb[1] = 10
+
+  limb[2] = 11
+
+  limb["L"] = 64
+
+  limb["W"] = 86
+
+  url = "http://i1.gallery.technet.s-msft.com/small-basic-deck-another-2f724b78/image/file/125632/1/ftheadb.png"
+
+  limb["Shape"] = Shapes.AddImage(url)
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  'Tail
+
+  limb[1] = 12
+
+  limb[2] = 13
+
+  limb["L"] = 33
+
+  limb["W"] = 25
+
+  url = "http://i1.gallery.technet.s-msft.com/small-basic-deck-another-2f724b78/image/file/125634/1/fttail.png"
+
+  limb["Shape"] = Shapes.AddImage(url)
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+  
+
+  'Body
+
+  limb[1] = 11
+
+  limb[2] = 12
+
+  limb["L"] = 117
+
+  limb["W"] = 116
+
+  url = "http://i1.gallery.technet.s-msft.com/small-basic-deck-another-2f724b78/image/file/125633/1/ftbackb.png"
+
+  limb["Shape"] = Shapes.AddImage(url)
+
+  nLimb = nLimb+1
+
+  limbs[nLimb] = limb
+
+EndSub
+
+
+
+'==============================================================
+
+' EVENT SUBROUTINES
+
+'Just log an event to be handled syncronously in the main loop
+
+'==============================================================
+
+
+
+Sub OnMouseDown
+
+  mouseDown = "True"
+
+  mouseClicked = "True"
+
+EndSub
+
+
+
+Sub OnMouseUp
+
+  mouseDown = "False"
+
+  iSelected = 0
+
+  iCompass = 0
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  keyDown = "True"
+
+  key = GraphicsWindow.LastKey
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  keyDown = "False"
+
+EndSub
+
+
+
+Sub OnButttonClicked
+
+  button = Controls.LastClickedButton
+
+  buttonPressed = "True"
+
+EndSub
+
+
+
+'==============================================================
+
+' INTERACTION SUBROUTINES
+
+'These subroutines are just about user control and not the main engine or marionette properties
+
+'This is actaully where most of the work is
+
+'==============================================================
+
+
+
+' Move marionette strings
+
+Sub Movement
+
+  If (mouseClicked) Then 'Initial click is over compass
+
+    dX = gw-30+20*sin - GraphicsWindow.MouseX
+
+    dY = 30+20*cos - GraphicsWindow.MouseY
+
+    dist = Math.SquareRoot(dX*dX+dY*dY)
+
+    If (dist <= 3) Then
+
+      iCompass = 1
+
+      key = ""
+
+      KeyChange()
+
+    EndIf
+
+    
+
+    For i = 1 To nNode
+
+      If (nodes[i]["Shape"] <> "") Then 'Initial click is over a string
+
+        eX = 100*nodes[i]["X"]/gw
+
+        eY = 100*nodes[i]["Z"]/gh
+
+        dX = gw-50+eX*cos+eY*sin - GraphicsWindow.MouseX
+
+        dY = gh-50-eX*sin+eY*cos - GraphicsWindow.MouseY
+
+        dist = Math.SquareRoot(dX*dX+dY*dY)
+
+        If (dist <= 3) Then
+
+          iSelected = i
+
+          key = ""
+
+          KeyChange()
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+    mouseClicked = "False" 'Dealt with initial click
+
+  EndIf
+
+  
+
+  If (iCompass > 0) Then 'Schematic selected compass
+
+    dX = (GraphicsWindow.MouseX - (gw-30))
+
+    dY = (GraphicsWindow.MouseY - 30)
+
+    If (dX < -50 Or dY > 50) Then
+
+      iCompass = 0 'Deselect if out of box
+
+    Else
+
+      If (dY = 0) Then
+
+        rotate = Math.Pi/2
+
+        If (dX < 0) Then
+
+          rotate = rotate+Math.Pi
+
+        EndIf
+
+      ElseIf (dY < 0) Then
+
+        rotate = Math.ArcTan(dX/dY)+Math.Pi
+
+      Else
+
+        rotate = Math.ArcTan(dX/dY)
+
+      EndIf
+
+      rotate = Math.Round(rotate*180/Math.Pi)
+
+      sin = Math.Sin(rotate*Math.Pi/180)
+
+      cos = Math.Cos(rotate*Math.Pi/180)
+
+      While (rotate < 0)
+
+        rotate = rotate+360
+
+      EndWhile
+
+      While (rotate >= 360)
+
+        rotate = rotate-360
+
+      EndWhile
+
+    EndIf
+
+  EndIf
+
+  If (iSelected > 0) Then 'Schematic selected string
+
+    dX = GraphicsWindow.MouseX - (gw-50)
+
+    dY = GraphicsWindow.MouseY - (gh-50)
+
+    If (dX < -50 Or dY < -50) Then
+
+      iSelected = 0 'Deselect if out of box
+
+    Else
+
+      nodes[iSelected]["X"] = (dX*cos-dY*sin)*gw/100
+
+      nodes[iSelected]["Z"] = (dX*sin+dY*cos)*gh/100
+
+    EndIf
+
+  Else
+
+    For i = 1 To nNode
+
+      If (key = "D"+i Or key = "NumPad"+i) Then 'Number selected string
+
+        nodes[i]["X"] = (GraphicsWindow.MouseX-Xcen)*cos
+
+        nodes[i]["Y"] = GraphicsWindow.MouseY
+
+        nodes[i]["Z"] = (GraphicsWindow.MouseX-Xcen)*sin
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+'3D Rotation
+
+Sub Rotation
+
+  If (key = "Left") Then
+
+    rotate = rotate-1
+
+    If (rotate < 0) Then
+
+      rotate = rotate + 360
+
+    EndIf
+
+  ElseIf (key = "Right") Then
+
+    rotate = rotate+1
+
+    If (rotate >= 360) Then
+
+      rotate = rotate - 360
+
+    EndIf
+
+  EndIf
+
+  cos = Math.Cos(rotate*Math.PI/180)
+
+  sin = Math.Sin(rotate*Math.PI/180)
+
+EndSub
+
+
+
+'Do anything required when key pressed
+
+Sub KeyChange
+
+  'Set label to X when active
+
+  For i = 1 To nNode
+
+    If (key = "D"+i Or key = "NumPad"+i) Then
+
+      Shapes.SetText(nodes[i]["Shape"],"X")
+
+    Else
+
+      Shapes.SetText(nodes[i]["Shape"],i)
+
+    EndIf
+
+  EndFor
+
+  'Reset
+
+  If (key = "F1") Then
+
+    Reset()
+
+    keyDown = "False" ' One key press only
+
+  ElseIf (key = "Space") Then
+
+    showString = 1-showString
+
+    ShowStrings()
+
+    keyDown = "False" ' One key press toggle
+
+  ElseIf (key = "Escape") Then
+
+    Program.End()
+
+  EndIf
+
+EndSub
+
+
+
+'Do anything required when button pressed
+
+Sub ButtonChange
+
+  'Mimic a key press for these - therefore only one set of code actually doing the actions where there is duplicate control (key or button)
+
+  If (button = buttonReset) Then
+
+    keyDown = "True"
+
+    key = "F1"
+
+  ElseIf (button = buttonShowStrings) Then
+
+    keyDown = "True"
+
+    key = "Space"
+
+  ElseIf (button = buttonExit) Then
+
+    keyDown = "True"
+
+    key = "Escape"
+
+  Else
+
+    For i = 1 To nNode
+
+      If (button = buttonString[i]) Then
+
+        keyDown = "True"
+
+        key = "D"+i
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  buttonPressed = "False" 'Button pressed handled
+
+EndSub
+
+
+
+'Reset positions and rotation
+
+Sub Reset
+
+  rotate = 0
+
+  iString = 0
+
+  For i = 1 To nNode
+
+    If (nodes[i]["Moving"]) Then
+
+      If (nodes[i]["X"] = "") Then
+
+        nodes[i]["X"] = -Xcen 'left to right (off to the left to break symmetry and fall nicely)
+
+        nodes[i]["Y"] = 0 'Up to down
+
+        nodes[i]["Z"] = 0 'Near to far
+
+      EndIf
+
+    Else
+
+      iString = iString+1
+
+      nodes[i]["X"] = (1+iString)/(nString+3)*gw - Xcen
+
+      nodes[i]["Y"] = 100
+
+      nodes[i]["Z"] = 0
+
+    EndIf
+
+  EndFor
+
+  showString = 1
+
+  ShowStrings()
+
+EndSub
+
+
+
+'Update string hide or show (use opacity)
+
+Sub ShowStrings
+
+  For i = 1 To nLimb
+
+    If (limbs[i]["W"] <= 2) Then
+
+      If (showString = 1) Then
+
+        Shapes.SetOpacity(limbs[i]["Shape"],100) 'Use SetOpacity rather than HideShape as the latter can mess up moving and rotating when made visible again
+
+      Else
+
+        Shapes.SetOpacity(limbs[i]["Shape"],0)
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+'==============================================================
+
+' PHYSICS AND UPDATE SUBROUTINES
+
+'These are called repeatedly and try to be quite efficient
+
+'==============================================================
+
+
+
+'Do the physics - basically create forces of all connected limbs to a node - including gravity - then move towards a static (zero force) position for each node
+
+Sub Update
+
+  maxTension = 1 'Don't want a possible division by zero
+
+  For i = 1 To nNode
+
+    'Backwards difference to help stability - we could keep track of velocity and momentum , but this is reasonably effective
+
+    nodes[i]["FX"] = 0.5*nodes[i]["FX"]
+
+    nodes[i]["FY"] = 0.5*nodes[i]["FY"]
+
+    nodes[i]["FZ"] = 0.5*nodes[i]["FZ"]
+
+  EndFor
+
+  For i = 1 To nLimb
+
+    limb = limbs[i]
+
+    'Node at each end of  the limb
+
+    node1 = nodes[limb[1]]
+
+    node2 = nodes[limb[2]]
+
+    '(dX,dY,dZ) is vector from node1 to node2
+
+    dX = node2["X"]-node1["X"]
+
+    dY = node2["Y"]-node1["Y"]
+
+    dZ = node2["Z"]-node1["Z"]
+
+    length = Math.SquareRoot(dX*dX+dY*dY+dZ*dZ)
+
+    tension = (length-limb["L"]) 'Each connected limb provides a force in its direction (either tension or compression depending on separation relative to limb length)
+
+    'If (limb["W"] <= 2) Then
+
+    tension = Math.Max(0,tension) 'Only allow tension - strings don't push - do this for all limbs
+
+    'EndIf
+
+    maxTension = Math.Max(maxTension,Math.Abs(tension))
+
+    'Check each mode is a moving node
+
+    If (node1["Moving"]) Then
+
+      'Move nodes in direction of totatl force on the node - at static equilibrium the net force on the node is zero in all directions
+
+      node1["FX"] = node1["FX"]+tension*dX/length 'Note the + for node1
+
+      node1["FY"] = node1["FY"]+tension*dY/length
+
+      node1["FZ"] = node1["FZ"]+tension*dZ/length
+
+      'scale gravity for stability
+
+      node1["FY"] = node1["FY"]+limb["L"]*limb["W"]/1000
+
+      nodes[limb[1]] = node1 'Copy the working copy of node back to the array
+
+    EndIf
+
+    If (node2["Moving"]) Then
+
+      'Move nodes in direction of totatl force on the node - at static equilibrium the net force on the node is zero in all directions
+
+      node2["FX"] = node2["FX"]-tension*dX/length 'Note the - for node2
+
+      node2["FY"] = node2["FY"]-tension*dY/length
+
+      node2["FZ"] = node2["FZ"]-tension*dZ/length
+
+      'scale gravity for stability
+
+      node2["FY"] = node2["FY"]+limb["L"]*limb["W"]/1000
+
+      nodes[limb[2]] = node2 'Copy the working copy of node back to the array
+
+    EndIf
+
+  EndFor
+
+  elasticity = 0.5 'Math.Min(0.5,10/maxTension) 'Limit node movement for stability
+
+  For i = 1 To nNode
+
+    node = nodes[i] 'Use this technique in many places - get the sub array (node), work with it, then copy it back at the end of this loop
+
+    node["X"] = node["X"]+node["FX"]*elasticity
+
+    node["Y"] = node["Y"]+node["FY"]*elasticity
+
+    node["Z"] = node["Z"]+node["FZ"]*elasticity
+
+    nodes[i] = node
+
+  EndFor
+
+EndSub
+
+
+
+'Update all graphics based on new positions
+
+Sub Draw
+
+  'Move limbs - added complexity due to possible rotation
+
+  For i = 1 To nLimb
+
+    limb = limbs[i]
+
+    node1 = nodes[limb[1]]
+
+    node2 = nodes[limb[2]]
+
+    centerX = ((node1["X"]+node2["X"])*cos+(node1["Z"]+node2["Z"])*sin)/2
+
+    centerY = (node1["Y"]+node2["Y"])/2
+
+    dX = (node2["X"]-node1["X"])*cos+(node2["Z"]-node1["Z"])*sin
+
+    dY = node2["Y"]-node1["Y"]
+
+    length = Math.SquareRoot(dX*dX+dY*dY)
+
+    If (dX = 0) Then
+
+      angle = 90
+
+      If (dY < 0) Then
+
+        angle = angle+180
+
+      EndIf
+
+    ElseIf (dX > 0) Then
+
+      angle = 180/Math.PI*Math.ArcTan(dY/dX)
+
+    Else
+
+      angle = 180 + 180/Math.PI*Math.ArcTan(dY/dX)
+
+    EndIf
+
+    Shapes.Move(limb["Shape"],Xcen+centerX-limb["L"]/2,centerY-limb["W"]/2)
+
+    If (limb["W"] <= 2) then 'Only compress strings - stretch strings or limbs
+
+      Shapes.Zoom(limb["Shape"],length/limb["L"],1) 'Do zoom before rotation - just stretch in direction of Length
+
+    Else
+
+      Shapes.Zoom(limb["Shape"],Math.Max(1,length/limb["L"]),1)
+
+    EndIf
+
+    Shapes.Rotate(limb["Shape"],angle)
+
+  EndFor
+
+  'Move string identifier text shapes
+
+  For i = 1 To nNode
+
+    node = nodes[i]
+
+    If (node["Shape"] <> "") Then
+
+      Shapes.Move(node["Shape"],Xcen+node["X"]*cos+node["Z"]*sin-4,node["Y"]-16)
+
+      dX = 100*node["X"]/gw
+
+      dY = 100*node["Z"]/gh
+
+      Shapes.Move(strings[i],gw-50+dX*cos+dY*sin-3,gh-50-dX*sin+dY*cos-3)
+
+    EndIf
+
+  EndFor
+
+  Shapes.SetText(label,rotate+deg)
+
+  Shapes.Move(compass,gw-30+20*sin-3,30+20*cos-3)
+
+EndSub
+
+

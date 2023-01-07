@@ -1,0 +1,323 @@
+'Community Challenge  Dec 2013.    Multi Select 'Round' Buttons
+
+'TODO fix inside btn line to redraw & refactor ctrlBtn name
+
+
+
+Initialise()
+
+
+
+While isAnEDP  
+
+  loopStartTime = Clock.ElapsedMilliseconds  
+
+  
+
+  EventHandlers()
+
+  RefreshScreen()  
+
+  
+
+  Delay()
+
+EndWhile
+
+
+
+'=============================================================
+
+'1st Order Subroutines
+
+'=============================================================
+
+Sub EventHandlers
+
+  If mouseIsDown Then
+
+    mouseX = GraphicsWindow.MouseX
+
+    mouseY = GraphicsWindow.MouseY    
+
+    
+
+    CheckForCtrlBtnSelection()
+
+    
+
+    mouseIsDown = "False"    
+
+  EndIf
+
+EndSub 
+
+
+
+Sub RefreshScreen
+
+  If updateCtrlBtn Then
+
+    
+
+    X = ctrlBtnOrginX - fillBtnRadius
+
+    Y = ctrlBtnOrginY[ctrlBtnSelected] - fillBtnRadius 
+
+    
+
+    If ctrlBtnToggle[ctrlBtnSelected] > 0 Then       
+
+      GraphicsWindow.BrushColor = "black"   
+
+      GraphicsWindow.FillEllipse(X, Y, fillBtnRadius * 2, fillBtnRadius * 2) 
+
+    ElseIf ctrlBtnToggle[ctrlBtnSelected] < 0 Then 
+
+      GraphicsWindow.BrushColor = "white"
+
+      GraphicsWindow.FillEllipse(X, Y, fillBtnRadius * 2, fillBtnRadius * 2)
+
+    EndIf
+
+    
+
+    updateCtrlBtn = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Delay
+
+  loopDelay = 1000/fps - (Clock.ElapsedMilliseconds - loopStartTime)
+
+  If loopDelay > 0 Then
+
+    Program.Delay(loopDelay)
+
+  Else
+
+    TextWindow.WriteLine("Program lagging by: " + loopDelay * -1 + " ms")
+
+  EndIf 
+
+EndSub
+
+
+
+'=============================================================
+
+'2nd Order Subroutines
+
+'=============================================================
+
+Sub CheckForCtrlBtnSelection
+
+  For k = 1 To getCtrlBtnCount             'no of ctrl btns                   (k)
+
+    For j = 1 To 4                         'quadrants                          (j)
+
+      For i = (j-1) * 90 To j * 90         '90 degrees / quadrant    (i)
+
+        radians = Math.GetRadians(i)    
+
+        X = Math.Cos(radians) * ctrlBtnRadius + ctrlBtnOrginX
+
+        Y[k] = Math.Sin(radians) * ctrlBtnRadius + ctrlBtnOrginY[k]        
+
+        If j = 1 And mouseX < X And mouseY < Y[k] Then        
+
+          isSelected[k][1] = "True"
+
+        EndIf
+
+        If j = 2 And mouseX > X And mouseY < Y[k] Then   
+
+          isSelected[k][2] = "True"
+
+        EndIf
+
+        If j = 3 And mouseX > X And mouseY > Y[k] Then   
+
+          isSelected[k][3] = "True"
+
+        EndIf
+
+        If j = 4 And mouseX < X And mouseY > Y[k] Then    
+
+          isSelected[k][4] = "True"
+
+        EndIf
+
+      EndFor          
+
+    EndFor
+
+    If isSelected[k][1] And isSelected[k][2] And isSelected[k][3] And isSelected[k][4] Then
+
+      ctrlBtnSelected = k
+
+      ctrlBtnToggle[ctrlBtnSelected] = ctrlBtnToggle[ctrlBtnSelected] * -1  'toggle        
+
+      updateCtrlBtn = "True"  'switch after Screen Updated
+
+    EndIf
+
+  EndFor      
+
+  isSelected = "False"
+
+EndSub
+
+
+
+'Screen Setup/s
+
+Sub DrawControlButtons 
+
+  GraphicsWindow.PenWidth = 0 
+
+  For i = 1 To 360
+
+    radians = Math.GetRadians(i)    
+
+    X = Math.Cos(radians) * ctrlBtnRadius + ctrlBtnOrginX
+
+    X2 = Math.Cos(radians) * (ctrlBtnRadius-4) + ctrlBtnOrginX
+
+    For j = 1 To 2
+
+      Y = Math.Sin(radians) * ctrlBtnRadius + ctrlBtnOrginY[j]  
+
+      Y2 = Math.Sin(radians) * (ctrlBtnRadius-4) + ctrlBtnOrginY[j]
+
+      GraphicsWindow.FillEllipse(X, Y, ctrlBtnBrushWidth, ctrlBtnBrushWidth)
+
+      GraphicsWindow.FillEllipse(X2, Y2, ctrlBtnBrushWidth, ctrlBtnBrushWidth)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+'==============================================================
+
+'Initialise Program - followed by Event Subroutines
+
+'==============================================================
+
+Sub Initialise
+
+  GraphicsWindow.Hide()
+
+  TextWindow.Hide()
+
+  
+
+  InitialiseCtrlBtns()   
+
+  InitialiseTheRest()   'has a w/around for GW position when GW hidden
+
+  
+
+  TextWindow.Show()
+
+  GraphicsWindow.Show()
+
+  
+
+  Program.Delay(500)
+
+  
+
+  'DrawOpeningScreen
+
+  DrawControlButtons()
+
+  
+
+  'Register Events
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+EndSub
+
+
+
+Sub InitialiseCtrlBtns
+
+  'Btn Properties
+
+  ctrlBtnBrushWidth = 2
+
+  ctrlBtnRadius = 20
+
+  ctrlBtnOrginX = 100
+
+  ctrlBtnOrginY = "1=150;2=200"
+
+  
+
+  fillBtnRadius = 15
+
+  ctrlBtnToggle = "1=-1;2=-1"   'set toggle property to -1  for Off
+
+  
+
+  'BtnCountMethod
+
+  getCtrlBtnCount = Array.GetItemCount(ctrlBtnOrginY) * 1 'times columns.
+
+EndSub
+
+
+
+Sub InitialiseTheRest 
+
+  isAnEDP = "True" 
+
+  fps = 50  
+
+  
+
+  GraphicsWindow.Title = "" 
+
+  gw = 624   'to centre the GW while hidden, must use/ref default GW width
+
+  gh = 400    
+
+  GraphicsWindow.Left = (Desktop.Width - gw) / 2  
+
+  GraphicsWindow.Top = 10
+
+  
+
+  TextWindow.Title = ""
+
+  TextWindow.Left = 50
+
+  TextWindow.Top = 20
+
+EndSub
+
+
+
+'============================================================
+
+'Event Subroutines
+
+'============================================================
+
+Sub OnMouseDown
+
+  mouseIsDown = "True"
+
+EndSub
+
+

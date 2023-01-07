@@ -1,0 +1,279 @@
+' Cog
+
+' Version 0.3
+
+' Copyright © 2019 Nonki Takahashi.  The MIT License.
+
+' Last update 2019-01-12
+
+' Program ID WDM914-1
+
+
+
+GraphicsWindow.Title = "Cog 0.3"
+
+Init()
+
+bc = "DimGray"
+
+width = 42
+
+height = 30
+
+w_2 = width / 2
+
+ratio = 0.3
+
+c = "1=12;2=6;3=8;"
+
+r = "1=120;2=60;3=80;"
+
+_ox = "1=180;2=345;3=460;"
+
+_oy = "1=170;2=315;3=180;"
+
+a0 = "1=0;2=7;3=-5;"
+
+For g = 1 To 3
+
+  h[g] = Math.SquareRoot(r[g] * r[g] + w_2 * w_2) + 1
+
+  GraphicsWindow.PenWidth = h[g] - 20
+
+  GraphicsWindow.PenColor = bc
+
+  GraphicsWindow.BrushColor = "Transparent"
+
+  gear = Shapes.AddEllipse(2 * h[g], 2 * h[g])
+
+  Shapes.Move(gear, _ox[g] - h[g], _oy[g] - h[g])
+
+  GraphicsWindow.PenWidth = 0
+
+  ox = _ox[g]
+
+  oy = _oy[g]
+
+  x = ox - width / 2
+
+  y = oy - (r[g] + height)
+
+  angle = 0
+
+  For i = 1 To c[g]
+
+    AddTrapezoid()
+
+    angle = angle + 360 / c[g]
+
+    RotateShapesAt()
+
+    If i = 1 Then
+
+      ns[g] = n
+
+    ElseIf i = c[g] Then
+
+      ne[g] = n
+
+    EndIf 
+
+  EndFor
+
+  angle = a0[g]
+
+  For n = ns[g] To ne[g]
+
+    RotateShapesAt()
+
+  EndFor
+
+EndFor
+
+While "True"
+
+  Program.Delay(50)
+
+  sign = 1
+
+  For g = 1 To 3
+
+    angle = sign * 12 / c[g]
+
+    ox = _ox[g]
+
+    oy = _oy[g]
+
+    For n = ns[g] To ne[g]
+
+      RotateShapesAt()
+
+    EndFor
+
+    sign = -sign
+
+  EndFor
+
+EndWhile
+
+
+
+Sub AddTrapezoid
+
+  ' param x, y - the top left coordinate of the trapezoid
+
+  ' param width - the width of the trapeziod
+
+  ' param height - the height of the trapezoid
+
+  ' param ratio - the x offset for the top left vertex per height
+
+  ' return trap[n] - trapezoid property
+
+  GraphicsWindow.BrushColor = bc
+
+  _x = x
+
+  _y = y
+
+  _width = width
+
+  _height = height
+
+  ' left triangle
+
+  x1 = height * ratio
+
+  y1 = 0
+
+  x2 = 0
+
+  y2 = _height
+
+  x3 = x1 * 2
+
+  y3 = y2
+
+  shp[1] = Shapes.AddTriangle(x1, y1, x2, y2, x3, y3)
+
+  cx[1] = x1
+
+  cy[1] = y2 / 2
+
+  Shapes.Move(shp[1], x, y)
+
+  ' right triangle
+
+  x = _x + width - x3
+
+  shp[2] = Shapes.AddTriangle(x1, y1, x2, y2, x3, y3)
+
+  cx[2] = x1
+
+  cy[2] = y2 / 2
+
+  Shapes.Move(shp[2], x, y)
+
+  ' middle rectangle
+
+  x = _x + x1
+
+  width = _width - x3
+
+  shp[3] = Shapes.AddRectangle(width, height)
+
+  cx[3] = width / 2
+
+  cy[3] = height / 2
+
+  Shapes.Move(shp[3], x, y)
+
+  x = _x
+
+  y = _y
+
+  width = _width
+
+  height = _height
+
+  n = n + 1
+
+  trap[n]["shp"] = shp
+
+  trap[n]["cx"] = cx
+
+  trap[n]["cy"] = cy
+
+  trap[n]["a"] = 0
+
+EndSub
+
+
+
+Sub RotateShapesAt
+
+  ' param n - shape # to rotate
+
+  ' param ox, oy - rotation center
+
+  ' param angle - to rotate
+
+  shp = trap[n]["shp"]
+
+  cx = trap[n]["cx"]
+
+  cy = trap[n]["cy"]
+
+  a = trap[n]["a"] + angle
+
+  If 360 <= a Then
+
+    a = a - 360
+
+  EndIf
+
+  trap[n]["a"] = a
+
+  _angle = angle * Math.Pi / 180
+
+  _n = Array.GetItemCount(shp)
+
+  For _i = 1 To _n
+
+    x1 = Shapes.GetLeft(shp[_i]) + cx[_i]
+
+    y1 = Shapes.GetTop(shp[_i]) + cy[_i]
+
+    _x = x1 - ox
+
+    _y = y1 - oy
+
+    x2 = ox + Math.Cos(_angle) * _x - Math.Sin(_angle) * _y
+
+    y2 = oy + Math.Sin(_angle) * _x + Math.Cos(_angle) * _y
+
+    Shapes.Move(shp[_i], x2 - cx[_i], y2 - cy[_i])
+
+    Shapes.Rotate(shp[_i], a)
+
+  EndFor
+
+EndSub
+
+
+
+Sub Init
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.PenWidth = 0
+
+EndSub
+
+

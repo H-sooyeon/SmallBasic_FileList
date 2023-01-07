@@ -1,0 +1,239 @@
+' Blog Article List 0.1
+
+' Copyright © 2014 Nonki Takahashi.  The MIT License.
+
+'
+
+TextWindow.Title = "Blog Article List 0.1"
+
+WQ = Text.GetCharacter(34)
+
+Not = "False=True;True=False;"
+
+site = "http://blogs.msdn.com"
+
+folder = "/b/smallbasic/default.aspx?PageIndex="
+
+maxPage = 1
+
+For page = 1 To maxPage
+
+  buf = Network.GetWebPageContents(site + folder + page)
+
+  p = 1
+
+  eod = "False"
+
+  While Not[eod]
+
+    param = "tag=a;class=internal-link view-post;"
+
+    FindTag()
+
+    If tag = "" Then
+
+      eod = "True"
+
+    Else
+
+      GetAttrAndText()
+
+      TextWindow.WriteLine("url   | " + site + attr["href"])
+
+      TextWindow.WriteLine("title | " + txt)
+
+      param = "tag=a;class=internal-link view-user-profile;"
+
+      FindTag()
+
+      If tag = "" Then
+
+        eod = "True"
+
+      Else
+
+        GetAttrAndText()
+
+        TextWindow.WriteLine("url   | " + site + attr["href"])
+
+        TextWindow.WriteLine("name  | " + txt)
+
+      EndIf
+
+    EndIf
+
+    TextWindow.WriteLine("")
+
+  EndWhile
+
+  If page = 1 Then
+
+    param = "tag=a;class=last;"
+
+    FindTag()
+
+    GetAttrAndText()
+
+    maxPage = Text.GetSubTextToEnd(attr["href"], Text.GetIndexOf(attr["href"], "=") + 1)
+
+  EndIf
+
+EndFor
+
+Sub FindTag
+
+  ' find tag from html buffer
+
+  ' param["tag"] - tag name
+
+  ' param["class"] - class name
+
+  ' param p - pointer for buffer
+
+  ' param buf - html buffer
+
+  ' return tag - found tag
+
+  pSave = p
+
+  tag = ""
+
+  findNext = "True"
+
+  While findNext
+
+    findNext = "False"        ' tag may be not found
+
+    pTag = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), "<" + param["tag"])
+
+    If 0 < pTag Then
+
+      lTag = Text.GetLength(param["tag"]) + 1
+
+      pTag = p + pTag - 1
+
+      len = Text.GetIndexOf(Text.GetSubTextToEnd(buf, pTag), "/" + param["tag"] + ">")
+
+      If 0 < len Then
+
+        findNext = "True"     ' tag may have different class
+
+        len = len + lTag
+
+        attr = "class=" + WQ + param["class"] + WQ
+
+        pAttr = pTag + lTag + 1
+
+        lAttr = Text.GetLength(attr)
+
+        If Text.GetSubText(buf, pAttr, lAttr) = attr Then
+
+          tag = Text.GetSubText(buf, pTag, len)
+
+          findNext = "False"  ' found the tag
+
+        EndIf
+
+        p = pTag + len
+
+      EndIf
+
+    EndIf
+
+  EndWhile
+
+  If tag = "" Then
+
+    p = pSave
+
+  EndIf
+
+EndSub
+
+Sub GetAttrAndText
+
+  ' get attributes and text from given tag
+
+  ' param tag - given tag
+
+  ' return attr[] - array of attributes in the tag
+
+  ' return txt - text in the tag
+
+  pTag = Text.GetIndexOf(tag, " ") + 1
+
+  pEnd = Text.GetIndexOf(tag, ">")
+
+  attr = ""
+
+  While pTag <= pEnd 
+
+    pEq = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), "=")
+
+    If 0 < pEq Then
+
+      pEq = pTag + pEq - 1
+
+      If Text.GetSubText(tag, pEq + 1, 1) = WQ Then
+
+        pWQ = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pEq + 2), WQ)
+
+        If 0 < pWQ Then
+
+          pWQ = pEq + 2 + pWQ - 1
+
+          attr[Text.GetSubText(tag, pTag, pEq - pTag)] = Text.GetSubText(tag, pEq + 2, pWQ - pEq - 2)
+
+          pTag = pWQ + 2
+
+        EndIf
+
+      EndIf
+
+    Else
+
+      pTag = pEnd + 1
+
+    EndIf
+
+  EndWhile
+
+  len = Text.GetLength(tag)
+
+  txt = ""
+
+  While pTag <= len
+
+    pL = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), "<")
+
+    If pL = 0 Then
+
+      txt = Text.Append(txt, Text.GetSubTextToEnd(tag, pTag))
+
+      pTag = len + 1
+
+    Else
+
+      pL = pTag + pL - 1
+
+      txt = Text.Append(txt, Text.GetSubText(tag, pTag, pL - pTag))
+
+      pR = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), ">")
+
+      If 0 < pR Then
+
+        pTag = pTag + pR
+
+      Else
+
+        pTag = len + 1
+
+      EndIf
+
+    EndIf  
+
+  EndWhile
+
+EndSub
+
+

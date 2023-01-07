@@ -1,0 +1,203 @@
+Pos[1]["x"] = 50
+
+Pos[1]["y"] = 50
+
+Pos[2]["x"] = 100
+
+Pos[2]["y"] = 50
+
+Pos[3]["x"] = 50
+
+Pos[3]["y"] = 150
+
+Pos[4]["x"] = 100
+
+Pos[4]["y"] = 150
+
+
+
+GraphicsWindow.Width = 1000
+
+GraphicsWindow.Height = 800
+
+
+
+For i = 1 to 4
+
+  Wheel[i] = Shapes.AddRectangle(4,15)
+
+  Shapes.Move(Wheel[i],Pos[i]["x"],Pos[i]["y"])
+
+  
+
+  LDPhysics.AddMovingShape(Wheel[i],0.8,0.8,0.8)
+
+EndFor
+
+
+
+Car = Shapes.AddRectangle(40,100)
+
+Shapes.Move(Car,57.5,55)
+
+LDPhysics.AddMovingShape(Car,0.8,0.8,0.8)
+
+
+
+For i = 1 To 2
+
+  LDPhysics.AttachShapesWithRotation(Wheel[i],Car)
+
+  LDPhysics.SetAngle(Wheel[i],90)
+
+EndFor
+
+
+
+For i = 3 To 4
+
+  LDPhysics.AttachShapes(Wheel[i],Car)
+
+EndFor
+
+
+
+LDPhysics.SetAngle(Car,90)
+
+LDPhysics.SetVelocity(Car,20,0)
+
+
+
+LDPhysics.SetGravity(0,0)
+
+
+
+While 1 = 1
+
+  Program.Delay(10)
+
+  
+
+  LDPhysics.DoTimestep()
+
+  
+
+  For i = 1 To 4
+
+    GlobalVelocityArray = LDPhysics.GetVelocity(Wheel[i])
+
+    
+
+    GlobalVelocity = Math.SquareRoot((GlobalVelocityArray[1]*GlobalVelocityArray[1]) + (GlobalVelocityArray[2]*GlobalVelocityArray[2]))
+
+    
+
+    
+
+    'Get movement direction
+
+    OldX[i] = X[i]
+
+    OldY[i] = Y[i]
+
+    X[i] = LDShapes.GetLeft(Wheel[i])
+
+    Y[i] = LDShapes.GetTop(Wheel[i])
+
+    MovementAngle = Math.Round(Zock77Math.GetAngle(X[i],OldX[i],Y[i],OldY[i]))
+
+    
+
+    'Get Lateral Direction
+
+    LateralAngle = LDPhysics.GetAngle(Wheel[i]) + 90
+
+    If LateralAngle >= 360 Then
+
+      LateralAngle = LateralAngle - 360
+
+    EndIf
+
+    
+
+    'Get angle difference
+
+    Difference = Math.Remainder(Math.abs(LateralAngle - MovementAngle),360)
+
+    if(Difference > 180) Then
+
+      Difference = 360 - Difference
+
+    EndIf
+
+    
+
+    
+
+    'Get the Lateral Velocity 
+
+    LateralVelocity = Math.Sin(Math.GetRadians(Difference+90)) * GlobalVelocity
+
+    
+
+    'Get the X and Y impulses
+
+    YImpulse = Math.Cos(Math.GetRadians(LateralAngle)) * (LateralVelocity * LDPhysics.GetMass(Wheel[i]))
+
+    XImpulse = Math.Sin(Math.GetRadians(LateralAngle)) * (LateralVelocity * LDPhysics.GetMass(Wheel[i]))
+
+    
+
+    'Aplly the impulses
+
+    LDPhysics.SetImpulse(Wheel[i],-XImpulse,YImpulse)
+
+  EndFor
+
+  
+
+  Impx = 10*Math.Sin(Math.GetRadians(LDPhysics.GetAngle(Car)))
+
+  Impy = 10*Math.Cos(Math.GetRadians(LDPhysics.GetAngle(Car)))
+
+  
+
+  If LDUtilities.KeyDown("Up") Then
+
+    LDPhysics.SetImpulse(Car,Impx,-Impy)
+
+  EndIf
+
+  If LDUtilities.KeyDown("Down") Then
+
+    LDPhysics.SetImpulse(Car,-Impx,Impy)
+
+  EndIf
+
+  
+
+  If LDUtilities.KeyDown("Right") Then
+
+    LDPhysics.SetRotation(Wheel[1],30)
+
+    LDPhysics.SetRotation(Wheel[2],30)
+
+  ElseIf LDUtilities.KeyDown("Left") Then
+
+    LDPhysics.SetRotation(Wheel[1],-30)
+
+    LDPhysics.SetRotation(Wheel[2],-30)
+
+  Else
+
+    LDPhysics.SetRotation(Wheel[1],0)
+
+    LDPhysics.SetRotation(Wheel[2],0)
+
+  EndIf
+
+  
+
+EndWhile
+
+

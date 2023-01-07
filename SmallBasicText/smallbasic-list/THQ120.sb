@@ -1,0 +1,393 @@
+'Create a new database
+
+DBName = "DBFile"
+
+fields[1] = "Name"
+
+fields[2] = "Age"
+
+fields[3] = "Sex"
+
+fields[4] = "City"
+
+newDB()
+
+
+
+'Set some basic data for it
+
+record[fields[1]] = "Gordon"
+
+record[fields[2]] = 34
+
+record[fields[3]] = "M"
+
+record[fields[4]] = "London"
+
+Add()
+
+record[fields[1]] = "Fred"
+
+record[fields[2]] = 25
+
+record[fields[3]] = "M"
+
+record[fields[4]] = "Madrid"
+
+Add()
+
+record[fields[1]] = "Mary"
+
+record[fields[2]] = 17
+
+record[fields[3]] = "F"
+
+record[fields[4]] = "New York"
+
+Add()
+
+record[fields[1]] = "Fiona"
+
+record[fields[2]] = 5
+
+record[fields[3]] = "F"
+
+record[fields[4]] = "Paris"
+
+Add()
+
+
+
+'Sort on each variable and output
+
+For i = 1 To numField
+
+  field = fields[i]
+
+  SortIndex()
+
+  DisplaySort()
+
+EndFor
+
+
+
+'Find the average age of people whose names contain an a
+
+field = fields[1]
+
+value = "A"
+
+GetRecordsContains()
+
+TextWindow.WriteLine(field+" containing "+value)
+
+meanAge = 0
+
+For i = 1 To numRecords
+
+  TextWindow.WriteLine(records[i][field])
+
+  meanAge = meanAge+records[i]["Age"]
+
+EndFor
+
+meanAge = meanAge / numRecords
+
+TextWindow.WriteLine("Their mean age is "+meanAge)
+
+
+
+'======================================================
+
+'SUBROUTINES
+
+'======================================================
+
+
+
+'Required initialisation
+
+Sub setUp
+
+  getID = 0
+
+  deleteID = 0
+
+EndSub
+
+
+
+'Create a new database
+
+'Input - DBFile, fields
+
+'Output - database, DBCount, numField
+
+Sub newDB
+
+  DBFile = Program.Directory+"\"+DBName+".txt"
+
+  numField = Array.GetItemCount(fields)
+
+  database = ""
+
+  DBCount = 0
+
+  setUp()
+
+EndSub
+
+
+
+'Load an existing database from a file
+
+'Input - DBName
+
+'Output - database, DBCount, fields, numField
+
+Sub LoadDB
+
+  DBFile = Program.Directory+"\"+DBName+".txt"
+
+' The following line could be harmful and has been automatically commented.
+
+'   database = File.ReadContents(DBFile)
+
+  DBCount = Array.GetItemCount(database)
+
+  fields = Array.GetAllIndices(database[1])
+
+  numField = Array.GetItemCount(fields)
+
+  setUp()
+
+EndSub
+
+
+
+'Save the database to a file
+
+'Input - DBFile, database
+
+'Output - saved File
+
+Sub Save
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.WriteContents(DBFile, database)
+
+EndSub
+
+
+
+'Add an entry to the database
+
+'Input - database, DBCount, record
+
+'Output - database, DBCount and saved File
+
+Sub Add
+
+  If (record <> "") Then
+
+    DBCount = DBCount+1
+
+    database[DBCount] = record
+
+  EndIf
+
+  Save()
+
+EndSub
+
+
+
+'Remove an entry in the database
+
+'Input - database, DBCount, deleteID
+
+'Output - database, DBCount and saved File
+
+Sub Remove
+
+  'Keep the index order sequential
+
+  If (deleteID >= 1 And deleteID <= DBCount) Then
+
+    For _i = deleteID+1 To DBCount
+
+      database[_i-1] = database[_i]
+
+    EndFor
+
+    database[DBCount] = ""
+
+    DBCount = DBCount-1
+
+  EndIf
+
+  Save()
+
+EndSub
+
+
+
+'Get an individual record by ID
+
+'Input - database, getID
+
+'Output - record
+
+Sub GetRecord
+
+  record = database[getID]
+
+EndSub
+
+
+
+'Get all records (an array) with a value exact match in field field
+
+'Input - database, DBCount, field, value
+
+'Output - records, numRecords
+
+Sub GetRecordsExact
+
+  records = ""
+
+  numRecords = 0
+
+  For _i = 1 To DBCount
+
+    If (database[_i][field] = value) Then
+
+      numRecords = numRecords+1
+
+      records[numRecords] = database[_i]
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+'Get all records (an array) with a value constained in field field (not case sensitive)
+
+'Input - database, DBCount, field, value
+
+'Output - records, numRecords, value(modified to lower case)
+
+Sub GetRecordsContains
+
+  records = ""
+
+  numRecords = 0
+
+  value = Text.ConvertToLowerCase(value)
+
+  For _i = 1 To DBCount
+
+    If (Text.IsSubText(Text.ConvertToLowerCase(database[_i][field]),value)) Then
+
+      numRecords = numRecords+1
+
+      records[numRecords] = database[_i]
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+'Sort the database by a field
+
+'Input - database, DBCount, field
+
+'Output - sortID
+
+Sub SortIndex
+
+  DBtemp = LDArray.Create(DBCount)
+
+  For _i = 1 To DBCount
+
+    LDArray.SetValue(DBtemp, _i, database[_i][field])
+
+  EndFor
+
+  LDArray.Delete(sortID)
+
+  sortID = LDArray.Create(DBCount)
+
+  LDArray.SortIndex(DBtemp,sortID)
+
+  LDArray.Delete(DBtemp)
+
+EndSub
+
+
+
+'A TextWindow diplay or database after a sort
+
+'Input - database, DBCount, fields, numField, sortID
+
+'Output - TextWindow display
+
+Sub DisplaySort
+
+  TextWindow.ForegroundColor = "Yellow"
+
+  TextWindow.Write("ID")
+
+  For _j = 1 To numField
+
+    If (field = fields[_j]) Then
+
+      TextWindow.ForegroundColor = "Red"
+
+    Else
+
+      TextWindow.ForegroundColor = "Yellow"
+
+    EndIf
+
+    TextWindow.CursorLeft = (_j)*15
+
+    TextWindow.Write(fields[_j])
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+  TextWindow.ForegroundColor = "Gray"
+
+  For _i = 1 To DBCount
+
+    _k = LDArray.GetValue(sortID,_i)
+
+    TextWindow.Write(_k)
+
+    For _j = 1 To numField
+
+      TextWindow.CursorLeft = (_j)*15
+
+      TextWindow.Write(database[_k][fields[_j]])
+
+    EndFor
+
+    TextWindow.WriteLine("")
+
+  EndFor
+
+  TextWindow.WriteLine("")
+
+EndSub
+
+

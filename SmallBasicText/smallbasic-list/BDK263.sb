@@ -1,0 +1,229 @@
+' Guess Word 0.3
+
+' Copyright (c) 2013 Nonki Takahashi
+
+'
+
+' History:
+
+'  0.3 05/05/2013 Changed to use noun text file.
+
+'  0.2 02/05/2013 Changed as graphics version. 
+
+'  0.1 02/05/2013 Created as text version.
+
+'
+
+title = "Guess Word 0.3"
+
+GraphicsWindow.Title = title
+
+CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
+
+min = 3 ' [letters]
+
+max = 5 ' [letters]
+
+letters[1] = "aeiou"
+
+letters[2] = "bcdfghjklmnpqrstvwxyz"
+
+GetWords()
+
+GraphicsWindow.BrushColor = "Black"
+
+x = 10
+
+While "True"
+
+  y = 10
+
+  GetRandomWord()
+
+  GraphicsWindow.DrawText(x, y, "Hint 1: " + Text.GetLength(word) + " letters")
+
+  GetMean()
+
+  y = y + 20
+
+  GraphicsWindow.DrawText(x, y, "Hint 2: " + mean)
+
+  img = Flickr.GetRandomPicture(word)
+
+  name = ImageList.LoadImage(img)
+
+  height = ImageList.GetHeightOfImage(name) / 2
+
+  width = ImageList.GetWidthOfImage(name) / 2
+
+  y = y + 20
+
+  GraphicsWindow.DrawResizedImage(name, x + 300, y, width, height)
+
+  WaitToAnswer()
+
+EndWhile
+
+Sub WaitToAnswer
+
+  answer = Controls.AddTextBox(x, y)
+
+  ok = Controls.AddButton("OK", x + 200, y)
+
+  t1 = Clock.ElapsedMilliseconds
+
+  t2 = Clock.ElapsedMilliseconds
+
+  tWait = 20000
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  y = y + 40
+
+  While (t2 - t1) < tWait
+
+    GraphicsWindow.Title = title + " - " + (tWait / 1000 - Math.Floor((t2 - t1) / 1000))
+
+    Program.Delay(500)
+
+    t2 = Clock.ElapsedMilliseconds
+
+  EndWhile
+
+  GraphicsWindow.Title = title + " (" + nWords + ")"
+
+  GraphicsWindow.DrawText(x, y, "The word is " + word)
+
+  Program.Delay(3000)
+
+  GraphicsWindow.Clear()
+
+EndSub
+
+Sub OnButtonClicked
+
+  guess = Controls.GetTextBoxText(answer)
+
+  If Text.ConvertToLowerCase(guess) = Text.ConvertToLowerCase(word) Then
+
+    GraphicsWindow.DrawText(x, y, "You win")
+
+    words[word] = ""
+
+    index = Array.GetAllIndices(words)
+
+    nWords = nWords - 1
+
+    t1 = t2 - tWait
+
+  Else
+
+    GraphicsWindow.DrawText(x, y, "You lose")
+
+  EndIf
+
+  y = y + 20
+
+EndSub
+
+Sub GetWords
+
+  filename = "noun.txt"
+
+  url = "http://www.nonkit.com/smallbasic.files/" + filename
+
+  path = Network.DownloadFile(url)
+
+  nWords = 0
+
+' The following line could be harmful and has been automatically commented.
+
+'   w = File.ReadLine(path, nWords)
+
+  While w <> ""
+
+    nWords = nWords + 1
+
+    words[w] = 1
+
+' The following line could be harmful and has been automatically commented.
+
+'     w = File.ReadLine(path, nWords)
+
+  EndWhile
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.DeleteFile(path)
+
+  nWords = Array.GetItemCount(words)
+
+  index = Array.GetAllIndices(words)
+
+EndSub
+
+Sub GetRandomWord
+
+  ' return word
+
+  ' return def - definition
+
+  i = Math.GetRandomNumber(nWords)
+
+  word = index[i]
+
+  def = Dictionary.GetDefinition(word)
+
+EndSub
+
+Sub GetMean
+
+  p = 1
+
+  q = 1
+
+  GetLineOfDef()
+
+  p = q
+
+  GetLineOfDef()
+
+  p = q
+
+  GetLineOfDef()
+
+  mean = txt
+
+EndSub
+
+Sub GetLineOfDef
+
+  While p = q
+
+    q = Text.GetIndexOf(Text.GetSubTextToEnd(def, p), CRLF)
+
+    If q = 0 Then
+
+      q = Text.GetLength(Text.GetSubTextToEnd(def, p)) + 1
+
+    Else
+
+      q = q + p - 1
+
+    EndIf
+
+    If p = q Then
+
+      p = p + 2
+
+      q = q + 2
+
+    EndIf
+
+  EndWhile
+
+  txt = Text.GetSubText(def, p, q - p)
+
+EndSub
+
+

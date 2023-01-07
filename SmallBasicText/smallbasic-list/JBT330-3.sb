@@ -1,0 +1,989 @@
+' ApprendreMonClavier - Yanos - Février 2015 - JBT330-3
+
+'
+
+' Petit jeu pour apprendre à taper sur son clavier
+
+
+
+' Les règles :
+
+' - Des lettres tombent de haut en bas de l'écran, il faut appuyer sur la bonne lettre du clavier pour que la lettre disparaisse
+
+' - Chaque niveau que vous terminez vous rend une vie si vous en avez perdu
+
+' - Si une lettre arrive en bas avant d'avoir été supprimée alors vous perdez une vie
+
+' - Si vous appuyez sur une lettre du clavier qui ne correspond pas à une lettre affichée vous perdez une vie
+
+' - Si vous n'avez plus de vie vous avez perdu la partie
+
+' - Quand un niveau est terminé vous gagnez un certain nombre de points pour chaque vie que vous n'avez pas perdu
+
+
+
+'  = Initialisation des variables
+
+CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
+
+ChargerNiveaux()
+
+' Numéro du niveau en cours de jeu
+
+niveauNumero = 1
+
+' Informations sur le niveau
+
+niveau = niveaux[niveauNumero]
+
+' Score
+
+score = 0
+
+' Nombre de vies
+
+vies = 3
+
+
+
+' Liste des lettres
+
+' lettres est un tableau de tableau pour chaque lettres dans le jeu
+
+' x : Position X
+
+' y : Position Y
+
+' vitesse : Rapidité de déplacement
+
+' lettre : Lettre affichée
+
+' forme :  Objet forme affichant
+
+lettres = ""
+
+lettresNombre = 0
+
+
+
+' niveau : Présentation du niveau
+
+' pause : En pause
+
+' jeu : En cours de jeu
+
+' fin : Le joueur à perdu
+
+jeuEtat = "niveau"
+
+
+
+message = ""
+
+messageForme = ""
+
+
+
+' Affichage de l'écran
+
+GraphicsWindow.Width = 800
+
+GraphicsWindow.Height = 480
+
+GraphicsWindow.CanResize = "False"
+
+GraphicsWindow.Title = "Apprendre Mon Clavier"
+
+GraphicsWindow.Show()
+
+GraphicsWindow.TextInput = GestionLettreClavier
+
+GraphicsWindow.KeyDown = GestionToucheClavier
+
+
+
+' Création des éléments du jeu
+
+CreerEnTete()
+
+
+
+' Boucle principale du jeu
+
+While "True"
+
+  '  Suivi l'état du jeu
+
+  If jeuEtat = "niveau" Then
+
+    '  Présentation du niveau
+
+    PresenterNiveau()
+
+  ElseIf jeuEtat = "pause" Then
+
+    ' Met en pause
+
+    AttentePause()
+
+  ElseIf jeuEtat = "jeu" Then  
+
+    ' Boucle du jeu
+
+    Jeu()
+
+  Else 
+
+    ' Fin de la partie
+
+    AfficherFinPartie()
+
+  EndIf
+
+EndWhile
+
+
+
+'  === Boucle du jeu
+
+Sub Jeu
+
+  lettreAppuyee = ""
+
+  toucheAppuyee = ""
+
+  derniereBoucle = Clock.ElapsedMilliseconds
+
+  While "True"
+
+    ' Enregistre le nombre de milliseconds au moment où on démarre la boucle
+
+    boucleDebut = Clock.ElapsedMilliseconds
+
+    tempsPasse = boucleDebut - derniereBoucle
+
+    
+
+    ' Teste le clavier pour vérifier la pause
+
+    If toucheAppuyee = "Escape" Then
+
+      jeuEtat = "pause"
+
+      Goto finJeu
+
+    EndIf
+
+    
+
+    '  On recherche une lettre à ajouter
+
+    AjouterUneLettre()
+
+    
+
+    ' On vérifie si on a appuyé sur une lettre
+
+    GererLettreAppuyee()
+
+    
+
+    ' Déplace toutes les lettres à leur prochaine position
+
+    For i = 1 To lettresNombre
+
+      If lettres[i] <> "" Then
+
+        lettres[i]["y"] = lettres[i]["y"] + (tempsPasse * lettres[i]["vitesse"])
+
+        ' Détermine si la lettre est sortie du jeu
+
+        If lettres[i]["y"] <= GraphicsWindow.Height - 30 Then
+
+          Shapes.Move(lettres[i]["forme"], lettres[i]["x"], lettres[i]["y"])
+
+        Else
+
+          '  Supprime la lettre
+
+          Shapes.Remove(lettres[i]["forme"])
+
+          lettres[i] = ""
+
+          ' On retire une vie
+
+          message = "Lettre ratée"
+
+          vies = vies - 1
+
+          ActualiserEnTete()
+
+        EndIf 
+
+      EndIf
+
+    EndFor
+
+    
+
+    ' On a perdu ?
+
+    If vies < 0 Then
+
+      Goto perdu
+
+    EndIf
+
+    
+
+    ' On a fini le niveau ?
+
+    If lettresSupprimees >= niveau["prochainNiveau"] Then
+
+      niveauNumero = niveauNumero + 1
+
+      jeuEtat = "niveau"
+
+      Goto finJeu
+
+    EndIf
+
+    
+
+    ' Calcul l'affichage d'un message ?
+
+    AfficherMessage()
+
+    
+
+    ' Calcul le nombre de millisecondes qu'à duré la boucle
+
+    boucleDuree = Clock.ElapsedMilliseconds - boucleDebut
+
+    'GraphicsWindow.Title = boucleDuree
+
+    derniereBoucle = boucleDebut
+
+    
+
+    '  On fait une pause pour reposer l'ordinateur
+
+    Program.Delay(25)
+
+  EndWhile
+
+  perdu:
+
+  SupprimerToutesLesLettres()
+
+  jeuEtat="fin"
+
+  finJeu:  
+
+  toucheAppuyee = ""
+
+  lettreAppuyee = ""
+
+EndSub
+
+
+
+'  === Présentation du niveau à jouer
+
+Sub PresenterNiveau
+
+  SupprimerToutesLesLettres()
+
+  
+
+  ' Nouvelle partie ?
+
+  If niveauNumero = 1 Then
+
+    score = 0
+
+    vies = 3
+
+  EndIf
+
+  
+
+  '  Si on dépasse le nombre de niveaux disponible on bloucle en tout en augmentant la difficulté
+
+  
+
+  ' Nombre de "répétitions" de niveau
+
+  mNiveau = Math.Floor((niveauNumero-1) / niveauxNombre)
+
+  ' Niveau réel
+
+  nNiveau = Math.Remainder((niveauNumero-1), niveauxNombre) + 1
+
+  niveau = niveaux[nNiveau]
+
+  '  Calcul le nombre maximum de vies
+
+  niveau["maxVies"] = 3 + mNiveau
+
+  
+
+  ' On calcul la difficulté
+
+  If mNiveau>0 Then
+
+    ' On augmente la vitesse :  on ajoute le nombre de répétitions
+
+    niveau["vitesse"] = niveau["vitesse"] + mNiveau + 1
+
+    ' On augmente le nombre de lettres affichées :  on ajoute le nombre de répétitions
+
+    niveau["lettresAffichees"] = niveau["lettresAffichees"] + mNiveau
+
+    ' On ajoute les majusucles si on est à mNiveau>2
+
+    If mNiveau>2 Then
+
+      niveau["lettres"] = niveau["lettres"] + Text.ConvertToUpperCase(niveau["lettres"])
+
+    EndIf
+
+  EndIf
+
+  
+
+  If niveauNumero > 1 Then
+
+    dernierScoreNiveau = scoreNiveau
+
+    dernierVies = vies
+
+    dernierScoreParVie = 50 * (mNiveau + 1)
+
+  EndIf
+
+  
+
+  lettres = ""
+
+  lettresNombre = niveau["lettresAffichees"]
+
+  vies = Math.Min(vies + 1, niveau["maxVies"])
+
+  lettresSupprimees = 0
+
+  scoreNiveau = 0
+
+  score = score + (dernierVies * dernierScoreParVie)
+
+  ActualiserEnTete()
+
+  
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.BrushColor = "Aqua"
+
+  background = Shapes.AddRectangle(GraphicsWindow.Width,GraphicsWindow.Height-48)
+
+  Shapes.Move(background, 0, 48)
+
+  
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.FontSize = 48
+
+  GraphicsWindow.BrushColor = "Black"
+
+  texteNiveau = Shapes.AddText("Niveau " + niveauNumero)
+
+  Shapes.Move(texteNiveau, 16, 48+16)
+
+  
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.BrushColor = "Black"
+
+  desc = ""
+
+  If dernierScoreNiveau > 0 Then
+
+    desc = desc + "Score obtenu lors du dernier niveau : " + dernierScoreNiveau + CRLF
+
+    If niveauNumero>1 Then
+
+      desc = desc + "Score obtenu pour les vies que vous n'avez pas perdu : "  + dernierVies + " x " + dernierScoreParVie + " = " + (dernierVies * dernierScoreParVie) + CRLF
+
+    EndIf
+
+    desc = desc + CRLF
+
+  EndIf
+
+  desc = desc + "Lettres à utiliser : " + niveau["lettres"] + CRLF 
+
+  desc = desc + "Nombre de lettres avant le prochain niveau : " + niveau["prochainNiveau"] + CRLF + CRLF + CRLF 
+
+  desc = desc + "Pendant la partie appuyer sur 'Echap' pour mettre en pause le jeu" + CRLF  + CRLF 
+
+  desc = desc + "Appuyer sur 'Echap' pour quitter le jeu" + CRLF 
+
+  desc = desc + "Appuyer sur la barre espace pour commencer le niveau"
+
+  texteDescription = Shapes.AddText(desc)
+
+  Shapes.Move(texteDescription, 16, 48+80)
+
+  
+
+  toucheAppuyee=""
+
+  While "True"
+
+    If toucheAppuyee = "Escape" Then
+
+      Program.End()
+
+    ElseIf toucheAppuyee = "Space" Then
+
+      jeuEtat = "jeu"
+
+      Goto finPresenterNiveau
+
+    EndIf
+
+    Program.Delay(200)
+
+  EndWhile
+
+  finPresenterNiveau:
+
+  Shapes.Remove(texteDescription)
+
+  Shapes.Remove(texteNiveau)
+
+  Shapes.Remove(background)
+
+  toucheAppuyee=""
+
+EndSub
+
+
+
+'  === Gestion de la pause
+
+Sub AttentePause
+
+  
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.BrushColor = "Aqua"
+
+  background = Shapes.AddRectangle(GraphicsWindow.Width,GraphicsWindow.Height-48)
+
+  Shapes.Move(background, 0, 48)
+
+  
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.FontSize = 48
+
+  GraphicsWindow.BrushColor = "Black"
+
+  texteNiveau = Shapes.AddText("PAUSE")
+
+  Shapes.Move(texteNiveau, 16, 48+16)
+
+  
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.BrushColor = "Black"
+
+  desc = ""
+
+  desc = desc + "Appuyer sur 'Echap' pour quitter le jeu" + CRLF 
+
+  desc = desc + "Appuyer sur la barre espace pour reprendre la partie"
+
+  texteDescription = Shapes.AddText(desc)
+
+  Shapes.Move(texteDescription, 16, 48+80)
+
+  
+
+  toucheAppuyee=""
+
+  While "True"
+
+    If toucheAppuyee = "Escape" Then
+
+      Program.End()
+
+    ElseIf toucheAppuyee = "Space" Then
+
+      jeuEtat = "jeu"
+
+      Goto finAttentePause
+
+    EndIf
+
+    Program.Delay(200)
+
+  EndWhile
+
+  finAttentePause:
+
+  Shapes.Remove(texteDescription)
+
+  Shapes.Remove(texteNiveau)
+
+  Shapes.Remove(background)
+
+  toucheAppuyee=""
+
+EndSub
+
+
+
+'  === Affichage de la fin d'une partie
+
+Sub AfficherFinPartie
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.BrushColor = "Violet"
+
+  background = Shapes.AddRectangle(GraphicsWindow.Width,GraphicsWindow.Height-48)
+
+  Shapes.Move(background, 0, 48)
+
+  
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.FontSize = 48
+
+  GraphicsWindow.BrushColor = "Black"
+
+  texteNiveau = Shapes.AddText("PERDU")
+
+  Shapes.Move(texteNiveau, 16, 48+16)
+
+  
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.BrushColor = "Black"
+
+  desc = "Vous avez perdu au niveau " + niveauNumero + " avec " + score + " points." + CRLF + CRLF
+
+  desc = desc + "Appuyer sur 'Echap' pour quitter le jeu" + CRLF 
+
+  desc = desc + "Appuyer sur la barre espace pour commencer une nouvelle partie"
+
+  texteDescription = Shapes.AddText(desc)
+
+  Shapes.Move(texteDescription, 16, 48+80)
+
+  
+
+  toucheAppuyee=""
+
+  While "True"
+
+    If toucheAppuyee = "Escape" Then
+
+      Program.End()
+
+    ElseIf toucheAppuyee = "Space" Then
+
+      niveauNumero = 1
+
+      jeuEtat = "niveau"
+
+      Goto finAfficherFinPartie
+
+    EndIf
+
+    Program.Delay(200)
+
+  EndWhile
+
+  finAfficherFinPartie:
+
+  Shapes.Remove(texteDescription)
+
+  Shapes.Remove(texteNiveau)
+
+  Shapes.Remove(background)
+
+  toucheAppuyee=""
+
+EndSub
+
+
+
+'  === Sous routine qui recherche s'il faut ajouter une lettre dans le jeu
+
+Sub AjouterUneLettre
+
+  ' On recherche une place libre dans la liste des lettres
+
+  For i = 1 To lettresNombre
+
+    If lettres[i] = "" Then
+
+      lettres[i]["lettre"] = Text.GetSubText(niveau["lettres"], Math.GetRandomNumber(Text.GetLength(niveau["lettres"])), 1)
+
+      GraphicsWindow.FontBold = "True"
+
+      GraphicsWindow.FontName = "Arial"
+
+      GraphicsWindow.FontSize = 38
+
+      GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
+
+      lettres[i]["forme"] = Shapes.AddText(lettres[i]["lettre"])
+
+      Shapes.Move(lettres[i]["forme"], -100, -100)
+
+      lettres[i]["x"] = Math.GetRandomNumber(GraphicsWindow.Width - 32)
+
+      lettres[i]["y"] = 48
+
+      lettres[i]["vitesse"] = (niveau["vitesse"] + Math.GetRandomNumber(10) - 1) / 250
+
+      Shapes.Move(lettres[i]["forme"], lettres[i]["x"], lettres[i]["y"])
+
+      '  On arrête car on a trouvé
+
+      Goto finAjouterUneLettre
+
+    EndIf
+
+  EndFor
+
+  finAjouterUneLettre:
+
+EndSub
+
+
+
+' === Supprime toutes les lettres affichées
+
+Sub SupprimerToutesLesLettres
+
+  For i = 1 To lettresNombre
+
+    If lettres[i] <> "" Then
+
+      Shapes.Remove(lettres[i]["forme"])
+
+      lettres[i] = ""
+
+    EndIf
+
+  EndFor
+
+  lettres = ""
+
+EndSub
+
+
+
+' === Gestion de la lettre appuyée
+
+Sub GererLettreAppuyee
+
+  If lettreAppuyee <> "" Then
+
+    '  On recherche une lettre qui correspond à la lettre apppuyée et qui est la plus basse de l'écran
+
+    lettreTrouvee = 0
+
+    For i = 1 To lettresNombre
+
+      If lettres[i] <> "" And lettres[i]["lettre"] = lettreAppuyee Then
+
+        If lettreTrouvee < 1 Or (lettres[i]["y"] > lettres[lettreTrouvee]["y"]) Then
+
+          lettreTrouvee = i
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+    ' On détermine si on a trouvé une lettre
+
+    If lettreTrouvee > 0 Then
+
+      ' On augmente notre score
+
+      sTmp = ((lettres[lettreTrouvee]["y"] - 48) * 100) / (GraphicsWindow.Height - 48 - 30)
+
+      sTmp = (100 - (Math.Floor(sTmp / 10)*10) )
+
+      score = score + sTmp
+
+      scoreNiveau = scoreNiveau + sTmp
+
+      lettresSupprimees = lettresSupprimees + 1
+
+      ' On supprime la lettre
+
+      Shapes.Remove(lettres[lettreTrouvee]["forme"])
+
+      lettres[lettreTrouvee] = ""
+
+    Else
+
+      ' Ici on a pas trouvé de lettre alors on perds une vie
+
+      message = "Mauvaise lettre"
+
+      vies = vies - 1
+
+    EndIf
+
+    ActualiserEnTete()
+
+  EndIf
+
+  lettreAppuyee = ""
+
+EndSub
+
+
+
+' === Gestion des lettres clavier
+
+Sub GestionLettreClavier
+
+  ' On récupère la lettre appuyée
+
+  lettreAppuyee = GraphicsWindow.LastText  
+
+  ' Si la lettre est l'espace on ne la prend pas en compte
+
+  If lettreAppuyee = " " Then
+
+    lettreAppuyee = "" 
+
+  EndIf
+
+EndSub
+
+
+
+' === Gestion des touches clavier
+
+Sub GestionToucheClavier
+
+  ' On récupère la touche appuyée
+
+  toucheAppuyee = GraphicsWindow.LastKey
+
+EndSub
+
+
+
+' === Construction de l'en-tête
+
+Sub CreerEnTete
+
+  GraphicsWindow.FontBold = "True"
+
+  GraphicsWindow.BrushColor = "Lime"
+
+  GraphicsWindow.PenColor = "Lime"
+
+  Shapes.AddRectangle(1080, 48)
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontName = "Verdana"
+
+  GraphicsWindow.FontSize = 32
+
+  scoreForme = Shapes.AddText("Score : " + score)
+
+  Shapes.Move(scoreForme, 12, 6)
+
+  GraphicsWindow.BrushColor = "Red"
+
+  viesForme = Shapes.AddText("Vies : " + vies)
+
+  Shapes.Move(viesForme, GraphicsWindow.Width - 180, 6)
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  GraphicsWindow.FontSize = 20
+
+  niveauForme = Shapes.AddText("Niveau : " + niveauNumero)
+
+  Shapes.Move(niveauForme, GraphicsWindow.Width - 520, 6)
+
+  GraphicsWindow.FontBold = "False"
+
+  GraphicsWindow.FontSize = 12
+
+  prochainNiveauForme = Shapes.AddText("Prochain niveau : " + (niveau["prochainNiveau"] - lettresSupprimees))
+
+  Shapes.Move(prochainNiveauForme, GraphicsWindow.Width - 520, 32)
+
+EndSub
+
+
+
+' === Actualise l'en-tête
+
+Sub ActualiserEnTete
+
+  Shapes.SetText(scoreForme, "Score : " + score)
+
+  Shapes.SetText(viesForme, "Vies : " + Math.Max(0, vies))
+
+  Shapes.SetText(niveauForme, "Niveau : " + niveauNumero)
+
+  Shapes.SetText(prochainNiveauForme, "Prochain niveau : " + (niveau["prochainNiveau"] - lettresSupprimees))
+
+EndSub
+
+
+
+' === Affichage d'un message
+
+Sub AfficherMessage
+
+  If message<>"" Then
+
+    ' On doit démarrer un nouvel affichage ?
+
+    If messageForme = "" Then
+
+      messageForme["message"] = message
+
+      GraphicsWindow.FontBold = "True"
+
+      GraphicsWindow.FontSize = 48
+
+      GraphicsWindow.BrushColor = "Maroon"
+
+      messageForme["forme"] = Shapes.AddText(messageForme["message"])
+
+      Shapes.Move(messageForme["forme"], (GraphicsWindow.Width - Text.GetLength(messageForme["message"])*24 )/2, GraphicsWindow.Height/2)
+
+      messageForme["etape"] = 100
+
+      messageForme["demarrage"] = Clock.ElapsedMilliseconds
+
+    ElseIf messageForme["message"] <> message Then
+
+      ' Le message a changé on supprime le message en cours pour qu'il se reconstruise
+
+      Shapes.Remove(messageForme["forme"])
+
+      messageForme = ""
+
+    Else
+
+      ' On passe à l'étape suivante de l'affichage
+
+      messageForme["etape"] = (800 - (Clock.ElapsedMilliseconds - messageForme["demarrage"])) / 10
+
+      'TextWindow.WriteLine(messageForme["etape"])
+
+      '  Etape finale ?
+
+      If messageForme["etape"]<=0 Then
+
+        ' On supprime le message
+
+        Shapes.Remove(messageForme["forme"])
+
+        messageForme = ""
+
+        message = ""
+
+      Else  
+
+        ' On calcul l'affichage
+
+        Shapes.SetOpacity(messageForme["forme"], messageForme["etape"])
+
+        Shapes.Zoom(messageForme["forme"], 1+(100 - messageForme["etape"])/20, 1+(100 - messageForme["etape"])/20)
+
+      EndIf
+
+    EndIf 
+
+  Else
+
+    ' Si on a une forme on la supprime
+
+    If messageForme<>"" Then
+
+      ' On supprime le message
+
+      Shapes.Remove(messageForme["forme"])
+
+      messageForme = ""
+
+      message = ""
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+' === Charge la liste des niveaux
+
+Sub ChargerNiveaux
+
+  niveaux[1] = "prochainNiveau=10;lettresAffichees=3;lettres=qsdfg;vitesse=1;"
+
+  niveaux[2] = "prochainNiveau=10;lettresAffichees=3;lettres=hjklm;vitesse=1;"
+
+  niveaux[3] = "prochainNiveau=10;lettresAffichees=3;lettres=azert;vitesse=1;"
+
+  niveaux[4] = "prochainNiveau=10;lettresAffichees=3;lettres=yuiop;vitesse=1;"
+
+  niveaux[5] = "prochainNiveau=10;lettresAffichees=3;lettres=wxcvb;vitesse=1;"
+
+  niveaux[6] = "prochainNiveau=10;lettresAffichees=3;lettres=n,\;:!;vitesse=1;"
+
+  niveaux[7] = "prochainNiveau=15;lettresAffichees=3;lettres=qsdfghjklm;vitesse=1;"
+
+  niveaux[8] = "prochainNiveau=15;lettresAffichees=3;lettres=azertyuiop;vitesse=1;"
+
+  niveaux[9] = "prochainNiveau=15;lettresAffichees=3;lettres=wxcvbn,\;:!;vitesse=1;"
+
+  niveaux[10] = "prochainNiveau=20;lettresAffichees=3;lettres=azertqsdfgwxcvb;vitesse=1;"
+
+  niveaux[11] = "prochainNiveau=20;lettresAffichees=3;lettres=yuiophjklmn,\;:!;vitesse=1;"
+
+  niveaux[12] = "prochainNiveau=25;lettresAffichees=3;lettres=azertqsdfgwxcvbyuiophjklmn,\;:!;vitesse=1;"
+
+  niveauxNombre = 12
+
+EndSub
+
+
+
+

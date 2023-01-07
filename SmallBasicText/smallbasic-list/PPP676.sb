@@ -1,0 +1,265 @@
+' Fire works 0.1
+
+' Copyright (c) 2012 Nonki TAKAHASHI 
+
+'
+
+' History:
+
+'  0.1 2012/08/05 Created form Projectile Motion (FBK822). ()
+
+'
+
+' Reference :
+
+' [1] Kunio HIRATA, BASIC ni yoru butsuri, 1983
+
+'
+
+Init()
+
+While "True"
+
+  Throw()
+
+EndWhile
+
+
+
+Sub Init
+
+  size = 40     ' fire work ball size [cm]
+
+  scale = 0.1   ' [pixel/cm]
+
+  n = 100       ' number of fires
+
+  m = 100       ' mass of ball [g]
+
+  g = 9.8       ' acceleration of gravity [m/s^2]
+
+  fx = 0        ' force of gravity [N]
+
+  fy = -m * g   ' force of gravity [N]
+
+  ax = fx / m   ' x acceleration of gravity [m/s^2]
+
+  ay = fy / m   ' y acceleration of gravity [m/s^2]
+
+  dt = 0.1      ' delta time [s]
+
+  blowtime = 5  ' blow time [s]
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  GraphicsWindow.Title = "Fire Works 0.1"
+
+  x0 = GraphicsWindow.Width / 2
+
+  y0 = GraphicsWindow.Height - size * scale
+
+  GraphicsWindow.PenWidth = 0
+
+  For i = 1 To n
+
+    green = Math.GetRandomNumber(128) + 128
+
+    GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(255, green, 0)
+
+    oBall[i] = Shapes.AddEllipse(size * scale, size * scale)
+
+    Shapes.Move(oBall[i], x0, y0)
+
+  EndFor
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.DrawText(30, 30, "Speed:")
+
+  GraphicsWindow.BrushColor = "Black"
+
+  oSpeed = Controls.AddTextBox(85, 30 - 4)
+
+  Controls.SetTextBoxText(oSpeed, "25")
+
+  Controls.SetSize(oSpeed, 60, 22)
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.DrawText(150, 30, "[m/s]")
+
+  GraphicsWindow.DrawText(30, 60, "Angle:")
+
+  GraphicsWindow.BrushColor = "Black"
+
+  oAngle = Controls.AddTextBox(85, 60 - 4)
+
+  Controls.SetTextBoxText(oAngle, "90")
+
+  Controls.SetSize(oAngle, 60, 22)
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.DrawText(150, 60, "[degree]")
+
+  GraphicsWindow.BrushColor = "Black"
+
+  oThrow = Controls.AddButton("Fire", 30, 90)
+
+  Controls.ButtonClicked = OnButtonClicked
+
+  Timer.Interval = dt * 1000
+
+  Timer.Tick = OnTick
+
+EndSub
+
+
+
+Sub MoveFires
+
+  For i = 1 To n
+
+    vx[i] = vx[i] + ax * dt / 2
+
+    vy[i] = vy[i] + ay * dt / 2
+
+    x[i] = x[i] - (vx[i] * dt) * 100 * scale  ' [pixel]
+
+    y[i] = y[i] - (vy[i] * dt) * 100 * scale  ' [pixel]
+
+    Shapes.Move(oBall[i], x[i] - size * scale / 2, y[i] - size * scale / 2)
+
+  EndFor
+
+  If Math.Remainder(t / dt, 10) = 0 And t > blowtime Then
+
+    For i = 1 To n
+
+      Shapes.SetOpacity(oBall[i], (10 - (t - blowtime)) * 100 / 10)
+
+    EndFor
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnButtonClicked
+
+  speed = Controls.GetTextBoxText(oSpeed)
+
+  angle = Controls.GetTextBoxText(oAngle)
+
+  For i = 1 To n
+
+    vx[i] = speed * Math.Cos(angle / 180 * Math.Pi)  ' [m/s]
+
+    vy[i] = speed * Math.Sin(angle / 180 * Math.Pi)  ' [m/s]
+
+  EndFor
+
+  bWait = "False"
+
+EndSub
+
+
+
+Sub Blow
+
+  firstspeed = speed / 2.5
+
+  For i = 1 To n
+
+    speed = Math.GetRandomNumber(firstspeed)
+
+    angle = Math.GetRandomNumber(36) * 10
+
+    vx[i] = speed * Math.Cos(angle / 180 * Math.Pi)  ' [m/s]
+
+    vy[i] = speed * Math.Sin(angle / 180 * Math.Pi)  ' [m/s]
+
+  EndFor
+
+EndSub
+
+
+
+Sub OnTick
+
+  bTime = "True"
+
+  t = t + dt
+
+  If t = blowtime Then
+
+    bBlow = "True"
+
+  EndIf
+
+EndSub
+
+
+
+Sub Throw
+
+  ' Wait throw button
+
+  bWait = "True"
+
+  While bWait
+
+    Program.Delay(200)
+
+  EndWhile
+
+  ' Throw
+
+  For i = 1 To n
+
+    x[i] = x0 + size * scale / 2
+
+    y[i] = y0 + size * scale / 2
+
+  EndFor
+
+  t = 0
+
+  bTime = "False"
+
+  bBlow = "False"
+
+  While t < 15
+
+    Program.Delay(dt * 900)
+
+    If bTime Then
+
+      bTime = "False"
+
+      MoveFires()
+
+    EndIf
+
+    If bBlow Then
+
+      bBlow = "False"
+
+      Blow()
+
+    EndIf
+
+  EndWhile
+
+  For i = 1 To n
+
+    Shapes.Move(oBall[i], x0, y0)
+
+    Shapes.SetOpacity(oBall[i], 100)
+
+  EndFor
+
+EndSub
+
+

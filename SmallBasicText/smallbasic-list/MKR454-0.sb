@@ -1,0 +1,659 @@
+'Mastermind game
+
+'Gerrit van den Bosch 
+
+'copyright 2014 ;)
+
+'original MKR454 (Dutch)
+
+'translated MKR454-0 (English)
+
+'translated by Nonki Takahashi 2019
+
+' 1=red 2=blue 3=green 4=yellow 5=purple 6=orange
+
+
+
+'variables
+
+'  masterMindCode
+
+'  turn
+
+'  numberOfColorsGood
+
+'  numberOfColorsGoodPlace
+
+'  selectedColor
+
+'  gameBoard
+
+
+
+'Events
+
+GraphicsWindow.MouseDown = OnMouseDown
+
+
+
+'size of board
+
+GraphicsWindow.Height = 570
+
+GraphicsWindow.Width = 329
+
+
+
+'Deffine the pin colors
+
+pinColor[1] = "#FF0000" ' "Red"
+
+pinColor[2] = "#0000FF" ' "Blue"
+
+pinColor[3] = "#008000" ' "Green"
+
+pinColor[4] = "#FFFF00" ' "Yellow"
+
+pinColor[5] = "#800080" ' "Purple"
+
+pinColor[6] = "#FFA500" ' "Orange"
+
+
+
+Start()
+
+
+
+'Event Handling
+
+Sub OnMouseDown
+
+  x = GraphicsWindow.MouseX
+
+  y = GraphicsWindow.MouseY
+
+  
+
+  'Restart the game
+
+  If x > 229 And x < 320 And y > 510 And y < 550 Then
+
+    Start()
+
+  EndIf 
+
+  
+
+  If turn < 11 then
+
+    'Choose color
+
+    If x >= 279 And x <= 330 And y >= 0 And y <= 510 then
+
+      ChooseColor()
+
+      SetColorMarker()    
+
+    EndIf
+
+    
+
+    'place color 25,0,204,510
+
+    If x >= 25 And x <= 229 And y >= (-51 + turn * 51) And y <= (turn * 51) then
+
+      'ChooseColor
+
+      PlacePin()
+
+    EndIf
+
+  Else
+
+    GraphicsWindow.ShowMessage("The game has ended", "Mastermind")  
+
+  EndIf
+
+EndSub
+
+
+
+'place a pin
+
+Sub PlacePin
+
+  If array.ContainsValue(numberOfPinsSet, selectedColor) Then
+
+    GraphicsWindow.ShowMessage("You have already used this color", "mastermind")
+
+  Else
+
+    'determine which column has been clicked
+
+    If GraphicsWindow.MouseX > 25 Then
+
+      column = 1
+
+    EndIf
+
+    
+
+    If GraphicsWindow.MouseX > 76 Then
+
+      column = 2
+
+    EndIf
+
+    
+
+    If GraphicsWindow.MouseX > 127 Then
+
+      column = 3
+
+    EndIf
+
+    
+
+    If GraphicsWindow.MouseX > 178 Then
+
+      column = 4
+
+    EndIf
+
+    
+
+    x = 25 + 5 + (column *51) - 51
+
+    y = 5 + turn * 51 - 51
+
+    GraphicsWindow.BrushColor = selectedColor
+
+    GraphicsWindow.FillEllipse(x, y, 41,41)  
+
+    
+
+    numberOfPinsSet[column] = selectedColor
+
+    
+
+    If Array.GetItemCount(numberOfPinsSet) = 4 Then
+
+      GraphicsWindow.Title = ""
+
+      
+
+      'Check set pins
+
+      CalculateScore()
+
+      
+
+      'Post result of the turn
+
+      For i = 1 To 4
+
+        GraphicsWindow.Title = GraphicsWindow.Title + numberOfPinsSet[i] + " "
+
+      EndFor   
+
+      turn = turn + 1
+
+      MoveTurnMarker()
+
+      numberOfPinsSet = ""
+
+    EndIf 
+
+    
+
+    If turn = 11 then
+
+      GraphicsWindow.ShowMessage("end of the game", "End")
+
+    endif 
+
+  EndIf
+
+EndSub
+
+
+
+'Choose a color
+
+Sub ChooseColor
+
+  If Array.ContainsValue(pinColor, GraphicsWindow.GetPixel(x,y)) then
+
+    selectedColor = GraphicsWindow.GetPixel(x,y)
+
+    GraphicsWindow.Title = selectedColor
+
+  EndIf
+
+EndSub
+
+
+
+'Place color marker
+
+Sub SetColorMarker
+
+  DrawSampleColors()
+
+  For i = 1 To 6
+
+    If pinColor[i] = selectedColor Then
+
+      x = 279
+
+      y = i * 51
+
+      GraphicsWindow.PenColor = "White"
+
+      GraphicsWindow.PenWidth = 4
+
+      GraphicsWindow.DrawEllipse(x + 4, y + 4 - 51, 43, 43)
+
+    EndIf  
+
+  EndFor   
+
+EndSub 
+
+
+
+'Place the triangle to indicate which turn
+
+Sub MoveTurnMarker
+
+  ClearTurnIndicator()
+
+  x = 0
+
+  y = (51 * turn) - 51
+
+  'GraphicsWindow.Title = "y= " + y
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FillTriangle(x, y, x, y + 51, x + 25, y + 26)
+
+EndSub
+
+
+
+'Calculate the score of the turn
+
+Sub CalculateScore
+
+  For i = 1 To 4
+
+    If numberOfPinsSet[i] = pinColor[masterMindCode[i]]  Then
+
+      numberOfColorsGoodPlace = numberOfColorsGoodPlace + 1
+
+    Else 
+
+      If Array.ContainsValue(numberOfPinsSet, pinColor[masterMindCode[i]] ) then
+
+        numberOfColorsGood = numberOfColorsGood + 1
+
+      EndIf    
+
+    EndIf  
+
+  EndFor
+
+  GraphicsWindow.Title = "colorGood:" + numberOfColorsGood + " placeGood:" + numberOfColorsGoodPlace 
+
+  PlaatsScorePins()
+
+  
+
+  If numberOfColorsGoodPlace = 4 Then
+
+    GraphicsWindow.ShowMessage("Congratulations! You guessed the code.", "Mastermind")
+
+    
+
+    'Show the secret Mastermind code
+
+    DrawMastermindCode()
+
+    turn = 11
+
+  EndIf
+
+  
+
+  'Reset score counters
+
+  numberOfColorsGood = 0
+
+  numberOfColorsGoodPlace = 0
+
+EndSub  
+
+
+
+'Determine the secret color code
+
+Sub GenerateColorCode
+
+  numberOfColorsFound = 0
+
+  
+
+  While Array.GetItemCount(masterMindCode) < 4
+
+    color = Math.GetRandomNumber(6)
+
+    If Array.ContainsValue(masterMindCode, color) then
+
+      'Do nothing
+
+    Else
+
+      'Add the color of the code
+
+      numberOfColorsFound = numberOfColorsFound + 1
+
+      MasterMindCode[numberOfColorsFound] = color
+
+    EndIf
+
+  EndWhile
+
+  'GraphicsWindow.Title = masterMindCode[1] + "+" + masterMindCode[2] + "+" + masterMindCode[3] + "+" + masterMindCode[4]   
+
+EndSub 
+
+
+
+'draw the layout of the board
+
+Sub DrawTheBoard
+
+  'Turn indicator
+
+  ClearTurnIndicator()
+
+  
+
+  'Game Board Pins
+
+  GraphicsWindow.BrushColor = "Gray"
+
+  GraphicsWindow.FillRectangle(25, 0, 204, 510)
+
+  
+
+  'Game Board Score
+
+  GraphicsWindow.BrushColor = "DarkGray"
+
+  GraphicsWindow.FillRectangle(229, 0, 50, 510)
+
+  
+
+  'Game Board Answer
+
+  GraphicsWindow.BrushColor = "DimGray"
+
+  GraphicsWindow.FillRectangle(25, 510, 204, 60)
+
+  
+
+  'Draw the pins
+
+  x = 25
+
+  y = 0
+
+  
+
+  For  i1 = 1 To 10 'draw the rows
+
+    For i2 = 1 To 4 'draw the pins
+
+      GraphicsWindow.PenColor = "White"
+
+      GraphicsWindow.DrawEllipse(x + 4, y + 4, 43, 43)
+
+      x = x + 51 
+
+    EndFor
+
+    x = 25  
+
+    y = y + 51
+
+  EndFor
+
+  
+
+  'Draw the sample colors
+
+  DrawSampleColors()
+
+  
+
+  'Make play again button
+
+  GraphicsWindow.BrushColor = "Yellow"
+
+  GraphicsWindow.FillRectangle(229, 510, 100, 60)
+
+  GraphicsWindow.BrushColor = "White"
+
+  GraphicsWindow.FontSize = 18
+
+  GraphicsWindow.DrawBoundText(240, 520, 90, "  Play Again")
+
+EndSub
+
+
+
+'Draw the sample colors
+
+Sub DrawSampleColors
+
+  'Sample colors
+
+  GraphicsWindow.BrushColor = "DarkGray"
+
+  GraphicsWindow.FillRectangle(279, 0, 50, 510)
+
+  
+
+  x = 279
+
+  y = 0
+
+  For i = 1 To 6
+
+    GraphicsWindow.BrushColor = pinColor[i]
+
+    GraphicsWindow.fillEllipse(x + 4, y + 4, 43, 43)
+
+    y = y + 51
+
+  EndFor
+
+EndSub 
+
+
+
+Sub ClearTurnIndicator
+
+  'Turn Indication
+
+  GraphicsWindow.BrushColor = "Silver"
+
+  GraphicsWindow.FillRectangle(0, 0, 25, 570)
+
+EndSub
+
+
+
+Sub DrawMastermindCode
+
+  x = 25
+
+  y = 510
+
+  For i = 1 To 4 'draw the pins
+
+    GraphicsWindow.brushColor = pinColor[masterMindCode[i]]
+
+    GraphicsWindow.FillEllipse(x + 4, y + 8, 43, 43)
+
+    x = x + 51 
+
+  EndFor
+
+EndSub
+
+
+
+Sub PlaatsScorePins
+
+  x = 229
+
+  y = (turn * 51) - 51
+
+  
+
+  totalNumberOfPins = numberOfColorsGoodPlace + numberOfColorsGood
+
+  
+
+  'pin 1
+
+  x = x + 7
+
+  y = y + 7
+
+  If numberOfColorsGoodPlace > 0 Then
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.FillEllipse(x, y, 15, 15)
+
+  Else
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.FillEllipse(x, y, 15, 15)
+
+  EndIf 
+
+  
+
+  'pin 2
+
+  x = x + 25
+
+  If numberOfColorsGoodPlace > 1 Then
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.FillEllipse(x, y, 15, 15)
+
+  Else
+
+    GraphicsWindow.BrushColor = "White"
+
+    GraphicsWindow.FillEllipse(x, y, 15, 15)
+
+  EndIf
+
+  
+
+  'pin 3
+
+  If totalNumberOfPins > 2 then
+
+    x = x - 25
+
+    y = y + 25
+
+    If numberOfColorsGoodPlace > 2 Then
+
+      GraphicsWindow.BrushColor = "Black"
+
+      GraphicsWindow.FillEllipse(x, y, 15, 15)
+
+    Else
+
+      GraphicsWindow.BrushColor = "White"
+
+      GraphicsWindow.FillEllipse(x, y, 15, 15)
+
+    EndIf
+
+  EndIf
+
+  
+
+  'pin 4
+
+  If totalNumberOfPins > 3 then
+
+    x = x + 25
+
+    If numberOfColorsGoodPlace > 3 Then
+
+      GraphicsWindow.BrushColor = "Black"
+
+      GraphicsWindow.FillEllipse(x, y, 15, 15)
+
+    Else
+
+      GraphicsWindow.BrushColor = "White"
+
+      GraphicsWindow.FillEllipse(x, y, 15, 15)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub Start
+
+  turn = 1
+
+  numberOfPinsSet = ""
+
+  numberOfColorsGood = 0
+
+  numberOfColorsGoodPlace = 0
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.PenWidth = 2
+
+  
+
+  'Start of the game
+
+  GenerateColorCode()
+
+  DrawTheBoard()
+
+  MoveTurnMarker()
+
+  selectedColor = pinColor[1]
+
+  'DrawMastermindCode()  
+
+EndSub
+
+
+
+End:
+
+

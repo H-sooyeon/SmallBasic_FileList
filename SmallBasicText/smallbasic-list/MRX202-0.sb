@@ -1,0 +1,463 @@
+'  Soldier -- By Krueg -- June 2012
+
+'         ARROWS -> move
+
+'         SPACE      ->  jump
+
+'         ENTER     -> pause
+
+'         ESCAPE   -> quit
+
+
+
+'  MRX202-0
+
+'  http://social.msdn.microsoft.com/Forums/en-US/smallbasic
+
+'  /thread/d90090d1-857c-4f0a-87c8-56c4b120477d
+
+
+
+'  Credit goes to GoToLoop and litdev for helping to make this program better.
+
+'         Thank You for your suggestions!
+
+'______________________________________________________'
+
+gw = 640                         'Window width
+
+gh = 480                         'Window Height
+
+gh32 = gh   - 32                 'Top of the brick line on the bottom
+
+gh96 = gh32 - 64
+
+
+
+md = 1                           'Man's direction 1=left, -1=right
+
+z  = 1                           'Man's slide # for walking animation
+
+zoom = 2                         'Man's shape zoom
+
+
+
+IncX = 2                         'Background speed X
+
+IncY = 1                         'Background speed Y
+
+ManX = gw/2-16                   'Man's position X, center on screen
+
+ManY = gh96                      'Man's position Y
+
+IncZ = .1                        'Walking appearance speed
+
+Jp   = 8                         'Jump power
+
+IncJ = .2                       'Jump Gravity
+
+
+
+delay = 10
+
+play  = "True"
+
+debug = "False"
+
+
+
+SetupWindow()
+
+LoadImages()
+
+SetupImages()
+
+
+
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp   = OnKeyUp
+
+'______________________________________________________'
+
+Main:
+
+
+
+While play
+
+  
+
+  If jump Then
+
+    ManY = ManY + Jy             'Adjust ManY for the jump
+
+    Jy = Jy + IncJ               'Add for gravity
+
+    z  = z  + IncZ               'Keep man walking while jumping
+
+    
+
+    If ManY > gh96 Then          'The man landed the brick line
+
+      jump = "False"    
+
+      ManY = gh96                'Put the man at the right height
+
+    EndIf
+
+    
+
+    For i = -4 to 4
+
+      Shapes.Move(man[i]  ManX,ManY)
+
+    EndFor
+
+  EndIf
+
+  
+
+  x = x + dx
+
+  y = y + dy
+
+  z = z + dz
+
+  
+
+  If x < -32   Then
+
+    x = x + 32
+
+  ElseIf x > 0 Then
+
+    x = x - 32
+
+  EndIf
+
+  
+
+  If y < -32   Then
+
+    y = y + 32
+
+  ElseIf y > 0 Then
+
+    y = y -32
+
+  EndIf
+
+  
+
+  Shapes.Move(background  x,y)
+
+  Shapes.Move(brickline   x,gh32)
+
+  
+
+  If z > 4 Then
+
+    z =  IncZ
+
+  EndIf
+
+  
+
+  zInt = Math.Ceiling(z) * md
+
+  
+
+  If mslast <> zInt Then
+
+    Shapes.HideShape(man[mslast])
+
+    Shapes.ShowShape(man[zInt])
+
+    mslast = zInt
+
+  EndIf
+
+  
+
+  If debug Then
+
+    DebugData()
+
+  Else
+
+    Program.Delay(delay)
+
+  EndIf
+
+  
+
+EndWhile
+
+
+
+Goto Main
+
+'______________________________________________________'
+
+Sub OnKeyDown
+
+  
+
+  key = GraphicsWindow.LastKey
+
+  
+
+  If     key = "Left"   Then
+
+    dx = IncX
+
+    dz = IncZ
+
+    md = 1
+
+    
+
+  ElseIf key = "Right"  Then
+
+    dx = -IncX
+
+    dz = IncZ
+
+    md = -1
+
+    
+
+  ElseIf key = "Up"     Then
+
+    dy =  IncY
+
+    
+
+  ElseIf key = "Down"   Then
+
+    dy = -IncY
+
+    
+
+  ElseIf key = "Space" And jump <> "True" Then
+
+    jump = "True"
+
+    Jy   = -Jp
+
+    Sound.PlayClick()
+
+    
+
+  ElseIf key = "Return"  Then
+
+    If play Then
+
+      play = "False"
+
+    Else
+
+      play = "True"
+
+    EndIf
+
+    
+
+  ElseIf key = "Escape" Then
+
+    Program.End()
+
+  EndIf
+
+  
+
+EndSub
+
+'______________________________________________________'
+
+Sub OnKeyUp
+
+  
+
+  key = GraphicsWindow.LastKey
+
+  
+
+  If     key = "Right" Or key = "Left" Then
+
+    dx = ""
+
+    dz = ""
+
+    
+
+  ElseIf key = "Up"    Or key = "Down" Then
+
+    dy = ""
+
+  EndIf
+
+  
+
+EndSub
+
+'______________________________________________________'
+
+Sub SetupWindow
+
+  
+
+  If debug Then
+
+    TextWindow.Left = gw + 20
+
+    TextWindow.Top  = 10
+
+  EndIf
+
+  
+
+  GraphicsWindow.Hide()
+
+  
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Width  = gw
+
+  GraphicsWindow.Top  = 5
+
+  GraphicsWindow.Left = 5
+
+  
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  
+
+EndSub
+
+'______________________________________________________'
+
+Sub LoadImages
+
+  
+
+  path = Program.Directory + "\"
+
+  path = "http://krueg.com/sb/samples/"
+
+  ext  = ".png"
+
+  
+
+  BGImg = ImageList.LoadImage(path + "background" + ext)
+
+  BGW   = ImageList.GetWidthOfImage  (BGImg)
+
+  BGH   = ImageList.GetHeightOfImage (BGImg)
+
+  
+
+  BLImg = ImageList.LoadImage(path + "brickline"  + ext)
+
+  BLW   = ImageList.GetWidthOfImage  (BLImg)
+
+  BLH   = ImageList.GetHeightOfImage (BLImg)
+
+  
+
+  For i = 1 To 3
+
+    manLImg[i] = ImageList.LoadImage(path + "man_l" + i + ext)
+
+    manRImg[i] = ImageList.LoadImage(path + "man_r" + i + ext)
+
+  EndFor
+
+  
+
+  manLImg[i] = manLImg[i-2]
+
+  manRImg[i] = manRImg[i-2]
+
+  
+
+  manW = ImageList.GetWidthOfImage  (manLImg[i]) * zoom
+
+  manH = ImageList.GetHeightOfImage (manLImg[i]) * zoom
+
+  
+
+EndSub
+
+'______________________________________________________'
+
+Sub SetupImages
+
+  
+
+  background = Shapes.AddImage(BGImg)
+
+  brickline  = Shapes.AddImage(BLImg)
+
+  
+
+  For i =  1 To 4
+
+    man[ i] = Shapes.AddImage(manLImg[i])
+
+    man[-i] = Shapes.AddImage(manRImg[i])
+
+  EndFor
+
+  
+
+  For i = -4 To 4
+
+    Shapes.HideShape(man[i])
+
+    Shapes.Zoom(man[i]  zoom,zoom)
+
+    Shapes.Move(man[i]  ManX,ManY)
+
+  EndFor
+
+  
+
+  GraphicsWindow.Show()
+
+  
+
+EndSub
+
+'______________________________________________________'
+
+Sub DebugData
+
+  
+
+  TextWindow.Clear()
+
+  TextWindow.WriteLine("KEY = " + key)
+
+  TextWindow.WriteLine("X = " + x + " Y = " + y)
+
+  TextWindow.WriteLine("DirectionX = " + dx)
+
+  TextWindow.WriteLine("DirectionY = " + dy)
+
+  TextWindow.WriteLine("Jump = " + jump)
+
+  TextWindow.WriteLine("ManX = " + ManX + " ManY = " + ManY)
+
+  TextWindow.WriteLine("MD = " + md + " Z = " + z)
+
+  
+
+EndSub
+
+'______________________________________________________'
+
+

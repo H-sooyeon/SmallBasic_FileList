@@ -1,0 +1,599 @@
+' dump - hexadecimal dump for UTF-8 encoded text file 0.1
+
+' Copyright (c) 2014 Nonki Takahashi.  All rights reserved.
+
+'
+
+' Usage:
+
+'  Option? [<stdin] [>stdout]
+
+'
+
+' History:
+
+'  0.1 2014-03-07 Created from tr 0.21. ()
+
+'
+
+Not = "False=True;True=False;"
+
+WQ = Text.GetCharacter(34)
+
+TextWindow.Write("Option? ")
+
+buf = TextWindow.Read()
+
+ParseArgs()
+
+If args[1] <> "" Then
+
+  TextWindow.WriteLine("")
+
+  TextWindow.WriteLine("Usage:")
+
+  TextWindow.WriteLine(" Option? [<stdin] [>stdout]")
+
+  TextWindow.WriteLine("")
+
+  Goto end
+
+EndIf
+
+eof = "False"
+
+nLine = 0
+
+nChar = 0
+
+If args["stdin"] <> "" Then
+
+  max = 0 ' dummy for remote
+
+' The following line could be harmful and has been automatically commented.
+
+'   max = Text.GetLength(File.ReadContents(args["stdin"]))
+
+EndIf
+
+While Not[eof]
+
+  ReadLine()
+
+  If Not[eof] Then
+
+    lines[nLine] = line
+
+  EndIf
+
+EndWhile
+
+DumpLines()
+
+end:
+
+Sub DumpLines
+
+  ' param lines - array of input lines
+
+  sp45 = "                                             "
+
+  scale1 = "Addr  +0 +1 +2 +3 +4 +5 +6 +7 +8 +9 +A +B +C +D +E +F  0123456789ABCDEF"
+
+  scale2 = "----  -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --  ----------------"
+
+  _nLine = nLine  ' for input
+
+  nLine = 0       ' for output
+
+  WriteHeader()
+
+  bytes = 0
+
+  dec = bytes
+
+  Math_Dec2Hex()
+
+  AddLeadingZero()
+
+  line = hex + "  "
+
+  txt = ""
+
+  For i = 1 To _nLine
+
+    len = Text.GetLength(lines[i])
+
+    For j = 1 To len
+
+      c = Text.GetSubText(lines[i], j, 1)
+
+      uni = Text.GetCharacterCode(c)
+
+      UTF8_Encode()
+
+      nBytes = Array.GetItemCount(u8)
+
+      If nBytes = 1 Then
+
+        txt = Text.Append(txt, c)
+
+      Else
+
+        txt = txt + Text.GetSubText("??????", 1, nBytes)
+
+      EndIf
+
+      For k = 1 To nBytes
+
+        dec = u8[k]
+
+        Math_Dec2Hex()
+
+        line = Text.Append(line, hex) + " "
+
+        NextByte()
+
+      EndFor
+
+    EndFor
+
+    txt = txt + "?"
+
+    line = line + "0D "
+
+    NextByte()
+
+    txt = txt + "?"
+
+    line = line + "0A "
+
+    NextByte()
+
+  EndFor
+
+  r = Math.Remainder(bytes, 16)
+
+  If 0 < r Then
+
+    line = line + Text.GetSubText(sp45, 1, (16 - r) * 3) + " " + txt
+
+    nLine = nLine + 1
+
+    WriteLine()
+
+    dec = bytes
+
+    Math_Dec2Hex()
+
+    AddLeadingZero()
+
+    line = hex + "  "
+
+    txt = ""
+
+  EndIf
+
+  line = ""
+
+  WriteLine()
+
+  nLine = _nLine
+
+EndSub
+
+Sub WriteHeader
+
+  nLine = nLine + 1
+
+  line = ""
+
+  WriteLine()
+
+  nLine = nLine + 1
+
+  line = scale1
+
+  WriteLine()
+
+  nLine = nLine + 1
+
+  line = scale2
+
+  WriteLine()
+
+EndSub
+
+Sub NextByte
+
+  bytes = bytes + 1
+
+  If Math.Remainder(bytes, 16) = 0 Then
+
+    line = line + " " + txt
+
+    nLine = nLine + 1
+
+    WriteLine()
+
+    If Math.Remainder(nLine, 19) = 0 Then
+
+      WriteHeader()
+
+    EndIf
+
+    dec = bytes
+
+    Math_Dec2Hex()
+
+    AddLeadingZero()
+
+    line = hex + "  "
+
+    txt = ""
+
+  EndIf
+
+EndSub
+
+Sub ReadLine
+
+  ' return line - text of a line
+
+  ' return nLine - number of lines
+
+  ' return eof - "True" if end of file
+
+  If args["stdin"] = "" Then
+
+    line = TextWindow.Read()
+
+    If line = "" Then
+
+      eof = "True"
+
+    Else
+
+      nLine = nLine + 1
+
+    EndIf
+
+  Else
+
+    If nChar < max Then
+
+      nLine = nLine + 1
+
+' The following line could be harmful and has been automatically commented.
+
+'       line = File.ReadLine(args["stdin"], nLine)
+
+      nChar = nChar + Text.GetLength(line) + 2  ' 2 for CR and LF
+
+    Else
+
+      eof = "True"
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+Sub WriteLine
+
+  ' param line - text of a line
+
+  ' param nLine - number of line to write
+
+  If args["stdout"] = "" Then
+
+    TextWindow.WriteLine(line)
+
+  Else
+
+' The following line could be harmful and has been automatically commented.
+
+'     File.WriteLine(args["stdout"], nLine, line)
+
+  EndIf
+
+EndSub
+
+Sub ParseArgs
+
+  ' param buf - command line
+
+  ' return args[] - array of arguments
+
+  p = 1
+
+  l = Text.GetLength(buf)
+
+  n = 1
+
+  While p <= l
+
+    SkipSpace()
+
+    GetToken()
+
+  EndWhile
+
+EndSub
+
+Sub SkipSpace
+
+  ' param buf - command line
+
+  ' param l - length of buf
+
+  ' param p - pointer in buf
+
+  ' return p - pointer to not space in buf
+
+  isSpace = "True"
+
+  While p <= l And isSpace
+
+    c = Text.GetSubText(buf, p, 1)
+
+    If c = " " Then
+
+      p = p + 1
+
+    Else
+
+      isSpace = "False"
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+Sub GetToken
+
+  ' param buf - command line
+
+  ' param l - length of buf
+
+  ' param p - pointer in buf
+
+  ' return args[] - array of arguments
+
+  ' return p - pointer to not space in buf
+
+  isDelim = "False"
+
+  s = p ' p at start
+
+  n = Array.GetItemCount(args)
+
+  While p <= l And Not[isDelim]
+
+    c = Text.GetSubText(buf, p, 1)
+
+    If c = " " Then
+
+      isDelim = "True"
+
+    ElseIf c = "<" Or c = ">" Then
+
+      isDelim = "True"
+
+      d = c ' save delimiter
+
+      If p = s Then
+
+        p = p + 1
+
+        SkipSpace()
+
+        GetToken()
+
+        If d = "<" Then
+
+          args["stdin"] = args[n + 1]
+
+        ElseIf d = ">" Then
+
+          args["stdout"] = args[n + 1]
+
+        EndIf
+
+        args[n + 1] = ""
+
+      EndIf
+
+    ElseIf c = WQ Then
+
+      p2 = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p + 1), WQ)
+
+      If 0 < p2 Then
+
+        args[n + 1] = Text.Append(args[n + 1], Text.GetSubText(buf, p + 1, p2 - 1))
+
+        p = p + p2 + 1
+
+      Else
+
+        TextWindow.WriteLine("Error: Missing quote")
+
+      EndIf
+
+    Else
+
+      args[n + 1] = Text.Append(args[n + 1], c)
+
+      p = p + 1
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+Sub AddLeadingZero
+
+  ' param hex - original hexadecimal string
+
+  ' return hex - hexadecimal string with leading zero
+
+  If 0 < Math.Remainder(Text.GetLength(hex), 2) Then
+
+    hex = Text.Append("0", hex)
+
+  EndIf
+
+  r = Math.Remainder(Text.GetLength(hex), 4)
+
+  hex = Text.Append(Text.GetSubText("000", 1, r), hex)
+
+EndSub
+
+Sub UTF8_Encode
+
+  ' param uni - unicode
+
+  ' return u8 - UTF 8 encoded byte array
+
+  Stack.PushValue("local", i)
+
+  _uni = uni
+
+  u8 = ""
+
+  n = 128 ' for mask
+
+  m = 0   ' mask for leading byte
+
+  While 0 < _uni
+
+    If 127 < uni Then
+
+      b = Math.Remainder(_uni, 64)
+
+      b = b + 128 ' add mask for each byte
+
+      _uni = Math.Floor(_uni / 64)
+
+      If 0 < _uni Then
+
+        n = n / 2
+
+        m = m + n
+
+      EndIf
+
+    Else
+
+      b = _uni
+
+      _uni = 0
+
+    EndIf
+
+    Stack.PushValue("u8", b)
+
+  EndWhile
+
+  i = 0
+
+  While 0 < Stack.GetCount("u8")
+
+    b = Stack.PopValue("u8")
+
+    i = i + 1
+
+    If i = 1 Then
+
+      b = b + m ' add mask for leading byte
+
+    EndIf
+
+    u8[i] = b
+
+  EndWhile
+
+  i = Stack.PopValue("local")
+
+EndSub
+
+Sub UTF8_Decode
+
+  ' param u8 - UTF 8 encoded byte array
+
+  ' return uni - unicode
+
+  Stack.PushValue("local", i)
+
+  len = Array.GetItemCount(u8)
+
+  If len = 1 Then
+
+    uni = u8[1]
+
+  Else
+
+    n = 128 ' for mask
+
+    m = 0   ' mask for leading byte
+
+    For i = 1 To len
+
+      m = m + n
+
+      n = n / 2
+
+    EndFor
+
+    uni = u8[1] - m
+
+    For i = 2 To len
+
+      uni = uni * 64 + (u8[i] - 128)
+
+    EndFor
+
+  EndIf
+
+  i = Stack.PopValue("local")
+
+EndSub
+
+Sub Math_Dec2Hex
+
+  ' Math | Convert decimal to hexadecimal
+
+  ' param dec - decimal number
+
+  ' returns hex - hexadecimal string
+
+  Stack.PushValue("local", dec)
+
+  hex = ""
+
+  While 0 < dec
+
+    digit = Math.Remainder(dec, 16)
+
+    dec = Math.Floor(dec / 16)
+
+    hex = Text.Append(Text.GetSubText("0123456789ABCDEF", digit + 1, 1), hex)
+
+  EndWhile
+
+  If hex = "" Then
+
+    hex = "0"
+
+  EndIf
+
+  dec = Stack.PopValue("local")  
+
+EndSub
+
+  
+
+

@@ -1,0 +1,351 @@
+'  Bullet reflection gun shooting game    -Wall rotation --      By  NaochanON 
+
+'  2013/01/19
+
+
+
+Controls.ButtonClicked=Gun_Shot
+
+Shapes_Init()
+
+
+
+While shot<11
+
+  boards_moving()
+
+  bullet()
+
+  Program.Delay(50)
+
+endwhile
+
+
+
+Sub bullet
+
+  If shoot="true" Then 
+
+    '--------------------------------- if bullet hit wall-1 ?----------------------------------------------------
+
+    BN=1
+
+    dBN=30
+
+    c=math.Tan(Math.GetRadians(degc))
+
+    d=XY1c["Y"]-c*XY1c["X"]                          '  Y=cX+d   ....  wall-1 
+
+    TX[BN]="X="+(d-b)/(a-c)+";Y="+(a*(d-b)/(a-c)+b)  '  wall -1  Hit point   aX+b=cX+d
+
+    If (XY1c["X"]-(81/2))<TX[BN]["X"] And TX[BN]["X"]<(XY1c["X"]+(81/2)) Then 
+
+      bullet_moving()
+
+    Else 
+
+      TX[BN]="X=0;Y="+b                              ' miss direction
+
+      bullet_moving() 
+
+      Goto exit
+
+    EndIf
+
+    '--------------------------------- if bullet hit wall-2 ?----------------------------------------------------
+
+    BN=2
+
+    dBN=15
+
+    dege=180+2*degc-dega                                ' 180+θ2+θ2-θ1
+
+    e=Math.Tan(Math.GetRadians(dege))
+
+    f=TX[BN-1]["Y"]-e*TX[BN-1]["X"]                   '  Y=eX+f
+
+    TX[BN]= "X="+(h-f)/(e-g)+";Y="+(e*(h-f)/(e-g)+f)  '  second target  wall -2
+
+    If (161+86/2-86/2)<TX[BN]["X"] And TX[BN]["X"]<(161+86/2+86/2) Then ' target direction
+
+      bullet_moving()
+
+    Else 
+
+      L=300                                           '  Y=e*(L+X1)+f
+
+      TX[BN]= "X="+(L+TX[BN-1]["X"])+";Y="+(e*(L+TX[BN-1]["X"])+f)  ' miss direction
+
+      bullet_moving()
+
+      Goto exit
+
+    EndIf   
+
+    '--------------------------------- if bullet hit wall-2 ?----------------------------------------------------
+
+    BN=3                  
+
+    dBN=40
+
+    degi=180-2*degc+dega+2*degg
+
+    i=Math.Tan(math.GetRadians(degi))
+
+    j=TX[BN-1]["Y"]-i*TX[BN-1]["X"]  
+
+    L=700                                              '  Y=i*(L+X1)+j
+
+    TX[BN]=  "X="+(L+TX[BN-1]["X"])+";Y="+(i*(L+TX[BN-1]["X"])+j)    ' ball direction (or miss direction)
+
+    bullet_moving()  
+
+    exit:
+
+    shoot="false" 
+
+    Hit="false"
+
+    moving="true"
+
+    Shapes.Move(shape[0]["obj"],600 ,340)                             ' initial position 
+
+    If shot=10 Then 
+
+      moving="false"
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub bullet_moving
+
+  start="X="+Shapes.GetLeft(shape[0]["obj"])+";Y="+Shapes.GetTop(shape[0]["obj"])    '     bullet start point
+
+  ddxY="X="+(start["X"]-TX[BN]["X"])/dBN+";Y="+(start["Y"]-TX[BN]["Y"])/dBN          '      ddX, ddY  value 
+
+  angle=Math.GetDegrees( Math.ArcTan(ddxY["Y"]/ddxY["X"]))                           '    bullet angle
+
+  Shapes.Rotate(shape[0]["obj"],angle)
+
+  For K=1 To dBN
+
+    Shapes.Move(shape[0]["obj"],Shapes.GetLeft(shape[0]["obj"])-ddxY["X"],Shapes.GetTop(shape[0]["obj"])-ddxY["Y"])      
+
+    If BN=3 Then 
+
+      hit_check() 
+
+      If hit="true" then 
+
+        Shapes.SetText(smsg,message+text.GetCharacter(10)+" Congraturation !!!  You hit "+score +" times")
+
+        ball_bounce()
+
+        Sound.PlayChimeAndWait()
+
+        k=dBN
+
+      EndIf  
+
+    EndIf
+
+    Program.Delay(20)  
+
+  endfor
+
+EndSub
+
+
+
+Sub ball_bounce 
+
+  Shapes.animate(shape[8]["obj"],Shapes.GetLeft(shape[8]["obj"])+300,Shapes.GetTop(shape[8]["obj"])+200,1500)
+
+  Program.Delay(1500)
+
+  Shapes.animate(shape[8]["obj"],Shapes.GetLeft(shape[8]["obj"])-300,Shapes.GetTop(shape[8]["obj"])-200,1500)
+
+EndSub
+
+
+
+Sub hit_check
+
+  shoot="false" 
+
+  Hit="false"
+
+  moving="true"
+
+  dX=Math.abs((shapes.GetLeft(shape[0]["obj"])+6)-(Shapes.GetLeft(shape[8]["obj"])+24))
+
+  dY=Math.abs((shapes.GetTop(shape[0]["obj"])+4)-(Shapes.GetTop(shape[8]["obj"])+24))
+
+  If dx<28 And dy<26  Then 
+
+    Hit="true"  
+
+    score=score+1
+
+  EndIf
+
+EndSub
+
+
+
+Sub boards_moving
+
+  If moving="true" Then 
+
+    NN=NN+1
+
+    Shapes.Rotate(shape[6]["obj"],NN)    
+
+    degc=degc0+NN                                   '  degree
+
+  EndIf  
+
+EndSub
+
+
+
+Sub Gun_Shot
+
+  shot=shot+1
+
+  GraphicsWindow.Title="Wall Reflection Gun Shooting Game     "+shot + "shot"
+
+  shoot="true"
+
+  moving="false"
+
+EndSub
+
+
+
+Sub Shapes_Init
+
+  GraphicsWindow.Title="Wall Reflection Gun Shooting Game "
+
+  GraphicsWindow.Width=800
+
+  GraphicsWindow.Height=500
+
+  GraphicsWindow.BackgroundColor="khaki"
+
+  '--------------------------------------------------------------------
+
+  shX = 265 ' x offset
+
+  shY = 120 ' y offset
+
+  shape[0] = "func=ell;x=335;y=220;width=12;height=8;angle=15;bc=#FF0000;pc=#FF0000;pw=2;"      'bullet
+
+  shape[1] = "func=ell;x=385;y=245;width=22;height=22;pc=#293336;pw=2;"                         ' trigger -1
+
+  shape[2] = "func=ell;x=380;y=247;width=20;height=20;bc=#F0E68C;pc=#F0E68C;pw=2;"              ' trigger -2
+
+  shape[3] = "func=rect;x=332;y=228;width=85;height=15;angle=15;bc=#293336;pc=#293336;pw=2;"    ' gun body -1
+
+  shape[4] = "func=rect;x=395;y=253;width=46;height=16;angle=60;bc=#293336;pc=#293336;pw=2;"    ' gun body -2
+
+  shape[5] = "func=tri;x=337;y=210;x1=3;y1=0;x2=0;y2=9;x3=7;y3=9;bc=#293336;pc=#293336;pw=2;"   ' gun body -3
+
+  shape[6] = "func=line;x=-150;y=80;x1=0;y1=0;x2=12;y2=81;pc=#293336;pw=5;"                     '  wall -1
+
+  shape[7] = "func=line;x=-105;y=-40;x1=0;y1=18;x2=86;y2=0;pc=#293336;pw=5;"                    '  wall -2  
+
+  shape[8] = "func=ell;x=145;y=265;width=48;height=48;bc=#E8061F;pc=#293336;pw=2;"              '  red ball 
+
+  '--------------------------------------------------------------------
+
+  s = 1       '       s=scale
+
+  For i = 0 To  Array.GetItemCount(shape)
+
+    GraphicsWindow.PenWidth = shape[i]["pw"] * s
+
+    GraphicsWindow.PenColor = shape[i]["pc"]
+
+    GraphicsWindow.BrushColor = shape[i]["bc"]
+
+    If shape[i]["func"] = "rect" Then
+
+      shape[i]["obj"] = Shapes.AddRectangle(shape[i]["width"]* s, shape[i]["height"] * s)
+
+    ElseIf shape[i]["func"] = "ell" Then
+
+      shape[i]["obj"] = Shapes.AddEllipse(shape[i]["width"] * s, shape[i]["height"]* s)
+
+    ElseIf shape[i]["func"] = "tri" Then
+
+      shape[i]["obj"] = Shapes.AddTriangle(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s, shape[i]["x3"] * s, shape[i]["y3"] * s)
+
+    ElseIf shape[i]["func"] = "line" Then
+
+      shape[i]["obj"] = Shapes.AddLine(shape[i]["x1"] * s, shape[i]["y1"]* s, shape[i]["x2"] * s, shape[i]["y2"] * s)
+
+    EndIf
+
+    Shapes.Move(shape[i]["obj"], shX + shape[i]["x"] * s, shY + shape[i]["y"] * s)
+
+    Shapes.Rotate(shape[i]["obj"], shape[i]["angle"])
+
+  EndFor
+
+  '--------------------------------- constant value ----------------------------------------------------
+
+  xY0="X="+shapes.getleft(shape[0]["obj"]) +";Y="+shapes.gettop(shape[0]["obj"])
+
+  dega=shape[0]["angle"]                           '  initial=15
+
+  a=math.Tan(math.GetRadians(dega))  
+
+  b=(xY0["Y"]-a*xY0["X"])                          '  Y=aX+b  ....  bullet 
+
+  XY1c="X="+(shapes.getleft(shape[6]["obj"])+12/2)+";Y="+(shapes.gettop(shape[6]["obj"])+81/2)  '  Center of wall-1
+
+  xY2c="X="+(Shapes.GetLeft(shape[7]["obj"])+shape[7]["width"]/2)+";Y="+(Shapes.Gettop(shape[7]["obj"])+shape[7]["height"]/2)'  Center of wall-2
+
+  degc0=math.GetDegrees(Math.ArcTan((shapes.gettop(shape[6]["obj"])-XY1c["Y"])/(shapes.getleft(shape[6]["obj"])-XY1c["X"])))
+
+  c=math.Tan(Math.GetRadians(degc0))
+
+  d=XY1c["Y"]-c*XY1c["X"]                          '  Y=cX+d   ....  wall-1 
+
+  degg=math.GetDegrees((Shapes.Gettop(shape[7]["obj"])-xY2c["Y"])/(Shapes.GetLeft(shape[7]["obj"])-xY2c["X"]))
+
+  g=math.Tan(Math.GetRadians(degg))
+
+  h=xY2c["Y"]-g*xY2c["X"]                          '  Y=gX+h
+
+  '--------------------------------------------------------------------
+
+  GraphicsWindow.FontSize=20
+
+  GraphicsWindow.BrushColor="Navy"
+
+  btn= Controls.AddButton("Shoot",700,350)
+
+  message="Can you hit red ball within 10 shots ?   Click Shoot button "
+
+  smsg= shapes.AddText(message) 
+
+  Shapes.Move(smsg,100,20)
+
+  '--------------------------------------------------------------------
+
+  Hit="false"
+
+  Moving="true"
+
+EndSub
+
+
+
+

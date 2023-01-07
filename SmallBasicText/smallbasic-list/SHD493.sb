@@ -1,0 +1,267 @@
+GraphicsWindow.KeyDown = OnKeyDown
+
+GraphicsWindow.KeyUp = OnKeyUp
+
+
+
+'Simplified dummy setup for images walking left and right
+
+playerX[1] = 50 'Initial X (Left of player)
+
+playerY[1] = GraphicsWindow.Height - 60 'Initial Y (Top of player)
+
+playerX[2] = 350 'Initial X (Left of player)
+
+playerY[2] = GraphicsWindow.Height - 60 'Initial Y (Top of player)
+
+
+
+dir = Program.Directory+"\sidestroller\"
+
+standL = ImageList.LoadImage(dir+"standL1.png")
+
+standR = ImageList.LoadImage(dir+"standR1.png")
+
+For i = 1 To 3
+
+  walkL[i] = ImageList.LoadImage(dir+"walkL"+i+".png")
+
+  walkR[i] = ImageList.LoadImage(dir+"walkR"+i+".png")
+
+EndFor
+
+
+
+For i = 1 To 2
+
+  playerStandLeft[i] = Shapes.AddImage(standL)
+
+  Shapes.HideShape(playerStandLeft[i])  
+
+  playerStandRight[i] = Shapes.AddImage(standR)
+
+  Shapes.HideShape(playerStandRight[i])
+
+  For j = 1 To 3
+
+    playerWalkLeft[i][j] = Shapes.AddImage(walkL[j])
+
+    Shapes.HideShape(playerWalkLeft[i][j])  
+
+    playerWalkRight[i][j] = Shapes.AddImage(walkR[j])
+
+    Shapes.HideShape(playerWalkRight[i][j])
+
+  EndFor
+
+EndFor
+
+
+
+'Show initial players
+
+player[1] = playerStandRight[1]
+
+player[2] = playerStandLeft[2]
+
+For i = 1 To 2
+
+  playerFrame[i] = 1 'First frame
+
+  Shapes.Move(player[i],playerX[i],playerY[i])
+
+  Shapes.ShowShape(player[i])
+
+EndFor
+
+
+
+'Main Loop
+
+While("True")
+
+  start = Clock.ElapsedMilliseconds
+
+  
+
+  movePlayers()
+
+  
+
+  delay = 25 - (Clock.ElapsedMilliseconds-start) 'Max delay of 25ms is 40 fps
+
+  If (delay > 0) Then
+
+    Program.Delay(delay)
+
+  EndIf
+
+EndWhile
+
+
+
+'Move players
+
+'player[i] is the current active shown image for each player (there is only ever one not hidden at a time)
+
+Sub movePlayers
+
+  i = 1 'Player 1
+
+  If (keyDown["Z"]) Then
+
+    moveLeft()
+
+  ElseIf (keyDown["X"]) Then
+
+    moveRight()
+
+  Else
+
+    standRight()
+
+    iFrame[i] = 0 'Reset frame count for next movement
+
+    playerFrame[i] = 1 'Reset first frame for next movement
+
+  EndIf
+
+  
+
+  i = 2 'Player 2
+
+  If (keyDown["Left"]) Then
+
+    moveLeft()
+
+  ElseIf (keyDown["Right"]) Then
+
+    moveRight()
+
+  Else
+
+    standLeft()
+
+    iFrame[i] = 0
+
+    playerFrame[i] = 1
+
+  EndIf
+
+EndSub
+
+
+
+Sub moveLeft
+
+  playerX[i] = playerX[i]-2 'Move player position left
+
+  If (Math.Remainder(iFrame[i],8) = 0) Then 'Update player every 8 frames of movement
+
+    Shapes.HideShape(player[i]) 'Hide current player image (will be last player image)
+
+    playerFrame[i] = 1+Math.Remainder(playerFrame[i],3) 'Cycle player image in group (these for walking left)
+
+    player[i] = playerWalkLeft[i][playerFrame[i]] 'The next player image in group is now the current player image
+
+    Shapes.Move(player[i],playerX[i],playerY[i]) 'Move the image before we show it
+
+    Shapes.ShowShape(player[i]) 'Show current player image
+
+  Else
+
+    Shapes.Move(player[i],playerX[i],playerY[i]) 'Just move player
+
+  EndIf
+
+  iFrame[i] = iFrame[i]+1
+
+EndSub
+
+
+
+Sub moveRight
+
+  playerX[i] = playerX[i]+2 'Move player position right
+
+  If (Math.Remainder(iFrame[i],8) = 0) Then 
+
+    Shapes.HideShape(player[i]) 
+
+    playerFrame[i] = 1+Math.Remainder(playerFrame[i],3) 
+
+    player[i] = playerWalkRight[i][playerFrame[i]] 
+
+    Shapes.Move(player[i],playerX[i],playerY[i])
+
+    Shapes.ShowShape(player[i]) 
+
+  Else
+
+    Shapes.Move(player[i],playerX[i],playerY[i]) 
+
+  EndIf
+
+  iFrame[i] = iFrame[i]+1
+
+EndSub
+
+
+
+Sub standLeft
+
+  If (player[i] <> playerStandLeft[i]) Then 'Only update if changed
+
+    Shapes.HideShape(player[i])
+
+    player[i] = playerStandLeft[i]
+
+    Shapes.Move(player[i],playerX[i],playerY[i])
+
+    Shapes.ShowShape(player[i])
+
+  EndIf
+
+EndSub
+
+
+
+Sub standRight
+
+  If (player[i] <> playerStandRight[i]) Then
+
+    Shapes.HideShape(player[i])
+
+    player[i] = playerStandRight[i]
+
+    Shapes.Move(player[i],playerX[i],playerY[i])
+
+    Shapes.ShowShape(player[i])
+
+  EndIf
+
+EndSub
+
+
+
+'Register events
+
+Sub OnKeyDown
+
+  key = GraphicsWindow.LastKey
+
+  keyDown[key] = "True"
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  key = GraphicsWindow.LastKey
+
+  keyDown[key] = ""
+
+EndSub
+
+

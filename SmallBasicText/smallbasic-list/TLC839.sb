@@ -1,0 +1,1339 @@
+Name="SmallDiamonds"
+
+State = "Init"
+
+GraphicsWindow.Title			= Name + " | " + State
+
+GraphicsWindow.Width			= 800
+
+GraphicsWindow.Height		       = 600
+
+GraphicsWindow.Left		       = Desktop.Width/3-50
+
+GraphicsWindow.Top			= Desktop.Height/4-50
+
+GraphicsWindow.BrushColor           = "Black"
+
+GraphicsWindow.FontSize	       = 16
+
+
+
+'TextWindow.Left = GraphicsWindow.Left	+  GraphicsWindow.Width + 10
+
+'TextWindow.Top	= GraphicsWindow.Top
+
+
+
+xoffset	  = 240
+
+yoffset	  = 70
+
+box      = 40
+
+nbox	  = 9
+
+npieces  = 8
+
+timelimit= 10 
+
+
+
+'------------------------------------------------------------------------------------------------------------------------------------------
+
+For row = 0 to nbox
+
+ GraphicsWindow.DrawLine(xoffset+box*row,yoffset,xoffset+box*row,yoffset+nbox*box)
+
+EndFor
+
+For line = 0 to nbox
+
+ GraphicsWindow.DrawLine(xoffset,yoffset+box*line,xoffset+nbox*box,yoffset+box*line)
+
+EndFor
+
+
+
+btnExit = Controls.AddButton(">>  Exit  >>",660,550)
+
+btnGame = Controls.AddButton(" Stop  Game ",660,500)
+
+
+
+xshape = Shapes.AddText("")
+
+Shapes.Move(xshape,xoffset+1,450)
+
+yshape = Shapes.AddText("")
+
+Shapes.Move(yshape,xoffset+100,450)
+
+xcshape = Shapes.AddText("")
+
+Shapes.Move(xcshape,xoffset+1,480)
+
+ycshape = Shapes.AddText("")
+
+Shapes.Move(ycshape,xoffset+100,480)
+
+xarrshape = Shapes.AddText("")
+
+Shapes.Move(xarrshape,xoffset+200,480)
+
+yarrshape = Shapes.AddText("")
+
+Shapes.Move(yarrshape,xoffset+300,480)
+
+GraphicsWindow.BrushColor           = "White"
+
+bg_score = shapes.AddRectangle(140,40)
+
+shapes.Move(bg_score,640,80)
+
+GraphicsWindow.BrushColor           = "Black"
+
+scoreshape = Shapes.AddText("")
+
+Shapes.Move(scoreshape,660,90)
+
+Shapes.Zoom(scoreshape,2,2)
+
+shapes.SetOpacity(scoreshape,100)
+
+ScoreFile= Program.Directory+"\scorefile.txt"
+
+' The following line could be harmful and has been automatically commented.
+
+' ScoreArray= File.ReadContents(ScoreFile)
+
+If ScoreArray = "" then
+
+  For i = 1 To 8
+
+    player[i] = "P"+i
+
+    score[i] = 0
+
+    ScoreArray[i][1]=player[i] 
+
+    ScoreArray[i][2]=score[i] 
+
+  endfor
+
+' The following line could be harmful and has been automatically commented.
+
+' File.WriteContents(ScoreFile,ScoreArray)
+
+endif
+
+For i = 1 To 8
+
+  shapename[i] = Shapes.AddText("")
+
+  Shapes.Move(shapename[i],10,yoffset+18+(i-1)*40)
+
+  Shapes.SetText(shapename[i],ScoreArray[i][1])
+
+  shapescore[i] = Shapes.AddText("")
+
+  Shapes.Move(shapescore[i],180,yoffset+18+(i-1)*40)
+
+  Shapes.SetText(shapescore[i],ScoreArray[i][2])
+
+endfor
+
+
+
+Timer.Interval =1000
+
+'------------------------------------------------------------------------------------------------------------------------------------------
+
+Timer.Tick = OnTimer
+
+GraphicsWindow.MouseMove = OnMouseMove
+
+GraphicsWindow.MouseUp   = OnMouseUp
+
+Controls.ButtonClicked   = OnButtonClicked
+
+Controls.TextTyped       = OnNameInput
+
+'------------------------------------------------------------------------------------------------------------------------------------------
+
+stopgame = 0
+
+savegame = 0
+
+nextgame = 0
+
+
+
+State     = "Start"
+
+PreState  = "Init"
+
+Run       = "TRUE"
+
+'================================================================================
+
+While Run = "TRUE"
+
+ If State	= "Start"		Then
+
+					    	 Start()
+
+ elseif State = "Check3"		Then
+
+						 CheckTriple()
+
+ elseif State = "GenerateStones"	Then
+
+						 GenJewels()
+
+ elseif State = "MoveCheck"		Then
+
+						 MoveCheck()
+
+ elseif State = "PreCheckMove"	Then
+
+						 PlayerMoveCheck()
+
+ elseif State = "FirstDiamond"	Then
+
+						 FirstMove()
+
+ elseif State = "SecondDiamond"	Then
+
+						 SecondMove()
+
+ elseif State = "Highscore"		Then
+
+						 Highscore()
+
+ elseif State = "WaitForInput"	Then
+
+						 WaitForInput()
+
+ elseif State = "WaitForStart"	Then
+
+						 WaitForStart()
+
+ elseif State = "State_Finish"	Then
+
+	 '# Close All
+
+	 GraphicsWindow.Title = Name + " | " + State
+
+	 Program.Delay(100)
+
+	 Program.End()
+
+ else
+
+	GraphicsWindow.Title = Name + " | " + State + " |	 ???"
+
+	Program.Delay(2000)
+
+ endif
+
+ Program.Delay(10)
+
+endwhile	
+
+Program.End()
+
+'================================================================================
+
+Sub Start
+
+  score = 0
+
+  
+
+' The following line could be harmful and has been automatically commented.
+
+'   tmpFile = File.GetTemporaryFilePath()
+
+  imageURL = Flickr.GetRandomPicture("Diamonds")
+
+  'tmpFile = Network.DownloadFile(imageURL)
+
+  LDNetwork.DownloadFile(tmpFile,imageURL)
+
+  'TextWindow.WriteLine("tmpfile:"+tmpFile)
+
+  bg = ImageList.LoadImage(tmpFile)
+
+' The following line could be harmful and has been automatically commented.
+
+'   File.DeleteFile(tmpFile)
+
+  'bg = ImageList.LoadImage(Flickr.GetRandomPicture("Diamond"))
+
+  GraphicsWindow.DrawResizedImage(bg,0,0,GraphicsWindow.Width,GraphicsWindow.Height)
+
+
+
+  Controls.SetButtonCaption(btnGame," Stop  Game ")
+
+  Shapes.SetText(scoreshape,score)
+
+  GraphicsWindow.Title = Name + " | " + State 
+
+  starttime = Clock.ElapsedMilliseconds
+
+  Program.Delay(10)
+
+  For xarray = 1 to nbox
+
+    For yarray = 1 to nbox
+
+	Shapes.Remove(shapes[xarray][yarray])
+
+	CreatePiece()
+
+	checkbox[xarray][yarray] = 0
+
+    EndFor
+
+  EndFor
+
+  State = "Check3"
+
+  gap = 0
+
+EndSub
+
+'-------------------------------------------------------------------------------------------------------------------
+
+Sub CheckTriple
+
+  GraphicsWindow.Title = Name + " | " + State 
+
+  GraphicsWindow.PenColor = "Red" 
+
+  For y = 1 to nbox
+
+   PieceCount = 0
+
+   LastPiece = 0
+
+   For x = 1 to nbox
+
+      checkbox[x][y] = 0 
+
+      ActPiece = mxy [x][y]
+
+      If ActPiece = LastPiece Then
+
+	 PieceCount = PieceCount + 1
+
+	 If PieceCount >= 2 Then
+
+	  PieceCount = 2
+
+	  checkbox [x-2][y] = 1
+
+         shapes.Zoom(shapes[x-2][y],0.5,0.5)
+
+	  If x = nbox then
+
+		 checkbox [x-1][y] = 1
+
+		 shapes.Zoom(shapes[x-1][y],0.5,0.5)
+
+		 checkbox [x][y] = 1
+
+		 shapes.Zoom(shapes[x][y],0.5,0.5)
+
+	  endif				
+
+        endif
+
+      Else
+
+	 If PieceCount = 1 Then
+
+	  PieceCount = 0
+
+	 elseif PieceCount >= 2 Then
+
+	  PieceCount = 0
+
+	  checkbox [x-2][y] = 1
+
+	  shapes.Zoom(shapes[x-2][y],0.5,0.5)
+
+	  checkbox [x-1][y] = 1
+
+         shapes.Zoom(shapes[x-1][y],0.5,0.5)
+
+	 Endif 
+
+       EndIf 
+
+	LastPiece = ActPiece
+
+   EndFor
+
+  EndFor
+
+'...........................................................................................................................................................
+
+  For x = 1 to nbox
+
+  PieceCount = 0
+
+  LastPiece = 0
+
+   For y = 1 to nbox
+
+    ActPiece = mxy [x][y]
+
+    If ActPiece = LastPiece Then
+
+     PieceCount = PieceCount + 1
+
+     If PieceCount >= 2 Then
+
+	 PieceCount = 2
+
+	 checkbox [x][y-2] = 1
+
+	 shapes.Zoom(shapes[x][y-2],0.5,0.5)
+
+	 If y = nbox then
+
+		 checkbox [x][y-1] = 1
+
+		 shapes.Zoom(shapes[x][y-1],0.5,0.5)
+
+		 checkbox [x][y] = 1
+
+		 shapes.Zoom(shapes[x][y],0.5,0.5)
+
+        endif				
+
+     endif
+
+    Else
+
+     If PieceCount = 1 Then
+
+	 PieceCount = 0
+
+     elseif PieceCount >= 2 Then
+
+	 PieceCount = 0
+
+	 checkbox [x][y-2] = 1
+
+	 shapes.Zoom(shapes[x][y-2],0.5,0.5)
+
+	 checkbox [x][y-1] = 1
+
+	 shapes.Zoom(shapes[x][y-1],0.5,0.5)
+
+     endif
+
+    EndIf 
+
+    LastPiece = ActPiece
+
+    GraphicsWindow.Title = Name + " | " + State +" | " + x + " | " + y +" | " + checkbox [x][y]	
+
+   EndFor
+
+ EndFor
+
+ GraphicsWindow.PenColor = "Black" 
+
+ gap = 0
+
+ For y = 1 to nbox
+
+	For x = 1 to nbox
+
+ 	  If checkbox[x][y] = 1 Then
+
+		gap = gap + 1
+
+		score = score + 10
+
+		Shapes.SetText(scoreshape,score)
+
+		shapes.Remove(shapes[x][y])
+
+		Program.Delay(50)
+
+         endif
+
+      EndFor
+
+  EndFor	
+
+  bonus = timelimit - runtime
+
+  If bonus > 0 And gap > 0  Then
+
+   For boni = 1 To gap
+
+    score = score + bonus
+
+    Shapes.SetText(scoreshape,score)
+
+    Program.Delay(50)
+
+   endfor 
+
+  endif
+
+  'show_checkbox()
+
+  Program.Delay(10)
+
+  If State = "State_Finish" Then
+
+  ElseIf gap > 0 then
+
+	State = "GenerateStones"
+
+  ElseIf PreState = "MoveValid" then
+
+	State = "UndoMove"
+
+  else
+
+	State = "MoveCheck"
+
+	starttime = Clock.ElapsedMilliseconds
+
+  EndIf
+
+EndSub
+
+'..................................................................................................................................................................
+
+Sub GenJewels
+
+  GraphicsWindow.Title = Name + " | " + State 
+
+  For x = 1 to nbox
+
+   For y = 1 to nbox
+
+	 If checkbox[x][y] = 1 Then
+
+  	   For shift = y to 1 Step -1
+
+		 If shift = 1 then
+
+			 checkbox[x][1] = 99
+
+			 mxy [x][1] = 0
+
+			 shapes[x][1] =""
+
+		 Else
+
+			 mxy [x][shift] = mxy [x][shift-1]
+
+			 shapes[x][shift] = shapes[x][shift-1]
+
+			 checkbox[x][shift] = checkbox[x][shift-1]
+
+			 If shapes[x][shift] <> "" then
+
+				 shapes.Animate(shapes[x][shift],xoffset+(x-1)*box+5,yoffset+(shift-1)*box+5,500)
+
+			 endif
+
+		 endif
+
+  	    EndFor
+
+	 EndIf
+
+   EndFor
+
+  Endfor
+
+  For x = 1 to nbox
+
+    For y = nbox to 1 Step -1
+
+	If checkbox[x][y] = 99 Then
+
+	 xarray=x
+
+	 yarray=y
+
+	 CreatePiece()
+
+	 checkbox[x][y] = 0
+
+	EndIf
+
+     EndFor
+
+  Endfor
+
+  PreState = "GenerateStones"
+
+  State		= "Check3" 
+
+EndSub
+
+'.........................................................................................................................................................................................
+
+Sub MoveCheck
+
+  GraphicsWindow.Title = Name + " | " + State + " | " + runtime
+
+  Moveworks = 0
+
+  Movefromx = 0
+
+  Movefromy = 0
+
+  Movetox = 0
+
+  Movetoy = 0
+
+  For x = 1 to nbox
+
+	For y = 1 to nbox-1
+
+		If Moveworks < 3 Then
+
+                Movefromx = x
+
+		  Movefromy =y 
+
+		  Movetox = x
+
+		  Movetoy = y + 1
+
+		  CheckMove()
+
+		endif
+
+	EndFor
+
+  EndFor
+
+  If Moveworks < 3 Then
+
+	For y = 1 to nbox
+
+		For x = 1 to nbox-1
+
+		 If Moveworks < 3 Then
+
+		   Movefromx = x
+
+		   Movefromy =y 
+
+		   Movetox = x + 1
+
+		   Movetoy = y
+
+		   CheckMove()
+
+		 endif
+
+		EndFor
+
+	EndFor
+
+  EndIf
+
+  If Moveworks < 3 Then
+
+	State = "Highscore"
+
+  Else
+
+	State = "FirstDiamond"
+
+  EndIf
+
+EndSub
+
+'.........................................................................................................................................................................................
+
+'
+
+Sub CheckMove
+
+  temppiece = mxy [Movetox][Movetoy]
+
+  mxy [Movetox][Movetoy] = mxy [Movefromx][Movefromy]
+
+  mxy [Movefromx][Movefromy] = temppiece
+
+  If Movefromx > 1 And Movefromx < nbox Then
+
+	If	 mxy[Movefromx][Movefromy] = mxy[Movefromx+1][Movefromy] And mxy[Movefromx][Movefromy] = mxy[Movefromx-1][Movefromy] Then
+
+		Moveworks = 3
+
+	endif
+
+  endif
+
+  If Movefromx > 2 And Moveworks < 3 Then
+
+    Moveworks = 1
+
+    For irun = Movefromx-1 To Movefromx -2 Step -1
+
+	If	 mxy[irun][Movefromy] = mxy[Movefromx][Movefromy] Then
+
+		Moveworks = Moveworks + 1
+
+	endif
+
+    endfor
+
+  endif
+
+  If Movefromx < nbox -1 And Moveworks < 3 Then
+
+    Moveworks = 1
+
+    For irun = Movefromx+1 To Movefromx + 2 Step 1
+
+	If	 mxy[irun][Movefromy] = mxy[Movefromx][Movefromy] Then
+
+		Moveworks = Moveworks + 1
+
+	endif
+
+    endfor
+
+  endif
+
+  If Movefromy > 1 And Movefromy < nbox And Moveworks < 3 Then
+
+    If	 mxy[Movefromx][Movefromy] = mxy[Movefromx][Movefromy+1] And mxy[Movefromx][Movefromy] = mxy[Movefromx][Movefromy-1] Then
+
+	Moveworks = 3
+
+    endif
+
+  endif
+
+  If Movefromy > 2	And Moveworks < 3 Then
+
+	Moveworks = 1
+
+	For irun = Movefromy-1 To Movefromy - 2 Step -1
+
+          If	 mxy[Movefromx][irun] = mxy[Movefromx][Movefromy] Then
+
+		Moveworks = Moveworks + 1
+
+	   endif
+
+	endfor
+
+  endif
+
+  If Movefromy < nbox -1	And Moveworks < 3 Then
+
+	Moveworks = 1
+
+	For irun = Movefromy+1 To Movefromy + 2 Step 1
+
+          If	 mxy[Movefromx][irun] = mxy[Movefromx][Movefromy] Then
+
+		Moveworks = Moveworks + 1
+
+	   endif
+
+	endfor
+
+  endif
+
+	If Movetox > 1 And Movetox < nbox And Moveworks < 3Then
+
+			If	 mxy[Movetox][Movetoy] = mxy[Movetox+1][Movetoy] And mxy[Movetox][Movetoy] = mxy[Movetox-1][Movetoy] Then
+
+				Moveworks = 3
+
+			endif
+
+	endif
+
+	If Movetox > 2	And Moveworks < 3 Then
+
+		Moveworks = 1
+
+		For irun = Movetox-1 To Movetox -2 Step -1
+
+			If	 mxy[irun][Movetoy] = mxy[Movetox][Movetoy] Then
+
+				Moveworks = Moveworks + 1
+
+			endif
+
+		endfor
+
+	endif
+
+	If Movetox < nbox -1 And Moveworks < 3 Then
+
+		Moveworks = 1
+
+		For irun = Movetox+1 To Movetox + 2 Step 1
+
+			If	 mxy[irun][Movetoy] = mxy[Movetox][Movetoy] Then
+
+				Moveworks = Moveworks + 1
+
+			endif
+
+		endfor
+
+	endif
+
+	If Movetoy > 1 And Movetoy < nbox And Moveworks < 3 Then
+
+			If	 mxy[Movetox][Movetoy] = mxy[Movetox][Movetoy+1] And mxy[Movetox][Movetoy] = mxy[Movetox][Movetoy-1] Then
+
+				Moveworks = 3
+
+			endif
+
+	endif
+
+	If Movetoy > 2	And Moveworks < 3 Then
+
+		Moveworks = 1
+
+		For irun = Movetoy-1 To Movetoy - 2 Step -1
+
+			If	 mxy[Movetox][irun] = mxy[Movetox][Movetoy] Then
+
+				Moveworks = Moveworks + 1
+
+			endif
+
+		endfor
+
+	endif
+
+	If Movetoy < nbox -1	And Moveworks < 3 Then
+
+		Moveworks = 1
+
+		For irun = Movetoy+1 To Movetoy + 2 Step 1
+
+			If	 mxy[Movetox][irun] = mxy[Movetox][Movetoy] Then
+
+				Moveworks = Moveworks + 1
+
+			endif
+
+		endfor
+
+	endif
+
+	temppiece = mxy [Movetox][Movetoy]
+
+	mxy [Movetox][Movetoy] = mxy [Movefromx][Movefromy] 
+
+	mxy [Movefromx][Movefromy] = temppiece
+
+EndSub
+
+'.........................................................................................................................................................................................
+
+'
+
+Sub FirstMove
+
+  GraphicsWindow.Title = Name + " | " + State + " | " + runtime
+
+  If piecevalid = 1 Then
+
+    piecevalid = 0
+
+    shapes.SetOpacity(shapes[xarray][yarray],50)
+
+    State = "SecondDiamond"
+
+    Firstx = xarray
+
+    Firsty = yarray
+
+  EndIf
+
+EndSub
+
+'.........................................................................................................................................................................................
+
+'
+
+Sub SecondMove
+
+  GraphicsWindow.Title = Name + " | " + State + " | " + runtime
+
+  If piecevalid = 1 Then
+
+    SecondMoveValid =0	 
+
+    If xarray = Firstx - 1 And yarray = Firsty Then
+
+    	SecondMoveValid = 1
+
+    endif	
+
+    If xarray = Firstx + 1 And yarray = Firsty Then
+
+	SecondMoveValid = 1
+
+    endif	
+
+    If xarray = Firstx And yarray = Firsty -1	Then
+
+	SecondMoveValid = 1
+
+    endif	
+
+    If xarray = Firstx And yarray = Firsty + 1 Then
+
+	SecondMoveValid = 1
+
+    endif	
+
+    If SecondMoveValid = 1 Then
+
+	shapes.SetOpacity(shapes[xarray][yarray],50)
+
+	State = "PreCheckMove"
+
+	shapes.Animate(shapes[xarray][yarray],xoffset+(Firstx-1)*box+5,yoffset+(Firsty-1)*box+5,400)
+
+	shapes.Animate(shapes[Firstx][Firsty],xoffset+(xarray-1)*box+5,yoffset+(yarray-1)*box+5,400)
+
+	Secondx = xarray
+
+	Secondy = yarray
+
+	Program.Delay(400)
+
+    Endif
+
+  EndIf
+
+  piecevalid = 0
+
+EndSub
+
+'..................................................................................................................................................................................................
+
+'
+
+Sub PlayerMoveCheck
+
+  GraphicsWindow.Title = Name + " | " + State + " | " + runtime
+
+  Moveworks = 0
+
+  Movefromx = Firstx
+
+  Movefromy = Firsty
+
+  Movetox = Secondx
+
+  Movetoy = Secondy
+
+  CheckMove()
+
+		
+
+  If Moveworks < 3 Then
+
+    shapes.Animate(shapes[Secondx][Secondy],xoffset+(Secondx-1)*box+5,yoffset+(Secondy-1)*box+5,400)
+
+    shapes.Animate(shapes[Firstx][Firsty],xoffset+(Firstx-1)*box+5,yoffset+(Firsty-1)*box+5,400)
+
+    shapes.SetOpacity(shapes[Firstx][Firsty],100)
+
+    shapes.SetOpacity(shapes[Secondx][Secondy],100)
+
+    State = "FirstDiamond"
+
+  Else
+
+    tempshape = shapes[Firstx][Firsty]
+
+    shapes[Firstx][Firsty] = shapes[Secondx][Secondy]
+
+    shapes[Secondx][Secondy] = tempshape
+
+    shapes.SetOpacity(shapes[Firstx][Firsty],100)
+
+    shapes.SetOpacity(shapes[Secondx][Secondy],100)
+
+    tempvalue = mxy[Firstx][Firsty]
+
+    mxy[Firstx][Firsty] = mxy[Secondx][Secondy]
+
+    mxy[Secondx][Secondy] = tempvalue
+
+    State = "Check3"
+
+    PreState = "PreCheckMove"
+
+  EndIf
+
+EndSub
+
+'.........................................................................................................................................................................................
+
+'
+
+Sub WaitForInput
+
+  GraphicsWindow.Title = Name + " | " + State + " | " + runtime
+
+  If savegame = 1 then
+
+      savegame = 0
+
+' The following line could be harmful and has been automatically commented.
+
+'       File.WriteContents(ScoreFile,ScoreArray)
+
+      Controls.Remove(input_name)
+
+      Shapes.SetText(shapename[ActPos],ScoreArray[ActPos][1])
+
+      State = "WaitForStart"
+
+      Controls.SetButtonCaption(btnGame," New  Game ")
+
+  endif
+
+  Program.Delay(50)
+
+EndSub
+
+'.........................................................................................................................................................................................
+
+'
+
+Sub WaitForStart
+
+  GraphicsWindow.Title = Name + " | " + State + " | " + runtime
+
+  if nextgame = 1 Then
+
+    nextgame = 0 
+
+    State = "Start"
+
+    Controls.SetButtonCaption(btnGame," Stop  Game ")
+
+  endif
+
+  Program.Delay(50)
+
+EndSub
+
+'..................................................................................................................................................................................................
+
+'
+
+Sub Highscore
+
+  GraphicsWindow.Title = Name + " | " + State	
+
+  nextgame = 0
+
+  stopgame = 0
+
+  if score > ScoreArray[8][2] then
+
+    ActPos = 8
+
+    ScoreArray[8][2] = score
+
+    Shapes.SetText(shapescore[8],ScoreArray[8][2])
+
+    For i = 7 To 1 Step -1
+
+      if score > ScoreArray[i][2] then
+
+        ActPos = i
+
+        ScoreArray[i+1][2] = ScoreArray[i][2]
+
+        Shapes.SetText(shapescore[i+1],ScoreArray[i+1][2])
+
+        ScoreArray[i][2]   = score
+
+        Shapes.SetText(shapescore[i],ScoreArray[i][2])
+
+        ScoreArray[i+1][1] = ScoreArray[i][1]
+
+        Shapes.SetText(shapename[i+1],ScoreArray[i][1])
+
+        Shapes.SetText(shapename[i],"_______________________")
+
+        Program.Delay(200)
+
+      endif
+
+    endfor
+
+    input_name = Controls.AddTextBox(10,yoffset+(ActPos-1)*40+5)
+
+    Controls.SetTextBoxText(input_name,"")
+
+    Controls.SetButtonCaption(btnGame," Save Game ")
+
+    State = "WaitForInput"
+
+  Else
+
+    Controls.SetButtonCaption(btnGame," New  Game ")
+
+    State = "WaitForStart"
+
+  EndIf
+
+EndSub
+
+'..................................................................................................................................................................................................
+
+'
+
+Sub CreatePiece
+
+  piece = Math.GetRandomNumber(npieces)
+
+  mxy [xarray][yarray] = piece 
+
+  If		 piece = 1 Then
+
+  	GraphicsWindow.BrushColor = "Yellow"
+
+	shapes[xarray][yarray] = shapes.AddEllipse(30,30)
+
+  ElseIf piece = 2 Then
+
+	GraphicsWindow.BrushColor = "Lightblue"
+
+	shapes[xarray][yarray] = shapes.AddRectangle(30,30)
+
+  ElseIf piece = 3 Then
+
+	GraphicsWindow.BrushColor = "Magenta"
+
+	shapes[xarray][yarray] = shapes.AddTriangle(30,30,0,30,15,0)
+
+  ElseIf piece = 4 Then
+
+	GraphicsWindow.BrushColor = "DeepPink"
+
+	shapes[xarray][yarray] = shapes.AddEllipse(30,30)
+
+  ElseIf piece = 5 Then
+
+	GraphicsWindow.BrushColor = "LightGreen"
+
+	shapes[xarray][yarray] = shapes.AddRectangle(30,30)
+
+  ElseIf piece = 6 Then
+
+	GraphicsWindow.BrushColor = "Orange"
+
+	shapes[xarray][yarray] = shapes.AddTriangle(30,30,0,30,15,0)
+
+  ElseIf piece = 7 Then
+
+	GraphicsWindow.BrushColor = "Pink"
+
+	shapes[xarray][yarray] = shapes.AddRectangle(30,30)
+
+  ElseIf piece = 8 Then
+
+	GraphicsWindow.BrushColor = "LightGray"
+
+	shapes[xarray][yarray] = shapes.AddTriangle(0,0,30,0,15,30)
+
+  endif	
+
+  shapes.Move(shapes[xarray][yarray],xoffset+(xarray-1)*box+5,0)
+
+  shapes.Animate(shapes[xarray][yarray],xoffset+(xarray-1)*box+5,yoffset+(yarray-1)*box+5,400)
+
+  GraphicsWindow.BrushColor = "Black"
+
+EndSub
+
+'		
+
+'..................................................................................................................................................................................................
+
+'
+
+Sub show_checkbox
+
+  TextWindow.WriteLine("---Checkbox n x n")
+
+  For y = 1 to nbox
+
+   For x = 1 to nbox
+
+     TextWindow.Write (checkbox[x][y])
+
+   EndFor
+
+   For x = 1 to nbox
+
+     TextWindow.Write (" " + mxy[x][y])
+
+   EndFor
+
+   TextWindow.WriteLine("")
+
+  Endfor
+
+EndSub
+
+'
+
+'================================================================================
+
+'
+
+Sub OnTimer
+
+  runtime = Math.Round((Clock.ElapsedMilliseconds - starttime)/1000)
+
+EndSub
+
+'
+
+'================================================================================
+
+'
+
+Sub OnMouseMove
+
+  xpos = GraphicsWindow.MouseX
+
+  ypos = GraphicsWindow.MouseY
+
+  Shapes.SetText(xshape,xpos)
+
+  Shapes.SetText(yshape,ypos)
+
+EndSub
+
+'..............................................................................................................................................................................................
+
+Sub OnMouseUp
+
+  xclick = GraphicsWindow.MouseX
+
+  yclick = GraphicsWindow.MouseY
+
+  Shapes.SetText(xcshape,xclick)
+
+  Shapes.SetText(ycshape,yclick)
+
+  If xclick < xoffset Or xclick > xoffset+nbox*box Then
+
+    xarray = 0
+
+  Else 
+
+    xarray = Math.Floor((xclick-xoffset) / box) +1
+
+  endif	
+
+  If yclick < yoffset Or yclick > yoffset+nbox*box Then
+
+    yarray = 0
+
+  Else 
+
+    yarray = Math.Floor((yclick-yoffset) / box) + 1
+
+  endif	
+
+  Shapes.SetText(xarrshape,xarray)
+
+  Shapes.SetText(yarrshape,yarray)
+
+  piecevalid = 0
+
+  If xarray > 0 And yarray > 0 Then
+
+    piecevalid = 1
+
+  EndIf
+
+EndSub
+
+'..............................................................................................................................................................................................
+
+'
+
+Sub OnButtonClicked
+
+  Button = Controls.LastClickedButton
+
+  If Button = btnExit Then
+
+    State = "State_Finish"
+
+  EndIf
+
+  If Button = btnGame Then
+
+    If State = "WaitForInput" Then
+
+      savegame = 1
+
+    Elseif  State = "FirstDiamond" OR  State = "SecondDiamond" Then
+
+      State = "Highscore"	      
+
+      stopgame = 1
+
+    Elseif  State = "WaitForStart" Then
+
+      State = "Start"	      
+
+      nextgame = 1
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+'.........................................................................................................................................................................................
+
+'
+
+Sub OnNameInput
+
+  if input_name <> "" then
+
+    ScoreArray[ActPos][1] = Controls.GetTextBoxText(input_name)
+
+  endif
+
+  Program.Delay(20)
+
+EndSub
+
+

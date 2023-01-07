@@ -1,0 +1,999 @@
+' Kappa Cygnid
+
+' Version 0.1
+
+' ?ÅØ?Åè?Å°?Çá?ÅÜÂ∫ßŒ∫ÊµÅ?òüÁæ?
+
+' Copyright ¬© 2016 Nonki Takahshi.  The MIT License.
+
+' Program ID 
+
+'
+
+' Reference:
+
+'  http://en.wikipedia.org/wiki/List_of_stars_in_Cygnus
+
+
+
+title = "Kappa Cygnid"
+
+r = 430     ' [px]
+
+delay = 100 ' [ms]
+
+Init()
+
+Cal_Init()
+
+InitStars()
+
+ra = radiant["ra"]
+
+dec = radiant["dec"]
+
+Mapping()
+
+rot = ra
+
+tilt = dec
+
+GraphicsWindow.Title = title + " RA=" + rot + "h Dec=" + tilt + "¬∞"
+
+DrawRA()
+
+DrawDec()
+
+DrawStars()
+
+DrawCalendar()
+
+DrawMeteorShower()
+
+While "True"
+
+  If keyDown Then
+
+    If key = "Right" Then
+
+      rot = rot + 0.25
+
+      If 24 <= rot Then
+
+        rot = rot - 24
+
+      EndIf
+
+    ElseIf key = "Left" Then
+
+      rot = rot - 0.25
+
+      If rot < 0 Then
+
+        rot = rot + 24
+
+      EndIf
+
+    ElseIf key = "Up" Then
+
+      If tilt <= 85 Then
+
+        tilt = tilt + 5
+
+      EndIf
+
+    ElseIf key = "Down" Then
+
+      If -85 <= tilt Then
+
+        tilt = tilt - 5
+
+      EndIf
+
+    ElseIf key = "Add" Then
+
+      r = r * 1.2
+
+    ElseIf key = "Subtract" Then
+
+      r = r / 1.2
+
+    EndIf
+
+    GraphicsWindow.Title = title + " RA=" + rot + "h Dec=" + tilt + "¬∞"
+
+    GraphicsWindow.BrushColor = "Black"
+
+    GraphicsWindow.FillRectangle(0, 0, gw, gh)
+
+    DrawRA()
+
+    DrawDec()
+
+    DrawStars()
+
+    keyDown = "False"
+
+  EndIf
+
+  Program.Delay(delay)
+
+EndWhile
+
+
+
+Sub Init
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  ox = gw / 2
+
+  oy = gh * 0.4
+
+  rot = 0     ' rotation
+
+  tilt = 0
+
+  monthX = 40
+
+  monthY = 20
+
+  calendarX = gw - 270
+
+  calendarY = gh - 150
+
+  year = 2016
+
+  month = 8
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  keyDown = "True"
+
+  key = GraphicsWindow.LastKey
+
+EndSub
+
+
+
+Sub DrawRA
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "#666666"
+
+  For ra = 0 To 23
+
+    For dec = -90 To 90 Step 5
+
+      Mapping()
+
+      If -90 < dec Then
+
+        DrawLine()
+
+      EndIf
+
+      xLast = x
+
+      yLast = y
+
+      zLast = z
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub DrawDec
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "#666666"
+
+  For dec = -80 To 80 Step 10
+
+    For ra = 0 To 24 Step 0.2
+
+      Mapping()
+
+      If 0 < ra Then
+
+        DrawLine()
+
+      EndIf
+
+      xLast = x
+
+      yLast = y
+
+      zLast = z
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub DrawLine
+
+  visible = "False"
+
+  If 0 <= z And 0 <= zLast Then
+
+    If 0 <= x And x < gw And 0 <= y And y < gh Then
+
+      visible = "True"
+
+    ElseIf 0 <= xLast And xLast < gw And 0 <= yLast And yLast < gh Then
+
+      visible = "True"
+
+    EndIf
+
+  EndIf
+
+  If visible Then
+
+    GraphicsWindow.DrawLine(xLast, yLast, x, y)
+
+  EndIf
+
+EndSub
+
+
+
+Sub DrawStars
+
+  GraphicsWindow.PenWidth = 0
+
+  GraphicsWindow.BrushColor = "White"
+
+  n = Array.GetItemCount(star)
+
+  index = Array.GetAllIndices(star)
+
+  For i = 1 To n
+
+    ra = star[index[i]]["ra"]
+
+    dec = star[index[i]]["dec"]
+
+    Mapping()
+
+    If ell[index[i]] <> "" Then
+
+      Shapes.Remove(ell[index[i]])
+
+      ell[index[i]] = ""
+
+    EndIf
+
+    If 0 <= z Then
+
+      mag = star[index[i]]["mag"]
+
+      d = 16 / mag
+
+      ell[index[i]] = Shapes.AddEllipse(d, d)
+
+      Shapes.Move(ell[index[i]], x - d / 2, y - d / 2)
+
+    EndIf
+
+  EndFor
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "LightGray"
+
+  n = Array.GetItemCount(edge)
+
+  index = Array.GetAllIndices(edge)
+
+  For i = 1 To n
+
+    e = edge[index[i]]
+
+    m = Text.GetIndexOf(e, "-")
+
+    ra = star[Text.GetSubText(e, 1, m - 1)]["RA"]
+
+    dec = star[Text.GetSubText(e, 1, m - 1)]["Dec"]
+
+    Mapping()
+
+    x1 = x
+
+    y1 = y
+
+    z1 = z
+
+    ra = star[Text.GetSubTextToEnd(e, m + 1)]["RA"]
+
+    dec = star[Text.GetSubTextToEnd(e, m + 1)]["Dec"]
+
+    Mapping()
+
+    x2 = x
+
+    y2 = y
+
+    z2 = z
+
+    If connect[index[i]] <> "" Then
+
+      Shapes.Remove(connect[index[i]])
+
+      connect[index[i]] = ""
+
+    EndIf
+
+    visible = "False"
+
+    If 0 <= z1 And 0 <= z2 Then
+
+      If 0 <= x1 And x1 <= gw And 0 <= y1 And y1 <= gh Then
+
+        visible = "True"
+
+      ElseIf 0 <= x2 And x2 <= gw And 0 <= y2 And y2 <= gh Then
+
+        visible = "True"
+
+      EndIf
+
+      If visible Then
+
+        connect[index[i]] = Shapes.AddLine(x1, y1, x2, y2)
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub DrawMeteorShower
+
+  ra = radiant["RA"]
+
+  dec = radiant["Dec"]
+
+  Mapping()
+
+  rx = x
+
+  ry = y
+
+  GraphicsWindow.PenColor = "White"
+
+  While "True"
+
+    Program.Delay(2000)
+
+    angle = Math.GetRandomNumber(360)
+
+    _a = Math.GetRadians(angle)
+
+    r1 = Math.GetRandomNumber(100) + 50
+
+    r2 = r1 * 2.5
+
+    x1 = rx + r1 * Math.Sin(_a)
+
+    y1 = ry - r1 * Math.Cos(_a)
+
+    x2 = rx + r2 * Math.Sin(_a)
+
+    y2 = ry - r2 * Math.Cos(_a)
+
+    meteor = Shapes.AddLine(x1, y1, x2, y2)
+
+    For op = 100 To 0 Step -5
+
+      Shapes.SetOpacity(meteor, op)
+
+      Program.Delay(50)
+
+    EndFor
+
+    Shapes.Remove(meteor)
+
+  EndWhile
+
+EndSub
+
+
+
+Sub DrawCalendar
+
+  GraphicsWindow.BrushColor = "White"
+
+  If silverlight Then
+
+    Program.Delay(msWait)
+
+  EndIf
+
+  GraphicsWindow.FontSize = 30
+
+  txt = Shapes.AddText(months[month])
+
+  Shapes.Move(txt, monthX, monthY)
+
+  If silverlight Then
+
+    Program.Delay(msWait)
+
+  EndIf
+
+  GraphicsWindow.FontSize = 40
+
+  txt = Shapes.AddText(year)
+
+  Shapes.Move(txt, monthX, monthY + 30)
+
+  sBuf = year + "," + month
+
+  Command_GetArgs()
+
+  iYear = sArg[1]
+
+  if iYear = "" Then
+
+    Goto lEnd
+
+  Endif
+
+  If Math.Remainder(iYear, 4) = 0 And Math.Remainder(iYear, 100) > 0 Or Math.Remainder(iYear, 400) = 0 Then
+
+    iDoM[2] = iDoM[2] + 1
+
+  Endif
+
+  iNoL = Math.Floor((iYear - 1) / 4) - Math.Floor((iYear - 1) / 100) + Math.Floor((iYear - 1) / 400)  ' number of leap year
+
+  iWoY = Math.Remainder((iYear + iNoL), 7)  ' week of year
+
+  iMonth = sArg[2]
+
+  If iMonth = "" Then
+
+    iM0 = 1
+
+    iM1 = 12
+
+  Else
+
+    iM0 = iMonth
+
+    iM1 = iMonth
+
+  Endif
+
+  iDoY = 0  ' days of year
+
+  iNoM = 1  ' number of month
+
+  For iM = iM0 To iM1
+
+    While iNoM < iM
+
+      iDoY = iDoY + iDoM[iNoM]
+
+      iNoM = iNoM + 1
+
+    EndWhile
+
+    Cal_DrawMonth()
+
+  EndFor  
+
+  lEnd:
+
+EndSub
+
+
+
+Sub Mapping
+
+  ' param ra - right asension [h]
+
+  ' param rot - rotation [h]
+
+  ' param dec - declination [deg]
+
+  ' param tilt - tilt [deg]
+
+  ' param r - radius [px]
+
+  ' return x, y - position in the graphics window [px]
+
+  ' return z - visible if 0 <= z
+
+  If Text.IsSubText(ra, " ") Then
+
+    _ra = Text.GetSubText(ra, 1, 2)
+
+    _ra = _ra + Text.GetSubText(ra, 4, 2) / 60
+
+    _ra = _ra + Text.GetSubText(ra, 7, 5) / 3600
+
+    ra = _ra
+
+  EndIf
+
+  If Text.IsSubText(dec, " ") Then
+
+    _dec = Text.GetSubText(dec, 2, 2)
+
+    _dec = _dec + Text.GetSubText(dec, 5, 2) / 60
+
+    _dec = _dec + Text.GetSubText(dec, 8, 5) / 3600
+
+    _dec = _dec * Text.Append(Text.GetSubText(dec, 1, 1), "1")
+
+    dec = _dec
+
+  EndIf
+
+  ?? = Math.GetRadians((ra - rot) * 15)
+
+  Œ∏ = Math.GetRadians(dec)
+
+  x = ox - r * Math.Sin(??) * Math.Cos(Œ∏)
+
+  y = oy - r * Math.Sin(Œ∏)
+
+  z = r * Math.Cos(??) * Math.Cos(Œ∏)
+
+  If tilt <> 0 Then
+
+    _z = z
+
+    _y = y - oy
+
+    ?? = Math.GetRadians(tilt)
+
+    z = Math.Cos(??) * _z - Math.Sin(??) * _y
+
+    y = oy + Math.Sin(??) * _z + Math.Cos(??) * _y
+
+  EndIf
+
+EndSub
+
+
+
+Sub InitStars
+
+  ' Initialize stars in Cygnus
+
+  ' index: Flamsteed designation
+
+  ' RA (Right ascension), Dec (Declination), Mag (Apparent magnitude)
+
+  star["Deneb"] = "ra=20 41 25.91;dec=+45 16 49.2;mag=1.25;fd=50;"
+
+  star["Œ≥ Cyg"] = "ra=20 22 13.70;dec=+40 15 24.1;mag=2.23;fd=37;"
+
+  star["Œµ Cyg"] = "ra=20 46 12.43;dec=+33 58 10.0;mag=2.48;fd=53;"
+
+  star["Œ¥ Cyg"] = "ra=19 44 58.44;dec=+45 07 50.5;mag=2.86;fd=18;"
+
+  star["Albireo A"] = "ra=19 30 43.29;dec=+27 57 34.9;mag=3.05;fd=6;"
+
+  star["Œ∂ Cyg"] = "ra=21 12 56.18;dec=+30 13 37.5;mag=3.21;fd=64;"
+
+  star["Œæ Cyg"] = "ra=21 04 55.86;dec=+43 55 40.3;mag=3.72;fd=62;"
+
+  star["?? Cyg"] = "ra=21 14 47.35;dec=+38 02 39.6;mag=3.74;fd=65;"
+
+  star["Œπ Cyg"] = "ra=19 29 42.34;dec=+51 43 46.1;mag=3.76;fd=10;"
+
+  star["Œ∫ Cyg"] = "ra=19 17 06.11;dec=+53 22 05.4;mag=3.80;fd=1;"
+
+  star["Œø1 Cyg"] = "ra=20 13 37.90;dec=+46 44 28.8;mag=3.80;fd=31;"
+
+  star["Œ∑ Cyg"] = "ra=19 56 18.40;dec=+35 05 00.6;mag=3.89;fd=21;"
+
+  star["ŒΩ Cyg"] = "ra=20 57 10.41;dec=+41 10 01.9;mag=3.94;fd=58;"
+
+  star["Œø2 Cyg"] = "ra=20 15 28.32;dec=+47 42 51.1;mag=3.96;fd=32;"
+
+  star["?? Cyg"] = "ra=21 33 58.87;dec=+45 35 31.4;mag=3.98;fd=73;"
+
+  star["41 Cyg"] = "ra=20 29 23.73;dec=+30 22 06.8;mag=4.01;fd=41;"
+
+  star["52 Cyg"] = "ra=20 45 39.76;dec=+30 43 10.8;mag=4.22;fd=52;"
+
+  star["?? Cyg"] = "ra=21 17 24.95;dec=+39 23 40.9;mag=4.22;fd=67;"
+
+  star["?2 Cyg"] = "ra=21 46 47.61;dec=+49 18 34.5;mag=4.23;fd=81;"
+
+  star["33 Cyg"] = "ra=20 13 23.80;dec=+56 34 03.1;mag=4.28;fd=33;"
+
+  star["?? Cyg"] = "ra=21 17 55.07;dec=+34 53 48.8;mag=4.41;fd=66;"
+
+  star["39 Cyg"] = "ra=20 23 51.60;dec=+32 11 24.7;mag=4.43;fd=39;"
+
+  star["Œ∏ Cyg"] = "ra=19 36 26.54;dec=+50 13 13.7;mag=4.49;fd=13;"
+
+  star["Œª Cyg"] = "ra=20 47 24.53;dec=+36 29 26.7;mag=4.53;fd=54;"
+
+  star["63 Cyg"] = "ra=21 06 36.09;dec=+47 38 54.3;mag=4.56;fd=63;"
+
+  star["47 Cyg A"] = "ra=20 33 54.19;dec=+35 15 03.1;mag=4.61;fd=47;"
+
+  star["?? Cyg"] = "ra=19 39 22.60;dec=+30 09 11.6;mag=4.68;fd=12;"
+
+  star["?1 Cyg"] = "ra=21 42 05.66;dec=+51 11 22.7;mag=4.69;fd=80;"
+
+  star["Œº1 Cyg"] = "ra=21 44 08.59;dec=+28 44 33.4;mag=4.69;fd=78;"
+
+  star["8 Cyg"] = "ra=19 31 46.32;dec=+34 27 10.7;mag=4.74;fd=8;"
+
+  star["59 Cyg"] = "ra=20 59 49.55;dec=+47 31 15.4;mag=4.74;fd=59;"
+
+  star["P Cyg"] = "ra=20 17 47.20;dec=+38 01 58.6;mag=4.77;fd=34;"
+
+  star["30 Cyg"] = "ra=20 13 18.04;dec=+46 48 56.4;mag=4.80;fd=30;"
+
+  star["57 Cyg"] = "ra=20 53 14.75;dec=+44 23 14.2;mag=4.80;fd=57;"
+
+  star["55 Cyg"] = "ra=20 48 56.29;dec=+46 06 50.9;mag=4.81;fd=55;"
+
+  star["72 Cyg"] = "ra=21 34 46.48;dec=+38 32 01.8;mag=4.87;fd=72;"
+
+  star["15 Cyg"] = "ra=19 44 16.55;dec=+37 21 15.4;mag=4.89;fd=15;"
+
+  star["?? Cyg"] = "ra=19 55 37.82;dec=+52 26 20.5;mag=4.91;fd=24;"
+
+  star["28 Cyg"] = "ra=20 09 25.62;dec=+36 50 22.5;mag=4.93;fd=28;"
+
+  star["29 Cyg"] = "ra=20 14 31.98;dec=+36 48 22.1;mag=4.93;fd=29;"
+
+  star["T Cyg"] = "ra=20 47 10.72;dec=+34 22 26.8;mag=4.93;"
+
+  star["??1 Cyg"] = "ra=20 30 03.53;dec=+48 57 05.6;mag=4.94;fd=45;"
+
+  star["22 Cyg"] = "ra=19 55 51.76;dec=+38 29 12.1;mag=4.95;fd=22;"
+
+  star["HD 189276"] = "ra=19 55 55.39;dec=+58 50 45.7;mag=4.98;"
+
+  star["2 Cyg"] = "ra=19 24 07.57;dec=+29 37 16.7;mag=4.99;fd=2;"
+
+  star["17 Cyg"] = "ra=19 46 25.58;dec=+33 43 43.3;mag=5.00;fd=17;"
+
+  star["20 Cyg"] = "ra=19 50 37.73;dec=+52 59 17.4;mag=5.03;fd=20;"
+
+  star["68 Cyg"] = "ra=21 18 27.18;dec=+43 56 45.5;mag=5.04;fd=68;"
+
+  star["74 Cyg"] = "ra=21 36 56.98;dec=+40 24 48.6;mag=5.04;fd=74;"
+
+  star["26 Cyg"] = "ra=20 01 21.55;dec=+50 06 16.8;mag=5.06;fd=26;"
+
+  star["56 Cyg"] = "ra=20 50 04.83;dec=+44 03 32.3;mag=5.06;fd=56;"
+
+  star["75 Cyg"] = "ra=21 40 11.06;dec=+43 16 25.7;mag=5.09;fd=75;"
+
+  star["Albireo B"] = "ra=19 30 45.40;dec=+27 57 55.0;mag=5.12;fd=6;"
+
+  star["23 Cyg"] = "ra=19 53 17.37;dec=+57 31 24.5;mag=5.14;fd=23;"
+
+  star["35 Cyg"] = "ra=20 18 39.07;dec=+34 58 58.0;mag=5.14;fd=35;"
+
+  star["25 Cyg"] = "ra=19 59 55.20;dec=+37 02 34.4;mag=5.15;fd=25;"
+
+  star["4 Cyg"] = "ra=19 26 09.12;dec=+36 19 04.3;mag=5.17;fd=4;"
+
+  star["19 Cyg"] = "ra=19 50 33.99;dec=+38 43 19.8;mag=5.18;fd=19;"
+
+  star["61 Cyg A"] = "ra=21 06 50.84;dec=+38 44 29.4;mag=5.20;fd=61;"
+
+  star["71 Cyg"] = "ra=21 29 26.91;dec=+46 32 25.2;mag=5.22;fd=71;"
+
+  star["70 Cyg"] = "ra=21 27 21.36;dec=+37 07 00.5;mag=5.30;fd=70;"
+
+  star["27 Cyg"] = "ra=20 06 21.93;dec=+35 58 24.7;mag=5.38;fd=27;"
+
+  star["60 Cyg"] = "ra=21 01 10.92;dec=+46 09 20.8;mag=5.38;fd=60;"
+
+  star["9 Cyg"] = "ra=19 34 50.92;dec=+29 27 46.5;mag=5.39;fd=9;"
+
+  star["14 Cyg"] = "ra=19 39 26.47;dec=+42 49 05.6;mag=5.41;fd=14;"
+
+  star["51 Cyg"] = "ra=20 42 12.63;dec=+50 20 24.1;mag=5.41;fd=51;"
+
+  star["??2 Cyg"] = "ra=20 31 18.81;dec=+49 13 13.3;mag=5.44;fd=46;"
+
+  star["49 Cyg"] = "ra=20 41 02.60;dec=+32 18 28.0;mag=5.51;fd=49;"
+
+  star["49 Cyg"] = "ra=20 41 02.54;dec=+32 18 26.3;mag=5.53;fd=49;"
+
+  star["V1942 Cyg"] = "ra=22 02 56.68;dec=+44 38 59.8;mag=5.57;"
+
+  star["36 Cyg"] = "ra=20 18 28.63;dec=+36 59 59.1;mag=5.58;fd=36;"
+
+  star["V389 Cyg"] = "ra=21 08 38.87;dec=+30 12 20.5;mag=5.60;"
+
+  star["V1768 Cyg"] = "ra=20 04 36.18;dec=+32 13 07.0;mag=5.62;"
+
+  star["40 Cyg"] = "ra=20 27 34.27;dec=+38 26 25.9;mag=5.63;fd=40;"
+
+  star["V380 Cyg"] = "ra=19 50 37.33;dec=+40 35 59.2;mag=5.68;"
+
+  star["V2140 Cyg"] = "ra=20 55 49.81;dec=+47 25 03.6;mag=5.68;"
+
+  star["79 Cyg"] = "ra=21 43 25.63;dec=+38 17 01.0;mag=5.69;fd=79;"
+
+  star["7 Cyg"] = "ra=19 27 25.97;dec=+52 19 13.8;mag=5.73;fd=7;"
+
+  star["Gl 777"] = "ra=20 03 36.95;dec=+29 53 53.1;mag=5.73;"
+
+  star["43 Cyg"] = "ra=20 27 02.21;dec=+49 22 59.6;mag=5.73;fd=43;"
+
+  star["77 Cyg"] = "ra=21 42 22.94;dec=+41 04 37.3;mag=5.73;fd=77;"
+
+  star["DT Cyg"] = "ra=21 06 30.24;dec=+31 11 04.8;mag=5.77;"
+
+  star["V2015 Cyg"] = "ra=20 33 54.84;dec=+46 41 37.9;mag=5.78;"
+
+  star["V2119 Cyg"] = "ra=20 23 44.37;dec=+37 28 35.2;mag=5.87;"
+
+  star["V1762 Cyg"] = "ra=19 08 25.88;dec=+52 25 33.1;mag=5.88;"
+
+  star["V1143 Cyg"] = "ra=19 38 41.15;dec=+54 58 24.2;mag=5.89;"
+
+  star["V1334 Cyg"] = "ra=21 19 22.18;dec=+38 14 14.9;mag=5.89;"
+
+  star["42 Cyg"] = "ra=20 29 20.39;dec=+36 27 17.0;mag=5.90;fd=42;"
+
+  star["69 Cyg"] = "ra=21 25 47.02;dec=+36 40 02.7;mag=5.93;fd=69;"
+
+  star["W Cyg"] = "ra=21 36 02.44;dec=+45 22 28.5;mag=5.96;"
+
+  star["V460 Cyg"] = "ra=21 42 01.08;dec=+35 30 36.7;mag=5.98;"
+
+  star["16 Cyg A"] = "ra=19 41 49.09;dec=+50 31 31.6;mag=5.99;fd=16;"
+
+  star["V1743 Cyg"] = "ra=19 33 41.60;dec=+49 15 44.4;mag=6.00;"
+
+  star["11 Cyg"] = "ra=19 35 48.30;dec=+36 56 40.4;mag=6.03;fd=11;"
+
+  star["61 Cyg B"] = "ra=21 06 52.19;dec=+38 44 03.9;mag=6.05;fd=61;"
+
+  star["V2130 Cyg"] = "ra=20 39 33.31;dec=+40 34 46.8;mag=6.07;"
+
+  star["76 Cyg"] = "ra=21 41 34.27;dec=+40 48 19.2;mag=6.07;fd=76;"
+
+  star["V1339 Cyg"] = "ra=21 42 08.35;dec=+45 45 56.7;mag=6.11;"
+
+  star["Œº2 Cyg"] = "ra=21 44 08.46;dec=+28 44 34.5;mag=6.12;fd=78;"
+
+  star["V2093 Cyg"] = "ra=19 50 46.87;dec=+37 49 34.7;mag=6.13;"
+
+  star["V2100 Cyg"] = "ra=19 59 15.34;dec=+52 03 20.5;mag=6.14;"
+
+  star["CP Cyg"] = "ra=21 37 27.88;dec=+44 41 47.8;mag=6.19;"
+
+  star["V1619 Cyg"] = "ra=21 51 04.97;dec=+39 32 11.9;mag=6.20;"
+
+  star["44 Cyg"] = "ra=20 30 59.23;dec=+36 56 09.1;mag=6.21;fd=44;"
+
+  star["16 Cyg"] = "ra=19 41 52.10;dec=+50 31 04.5;mag=6.25;fd=16;"
+
+  star["V819 Cyg"] = "ra=19 53 01.25;dec=+47 48 27.9;mag=6.30;"
+
+  star["48 Cyg"] = "ra=20 37 31.77;dec=+31 34 21.1;mag=6.32;fd=48;"
+
+  star["V2136 Cyg"] = "ra=20 49 54.64;dec=+46 39 40.8;mag=6.33;"
+
+  star["V1817 Cyg"] = "ra=19 31 13.56;dec=+55 43 54.8;mag=6.37;"
+
+  star["V2090 Cyg"] = "ra=19 44 38.17;dec=+34 24 51.0;mag=6.39;"
+
+  star["V2173 Cyg"] = "ra=21 57 02.20;dec=+48 40 07.0;mag=6.42;"
+
+  star["V1351 Cyg"] = "ra=19 42 04.13;dec=+55 27 47.9;mag=6.42;"
+
+  star["V1765 Cyg"] = "ra=19 48 50.60;dec=+33 26 14.3;mag=6.42;"
+
+  star["V1773 Cyg"] = "ra=20 18 49.67;dec=+46 19 20.0;mag=6.46;"
+
+  star["HD 203857"] = "ra=21 23 48.39;dec=+37 21 05.4;mag=6.46;"
+
+  star["X Cyg"] = "ra=20 43 24.20;dec=+35 35 16.1;mag=6.48;"
+
+  star["V1276 Cyg"] = "ra=19 42 49.10;dec=+29 19 54.0;mag=6.49;"
+
+  star["V1584 Cyg"] = "ra=20 19 56.04;dec=+46 50 14.3;mag=6.49;"
+
+  star["HD¬†185269"] = "ra=19 37 11.74;dec=+28 29 59.5;mag=6.67;"
+
+  star["HD¬†197037"] = "ra=20 39 33s;dec=+42 14 55??;mag=6.81;"
+
+  edge = "1=Deneb-Œ≥ Cyg;2=Œ≥ Cyg-Œµ Cyg;3=Œµ Cyg-Œ∂ Cyg;4=Œ∂ Cyg-Œº1 Cyg;"
+
+  edge = edge + "5=Œ≥ Cyg-Œ¥ Cyg;6=Œ¥ Cyg-Œ∏ Cyg;7=Œ∏ Cyg-Œπ Cyg;8=Œπ Cyg-Œ∫ Cyg;"
+
+  edge = edge + "9=Œ≥ Cyg-Œ∑ Cyg;10=Œ∑ Cyg-Albireo A;"
+
+  radiant = "ra=19 00 00.00;dec=+55 00 00.0;"
+
+EndSub
+
+
+
+Sub Cal_Init
+
+  ' Calendar | Initialize days of month
+
+  WQ = Text.GetCharacter(34)
+
+  CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
+
+  iDoM = "1=31;2=28;3=31;4=30;5=31;6=30;7=31;8=31;9=30;10=31;11=30;12=31;"
+
+  months = "1=January;2=February;3=March;4=April;5=May;6=June;7=July;"
+
+  months = months + "8=August;9=September;10=October;11=November;12=December;"
+
+  symbols = "1=?ôë;2=?ôí;3=?ôì;4=?ôà;5=?ôâ;6=?ôä;7=?ôã;8=?ôå;9=?ôç;10=?ôé;11=?ôè;12=?ôê;"
+
+EndSub
+
+
+
+Sub Cal_DrawMonth
+
+  ' Calendar | Print month
+
+  ' param iM - month
+
+  ' param iDoY - days of year
+
+  ' param iWoY - week of year
+
+  If silverlight Then
+
+    Program.Delay(msWait)
+
+  EndIf
+
+  GraphicsWindow.FontSize = 16
+
+  GraphicsWindow.FontName = "Consolas"
+
+  iW = Math.Remainder((iDoY + iWoY), 7)
+
+  line = "SUN MON TUE WED THU FRI SAT" + CRLF
+
+  iWoM = 0
+
+  While iWoM < iW
+
+    line = line + "    "
+
+    iWoM = iWoM + 1
+
+  EndWhile
+
+  For iD = 1 To iDoM[iM]
+
+    If iD < 10 Then
+
+      line = line + "  " + iD + " "
+
+    Else
+
+      line = line + " " + iD + " "
+
+    EndIf
+
+    If Math.Remainder(iWoM, 7) = 6 Then
+
+      line = line + CRLF
+
+    EndIf
+
+    iWoM = iWoM + 1
+
+  EndFor
+
+  If Math.Remainder(iWoM, 7) > 0 Then
+
+    line = line + CRLF
+
+  EndIf
+
+  cal = Shapes.AddText(line)
+
+  Shapes.Move(cal, calendarX, calendarY)
+
+EndSub
+
+
+
+Sub Command_GetArgs
+
+  ' Command line | Get arguments
+
+  ' param sBuf - input buffer
+
+  ' return sArg[] - arguments
+
+  ' return iN - number of arguments
+
+  iP = 1  ' buffer pointer
+
+  iN = 1  ' number of args
+
+  iC = Text.GetIndexOf(sBuf, ",")   ' index of comma
+
+  While iC > iP
+
+    sArg[iN] = Text.GetSubText(sBuf, iP, iC - iP)
+
+    iP = iC + 1
+
+    iN = iN + 1
+
+    iC = Text.GetIndexOf(sBuf, ",")
+
+  EndWhile
+
+  iE = Text.GetLength(sBuf) + 1     ' end of buffer
+
+  sArg[iN] = Text.GetSubText(sBuf, iP, iE - iP)  
+
+EndSub
+
+
+
+Sub SB_Workaround
+
+  ' Small Basic | Workaround for Silverlight
+
+  ' returns silverlight - "True" if in remote
+
+  color = GraphicsWindow.GetPixel(0, 0)
+
+  If Text.GetLength(color) > 7 Then
+
+    silverlight = "True"
+
+    msWait = 300
+
+  Else
+
+    silverlight = "False"
+
+  EndIf
+
+EndSub
+
+

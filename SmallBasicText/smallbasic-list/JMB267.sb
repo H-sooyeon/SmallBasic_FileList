@@ -1,0 +1,677 @@
+' TODO: Avoid Snake when adding and moving food
+
+
+
+' Global layout variables
+
+gw = 640
+
+gh = 480
+
+titleRegion = 30
+
+
+
+SetupWindow()
+
+SetupGlobals()
+
+InitGame()
+
+
+
+Sub GameLoop
+
+  If (run) Then
+
+    MoveSnake()
+
+    AdjustTimer()   
+
+  Endif
+
+  DrawSnake()
+
+  UpdateGui()
+
+EndSub
+
+
+
+Sub InitGame
+
+  Timer.Interval = intervalTime
+
+  DrawGrid()
+
+  SetupGUI()
+
+  CreateSnake()
+
+  ResetSnake()
+
+  DrawSnake()
+
+  MoveFood()
+
+EndSub
+
+
+
+Sub CreateSnake
+
+  ' Starting size of Snake
+
+  numSegments = 50
+
+  visibleSegments = 10
+
+  snakeDirection = north
+
+  
+
+  ' Snake attributes for 2D Array which holds all the snake data
+
+  segment = 0
+
+  x = 1
+
+  y = 2
+
+  
+
+  ' Snake Direction vectors for head
+
+  snakeVX = 0
+
+  snakeVY = 0
+
+  
+
+  segRadius = 10
+
+  startX = Math.Round(gridWidth/2)
+
+  startY = Math.Round(gridHeight/2)
+
+  
+
+  GraphicsWindow.PenColor = "Transparent"
+
+  
+
+  For s = 1 To numSegments
+
+    If s = 1 Then
+
+      GraphicsWindow.BrushColor = "Red"
+
+    Else 
+
+      GraphicsWindow.BrushColor = "Green"      
+
+    EndIf
+
+    tempSegment = Shapes.AddEllipse(segRadius * 2, segRadius * 2)
+
+    Shapes.HideShape(tempSegment)
+
+    snake[s][segment] = tempSegment
+
+  EndFor 
+
+EndSub
+
+
+
+
+
+
+
+
+
+Sub ResetSnake
+
+  For s = 1 To numSegments
+
+    snake[s][x] = startX
+
+    snake[s][y] = startY + s
+
+    If (s <= visibleSegments) Then
+
+      Shapes.ShowShape(snake[s][segment])
+
+    Else
+
+      Shapes.HideShape(snake[s][segment])
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+
+
+Sub DrawSnake
+
+  For iD = 1 To visibleSegments
+
+    tempShape = snake[iD][segment]
+
+    tempX = snake[iD][x] * gridSize
+
+    tempY = (snake[iD][y] * gridSize) + titleRegion
+
+    Shapes.Move(tempShape, tempX, tempY)
+
+  EndFor
+
+  Shapes.ShowShape(snake[visibleSegments][segment])
+
+EndSub
+
+
+
+Sub MoveSnake
+
+  For iM = numSegments To 2 Step -1
+
+    snake[iM][x] = snake[im-1][x]
+
+    snake[im][y] = snake[im-1][y]
+
+  EndFor
+
+  If (snakeDirection = north) Then
+
+    snakeVX = 0
+
+    snakeVY = -1
+
+  ElseIf (snakeDirection = east) Then
+
+    snakeVX = 1
+
+    snakeVY = 0
+
+  ElseIf (snakeDirection = south) Then
+
+    snakeVX = 0
+
+    snakeVY = 1
+
+  ElseIf (snakeDirection = west) Then
+
+    snakeVX = -1
+
+    snakeVY = 0
+
+  EndIf
+
+  snake[1][x] = snake[1][x] + snakeVX
+
+  snake[1][y] = snake[1][y] + snakeVY
+
+  
+
+  CheckCollisions()
+
+EndSub
+
+
+
+Sub CheckCollisions
+
+  ' Store head attributes
+
+  head = snake[1][segment]
+
+  headX = snake[1][x]
+
+  headY = snake[1][y]
+
+  
+
+  ' Check collision against snakes own body
+
+  For iC = 2 To visibleSegments
+
+    If (headX = snake[iC][x]) And (headY = snake[iC][y]) Then
+
+      Shapes.HideShape(snake[iC][segment])
+
+      badCollsion = "True"    
+
+    EndIf 
+
+  EndFor
+
+  
+
+  ' Check that Snake head has not gone over the boundary
+
+  If (headX < 0) Or (headX > gridWidth) Then
+
+    badCollsion = "True"
+
+  ElseIf (headY < 0) Or (headY > gridHeight) Then
+
+    badCollsion = "True"
+
+  EndIf
+
+  
+
+  ' Check Snake head collision with Food
+
+  If (headX = foodX) And (headY = foodY) Then
+
+    goodCollision = "True"
+
+  EndIf
+
+  
+
+  If (goodCollision) Then
+
+    goodCollision = "False"
+
+    EatFood()
+
+  EndIf
+
+  
+
+  If (badCollsion = "True") Then
+
+    GameOver()
+
+  EndIf  
+
+EndSub
+
+
+
+Sub EatFood
+
+  MoveFood()
+
+  visibleSegments = visibleSegments + 1
+
+  score = score + 5
+
+EndSub
+
+
+
+
+
+Sub GameOver
+
+  run = false
+
+  badCollsion = "False"
+
+  For i = 1 To visibleSegments
+
+    Shapes.SetOpacity(snake[i][segment], 40)
+
+  EndFor
+
+  Shapes.ShowShape(gameOverMessage)
+
+EndSub
+
+
+
+
+
+
+
+Sub MoveFood
+
+  GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
+
+  GraphicsWindow.FillRectangle(foodDrawX, foodDrawY,20,20)
+
+  foodX = Math.GetRandomNumber(gridWidth)-1
+
+  foodY = Math.GetRandomNumber(gridHeight)-1
+
+  DrawFood()
+
+EndSub
+
+
+
+Sub DrawFood
+
+  foodDrawX = foodX * gridSize
+
+  foodDrawY = (foodY * gridSize) + titleRegion
+
+  GraphicsWindow.BrushColor = "Crimson"
+
+  GraphicsWindow.FillEllipse(foodDrawX,foodDrawY,20,20)
+
+  GraphicsWindow.PenColor = "Black"
+
+  GraphicsWindow.DrawLine(foodDrawX+10,foodDrawY+5,foodDrawX+7,foodDrawY)
+
+  GraphicsWindow.BrushColor = "LawnGreen"
+
+  GraphicsWindow.FillEllipse(foodDrawX+10,foodDrawY,10,4)
+
+EndSub
+
+
+
+
+
+
+
+Sub DrawGrid
+
+  gridSize = 20
+
+  gridWidth = (gw / gridSize) - 1
+
+  gridHeight = (gh / gridSize) - 1
+
+  offset = gw - (gridWidth * gridSize)
+
+  
+
+  GraphicsWindow.PenWidth = 1
+
+  GraphicsWindow.PenColor = "#D0FFFFFF"
+
+  'GraphicsWindow.DrawLine(0,titleRegion,gw,titleRegion)
+
+  Shapes.AddLine(0,titleRegion,gw,titleRegion)
+
+  
+
+  ' draw Grid on game surface to assist development and debugging
+
+  'GraphicsWindow.PenColor = "#40FFFFFF"
+
+  
+
+  'For gridY = 1 To gridHeight
+
+  '  GraphicsWindow.DrawLine(0, (gridY * gridSize)+titleRegion, gw, (gridY * gridSize)+titleRegion)
+
+  'EndFor
+
+  
+
+  'For gridX = 1 To gridWidth
+
+  '  GraphicsWindow.DrawLine(gridX  * gridSize, 0+titleRegion, gridX * gridSize, gh+titleRegion)
+
+  'EndFor
+
+EndSub
+
+
+
+
+
+Sub SetupWindow
+
+  GraphicsWindow.Width = gw 
+
+  GraphicsWindow.Height = gh + titleRegion
+
+  GraphicsWindow.BackgroundColor = "Black"
+
+  GraphicsWindow.Title = "Snake Game V3"
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+  
+
+  Timer.Tick = OnTimerTick
+
+  
+
+EndSub
+
+
+
+Sub SetupGlobals
+
+  true = "True"
+
+  false = "False"
+
+  score = 0
+
+  stop = 0
+
+  north = 1
+
+  east = 2
+
+  south = 3
+
+  west = 4
+
+  resetTime = 4
+
+  resetCounter = 0
+
+  resetActive = "False"
+
+  foodDrawX = -50
+
+  foodDrawY = -50
+
+  
+
+  ' Game State
+
+  run = false
+
+  
+
+  ' Variables for adjusting interval time and speeding up game
+
+  intervalTime = 250
+
+  totalGameTime = 0
+
+  adjustmentTime = 10000
+
+  minIntervalTime = 50
+
+EndSub
+
+
+
+Sub SetupGUI
+
+  ' Setup shape and label to display the score
+
+  GraphicsWindow.BrushColor = "LightBlue"
+
+  GraphicsWindow.FontName = "Courier New"
+
+  GraphicsWindow.FontSize = 25
+
+  GraphicsWindow.DrawText(10,3, "SCORE:")
+
+  scoreShape = Shapes.AddText(score)
+
+  Shapes.Move(scoreShape, 100, 3)
+
+  GraphicsWindow.DrawText(380,3,"Snake Length:")
+
+  lengthShape = Shapes.AddText(0)
+
+  Shapes.Move(lengthShape, 580,3)
+
+  
+
+  ' Shapes to display instructions
+
+  Instructions = Shapes.AddText("Move Snake with Arrow Keys")
+
+  Shapes.HideShape(Instructions)
+
+  GraphicsWindow.BrushColor = "White"
+
+  StartMessage = Shapes.AddText("Press Space Bar to Start")
+
+  Shapes.HideShape(StartMessage)
+
+  Shapes.Move(StartMessage,140, titleRegion+50)
+
+  Shapes.Move(Instructions, 130, titleRegion+90)
+
+  
+
+  ' Shape to Display GameOver Message  
+
+  GraphicsWindow.FontSize = 40
+
+  gameOverMessage = Shapes.AddText("GAME OVER")
+
+  Shapes.HideShape(gameOverMessage)
+
+  Shapes.Move(gameOverMessage, 200, titleRegion+200)
+
+  
+
+  ' Show Instructions
+
+  Shapes.ShowShape(StartMessage)
+
+  Shapes.ShowShape(Instructions)
+
+  GraphicsWindow.FontSize = 12
+
+EndSub
+
+
+
+Sub UpdateGui
+
+  Shapes.SetText(scoreShape, score)
+
+  Shapes.SetText(lengthShape, visibleSegments)  
+
+EndSub
+
+
+
+Sub AdjustTimer
+
+  '  Allow player to  eat the first 5 apples then gradually reduce interval time to increase speed
+
+  ' based on IntervalTime, minIntervalTime, adjustmentTime, totalGameTime
+
+  If (score > 25) Then
+
+    GameTime = GameTime + intervalTime
+
+    If (GameTime > adjustmentTime) And (intervalTime > minIntervalTime) Then
+
+      GameTime = 0
+
+      intervalTime = intervalTime - 20
+
+      If (intervalTime < minIntervalTime) Then
+
+        intervalTime = minIntervalTime
+
+      EndIf
+
+      Timer.Interval = intervalTime
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+
+
+
+
+Sub OnTimerTick
+
+  GameLoop()
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  'TODO: Make the game only recognise one key input per frame
+
+  key = GraphicsWindow.LastKey
+
+  If (run) Then
+
+    If (key = "Up") And (snakeDirection <> south) Then
+
+      snakeDirection = north
+
+    ElseIf (key = "Right") And (snakeDirection <> west) Then
+
+      snakeDirection = east
+
+    ElseIf (key = "Down") And (snakeDirection <> north) Then
+
+      snakeDirection = south
+
+    ElseIf (key = "Left") And (snakeDirection <> east) Then
+
+      snakeDirection = west
+
+    EndIf
+
+  Else
+
+    If (key = "Space") Then
+
+      run = true
+
+      Shapes.HideShape(Instructions)
+
+      Shapes.HideShape(StartMessage)
+
+    EndIf
+
+  EndIf
+
+  
+
+
+
+  
+
+  If (key = "Escape") Then
+
+    Program.End()
+
+  EndIf  
+
+EndSub
+
+
+
+
+
+
+
+

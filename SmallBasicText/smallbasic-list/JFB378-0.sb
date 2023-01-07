@@ -1,0 +1,457 @@
+' SmallBasic Version 1.2
+
+' Program: MWC32 (PseudoRnd)
+
+' Changelog: 
+
+' Author: Pappa Lapub (Richard L. Mueller)
+
+' Website: https://social.msdn.microsoft.com/Forums/en-US/819e5c27-94db-4957-9efd-82e4939d87d0/how-to-write-a-program-to-generate-a-random-number-not-by-using-mathgetrandomnumber-
+
+' ImportURL: http://smallbasic.com/program/?JFB378-0
+
+' Extension: LitDev
+
+' Comment: http://www.rlmueller.net/MWC32.htm
+
+'  http://www.rlmueller.net/Programs/MWC32.txt (.vbs)
+
+'  Converted the vbs 'Fix' to SB Math.'Floor'  (for numbers > 0, ignoring sgn -1)
+
+' ToDo: 
+
+' ================================================================================
+
+' MWC32.sb
+
+' SmallBasic program to generate psuedo random numbers using
+
+' a 32-bit Multiply With Carry Generator.
+
+' http://www.rlmueller.net/Programs/MWC32.txt (vbs)
+
+' ----------------------------------------------------------------------
+
+' Copyright (c) 2007 Richard L. Mueller
+
+' Hilltop Lab web site - http://www.rlmueller.net
+
+' Version 1.0 - January 2, 2007
+
+'
+
+' Syntax:
+
+'     MWC32.exe <count> <seed>
+
+' where:
+
+'    <count> is the number of random values to display (optional).
+
+'        Count must be a positive integer. The default count is 10.
+
+'    <seed> is a seed value (optional).
+
+'         Seed must be an integer greater than or equal to 0 and less
+
+'         than 2^32. The default value is based on the system timer.
+
+' Program outputs psuedo random integers greater than or equal to 0
+
+' and less than 2^32.
+
+'
+
+' You have a royalty-free right to use, modify, reproduce, and
+
+' distribute this script file in any way you find useful, provided that
+
+' you agree that the copyright owner above has no warranty, obligations,
+
+' or liability for such use.
+
+
+
+min = 0   ' smallest return value
+
+max = 99  ' highest return value
+
+
+
+args = ""
+
+tab = Text.GetCharacter(9)
+
+' M = 2^32 = 4,294,967,296
+
+M = 4294967296
+
+
+
+' The default number of psuedo random numbers to display is 10.
+
+cnt = 10
+
+' Retrieve arguments or assign defaults.
+
+If Program.ArgumentCount > 0 Then
+
+  cnt = Program.GetArgument(1)
+
+EndIf
+
+
+
+If Program.ArgumentCount < 2 Then
+
+  ' Default seed value is based on the system timer.
+
+  seed = Math.Floor((3600 * Clock.Hour + 60 * Clock.Minute + Clock.Second) * M / 86400)  ' 86400 [secperday]  (24 * 60 * 60)
+
+Else
+
+  seed = Program.GetArgument(2)
+
+EndIf
+
+
+
+' Validate values.
+
+If Program.ArgumentCount > 2 Then
+
+  LDCall.Function("Syntax", 1)
+
+EndIf
+
+
+
+arr = "1=-h;2=/h;3=help;4=-?;5=/?;6=-help;7=/help;8=?;"
+
+'If Text.IsSubText(Text.ConvertToLowerCase(cnt), "h") Or Text.IsSubText(Text.ConvertToLowerCase(cnt), "?") Then
+
+If Array.ContainsValue(arr, Text.ConvertToLowerCase(cnt)) Then
+
+  LDCall.Function("Syntax", 0)
+
+EndIf
+
+
+
+'If (1 * seed <> seed) Then
+
+If LDUtilities.IsNumber(seed) <> "True" Then
+
+  LDCall.Function("Syntax", 2)
+
+EndIf
+
+'If (1 * cnt <> cnt) Then
+
+If LDUtilities.IsNumber(cnt) <> "True" Then
+
+  LDCall.Function("Syntax", 3)
+
+EndIf
+
+If (seed < 0) Then
+
+  LDCall.Function("Syntax", 4)
+
+EndIf
+
+If (seed - Math.Power(2,32) + 1 > 0) Then
+
+  LDCall.Function("Syntax", 5)
+
+EndIf
+
+If (Math.Floor(cnt) - cnt <> 0) Then
+
+  LDCall.Function("Syntax", 6)
+
+EndIf
+
+If (Math.Floor(seed) - seed <> 0) Then
+
+  LDCall.Function("Syntax", 7)
+
+EndIf
+
+If (cnt < 0) Then
+
+  LDCall.Function("Syntax", 8)
+
+EndIf
+
+
+
+' Display the initial seed value.
+
+TextWindow.WriteLine("Initial seed value: "+ seed)
+
+' Display number of integers requested from the psuedo random number generator.
+
+TextWindow.WriteLine(cnt +" psuedo random integers:")
+
+TextWindow.WriteLine("")
+
+
+
+' Constants for Multiply With Carry Generator.
+
+' A = 4,164,903,690 = (A_Hi * 2^16) + A_Lo
+
+A_Hi = 63551    ' 0xF83F
+
+A_Lo = 25354    ' 0x630A
+
+
+
+' Constant for breaking numbers into High and Low 16-bit parts.
+
+' 2^16 = 65,536
+
+H = 65536     ' 0x10000
+
+
+
+' The initial carry is 48,313.
+
+' The initial carry should be an integer greater than 0 and
+
+' less than 2^32 = 4,294,967,296. The initial carry should
+
+' not be 0 or A - 1 = 4,164,903,689.
+
+carry = 48313    ' 0xBCB9
+
+
+
+For k = 1 To cnt
+
+  seed = LDCall.Function2("MWC", seed, carry)
+
+  TextWindow.WriteLine(seed)
+
+  TextWindow.ForegroundColor = 11  ' Cyan
+
+  'TextWindow.WriteLine("[0,99]: "+ Math.Floor(100 * seed / M))
+
+  TextWindow.WriteLine(min + Math.Floor((max-min+1) * seed / M) + tab +"["+ min +","+ max +"]")
+
+  TextWindow.ForegroundColor = 10 ' Green
+
+EndFor
+
+TextWindow.WriteLine("")
+
+'TextWindow.Read()
+
+
+
+
+
+' //////////  FUNCTIONs  \\\\\\\\\\
+
+Sub MWC   '(lngX, lngC)
+
+  lngX = args[1]
+
+  lngC = args[2]
+
+  ' Psuedo Random Number Generator based on
+
+  ' the Multiply With Carry Generator
+
+  '     Xi = [(A * Xi-1) + Ci-1] Mod M
+
+  '     Ci = Integer[((A * Xi-1) + Ci-1) / M]
+
+  ' Where:
+
+  '     A = 4,164,903,690
+
+  '     M = 2^32 = 4,294,967,296
+
+  ' Note:
+
+  '     B = (A * M) - 1 = 17,888,125,139,539,722,239
+
+  '     P = (B - 1) / 2 = 8,944,062,569,769,861,119
+
+  '     B and P are both prime.
+
+  '     The period of the generator is P.
+
+  '     Period =~ 8.944 * 10^18 =~ 2^63.
+
+  ' The values are broken into high and low 16-bit parts as follows:
+
+  '     A = A_Hi * 2^16 + A_Lo
+
+  '     lngC = C = C_Hi * 2^16 + C_Lo
+
+  '     lngX = Xi = Xi-1 = S_Hi * 2^16 + S_Lo
+
+  ' lngX and lngC are integers greater than or equal to 0 and less than M.
+
+  ' Each time this function is called it returns the next integer in
+
+  ' a psuedo random sequence. The return value is an integer greater
+
+  ' than or equal to 0 and less than M. The function also assigns
+
+  ' new values to lngX and lngC. These new values are required
+
+  ' for the next time the function is called.
+
+  ' Note:  There are two cases where this generator will have a
+
+  ' period of 1. One case is when the initial Ci = 0 and the
+
+  ' initial Xi = 0. The other case is when the initial Ci = A - 1
+
+  ' and the initial Xi = M - 1.  Both of these trivial cases are
+
+  ' avoided by selecting the initial Carry to be other than 0 or A - 1.
+
+  
+
+  ' Break up values into high and low 16-bit parts.
+
+  S_Hi = Math.Floor(lngX / H)
+
+  S_Lo = lngX - S_Hi * H
+
+  C_Hi = Math.Floor(lngC / H)
+
+  C_Lo = lngC - C_Hi * H
+
+  
+
+  ' Calculate intermediate results.
+
+  '     Xi = [(F1 * 2^32) + (F2 * 2^16) + F3] Mod M
+
+  '     Ci = Int[((F1 * 2^32) + (F2 * 2^16) + F3) / M]
+
+  F1 = A_Hi * S_Hi
+
+  F2 = (A_Hi * S_Lo) + (A_Lo * S_Hi) + C_Hi
+
+  F3 = (A_Lo * S_Lo) + C_Lo
+
+  
+
+  ' Calculate Xi = [(F1 * 2^32) + (F2 * 2^16) + F3] Mod M.
+
+  T1 = Math.Floor(F2 / H)
+
+  T2 = F2 - (T1 * H)
+
+  lngX = (T2 * H) + F3
+
+  T3 = Math.Floor(lngX / M)
+
+  lngX = lngX - (T3 * M)
+
+  
+
+  ' Calculate Ci = Int[((F1 * 2^32) + (F2 * 2^16) + F3) / M].
+
+  '' lngC = Math.Floor((F2 / H) + F1)
+
+  carry = Math.Floor((F2 / H) + F1)  ' for next call
+
+  
+
+  return = lngX
+
+EndSub
+
+
+
+Sub Syntax  ' (intError)
+
+  ' Subroutine to display error messages and syntax help.
+
+  intError = args[1]
+
+  If intError = 1 Then
+
+    TextWindow.WriteLine("Error, too many arguments.")
+
+  ElseIf intError = 2 Then
+
+    TextWindow.WriteLine("Error, seed must be numeric value.")
+
+  ElseIf intError = 3 Then
+
+    TextWindow.WriteLine("Error, count must be numeric.")
+
+  ElseIf intError = 4 Then
+
+    TextWindow.WriteLine("Error, seed must be greater than or equal to 0.")
+
+  ElseIf intError = 5 Then
+
+    TextWindow.WriteLine("Error, seed must be less than 2^32 (4,294,967,296)")
+
+  ElseIf intError = 6 Then
+
+    TextWindow.WriteLine("Error, count must be integer.")
+
+  ElseIf intError = 7 Then
+
+    TextWindow.WriteLine("Error, seed must be integer.")
+
+  ElseIf intError = 8 Then
+
+    TextWindow.WriteLine("Error, count must be positive.")
+
+  EndIf
+
+  
+
+  TextWindow.WriteLine("MWC32.exe - SmallBasic program to generate random numbers.")
+
+  TextWindow.WriteLine("Syntax:")
+
+  TextWindow.WriteLine("    MWC32.exe <count> <seed>")
+
+  TextWindow.WriteLine("where:")
+
+  TextWindow.WriteLine("    <count> is number of random integers to display (optional).")
+
+  TextWindow.WriteLine("        Count must be a positive integer. Default value is 10.")
+
+  TextWindow.WriteLine("    <seed> is a seed value (optional).")
+
+  TextWindow.WriteLine("        Seed must be an integer greater than or equal to 0")
+
+  TextWindow.WriteLine("        and less than 2^32. Default value is based on the system timer.")
+
+  TextWindow.WriteLine("Program outputs psuedo random integers greater than or equal")
+
+  TextWindow.WriteLine("to 0 and less than 2^32 (4,294,967,296).")
+
+  TextWindow.WriteLine("Copyright(c) 2006 Richard L. Mueller")
+
+  TextWindow.WriteLine("Version 1.0 - December 22, 2006")
+
+  TextWindow.WriteLine("")
+
+  
+
+  'TextWindow.Read()
+
+  TextWindow.Pause()
+
+  Program.End()
+
+EndSub
+
+
+
+

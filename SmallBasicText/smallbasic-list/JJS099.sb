@@ -1,0 +1,275 @@
+' Starfield Simulator by Florian Auer
+
+'--------------------------------------------
+
+' use UP to increase and DOWN to decrease speed
+
+
+
+' settings
+
+number_of_stars = 50   ' stars visible in one moment
+
+speed = 4                    ' distance star travels in one update
+
+interval = 60                ' update interval in ms
+
+
+
+
+
+
+
+SetUp()
+
+
+
+
+
+Sub SetUp
+
+  SetUpWindow()
+
+  
+
+  ' draw initial stars
+
+  For i = 1 To number_of_stars 
+
+    size = Math.GetRandomNumber(4) + 1
+
+    star[i] = Shapes.AddEllipse(size, size)
+
+    star_x[i] = 250 - Math.GetRandomNumber(500)
+
+    star_y[i] = 250 - Math.GetRandomNumber(500)
+
+    star_is_stripe[i] = "false"
+
+    RemoveStarFromAxis()
+
+    Shapes.Move(star[i], star_x[i], star_y[i])
+
+  EndFor
+
+  
+
+  GraphicsWindow.KeyDown = OnKeyDown
+
+  
+
+  'title animation
+
+  title = Shapes.AddText("Starfield")
+
+  subtitle = Shapes.AddText("by Florian Auer")
+
+  help = Shapes.AddText("use UP/DOWN to set speed") 
+
+  Shapes.Zoom(title, 5,5)
+
+  Shapes.Zoom(subtitle, 2, 2)
+
+  Shapes.Zoom(help, 2, 2)
+
+  Shapes.Move(title, 210,-100)
+
+  Shapes.Move(subtitle, 200, -30)
+
+  Shapes.Move(help, 160, 100)
+
+  Shapes.Animate(title, 210,600, 5000)
+
+  Shapes.Animate(subtitle, 200, 600, 4700)
+
+  Shapes.Animate(help, 160, 600, 4000)
+
+  
+
+  ' update loop
+
+  While 1 = 1
+
+    start_time = Clock.ElapsedMilliseconds
+
+    Update()
+
+    end_time = Clock.ElapsedMilliseconds
+
+    Program.Delay(Math.Max(interval - (end_time - start_time),1))
+
+  EndWhile
+
+EndSub
+
+
+
+Sub Update
+
+  If speed > 50 and Math.GetRandomNumber(60) < speed Then
+
+    GraphicsWindow.BackgroundColor = GraphicsWindow.GetRandomColor()
+
+  ElseIf speed <= 50 and GraphicsWindow.BackgroundColor <> "black" then
+
+    GraphicsWindow.BackgroundColor = "black"
+
+  EndIf
+
+  
+
+  For i = 1 To number_of_stars
+
+    RemoveStarFromAxis()
+
+    
+
+    ' update position of star
+
+    distance = Math.SquareRoot(star_x[i]*star_x[i] + star_y[i]*star_y[i])
+
+    star_x[i] = star_x[i] + Math.Round(speed * (star_x[i] / distance))
+
+    star_y[i] = star_y[i] + Math.Round(speed * (star_y[i] / distance))
+
+    
+
+    ' replace star with new one if it is out of view
+
+    If (star_x[i] < -250 Or star_x[i] > 250) Or (star_y[i] < -250 Or star_y[i] > 250) Then
+
+      ' remove old star 
+
+      Shapes.Remove(star[i])
+
+      
+
+      ' calculate star's new position and size
+
+      star_x[i] = 50 - Math.GetRandomNumber(100)
+
+      star_y[i] = 50 - Math.GetRandomNumber(100) 
+
+      size = Math.GetRandomNumber(4) + 1
+
+      RemoveStarFromAxis()
+
+      
+
+      ' create lines or points as new shape
+
+      If speed > 30 And Math.GetRandomNumber(50) < speed Then
+
+        distance = Math.SquareRoot(star_x[i]*star_x[i] + star_y[i]*star_y[i])
+
+        GraphicsWindow.PenWidth = size
+
+        GraphicsWindow.PenColor = GraphicsWindow.GetRandomColor()
+
+        star[i] = Shapes.AddLine(0, 0, speed * (star_x[i] / distance), speed * (star_y[i] / distance))
+
+        GraphicsWindow.PenColor = "white"
+
+        GraphicsWindow.PenWidth = 1  
+
+        star_is_stripe[i] = "true"
+
+      Else
+
+        star[i] = Shapes.AddEllipse(size, size)
+
+        star_is_stripe[i] = "false"
+
+      EndIf    
+
+    EndIf
+
+    
+
+    If speed <= 30 And star_is_stripe[i] Then
+
+      Shapes.Remove(star[i])
+
+      size = Math.GetRandomNumber(4) + 1
+
+      star[i] = Shapes.AddEllipse(size, size)
+
+      star_is_stripe[i] = "false"
+
+    EndIf
+
+    
+
+    ' move star to new position
+
+    Shapes.Move(star[i], 250 + star_x[i], 250 + star_y[i])
+
+  EndFor
+
+EndSub
+
+
+
+Sub OnKeyDown
+
+  If GraphicsWindow.LastKey = "Up" and speed < 60 Then
+
+    speed = speed + 1
+
+  EndIf
+
+  
+
+  If GraphicsWindow.LastKey = "Down" and speed > 1 Then
+
+    speed = speed - 1
+
+  EndIf
+
+  
+
+  GraphicsWindow.Title = "Speed: " + speed
+
+EndSub
+
+
+
+Sub RemoveStarFromAxis
+
+  ' move star away from the axis of coordinates
+
+  If star_x[i] = 0 Then
+
+    star_x[i] = 1
+
+  EndIf
+
+  If star_y[i] = 0 Then
+
+    star_y[i] = 1
+
+  EndIf
+
+EndSub
+
+
+
+Sub SetUpWindow
+
+  GraphicsWindow.BackgroundColor = "black"
+
+  GraphicsWindow.BrushColor = "white"
+
+  GraphicsWindow.PenColor = "white"
+
+  GraphicsWindow.Width = 500
+
+  GraphicsWindow.Height = 500
+
+  GraphicsWindow.Title = "Starfield"
+
+EndSub
+
+  
+
+

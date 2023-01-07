@@ -1,0 +1,725 @@
+' previous upload code history:-
+
+' original :-  BRS931
+
+' v0.1:            LZW978
+
+' v0.2 :          RVR504
+
+' v0.7:           CQR295
+
+' Raycaster maze
+
+' uses a simple ray casting technique (see lodev.org for tutorial)
+
+
+
+InitialSetUp:
+
+' set up screen width and height
+
+' SIZE is used to determine the width of each vertical line drawn. NB - needs to be an even number
+
+w = 511
+
+h = 384
+
+size = 6
+
+intensity = 50                                               'intensity of light source. The lower the number the further you can see.
+
+GraphicsWindow.Width = w
+
+GraphicsWindow.Height = h
+
+GraphicsWindow.CanResize = 1
+
+GraphicsWindow.BackgroundColor = "black"
+
+'
+
+' start position and direction of player
+
+posX = 2.1
+
+posY = 5.5
+
+dirX = 1
+
+dirY = 0
+
+planeX = 0
+
+'
+
+' plane y is the size of the viewing plane in degrees
+
+' (altering this gives different perspective views)
+
+planeY = 0.66
+
+completed = 1
+
+'
+
+' movespeed is how far forward you move each step.
+
+' bigger values create bigger steps, lower values mean smaller (smoother) steps
+
+' rotspeed is how much you rotate left/right when you turn
+
+' a value of 1/3 of rotspeed seems about right
+
+moveSpeed = 0.2
+
+rotSpeed = 0.07
+
+
+
+texWidth = 60
+
+texHeight = 1
+
+
+
+' set up the key press interrupts  
+
+GraphicsWindow.Keydown = OnKeydown
+
+GraphicsWindow.Keyup = OnKeyup  
+
+
+
+' call the setupmap subroutine to draw the initial map view
+
+setupmap()
+
+setuptexture()
+
+main()
+
+Loop:
+
+Goto loop
+
+
+
+Sub onkeydown
+
+  If completed = 1 Then                 'ensures that will not try to draw, when previous frame is still drawing
+
+    keypress = GraphicsWindow.LastKey
+
+    moveX = dirX * movespeed
+
+    moveY = dirY * movespeed
+
+' checks that nothing is in front then moves forward
+
+    If keypress = "Up" Then
+
+      If worldMap[Math.Floor(posX + moveX )][Math.Floor(posy)] = 0 Then
+
+        posX = posX + moveX
+
+      Endif
+
+      If worldMap[Math.Floor(posx)][math.Floor(posY + moveY)] = 0 Then
+
+        posY = posY + moveY
+
+      Endif
+
+    Endif
+
+' checks that nothing is in behind then moves backwards    
+
+    If keypress = "Down" Then
+
+      If worldMap[Math.Floor(posX - moveX)][Math.Floor(posy)] = 0 Then
+
+        posX = posX - moveX
+
+      Endif
+
+      If worldMap[Math.Floor(posx)][math.Floor(posY - moveY)] = 0 Then
+
+        posY = posY - moveY
+
+      Endif
+
+    Endif
+
+' rotate the view anticlockwise if turning left
+
+    If keypress = "Left" Then
+
+      oldDirx = dirX
+
+      CosrotspeedL = Math.Cos(-1 * rotspeed)
+
+      SinrotspeedL = Math.Sin(-1 * rotspeed)
+
+      dirX = dirX * CosrotspeedL - dirY * SinrotspeedL
+
+      dirY = oldDirX * SinrotspeedL + dirY * CosrotspeedL
+
+      oldPlanex = planeX
+
+      planeX = planeX * CosrotspeedL - planeY * SinrotspeedL  
+
+      planeY = oldPlaneX * SinrotspeedL + planeY * CosrotspeedL
+
+      '
+
+      '
+
+    EndIf
+
+' rotate the view clockwise if turning right
+
+    If keypress = "Right" Then
+
+      oldDirx = dirX
+
+      CosrotspeedR = Math.Cos(rotspeed)
+
+      SinrotspeedR = Math.Sin(rotspeed)      
+
+      dirX = dirX * CosrotspeedR - dirY * SinrotspeedR
+
+      dirY = oldDirX * SinrotspeedR + dirY * CosrotspeedR
+
+      oldPlaneX = planeX
+
+      planeX = planeX * CosrotspeedR - planeY * SinrotspeedR
+
+      planeY = oldPlaneX * SinrotspeedR + planeY * CosrotspeedR
+
+      '
+
+      '
+
+    EndIf
+
+    'call main subroutine to draw the new frame/view
+
+    main()
+
+  EndIf
+
+EndSub
+
+
+
+Sub OnKeyUp
+
+  keypress = ""
+
+EndSub
+
+
+
+Sub main
+
+  completed = 0
+
+  For x = 0 To w / size                       ' calculate ray position and direction 
+
+    cameraX = 2 * x / (w / size) - 1            ' x-coordinate in camera space
+
+    rayPosX = posX
+
+    rayPosY = posY
+
+    rayDirX = dirX + planeX * cameraX
+
+    rayDirY = dirY + planeY * cameraX
+
+    '
+
+    'which box of the map we're in  
+
+    mapX = Math.Floor(rayPosX)
+
+    mapY = Math.Floor(rayPosY)
+
+       
+
+' length of ray from current position to next x or y-side
+
+    sideDistX = 0
+
+    sideDistY = 0
+
+ 
+
+' length of ray from one x or y-side to next x or y-side
+
+    deltaDistX = Math.SquareRoot(1 + (rayDirY * rayDirY) / (rayDirX * rayDirX))
+
+    deltaDistY = Math.SquareRoot(1 + (rayDirX * rayDirX) / (rayDirY * rayDirY))
+
+    perpWallDist = 0
+
+   
+
+  'what direction to step in x or y-direction (either +1 or -1)
+
+    stepX = 0
+
+    stepY = 0
+
+    hit = 0                       ' was there a wall hit?
+
+    side = 0                      ' was a NS or a EW wall hit?
+
+
+
+  ' calculate step and initial sideDist
+
+    If rayDirX < 0 Then
+
+      stepX = -1
+
+      sideDistX = (rayPosX - mapX) * deltaDistX
+
+    Else
+
+      stepX = 1
+
+      sideDistX = (mapX + 1.0 - rayPosX) * deltaDistX
+
+    EndIf
+
+    If rayDirY < 0 then
+
+      stepY = -1
+
+      sideDistY = (rayPosY - mapY) * deltaDistY
+
+    Else
+
+      stepY = 1
+
+      sideDistY = (mapY + 1.0 - rayPosY) * deltaDistY
+
+    EndIf
+
+      
+
+' perform DDA
+
+' trace a "ray" until it hits a wall, and determine if it's an "X" (horizontal) or "Y" (vertical) wall      
+
+    While hit = 0                          ' jump to next map square, OR in x-direction, OR in y-direction
+
+      If sideDistX < sideDistY Then
+
+        sideDistX = sideDistX + deltaDistX
+
+        mapX = mapx + stepX
+
+        side = 0 
+
+      Else
+
+        sideDistY = sideDistY + deltaDistY
+
+        mapY = mapy + stepY
+
+        side = 1
+
+      EndIf
+
+         
+
+      ' Check if ray has hit a wall
+
+      checkMap = worldMap[mapX][mapY]
+
+      If checkMap > 0 Then
+
+        hit = 1
+
+      EndIf
+
+    EndWhile
+
+  
+
+  ' Calculate distance projected on camera direction.
+
+    If side = 0 Then
+
+      perpWallDist = Math.Abs((mapX - rayPosX + (1 - stepX) / 2) / rayDirX)
+
+    Else
+
+      perpWallDist = Math.Abs((mapY - rayPosY + (1 - stepY) / 2) / rayDirY)
+
+    EndIf
+
+      ' Calculate height of line to draw on screen
+
+      lineHeight = Math.Abs(h / perpWallDist)
+
+      lineHeight = Math.Round (lineheight)
+
+      ' calculate lowest and highest pixel to fill in current stripe
+
+      drawStart = ((lineHeight * -1) / 2 + h / 2) + (lineHeight *.3 )
+
+      drawEnd = (lineHeight / 2 + h / 2) + (lineHeight *.3 )
+
+      If drawEnd >= h Then
+
+        drawEnd = h - 1
+
+      EndIf
+
+      ' set up the colours depending on the block numbers
+
+      ' default colour is grey (RGB values are equal)
+
+      coladj2 = (lineHeight / h) * 250
+
+      coladj = (lineHeight / h) * 250 - (intensity - coladj2)
+
+      coladj = Math.Floor(coladj)
+
+      If coladj < 0 Then
+
+        coladj = 0
+
+      EndIf
+
+      If coladj > 200 Then
+
+        coladj = 200
+
+      EndIf
+
+      coldistr = coladj
+
+      coldistg = coladj
+
+      coldistb = coladj
+
+  
+
+      If checkMap > 6 Then
+
+        coldistr = 0
+
+        coldistg = 0
+
+        coldistb = 0
+
+      EndIf   
+
+
+
+      If checkMap > 5 Then
+
+          wallX = 0
+
+          If side = 1 Then
+
+            wallX = rayPosX + ((mapY - rayPosY + (1 - stepY) / 2) / rayDirY) * rayDirX
+
+          Else
+
+            wallX = rayPosY + ((mapX - rayPosX + (1 - stepX) / 2) / rayDirX) * rayDirY
+
+          EndIf
+
+          wallX = wallX - math.floor(wallX)
+
+          texX = math.Floor(wallX * texwidth)+1
+
+          texpick = worldMap[mapx][mapy]-5
+
+          texel = Text.GetSubText(texture[texpick],texX,1)
+
+                
+
+            If texel = 0 Then
+
+              coldistr = 0
+
+              coldistg = 0
+
+              coldistb = 0
+
+            ElseIf texel = 1 Then 
+
+              coldistr = coladj * .25
+
+              coldistg = coladj * .25
+
+              coldistb = coladj * .25
+
+            elseif texel = 2 Then
+
+              coldistr = coladj * .4
+
+              coldistg = coladj * .4
+
+              coldistb = coladj * .4
+
+            elseif texel = 3 Then
+
+              coldistr = coladj * .6
+
+              coldistg = coladj * .6
+
+              coldistb = coladj * .6
+
+            elseif texel = 8 Then
+
+              coldistr = coladj * .66
+
+              coldistg = coladj * .44
+
+              coldistb = coladj * .22
+
+            elseif texel = 9 Then
+
+              coldistr = coladj
+
+              coldistg = coladj * .66
+
+              coldistb = coladj * .33
+
+            EndIf
+
+        EndIf
+
+      
+
+skiptexture:
+
+      ' grey
+
+      If checkMap = 1 Then
+
+        coldistr = coladj * .5
+
+        coldistg = coladj * .5
+
+        coldistb = coladj * .5
+
+      EndIf
+
+      ' red
+
+      If checkMap = 2 Then
+
+        coldistr = coladj
+
+        coldistg = 0
+
+        coldistb = 0
+
+      EndIf
+
+      'green
+
+      If checkMap = 3 Then
+
+        coldistr = 0
+
+        coldistg = coladj
+
+        coldistb = 0
+
+      EndIf
+
+      'blue
+
+      If checkMap = 4 Then
+
+        coldistr = 0
+
+        coldistg = 0
+
+        coldistb = coladj
+
+      EndIf
+
+      'yellow
+
+      If checkMap = 5 Then
+
+        coldistr = coladj
+
+        coldistg = coladj
+
+        coldistb = 0
+
+      EndIf
+
+
+
+      colour = GraphicsWindow.GetColorFromRGB(coldistr, coldistg, coldistb)
+
+      If side = 1 Then
+
+        colour = GraphicsWindow.GetColorFromRGB(coldistr / 1.3, coldistg / 1.3, coldistb / 1.3)
+
+      EndIf
+
+
+
+      GraphicsWindow.PenWidth = size
+
+      GraphicsWindow.PenColor = colour
+
+      If coladj < 1 Then 
+
+        nodraw()
+
+      Else
+
+        draw()
+
+        drawfill()
+
+      EndIf
+
+      
+
+  EndFor
+
+  completed = 1
+
+Endsub
+
+
+
+Sub draw
+
+  GraphicsWindow.DrawLine (x * size,drawStart,x * size,drawEnd)
+
+EndSub
+
+
+
+Sub drawfill
+
+  GraphicsWindow.PenColor = "black"
+
+  GraphicsWindow.DrawLine (x * size,0,x*size,drawstart)
+
+  GraphicsWindow.PenColor = "black"
+
+  GraphicsWindow.DrawLine (x * size,drawend,x*size,h)
+
+EndSub
+
+  
+
+Sub nodraw
+
+  GraphicsWindow.PenColor = "black"
+
+  GraphicsWindow.DrawLine (x * size,0,x * size,h)
+
+EndSub
+
+
+
+  
+
+Sub setupmap
+
+mapwidth = 21
+
+mapheight = 21
+
+  'define the map in the mapline array as strings
+
+  mapline[1] =  "181179797133333333333"
+
+  mapline[2] =  "101900000130000000008"
+
+  mapline[3] =  "100000000000000000013"
+
+  mapline[4] =  "111900000130007700008"
+
+  mapline[5] =  "101101797130000000011"
+
+  mapline[6] =  "100001111130000000008"
+
+  mapline[7] =  "601101666610011333331"
+
+  mapline[8] =  "600000000000001111111"
+
+  mapline[9] =  "600231666611001000001"
+
+  mapline[10] = "100000000000001000003"
+
+  mapline[11] = "100002200022000000003"
+
+  mapline[12] = "100000000000000000033"
+
+  mapline[13] = "100002200022000333033"
+
+  mapline[14] = "100000000000000033031"
+
+  mapline[15] = "103333311111111011011"
+
+  mapline[16] = "100000011110000000002"
+
+  mapline[17] = "100000001110000000002"
+
+  mapline[18] = "100200000110000000002"
+
+  mapline[19] = "100000000116543211302"
+
+  mapline[20] = "100000000000000000003"
+
+  mapline[21] = "111111111116543211222"
+
+  
+
+  ' 
+
+  ' define some parameters that state how big the map is
+
+  mapsizex = Text.GetLength (mapline[1])
+
+  mapsizey = array.GetItemCount (mapline)
+
+  '
+
+  'try to read this in and convert it into a two dimensional array
+
+  For yloop = 1 To mapsizey
+
+    For xloop = 1 To mapsizex
+
+      worldmap[xloop][yloop] = Text.GetSubText(mapline[yloop],xloop,1)
+
+    EndFor
+
+  EndFor
+
+EndSub
+
+
+
+Sub setuptexture
+
+  texture[1] =  "0899999989999998999999989999998899999989999999899999989999998"
+
+  texture[2] =  "0018992800000018998100000018998100000018998100000018998100000"
+
+  texture[3] =  "3333333333333322108999998999998999998999998012233333333333333"
+
+  texture[4] =  "1233333333333333321123333333333333333211233333333333333333321"
+
+EndSub
+
+

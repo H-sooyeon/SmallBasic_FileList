@@ -1,0 +1,483 @@
+' Monty Hall Problem
+
+' Copyright © 2018 Nonki Takahashi.  The MIT License.
+
+
+
+GraphicsWindow.Title = "Monty Hall Problem"
+
+Form()
+
+While "True"
+
+  nTry = nTry + 1
+
+  Shapes.SetText(txt, "Select!")
+
+  Select()
+
+  Shapes.SetText(txt, "")
+
+  OpenBooby()
+
+  Shapes.SetText(txt, "Keep or Change?")
+
+  KeepOrChange()
+
+  If selected2 = prize Then
+
+    Shapes.SetText(txt, "YOU WIN!")
+
+  Else
+
+    Shapes.SetText(txt, "YOU LOSE!")
+
+  EndIf
+
+  Program.Delay(1000)
+
+  NextGame()
+
+EndWhile
+
+
+
+Sub AddBehind
+
+  n = n + 1
+
+  If prize = n Then
+
+    behind[n] = Shapes.AddImage(imgCar)
+
+  Else
+
+    behind[n] = Shapes.AddImage(imgGoat)
+
+  EndIf
+
+  Shapes.Move(behind[n], x, y)
+
+  pos[n] = n
+
+EndSub
+
+
+
+Sub AddDoor
+
+  n = n + 1
+
+  GraphicsWindow.BrushColor = "White"
+
+  door[n] = Shapes.AddRectangle(width, height)
+
+  Shapes.Move(door[n], x, y)
+
+  size = width / 5
+
+  GraphicsWindow.BrushColor = "Silver"
+
+  knob[n] = Shapes.AddEllipse(size, size)
+
+  Shapes.Move(knob[n], x + size * 3.5, y + (height - size) / 2)
+
+EndSub
+
+
+
+Sub Change
+
+  trial[nTry] = "Changed"
+
+EndSub
+
+
+
+Sub CloseDoor
+
+  x = Shapes.GetLeft(door[i]) + width / 2
+
+  y = Shapes.GetTop(door[i])
+
+  For a = 90 To 0 Step -15
+
+    _a = Math.GetRadians(a)
+
+    scale = Math.Cos(_a)
+
+    Shapes.Move(door[i], x + scale * width / 2 - width / 2, y)
+
+    k = r * Math.Cos(_a + _b)
+
+    Shapes.Move(knob[i], x + k - size / 2, ky)
+
+    If 0.1 < scale Then
+
+      Shapes.Zoom(door[i], scale, 1)
+
+      Program.Delay(delay)
+
+    Else
+
+      Shapes.ShowShape(door[i])
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub DumpTrial
+
+  If selected2 = prize Then
+
+    win[nTry] = "True"
+
+    nWin = nWin + 1
+
+  Else
+
+    win[nTry] = "False"
+
+  EndIf
+
+  TextWindow.Write("trial[" + nTry + "]=" + trial[nTry] + ";")
+
+  TextWindow.Write("win[" + nTry + "]=" + win[nTry] + ";")
+
+  TextWindow.WriteLine("percentage=" + Math.Round(nWin / nTry * 100) + "%;")
+
+EndSub
+
+
+
+Sub Form
+
+  Not = "False=True;True=False;"
+
+  TextWindow.Left = 660
+
+  TextWindow.Top = 50
+
+  gw = 598
+
+  gh = 428
+
+  GraphicsWindow.Width = gw
+
+  GraphicsWindow.Height = gh
+
+  GraphicsWindow.Left = 30
+
+  GraphicsWindow.Top = 50
+
+  GraphicsWindow.BackgroundColor = "LightGray"
+
+  folder = Program.Directory + "\"
+
+  imgCar = ImageList.LoadImage(folder + "car.png")
+
+  imgGoat = ImageList.LoadImage(folder + "goat.png")
+
+  height = 200
+
+  width = 100
+
+  gap = 80
+
+  x0 = (gw - width * 3 - gap * 2) / 2
+
+  y = (gh - height - 30) / 2 + 30
+
+  GraphicsWindow.BrushColor = "Black"
+
+  GraphicsWindow.FontSize = 20
+
+  GraphicsWindow.FontName = "Trebuchet MS"
+
+  txt = Shapes.AddText("")
+
+  Shapes.Move(txt, x0, 10)
+
+  delta = width + gap
+
+  prize = Math.GetRandomNumber(3)
+
+  For x = x0 To x0 + delta * 2 Step delta
+
+    AddBehind()
+
+  EndFor
+
+  n = 0
+
+  For x = x0 To x0 + delta * 2 Step delta
+
+    AddDoor()
+
+  EndFor
+
+  _b = Math.ArcTan(0.5 / 4)
+
+  r = 4 * size / Math.Cos(_b)
+
+  GraphicsWindow.PenColor = "Red"
+
+  GraphicsWindow.BrushColor = "Transparent"
+
+  frame = Shapes.AddRectangle(width, height)
+
+  Shapes.HideShape(frame)
+
+  delay = 100
+
+  GraphicsWindow.MouseDown = OnMouseDown
+
+EndSub
+
+
+
+Sub Keep
+
+  trial[nTry] = "Kept"
+
+EndSub
+
+
+
+Sub KeepOrChange
+
+  selected2 = 0
+
+  While selected2 = 0
+
+    mouseDown = "False"
+
+    While Not[mouseDown]
+
+      Program.Delay(delay)
+
+    EndWhile
+
+    For i = 1 To n
+
+      If i <> open Then
+
+        x1 = Shapes.GetLeft(door[i])
+
+        x2 = x1 + width
+
+        y1 = Shapes.GetTop(door[i])
+
+        y2 = y2 + height
+
+        If (x1 <= mx) And (mx <= x2) And (y1 <= my) And (my <= y2) Then
+
+          selected2 = i
+
+          i = n ' exit For
+
+        EndIf
+
+      EndIf
+
+    EndFor
+
+  EndWhile
+
+  Shapes.HideShape(frame)
+
+  i = selected2
+
+  OpenDoor()
+
+  If selected = selected2 Then
+
+    Keep()
+
+  Else
+
+    Change()
+
+  EndIf
+
+  DumpTrial()
+
+EndSub
+
+
+
+Sub OnMouseDown
+
+  mx = GraphicsWindow.MouseX
+
+  my = GraphicsWindow.MouseY
+
+  mouseDown = "True"
+
+EndSub
+
+
+
+Sub OpenBooby
+
+  If selected = prize Then
+
+    j = 0
+
+    For i = 1 To n
+
+      If i <> prize Then
+
+        j = j + 1
+
+        candidate[j] = i
+
+      EndIf
+
+    EndFor
+
+    open = candidate[Math.GetRandomNumber(2)]
+
+  Else
+
+    For i = 1 To n
+
+      If (i <> prize) And (i <> selected) Then
+
+        open = i
+
+        i = n ' exit For
+
+      EndIf
+
+    EndFor
+
+  EndIf
+
+  i = open
+
+  OpenDoor()
+
+EndSub
+
+
+
+Sub OpenDoor
+
+  x = Shapes.GetLeft(door[i])
+
+  y = Shapes.GetTop(door[i])
+
+  ky = Shapes.GetTop(knob[i])
+
+  For a = 0 To 90 Step 15
+
+    _a = Math.GetRadians(a)
+
+    scale = Math.Cos(_a)
+
+    k = r * Math.Cos(_a + _b)
+
+    Shapes.Move(knob[i], x + k - size / 2, ky)
+
+    Shapes.Move(door[i], x + scale * width / 2 - width / 2, y)
+
+    If 0.1 < scale Then
+
+      Shapes.Zoom(door[i], scale, 1)
+
+    Else
+
+      Shapes.HideShape(door[i])
+
+    EndIf
+
+    Program.Delay(delay)
+
+  EndFor
+
+EndSub
+
+
+
+Sub Select
+
+  selected = 0
+
+  While selected = 0
+
+    mouseDown = "False"
+
+    While Not[mouseDown]
+
+      Program.Delay(200)
+
+    EndWhile
+
+    For i = 1 To n
+
+      x1 = Shapes.GetLeft(door[i])
+
+      x2 = x1 + width
+
+      y1 = Shapes.GetTop(door[i])
+
+      y2 = y2 + height
+
+      If (x1 <= mx) And (mx <= x2) And (y1 <= my) And (my <= y2) Then
+
+        selected = i
+
+        i = n ' exit For
+
+        Shapes.Move(frame, x1, y1)
+
+        Shapes.ShowShape(frame)
+
+      EndIf
+
+    EndFor
+
+  EndWhile
+
+EndSub
+
+
+
+Sub NextGame
+
+  i = selected2
+
+  CloseDoor()
+
+  i = open
+
+  CloseDoor()
+
+  lastPrize = prize
+
+  prize = Math.GetRandomNumber(3)
+
+  If prize <> lastPrize Then
+
+    i = pos[lastPrize]
+
+    j = pos[prize]
+
+    Shapes.Move(behind[i], Shapes.GetLeft(door[prize]), Shapes.GetTop(door[prize]))
+
+    Shapes.Move(behind[j], Shapes.GetLeft(door[lastPrize]), Shapes.GetTop(door[lastPrize]))
+
+    pos[lastPrize] = j
+
+    pos[prize] = i
+
+  EndIf
+
+EndSub
+
+

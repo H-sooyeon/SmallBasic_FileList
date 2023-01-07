@@ -1,0 +1,4119 @@
+'EXFS   Exospheric Freight Service
+
+'PROGRAM BY cvmarus
+
+'Graphic Images for this program are downloaded from my gallery at imgbox.com when this program runs
+
+LDGraphicsWindow.State = 2
+
+var()
+
+GraphicsWindow.BackgroundColor="Black"
+
+missionbriefing()
+
+'VIEW PORTS
+
+view3d = LD3DView.AddView(gw,gh,"False")  ''display view
+
+space = LD3DView.AddView(10,10,"False")   ''view for collision detection
+
+LDGraphicsWindow.PauseUpdates()
+
+LDEvents.MouseDoubleClick = onmousedoubleclick
+
+LDEvents.MouseWheel = onmousewheel
+
+GraphicsWindow.MouseMove = onmousemove
+
+GraphicsWindow.KeyDown = onkey
+
+GraphicsWindow.KeyUp = upkey
+
+GraphicsWindow.MouseDown = onmousedown
+
+LDControls.RadioButtonClicked = onradioclick
+
+LD3DView.RotationCompleted = onanimaterotatecomplete
+
+Controls.ButtonClicked = onbuttonclick
+
+
+
+'TIMERS
+
+Timer.Tick = ontimer
+
+Timer.Interval = 15
+
+Timer.Pause()
+
+
+
+LDTimer.Tick = onldtimer
+
+ldticker = LDTimer.Add()
+
+
+
+onstarttimer = LDTimer.Add()
+
+LDTimer.Interval(onstarttimer,30)
+
+LDTimer.Pause(onstarttimer)
+
+
+
+onbumptimer = LDTimer.Add()
+
+LDTimer.Interval(onbumptimer,400)
+
+LDTimer.Pause(onbumptimer)
+
+
+
+onbeamtimer = LDTimer.Add()
+
+LDTimer.Interval(onbeamtimer,45)
+
+LDTimer.Pause(onbeamtimer)
+
+
+
+thrusttimer = LDTimer.Add()
+
+LDTimer.Interval(thrusttimer,1000)
+
+LDTimer.Pause(thrusttimer)
+
+
+
+tryhack = LDTimer.AddTick(ldticker)
+
+LDTimer.Interval(tryhack,200)
+
+LDTimer.Pause(tryhack)
+
+
+
+syncrotime = LDTimer.AddTick(ldticker)
+
+LDTimer.Interval(syncrotime,15000)
+
+LDTimer.Pause(syncrotime)
+
+
+
+forcefieldtime = LDTimer.AddTick(ldticker)
+
+LDTimer.Interval(forcefieldtime,200)
+
+LDTimer.Pause(forcefieldtime)
+
+
+
+checkproximity = LDTimer.AddTick(ldticker)
+
+LDTimer.Interval(checkproximity,500)
+
+LDTimer.Pause(checkproximity)
+
+
+
+tryconnecttime = LDTimer.AddTick(ldticker)
+
+LDTimer.Interval(tryconnecttime,400)
+
+LDTimer.Pause(tryconnecttime)
+
+
+
+endgametime = LDTimer.AddTick(ldticker)
+
+LDTimer.Interval(endgametime,12000)
+
+LDTimer.Pause(endgametime)
+
+
+
+msgtimer = LDTimer.AddTick(ldticker)
+
+LDTimer.Interval(msgtimer,15000)
+
+LDTimer.Pause(msgtimer)
+
+
+
+'GLOBE MODEL
+
+globe = LD3DView.AddSphere(view3d,12500,64,"Black","S")
+
+globe1 = LD3DView.AddSphere(space,12500,64,tint,"E")
+
+LD3DView.AddImage(view3d,globe,"","https://www.ngdc.noaa.gov/mgg/image/color_etopo1_ice_low.jpg","D")
+
+LD3DView.TranslateGeometry(view3d,globe,10000,10000,10000)
+
+LD3DView.TranslateGeometry(space,globe1,10000,10000,10000)
+
+LD3DView.RotateGeometry3(view3d,globe,.25,.05,-.25,90)
+
+LD3DView.AnimateRotation(view3d,globe,0,0,1,0 360,180,-1)
+
+clouds = LD3DView.AddSphere(view3d,12600,64,"#44FFFFFF","D")
+
+'LD3DView.AddImage(view3d,clouds,"",Program.Directory+"/exfs_cloudpic1.png","D")
+
+LD3DView.AddImage(view3d,clouds,"","https://images2.imgbox.com/1a/2e/yoaUqdV9_o.png","D")
+
+LD3DView.TranslateGeometry(view3d,clouds,10000,10000,10000)
+
+LD3DView.RotateGeometry3(view3d,clouds,.25,.05,-.25,90)
+
+LD3DView.AnimateRotation(view3d,clouds,0,0,1,0 360,199,-1)
+
+'BUILD CUBE ENCLOSURE MODEL
+
+tubedata = "40 40 40 -40 40 40 -40 -40 40"
+
+tubedata = tubedata + " -42 -42 42"
+
+tubedata = tubedata +" -39.99 -39.99 39.99"
+
+tubedata = tubedata + " 40 -40 40 40 40 40 40 40 -40 -40 40 -40 -40 -40 -40"
+
+tubedata = tubedata + " -42 -42 -42 -39.99 -39.99 -39.99 40 -40 -40 40 40 -40"
+
+tubedata = tubedata + " 42 42 -42"
+
+tubedata = tubedata + " 39.99 39.99 -39.99"
+
+tubedata = tubedata + " -40 40 -40 -40 40 40 -40 -40 40 -40 -40 -40 40 -40 -40 40 -40 39.99"
+
+tube = LD3DView.AddTube(view3d,tubedata,.5,6,"Yellow","D")
+
+tube1 = LD3DView.AddTube(space,tubedata,3,4,"Yellow","E")
+
+'BUILD TRAILER BOX of transport vehicle
+
+tubedata = ""
+
+tv[1] = 4
+
+tv[2] = 4
+
+tv[3] = 0
+
+trailerlen = 16 * 8
+
+For tz = -trailerlen/2-8 To trailerlen/2-8 Step 8  'build sections of transport vehicle
+
+  tv[3] = tz
+
+  For angt = 0 to 360 step 90
+
+    newv = LDVector.Rotate(tv,vz,angt)
+
+    tubedata = tubedata + newv[1] + ":" + newv[2] + ":" + newv[3] + ":"
+
+  EndFor
+
+endfor
+
+newv = LDVector.Rotate(tv,vz,90)   '' build tube framework to engines
+
+tubedata = tubedata + 0 + ":" + 0 + ":" + (newv[3]+16) + ":"
+
+tubedata = tubedata + newv[1] + ":" + newv[2] + ":" + newv[3] + ":"
+
+newv = LDVector.Rotate(tv,vz,180)
+
+tubedata = tubedata + newv[1] + ":" + newv[2] + ":" + newv[3] + ":"
+
+tubedata = tubedata + 0 + ":" + 0 + ":" + (newv[3]+16) + ":"
+
+newv = LDVector.Rotate(tv,vz,270)
+
+tubedata = tubedata + newv[1] + ":" + newv[2] + ":" + newv[3] + ":"
+
+newv = LDVector.Rotate(tv,vz,360)
+
+tubedata = tubedata + newv[1] + ":" + newv[2] + ":" + newv[3] + ":"
+
+For angt = 90 to 270 step 90  'add long tubes
+
+  newv = LDVector.Rotate(tv,vz,angt)
+
+  tubedata = tubedata + newv[1] + ":" + newv[2] + ":" + newv[3] + ":"
+
+  tv[3] = -(tv[3]+8)-8
+
+  newv = LDVector.Rotate(tv,vz,angt)
+
+  tubedata = tubedata + newv[1] + ":" + newv[2] + ":" + newv[3] + ":"
+
+endfor
+
+tubedata = Text.GetSubText(tubedata,1,Text.GetLength(tubedata)-1)
+
+trailer1 = LD3DView.AddTube(space,tubedata,.5,8,"White","E")  
+
+trailer = LD3DView.AddTube(view3d,tubedata,.5,8,"Cyan","D")
+
+
+
+builddividers()     'dividers at each section of transport vehicle
+
+LD3DView.TranslateGeometry(view3d,dividers,0,0,-20)
+
+LD3DView.TranslateGeometry(space,dividers1,0,0,-20)
+
+'BUILD PROPELLENT TANKS
+
+tank[1] = LD3DView.AddSphere(view3d,5.5,16,"#00BBBB","D")
+
+For i = 2 to 3
+
+  tank[i] = LD3DView.CloneObject(view3d,tank[1])
+
+endfor
+
+tank[4] = LD3DView.AddCube(view3d,8,"#009999","D")
+
+For i = 1 To 4
+
+  LD3DView.TranslateGeometry(view3d,tank[i],0,0,-i*8+trailerlen/2 +-4)
+
+endfor
+
+tank[5] = LD3DView.AddCube(space,8,"#FFFFFF","E")
+
+LD3DView.ScaleGeometry(space,tank[5],1,1,8)
+
+LD3DView.TranslateGeometry(space,tank[5],0,0,-1*8+trailerlen/2 )
+
+
+
+engine[1] = LD3DView.AddSphere(view3d,3,16,"Red","D")  'engine parts
+
+LD3DView.TranslateGeometry(view3d,engine[1],0,0,trailerlen/2 + 8)
+
+createmotor() 'engine parts and rocket exhaust
+
+xtras = 13  'amount of transport vehicle geometries minus one
+
+'MOVE TRAILER & ENGINE
+
+gn1 = Text.GetSubTextToEnd(trailer1,9)
+
+For gn = gn1 to gn1 + xtras
+
+  gname = "Geometry" + gn
+
+  move[1] = 0
+
+  move[2] = -120
+
+  move[3] = 0
+
+  pos = LD3DView.GetPosition(view3d,gname)
+
+  pos = LDVector.Add(pos,move)
+
+  LD3DView.TranslateGeometry(view3d,gname,pos[1],pos[2],pos[3])
+
+endfor
+
+
+
+'BUILD PARKING ASSIST BOX  cubical tube frame
+
+tubedata = ""
+
+For tz = -4 To 4 Step 8
+
+  tv[3] = tz
+
+  For angt = 0 to 360 step 90
+
+    newv = LDVector.Rotate(tv,vz,angt)
+
+    tubedata = tubedata + newv[1] + ":" + newv[2] + ":" + newv[3] + ":"
+
+  EndFor
+
+endfor
+
+For angt = 90.1 to 271 step 90
+
+  newv = LDVector.Rotate(tv,vz,angt)
+
+  tubedata = tubedata + newv[1] + ":" + newv[2] + ":" + newv[3] + ":"
+
+  tv[3] = -tv[3]
+
+  newv = LDVector.Rotate(tv,vz,angt)
+
+  tubedata = tubedata + newv[1] + ":" + newv[2] + ":" + newv[3] + ":"
+
+endfor
+
+tubedata = Text.GetSubText(tubedata,1,Text.GetLength(tubedata)-1)
+
+parkingbox[1] = LD3DView.AddTube(view3d,tubedata,.1,6,"#60FFFF00","D")
+
+parkingbox[2] = "H"
+
+LD3DView.ModifyObject(view3d,parkingbox[1],"H")
+
+'CENTER MARKING BALL
+
+centerball = LD3DView.AddSphere(view3d,.25,8,"Yellow","E")
+
+LD3DView.ModifyObject(view3d,centerball,"H")
+
+'BUILD YELLOW GATE SPHERE MODEL
+
+gate = LD3DView.AddSphere(view3d,3,32,"Black","D")
+
+gate1 = LD3DView.AddSphere(space,3,32,"#64FFFF00","E")
+
+gateskin = LDImage.NewImage(512,512,"Yellow")
+
+LDImage.OpenWorkingImage(gateskin)
+
+For x = 1 to 512 step 32  ''add lines to sphere
+
+  For y = 1 to 512
+
+    LDImage.SetWorkingImagePixel(gateskin,x,y,"Black")
+
+    LDImage.SetWorkingImagePixel(gateskin,y,x+4,"Black")
+
+  endfor
+
+endfor
+
+For x = 300 to 340  ''add positioning target lines
+
+  LDImage.SetWorkingImagePixel(gateskin,x,356,"Black")
+
+  LDImage.SetWorkingImagePixel(gateskin,x,358,"Black")
+
+endfor
+
+For y = 327 to 387
+
+  LDImage.SetWorkingImagePixel(gateskin,320,y,"Black")
+
+  LDImage.SetWorkingImagePixel(gateskin,322,y,"Black")
+
+endfor
+
+
+
+LDImage.CloseWorkingImage(gateskin)
+
+GraphicsWindow.FontSize = 18
+
+
+
+LDImage.AddText(gateskin,"EXFS ORBITAL STOREHOUSE CONTROL",20,132,"#BB0000")   'add sphere words
+
+LDImage.AddText(gateskin,"ORBITAL STOREHOUSE CONTROL EXFS",20,196,"#BB0000")
+
+LDImage.AddText(gateskin,"STOREHOUSE CONTROL EXFS ORBITAL ",20,260,"#BB0000")
+
+LDImage.AddText(gateskin,"CONTROL EXFS ORBITAL STOREHOUSE",20,324,"#BB0000")
+
+LDImage.AddText(gateskin,"EXFS ORBITAL STOREHOUSE CONTROL",20,388,"#BB0000")
+
+LD3DView.AddImage(view3d,gate,"",gateskin,"D")
+
+
+
+'BUILD CUBE container MODELS 
+
+'cube[1] = LD3DView.AddCube(view3d,3,"Black","S")
+
+cube[1] = LD3DView.Addcube(view3d,6,"Black","S")
+
+cube1[1] = LD3DView.AddCube(space,6,tint,"E")
+
+'door2 = ImageList.LoadImage(Program.Directory+"/exfs_door2.jpg")
+
+door2 = ImageList.LoadImage("https://images2.imgbox.com/f8/be/DVYhNTfD_o.jpg")
+
+LD3DView.AddImage(view3d,cube[1],"",door2,"D")
+
+LD3DView.TranslateGeometry(view3d,cube[1],10000,10000,10000)
+
+LD3DView.TranslateGeometry(space,cube1[1],10000,10000,10000)
+
+w=.5
+
+For c = 2 To 27
+
+  cube[c] = LD3DView.CloneObject(view3d,cube[1])
+
+  cube1[c] = LD3DView.CloneObject(space,cube1[1])
+
+  LD3DView.TranslateGeometry(view3d,cube[c],Math.GetRandomNumber(72)-36,Math.GetRandomNumber(72)-36,Math.GetRandomNumber(72)-36)
+
+  pos = LD3DView.GetPosition(view3d,cube[c])
+
+  LD3DView.TranslateGeometry(space,cube1[c],pos[1],pos[2],pos[3])
+
+  LDMath.RandomNumberSeed = c
+
+EndFor
+
+p = 3
+
+
+
+'BUILD XXX NODE MODELS
+
+'LD3DView.AddImage(view3d,cube[26],"",Program.Directory+"/exfs_bluebox2.jpg","D")
+
+'LD3DView.AddImage(view3d,cube[27],"",Program.Directory+"/exfs_bluebox2.jpg","D")
+
+LD3DView.AddImage(view3d,cube[26],"","https://images2.imgbox.com/20/c0/CDPtsN2z_o.jpg","D")
+
+LD3DView.AddImage(view3d,cube[27],"","https://images2.imgbox.com/20/c0/CDPtsN2z_o.jpg","D")
+
+ffieldopacity =240
+
+ffield ="on"
+
+shade = "#888800"
+
+shade = LDColours.SetOpacity(shade,ffieldopacity)
+
+shadeb = "#00FF00"
+
+shadeb = LDColours.SetOpacity(shadeb,20)
+
+
+
+'BUILD BOX ENCLOSURE MODELS  force field simulation
+
+'grid = ImageList.LoadImage(Program.Directory+"/exfs_gridmap.png")
+
+grid = ImageList.LoadImage("https://images2.imgbox.com/06/32/Lvy1IiIZ_o.png")
+
+box[1] = LD3DView.AddCube(view3d,80,shadeb,"D")
+
+LD3DView.AddImage(view3d,box[1],"",grid,"E")
+
+LD3DView.SetBackMaterial(view3d,box[1],shadeb,"D")
+
+LD3DView.AddBackImage(view3d,box[1],"",grid,"E")
+
+box[2] = LD3DView.AddCube(view3d,80,shade,"D")
+
+box2 = LD3DView.AddCube(space,80,tint,"E")
+
+LD3DView.SetBackMaterial(space,box2,shade,"D")
+
+For c = 1 To 27
+
+  cubepos = LD3DView.GetPosition(view3d,cube[c])
+
+  LD3DView.SetCentre(view3d,cube[c],-cubepos[1],-cubepos[2],-cubepos[3],"R1R2R3")
+
+  LD3DView.SetCentre(space,cube1[c],-cubepos[1],-cubepos[2],-cubepos[3],"R1R2R3")
+
+EndFor
+
+
+
+angle = LDVector.AngleBetween(v1,v2)
+
+cross = LDVector.CrossProduct(v1,v2)
+
+
+
+'TRACTOR BEAM
+
+coneh = 8
+
+color1 = LDColours.SetOpacity("White",20)
+
+tbeam = LD3DView.AddCone(view3d,1.5,.001,coneh,32,"#44FFFFFF","D")
+
+'smoke = ImageList.LoadImage(Program.Directory+"/exfs_smoke.png")
+
+smoke = ImageList.LoadImage("https://images2.imgbox.com/69/60/3R0qoQRU_o.png")
+
+LDImage.ReplaceColour(smoke,"#FFFFFF","#22FFFFFF",0)
+
+LDImage.ReplaceColour(smoke,"#EBEBEB","#33EBEBEB",0)
+
+LDImage.ReplaceColour(smoke,"#E4E4E4","#44E4E4E4",0)
+
+LDImage.ReplaceColour(smoke,"#F4F4F4","#55F4F4F4",0)
+
+LD3DView.AddImage(view3d,tbeam,"",smoke,"D")
+
+LD3DView.SetCentre(view3d,tbeam,0,0,0,"R1R2R3")
+
+LD3DView.AnimateRotation(view3d,tbeam,0,1,0,0,360,1,-1)
+
+LD3DView.ModifyObject(view3d,tbeam,"H")
+
+'MOVE NODES INTO POSITION
+
+LD3DView.TranslateGeometry(view3d,cube[26],-43.5, -43.5, 43.5)
+
+cubepos = LD3DView.GetPosition(view3d,cube[26])
+
+LD3DView.SetCentre(view3d,cube[26],-cubepos[1],-cubepos[2],-cubepos[3],"R1R2R3")
+
+LD3DView.TranslateGeometry(space,cube1[26],-43.5, -43.5, 43.5)
+
+cubepos = LD3DView.GetPosition(space,cube1[26])
+
+LD3DView.SetCentre(space,cube1[26],-cubepos[1],-cubepos[2],-cubepos[3],"R1R2R3")
+
+
+
+LD3DView.TranslateGeometry(view3d,cube[27],43.5, 43.5, -43.5)
+
+cubepos = LD3DView.GetPosition(view3d,cube[27])
+
+LD3DView.SetCentre(view3d,cube[27],-cubepos[1],-cubepos[2],-cubepos[3],"R1R2R3")
+
+LD3DView.TranslateGeometry(space,cube1[27],43.5, 43.5, -43.5)
+
+cubepos = LD3DView.GetPosition(space,cube1[27])
+
+LD3DView.SetCentre(space,cube1[27],-cubepos[1],-cubepos[2],-cubepos[3],"R1R2R3")
+
+
+
+'MOVE GATE sphere INTO POSITION 
+
+LD3DView.TranslateGeometry(view3d,gate,-42,-42,-42)
+
+pos = LD3DView.GetPosition(view3d,gate)
+
+LD3DView.SetCentre(view3d,gate,-pos[1],-pos[2],-pos[3],"R1R2R3")
+
+LD3DView.TranslateGeometry(space,gate1,-42,-42,-42)
+
+pos = LD3DView.GetPosition(space,gate1)
+
+LD3DView.SetCentre(space,gate1,-pos[1],-pos[2],-pos[3],"R1R2R3")
+
+
+
+cross = LDVector.Normalise(cross)  ''build blue "crosstube" connection point for gate sphere
+
+crosstubedata1 = cross[1]+":"+cross[2]+":"+cross[3]
+
+cross = LDVector.Normalise(LDVector.CrossProduct(v1,cross))
+
+crosstubedata2 = cross[1]+":"+cross[2]+":"+cross[3]
+
+cross = LDVector.Normalise(LDVector.CrossProduct(v1,cross))
+
+crosstubedata3 = cross[1]+":"+cross[2]+":"+cross[3]
+
+cross = LDVector.Normalise(LDVector.CrossProduct(v1,cross))
+
+crosstubedata4 = cross[1]+":"+cross[2]+":"+cross[3]
+
+crosstubedata = crosstubedata1+":"+crosstubedata3+":0:0:0:"+crosstubedata2+":"+crosstubedata4
+
+
+
+crosstube = LD3DView.AddTube(view3d,crosstubedata,.6,8,"Blue","E")
+
+LD3DView.ScaleGeometry(view3d,crosstube,.05,.05,.05)
+
+LD3DView.TranslateGeometry(view3d,crosstube,-43.8,-43.8,-43.8)
+
+''GUIDE COLUMN TO AID CORRECT POSITIONING TO GATESPHERE CONNECTION
+
+guide = LD3DView.AddTube(view3d,"-40 -40 -40 -48 -48 -48",.07,16,LDColours.SetOpacity("White",40),"E")
+
+LD3DView.ReverseNormals(view3d,guide)
+
+
+
+'START  ROTATION MOVEMENTS ANIMATIONS
+
+LD3DView.AnimateRotation(view3d,gate,1,1,1,0,360,30,-1)
+
+LD3DView.AnimateRotation2(view3d,crosstube,1,1,1,0,360,30,-1)
+
+LD3DView.AnimateRotation(space,guide,1,1,1,0,360,30,-1)
+
+LD3DView.AnimateRotation(view3d,tube,1,1,1,0,360,60,-1)
+
+LD3DView.AnimateRotation(space,tube1,1,1,1,0,360,60,-1)
+
+LD3DView.AnimateRotation(view3d,box[1],1,1,1,0,360,60,-1)
+
+LD3DView.AnimateRotation(view3d,box[2],1,1,1,0,360,60,-1)
+
+LD3DView.AnimateRotation(space,box2,1,1,1,0,360,60,-1)
+
+anistart = Clock.ElapsedMilliseconds  ''TO TRACK ROTATION ANIMATION 
+
+For c = 1 To 27  ''ANIMATION OF CONTAINER CUBES
+
+  geonum = Text.GetSubTextToEnd(cube1[c],9)
+
+  geo_ani_state[geonum] = "True"
+
+  geo_ani_state[geonum-1] = "True"
+
+  If c < 27 Then
+
+    LD3DView.AnimateRotation(view3d,cube[c],1,1,1,0,360,60,-1)
+
+  Else
+
+    LD3DView.AnimateRotation2(view3d,cube[c],1,1,1,0,360,60,-1)
+
+  EndIf
+
+  LD3DView.AnimateRotation(space,cube1[c],1,1,1,0,360,60,-1)
+
+EndFor
+
+LD3DView.AnimateRotation(view3d,cube[27],42, 42, -42,0,360,4,-1)
+
+cubenode[1] = cube[26] 
+
+cubenode[2] = cube[27]
+
+cubenode1[1] = cube1[26]
+
+cubenode1[2] = cube1[27]
+
+cube[26] = ""
+
+cube[27] = ""
+
+cube1[26] = ""
+
+cube1[27] = ""
+
+
+
+LD3DView.CameraProperties(view3d,0.125,-1,camviewang)
+
+LD3DView.AddAmbientLight(view3d,"#555555")
+
+LD3DView.AddDirectionalLight(view3d,"White",1,0,0)
+
+
+
+'BUILD SHAPES  FOR HUD DISPLAY OF VELOCITIES ETC
+
+GraphicsWindow.FontSize = 24
+
+speedometer = Controls.AddButton("Ahead 0.000",gw * .85,gh * 0.01)
+
+LDControls.SetButtonStyle(speedometer,"#80FFFFFF","Red","Red","Maroon","Red","Red",20,"True")
+
+Controls.SetSize(speedometer,200,50)
+
+vslewometer = Controls.AddButton("Vslew 0.000",gw * .85,gh * 0.17)
+
+LDControls.SetButtonStyle(vslewometer,"#80FFFFFF","Red","Red","Maroon","Red","Red",20,"True")
+
+Controls.SetSize(vslewometer,200,50)
+
+hslewometer = Controls.AddButton("Hslew 0.000",gw * .85,gh * 0.09)
+
+LDControls.SetButtonStyle(hslewometer,"#80FFFFFF","Red","Red","Maroon","Red","Red",20,"True")
+
+Controls.SetSize(hslewometer,200,50)
+
+rollometer = Controls.AddButton("Roll 0.000",gw * .85,gh * .25)
+
+LDControls.SetButtonStyle(rollometer,"#80FFFFFF","Red","Red","Maroon","Red","Red",20,"True")
+
+Controls.SetSize(rollometer,200,50)
+
+distometer = Controls.AddButton("Dist 0.000",gw * .85,gh * .33)
+
+LDControls.SetButtonStyle(distometer,"#80FFFFFF","Red","Red","Maroon","Red","Red",20,"True")
+
+Controls.SetSize(distometer,200,50)
+
+restartbut = Controls.AddButton("Continue",gw*.4,gh*.6)
+
+LDControls.SetButtonStyle(restartbut,"#80FFFFFF","#80FFFFFF","#B0FFFFFF","Green","Red","Black",20,"True")
+
+Controls.SetSize(restartbut,200,50)
+
+Controls.HideControl(restartbut)
+
+
+
+
+
+GraphicsWindow.BrushColor = "DeepPink"
+
+GraphicsWindow.FontSize = 32
+
+GraphicsWindow.FontBold = "True"
+
+scorepop = Shapes.AddText("Score")  'FLOATING SCORE AWARDS
+
+Shapes.Move(scorepop,gwc,ghc)
+
+subscorebox = Shapes.AddText("0")
+
+Shapes.Move(subscorebox,2,2)
+
+GraphicsWindow.BrushColor = "Lime"
+
+damagepop = Shapes.AddText("Damage")  ''FLOATING DAMAGE AWARDS
+
+Shapes.Move(damagepop,gwc,ghc + 200)
+
+damagebox = Shapes.AddText("0")
+
+Shapes.Move(damagebox,2,40)
+
+GraphicsWindow.BrushColor = "#60FF4500"
+
+alertbox = Shapes.AddText("Alert")  ''VARIOUS NOTIFICATION SHAPES
+
+Shapes.Move(alertbox,gw * .15,gh * .25)
+
+Shapes.HideShape(alertbox)
+
+GraphicsWindow.BrushColor = "Yellow"
+
+loadbox = Shapes.AddText("Load")
+
+Shapes.HideShape(loadbox)
+
+Shapes.Move(loadbox,gw*.1,gh*.8)
+
+Shapes.Animate(loadbox,gw+300,-200,8000)
+
+GraphicsWindow.BrushColor = "Red"
+
+deliverymessagebox = Shapes.AddText("First Delivery in progress")
+
+Shapes.HideShape(deliverymessagebox)
+
+Shapes.Move(deliverymessagebox,-gw*.1,gh*.8)
+
+Shapes.Animate(deliverymessagebox,gw+300,gh*.8,12000)
+
+finaltext = "Mission Complete"+crlf+"Score="+subscore+crlf+"Damage="+damagetot+crlf+"Elapsed Time="+eltime+crlf+"Final Score="+finalscore
+
+finalbox = Shapes.AddText("Final")
+
+Shapes.HideShape(finalbox)
+
+Shapes.Move(finalbox,gw*1.2,gh)
+
+eltimebox = Shapes.AddText("Time")
+
+Shapes.Move(eltimebox,2,80)
+
+nodesbox = Shapes.AddText("Nodes=0")
+
+Shapes.Move(nodesbox,2,120)
+
+msgbox = Shapes.AddText("Message")
+
+Shapes.HideShape(msgbox)
+
+keyhintbox = Shapes.AddText("Exospheric Freight Service Mission"+crlf+"Press K to see Keyboard Controls")
+
+Shapes.Move(keyhintbox,gw*.35,gh*.25)
+
+'tempimage = ImageList.LoadImage(Program.Directory+"/exfs_reticle2.png")
+
+tempimage = ImageList.LoadImage("https://images2.imgbox.com/15/16/F3Ix3qos_o.png")
+
+imagewidth = ImageList.GetWidthOfImage(tempimage)
+
+imageheight = ImageList.GetHeightOfImage(tempimage)
+
+LDImage.MakeTransparent(tempimage,"#000000")
+
+reticle = Shapes.AddImage(tempimage)  'SCREEN CENTERMARKER
+
+LDShapes.Centre(reticle,gwc,ldghc)
+
+GraphicsWindow.BrushColor = "#00000000"
+
+circle = Shapes.AddEllipse(100,100)
+
+LDShapes.Centre(circle,gwc,ldghc)
+
+Shapes.HideShape(circle)
+
+redfade = LDColours.SetOpacity("#00FF00",60)
+
+GraphicsWindow.BrushColor = redfade
+
+
+
+hack = Shapes.AddText("Recognizing")
+
+LDShapes.Centre(hack,gwc,ldghc)
+
+Shapes.HideShape(hack)
+
+
+
+tichand = LDImage.NewImage(100,100,"#00000000")  ''CLOCK HANDS
+
+LDImage.OpenWorkingImage(tichand)
+
+For y = 1 to 50
+
+  LDImage.SetWorkingImagePixel(tichand,50,y,"Cyan")
+
+endfor
+
+LDImage.CloseWorkingImage(tichand)
+
+secondhand = LDImage.NewImage(60,60,"#00000000")
+
+LDImage.OpenWorkingImage(secondhand)
+
+For y = 1 to 30
+
+  LDImage.SetWorkingImagePixel(secondhand,29,y,"Cyan")
+
+  LDImage.SetWorkingImagePixel(secondhand,30,y,"Cyan")
+
+  LDImage.SetWorkingImagePixel(secondhand,31,y,"Cyan")
+
+endfor
+
+LDImage.CloseWorkingImage(secondhand)
+
+hackclock = Shapes.AddImage(tichand)
+
+
+
+LDShapes.Centre(hackclock,gwc, ldghc)
+
+hackclock2 = Shapes.AddImage(secondhand)
+
+
+
+LDShapes.Centre(hackclock2,gwc,ldghc)
+
+Shapes.HideShape(hackclock)
+
+Shapes.HideShape(hackclock2)
+
+
+
+GraphicsWindow.BrushColor = "Yellow"
+
+syncro = Shapes.AddText("Syncronized")
+
+LDShapes.Centre(syncro,gwc,ldghc)
+
+Shapes.HideShape(syncro)
+
+
+
+GraphicsWindow.FontSize = 12
+
+conimage = LDImage.NewImage(160,160,"#00000000")
+
+LDImage.AddText(conimage,"O",70,1,"Yellow")
+
+LDImage.AddText(conimage,"O",70,140,"Yellow")
+
+LDImage.AddText(conimage,"O",1,70,"Yellow")
+
+LDImage.AddText(conimage,"O",140,70,"Yellow")
+
+connector = Shapes.AddImage(conimage)  ''CONNECTION POSITIONER FOR HUD
+
+Shapes.Zoom(connector,2,2)
+
+LDShapes.Centre(connector,gwc,ldghc)
+
+Shapes.HideShape(connector)
+
+
+
+setupcont()  ''MULTIPURPOSE MESSAGE PANEL AND CONTROL PANEL
+
+
+
+mid = LD3DView.GetPosition(view3d,trailer)  
+
+gn1 = Text.GetSubTextToEnd(trailer1,9)
+
+
+
+For gn = gn1 to gn1 + xtras  'ANIMATE TRAILER MOVEMENT INTO SCENE
+
+  gname = "Geometry" + gn
+
+  p1 = LD3DView.GetPosition(view3d,gname)
+
+  p = LDVector.Subtract(mid,p1)
+
+  p[1] = p[1] +3000
+
+  LD3DView.SetCentre(view3d,gname, p[1],p[2],p[3],"R1R2R3")
+
+  LD3DView.AnimateRotation(view3d,gname,0,1,0,10,0,4,1)
+
+endfor
+
+GraphicsWindow.Title = "EXOSPHERIC FREIGHT SERVICE           press   Alt Tab  for Mission Briefing"
+
+'GETTING READY TO BEGIN
+
+starttime = Clock.ElapsedMilliseconds
+
+gname = trailer1
+
+p1 = LD3DView.GetPosition(space,gname)
+
+p = LDVector.Subtract(mid,p1)
+
+p[1] = p[1] +3000
+
+LDTimer.Resume(checkproximity)
+
+Timer.Resume()
+
+LDTimer.Resume(msgtimer)
+
+speednum = 1
+
+thrustersoundon()
+
+Mouse.MouseX = gwc
+
+Mouse.MouseY = ghc
+
+Shapes.Animate(scorepop,-200,-100,3000)
+
+Shapes.Animate(damagepop,-200,0,3000)
+
+messages()
+
+startpos()
+
+LDTimer.Resume(onstarttimer)
+
+speed = 5
+
+Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(600,1))
+
+Program.Delay(1000)
+
+LDGraphicsWindow.ResumeUpdates()  'SHOW SCENE
+
+Program.Delay(1000)
+
+TextWindow.WriteLine(crlf+t4+"LOADING COMPLETE   PRESS  ALT TAB")
+
+start:
+
+While "True"
+
+  Program.Delay(1000)
+
+endwhile
+
+
+
+Sub testparameters
+
+  deliverynum = 0
+
+  mousewheel = "True"
+
+  storefull = 1
+
+  For i =  1 To 3
+
+    node[i] = "True"
+
+  EndFor
+
+  check3nodes()
+
+EndSub
+
+
+
+Sub onbuttonclick  'MOUSE CLICK ON CONTINUE BUTTON
+
+  lastbut = Controls.LastClickedButton
+
+  If lastbut = restartbut Then
+
+    mousecursor = "False"
+
+    Mouse.HideCursor()
+
+    Controls.HideControl(restartbut)
+
+    Mouse.MouseX = gwc
+
+    Mouse.MouseY = ghc
+
+    Controls.HideControl(finalbox)
+
+    LDTimer.Pause(endgametime)
+
+    interfacepanelstate = "False"
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+Sub startpos
+
+  LD3DView.ResetCamera(view3d,-208.567,-1538.067,-727.756,0.119,0.870,0.478,-0.991,0.136,-0.00)
+
+EndSub
+
+
+
+Sub var   'SET VARIABLES
+
+  acel = 1.2
+
+  alertboxstate = "False"
+
+  args = ""
+
+  camviewang = 90
+
+  connectingstate = "False"
+
+  creditmessagestate = "False"
+
+  cr = Text.GetCharacter(13)
+
+  crlf = cr + lf
+
+  d = 0
+
+  damageamt = 0
+
+  damagetot = 0     '
+
+  Shapes.SetText(damagebox,0)
+
+  Shapes.SetText(deliverymessagebox,"First Delivery in progress")
+
+  deliverynum = 0
+
+  dh = Desktop.Height
+
+  dw = Desktop.Width
+
+  eltime = 24.22
+
+  ffield = "on"
+
+  finalscore = 12532
+
+  gh = GraphicsWindow.Height
+
+  ribbon = dh - gh - 1
+
+  ldghc = gh/2
+
+  ghc = ribbon + gh/2
+
+  gw = GraphicsWindow.Width
+
+  gwc = gw/2
+
+  hackingstate = "False"
+
+  hacktimelength = 10000
+
+  helpmsg = "True"
+
+  inc = .1
+
+  interfacepanelstate = "False"
+
+  keyhelpstate = "False"
+
+  lf = Text.GetCharacter(10)
+
+  m = .3
+
+  maxspeed = .6
+
+  mousezoom = camviewang/600
+
+  mousewheel = "False"
+
+  node[1] = "False"
+
+  node[2] = "False"
+
+  node[3] = "False"
+
+  nodenum = 10
+
+  pic = 1
+
+  pixel[1][1] = 683
+
+  pixel[1][2] = 395
+
+  pixel[2][1] = 683
+
+  pixel[2][2] = 325
+
+  pixel[3][1] = 753
+
+  pixel[3][2] = 395
+
+  pixel[4][1] = 683
+
+  pixel[4][2] = 465
+
+  pixel[5][1] = 613
+
+  pixel[5][2] = 395
+
+  ribbon = dh - gh - 1
+
+  pixel[1][1] = gwc 'center of connector guide
+
+  pixel[1][2] = ghc
+
+  pixel[2][1] = gwc  ' 12 oclock
+
+  pixel[2][2] = dh * .334
+
+  pixel[3][1] = gw * .601  '3 oclock
+
+  pixel[3][2] = dh * .516
+
+  pixel[4][1] = gwc  '6 oclock
+
+  pixel[4][2] = dh * .698
+
+  pixel[5][1] = gw * .398  '9 oclock
+
+  pixel[5][2] = dh * .514
+
+  rtbleft = gw*.62  
+
+  rtbtop = gh * .38
+
+  sp = Text.GetCharacter(32)
+
+  storefull = 23
+
+  t1 = Text.GetCharacter(9)
+
+  t2 = t1 + t1
+
+  t3 = t2+t1
+
+  t4 = t2+t2
+
+  tint = "#64FF0000"
+
+  tractorbeamstate = "False"
+
+  v1[1] = -1
+
+  v1[2] = -1
+
+  v1[3] = -1
+
+  v2[1] = 0
+
+  v2[2] = 0
+
+  v2[3] = 1
+
+  vx[1] = 1
+
+  vx[2] = 0
+
+  vx[3] = 0
+
+  vy[1] = 0
+
+  vy[2] = 1
+
+  vy[3] = 0
+
+  vz[1] = 0
+
+  vz[2] = 0
+
+  vz[3] = 1
+
+  xr = 0
+
+  yr = 0
+
+  zr = 0
+
+EndSub
+
+
+
+Sub upkey  'KEY HANDLING
+
+  If Text.StartsWith(key1,"D") and Text.GetLength(key1) > 1 Then  'SPEED
+
+    speednum = Text.GetSubTextToEnd(key1,2)
+
+    speed = .066666666 * speednum
+
+    Controls.SetButtonCaption(speedometer,"Ahead "+LDMath.FixDecimal(speed*1000,1))
+
+    thrustersoundon()
+
+  EndIf
+
+  If key1 = "F1" Then  'CREDITS
+
+    For i = Text.GetSubTextToEnd(rtb,8) to Text.GetSubTextToEnd(exit1,8)
+
+      Controls.HideControl("Control"+i)
+
+    endfor
+
+    If creditmessagestate = "False" Then
+
+      creditmessagestate = "True"
+
+      credits()
+
+    Elseif creditmessagestate = "True" then
+
+      creditmessagestate = "False"
+
+      Controls.HideControl(rtb)
+
+    EndIf
+
+    Program.Delay(100)
+
+  EndIf
+
+  If key1 = "H" Then  'HELP TOGGLE
+
+    if helpmsg = "True" Then
+
+      helpmsg = "False"
+
+      LDTimer.Pause(msgtimer)
+
+      Shapes.HideShape(msgbox)
+
+    ElseIf helpmsg = "False" then
+
+      helpmsg = "True"
+
+      LDTimer.Resume(msgtimer)
+
+      Shapes.ShowShape(msgbox)
+
+    EndIf
+
+  EndIf
+
+  If key1 = "K" Then  'KEYBOARD HELP TOGGLE
+
+    Shapes.HideShape(keyhintbox)
+
+    For i = Text.GetSubTextToEnd(rtb,8) to Text.GetSubTextToEnd(exit1,8)
+
+      Controls.HideControl("Control"+i)
+
+    endfor
+
+    If keyhelpstate = "False" Then
+
+      keyhelpstate = "True"
+
+      setupkeyhelp()
+
+    ElseIf keyhelpstate = "True" then
+
+      keyhelpstate = "False"
+
+    EndIf
+
+  EndIf
+
+  If key1 = "N1" Then
+
+    testparameters()
+
+  EndIf
+
+  If key1 = "T" Then  'TRACTOR BEAM OFF HANDLING
+
+    if LDCall.Function("is_cube_in_spot",tractorhit[1]) then
+
+      tractorbeamstate = "False"
+
+      LDTimer.Pause(onbeamtimer)
+
+      tractorbeamsoundoff()
+
+      geonum = Text.GetSubTextToEnd(tractorhit[1],9)
+
+      geo_ani_state[geonum] = "stored"
+
+      geo_ani_state[geonum-1] = "stored"
+
+      checktrailerload()
+
+      parkingbox[2] = "H"
+
+      LD3DView.ModifyObject(view3d,parkingbox[1],"H")
+
+    Else
+
+      cubepos = LD3DView.GetPosition(view3d,tractorhit[1])
+
+      mid = LD3DView.GetPosition(view3d,centerball)
+
+      mid[3] = Math.Floor(cubepos[3] / 8) * 8 + 4
+
+      distancefromtrailer = LDVector.Length(LDVector.Subtract(cubepos,mid))
+
+      If distancefromtrailer > 20 Then
+
+        tractorbeamstate = "False"
+
+        LDTimer.Pause(onbeamtimer)
+
+        tractorbeamsoundoff()
+
+        parkingbox[2] = "H"
+
+        LD3DView.ModifyObject(view3d,parkingbox[1],"H")
+
+        geonum = Text.GetSubTextToEnd(tractorhit[1],9)
+
+        geo_ani_state[geonum] = "parked"
+
+        geo_ani_state[geonum-1] = "parked"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  If Text.IsSubText(key1,"QWEASDZXC") Then
+
+    thrustersoundoff()
+
+  EndIf
+
+  If key1 = "LeftShift" Then  'ALL STOP
+
+    speed = 0
+
+    hslew = 0
+
+    vslew = 0
+
+    roll = 0
+
+    Controls.SetButtonCaption(speedometer,"Ahead "+LDMath.FixDecimal(speed*1000,1))
+
+    Controls.SetButtonCaption(hslewometer,"Hslew "+LDMath.FixDecimal(hslew*1000,1))
+
+    Controls.SetButtonCaption(vslewometer,"Vslew "+LDMath.FixDecimal(vslew*1000,1))
+
+    Controls.SetButtonCaption(rollometer,"Roll "+LDMath.FixDecimal(roll*1000,1))
+
+    thrustersoundon()
+
+  EndIf
+
+  If key1 = "O" Then  'CONTROLLER INTERFACE PANEL
+
+    threenodestate = 0
+
+    For nn = 1 To 3
+
+      If node[nn] = "True" Then
+
+        threenodestate = threenodestate + 1
+
+      EndIf
+
+    EndFor
+
+    Shapes.HideShape(alertbox)
+
+    If interfacepanelstate = "False" Then
+
+      interfacepanelstate = "True"
+
+      LDControls.RichTextBoxSetText(rtb,interfacetext,"False")
+
+      LDCall.Function3("wordmark","EXFS ORBITAL STOREHOUSE CONTROLLER INTERFACE","32,bold",0)
+
+      mousecursor = "True"
+
+      Mouse.ShowCursor()
+
+      LDControls.RadioButtonSet(exit1)
+
+      For i = Text.GetSubTextToEnd(rtb,8) to Text.GetSubTextToEnd(exit1,8)
+
+        Controls.ShowControl("Control"+i)
+
+      endfor
+
+      Mouse.MouseX = gw*.655
+
+      Mouse.MouseY = gh*.90
+
+      If threenodestate < 2 Then
+
+        Controls.HideControl(exitsave)
+
+      EndIf
+
+    ElseIf interfacepanelstate = "True" then
+
+      Mouse.hideCursor()
+
+      mousecursor = "False"
+
+      Mouse.MouseX = gwc
+
+      Mouse.MouseY = ghc
+
+      interfacepanelstate = "False"
+
+      For i = Text.GetSubTextToEnd(rtb,8) to Text.GetSubTextToEnd(exit1,8)
+
+        Controls.HideControl("Control"+i)
+
+      endfor
+
+      If ffield Then
+
+        LDControls.RadioButtonSet(ffon)
+
+      Else
+
+        LDControls.RadioButtonSet(ffoff)
+
+      EndIf
+
+      If gfield Then
+
+        LDControls.RadioButtonSet(gfon)
+
+      Else
+
+        LDControls.RadioButtonSet(gfoff)
+
+      EndIf
+
+    EndIf
+
+    key1 = ""
+
+  EndIf
+
+  If key1 = "P" Then  ''TO SEND CAMERA DATA TO THE CLIPBOARD
+
+    campos = LD3DView.GetCameraPosition(view3d)
+
+    camdir = LD3DView.GetCameraDirection(view3d)
+
+    camup = LD3DView.GetCameraUpDirection(view3d)
+
+    For i = 1 To 3
+
+      camdir[i] = LDMath.FixDecimal(camdir[i],3)
+
+      campos[i] = LDMath.FixDecimal(campos[i],3)
+
+      camup[i] = LDMath.FixDecimal(camup[i],3)
+
+    EndFor
+
+    camdat = campos[1] + "," + campos[2] + "," +campos[3] + "," + camdir[1] + "," + camdir[2] + ","+ camdir[3] + ","
+
+    camdat = camdat + camup[1] + "," + camup[2] + "," + camup[3] + crlf
+
+    LDClipboard.SetText(camdat)
+
+  EndIf
+
+  key1 = ""
+
+EndSub
+
+
+
+Sub onkey  'HOLDING KEY HANDLING FOR TRUSTER MOVEMENT KEYS
+
+  key1 = GraphicsWindow.lastkey
+
+  If hitt[1] <> "" Then
+
+    campos = LD3DView.GetCameraPosition(view3d)
+
+    camup = LD3DView.GetCameraUpDirection(view3d)
+
+  EndIf
+
+  If key1 = "E" Then
+
+    thrustersoundon()
+
+    If roll = 0 Then
+
+      roll = .01
+
+    ElseIf roll > 0 then
+
+      roll = roll * acel
+
+    Else
+
+      roll = roll / acel
+
+    EndIf
+
+    If Math.Abs(roll) > maxspeed * 1.6 Then
+
+      roll = maxspeed * 1.6 * roll / Math.Abs(roll)
+
+    EndIf
+
+    Controls.SetButtonCaption(rollometer,"Roll "+LDMath.FixDecimal(roll*1000,1))
+
+  EndIf
+
+  If key1 = "Q" Then
+
+    thrustersoundon()
+
+    If roll = 0 Then
+
+      roll = -.01
+
+    ElseIf roll > 0 then
+
+      roll = roll / acel
+
+    Else
+
+      roll = roll * acel
+
+    EndIf
+
+    If Math.Abs(roll) > maxspeed * 1.6 Then
+
+      roll = maxspeed * 1.6 * roll / Math.Abs(roll)
+
+    EndIf
+
+    Controls.SetButtonCaption(rollometer,"Roll "+LDMath.FixDecimal(roll*1000,1))
+
+  EndIf
+
+  If key1 = "R" Then
+
+    thrustersoundon()
+
+    roll = 0
+
+    Controls.SetButtonCaption(rollometer,"Roll "+LDMath.FixDecimal(roll*1000,1))
+
+  EndIf
+
+  If key1 = "A" Then
+
+    thrustersoundon()
+
+    If hslew = 0 Then
+
+      hslew = .01
+
+    ElseIf hslew > 0  then
+
+      hslew = hslew * acel
+
+    Else
+
+      hslew = hslew / acel
+
+    EndIf
+
+    If Math.Abs(hslew) > maxspeed Then
+
+      hslew = maxspeed * hslew / Math.Abs(hslew)
+
+    EndIf
+
+    Controls.SetButtonCaption(hslewometer,"Hslew "+LDMath.FixDecimal(hslew*1000,1))
+
+    If Math.Abs(hslew) < .001 Then
+
+      hslew = 0
+
+    EndIf
+
+  EndIf
+
+  If key1 = "D" Then
+
+    thrustersoundon()
+
+    If hslew = 0 Then
+
+      hslew = -.01
+
+    ElseIf hslew > 0  then
+
+      hslew = hslew / acel
+
+    Else
+
+      hslew = hslew * acel
+
+    EndIf
+
+    If Math.Abs(hslew) > maxspeed Then
+
+      hslew = maxspeed * hslew / Math.Abs(hslew)
+
+    EndIf
+
+    Controls.SetButtonCaption(hslewometer,"Hslew "+LDMath.FixDecimal(hslew*1000,1))
+
+    If Math.Abs(hslew) < .001 Then
+
+      hslew = 0
+
+    EndIf
+
+  EndIf
+
+  If key1 = "Z" Then
+
+    thrustersoundon()
+
+    If vslew = 0 Then
+
+      vslew = .01
+
+    ElseIf vslew > 0 then
+
+      vslew = vslew * acel
+
+    Else
+
+      vslew = vslew / acel
+
+    EndIf
+
+    If Math.Abs(vslew) > maxspeed Then
+
+      vslew = maxspeed * vslew / Math.Abs(vslew)
+
+    EndIf
+
+    Controls.SetButtonCaption(vslewometer,"Vslew "+LDMath.FixDecimal(vslew*1000,1))
+
+    If Math.Abs(vslew) < .001 Then
+
+      vslew = 0
+
+    EndIf
+
+  EndIf
+
+  If key1 = "C" Then
+
+    thrustersoundon()
+
+    If vslew = 0 Then
+
+      vslew = -.01
+
+    ElseIf vslew > 0 then
+
+      vslew = vslew / acel
+
+    Else
+
+      vslew = vslew * acel
+
+    EndIf
+
+    If Math.Abs(vslew) > maxspeed Then
+
+      vslew = maxspeed * vslew / Math.Abs(vslew)
+
+    EndIf
+
+    Controls.SetButtonCaption(vslewometer,"Vslew "+LDMath.FixDecimal(vslew*1000,1))
+
+    If Math.Abs(vslew) < .001 Then
+
+      vslew = 0
+
+    EndIf
+
+  EndIf
+
+  If key1 = "V" Then
+
+    thrustersoundon()
+
+    vslew = 0
+
+    Controls.SetButtonCaption(vslewometer,"Vslew "+LDMath.FixDecimal(vslew*1000,1))
+
+  EndIf
+
+  If key1 = "F" Then
+
+    thrustersoundon()
+
+    hslew = 0
+
+    Controls.SetButtonCaption(hslewometer,"Hslew "+LDMath.FixDecimal(hslew*1000,1))
+
+    Program.Delay(d)
+
+  EndIf
+
+  If key1 = "W" Then
+
+    thrustersoundon()
+
+    If speed = 0 Then
+
+      speed = .01
+
+    ElseIf speed > 0 then
+
+      speed = speed * acel
+
+    Else
+
+      speed = speed / acel
+
+    EndIf
+
+    If Math.Abs(speed) < .001 Then
+
+      speed = 0
+
+    EndIf
+
+    If Math.Abs(speed) > maxspeed Then
+
+      speed = maxspeed * speed / Math.Abs(speed)
+
+    EndIf
+
+    Controls.SetButtonCaption(speedometer,"Ahead "+LDMath.FixDecimal(speed*1000,1))
+
+  EndIf
+
+  If key1 = "S" Then
+
+    thrustersoundon()
+
+    If speed = 0 Then
+
+      speed = -.01
+
+    ElseIf speed < 0 then
+
+      speed = speed * acel
+
+    Else
+
+      speed = speed / acel
+
+    EndIf
+
+    If Math.Abs(speed) > maxspeed Then
+
+      speed = maxspeed * speed / Math.Abs(speed)
+
+    EndIf
+
+    Controls.SetButtonCaption(speedometer,"Ahead "+LDMath.FixDecimal(speed*1000,1))
+
+    If Math.Abs(speed) < .001 Then
+
+      speed = 0
+
+    EndIf
+
+  EndIf
+
+  If key1 = "X" Then
+
+    thrustersoundon()
+
+    speed = 0
+
+    Controls.SetButtonCaption(speedometer,"Ahead "+LDMath.FixDecimal(speed*1000,1))
+
+  EndIf
+
+  If key1 = "Escape" Then
+
+    Controls.HideControl(finalbox)
+
+    key1 = ""
+
+    ans = LDDialogs.Confirm("Are you sure you want to quit?","End Program")
+
+    If ans = "Yes" then
+
+      Program.End()
+
+    EndIf
+
+    Mouse.MouseX = gwc
+
+    Mouse.MouseY = ghc
+
+  EndIf
+
+EndSub
+
+
+
+Sub checkhacklock  'CHECKING FOR PROXIMITY TO NODES
+
+  hitt = LD3DView.HitTest(view3d,-1,-1)
+
+  If (hitt[1] = cubenode[2] or hitt[1] = cubenode[1]) And hitt[2] < 18 Then 
+
+    If nodenum = 10 Then
+
+      If hitt[1] = cubenode[1] Then
+
+        nodenum = 1
+
+      ElseIf hitt[1] = cubenode[2] then
+
+        nodenum = 2
+
+      EndIf
+
+    EndIf
+
+    If node[nodenum] = "Working" Then
+
+      If Clock.ElapsedMilliseconds > hacktime Then
+
+        Shapes.HideShape(circle)
+
+        Shapes.HideShape(hackclock)
+
+        Shapes.HideShape(hackclock2)
+
+        Shapes.HideShape(hack)
+
+        LDTimer.Pause(tryhack)
+
+        node[nodenum] = "True"
+
+        nodenum = 10
+
+        Shapes.SetText(syncro,"Syncronized")  
+
+        Shapes.ShowShape(syncro)
+
+        LDShapes.AnimateOpacity(syncro,1000,3)
+
+        LDTimer.Resume(syncrotime)
+
+        LDCall.Function("scoreit",1500)
+
+        check3nodes()
+
+      EndIf
+
+    ElseIf node[nodenum] = "False" Then
+
+      node[nodenum] = "Working"
+
+      hacktime = Clock.ElapsedMilliseconds + hacktimelength
+
+      LDTimer.Resume(tryhack)
+
+      Shapes.ShowShape(circle)
+
+      Shapes.ShowShape(hackclock)
+
+      Shapes.showShape(hackclock2)
+
+      LDShapes.AnimateRotation(hackclock,1000,0)
+
+      LDShapes.AnimateRotation(hackclock2,hacktimelength,0)
+
+      Shapes.ShowShape(hack)
+
+      LDShapes.AnimateOpacity(hack,1500,0)
+
+    ElseIf node[nodenum] = "True" Then
+
+      Shapes.SetText(syncro,"Syncronized")
+
+      Shapes.ShowShape(syncro)
+
+      LDShapes.AnimateOpacity(syncro,1000,3)
+
+      LDTimer.Resume(syncrotime)
+
+      LDTimer.Pause(tryhack)
+
+      nodenum = 10
+
+    EndIf
+
+  ElseIf node[nodenum] = "Working" then
+
+    Shapes.HideShape(circle)
+
+    Shapes.HideShape(hackclock)
+
+    Shapes.HideShape(hackclock2)
+
+    Shapes.HideShape(hack)
+
+    LDTimer.Pause(tryhack)
+
+    node[nodenum] = "False"
+
+    nodenum = 10
+
+  EndIf
+
+EndSub
+
+
+
+Sub onmousedown  'NOT USED
+
+  If Mouse.IsLeftButtonDown Then
+
+  EndIf
+
+  If Mouse.IsrightButtonDown Then
+
+  EndIf
+
+EndSub
+
+
+
+Sub parkguide  ''CONTROL DISPLAY AND MOVEMENT OF BOX AID FOR PLACING CUBES INTO TRANSPORT VEHICLE
+
+  cbpos = LD3DView.GetPosition(view3d, centerball)
+
+  temp = LDVector.Subtract(tractorpos,cbpos)
+
+  dist1 = LDMath.Convert2Radial(tractorpos[1],tractorpos[2],cbpos[1],cbpos[2])
+
+  If dist1[1] < 12 and tractorpos[3] < 25 and tractorpos[3] > -73 Then
+
+    If parkingbox[2] = "H" Then
+
+      LD3DView.ModifyObject(view3d,parkingbox[1],"S")
+
+      parkingbox[2] = "S"
+
+    EndIf
+
+    LD3DView.TranslateGeometry(view3d,parkingbox[1],tractorpos[1],tractorpos[2],tractorpos[3])
+
+    checkboxtest = checkboxtest + 1
+
+    If checkboxtest > 3 Then
+
+      checkboxtest = 0
+
+      collisioncheckbox()
+
+    EndIf
+
+  Else
+
+    LD3DView.ModifyObject(view3d,parkingbox[1],"H")
+
+    parkingbox[2] = "H"
+
+  EndIf
+
+EndSub
+
+
+
+Sub tryconnecting     ''CHECKING FOR PROPER POSITION AND ROTATION TO GATE SPHERE FOR CONNECTION
+
+  LD3DView.ModifyObject(view3d,guide,"H")
+
+  connectcount = 0
+
+  For p = 1 To 5
+
+    hitc = LD3DView.HitTest(view3d,pixel[p][1],pixel[p][2])
+
+    if  hitc[1] = crosstube  Then
+
+      connectcount = connectcount + 1
+
+    EndIf
+
+  EndFor
+
+  LD3DView.ModifyObject(view3d,guide,"S")
+
+  If connectcount > 0 Then
+
+    Shapes.ShowShape(connector)
+
+    If hitc[2] < .3 Then
+
+      Shapes.SetText(alertbox,"Match Rotational Speed")  
+
+    EndIf
+
+  Else
+
+    Shapes.HideShape(connector)
+
+  EndIf
+
+  If connectcount < 1 Then
+
+    Shapes.HideShape(alertbox)
+
+    alertboxstate = "False"
+
+  EndIf
+
+  If connectcount = 5 and connectingstate = "False"  Then
+
+    connectime = Clock.ElapsedMilliseconds + hacktimelength
+
+    Shapes.ShowShape(circle)
+
+    Shapes.ShowShape(hackclock)
+
+    Shapes.showShape(hackclock2)
+
+    LDShapes.AnimateRotation(hackclock,1000,0)
+
+    LDShapes.AnimateRotation(hackclock2,hacktimelength,1)
+
+    Shapes.SetText(hack,"Connecting")
+
+    Shapes.ShowShape(hack)
+
+    LDShapes.AnimateOpacity(hack,500,0)
+
+    connectingstate="True"
+
+  ElseIf connectcount < 5 and connectingstate ="True" then
+
+    Shapes.HideShape(circle)
+
+    Shapes.HideShape(hackclock)
+
+    Shapes.HideShape(hackclock2)
+
+    Shapes.HideShape(hack)
+
+    connectingstate = "False"
+
+    LDTimer.Pause(tryconnecttime)
+
+    Shapes.HideShape(connector)
+
+  EndIf
+
+  If Clock.ElapsedMilliseconds > connectime and connectingstate = "True" Then
+
+    Shapes.HideShape(circle)
+
+    Shapes.HideShape(hackclock)
+
+    Shapes.HideShape(hackclock2)
+
+    Shapes.HideShape(hack)
+
+    LDTimer.Pause(tryconnecttime)
+
+    Shapes.HideShape(connector)
+
+    node[3] = "True"
+
+    Shapes.SetText(syncro,"connected")
+
+    Shapes.ShowShape(syncro)
+
+    LDShapes.AnimateOpacity(syncro,500,2)
+
+    LDTimer.Resume(syncrotime)
+
+    LDCall.Function("scoreit",2500)
+
+    check3nodes()
+
+    speed = -1                                             
+
+    Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+    LDTimer.Resume(onbumptimer)
+
+    alertboxstate = "False"
+
+    Shapes.HideShape(alertbox)
+
+  EndIf
+
+EndSub
+
+
+
+Sub onldtimer  'TIMER HANDLING
+
+  timername = LDTimer.LastTimer
+
+  If timername = msgtimer Then ''MESSAGES
+
+    msgcount = msgcount + 1
+
+    Shapes.SetText(msgbox,msg[msgcount])
+
+    Shapes.Move(msgbox,gw,gh*.85)
+
+    Shapes.ShowShape(msgbox)
+
+    Shapes.Animate(msgbox,2,gh*.85,10000)
+
+    if msgcount >= msgtot Then
+
+      msgcount = 0
+
+    EndIf
+
+  EndIf
+
+  If timername = endgametime Then  'END GAME
+
+    If deliverynum = 1 Then
+
+      Controls.SetButtonCaption(restartbut,"Continue")
+
+      Controls.ShowControl(restartbut)
+
+      Mouse.ShowCursor()
+
+      mousecursor = "True"
+
+    EndIf
+
+  EndIf
+
+  If timername = onstarttimer Then   ''TIMER AT BEGINNING FLY INTO SCENE
+
+    hit = LD3DView.HitTest(view3d,-1,-1)
+
+    If hit[2] < 6300 Then
+
+      LDTimer.Pause(onstarttimer)
+
+      speed = 0
+
+      Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+      speednum = 1
+
+      thrustersoundon()
+
+      Mouse.HideCursor()
+
+      mousecursor = "False"
+
+      pos = LD3DView.GetPosition(view3d,trailer)
+
+      LD3DView.TranslateGeometry(view3d,centerball,pos[1],pos[2],pos[3]-24)
+
+      gn1 = Text.GetSubTextToEnd(trailer1,9)
+
+      For gn = gn1 + xtras-2 To gn1 + xtras
+
+        gname = "Geometry"+gn
+
+        LD3DView.ModifyObject(view3d,gname,"H")
+
+      EndFor
+
+      buildtrailercollisionframes()  'FOR COLLISION DETECTION  IN SPACE VIEWPORT
+
+    EndIf
+
+  EndIf
+
+  If timername = onbumptimer Then  ''TIMER FOR AFTER A BUMP COLLSION
+
+    speed = speed/3
+
+    vslew = vslew/3
+
+    hslew = hslew/3
+
+    Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+    Controls.SetButtonCaption(hslewometer,"Hslew "+LDMath.FixDecimal(hslew*1000,1))
+
+    Controls.SetButtonCaption(vslewometer,"Vslew "+LDMath.FixDecimal(vslew*1000,1))
+
+    LDTimer.Pause(onbumptimer)
+
+  EndIf
+
+  If timername = onbeamtimer Then
+
+    tbeamcontrol()  ''TRACTOR BEAM DISPLAY CONTROL
+
+  EndIf
+
+  If timername = thrusttimer Then
+
+    thrustersoundoff()
+
+  EndIf
+
+  If timername = checkproximity Then  'CHECKING FOR PROXIMITY TO NODES
+
+    
+
+    hitt = LD3DView.HitTest(space,-1,-1)
+
+    If (hitt[1] = cubenode1[1] Or hitt[1] = cubenode1[2]) And hitt[2] < 18 Then
+
+      LDTimer.Resume(tryhack)
+
+    EndIf
+
+    If hitt[1] = gate1 Then  
+
+      If hitt[2] < 6 Then
+
+        speed = hitt[2] * .006
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+        If hitt[2] < .21 Then
+
+          speed = 0
+
+          Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+        EndIf
+
+        If alertboxstate <> "active" Then
+
+          Shapes.SetText(alertbox,"Auto Speed Control Engaged")
+
+          Shapes.ShowShape(alertbox)
+
+          LDShapes.AnimateZoom(alertbox,3000,10,2,2)
+
+          alertboxstate = "active"
+
+        EndIf
+
+      EndIf
+
+      If hitt[2] < 2 Then
+
+        If connectingstate = "False" Then
+
+          LDTimer.Resume(tryconnecttime)
+
+        EndIf
+
+      ElseIf node[3] = "True" then
+
+        Shapes.HideShape(alertbox)
+
+        Shapes.SetText(syncro,"connected")
+
+        Shapes.ShowShape(syncro)
+
+        LDShapes.AnimateOpacity(syncro,500,2)
+
+        LDTimer.Resume(syncrotime)
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  If timername = tryconnecttime Then
+
+    tryconnecting()  'HANDLING CONNECTION TO YELLOW SPHERE
+
+  EndIf
+
+  If timername = tryhack Then  
+
+    checkhacklock()  'HANDLING CONNECTION TO BLUE NODES
+
+  EndIf
+
+  If timername = syncrotime Then  'HIDING MESSAGE AFTER ELAPSED TIME
+
+    LDTimer.Pause(syncrotime)
+
+    Shapes.HideShape(syncro)
+
+  EndIf
+
+  If timername = forcefieldtime Then  'FORCE FIELD ON OR OFF DISPLAY
+
+    If ffield = "True" and ffieldopacity = 0 Then
+
+      finc = 10
+
+      LD3DView.ModifyObject(view3d,box[2],"S")
+
+      LD3DView.ModifyObject(view3d,box[1],"S")
+
+      LD3DView.ModifyObject(space,box2,"S")
+
+    EndIf
+
+    If ffield = "False" And ffieldopacity = 240 Then
+
+      finc = - 10
+
+    EndIf
+
+    ffieldopacity = ffieldopacity + finc
+
+    shade = LDColours.SetOpacity("#888800", ffieldopacity)
+
+    LD3DView.ResetMaterial(view3d,box[2],shade,"D")
+
+    If ffieldopacity = 240  or ffieldopacity = 0 Then
+
+      LDTimer.Pause(forcefieldtime)
+
+      If ffieldopacity = 0 Then
+
+        LD3DView.ModifyObject(view3d,box[2],"H")
+
+        LD3DView.ModifyObject(view3d,box[1],"H")
+
+        LD3DView.ModifyObject(space,box2,"H")
+
+        ffield = "False"
+
+      ElseIf ffieldopacity = 240 then
+
+        ffield = "True"
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub ontimer  'TIMER FOR CAMERA MOVEMENTS
+
+  
+
+  if Math.Remainder(hittest,4) = 0 Then
+
+    campos1 = LD3DView.GetCameraPosition(view3d)
+
+    LD3DView.MoveCamera(view3d,0,0,roll,speed)
+
+    campos = LD3DView.GetCameraPosition(view3d)
+
+    camdir = LD3DView.GetCameraDirection(view3d)
+
+    camup = LD3DView.GetCameraUpDirection(view3d)
+
+    camrht = LDVector.CrossProduct(camup, camdir)
+
+    newcampos = LDVector.Add(campos,LDVector.Add(LDVector.Multiply(camup, vslew),LDVector.Multiply(camrht,hslew)))
+
+    LD3DView.ResetCamera(view3d,newcampos[1],newcampos[2],newcampos[3],camdir[1],camdir[2],camdir[3],camup[1],camup[2],camup[3])
+
+    LD3DView.ResetCamera(space,newcampos[1],newcampos[2],newcampos[3],camdir[1],camdir[2],camdir[3],camup[1],camup[2],camup[3])
+
+    campos2 = LD3DView.GetCameraPosition(view3d)
+
+    velocityvec = LDVector.Subtract(campos1,campos2)
+
+    velocity = LDVector.Length(velocityvec)
+
+  EndIf
+
+  hittest = hittest + 1  
+
+  If hittest = 3 And tractorbeamstate = "False" Then  'CHECK FOR TRACTOR BEAM ACTIVATION IN SPACE
+
+    LD3DView.ModifyObject(space,trailerbb1,"H")
+
+    disthit = LD3DView.HitTest(space,-1,-1)
+
+    LD3DView.ModifyObject(space,trailerbb1,"S")
+
+    Controls.SetButtonCaption(distometer,"Dist "+LDMath.FixDecimal(disthit[2],3))
+
+    if Array.ContainsValue(cube1,disthit[1]) and disthit[2] < 8 Then
+
+      tractorhit = disthit
+
+      tractorhit[3] = "Geometry"+(Text.GetSubTextToEnd(tractorhit[1],9)-1)
+
+      geonum = Text.GetSubTextToEnd(tractorhit[1],9)
+
+      If geo_ani_state[geonum] <> "stored" Then
+
+        If geo_ani_state[geonum] = "True" Then
+
+          aniremain = Math.Remainder(Clock.ElapsedMilliseconds - anistart,60000)/60000
+
+          LD3DView.AnimateRotation(view3d,tractorhit[1],1,1,1,360*aniremain,360,1,1)
+
+          LD3DView.AnimateRotation(space,tractorhit[3],1,1,1,360*aniremain,360,1,1)
+
+          LD3DView.SetCentre(view3d,tractorhit[1],0,0,0,"R1R2R3")
+
+          LD3DView.SetCentre(space,tractorhit[3],0,0,0,"R1R2R3")
+
+          geo_ani_state[geonum] = "False"
+
+          geo_ani_state[geonum-1] = "False"
+
+        EndIf
+
+        tractorbeamstate = "True"
+
+        tractorbeamsoundon()
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  If hittest > 6 Then  ''CHECK FOR COLLISION AT CAMERA POSITION
+
+    hittest = 0
+
+    eltime = LDMath.FixDecimal((Clock.ElapsedMilliseconds-starttime)/60000,2)
+
+    Shapes.SetText(eltimebox,eltime)
+
+    collisioncheckcamera()
+
+    hitt = LD3DView.HitTest(space,-1,-1)
+
+  EndIf
+
+EndSub
+
+
+
+Sub collisioncheckbox    'CHECK FOR COLLISION OF CONTAINER IN TRACTOR BEAM
+
+  campos4 = LD3DView.GetCameraPosition(view3d)
+
+  camdir4 = LD3DView.GetCameraDirection(view3d)
+
+  camup4 = LD3DView.GetCameraUpDirection(view3d)
+
+  LD3DView.ResetCamera(space,tractorpos[1],tractorpos[2],tractorpos[3],camdir4[1],camdir4[2],camdir4[3],camup4[1],camup4[2],camup4[3])
+
+  hittest = 0  ''hittest front back left right up down
+
+  hitspace[1] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.MoveCamera(space,90,0,0,0)
+
+  hitspace[2] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.MoveCamera(space,90,0,0,0)
+
+  hitspace[3] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.MoveCamera(space,90,0,0,0)
+
+  hitspace[4] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.MoveCamera(space,90,0,0,0)
+
+  LD3DView.MoveCamera(space,0,90,0,0)
+
+  hitspace[5] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.MoveCamera(space,0,180,0,0)
+
+  hitspace[6] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.ResetCamera(space,campos4[1],campos4[2],campos4[3],camdir4[1],camdir4[2],camdir4[3],camup4[1],camup4[2],camup4[3])
+
+  If hitspace[1][2] = "" Then
+
+    hitspace[1][2] = 99
+
+  EndIf
+
+  nearest[2] = hitspace[1][2]
+
+  nearest[1] = 1
+
+  For i1 = 2 To 6   ''find nearest hit of six directions
+
+    If hitspace[i1][2] < nearest[2] and hitspace[i1][1] <> "" Then
+
+      nearest[1] = i1
+
+      nearest[2] = hitspace[i1][2]
+
+    EndIf
+
+  EndFor
+
+  i1 = nearest[1]
+
+  If hitspace[i1][1] <> gate1 Then
+
+    If hitspace[i1][2] < 3.3 and hitspace[i1][1] <> "" Then 'WHAT TO DO UPON A COLLISION OF A CONTAINER IN TRACTOR BEAM
+
+      bumpsoundon()
+
+      If speed = 0 Then
+
+        bounce = .05
+
+      Else
+
+        bounce = speed/2
+
+      EndIf
+
+      damageamt = Math.Round(Math.Abs(bounce) * 200)
+
+      damagetot = damagetot + damageamt
+
+      Shapes.SetText(damagepop,"Damage "+damageamt)
+
+      Shapes.SetText(damagebox,damagetot)
+
+      Shapes.Move(damagepop,gwc,ghc)
+
+      Shapes.Animate(damagepop,-200,0,2000)
+
+      If i1 = 1 Then
+
+        speed = -(speed+bounce)
+
+        LD3DView.MoveCamera(view3d,0,0,0,-1-bounce)
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+      ElseIf i1 = 2 then
+
+        hslew = Math.Abs(speed)+Math.Abs(hslew)+bounce
+
+        speed = 0
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+        Controls.SetButtonCaption(hslewometer,"Hslew "+LDMath.FixDecimal(hslew*1000,1))
+
+      ElseIf i1 = 3 then
+
+        speed = -(speed+bounce)
+
+        LD3DView.MoveCamera(view3d,0,0,0,1+bounce)
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+      ElseIf i1 = 4 then
+
+        hslew = -(Math.Abs(speed)+Math.Abs(hslew)+bounce)
+
+        speed = 0
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+        Controls.SetButtonCaption(hslewometer,"Hslew "+LDMath.FixDecimal(hslew*1000,1))
+
+      ElseIf i1 = 5 then
+
+        vslew = -(Math.Abs(speed)+Math.Abs(vslew)+bounce)
+
+        speed = 0
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+        Controls.SetButtonCaption(vslewometer,"Vslew "+LDMath.FixDecimal(vslew*1000,1))
+
+      ElseIf i1 = 6 then
+
+        vslew = Math.Abs(speed)+Math.Abs(vslew)+bounce
+
+        speed = 0 
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+        Controls.SetButtonCaption(vslewometer,"Vslew "+LDMath.FixDecimal(vslew*1000,1))
+
+      EndIf
+
+      LDTimer.Resume(onbumptimer)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub collisioncheckcamera
+
+  ''hittest front left back right up down
+
+  hitspace[1] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.MoveCamera(space,90,0,0,0)
+
+  hitspace[2] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.MoveCamera(space,90,0,0,0)
+
+  hitspace[3] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.MoveCamera(space,90,0,0,0)
+
+  hitspace[4] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.MoveCamera(space,90,0,0,0)
+
+  LD3DView.MoveCamera(space,0,90,0,0)
+
+  hitspace[5] = LD3DView.HitTest(space,-1,-1)
+
+  LD3DView.MoveCamera(space,0,180,0,0)
+
+  hitspace[6] = LD3DView.HitTest(space,-1,-1)
+
+  If hitspace[1][2] = "" Then
+
+    hitspace[1][2] = 99
+
+  EndIf
+
+  nearest[2] = hitspace[1][2]
+
+  nearest[1] = 1
+
+  For i1 = 2 To 6   ''find nearest hit of six directions
+
+    If hitspace[i1][2] < nearest[2] and hitspace[i1][1] <> "" Then
+
+      nearest[1] = i1
+
+      nearest[2] = hitspace[i1][2]
+
+    EndIf
+
+  EndFor
+
+  i1 = nearest[1]
+
+  If hitspace[i1][1] <> gate1 Then
+
+    If hitspace[i1][2] < 2.5 and hitspace[i1][1] <> "" Then 'WHAT TO DO UPON A COLLISION IN CAMERA AREA
+
+      bumpsoundon()
+
+      If speed = 0 Then
+
+        bounce = .2
+
+      Else
+
+        bounce = speed * 2
+
+      EndIf
+
+      damageamt = Math.Round(Math.Abs(bounce) * 200)
+
+      damagetot = damagetot + damageamt
+
+      Shapes.SetText(damagepop,"Damage "+damageamt)
+
+      Shapes.SetText(damagebox,damagetot)
+
+      Shapes.Move(damagepop,gwc,ghc)
+
+      Shapes.Animate(damagepop,-200,0,2000)
+
+      If i1 = 1 Then
+
+        speed = -(speed+bounce)
+
+        LD3DView.MoveCamera(view3d,0,0,0,-1-bounce)
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+      ElseIf i1 = 2 then
+
+        hslew = Math.Abs(speed)+Math.Abs(hslew)+bounce
+
+        speed = 0
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+        Controls.SetButtonCaption(hslewometer,"Hslew "+LDMath.FixDecimal(hslew*1000,1))
+
+      ElseIf i1 = 3 then
+
+        speed = -(speed+bounce)
+
+        LD3DView.MoveCamera(view3d,0,0,0,1+bounce)
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+      ElseIf i1 = 4 then
+
+        hslew = -(Math.Abs(speed)+Math.Abs(hslew)+bounce)
+
+        speed = 0
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+        Controls.SetButtonCaption(hslewometer,"Hslew "+LDMath.FixDecimal(hslew*1000,1))
+
+      ElseIf i1 = 5 then
+
+        vslew = -(Math.Abs(speed)+Math.Abs(vslew)+bounce)
+
+        speed = 0
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+        Controls.SetButtonCaption(vslewometer,"Vslew "+LDMath.FixDecimal(vslew*1000,1))
+
+      ElseIf i1 = 6 then
+
+        vslew = Math.Abs(speed)+Math.Abs(vslew)+bounce
+
+        speed = 0 
+
+        Controls.SetButtonCaption(speedometer,"Speed "+LDMath.FixDecimal(speed*1000,1))
+
+        Controls.SetButtonCaption(vslewometer,"Vslew "+LDMath.FixDecimal(vslew*1000,1))
+
+      EndIf
+
+      LDTimer.Resume(onbumptimer)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+sub onmousedoubleclick
+
+  'NOT USED
+
+EndSub
+
+Sub onmousewheel
+
+  If mousewheel Then
+
+    move = LDEvents.LastMouseWheelDelta
+
+    LD3DView.MoveCamera(view3d,0,0,0,move*3)
+
+  EndIf
+
+EndSub
+
+
+
+Sub onmousemove   
+
+  If mousecursor = "False" Then
+
+    mx = (Mouse.MouseX - gwc) * mousezoom
+
+    my = -(Mouse.MouseY - ghc) * mousezoom
+
+    LD3DView.MoveCamera(view3d,mx,my,0,0)
+
+    Mouse.MouseX = gwc
+
+    Mouse.MouseY = ghc
+
+    speednum = -9
+
+    thrustersoundon()
+
+  EndIf
+
+EndSub
+
+
+
+Sub setupcont
+
+  'setup control interface panel
+
+  rtb = LDControls.AddRichTextBox(.36*gw,.6*gh)
+
+  Controls.HideControl(rtb)
+
+  GraphicsWindow.FontSize = 14
+
+  GraphicsWindow.BrushColor = "Black"
+
+  ffon = LDControls.AddRadioButton("Force Field On","ff")
+
+  Controls.HideControl(ffon)
+
+  LDControls.RadioButtonSet(ffon)
+
+  ffoff = LDControls.AddRadioButton("Force Field Off","ff")
+
+  Controls.HideControl(ffoff)
+
+  gfon = LDControls.AddRadioButton("Gravity Field On","gf")
+
+  Controls.HideControl(gfon)
+
+  LDControls.RadioButtonSet(gfon)
+
+  gfoff = LDControls.AddRadioButton("Gravity Field Off","gf")
+
+  Controls.HideControl(gfoff)
+
+  exitsave = LDControls.AddRadioButton("Exit & Save","ex")
+
+  Controls.HideControl(exitsave)
+
+  exit = LDControls.AddRadioButton("Exit Only","ex")
+
+  Controls.HideControl(exit)
+
+  exit1 = LDControls.AddRadioButton("","ex")
+
+  Controls.Move(exit1,gw,1)
+
+  LDControls.RadioButtonSet(exit1)
+
+  Controls.Move(rtb,rtbleft,rtbtop)
+
+  Controls.Move(ffon,gw*.655,gh*.86)
+
+  Controls.Move(ffoff,gw*.84,gh*.86)
+
+  Controls.Move(gfon,gw*.655,gh*.89)
+
+  Controls.Move(gfoff,gw*.84,gh*.89)
+
+  Controls.Move(exitsave,gw*.655,gh*.92)
+
+  Controls.Move(exit,gw*.84,gh*.92)
+
+  ffield = LDControls.RadioButtonGet(ffon)
+
+  gfield = LDControls.RadioButtonGet(gfon)
+
+  LDControls.RichTextBoxReadOnly = "False"
+
+  LDControls.RichTextBoxFontSize = 16
+
+  LDControls.RichTextBoxFontBackground = "PaleGoldenrod"
+
+  LDControls.RichTextBoxFontForeground = "Black"
+
+  LDControls.RichTextBoxMargins(25,15,25,25)
+
+  LDControls.RichTextBoxCaseSensitive = "True"
+
+  LDControls.RichTextBoxDefault(rtb)
+
+  LDControls.RichTextBoxClear(rtb)
+
+  msg = "EXFS ORBITAL STOREHOUSE CONTROLLER INTERFACE"+crlf+crlf
+
+  msg = msg + "ACCESS STATUS:"+t3+"Connected"+crlf
+
+  msg = msg + "Wireless Enabled:"+t3+"Yes"+crlf
+
+  msg = msg + "SSID:"+t4+"XKYQ4RK"+crlf
+
+  msg = msg + "Channel:"+t4+"79264"+crlf
+
+  msg = msg + "Security Enabled:"+t3+"No"+crlf
+
+  msg = msg + "WEP64:"+t4+"N/A"+crlf
+
+  msg = msg + "WEP 802.1x"+t3+"N/A"+crlf
+
+  msg = msg + "WPA2:"+t4+"HWD6VTD88HSNWHTLJ"+crlf
+
+  msg = msg + "_________________________________________________________________"+crlf
+
+  interfacetext = msg
+
+EndSub
+
+
+
+Sub wordmark ''RICH TEXT BOX TEXT MARKING
+
+  words = LDText.Split(args[1],",")
+
+  marks = LDText.Split(args[2],",")
+
+  For i = 1 To Array.GetItemCount(marks)
+
+    If marks[i] = "gray" Then
+
+      LDControls.RichTextBoxFontForeground = "DarkGray"
+
+    ElseIf marks[i] = "italic" Then
+
+      LDControls.RichTextBoxFontItalic = "True"
+
+    Elseif marks[i] = "highlight" Then
+
+      LDControls.RichTextBoxFontBackground = "White"
+
+    elseif marks[i] = "black" then
+
+      LDControls.RichTextBoxFontForeground = "Black"
+
+    elseif marks[i] = "bold" then
+
+      LDControls.RichTextBoxFontBold = "True"
+
+    Elseif marks[i] / 2 = marks[i] * .5 Then
+
+      LDControls.RichTextBoxFontSize = marks[i]
+
+    EndIf
+
+  EndFor
+
+  For i = 1 To Array.GetItemCount(words)
+
+    LDControls.RichTextBoxWord(rtb,words[i],args[3])
+
+  EndFor
+
+EndSub
+
+
+
+Sub onradioclick ''HANDLING RADIO CLICKS
+
+  lastradio = LDControls.LastRadioButton
+
+  If lastradio = exitsave Then  'EXIT AND SAVE
+
+    Sound.PlayClick()
+
+    For i = Text.GetSubTextToEnd(rtb,8) to Text.GetSubTextToEnd(exit1,8)
+
+      Controls.HideControl("Control"+i)
+
+    endfor
+
+    toggleinterfacepanelstate()
+
+    mousecursor = "False"
+
+    Mouse.HideCursor()
+
+    Mouse.MouseX = gwc
+
+    Mouse.MouseY = ghc
+
+    If gfield <> LDControls.RadioButtonGet(gfon) Then
+
+      gfield = LDControls.RadioButtonGet(gfon)
+
+      If gfield = "False" Then   
+
+        For i2 = 2 To 25   ''gravity off CONTROL
+
+          posc = LD3DView.GetPosition(view3d,cube[i2])
+
+          dirc = LDVector.Normalise(posc)
+
+          newposc = LDVector.Multiply(dirc,1000)
+
+          aniremain = Math.Remainder(Clock.ElapsedMilliseconds - anistart,60000)/60000
+
+          LD3DView.AnimateRotation(view3d,cube[i2],1,1,1,360*aniremain,360*aniremain,.001,1)
+
+          LD3DView.AnimateRotation(space,cube1[i2],1,1,1,360*aniremain,360*aniremain,.001,1)
+
+          LD3DView.SetCentre(view3d,cube[i2],0,0,0,"R1R2R3")
+
+          LD3DView.TranslateGeometry(view3d,cube[i2],posc[1],posc[2],posc[3])
+
+          LD3DView.SetCentre(space,cube1[i2],0,0,0,"R1R2R3")
+
+          LD3DView.TranslateGeometry(space,cube1[i2],posc[1],posc[2],posc[3])
+
+          LD3DView.AnimateTranslation(view3d,cube[i2],newposc[1],newposc[2],newposc[3],199)
+
+          LD3DView.AnimateTranslation(space,cube1[i2],newposc[1],newposc[2],newposc[3],199)
+
+        EndFor
+
+      EndIf
+
+    EndIf
+
+    
+
+    If ffield <> LDControls.RadioButtonGet(ffon) Then  'FORCE FIELD CONTROL
+
+      ffield = LDControls.RadioButtonGet(ffon)
+
+      If ffield = "True" Then
+
+        ffieldopacity = 0
+
+        LDTimer.Resume(forcefieldtime)
+
+      Else
+
+        ffieldopacity = 240
+
+        LDTimer.Resume(forcefieldtime)
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+  If lastradio = exit Then  'EXIT NO SAVE
+
+    toggleinterfacepanelstate()
+
+    For i = Text.GetSubTextToEnd(rtb,8) to Text.GetSubTextToEnd(exit1,8)
+
+      Controls.HideControl("Control"+i)
+
+      If ffield Then
+
+        LDControls.RadioButtonSet(ffon)
+
+      Else
+
+        LDControls.RadioButtonSet(ffoff)
+
+      EndIf
+
+      If gfield Then
+
+        LDControls.RadioButtonSet(gfon)
+
+      Else
+
+        LDControls.RadioButtonSet(gfoff)
+
+      EndIf
+
+    endfor
+
+    ffield = LDControls.RadioButtonGet(ffon)
+
+    gfield = LDControls.RadioButtonGet(gfon)
+
+    mousecursor = "False"
+
+    Mouse.HideCursor()
+
+    Mouse.MouseX = gwc
+
+    Mouse.MouseY = ghc
+
+  EndIf 
+
+EndSub
+
+
+
+Sub toggleinterfacepanelstate  'SET THE STATE OF INTERFACE PANEL VARIABLES SHOW OR HIDE
+
+  If interfacepanelstate = "False" Then
+
+    interfacepanelstate = "True"
+
+  ElseIf interfacepanelstate = "True" then
+
+    interfacepanelstate = "False"
+
+  EndIf
+
+EndSub
+
+
+
+Sub tractorbeamsoundoff ''SOUNDS
+
+  For chan = 2 to 5
+
+    LDMusic.EndNote(note[chan])
+
+  Endfor
+
+  LD3DView.ModifyObject(view3d,tbeam,"H")
+
+  LDTimer.Pause(onbeamtimer)
+
+EndSub
+
+
+
+Sub tractorbeamsoundon  'SOUNDS
+
+  inst = 82
+
+  vel = 68
+
+  oct = 3
+
+  LDMusic.Channel =2
+
+  LDMusic.Instrument = inst
+
+  LDMusic.Velocity = vel
+
+  note[2] = LDMusic.PlayNote(oct, "C", 2)
+
+  LDMusic.Channel = 3
+
+  LDMusic.Instrument = inst
+
+  LDMusic.Velocity = vel
+
+  note[3] = LDMusic.PlayNote(oct, "E", 3)
+
+  LDMusic.Channel = 4
+
+  LDMusic.Instrument = inst
+
+  LDMusic.Velocity = vel
+
+  note[4] = LDMusic.PlayNote(oct, "G", 4)
+
+  LDMusic.Channel = 5
+
+  LDMusic.Instrument = inst
+
+  LDMusic.Velocity = vel
+
+  note[5] = LDMusic.PlayNote(oct, "A", 5)
+
+  LD3DView.ModifyObject(view3d,tbeam,"S")
+
+  LDTimer.Resume(onbeamtimer)
+
+EndSub
+
+
+
+Sub thrustersoundon  'SOUNDS
+
+  If thrustsound <> "on" Then
+
+    LDMusic.Channel = 1
+
+    LDMusic.Velocity = 128
+
+    LDMusic.Instrument = 127
+
+    note[1] = LDMusic.PlayNote(2,"G",1)
+
+  EndIf
+
+  thrusttime = 2000
+
+  thrusttime = thrusttime + 200 * speednum
+
+  speednum = 0
+
+  LDTimer.Interval(thrusttimer,thrusttime)
+
+  LDTimer.Resume(thrusttimer)
+
+  thrustsound = "on"
+
+EndSub
+
+
+
+Sub thrustersoundoff  'SOUNDS
+
+  LDMusic.EndNote(note[1])
+
+  LDTimer.Pause(thrusttimer)
+
+  thrustsound = "off"
+
+EndSub
+
+
+
+Sub bumpsoundon  'SOUNDS
+
+  LDMusic.Channel = 6
+
+  LDMusic.Velocity = 128
+
+  LDMusic.Instrument = 128
+
+  note[1] = LDMusic.PlayNote(3,"C",6)
+
+EndSub
+
+
+
+Sub tbeamcontrol  'TRACTOR BEAM DISPLAY
+
+  bcampos = LD3DView.GetCameraPosition(view3d)
+
+  bcamdir = LD3DView.GetCameraDirection(view3d)
+
+  bcamup = LD3DView.GetCameraUpDirection(view3d)
+
+  beamopos = LDVector.Subtract(bcampos,LDVector.Multiply(bcamup,2))
+
+  beamndpos = LDVector.Add(bcampos,LDVector.Multiply(bcamdir,coneh*1.3))
+
+  beamdir = LDVector.Normalise(LDVector.Subtract(beamopos,beamndpos))
+
+  beamcross = LDVector.CrossProduct(vy,beamdir)
+
+  angle = LDVector.AngleBetween(beamdir,vy)
+
+  LD3DView.TranslateGeometry(view3d,tbeam,beamndpos[1],beamndpos[2],beamndpos[3])
+
+  LD3DView.RotateGeometry3(view3d,tbeam,beamcross[1],beamcross[2],beamcross[3],angle)
+
+  campos = LD3DView.GetCameraPosition(view3d)
+
+  camdir = LD3DView.GetCameraDirection(view3d)
+
+  tractorpos = LDVector.Add(campos,LDVector.Multiply(camdir, 13+speed))
+
+  LD3DView.AnimateTranslation(space,tractorhit[1],tractorpos[1],tractorpos[2],tractorpos[3],.001)
+
+  LD3DView.AnimateTranslation(view3d,tractorhit[3],tractorpos[1],tractorpos[2],tractorpos[3],.001)
+
+  parkguide()  
+
+EndSub
+
+'BUILD A CONE GEOMETRY
+
+Sub conegeometry'  radius, div, height,color,material_type
+
+  radius = args[1]
+
+  div = args[2]
+
+  tipalt[1] = 0
+
+  tipalt[2] = 0
+
+  tipalt[3] = -args[3]/2
+
+  basealt[1] = 0
+
+  basealt[2] = 0
+
+  basealt[3] = args[3]/2
+
+  points = tipalt[1]+":"+tipalt[2]+":"+tipalt[3]+":"
+
+  conecolor = args[4]
+
+  mtype = args[5]
+
+  indices = ""
+
+  textures = "0.5:1:"
+
+  For i = 0 To div
+
+    angle = i/div*360
+
+    x = LDMath.FixDecimal(radius*LDMath.Cos(-angle),2)
+
+    y = LDMath.FixDecimal(radius*LDMath.Sin(-angle),2)
+
+    points = points+x+":"+y+":"+basealt[3]+":"
+
+    If tipalt[3] > basealt[3] Then
+
+      If (i < div) Then
+
+        indices = indices +(i+2)+":"+(i+1)+":"+"0:"
+
+      Else
+
+        indices = indices +1+":"+(i+1)+":"+"0:"
+
+      EndIf
+
+    Else
+
+      If (i < div) Then
+
+        indices = indices + "0:"+(i+1)+":"+(i+2)+":"
+
+      Else
+
+        indices = indices + "0:"+(i+1)+":"+1+":"
+
+      EndIf
+
+    EndIf
+
+    textures = textures + i/div+":0:"
+
+  EndFor
+
+  return = LD3DView.AddGeometry(view3D,points,indices,"",conecolor,mtype)
+
+EndSub
+
+
+
+Sub createmotor 'BUILD ROCKET MOTOR
+
+  GraphicsWindow.BrushColor = "White"
+
+  engine[2] = LDCall.Function5("conegeometry",3,16,16,"Red","D")  '  radius, div, height,color,material_type
+
+  LD3DView.TranslateGeometry(view3d,engine[2],0,0,trailerlen/2 + 15)
+
+  LD3DView.SetBackMaterial(view3d,engine[2],"Cyan","E")
+
+  engine[3] = LDCall.Function5("conegeometry",2,16,-24,"#00FFFFFF","D")
+
+  LD3DView.TranslateGeometry(view3d,engine[3],0,0,trailerlen/2 + 34)
+
+  'exhaust = ImageList.LoadImage(Program.Directory+"/exfs_exhaust.png")
+
+  exhaust = ImageList.LoadImage("https://images2.imgbox.com/00/ff/mnXIgPBb_o.png")
+
+  LD3DView.AddImage(view3d,engine[3],textures,exhaust,"E")
+
+  LD3DView.SetBackMaterial(view3d,engine[3],"#00000000","D")
+
+  engine[4] = LDCall.Function5("conegeometry",2.5,16,-30,"#00FFFFFF","D")
+
+  LD3DView.TranslateGeometry(view3d,engine[4],0,0,trailerlen/2 + 37)
+
+  LD3DView.AddImage(view3d,engine[4],textures,exhaust,"E")
+
+  LD3DView.SetBackMaterial(view3d,engine[4],"#00000000","D")
+
+  engine[5] = LDCall.Function5("conegeometry",3,16,-36,"#80FFFFFF","D")
+
+  LD3DView.SetBackMaterial(view3d,engine[5],"#00000000","D")
+
+  LD3DView.TranslateGeometry(view3d,engine[5],0,0,trailerlen/2 + 41)
+
+EndSub
+
+
+
+Sub createtrailerboundingbox  'NOT CURRENTLY USED
+
+  gn1 = Text.GetSubTextToEnd(trailer,9)
+
+  mm = LD3DView.BoundingBox(view3d,"Geometry"+gn1)
+
+  For i = 1 To 3
+
+    mm[i] = mm[i+3] + mm[i]
+
+  EndFor
+
+  For gn = gn1 To gn1 + 9 Step 6
+
+    gname = "Geometry"+gn
+
+    dat =  LD3DView.BoundingBox(view3d,gname)
+
+    For i = 1 To 3
+
+      dat[i] = dat[i+3] + dat[i]
+
+      If dat[i] > mm[i] Then
+
+        mm[i] = dat[i]
+
+      EndIf
+
+      If dat[i+3] < mm[i+3] Then
+
+        mm[i+3] = dat[i+3]
+
+      EndIf
+
+    EndFor
+
+  EndFor
+
+  tubedata = ""
+
+  For i = 1 To 6
+
+    tubedata = tubedata + mm[i]+":"
+
+  EndFor
+
+  tubdiag = LD3DView.AddTube(view3d,tubedata,.5,8,"White","E")
+
+  trailerbb = LD3DView.AddCube(view3d,mm[1]-mm[4],"#40FF0000","E")
+
+  LD3DView.ScaleGeometry(view3d,trailerbb,(mm[1]-mm[4])/(mm[1]-mm[4]),(mm[2]-mm[5])/(mm[1]-mm[4]),(mm[3]-mm[6])/(mm[1]-mm[4]))
+
+  pos = LD3DView.GetPosition(view3d,tubdiag)
+
+  LD3DView.TranslateGeometry(view3d,trailerbb,pos[1],pos[2],pos[3])
+
+  trailerbb1 = LD3DView.AddCube(space,mm[1]-mm[4],"#000000FF","E")
+
+  LD3DView.ScaleGeometry(space,trailerbb1,(mm[1]-mm[4])/(mm[1]-mm[4]),(mm[2]-mm[5])/(mm[1]-mm[4]),(mm[3]-mm[6])/(mm[1]-mm[4]))
+
+  LD3DView.TranslateGeometry(space,trailerbb1,pos[1],pos[2],pos[3])
+
+  LD3DView.TranslateGeometry(view3d,trailerbb,1000,1000,1000)
+
+  LD3DView.ModifyObject(view3d,trailerbb,"H")
+
+  LD3DView.ModifyObject(view3d,tubdiag,"H")
+
+EndSub
+
+
+
+Sub buildtrailercollisionframes  ''GEOMETRY IN COLLISION SPACE AROUND TRANSPORT VEHICLE TO SIMULATE COLLISION WITH CONTAINER IN TRACTOR BEAM
+
+  frame[1] = LD3DView.AddCube(space,3,"HotPink","E")
+
+  LD3DView.ScaleGeometry(space,frame[1],1,1,32)
+
+  For i = 2 To 4
+
+    frame[i] = LD3DView.CloneObject(space,frame[1])
+
+  EndFor
+
+  d = 5.5
+
+  pos = LD3DView.GetPosition(space,centerball)
+
+  LD3DView.TranslateGeometry(space,frame[1],pos[1]+d,pos[2]+d,pos[3])
+
+  LD3DView.TranslateGeometry(space,frame[2],pos[1]-d,pos[2]+d,pos[3])
+
+  LD3DView.TranslateGeometry(space,frame[3],pos[1]-d,pos[2]-d,pos[3])
+
+  LD3DView.TranslateGeometry(space,frame[4],pos[1]+d,pos[2]-d,pos[3])
+
+EndSub
+
+
+
+Sub builddividers   ''DIVIDERS BETWEEN SECTIONS OF TRANSPORT VEHICLE
+
+  For size = 8 To 14 Step 6
+
+    tiles = 1
+
+    points = ""
+
+    indices = ""
+
+    textures = ""
+
+    index = 0
+
+    For z = -48 To 40 Step 8
+
+      For i = 1 To tiles
+
+        For j = 1 To tiles
+
+          x1 = (i-1) * size - size/2
+
+          x2 = i * size/2
+
+          y1 = (j-1) * size - size/2
+
+          y2 = j * size/2
+
+          'Triangle1
+
+          points = points+x1+":"+y1+":"+z+":"
+
+          points = points+x2+":"+y1+":"+z+":"
+
+          points = points+x2+":"+y2+":"+z+":"
+
+          indices = indices + index+":"+(index+1)+":"+(index+2)+":"
+
+          index = index+3
+
+          textures = textures + "0 0:0 1:1 1:"
+
+          'Triangle2
+
+          points = points+x1+":"+y1+":"+z+":"
+
+          points = points+x2+":"+y2+":"+z+":"
+
+          points = points+x1+":"+y2+":"+z+":"
+
+          indices = indices + index+":"+(index+1)+":"+(index+2)+":"
+
+          index = index+3
+
+          textures = textures + "0 0:1 1:1 0:"
+
+        EndFor
+
+      EndFor
+
+    EndFor
+
+    If size = 8 Then
+
+      dividers = LD3DView.AddGeometry(view3d,points,indices,"","#00FFFF","D")
+
+      LD3DView.SetBackMaterial(view3d,dividers,"#00FFFF","D")
+
+    ElseIf size = 14 then
+
+      dividers1 = LD3DView.AddGeometry(space,points,indices,"","#00FFFF","E")
+
+      LD3DView.SetBackMaterial(space,dividers1,"#00FFFF","E")
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub is_cube_in_spot  'CHECK IF CONTAINER IN TRACTOR BEAM IS POSITIONED PROPERLY IN TRANSPORT VEHICLE
+
+  Sound.PlayClick()
+
+  workingcube = args[1]
+
+  cubepos = LD3DView.GetPosition(view3d,workingcube)
+
+  mid = LD3DView.GetPosition(view3d,centerball)
+
+  mid[3] = Math.Floor(cubepos[3] / 8) * 8 + 4
+
+  score = LDVector.Length(LDVector.Subtract(cubepos,mid))
+
+  If score > 1.25 Then
+
+    return = "False"
+
+  Else
+
+    LDCall.Function("scoreit",1000 - 200 *score)
+
+    return = "True"
+
+  EndIf
+
+EndSub
+
+
+
+Sub scoreit  ''SCORE ANIMATION
+
+  score1 = Math.Round(args[1])
+
+  Shapes.Move(scorepop,gwc,ghc)
+
+  Shapes.SetText(scorepop,score1)
+
+  Shapes.Animate(scorepop,-200,-100,3000)
+
+  subscore = subscore + score1
+
+  Shapes.SetText(subscorebox,subscore)
+
+EndSub
+
+
+
+Sub checktrailerload  'CHECKING TRANSPORT VEHICLE LOADOUT
+
+  stored = 0
+
+  loadout = ""
+
+  gn = Text.GetSubTextToEnd(cube[1],9)
+
+  gn1 = Text.GetSubTextToEnd(cube1[25],9)
+
+  For ii =  gn To gn1 
+
+    If geo_ani_state[ii] = "stored" Then
+
+      stored = stored + 1
+
+      loadout[stored] = "Geometry" + ii
+
+    EndIf
+
+  EndFor
+
+  Shapes.ShowShape(loadbox)
+
+  Shapes.SetText(loadbox,stored/2 +" of 12 Containers Loaded")
+
+  Shapes.Move(loadbox,gw*.1,gh*.8)
+
+  Shapes.Animate(loadbox,gw+300,-200,8000)
+
+  If stored > storefull Then
+
+    mid = LD3DView.GetPosition(view3d,trailer)  
+
+    gn1 = Text.GetSubTextToEnd(trailer1,9)
+
+    For gn = gn1 + xtras-2 To gn1 + xtras
+
+      gname = "Geometry"+gn
+
+      LD3DView.ModifyObject(view3d,gname,"S")
+
+    EndFor
+
+    angb = 1
+
+    For loadnum = 1 To Array.GetItemCount(loadout)  'ANIMATE LOAD MOVEMENT
+
+      gname = loadout[loadnum]
+
+      p1 = LD3DView.GetPosition(view3d,gname)
+
+      p = LDVector.Subtract(mid,p1)
+
+      p[2] = p[2] + 8000
+
+      LD3DView.SetCentre(view3d,gname, p[1],p[2],p[3],"R1R2R3")
+
+      LD3DView.AnimateRotation(view3d,gname,1,0,0,0,angb,10,1)
+
+    EndFor
+
+    For gn = gn1 to gn1 + xtras  'ANIMATE TRAILER MOVEMENT
+
+      gname = "Geometry" + gn
+
+      p1 = LD3DView.GetPosition(view3d,gname)
+
+      p = LDVector.Subtract(mid,p1)
+
+      p[2] = p[2] + 8000
+
+      LD3DView.SetCentre(view3d,gname, p[1],p[2],p[3],"R1R2R3")
+
+      LD3DView.AnimateRotation(view3d,gname,1,0,0,0,angb,10,1)
+
+    endfor
+
+    deliverynum = deliverynum + 1
+
+    If deliverynum = 2 Then  'MESSAGEING AT GAME END AFTER SECOND LOADOUT OF TRANSPORT VEHICLE
+
+      Shapes.SetText(deliverymessagebox,"Second Delivery in Progress")
+
+      Shapes.ShowShape(deliverymessagebox)
+
+      Shapes.Move(deliverymessagebox,-gw*.1,gh*.8)
+
+      Shapes.Animate(deliverymessagebox,gw+300,gh*.8,12000)
+
+      finalscore = LDMath.FixDecimal((subscore - damageamt) * 20/eltime,0)
+
+      finaltext = "Mission Complete"+crlf+"Score="+subscore+crlf+"Damage="+damagetot+crlf+"Elapsed Time="+eltime+crlf+"Final Score="+finalscore
+
+      Shapes.SetText(finalbox,finaltext)
+
+      Shapes.ShowShape(finalbox)
+
+      Shapes.Move(finalbox,gw*1.2,gh)
+
+      Shapes.Animate(finalbox,gw*.25,gh*.25,12000)
+
+      LDTimer.Resume(endgametime)
+
+    EndIf
+
+    If deliverynum = 1 Then''MESSAGING AFTER FIRST LOADOUT OF TRANSPORT VEHICLE
+
+      Shapes.ShowShape(deliverymessagebox)
+
+      Shapes.Move(deliverymessagebox,-gw*.1,gh*.8)
+
+      Shapes.Animate(deliverymessagebox,gw+300,gh*.8,12000)
+
+      finalscore = LDMath.FixDecimal((subscore - damageamt),0)
+
+      finaltext = "Move More Containers"+crlf+"Score="+subscore+crlf+"Damage="+damagetot+crlf+"Elapsed Time="+eltime+crlf+"Interim Score="+finalscore
+
+      Shapes.SetText(finalbox,finaltext)
+
+      Shapes.ShowShape(finalbox)
+
+      Shapes.Move(finalbox,gw*1.2,gh)
+
+      Shapes.Animate(finalbox,gw*.25,gh*.25,12000)
+
+      LDTimer.Resume(endgametime)
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub check3nodes  'CHECK STATUS OF NODES
+
+  threenodestate = 0
+
+  For nn = 1 To 3
+
+    If node[nn] = "True" Then
+
+      threenodestate = threenodestate + 1
+
+    EndIf
+
+  EndFor
+
+  Shapes.SetText(nodesbox,"Nodes="+threenodestate)
+
+  If threenodestate > 2 Then
+
+    mousecursor = "True"
+
+    Mouse.ShowCursor()
+
+    LDControls.RichTextBoxSetText(rtb,interfacetext,"False")
+
+    LDCall.Function3("wordmark","EXFS ORBITAL STOREHOUSE CONTROLLER INTERFACE","32,bold",0)
+
+    LDControls.RadioButtonSet(exit1)
+
+    For i = Text.GetSubTextToEnd(rtb,8) to Text.GetSubTextToEnd(exit1,8)
+
+      Controls.ShowControl("Control"+i)
+
+    endfor
+
+    interfacepanelstate = "True"
+
+    Mouse.MouseX = gw*.655
+
+    Mouse.MouseY = gh*.90
+
+  EndIf
+
+EndSub
+
+
+
+sub onanimaterotatecomplete  'HANDLING TRANSPORT VEHICLE ANIMATION MOVEMENT
+
+  gn2 = Text.GetSubTextToEnd(trailer1,9)
+
+  If LD3DView.LastRotationCompleted = "Geometry"+(gn2+xtras) Then
+
+    If angb > 0 Then
+
+      If angb > 260 Then
+
+        angb = -1
+
+        For gn = gn2 + xtras-2 To gn2 + xtras
+
+          gname = "Geometry"+gn
+
+          LD3DView.ModifyObject(view3d,gname,"H")
+
+        EndFor
+
+      Else
+
+        If angb <180 then
+
+          anga = angb
+
+          angb = anga * 2
+
+          For loadnum = 1 To Array.GetItemCount(loadout)
+
+            gname = loadout[loadnum]
+
+            LD3DView.AnimateRotation(view3d,gname,1,0,0,anga,angb,2,1)
+
+          EndFor
+
+          For gn = gn2 to gn2 + xtras  'ANIMATE TRAILER MOVEIN  
+
+            gname = "Geometry" + gn
+
+            LD3DView.AnimateRotation(view3d,gname,1,0,0,anga,angb,2,1)
+
+          endfor
+
+        Else
+
+          angb = 270
+
+          For loadnum = 1 To Array.GetItemCount(loadout)
+
+            geo_ani_state[Text.GetSubTextToEnd(loadout[loadnum],9)] = "delivered"
+
+          EndFor
+
+          For gn = gn2 to gn2 + xtras  'ANIMATE TRAILER MOVEIN  
+
+            gname = "Geometry" + gn
+
+            LD3DView.AnimateRotation(view3d,gname,1,0,0,340,360,10,1)
+
+          endfor
+
+        EndIf
+
+      EndIf
+
+    EndIf
+
+  EndIf
+
+EndSub
+
+
+
+Sub messages  'MISSION MESSAGES
+
+  msg = "Your Mission is to place all 24 containers into the Transport Vehicle. "
+
+  msg = msg + ":The Rotating Container Cube is protected by a force field."
+
+  msg = msg + ":Also a gravity field keeps the containers within the confines of the cube"
+
+  msg = msg + ":You must first connect with all three nodes at the corners of the Container Cube. "
+
+  msg = msg + ":Approach the Blue Nodes and stay within 18 units and centered on the node. "
+
+  msg = msg + ":A Timer will indicate your connection progress."
+
+  msg = msg + ":When approaching the Yellow Sphere node stay within the guide column. "
+
+  msg = msg + ":You must be alligned in the guide column and centered on the blue cross-hairs. "
+
+  msg = msg + ":When within 3 units of the blue cross hairs Auto Speed Control is engaged. "
+
+  msg = msg + ":Match the rotational speed and hold until the connection is established. "
+
+  msg = msg + ":After connecting all three nodes you will then have access to the Cube Control Panel. "
+
+  msg = msg + ":The Transport Vehicle can hold 12 containers at a time. "
+
+  msg = msg + ":When the Transport Vehicle bays are all full the Vehicle will Auto Deliver the cargo. "
+
+  msg = msg + ":Continue retrieving containers and bring them near the Transport Vehicle area. "
+
+  msg = msg + ":Until the Vehicle returns for the second load"
+
+  msg = LDText.Split(msg,":")
+
+  msgtot = Array.GetItemCount(msg)
+
+  msgcount = 0
+
+EndSub
+
+
+
+Sub missionbriefing
+
+  messages()
+
+  TextWindow.Title = "MISSION BRIEFING               DO NOT CLOSE THIS WINDOW     JUST MINIMIZE   or   press   Alt Tab"
+
+  For i = 1 To msgtot
+
+    TextWindow.WriteLine(msg[i])
+
+  EndFor
+
+  TextWindow.WriteLine(crlf+crlf+t4+"LOADING PLEASE WAIT")
+
+EndSub
+
+
+
+
+
+Sub setupkeyhelp  'KEYBOARD HELP MESSAGE
+
+  msg1 = "EXOSPHEREIC FREIGHT SERVICE KEYBOARD MENU"+crlf
+
+  msg1 = msg1 + t1+"Thruster Controls"+crlf
+
+  msg1 = msg1 + "MOVE"+t1+"W-forward"+t1+"S-reverse"+t1+"X-stop"+crlf
+
+  msg1 = msg1 + "YAW"+t1+"A-left"+t2+"D-right"+t2+"F-stop"+crlf
+
+  msg1 = msg1 + "PITCH"+t1+"Z-up"+t2+"C-down"+t2+"V-stop"+crlf
+
+  msg1 = msg1 + "ROLL"+t1+"Q-left"+t2+"E-right"+t2+"R-stop"+crlf
+
+  msg1 = msg1 + "LEFT SHIFT"+t2+"all stop"+crlf
+
+  msg1 = msg1 + "SPEED"+t3+"1 to 9"+t2+"0-stop"+crlf
+
+  msg1 = msg1 + "_________________________________________________________________"+crlf
+
+  msg1 = msg1 + "K"+t3+"Keyboard Menu"+crlf
+
+  msg1 = msg1 + "O"+t3+"Interface Menu"+crlf
+
+  msg1 = msg1 + "H"+t3+"Toggle Help Messages"+crlf
+
+  msg1 = msg1 + "T"+t3+"Tractor Beam Off"+crlf
+
+  msg1 = msg1 + "Esc"+t3+"Quit"+crlf
+
+  msg1 = msg1 + "F1"+t3+"Credits"+crlf
+
+  msg1 = msg1 + "Alt Tab" + t3 + "Mission Briefing"+crlf
+
+  LDControls.RichTextBoxSetText(rtb,msg1,"False")
+
+  LDCall.Function3("wordmark","EXOSPHEREIC FREIGHT SERVICE KEYBOARD MENU","32,bold",0)
+
+  LDCall.Function3("wordmark","Thruster Controls","24,bold",0)
+
+  Controls.ShowControl(rtb)
+
+EndSub
+
+
+
+Sub credits  'CREDITS MESSAGE
+
+  msg1 = "EXFS Credits"+crlf
+
+  msg1 = msg1 + "_____________________________________________________________"+crlf
+
+  msg1 = msg1 + "The Globe map by NOAA available for download at:"+crlf+"http://www.ngdc.noaa.gov/mgg/global/global.html"+crlf
+
+  msg1 = msg1 + "_____________________________________________________________"+crlf
+
+  msg1 = msg1 + "LitDev SmallBasic Extension Version 1.2.20.0"+crlf+"http://litdev.co.uk/"
+
+  msg1 = msg1 + "_____________________________________________________________"+crlf
+
+  msg1 = msg1 + "Microsoft Small Basic Version 1.2.0.0"+crlf+"https://smallbasic-publicwebsite.azurewebsites.net/"+crlf
+
+  msg1 = msg1 + "_____________________________________________________________"+crlf
+
+  msg1 = msg1 + "imgbox  Host JPG, GIF and PNG images"+crlf
+
+  msg1 = msg1 + "_____________________________________________________________"+crlf
+
+  msg1 = msg1 + "Supported Operating System Windows 10 , Windows 7, Windows 8, Windows 8.1, Windows Vista"+crlf
+
+  msg1 = msg1 + "_____________________________________________________________"+crlf
+
+  msg1 = msg1 + "Program written by: cvmarus"+crlf+"Please use this game for learning Small Basic"
+
+  LDControls.RichTextBoxSetText(rtb,msg1,"False")
+
+  LDCall.Function3("wordmark","EXFS Credits","16,bold",0)
+
+  Controls.ShowControl(rtb)
+
+EndSub
+
+

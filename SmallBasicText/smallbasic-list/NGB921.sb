@@ -1,0 +1,1375 @@
+'           Logo Interpreter by Joseph Fischetti
+
+
+
+'============================================================================
+
+'
+
+'            CURRENLTY IMPLEMENTED COMMAND SET
+
+'            ( TYPE COMMANDS INTO TEXT WINDOW )
+
+'
+
+'  st                               Show Turtle
+
+'  ht                               Hide Turtle
+
+'  cs                               Clear Screen
+
+'  pu                              Pen Up
+
+'  pd                              Pen Down
+
+'  fd  d		   Pen Forward (d in pixels)
+
+'  bk  d		   Backward (d in pixels)
+
+'  rt  a		  Right Turn (a in degrees)
+
+'  lt  a		  Left Turn (a in degrees)
+
+'  lc		  List Custom Commands created with 'To'
+
+'  mt  x y a 	  Move Turtle (x position, y position, a angle) (center of screen >>  x=0, y=0)
+
+'  ts  n                         Turtle Speed ( n = 1 {slow} to  10 {fast} )
+
+'  pc  c		  Pen Color (c = red, green, etc) [c = rnd for random color]
+
+'  bc  c                        Background Color ( c = red, green, etc.)
+
+'  pw  w		 Pen Width (w in pixels)
+
+'  gs  w h		 Reset Graphic Screen (w width, h height  in pixels)
+
+'
+
+'  repeat  n	 Repeat commands inside brackets n times
+
+'  		      example:  repeat 4[fd 100 rt 90]   <<<< this draws a square
+
+'
+
+' to  nnnn	Create Custom Commands (nnnn is the new command name)
+
+'		      example create:  to polygon [ repeat :num [fd :side rt :angle] ]
+
+'		      example use:  polygon 4 100 90  <<<< this draws a square
+
+'		      example use:  polygon 3 100 120  <<<< this draws a triangle  
+
+'
+
+'  save  fff	  Save Custom Commands to Text File (fff  is file name) *****
+
+'  load  fff	 Load Command Text File (fff  is file name) *****
+
+'
+
+'  ***** THE  ABOVE   -LOAD-   AND   -SAVE-    COMMANDS WORK IN THE 
+
+'  SAME DIRECTORY AS THE   LOGO.SB   FILE.  FULL FILE PATHS ARE NOT 
+
+'  IMPLEMENTED AT THIS TIME
+
+'
+
+'============================================================================
+
+
+
+Initialize()
+
+While "True"  
+
+  GetLineOfInput()
+
+  If Text.GetLength(Input) <> 0 Then
+
+    _CharactersToParse = Input
+
+    _delimiter = StdDelimeter
+
+    _del = StdDel
+
+    Parse()
+
+    ExcuteLineOfInput()
+
+  EndIf
+
+EndWhile
+
+Program.End()
+
+
+
+Sub Initialize
+
+  GraphicsWindow.Width=640
+
+  GraphicsWindow.Height=400
+
+  GraphicsWindow.BackgroundColor = "LightGray"
+
+  GraphicsWindow.Title = "Logo - by Joseph Fischetti"
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.BackgroundColor = "white"
+
+  GraphicsWindow.Show()
+
+  GraphicsWindow.PenColor="black"
+
+  Turtle.Speed = 10
+
+  Turtle.X = GraphicsWindow.Width/2
+
+  Turtle.Y = GraphicsWindow.Height/2
+
+  TextWindow.Show()
+
+  _LineNum = 0
+
+  FlagEOF = "<endlogo>"
+
+  EOF = "True"
+
+  FileCheckEOF = "False"
+
+  StdDelimeter = " "
+
+  StdDel = ""
+
+  RepFunFlg = "repeat"
+
+  Repeat = 0 
+
+  LCmd["st"]["name"] = "st"
+
+  LCmd["st"]["noVar"] = 0
+
+  LCmd["ht"]["name"] = "ht"
+
+  LCmd["ht"]["noVar"] = 0
+
+  LCmd["cs"]["name"] = "cs"
+
+  LCmd["cs"]["noVar"] = 0
+
+  LCmd["pu"]["name"] = "pu"
+
+  LCmd["pu"]["noVar"] = 0
+
+  LCmd["pd"]["name"] = "pd"
+
+  LCmd["pd"]["noVar"] = 0
+
+  LCmd["fd"]["name"] = "fd"
+
+  LCmd["fd"]["noVar"] = 1
+
+  LCmd["bk"]["name"] = "bk"
+
+  LCmd["bk"]["noVar"] = 1
+
+  LCmd["rt"]["name"] = "rt"
+
+  LCmd["rt"]["noVar"] = 1
+
+  LCmd["lt"]["name"] = "lt"
+
+  LCmd["lt"]["noVar"] = 1
+
+  LCmd["lc"]["name"] = "lc"
+
+  LCmd["lc"]["noVar"] = 0
+
+  LCmd["mt"]["name"] = "mt"
+
+  LCmd["mt"]["noVar"] = 3
+
+  LCmd["bc"]["name"] = "bc"
+
+  LCmd["bc"]["noVar"] = 1
+
+  LCmd["ts"]["name"] = "ts"
+
+  LCmd["ts"]["noVar"] = 1
+
+  LCmd["save"]["name"] = "save"
+
+  LCmd["save"]["noVar"] = 1
+
+  LCmd["load"]["name"] = "load"
+
+  LCmd["load"]["noVar"] = 1
+
+  LCmd["repeat"]["name"] = "repeat"
+
+  LCmd["repeat"]["noVar"] = 1
+
+  LCmd["pc"]["name"] = "pc"
+
+  LCmd["pc"]["noVar"] = 1
+
+  LCmd["pw"]["name"] = "pw"
+
+  LCmd["pw"]["noVar"] = 1
+
+  LCmd["gs"]["name"] = "gs"
+
+  LCmd["gs"]["noVar"] = 2
+
+  LCmd["["]["name"] = "["
+
+  LCmd["["]["noVar"] = 0
+
+  LCmd["]"]["name"] = "]"
+
+  LCmd["]"]["noVar"] = 0  
+
+EndSub
+
+
+
+Sub GetLineOfInput
+
+  RepFunFlg = "repeat"
+
+  If EOF Then
+
+    TextWindow.Write("logo>")
+
+    Input = TextWindow.Read()
+
+    Input = Text.ConvertToLowerCase(Input)
+
+    If Text.StartsWith(Text.ConvertToLowerCase(Input), LCmd["load"]["name"]) Then
+
+      EOF = "False"
+
+      GetFileName()
+
+      TextWindow.WriteLine(FileName)
+
+      GetLineFromFile()
+
+    EndIf
+
+  Else
+
+    GetLineFromFile()
+
+  EndIf 
+
+  _strip = Input
+
+  StripSpaces()
+
+  Input = _strip 
+
+  If Text.StartsWith(Input,"to") then
+
+    RepFunFlg = "to"
+
+    CreateNewFunction()
+
+    RepFunFlg = "repeat"
+
+  EndIf 
+
+  FlgRepFunc = "False"
+
+  ExpandFunctions()
+
+  If Text.GetIndexOf(Input,"repeat") > 0 then
+
+    ExpandRepeat()
+
+  EndIf
+
+  While FlgRepFunc
+
+    FlgRepFunc = "False"
+
+    ExpandFunctions()
+
+    ExpandRepeat()
+
+  EndWhile
+
+  RepFunFlg = "repeat"
+
+EndSub
+
+
+
+Sub CreateNewFunction
+
+  _CharactersToParse = Input
+
+  _delimiter = StdDelimeter
+
+  _del = StdDel
+
+  String = Input
+
+  IsolateBrackets()
+
+  Input = String
+
+  _CharactersToParse = Input
+
+  Parse()
+
+  _noCol = 0
+
+  _to = Stack.PopValue(_ParseStack)
+
+  _name = Stack.PopValue(_ParseStack)
+
+  _Cmd = ""
+
+  _stacklen = Stack.GetCount(_ParseStack)
+
+  For _i = 1 to _stacklen
+
+    _arg = Stack.PopValue(_ParseStack)
+
+    _Cmd = Text.Append(_Cmd, _arg + " ")
+
+    If Text.StartsWith(_arg, ":") Then
+
+      _noCol = _noCol + 1
+
+      functions[_name][_noCol] = _arg      
+
+    EndIf  
+
+  EndFor
+
+  For _i = 1 to _noCol
+
+    _temp[functions[_name][_i]] = 0
+
+  EndFor  
+
+  _Cmd = Text.GetSubText(_Cmd, 2, Text.GetLength(_Cmd)-3) 
+
+  functions[_name]["cmd"] = _Cmd
+
+  functions[_name]["noVar"] = Array.GetItemCount(_temp)
+
+  functions[_name]["name"] = _name
+
+  functions[_name][_noCol + 1] = "end"
+
+  Input = ""
+
+  TextWindow.Write("New Custom Command '"+_name+"' successfully created with ")
+
+  TextWindow.WriteLine(functions[_name]["noVar"]+" variables")
+
+  ' CreateNewFunctionPrint() 
+
+EndSub
+
+
+
+Sub CreateNewFunctionPrint
+
+  TextWindow.WriteLine("functions[name][cmd]="+functions[_name]["cmd"])
+
+  TextWindow.WriteLine("functions[name][noVar]="+functions[_name]["noVar"])
+
+  TextWindow.WriteLine("functions[name][name]="+functions[_name]["name"])
+
+  TextWindow.WriteLine("functions[name][1]="+functions[_name][1])
+
+  TextWindow.WriteLine("functions[name][2]="+functions[_name][2])
+
+  TextWindow.WriteLine("functions[name][3]="+functions[_name][3])
+
+  TextWindow.WriteLine("functions[name][4]="+functions[_name][4])
+
+  TextWindow.WriteLine("functions[name][5]="+functions[_name][5])  
+
+EndSub
+
+
+
+Sub ExpandRepeat
+
+  _er = 1
+
+  While _er >0
+
+    _er = Text.GetIndexOf(Input,"repeat")  
+
+    If _er > 0 then
+
+      FlgRepFunc = "True"
+
+      OneRepeat()
+
+    EndIf
+
+  EndWhile 
+
+EndSub
+
+
+
+Sub OneRepeat
+
+  _input = Input
+
+  _len = Text.GetLength(Input)
+
+  _posR = Text.GetIndexOf(_input, "]")
+
+  _end = Text.GetSubText(_input,_posR+1, _len-_posR)
+
+  _i = _posR - 1
+
+  _start = 0
+
+  While _i >= 1
+
+    _chr = Text.GetSubText(_input, _i, 1)
+
+    If _chr = "[" Then
+
+      _k = _i
+
+      _i = -1
+
+      While _chr <> "r"
+
+        _k = _k -1
+
+        _chr = Text.GetSubText(_input, _k, 1)
+
+        If _chr = "r" then
+
+          _middle = Text.GetSubText(_input, _k, _posR-_k+1)
+
+          _begin = Text.GetSubText(_input,1,_k-1)  
+
+          _end = Text.GetSubText(_input,_posR+1,_len-_posR)  
+
+        EndIf  
+
+      EndWhile
+
+    Else
+
+      _i = _i -1
+
+    EndIf
+
+  EndWhile
+
+  Input = _middle
+
+  ExpandOneRepeat() 
+
+  Input = Text.Append(Text.Append(_begin,Input),_end)  
+
+EndSub
+
+
+
+Sub ExpandOneRepeat
+
+  RepeatOrFunction()
+
+  _input=Input
+
+  For _i = 1 To Repeat-1
+
+    _input = Text.Append(Text.Append(_input," "),Input)      
+
+  EndFor
+
+  Input = _input
+
+EndSub
+
+
+
+Sub ExpandFunctions
+
+  If Input <> "" Then
+
+    _expInput = ""
+
+    String = Input 
+
+    IsolateBrackets()
+
+    Input = String
+
+    _CharactersToParse = Input  
+
+    _delimiter = StdDelimeter 
+
+    _del = StdDel
+
+    Parse()
+
+    While Stack.GetCount(_ParseStack) > 0 
+
+      _arg = Stack.PopValue(_ParseStack)
+
+      If Array.ContainsIndex(LCmd,_arg) <> "True" then
+
+        If Array.ContainsIndex(functions, _arg) then
+
+          _var = functions[_arg]["noVar"]
+
+          FlgRepFunc = "True"
+
+          For _q = 1 To _var
+
+            functions[_arg][functions[_arg][_q]]=Stack.PopValue(_ParseStack)
+
+          EndFor
+
+          _expInput = Text.Append(Text.Append(_expInput, functions[_arg]["cmd"]), " ")
+
+          String = _expInput
+
+          _q = 1
+
+          While functions[_arg][_q] <> "end"
+
+            ChrFnd = functions[_arg][_q]
+
+            ChrRep = functions[_arg][ChrFnd]
+
+            ReplaceSubText()
+
+            _q = _q +1
+
+          EndWhile
+
+          _expInput = String       
+
+        Else
+
+          TextWindow.WriteLine("ERROR:   ExpandFunctionsArguments - '"+_arg+"'")
+
+          StackName = _ParseStack
+
+          EmptyStack()
+
+          Input = ""       
+
+        EndIf
+
+      Else
+
+        _expInput = Text.Append(Text.Append(_expInput, _arg), " ")
+
+        If Stack.GetCount(_ParseStack) >= LCmd[_arg]["noVar"] then         
+
+          For _w = 1 to LCmd[_arg]["noVar"]
+
+            _temp = Stack.PopValue(_ParseStack)
+
+            _expInput = Text.Append(Text.Append(_expInput, _temp), " ")
+
+          EndFor     
+
+        Else
+
+          TextWindow.WriteLine("ERROR:   ExpandFunctionsArguments - '"+_arg+"'")
+
+          StackName = _ParseStack
+
+          EmptyStack()
+
+          Input = ""
+
+        EndIf      
+
+      EndIf
+
+      Input = _expInput
+
+    EndWhile
+
+    Input = Text.GetSubText(Input, 1, Text.GetLength(Input) -1)
+
+  EndIf
+
+EndSub
+
+
+
+Sub EmptyStack
+
+  _sCount = Stack.GetCount(StackName)
+
+  For _q = 1 To _sCount
+
+    _temp = Stack.PopValue(StackName)
+
+  EndFor
+
+EndSub
+
+
+
+Sub IsolateBrackets 
+
+  ChrFnd = "["
+
+  ChrRep = " ~ "
+
+  ReplaceSubText()
+
+  ChrFnd = "~"
+
+  ChrRep = "["
+
+  ReplaceSubText()
+
+  ChrFnd = "]"
+
+  ChrRep = " ~ "
+
+  ReplaceSubText()
+
+  ChrFnd = "~"
+
+  ChrRep = "]"
+
+  ReplaceSubText()
+
+EndSub
+
+
+
+Sub StripSpaces
+
+  _len = Text.GetLength(_strip)
+
+  _i = 1
+
+  While _i < _len
+
+    If Text.GetSubText(_strip,_i,1) <> " " Then
+
+      _strip = Text.GetSubText(_strip,_i,_len-_i+1)
+
+      _i = _len
+
+    Else
+
+      _i = _i + 1     
+
+    EndIf
+
+  EndWhile
+
+  _i = Text.GetLength(_strip)
+
+  While _i > 0
+
+    If Text.GetSubText(_strip,_i,1) <> " " Then
+
+      _strip = Text.GetSubText(_strip,1,_i)
+
+      _i = 0
+
+    Else
+
+      _i = _i -1
+
+    EndIf
+
+  EndWhile
+
+  _len = Text.GetLength(_strip)
+
+  _i = 2
+
+  _BlkFlg = "False"
+
+  _temp = Text.GetSubText(_strip,1,1)
+
+  While _i <=  _len 
+
+    _chr = Text.GetSubText(_strip,_i,1)
+
+    If _chr = " " Then
+
+      If _BlkFlg = "False" then
+
+        _temp = Text.Append(_temp, _chr)
+
+        _BlkFlg = "True"
+
+      endIf
+
+    Else
+
+      If _chr = "]" then
+
+        If Text.EndsWith(_temp, " ") Then
+
+          _temp = Text.GetSubText(_temp, 1, Text.GetLength(_temp)-1)
+
+        EndIf
+
+      EndIf
+
+      If _chr <> "[" then
+
+        _BlkFlg = "False"
+
+      EndIf       
+
+      _temp = Text.Append(_temp, _chr)
+
+    EndIf
+
+    _i = _i + 1
+
+  EndWhile 
+
+  _strip = _temp
+
+EndSub
+
+
+
+Sub GetFileName
+
+  _CharactersToParse = Input
+
+  _delimiter = " "  'Text.GetCharacter(34) ' Quote Character
+
+  _del = ""
+
+  Parse()
+
+  If Stack.GetCount(_ParseStack) = 2 then
+
+    _tmp = Stack.PopValue(_ParseStack)
+
+    FileName = Stack.PopValue(_ParseStack)
+
+    If Text.StartsWith(FileName, Text.GetCharacter(34)) then
+
+      _len = Text.GetLength(FileName)
+
+      FileName = Text.GetSubText(FileName,2,_len-2)
+
+    EndIf      
+
+  Else    
+
+    For _i = 1 To Stack.GetCount(_ParseStack)
+
+      _t = Stack.PopValue(_ParseStack)
+
+    EndFor
+
+    FileName = ""    
+
+  EndIf
+
+EndSub
+
+
+
+Sub GetLineFromFile
+
+  If FileCheckEOF = "False" Then
+
+    FileCheckEOF ="True"
+
+    TextWindow.WriteLine("logo<")
+
+    _File = ""
+
+    _File = file.ReadContents(FileName)
+
+    If Text.IsSubText(Text.ConvertToLowerCase(_File),"<endlogo>") Then
+
+    Else
+
+      file.AppendContents(FileName,"<endlogo>")
+
+    EndIf    
+
+  EndIf  
+
+  _LineNum = _LineNum +1
+
+  Input = file.ReadLine(FileName, _LineNum) 
+
+  Input = Text.ConvertToLowerCase(Input) 
+
+  If Text.GetSubText(Input,1,9) = FlagEOF Then
+
+    EOF = "True"
+
+    TextWindow.WriteLine("logo<")
+
+    TextWindow.Write("logo>")
+
+    Input = TextWindow.Read()
+
+    Input = Text.ConvertToLowerCase(Input)
+
+  Else
+
+    TextWindow.WriteLine("logo<"+Input)    
+
+  EndIf 
+
+EndSub
+
+
+
+Sub RepeatOrFunction
+
+  Repeat = 0
+
+  If RepFunFlg = "to" then
+
+    Repeat = 1
+
+  EndIf 
+
+  PosL = Text.GetIndexOf(Input, "[")
+
+  PosR = Text.GetIndexOf(Input, "]")
+
+  If PosL > 0 then
+
+    If PosR > PosL then
+
+      _CharactersToParse = Text.GetSubText(Input,7,PosL-7)   
+
+      Input = Text.GetSubText(Input,PosL+1,PosR-PosL-1)
+
+      _delimiter = StdDelimeter
+
+      _del = StdDel
+
+      Parse()
+
+      t = Stack.PopValue(_ParseStack)
+
+      If Stack.GetCount(_ParseStack) = 0 then
+
+        If t > 0 then
+
+          Repeat = t
+
+        EndIf
+
+      Else
+
+        For _i = 1 To Stack.GetCount(_ParseStack)
+
+          _t = Stack.PopValue(_ParseStack)
+
+        EndFor
+
+      EndIf
+
+    Endif
+
+  EndIf    
+
+  If Repeat = 0 then
+
+    TextWindow.WriteLine("ERROR: Repeat - 0")
+
+  EndIf
+
+EndSub
+
+
+
+Sub ExcuteLineOfInput
+
+  While Stack.GetCount(_ParseStack) > 0
+
+    _Arg1 = Text.ConvertToLowerCase(Stack.PopValue(_ParseStack))
+
+    If _Arg1 = LCmd["st"]["name"] then
+
+      ShowTurtle()
+
+    ElseIf _Arg1 = LCmd["ht"]["name"] then
+
+      HideTurtle()
+
+    ElseIf _Arg1 = LCmd["cs"]["name"] then
+
+      ClearTurtleScreen()
+
+    ElseIf _Arg1 = LCmd["pu"]["name"] then
+
+      PenUpTurtle()
+
+    ElseIf _Arg1 = LCmd["pd"]["name"] then
+
+      PenDownTurtle()
+
+    ElseIf _Arg1 = LCmd["fd"]["name"] then
+
+      ForwardTurtle()
+
+    ElseIf _Arg1 = LCmd["bk"]["name"] then
+
+      BackwardTurtle()
+
+    ElseIf _Arg1 = LCmd["rt"]["name"] then
+
+      RightTurnTurtle()    
+
+    ElseIf _Arg1 = LCmd["lt"]["name"] then
+
+      LeftTurnTurtle()
+
+    ElseIf _Arg1 = LCmd["lc"]["name"] then
+
+      ListFunctions()
+
+    ElseIf _Arg1 = LCmd["mt"]["name"] then
+
+      MoveTurtle()     
+
+    ElseIf _Arg1 = LCmd["bc"]["name"] then
+
+      BackgroundColor()
+
+    ElseIf _Arg1 = LCmd["ts"]["name"] then
+
+      TurtleSpeed()     
+
+    Elseif _Arg1 = LCmd["pc"]["name"] then
+
+      PenColor()
+
+    Elseif _Arg1 = LCmd["pw"]["name"] then
+
+      PenWidth()
+
+    ElseIf _Arg1 = LCmd["gs"]["name"] then
+
+      GraphicScreen()
+
+    ElseIf _Arg1 = LCmd["save"]["name"] then
+
+      SaveFunctionsToFile()
+
+    Else
+
+      TextWindow.WriteLine("ERROR: executeLineOfInput - '"+_Arg1+"'")
+
+    EndIf
+
+  EndWhile
+
+EndSub
+
+
+
+Sub ShowTurtle
+
+  Turtle.Show()
+
+EndSub
+
+Sub HideTurtle
+
+  Turtle.Hide()
+
+EndSub
+
+Sub ClearTurtleScreen
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.BackgroundColor = "white"
+
+  Turtle.X = GraphicsWindow.Width/2
+
+  Turtle.Y = GraphicsWindow.Height/2
+
+  Turtle.Angle=0
+
+EndSub
+
+Sub PenUpTurtle
+
+  Turtle.PenUp()
+
+EndSub
+
+Sub PenDownTurtle
+
+  Turtle.PenDown()
+
+EndSub
+
+Sub ForwardTurtle
+
+  Get2Arg()
+
+  If _Arg2<> "" then
+
+    Turtle.Move(_Arg2)
+
+  EndIf
+
+EndSub
+
+Sub BackwardTurtle
+
+  Get2Arg()
+
+  If _Arg2<> "" then
+
+    Turtle.Move(-_Arg2)
+
+  EndIf
+
+EndSub
+
+Sub RightTurnTurtle
+
+  Get2Arg()
+
+  If _Arg2<> "" then
+
+    Turtle.Turn(_Arg2)
+
+  EndIf 
+
+EndSub
+
+Sub LeftTurnTurtle
+
+  Get2Arg()
+
+  If _Arg2<> "" then
+
+    Turtle.Turn(-_Arg2) 
+
+  EndIf 
+
+EndSub
+
+Sub ListFunctions
+
+  FuncList = Array.GetAllIndices(functions)
+
+  For _i = 1 to Array.GetItemCount(FuncList)
+
+    TextWindow.Write(functions[FuncList[_i]]["name"])
+
+    TextWindow.WriteLine(" = <<<"+functions[FuncList[_i]]["cmd"]+">>>")
+
+  EndFor
+
+EndSub
+
+Sub MoveTurtle
+
+  Get2Arg()
+
+  Turtle.x = (GraphicsWindow.Width/2) + _Arg2
+
+  Get2Arg()
+
+  Turtle.y = (GraphicsWindow.Height/2) - _Arg2
+
+  Get2Arg()
+
+  Turtle.Angle = _Arg2
+
+EndSub
+
+Sub BackgroundColor
+
+  Get2Arg()
+
+  GraphicsWindow.BackgroundColor = _Arg2
+
+EndSub
+
+Sub TurtleSpeed
+
+  Get2Arg()
+
+  Turtle.Speed = _Arg2
+
+EndSub
+
+Sub PenColor
+
+  Get2Arg()
+
+  If _Arg2 <> "rnd" Then
+
+    GraphicsWindow.PenColor = _Arg2
+
+  Else
+
+    GraphicsWindow.PenColor = GraphicsWindow.GetRandomColor()
+
+  EndIf
+
+EndSub
+
+Sub PenWidth
+
+  Get2Arg()
+
+  GraphicsWindow.PenWidth = _Arg2
+
+EndSub
+
+Sub GraphicScreen
+
+  Get2Arg()
+
+  GraphicsWindow.Width = _Arg2
+
+  Get2Arg()
+
+  GraphicsWindow.Height = _Arg2
+
+  GraphicsWindow.Clear()
+
+  GraphicsWindow.BackgroundColor = "white"
+
+  Turtle.X = GraphicsWindow.Width/2
+
+  Turtle.Y = GraphicsWindow.Height/2
+
+  Turtle.Angle=0 
+
+EndSub
+
+
+
+Sub SaveFunctionsToFile
+
+  Get2Arg()
+
+  _fileName = _Arg2
+
+  file.DeleteFile(_fileName) 
+
+  FuncList = Array.GetAllIndices(functions)
+
+  For _i = 1 to Array.GetItemCount(FuncList)
+
+    temp = "to "+functions[FuncList[_i]]["name"]+" ["+functions[FuncList[_i]]["cmd"]+"]"
+
+    file.WriteLine(_fileName,_i,temp)
+
+  EndFor
+
+  file.WriteLine(_fileName,_i,"<endlogo>") 
+
+EndSub
+
+
+
+Sub Get2Arg
+
+  _Arg2 = ""
+
+  If Stack.GetCount(_ParseStack)>0 Then
+
+    _Arg2 = Stack.PopValue(_ParseStack)
+
+  Else
+
+    TextWindow.WriteLine("ERROR: Get2Arg - No Argument")
+
+  EndIf
+
+EndSub
+
+
+
+Sub Parse
+
+  '_CharactersToParse      input  -  characters to parse
+
+  '_delimiter                        input   -  delimiter to parse
+
+  ' _del                                  input   -  characters to delete 
+
+  '_ParseStack                   output -  parsed stack name  
+
+  _CharactersToStack = _CharactersToParse
+
+  _CharacterStack = "Characters"
+
+  PushCharactersOnStack()
+
+  _CharacterCount = Stack.GetCount(_CharacterStack)
+
+  _ParseStack = "BackwardArguments"
+
+  _Arg = ""
+
+  For _i = 1 To _CharacterCount
+
+    _Char = Stack.PopValue(_CharacterStack)
+
+    If _Char <> _delimiter Then
+
+      _Arg = Text.Append(_Char, _Arg)
+
+    ElseIf _Char = _delimiter Then
+
+      If Text.GetLength(_Arg)>0 then  
+
+        Stack.PushValue(_ParseStack,_Arg)
+
+        _Arg = ""
+
+      EndIf
+
+    ElseIf _i = _CharacterCount Then
+
+      If Text.GetLength(_Arg)>0 then  
+
+        Stack.PushValue(_ParseStack,_Arg)
+
+      EndIf
+
+    EndIf
+
+  EndFor
+
+  If _Char <> _delimiter then
+
+    Stack.PushValue(_ParseStack,_Arg)
+
+  EndIf  
+
+EndSub
+
+
+
+Sub PushCharactersOnStack
+
+  _Len = Text.GetLength(_CharactersToStack)
+
+  For _i = 1 to _Len
+
+    _char = Text.GetSubText(_CharactersToStack,_i,1)
+
+    If _char <> _del Then
+
+      Stack.PushValue(_CharacterStack, _char)
+
+    EndIf
+
+  EndFor
+
+EndSub
+
+
+
+Sub ReplaceSubText
+
+  'String   -   input string    >>>  output string
+
+  'ChrFnd -    string to replace
+
+  'ChrRep -    string to replace with
+
+  _t = String
+
+  _s = Text.GetIndexOf(_t, ChrFnd)
+
+  _l = Text.GetLength(ChrFnd) 
+
+  While _s > 0
+
+    _b = Text.GetSubText(_t, 1, _s -1)
+
+    _e = Text.GetSubText(_t, _s+_l, 3000)
+
+    _t = Text.Append(Text.Append(_b, ChrRep),_e)
+
+    _s = Text.GetIndexOf(_t, ChrFnd)    
+
+  EndWhile 
+
+  String = _t 
+
+EndSub
+
+
+
+Sub FindChars
+
+  'String   input string
+
+  'ChrFnd   character string to find
+
+  
+
+  'CharCount     output - number of matches
+
+  'CharPos[c]    output - array of character positions found
+
+  
+
+  _lenString = Text.GetLength(String)
+
+  _lenChrFnd = Text.GetLength(ChrFnd)
+
+  _c = 0
+
+  If _lenChrFnd <= _lenString Then   
+
+    CharCount = 0
+
+    _i = 1
+
+    For _i = 1 To (_lenString + 1 - _lenChrFnd)
+
+      If Text.GetSubText(String, _i, _lenChrFnd) = ChrFnd Then
+
+        _c = _c + 1
+
+        CharPos[_c] = _i
+
+        CharCount = CharCount + 1     
+
+      EndIf    
+
+    EndFor    
+
+  Else
+
+    TextWindow.WriteLine("ERROR:  FindChrs")   
+
+  EndIf   
+
+EndSub
+
+

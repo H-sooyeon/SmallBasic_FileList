@@ -1,0 +1,675 @@
+'======================================================================================='
+
+'	Programmer:		EMLF										'
+
+'	Software:		Equação do  2º Grau								'
+
+'	Version:			2.3										'
+
+'	Date:			2011/Oct/05									'
+
+'	Variables:		coeficientes[], a, b, c, ??, ?�Raiz, x, x[], ι, índice, tecla, equação				'
+
+'======================================================================================='
+
+
+
+
+
+'---------------------------------------------------------------------------------------------------------------------'
+
+'	Inicialização das constantes pra caracteres especiais de controle em código ASCII:	'
+
+'---------------------------------------------------------------------------------------------------------------------'
+
+
+
+BEL= Text.GetCharacter	(7)	' Produz um beep pelo PC-Speaker interno
+
+BS= Text.GetCharacter		(8)	' Backspace (Volta 1 posição  pra esquerda)
+
+TAB= Text.GetCharacter	(9)	' Tabulação Horizontal (HT)
+
+LF= Text.GetCharacter		(10)	' Line-Feed (Pula-Linha)
+
+CR= Text.GetCharacter		(13)	' Retorno de Carro (Volta ao início da linha)
+
+ESC= Text.GetCharacter	(27)	' Tecla "Esc"
+
+TRI= Text.GetCharacter	(30)	' Triângulo
+
+SETA= Text.GetCharacter	(26)	' Flecha pra direita
+
+SPC= " "				' Espaço em Branco (SPaCe)
+
+
+
+'---------------------------------------------------------------------------------------------------------------------'
+
+'	Outros procedimentos de inicialização:						'
+
+'---------------------------------------------------------------------------------------------------------------------'
+
+
+
+TextWindow.Title= "Cálculo de Função Quadrática
+
+TextWindow.Left= 200
+
+TextWindow.Top=  300
+
+CorFundo= "Black
+
+TextWindow.BackgroundColor= CorFundo
+
+
+
+If Program.ArgumentCount > 0 Then	' Checa se algum argumento foi passado pela Interface de Comando de Linha (CLI)
+
+  Argumentos()				' Inicializa a variável coeficientes[] com o conteúdo dos argumentos
+
+  Goto Pula_ABC			' Pula a 1ª subrotina ABC(), já q serão usados os argumentos provindos da CLI
+
+EndIf
+
+
+
+'---------------------------------------------------------------------------------------------------------------------'
+
+'	Ponto de partida do laço do programa:						'
+
+'---------------------------------------------------------------------------------------------------------------------'
+
+
+
+Laço:
+
+TextWindow.Clear()			' Limpa a janela de textos
+
+ABC()					' Requisita q/ o usuário digite 3 valores pra atribuir-lhes os coeficientes a, b & c
+
+
+
+Pula_ABC:
+
+Espelhar_Coeficientes()		' Transfere os 3 elementos do conjunto coeficientes[] prás variáveis a, b & c
+
+Criar_Equação()			' Cria a expressão pra exibição q/ representa os coeficientes a, b & c 
+
+Exibir_Equação()			' Mostra em forma de equação quadrática os valores obtidos dos coeficientes
+
+
+
+If a = 0 And b = 0 Then		' Equação sem raízes!
+
+  Resultado_Ø()
+
+  Goto Fim
+
+EndIf
+
+
+
+If a = 0 Then				' Equação de 1º grau!
+
+  Calcular_Linear()
+
+  Resultado_Linear()
+
+  Goto Fim
+
+EndIf
+
+
+
+Calcular_??()				' Obter a discriminante delta e também a sua raiz quadrada
+
+Resultado_??()
+
+
+
+If ?? < 0 Then				' Equação com raízes complexas!
+
+  Calcular_Complexo()
+
+  Resultado_Complexo()
+
+Else					' Equação com raízes reais!
+
+  Calcular_Quadrático()
+
+  Resultado_Quadrático()
+
+EndIf
+
+
+
+Fim:
+
+Encerrar()				' Perguntar se o usuário deseja calcular outra raiz de 2º grau		:-D
+
+Goto Laço				' Volta ao início do laço, caso positivo				^_^
+
+
+
+
+
+'==================================================================================================='
+
+'					Subrotinas das Compartimentalizações do Programa						'
+
+'==================================================================================================='
+
+
+
+
+
+Sub Encerrar
+
+  ' Encerrar o programa se a tecla 'Q' ou 'Esc' for pressionada:
+
+  
+
+  TextWindow.ForegroundColor= "DarkMagenta
+
+  TextWindow.WriteLine (LF + "Pressione 'Q' ou 'Esc' pra encerrar ou qualquer outra pra reiniciar...")
+
+  
+
+  tecla= Text.ConvertToUpperCase ( TextWindow.ReadKey() )
+
+  If tecla = "Q" Or tecla = ESC Then
+
+    Program.End()
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Argumentos
+
+  ' Obtem os 3 primeiros argumentos usados ao rodar o programa
+
+  ' e armazena-os na variável conjunto coeficientes[], representando os valores de a, b & c :
+
+  
+
+  For índice= 1 To 3
+
+    coeficientes[índice]= Program.GetArgument(índice) * 1	' Multiplica-se por 1 pra forçar tipo numérico!
+
+  EndFor
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub ABC
+
+  ' Requisitar os valores de a, b & c do usuário:
+
+  
+
+  TextWindow.ForegroundColor= "Red
+
+  TextWindow.WriteLine ("Digite os valores de A, B & C prá equação do 2º grau:")
+
+  TextWindow.ForegroundColor= "Magenta
+
+  TextWindow.WriteLine ("Modelo -> ax² + bx + c = 0" + LF)
+
+  
+
+  For índice= 97 To 99					' Seqüência em ASCII correspondentes às letras "a", "b" e "c"
+
+    TextWindow.ForegroundColor= "Yellow
+
+    TextWindow.Write ( "Valor de " + Text.GetCharacter(índice) + ": " )
+
+    TextWindow.ForegroundColor= "White
+
+    TextWindow.BackgroundColor= "DarkYellow
+
+    coeficientes[índice - 96]= TextWindow.ReadNumber() * 1	' Armazena o ?�� digitado em coeficientes[]
+
+    TextWindow.BackgroundColor= CorFundo
+
+  EndFor
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Espelhar_Coeficientes
+
+  ' Espelha os 3 valores armazenados em coeficientes[] pras variáveis a, b & c
+
+  ' por motivos de estética e clareza de código, nas partes q calculam as raízes da equação:
+
+  
+
+  a= coeficientes[1]		' Coeficiente Quadrático "a"
+
+  b= coeficientes[2]		' Coeficiente Linear "b"
+
+  c= coeficientes[3]		' Termo Constante "c"
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Criar_Equação
+
+  ' Cria uma cordão alfanumérico representando a equação com os respectivos valores de a, b & c:
+
+  
+
+  equação= "f(x) " + SETA + SPC	' Início da formação da variável alfanumérica "equação"
+
+  
+
+  ' Coeficiente Quadrático "a":
+
+  ' ======================
+
+  If a <> 0 Then			' Somente os termos com coeficientes ?�� 0 serão exibidos!
+
+    
+
+    If a <> 1 And a <> -1 Then	' Condição impede de imprimir os ?��s 1 e -1 na frente da variável x²!
+
+      equação= equação + a
+
+    ElseIf a = -1 Then		' No caso do -1, apenas o sinal negativo é acrescentado
+
+      equação= equação + "-
+
+    EndIf
+
+    
+
+    equação= equação + "x² "
+
+    
+
+  EndIf
+
+  '-------------------------------------------------
+
+  
+
+  ' Coeficiente Linear "b":
+
+  '======================
+
+  If b <> 0 Then			' Somente os termos com coeficientes ?�� 0 serão exibidos!
+
+    
+
+    If b < 0 Then
+
+      equação= equação + "- "
+
+      If a = 0 Then
+
+        equação= equação + BS		' Se o coeficiente quadrático for nulo, faz com q o sinal negativo fique
+
+      EndIf				'colado à variável linear x, ao acrescentar um deslocamento prá esquerda
+
+      
+
+    ElseIf a <> 0 Then		' a ?�� 0 & b > 0
+
+      equação= equação + "+ "
+
+    EndIf
+
+    
+
+    If b <> 1 And b <> -1 Then	' Condição impede de imprimir os ?��s 1 e -1 na frente da variável x!
+
+      equação= equação + Math.Abs(b)
+
+    EndIf
+
+    
+
+    equação= equação + "x "
+
+    
+
+  EndIf
+
+  '--------------------------------------------------
+
+  
+
+  ' Termo Constante "c":
+
+  '======================
+
+  If a = 0 And b = 0 Then		' Se ambos os x da equação forem nulos,
+
+    equação= equação + c + SPC	'imprima o termo constante "c" sem qualquer alteração
+
+    
+
+  ElseIf c <> 0 Then			' Caso contrário, adiciona um sinal antes de imprimi-lo se c ñ for nulo
+
+    
+
+    If c < 0 Then			' ( a ?�� 0 | b ?�� 0 ) & c < 0		c é negativo
+
+      equação= equação + "- "
+
+    Else				' ( a ?�� 0 | b ?�� 0 ) & c > 0		c é positivo
+
+      equação= equação + "+ "
+
+    EndIf
+
+    
+
+    equação= equação + Math.Abs(c) + SPC
+
+    
+
+  EndIf
+
+  '--------------------------------------------------
+
+  
+
+  equação= equação + "= 0"          ' Fechamento da "equação"
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Exibir_Equação
+
+  ' Exibir a equação pronta:
+
+  
+
+  TextWindow.ForegroundColor= "White
+
+  TextWindow.BackgroundColor= "DarkGray
+
+  TextWindow.WriteLine( LF + equação + LF )
+
+  TextWindow.BackgroundColor= CorFundo
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Resultado_Ø
+
+  ' As 2 variáveis x possuem coeficientes nulos:
+
+  
+
+  TextWindow.ForegroundColor= "DarkRed
+
+  TextWindow.WriteLine ("Tanto os coeficientes quadrático 'a' e linear 'b' são = 0" + BEL)
+
+  TextWindow.WriteLine ("Portanto, as variáveis x são nulas, ñ existindo raiz alguma pra calcular!")
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Calcular_Linear
+
+  ' Raiz x de Equação Linear, pois o termo quadrático a = 0:
+
+  
+
+  x= -c/b
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Resultado_Linear
+
+  ' Exibir a raiz da equação linear:
+
+  
+
+  TextWindow.ForegroundColor= "Green
+
+  TextWindow.WriteLine ("Esta equação é linear com raiz |R x = " + x)
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Calcular_??
+
+  ' Calcular o valor da discriminante ?? e também o resultado da sua ?�� :
+
+  
+
+  ??= b*b - 4*a*c				' Expressão Discriminante "??"
+
+  ?�Raiz= Math.SquareRoot ( Math.Abs(??) )	' ?�� |??|
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Resultado_??
+
+  ' Exibir o valor de ??:
+
+  
+
+  TextWindow.ForegroundColor= "White
+
+  TextWindow.BackgroundColor= "Blue
+
+  TextWindow.WriteLine (TRI + " = " + ?? + LF)
+
+  TextWindow.BackgroundColor= CorFundo
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Calcular_Quadrático
+
+  ' Calcular as raízes reais X1 & X2 pela fórmula de Bhaskara Akaria:
+
+  
+
+  x[1]= ( -b + ?�Raiz ) / (2*a)
+
+  x[2]= ( -b - ?�Raiz ) / (2*a)
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Resultado_Quadrático
+
+  ' Exibir o resultado das raízes da equação quadrática:
+
+  
+
+  TextWindow.ForegroundColor= "Green
+
+  
+
+  If ?? = 0 Then
+
+    
+
+    TextWindow.WriteLine ("Esta equação possui 1 única raiz |R sendo que x = " + x[1])
+
+    
+
+  Else
+
+    
+
+    TextWindow.WriteLine ("Esta equação possui 2 raízes |R e distintas:" + LF)
+
+    TextWindow.ForegroundColor= "Cyan
+
+    
+
+    For índice= 1 To 2
+
+      TextWindow.Write( TAB + "x" + índice + " = " )
+
+      
+
+      If x[índice] > 0 Then
+
+        TextWindow.Write("+")
+
+      EndIf
+
+      
+
+      TextWindow.WriteLine( x[índice] )
+
+    EndFor
+
+    
+
+  EndIf
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Calcular_Complexo
+
+  ' Calcular o conjugado |C com a parte |R em x e a parte |I em ι (iota):
+
+  
+
+  x= -b / (2*a)
+
+  ι= ?�Raiz / (2*a)
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
+
+Sub Resultado_Complexo
+
+  ' Exibir o conjugado complexo no modelo z = x ± ι, sendo ι = ?�� -1 :
+
+  
+
+  TextWindow.ForegroundColor= "Green
+
+  TextWindow.WriteLine ("Esta equação possui 2 raízes complexas conjugadas")
+
+  TextWindow.WriteLine ("tendo 1 parte em real e 2 imaginárias:" + LF)
+
+  
+
+  TextWindow.ForegroundColor= "Cyan
+
+  TextWindow.WriteLine ( "   x = " + x + " ± i( " + ι + " )" )
+
+  
+
+EndSub
+
+
+
+'-------------------------------------------------------------------------------------------------------------------------------------------------------------------------'
+
+
