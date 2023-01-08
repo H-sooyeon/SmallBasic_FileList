@@ -1,605 +1,302 @@
 '========================================================
-
 'February 2015 Small Basic Challenge
-
 'Uncomment File commands on import for High Score recording
-
 '========================================================
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 CreateWindow()
 
-
-
 '========================================================
-
 'MAIN GAME LOOP
-
 '========================================================
-
 While ("True")
-
   
-
   Initialise()
-
   While (playing)
-
     Move()
-
     CheckEnd()
-
     Program.Delay(10)
-
     'playing = 0
-
   EndWhile
-
   Finished()
-
   
-
 EndWhile
 
-
-
 '========================================================
-
 'EVENT SUBROUTINES
-
 '========================================================
-
 Sub OnKeyDown
-
   doMove = "True"
-
 EndSub
 
-
-
 '========================================================
-
 'GAME SUBROUTINES
-
 '========================================================
-
-
 
 Sub CreateWindow
-
   size = 100 'Block size
-
   dim = 4 'Grid size
-
   GraphicsWindow.Width = dim*size
-
   GraphicsWindow.Height = dim*size
-
   GraphicsWindow.Title = "Small Basic 2048"
-
   GraphicsWindow.Left = (Desktop.Width-GraphicsWindow.Width)/2
-
   GraphicsWindow.Top = (Desktop.Height-GraphicsWindow.Height)/2
-
 EndSub
-
-
 
 Sub Initialise
-
   GraphicsWindow.Clear()
-
   
-
   'Create grid background
-
   GraphicsWindow.BackgroundColor = "DarkGray"
-
   GraphicsWindow.PenColor = "Gray"
-
   GraphicsWindow.PenWidth = 5
-
   For i = 0 To dim
-
     GraphicsWindow.DrawLine(i*size,0,i*size,dim*size)
-
     GraphicsWindow.DrawLine(0,i*size,dim*size,i*size)
-
   EndFor
-
   
-
   'Tile text
-
   GraphicsWindow.FontName = "Consolas"
-
   GraphicsWindow.FontSize = 30
-
   GraphicsWindow.PenWidth = 0
-
   
-
   'Set grid to all tiles empty
-
   For i = 1 To dim 'columns X
-
     For j = 1 To dim 'rows Y
-
       grid[i][j] = 0 'empty
-
     EndFor
-
   EndFor
-
   
-
   'Start game and make first tile
-
   playing = "True"
-
   numTile = 0
-
   animateTime = 100 'ms to animate tiles
-
   AddTile()
-
 EndSub
-
-
 
 'Add random '2' tile to empty tile
-
 Sub AddTile
-
   unset = "True"
-
   While (unset)
-
     i = Math.GetRandomNumber(dim)
-
     j = Math.GetRandomNumber(dim)
-
     If (grid[i][j] = 0) Then
-
       grid[i][j] = 2
-
       GraphicsWindow.BrushColor = "LightGray"
-
       tile["Shape"] = Shapes.AddRectangle(size-10,size-10)
-
       GraphicsWindow.BrushColor = "Black"      
-
       tile["Text"] = Shapes.AddText(grid[i][j])
-
       tiles[i][j] = tile
-
       positionTile()
-
       unset = "False"
-
     EndIf
-
   EndWhile
-
   numTile = numTile+1
-
 EndSub
-
-
 
 'Recolour tile at i,j as required
-
 Sub UpdateTiles
-
   indices = Array.GetAllIndices(actionTile)
-
   For index = 1 To Array.GetItemCount(indices)
-
     shape = indices[index]
-
     action = actionTile[shape]
-
     For i = 1 To dim
-
       For j = 1 To dim
-
         If (shape = tiles[i][j]["Shape"]) Then
-
           Shapes.Remove(tiles[i][j]["Shape"])
-
           Shapes.Remove(tiles[i][j]["Text"])
-
           If (grid[i][j] = 4) Then
-
             GraphicsWindow.BrushColor = "LightYellow"
-
           ElseIf (grid[i][j] = 8) Then
-
             GraphicsWindow.BrushColor = "Moccasin"
-
           ElseIf (grid[i][j] = 16) Then
-
             GraphicsWindow.BrushColor = "LightSalmon"
-
           ElseIf (grid[i][j] = 32) Then
-
             GraphicsWindow.BrushColor = "OrangeRed"
-
           ElseIf (grid[i][j] = 64) Then
-
             GraphicsWindow.BrushColor = "DarkRed"
-
           Else
-
             GraphicsWindow.BrushColor = "Yellow"
-
           EndIf
-
           tiles[i][j]["Shape"] = Shapes.AddRectangle(size-10,size-10)
-
           GraphicsWindow.BrushColor = "Black"      
-
           tiles[i][j]["Text"] = Shapes.AddText(grid[i][j])
-
           positionTile()
-
         EndIf
-
       EndFor
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 'Position a tile at i,j
-
 Sub positionTile
-
   tile = tiles[i][j]
-
   Shapes.SetText(tile["Text"],grid[i][j])
-
   Shapes.Move(tile["Shape"],(i-1)*size+5,(j-1)*size+5)
-
   Shapes.Move(tile["Text"],(i-0.5)*size-8*Text.GetLength(grid[i][j]),(j-0.5)*size-20)
-
 EndSub
-
-
 
 'Animate all tiles to new positions
-
 Sub AnimateTiles
-
   For i = 1 To dim
-
     For j = 1 To dim
-
       If (grid[i][j] > 0) Then
-
         tile = tiles[i][j]
-
         Shapes.Animate(tile["Shape"],(i-1)*size+5,(j-1)*size+5,animateTime)
-
         Shapes.Animate(tile["Text"],(i-0.5)*size-8*Text.GetLength(grid[i][j]),(j-0.5)*size-20,animateTime)
-
       EndIf
-
     EndFor
-
   EndFor
-
   Program.Delay(animateTime)
-
 EndSub
-
-
 
 'Check tile moving from i,j to ii,jj to move or combine
-
 Sub CheckTile
-
   If (grid[i][j] > 0 And grid[ii][jj] = 0) Then 'Move
-
     grid[ii][jj] = grid[i][j]
-
     tiles[ii][jj] = tiles[i][j]
-
     grid[i][j] = 0
-
     tiles[i][j] = ""
-
     move = "True"
-
     moveMade = "True"
-
   EndIf
-
   If (grid[i][j] > 0 And grid[ii][jj] = grid[i][j] And actionTile[tiles[ii][jj]["Shape"]] = "" And actionTile[tiles[i][j]["Shape"]] = "") Then 'Combine
-
     'Combined tile - redraw later
-
     actionTile[tiles[ii][jj]["Shape"]] = "Redraw" 'Don't do multiple combines - flag for later update
-
     grid[ii][jj] = 2*grid[i][j]
-
     grid[i][j] = 0
-
     'Remove tile moved from
-
     Shapes.Remove(tiles[i][j]["Shape"])
-
     Shapes.Remove(tiles[i][j]["Text"])
-
     numTile = numTile-1
-
     grid[i][j] = 0
-
     tiles[i][j] = ""
-
     move = "True"
-
     moveMade = "True"
-
   EndIf
-
 EndSub
-
-
 
 Sub Move
-
   If (doMove) Then
-
     key = GraphicsWindow.LastKey
-
     moveMade = "False" 'Flag that a move was made
-
     actionTile = "" 'Flag for tiles to be deleted or combined tiles - also works to prevent multiple 'pile up' combines
-
     tilesCopy = tiles 'A working copy
-
     If (key = "Left") Then
-
       For j = 1 To dim 'Each Row
-
         move = "True" 'Keep moving while we can
-
         While (move)
-
           move = "False"
-
           For i = 2 To dim
-
             ii = i-1
-
             jj = j
-
             CheckTile()
-
           EndFor
-
         EndWhile
-
       EndFor
-
     ElseIf (key = "Right") Then
-
       For j = 1 To dim 'Each Row
-
         move = "True" 'Keep moving while we can
-
         While (move)
-
           move = "False"
-
           For i = dim-1 To 1 Step -1
-
             ii = i+1
-
             jj = j
-
             CheckTile()
-
           EndFor
-
         EndWhile
-
       EndFor
-
     ElseIf (key = "Up") Then
-
       For i = 1 To dim 'Each Column
-
         move = "True" 'Keep moving while we can
-
         While (move)
-
           move = "False"
-
           For j = 2 To dim
-
             ii = i
-
             jj = j-1
-
             CheckTile()
-
           EndFor
-
         EndWhile
-
       EndFor 
-
     ElseIf (key = "Down") Then
-
       For i = 1 To dim 'Each Column
-
         move = "True" 'Keep moving while we can
-
         While (move)
-
           move = "False"
-
           For j = dim-1 To 1 Step -1
-
             ii = i
-
             jj = j+1
-
             CheckTile()
-
           EndFor
-
         EndWhile
-
       EndFor 
-
     EndIf
-
     
-
     AnimateTiles()
-
     UpdateTiles()
-
     If (moveMade) Then
-
       Program.Delay(animateTime)
-
       AddTile()
-
     EndIf
-
     doMove = "False"
-
   EndIf
-
 EndSub
-
-
 
 'Check for end of game - all tiles present and no movespossible
-
 Sub CheckEnd
-
   If (numTile = dim*dim) Then
-
     playing = "False"
-
     For i = 1 To dim
-
       For j = 1 To dim-1
-
         If (grid[i][j] = grid[i][j+1] Or grid[j][i] = grid[j+1][i]) Then
-
           playing = "True"
-
         EndIf
-
       EndFor
-
     EndFor
-
   EndIf
-
 EndSub
-
-
 
 'Calculate curret score
-
 Sub GetScore
-
   score = 0
-
   For i = 1 To dim
-
     For j = 1 To dim
-
       score = score + grid[i][j]
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 'End of game - do score and prepare for anther game
-
 Sub Finished  
-
   GetScore()
-
 ' The following line could be harmful and has been automatically commented.
-
 '   highScore = File.ReadContents(File.GetSettingsFilePath())
-
   If (score > highScore) Then
-
     highScore = score
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.WriteContents(File.GetSettingsFilePath(),highScore)
-
   EndIf
-
   
-
   txt = "Your score = "+score
-
   GraphicsWindow.BrushColor = "White"
-
   scoreText = Shapes.AddText(txt)
-
   Shapes.Move(scoreText,0.5*size*dim-8*Text.GetLength(txt),0.27*size*dim+2)  
-
   GraphicsWindow.BrushColor = "Blue"
-
   scoreText = Shapes.AddText(txt)
-
   Shapes.Move(scoreText,0.5*size*dim-8*Text.GetLength(txt),0.27*size*dim)  
-
   
-
   txt = "High score = "+highScore
-
   GraphicsWindow.BrushColor = "White"
-
   scoreText = Shapes.AddText(txt)
-
   Shapes.Move(scoreText,0.5*size*dim-8*Text.GetLength(txt),0.27*size*dim+52)  
-
   GraphicsWindow.BrushColor = "Blue"
-
   scoreText = Shapes.AddText(txt)
-
   Shapes.Move(scoreText,0.5*size*dim-8*Text.GetLength(txt),0.27*size*dim+50) 
-
   
-
   Program.Delay(3000)
-
   
-
   'Press a key to restart
-
   doMove = "False"
-
   While (doMove <> "True")
-
     Program.Delay(10)
-
   EndWhile
-
 EndSub
-
-

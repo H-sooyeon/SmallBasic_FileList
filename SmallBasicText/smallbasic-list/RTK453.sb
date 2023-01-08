@@ -1,3205 +1,1602 @@
 'Copyrighted Software 2016. Abhishek Sathiabalan . All Rights Reserved. Governed by EULA. 
-
 'For a timeline of release information please check Assets\Change_Log Table 
 
-
-
 'v1114
-
 ' Transaction DB Implemented (Default is OFF )
-
 'Partial Localization Implemtented . 
-
 ' 53 Languages are computer translated. English is the only verified and vetted Language currently 
 
-
-
 'v1115 ("The Localization Patch")
-
 'Added Localization/Lang Folder which enables switching between languages to be nearly instant 
-
 'Added backend capability to use mods :) 
-
 'Front End capability still needed :( 
-
 'Moved Export Functions to a MOD File :) 
 
-
-
 'v1116 ("The Plugin Patch ")
-
 'Smarter Mod Loader 
-
 'Importer now works a lot more reliabley alabit a bit slower
-
 'Command Function reworked to include a parser
-
 'debug_Parser added . Default value 0 . Debugs Command Line Parser
-
 'Moved EULA UI Over to Universal Handler 
-
 'Moved all UI over to Universal Handler 
-
 'Improved Start up Speed by removing useless code
-
 'Made Main Menu Interface better 
-
 'Added Universal Handler to improve plugin support 
 
-
-
 'v1117
-
 'Moved Backup URL To GITHUB
 
-
-
 '______________________________________________________________________________
-
 '                                                                                                 To do - Non Modding 
-
 '______________________________________________________________________________
-
 'Cross Engine Support 
 
-
-
 'Add more Core Functions to sqlite sys
-
 'Resarch custom functions in sqlite 
 
-
-
 'Dataview bug report | Dataview Crash Bug 
-
 'Automatic Limiter on Dataview ? Using SQL Limit ? 
-
 'Export Menu
-
 'Access Table 
-
 'New Table Menu
-
 'SQL Functions List
-
 'Make the mastertable a view and remove the program only restrictions on it 
-
 'Make Views Read Only Program Side
-
 'Finer Transaction Logging Support 
-
 '     Ability to Supress Queries  or CMDS
-
 ' Automated Backup Script for DBs ?
-
 'Custom Connection Strings
-
 '______________________________________________________________________________
-
 '                                                                                                   Localize Iniative 
-
 '______________________________________________________________________________
-
 'Localize Self
-
 'Localize Import Module
 
-
-
 '______________________________________________________________________________
-
 '                                                                                                 To do - Modding 
-
 '______________________________________________________________________________
-
 'XML Based Menu and Actions ?
-
 'Server - Client Iniative 
-
 '     Make a Server Mod ? 
-
 '     Make a Client Mod ? 
-
 'GUI For a Mod Manager 
-
 'Make  MOD Documentation
-
 '______________________________________________________________________________
-
 '                                                                                     Module Iniative
-
 '______________________________________________________________________________
-
 '   Make the Core Engine a Module :) 
 
-
-
 StartTime[0] = Clock.ElapsedMilliseconds
-
 GraphicsWindow.Show()
-
 MainWindowID =  LDWindows.CurrentID
-
 LDGraphicsWindow.ExitOnClose = "False"
-
 LDGraphicsWindow.CancelClose = "True"
-
 LDGraphicsWindow.Closing = Closing
 
-
-
 '______________________________________________________________________________
-
 '                                                                               Functions List ( Mini API of sorts ) 
-
 '______________________________________________________________________________
-
 logfunction = "Log"
-
 QueryFunction = "Query"
-
 CommandFunction = "Command" 
-
 TransactionFunction = "TransactionRecord"
-
 RunModParserFunction = "MOD_RUN_Parser" 
 
-
-
 Function_XML_Attributes = "XML_Fetch_All"
-
 Function_Handler_ComboBox = "ComboBoxChanged"
-
 Function_Handler_EULA = "EULA_Handler"
-
 Function_Handler_MainMenu = "MainMenuHandler" 
-
 Function_Handler_ExportCB = "Export_CB_Handler"
 
-
-
 Function_UI_Add = "Add_UI_Controls"
-
 Function_UI_Query = "Query_UI_Controls"
-
 Function_Handler_Universal = "Universal_Handler"
 
-
-
 Function_RunMod_Parser = RunModParserFunction 
-
 Function_Command = CommandFunction
-
 Function_Query = QueryFunction
-
 Function_Log = logfunction
-
 Function_Transaction = TransactionFunction 
-
 '______________________________________________________________________________
-
 '                                                                                     List Names 
-
 '______________________________________________________________________________
-
 Export_T2  = "Export T2" 
-
 Export_T1  = "Export T1" 
-
 TrackDefaultTable = "TrackDefaultTable"
 
-
-
 List_Mod_Name = "Mod_Name"
-
 List_Mod_Path = "Mod_Path" 
 
-
-
 List_Command_Parser = "Command_SQL_Parser"
-
 List_Command_Parser_Status = "Command_SQL_Parser_Status"
-
 List_Command_Parser_OnFail = "Command_SQL_Parser_Fail"
-
 List_Command_Parser_OnFail_Index = "Command_SQL_Parser_Fail_Index"
 
-
-
 List_UI_Name = "UI_Name"
-
 List_UI_Handler = "UI_Handler"
-
 List_UI_Action = "UI_Action" 
-
 Register = "Register"
 
-
-
 LDUtilities.ShowErrors = "False"
-
 LDUtilities.ShowFileErrors= "False"
-
 LDUtilities.ShowNoShapeErrors = "False"
-
 LDEvents.Error = ErrorHandler
 
-
-
 debug_mode = 0 '1=On;0=Off(Default)
-
 debug_Parser = 0 'Debugs the CMD Function Parser . Seperated bc otherwise it creates a lot of noise in the debug output
-
 EULA_Test = 0 'Default 0 
 
-
-
 copyrightDate = 2016
-
 ProductID = "DBM"
-
 PrgmVersionID = 1117
-
 title = "Database Manager (" + ProductID + ") v" + PrgmVersionID + " " 
-
 Self = Program.Directory +"\DB Manager.exe"
 
-
-
 Booleans ="True=1;False=0;0=False;1=True;"
-
 '______________________________________________________________________________
-
 '                                                                                    Not to be set by Settings
-
 '______________________________________________________________________________
-
 TabKey = Text.GetCharacter(9) 
-
 CLLF = Text.GetCharacter(10) 
-
 DoubleQuotesCharacter = Text.GetCharacter(34)
-
 XML_Version_Number ="1.0"
-
-
 
 MOD_Running_False = 0 'Temp Fake Variable ; Add Functionality Later 
 
 
-
-
-
 SQLFunctionsList = "1=AVG;2=COUNT;3=MAX;4=MIN;5=SUM;6=TOTAL;7=Hex;8=Length;9=Lower;10=round;11=Trim;12=Upper;"
-
 SQLFunctionsList = Text.ConvertToUpperCase( SQLFunctionsList ) 
 
-
-
 DB_Engines_Types = "1=MySQL;2=Odbc;3=Oledb;4=SQLite;5=SqlServer;" 
-
 DB_Engine_Username = "1=1;2=1;3=1;4=0;5=1;"
-
 DB_Engine_Password = "1=1;2=1;3=1;4=0;5=1;"
-
 Engine_Mode = 4 
 
-
-
 LOG_DB_SQL = "CREATE TABLE IF NOT EXISTS Log (ID Integer Primary Key,[UTC_DATE] TEXT,[UTC_TIME] TEXT,Date TEXT,Time TEXT,USER TEXT,ProductID TEXT,ProductVersion INTEGER,Type TEXT,Event TEXT);"
-
 LOG_DB_SQL_View = "CREATE VIEW IF NOT EXISTS [LOCAL_TIME] AS SELECT ID,DATE,TIME,USER,PRODUCTID,PRODUCTVERSION,Type,Event From Log;CREATE VIEW IF NOT EXISTS [UTC_TIME] AS Select ID,UTC_DATE,UTC_TIME,USER,ProductID,ProductVersion,Type,Event From Log;"
-
 Transactions_SQL = "CREATE TABLE IF NOT EXISTS Transactions (ID INTEGER PRIMARY KEY,UTC_DATE TEXT,UTC_TIME TEXT,USER TEXT,PATH TEXT,DB TEXT,SNAME TEXT,SQL TEXT,Type TEXT,Reason TEXT);"
-
 '______________________________________________________________________________
-
 '                                                               File Operations 
-
 '______________________________________________________________________________
-
 AssetPath = Program.Directory +"\Assets\"
-
 logpath = AssetPath +"Log.csv"
-
 LogDBpath = AssetPath +"Log.db"
-
 TransactionDBpath = AssetPath +"Transactions.db" 
-
 EULAFile = AssetPath +"EULA.txt"
-
 settingspath = AssetPath+"setting.txt"
-
 ModPath = AssetPath +"Mod\"
-
 AutoRunMod_Path = AssetPath +"Auto Run Mod.txt"
-
 HelpPath = AssetPath +"HELP Table.html" 
 
-
-
 LocalizationsFolder = Program.Directory +"\Localization\"
-
 LocalizationsLangFolder = Program.Directory +"\Localization\Lang\"
-
 ' The following line could be harmful and has been automatically commented.
-
 ' LocalizationsFilesArray  =  File.GetFiles ( LocalizationsFolder ) 
 
-
-
 ' The following line could be harmful and has been automatically commented.
-
 ' IF LDFile.Exists(AssetPath) = "False" Or LDFile.Exists(LocalizationsFolder) = "False" Or LDFile.Exists( ModPath ) = "False" Then 
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.CreateDirectory(AssetPath)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.CreateDirectory(LocalizationsFolder ) 
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.CreateDirectory(ModPath ) 
-
 EndIf 
 
-
-
 ' The following line could be harmful and has been automatically commented.
-
 ' If LDFile.Exists( AutoRunMod_Path ) = "False" Then
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.AppendContents( AutoRunMod_Path , "# This file designates the Mod and the subroutine the main program should call on the start of the program. Use this to insert your UI at startup. The character # marks the line as commented. ") 
-
 EndIf 
 
-
-
 ' The following line could be harmful and has been automatically commented.
-
 ' If LDFile.Exists(logpath) = "False" Then
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.AppendContents( logpath , "id,local date,local time,Username,Product ID,Version ,Type of Error,Log Event")
-
 EndIf 
-
-
 
 LOG_DB= LDDataBase.ConnectSQLite(LogDBpath) ' Creates Log DB if it does not exist 
-
 TransactionDB = LDDataBase.ConnectSQLite( TransactionDBpath ) 
 
-
-
 LDList.Add("DB_Path", LogDBpath ) 
-
 LDList.Add("DB_Name", Log_DB ) 
 
-
-
 LDList.Add("DB_Path", TransactionDBpath ) 
-
 LDList.Add("DB_Name", TransactionDB ) 
 
-
-
 LDDataBase.Command( TransactionDB , Transactions_SQL)
-
 LDCall.Function4( CommandFunction , LOG_DB , LOG_DB_SQL,"App","Auto Creation Statements" ) ' Cannot be Localized 
-
 LDCall.Function4( CommandFunction , LOG_DB , LOG_DB_SQL_View ,"App","Auto Creation Statements")'Cannot be Localized 
-
 LDCall.Function4( CommandFunction , TransactionDB , Transactions_SQL ,"App","Auto Creation Statements") ' Cannot be Localized 
 
-
-
 LogNumber = LDDataBase.Query( LOG_DB,"SELECT COUNT(ID) From Log;","","True")
-
 LogNumber = LogNumber[1]["COUNT(ID)"]
-
 LDCall.Function5(TransactionFunction , "App" , LOG_DB +"| LOG"  ,"SELECT COUNT(ID) From Log;" ,"Query", " Auto Query Log Count") 'Cannot be Localized 
-
 TransactionNumber = LDDataBase.Query( TransactionDB,"SELECT COUNT(ID) From Transactions","","True") 
-
 TransactionNumber = TransactionNumber[1]["COUNT(ID)"]
 
-
-
 OnlineEULaPath = "https://drive.google.com/uc?export=download&id=0B2v4xbFnpKvRNTFKckFKLVNNUDg" 'EULA Path
-
 OnlineDB_Refrence_Location = "https://docs.google.com/uc?id=0B2v4xbFnpKvRVmNVODZ4bnppd3c&export=download" 'Update DB Path 
 
-
-
 StartTime[1] = Clock.ElapsedMilliseconds
-
 LDNetwork.DownloadFile(EULAFile,OnlineEULaPath)
-
 EndTime[1] = Clock.ElapsedMilliseconds
 
-
-
 LoadedFile = 0 
-
 SortByMode = 1 
-
 RestoreSettings = 0
-
-
 
 args = ""
 
-
-
 'Gets EULA Version 
-
 ' The following line could be harmful and has been automatically commented.
-
 ' EULA_Version = LDText.Replace(File.ReadLine(EULAFile,1)," ","")
-
 For I = 1 To Text.GetLength(EULA_Version)
-
   Character =  Text.GetSubText(EULA_Version,I,1) 
-
   If Character <> TabKey Then
-
     NEULA_Version = Text.Append(NEULA_Version, Character )
-
   EndIf
-
 EndFor
-
 EULA_Version = NEULA_Version
-
 NEULA_Version =""
 
-
-
 '______________________________________________________________________________
-
 '                                                                                     End of No Settings Zone
-
 '______________________________________________________________________________
-
 Startup()
 
-
-
 Sub Startup
-
   MOD_Find_All()
-
   LoadSettings()
-
   CMD_Output = AssetPath + "CMD.txt"
-
   CMD_String = "ECHO %SYSTEMROOT% >> " + CMD_Output
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteContents(AssetPath+"Sysroot.bat" , CMD_String ) 
-
   LDProcess.Start( AssetPath +"Sysroot.bat" ,"")
-
   Localization_XML()
-
   LDCall.Function2( logfunction , "Program Started",LangList["Application"]) '// Localize 
-
   
-
   If Program.ArgumentCount  = 1  Then
-
     GetPath()
-
     Load_DB()
-
   EndIf
-
 ' The following line could be harmful and has been automatically commented.
-
 '   If  (EULA_Accepted = "True") And (EULA_Accepted_By = LDFile.UserName)  And (EULA_Version = EULA_Accepted_Version) And (VersionID = PrgmVersionID) And EULA_Test = 0   Then
-
     Startup_GUI()
-
   Else
-
     SaveSettings()
-
     EULA_UI()
-
   EndIf
-
 EndSub
-
-
 
 Sub Startup_GUI
-
   Pre_MainMenuUI()
-
   MOD_READ_AutoRunFile()
-
   MOD_AutoRun()
-
   LDCall.Function2( logfunction , "Startup Time: " +(Clock.ElapsedMilliseconds - StartTime[0]) +" (ms)" ,LangList["UI"])
-
   MainMenuUI()
-
 EndSub
-
-
 
 Sub Localization_XML 
-
   XML_Localization_Path = LocalizationsFolder + Localization_lang+".xml" 
-
   Localization_XML_DOC =  LDxml.Open(XML_Localization_Path)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   If LDFile.Exists(XML_Localization_Path ) Then 
-
     LDxml.FirstNode()
-
     LDxml.FirstChild()
-
     LDxml.LastChild()
-
     
-
     XML_Array = LDCall.Function( Function_XML_Attributes , "")
-
     Localixation_XML_Private()
-
     While LDxml.PreviousSibling() = "SUCCESS"
-
       XML_Array =   LDCall.Function( Function_XML_Attributes , "")
-
       Localixation_XML_Private()
-
     EndWhile
-
   Else
-
     LDCall.Function2( logfunction , "Localization XML Missing","Application") 'DO NOT LOCALIZE EVER! This error indicates the localization file is missing!! 
-
   EndIf 
-
   
-
   'LDLanguages = LDTranslate.Languages() 
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Localization_Temp = File.ReadContents( LocalizationsLangFolder +Localization_lang+".txt" ) 
-
   For I = 1 To Array.GetItemCount( LocalizationsFilesArray  )
-
 ' The following line could be harmful and has been automatically commented.
-
 '     MLanguages[I] =  LDFile.GetFile( LocalizationsFilesArray[I] )
-
     Localization_List[ MLanguages[I] ]  = Localization_Temp[MLanguages[I]]
-
     LDList.Add("ISO_Lang", MLanguages[I] ) 
-
     LDList.Add("ISO_Text" , Localization_List[ MLanguages[I] ] ) 
-
   EndFor
-
 EndSub 
-
-
 
 Sub Localixation_XML_Private
-
   If XML_Array[1]["language"] = Localization_lang Then 
-
     LangList[ LDText.Replace( XML_Array[4] ,"_"," ") ] = XML_Array[6] 
-
   ElseIf debug_mode = 1 Then  
-
     TextWindow.WriteLine ("Recjected: " +  XML_Array ) 
-
   EndIf 
-
 EndSub
-
-
 
 Sub LoadSettings
-
   If RestoreSettings = 0 Then 
-
 ' The following line could be harmful and has been automatically commented.
-
 '     Settings = File.ReadContents(settingspath)
-
   EndIf 
-
   Listview_Width = Settings["Listview_Width"]
-
   Listview_Height = Settings["Listview_Height"] 
-
   VersionID = Settings["VersionID"] 
-
   lastFolder = Settings["LastFolder"]
-
   SupportedExtensions = Settings["Extensions"]
-
   deliminator = Settings["Deliminator"] 
-
   Transactions_mode = Settings["Transactions"] 
-
   Localization_lang = Settings["Language"] 
-
   
-
   EULA_Accepted = Settings["EULA"]
-
   EULA_Accepted_By = Settings["EULA_By"]
-
   EULA_Accepted_Version = Settings["EULA_Version"]
-
   
-
   OS_Dir = Settings["OS_Dir"] 
-
   debug_mode = Settings["debug_mode"]
-
   debug_Parser = Settings["debug_parser"]
-
   
-
   Null_Settings = "1=Listview_Width;2=Listview_Height;3=VersionID;4=Extensions;5=Language;6=Transactions;7=LastFolder;8=OS_Dir;9=debug_parser;10=debug_mode;"
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Setting_Default ="1=1500;2=900;3="+ PrgmVersionID +";5=en;6=0;7=" +LDFile.DocumentsFolder +";8=C:\\Windows\\System32\\;9=0;10=0;"
-
   Setting_Default[4] = "1=db;2=sqlite;3=*;"
-
   
-
   For I = 1 To Array.GetItemCount( Null_Settings )
-
     If Settings[ Null_Settings[I] ] = "" Then
-
       Settings[ Null_Settings[I] ] = Setting_Default[I]
-
       RestoreSettings = 1 
-
     EndIf 
-
   EndFor
-
   
-
   If RestoreSettings = 1 Then 
-
     Listview_Width = Settings["Listview_Width"]
-
     Listview_Height = Settings["Listview_Height"] 
-
     VersionID = Settings["VersionID"]
-
     SupportedExtensions = Settings["Extensions"]
-
     Localization_lang = Settings["Language"]
-
     Transactions_mode =  Settings["Transactions"] 
-
     lastFolder = Settings["LastFolder"]
-
   EndIf 
-
   SaveSettings()
-
 EndSub
-
-
 
 Sub SaveSettings
-
 ' The following line could be harmful and has been automatically commented.
-
 '   status=  File.WriteContents(settingspath,Settings)
-
   If status = "FAILED" Then
-
     LDCall.Function2( logfunction ,"Failed to save settings","UI") 
-
     GraphicsWindow.ShowMessage(LangList["Failed Save Settings"] ,LangList["Error"]) 'Failed to Save Settings
-
   EndIf
-
 EndSub
-
-
 
 Sub GetPath
-
   If Program.ArgumentCount  = 1 AND LoadedFile = 0 Then
-
     databasepath = Program.getArgument(1)
-
     LoadedFile = 1 
-
   Else
-
     databasepath = LDDialogs.OpenFile(SupportedExtensions,lastFolder+"\")
-
   EndIf
-
 EndSub
-
-
 
 Sub Load_DB  
-
 ' The following line could be harmful and has been automatically commented.
-
 '   If LDFile.Exists(databasepath) = "True" then
-
     database =  LDDataBase.ConnectSQLite(databasepath)
-
     LDCall.Function2(logfunction, "Program Started - OPENED : " + databasepath ,LangList["Application"])'//Localize
-
 ' The following line could be harmful and has been automatically commented.
-
 '     Settings["LastFolder"] = LDFile.GetFolder(databasepath)
-
     SaveSettings()
-
     LDList.Add("DB_Path", databasepath ) 
-
     LDList.Add("DB_Name", database  ) 
-
   Else
-
     LDCall.Function2(logfunction, "Program Started - Failed to OPEN : " + databasepath,"Application" ) '//Localize
-
     GraphicsWindow.ShowMessage("File Could not be found or opened ", "Fatal Error" ) '//Localize
-
   Endif
-
 EndSub
 
-
-
 '______________________________________________________________________________
-
 '                                                                                     EULA UI
-
 '______________________________________________________________________________
-
 Sub EULA_UI
-
   GraphicsWindow.Show()
-
   GraphicsWindow.Left = Desktop.Width / 3
-
   GraphicsWindow.Top = Desktop.Height / 4
-
   GraphicsWindow.Title = title + "EULA"
-
   
-
   defaultWidth = GraphicsWindow.Width
-
   defaultHeight= GraphicsWindow.Height
-
   
-
   LDControls.RichTextBoxReadOnly = "True"
-
   eulatextbox =  LDControls.AddRichTextBox(600,350)
-
   Controls.Move(eulatextbox,10,10)
-
   LDControls.RichTextBoxReadOnly = "False"
-
   
-
 ' The following line could be harmful and has been automatically commented.
-
 '   DowloandedFilePath = File.GetTemporaryFilePath()
-
   LDNetwork.DownloadFile(DowloandedFilePath ,OnlineEULaPath)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   OnlineEULACnts = File.ReadContents( DowloandedFilePath )
-
   OnlineEULACnts = LDText.Replace(OnlineEULACnts,"<date>",copyrightDate )
-
   
-
   If OnlineEULACnts = "" Then
-
     LDCall.Function2( logfunction ,LangList["Failed Load Online EULA"],LangList["UI"])
-
     GraphicsWindow.ShowMessage(LangList["Failed Load Online EULA"],LangList["Error"])
-
 ' The following line could be harmful and has been automatically commented.
-
 '     EULAContents = Text.Append("This is the EULA that came with this program. This may not be the most latest EULA. Subject to General Part F the most latest EULA can be found here:" +Text.GetCharacter(10) + OnlineEULaPath ,File.ReadContents(EULAFile) )
-
   Else
-
     EULAContents = OnlineEULACnts
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.WriteContents(EULAFile, EULAContents)
-
   EndIf
-
   
-
   If EULAContents = "" Then
-
     LDCall.Function2( logfunction , "NO EULA FOUND. Local or Online","UI")'//Localize 
-
     GraphicsWindow.ShowMessage("EULA could not be loaded. This program cannot start without its EULA." "EULA LOAD ERROR")'//Localize 
-
     Program.End()
-
   Else
-
     
-
     LDControls.RichTextBoxSetText(eulatextbox,EULAContents,"False")
-
     EULAContents = ""
-
     
-
     Ihaveread =  LDControls.AddCheckBox("I have read and agree to this EULA.")
-
     
-
     EULAaccept = Controls.AddButton("Accept",235,390)
-
     EULADecline = Controls.AddButton("Decline",235+80,390)
-
     
-
     Controls.Move(Ihaveread,190,365)
-
     Controls.SetSize(EULAaccept,70,30)
-
     Controls.SetSize(EULADecline,70,30)
-
     
-
     LDCall.Function3( Function_UI_Add , Register , Ihaveread , Function_Handler_EULA ) 
-
     LDCall.Function3( Function_UI_Add , Register , EULAaccept, Function_Handler_EULA  ) 
-
     LDCall.Function3( Function_UI_Add , Register , EULADecline, Function_Handler_EULA  ) 
-
     
-
   EndIf
-
   Controls.ButtonClicked = Universal_BD
-
 EndSub
-
-
 
 Sub EULA_Handler
-
   If args[1] <> "" Then
-
     LastClickedButton = args[1] 
-
   EndIf 
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Settings["EULA_By"]  = LDFile.UserName
-
   Settings["EULA_Version"] = EULA_Version
-
   Settings["VersionID"] = PrgmVersionID
-
   If  LastClickedButton = EULAaccept AND LDControls.CheckBoxGetState(Ihaveread) = "True" Then 
-
     Settings["EULA"] = "True"
-
     SaveSettings()
-
     GraphicsWindow.Clear()
-
     Startup_GUI()
-
   ElseIf LastClickedButton = EULADecline Then
-
     Settings["EULA"] = "False"
-
     SaveSettings()
-
     LDCall.Function2( logfunction , "EULA Declined","UI")
-
     GraphicsWindow.ShowMessage("If you disagree with this EULA please delete this program","EULA Decline")
-
     Program.End()
-
   EndIf 
-
 EndSub 
 
 
-
-
-
 '______________________________________________________________________________
-
 '                                                                                     Maine Menu UI
-
 '______________________________________________________________________________
-
-
 
 Sub Pre_MainMenuUI 'Basically a List of Defines for the Main Menu UI 
-
   'Root 
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList[ "File" ], Function_Handler_MainMenu , "Main","")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList[ "Edit" ], Function_Handler_MainMenu , "Main","")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList[ "View" ], Function_Handler_MainMenu , "Main","")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList[ "Save" ], Function_Handler_MainMenu , "Main","")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList[ "Import" ], Function_Handler_MainMenu , "Main","")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList[ "Export" ], Function_Handler_MainMenu , "Main","")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList[ "Settings" ], Function_Handler_MainMenu , "Main","")
-
   
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["New"], Function_Handler_MainMenu , LangList["File"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["Open"], Function_Handler_MainMenu , LangList["File"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu","-", Function_Handler_MainMenu , LangList["File"],"")
-
   
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["CSV"], Function_Handler_MainMenu , LangList["Import"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["SQL"], Function_Handler_MainMenu , LangList["Import"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu","-", Function_Handler_MainMenu , LangList["Import"],"")
-
   
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["CSV"] + " ", Function_Handler_MainMenu , LangList["Export"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["SQL"] +" ", Function_Handler_MainMenu , LangList["Export"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["PXML"] + " " , Function_Handler_MainMenu , LangList["Export"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["HTML"] + " " , Function_Handler_MainMenu , LangList["Export"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu","Export UI", Function_Handler_MainMenu , LangList["Export"],"") '// Localize
-
   LDCall.Function5(Function_UI_Add,"Menu","-", Function_Handler_MainMenu , LangList["Export"],"")
-
   
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["Help"], Function_Handler_MainMenu , LangList["Settings"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["About"], Function_Handler_MainMenu , LangList["Help"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["Show Help"], Function_Handler_MainMenu , LangList["Help"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu","-", Function_Handler_MainMenu , LangList["Help"],"")
-
   
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["Settings Editor"], Function_Handler_MainMenu , LangList["Settings"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["Toggle Debug"], Function_Handler_MainMenu , LangList["Settings"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["Toggle Transaction Log"], Function_Handler_MainMenu , LangList["Settings"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["Refresh"], Function_Handler_MainMenu , LangList["Settings"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu",LangList["Check for Updates"], Function_Handler_MainMenu , LangList["Settings"],"")
-
   LDCall.Function5(Function_UI_Add,"Menu","Close TW", Function_Handler_MainMenu , LangList["Settings"],"") '// Localize
-
   LDCall.Function5(Function_UI_Add,"Menu","-", Function_Handler_MainMenu , LangList["Settings"],"") 
-
   
-
   ViewDB_Button = LangList["View"]
-
   NewDB_Button = LangList["New"]
-
   EditDB_Button = LangList["Edit"]
-
   OpenDB_Button = LangList["Open"]
-
   ImportCSV_Button = LangList["CSV"]
-
   ImportSQL_Button = LangList["SQL"]
-
   ExportCSV_Button = LangList["CSV"]+" "
-
   ExportSQL_Button = LangList["SQL"]+" "
-
   ExportXML_Button = LangList["PXML"] +" "
-
   ExportHTML_Button = LangList["HTML"]+" "
-
   SaveButton = LangList["Save"]
-
   SettingsButton = LangList["Settings Editor"]
-
   ToggleDebug_Button = LangList["Toggle Debug"]
-
   AboutButton = LangList["About"]
-
   ShowHelp = LangList["Show Help"]
-
   RefreshButton = LangList["Refresh"]
-
   CheckForUpdates = LangList["Check for Updates"]
-
   ToggleTransaction = LangList["Toggle Transaction Log"]
-
   
-
   CLoseTW_Button = "Close TW" '// Localize
-
   Export_UI_Button = "Export UI" '// Localize
-
 EndSub
-
-
 
 Sub MainMenuUI 
-
   GraphicsWindow.CanResize = "True"
-
   LDGraphicsWindow.ExitButtonMode(GraphicsWindow.Title,"Enabled")
-
   
-
   
-
   If debug_mode = 1 Then 
-
     CheckList[ LangList["Toggle Debug"]] = "True"
-
     LDCall.Function2( logfunction , "Debug Mode is ON","UI")
-
   ElseIf debug_mode = 0 Then  
-
     CheckList[LangList["Toggle Debug"]] = "False"
-
   EndIf
-
   
-
   If Transactions_mode = 1 Then 
-
     CheckList[LangList["Toggle Transaction Log"]] = "True"
-
   ElseIf Transactions_mode = 0 Then
-
     CheckList[LangList["Toggle Transaction Log"]] = "False" 
-
   EndIf
-
   
-
   'GraphicsWindow.Clear() 'Is this nessecarry ?? //TO DO //LOCALIZE //FLAG 
-
   LDGraphicsWindow.State = 2
-
   GraphicsWindow.Title = title + " " 
-
   
-
   Default_FontSize = GraphicsWindow.FontSize
-
   
-
   TypesOfSorts = "1=" + LangList["Table"] +";2=" +LangList["View"] +";3=" + LangList["Index"] +";4=" +LangList["Master Table"] +";" 
-
   
-
   Get_SCHEMA()
-
   SCHEMA_CurrentList = SCHEMA_TableList 
-
   
-
   GraphicsWindow.FontSize = 20
-
   Menu = LDControls.AddMenu(Desktop.Width,30,MenuList,"",CheckList) 
-
   
-
   Shapes.Move( Shapes.AddText(LangList["Sort"] +":") , 890 ,  1) 
-
   
-
   GraphicsWindow.FontSize = Default_FontSize
-
   TableCB =  LDControls.AddComboBox(SCHEMA_TableList,100,100) 
-
   SortsCB =  LDControls.AddComboBox(TypesOfSorts,100,100) 
-
   
-
   Controls.Move(TableCB,970,5)
-
   Controls.Move(SortsCB,1075,5) 
-
   
-
   LDCall.Function5( Function_UI_Add , Register , TableCB , Function_Handler_ComboBox ,"","")
-
   LDCall.Function5( Function_UI_Add , Register , SortsCB , Function_Handler_ComboBox ,"","")
-
   
-
   LastClickedButton = ViewDB_Button 'Acts like a Virtual Function Call  
-
   MainMenuHandler()
-
   
-
   GraphicsWindow.Title = title + " " +LangList[ "Table" ] +": " + Default_Table 
-
   
-
   Ldcontrols.MenuClicked = Universal_MenuClicked 
-
   LDControls.ComboBoxItemChanged = Universal_ComboBoxChanged
-
   Controls.ButtonClicked = Universal_BD
-
   If debug_mode = 0 And debug_Parser = 0 Then
-
     TextWindow.Hide()
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub MainMenuButton
-
   '  TextWindow.WriteLine(":(")
-
   
-
   LDCall.Function( Function_Handler_MainMenu , Controls.LastClickedButton )
-
 EndSub
-
-
 
 Sub ComboBoxChanged
-
   If args[1] <> "" Then 
-
     LastClickedCB = args[1]
-
   Else
-
     LastClickedCB =  LDControls.LastComboBox
-
   EndIf 
-
   
-
   LastCBIndex = LDControls.LastComboBoxIndex
-
   If LastClickedCB = TableCB Then 
-
     If  LDList.GetAt(TrackDefaultTable,LDList.Count(TrackDefaultTable)) <> LastCBIndex Then
-
       LDList.Add(TrackDefaultTable,LastCBIndex)
-
       Default_Table = SCHEMA_CurrentList[ LastCBIndex ]
-
       
-
       Get_SCHEMA_Private()
-
       Hide_Display_Results()
-
       List = SchemaList
-
       LDControls.ComboBoxContent(SortByCB ,SchemaList)
-
       LDControls.ComboBoxContent(SearchByCB, SchemaList )
-
       LDControls.ComboBoxContent(ColumnListCB, SchemaList )
-
       GraphicsWindow.Title = title + TypesOfSorts[SortByMode] +": "  + Default_Table
-
       LastClickedButton = ViewDB_Button
-
       MainMenuHandler()
-
     EndIf 
-
   ElseIf LastClickedCB = SortsCB Then 
-
     SortsCB_IndexList = "1="+SCHEMA_TableList+";2="+SCHEMA_ViewList+";3="+SCHEMA_IndexList+";"
-
     SortByMode = LastCBIndex 
-
     If LastCBIndex = 1 Then 
-
       Default_Table = SCHEMA_TableList[1]
-
       SCHEMA_CurrentList = SCHEMA_TableList
-
       LDControls.ComboBoxContent(TableCB, SCHEMA_TableList )
-
     ElseIf LastCBIndex = 2 Then 
-
       Default_Table = SCHEMA_ViewList[1]
-
       SCHEMA_CurrentList = SCHEMA_ViewList
-
       LDControls.ComboBoxContent(TableCB, SCHEMA_ViewList )
-
     ElseIf LastCBIndex = 3 Then
-
       Default_Table = SCHEMA_IndexList[1] 
-
       SCHEMA_CurrentList = SCHEMA_IndexList
-
       LDControls.ComboBoxContent(TableCB, SCHEMA_IndexList )
-
     ElseIf LastCBIndex = 4 then 
-
       Default_Table = "sqlite_master" 
-
       LDCall.Function( Function_Handler_Universal , ViewDB_Button )
-
     EndIf 
-
     
-
     If (LastCBIndex = 1 OR LastCBIndex = 2 OR LastCBIndex = 3 Or LastCBIndex = 4)and Default_Table <> "" Then 
-
       
-
       LDList.Clear(TrackDefaultTable)
-
       LDList.Add(TrackDefaultTable,1)
-
       Get_SCHEMA_Private()
-
       Hide_Display_Results()
-
       List = SchemaList
-
       LDControls.ComboBoxContent(SortByCB ,SchemaList)
-
       LDControls.ComboBoxContent(SearchByCB, SchemaList )
-
       LDControls.ComboBoxContent(ColumnListCB, SchemaList )
-
       GraphicsWindow.Title = title + TypesOfSorts[SortByMode] +": "  + Default_Table
-
       LDCall.Function( Function_Handler_Universal , ViewDB_Button )
-
       
-
       GraphicsWindow.Title = title + " "+ TypesOfSorts[SortByMode] +": "  + Default_Table
-
     Else
-
       LDCall.Function2(logfunction,"In the current database no "+LangList[ TypesOfSorts[SortByMode] ]+"s can be found.","UI") '//Localize  
-
       GraphicsWindow.ShowMessage("In the current database no "+ LangList[ TypesOfSorts[SortByMode] ] +"s can be found." , "Error" ) '//Localize 
-
       
-
     EndIf 
-
     
-
     If debug_mode = 1 Then  
-
       TextWindow.WriteLine("DEBUG: "+  LastCBIndex +":"+ TypesOfSorts[LastCBIndex] +":" + SortsCB_IndexList[LastCBIndex] +":" + Default_Table ) 
-
     EndIf 
-
     
-
   EndIf
-
 EndSub
-
-
 
 Sub MainMenuHandler
-
   Results_Search = 0
-
   Results_Sort = 0
-
   Results_Function = 0
-
   
-
   If args[1] <> "" Then 
-
     LastClickedButton = args[1] 
-
     If debug_mode = 1 Then 
-
       Textwindow.writeline(args[1])
-
     EndIf 
-
   EndIf 
-
   
-
   If debug_mode = 0 Then
-
     TextWindow.Hide()
-
   EndIf
-
   
-
   If LastClickedButton = NewDB_Button Then 'New Database
-
     NewFileSavePath =  LDDialogs.SaveFile("db",lastFolder)
-
     If NewFileSavePath <> "" Then
-
 ' The following line could be harmful and has been automatically commented.
-
 '       lastFolder = LDFile.GetFolder(NewFileSavePath)
-
       SaveSettings()
-
       TextWindow.Write("Creation Statement:")
-
       UserSQL  = TextWindow.Read()
-
       
-
 ' The following line could be harmful and has been automatically commented.
-
 '       LDCall.Function4( CommandFunction , LDDataBase.ConnectSQLite(NewFileSavePath)  , UserSQL ,LDFile.UserName ,"NEW DB") 
-
       LDCall.Function2(logfunction, "Created DB : " + NewFileSavePath,"Application")
-
       
-
       listview = "" 
-
       Dataview = "" 
-
       databasepath = NewFileSavePath 
-
       LoadSettings()
-
       Load_DB()
-
       SaveSettings()
-
       Pre_MainMenuUI()
-
       MainMenuUI()
-
     EndIf
-
   ElseIf LastClickedButton = EditDB_Button Then 'Edit Database List View
-
     If database <> "" Then 
-
       If SortByMode <> 4 AND SortByMode <> 2 Then 
-
         Controls.HideControl(listview)
-
         If Dataview = "" Then
-
           Dataview =  LDControls.AddDataView(Listview_Width,Listview_Height,"")
-
           'TextWindow.WriteLine(Dataview) 'Debug 
-
           Controls.Move(Dataview,10,35)
-
         Else
-
           Controls.ShowControl(Dataview)
-
         EndIf
-
         CurrentControl = Dataview
-
         LDDataBase.EditTable(database,Default_Table,CurrentControl)
-
         Hide_Display_Results()
-
       ElseIf SortByMode = 4 Then  
-
         LDCall.Function2(logfunction ,LangList["Master Table Protected"] , LangList["UI"]) 
-
         GraphicsWindow.ShowMessage(LangList[ "Error"] +":" + LangList["Master Table Protected"] ,LangList["Access Denied"])
-
       ElseIf SortByMode = 2 Then 
-
         LDCall.Function2(logfunction ,"Views are a readonly type." , LangList["UI"]) 'Localize 
-
         GraphicsWindow.ShowMessage(LangList[ "Error"] +":" + "Views cannot be edited" ,LangList["Access Denied"]) 'Lozalize
-
       EndIf 
-
     Else 
-
       LDCall.Function2(logfunction ,LangList["Error No DB"]  , LangList["UI"])
-
       GraphicsWindow.ShowMessage(LangList["Error No DB"] ,LangList[ "Error" ])
-
     EndIf
-
   ElseIf LastClickedButton = ViewDB_Button Then 'View Database
-
     Controls.HideControl(Dataview)
-
     If listview = "" Then
-
       listview = LDDataBase.AddListView(Listview_Width,Listview_Height)
-
       Controls.Move(listview,10,35)
-
       Display_Results()
-
     Else
-
       Show_Display_Results()
-
       Controls.ShowControl(listview)
-
     EndIf
-
     CurrentControl = listview
-
     If Default_Table <> "" Then 
-
       LDCall.Function5(QueryFunction,"SELECT * FROM " + Default_Table +";",CurrentControl,"False" ,LangList["App"],LangList[ "View Function"])
-
     EndIf 
-
   ElseIf LastClickedButton = OpenDB_Button Then 'Opens a DB
-
     listview = ""
-
     Dataview = ""
-
     LoadSettings()
-
     GetPath()
-
     Load_DB()
-
     SaveSettings()
-
     Pre_MainMenuUI()
-
     MainMenuUI()
-
   Elseif LastClickedButton = SaveButton  Then 'Save Button   
-
     If database <> "" and Dataview <> "" Then 
-
       Save_Status = LDDataBase.SaveTable(database,Dataview)
-
       LDCall.Function2(logfunction ,"The save was : " + Save_Status , "UI" ) '//Localize 
-
       GraphicsWindow.ShowMessage("The save was : " + Save_Status,"Save Status !") '//Localize  
-
     Else 
-
       LDCall.Function2(logfunction ,"The Database or Dataview does not exist or have not yet been loaded", "UI" ) '//Localize  
-
       GraphicsWindow.ShowMessage("Error : The Database or Dataview does not exist or have not yet been loaded","Save Error") '//Localize 
-
     EndIf
-
   ElseIf LastClickedButton = SortButton Then 'Sort View
-
     Results_Sort = 1
-
     GenerateQuery()
-
   ElseIf LastClickedButton = SearchButton Then 'Search View
-
     Results_Search = 1
-
     GenerateQuery()
-
   ElseIF LastClickedButton = CustomQueryButton Then 'USER Custom Query SQL 
-
 ' The following line could be harmful and has been automatically commented.
-
 '     LDCall.Function5(QueryFunction,Controls.GetTextBoxText(CustomQuery),CurrentControl,"False",LDFile.UserName,LangList["User Requested"])
-
   ElseIf LastClickedButton = CommandButton Then 'User Custom Run SQL 
-
 ' The following line could be harmful and has been automatically commented.
-
 '     updated = LDCall.Function4(CommandFunction , database , Controls.GetTextBoxText(CustomQuery) , LDFile.UserName,LangList[ "User Requested" ]) 
-
     GraphicsWindow.ShowMessage(" " + updated + " number of rows were updated.","") '//Localize 
-
   ElseIf LastClickedButton = RunFunctionButton Then
-
     Results_Function = 1
-
     GenerateQuery()
-
   ElseIf LastClickedButton = ImportCSV_Button Then 'Imports CSV
-
     LDCall.Function( Function_RunMod_Parser , "Import.CSV") 
-
   ElseIf LastClickedButton = ImportSQL_Button Then ' Imports SQL 
-
 ' The following line could be harmful and has been automatically commented.
-
 '     CurrentFolder = LDFile.GetFolder(databasepath)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     records =  LDCall.Function4( CommandFunction , database, File.ReadContents( LDDialogs.OpenFile("sql",CurrentFolder  ) ) , LDFile.UserName ,"Import SQL") '//Localize 
-
     LDCall.Function2(logfunction, "Imported data into: " + databasepath +" From sql file","Application") '//Localize 
-
     GraphicsWindow.ShowMessage(records + " records updated","IMPORT") '//Localize 
-
   ElseIf LastClickedButton = ExportSQL_Button Then 
-
     LDCall.Function(Function_RunMod_Parser,"Export.Export_SQL")
-
   ElseIf LastClickedButton = ExportCSV_Button Then
-
     
-
     TextWindow.WriteLine("")
-
     TextWindow.WriteLine("SELECT DATA TO WRITE IN " + LastClickedButton)
-
     TextWindow.Write(">")
-
     querycmd = TextWindow.Read()
-
     querycmd = Text.ConvertToLowerCase(querycmd)
-
     TextWindow.Clear()
-
     TextWindow.Hide()
-
     LDCall.Function(Function_RunMod_Parser, "Export.CSV" )
-
     
-
   ElseIf LastClickedButton = ExportXML_Button Then
-
     TextWindow.WriteLine("")
-
     TextWindow.WriteLine("SELECT DATA TO WRITE IN " + LastClickedButton)
-
     TextWindow.Write(">")
-
     querycmd = TextWindow.Read()
-
     querycmd = Text.ConvertToLowerCase(querycmd)
-
     TextWindow.Hide()
-
     LDCall.Function( Function_RunMod_Parser , "Export.XML" )
-
   ElseIf LastClickedButton = ExportHTML_Button Then
-
     LDCall.Function( Function_RunMod_Parser, "Export.HTML" ) 'Mod Version ; Runs as a dll of sorts 
-
   ElseIf LastClickedButton = ToggleDebug_Button Then 
-
     If debug_mode = 1 Then 
-
       debug_mode = 0
-
     ElseIf debug_mode = 0 Then
-
       debug_mode = 1
-
     EndIf 
-
   ElseIf LastClickedButton = AboutButton Then 
-
     GraphicsWindow.ShowMessage("DBM is a Database Mangement Program developed by Abhishek Sathiabalan. Copyright " + copyrightDate + ". All rights reserved." + CLLF + CLLF +"You are running : " + ProductID +" v" + VersionID ,"About") 'DO NOT LOCALIZE 
-
   ElseIf LastClickedButton = ShowHelp Then
-
     LDProcess.Start(HelpPath,"") 
-
   ElseIf LastClickedButton = SettingsButton Then 
-
     Settings_UI()
-
   ElseIf LastClickedButton = Setting_Save Then 
-
     Settings["Listview_Width"] = Controls.GetTextBoxText(Settings_WidthTB )
-
     Settings["Listview_Height"]= Controls.GetTextBoxText(Settings_HeigthTB )
-
     Settings["Extensions"] = Controls.GetTextBoxText(Settings_ExtensionsTB)
-
     Settings["Deliminator"] = Controls.GetTextBoxText( Settings_DeliminatorTB )
-
     Settings["Language" ] = LDList.GetAt("ISO_Lang", LDControls.ComboBoxGetSelected( Language_LB ) )
-
     TextWindow.WriteLine(  LDControls.CheckBoxGetState( Settings_Debug_Mode ) )
-
     'debug_mode = LDControls.CheckBoxGetState( Settings_Debug_Mode (
-
     'debug_Parser =
-
     Localization_lang = Settings["Language" ]
-
     SaveSettings()
-
     LoadSettings()
-
     
-
     'Sets it up so the Language Info can be reset 
-
     LDList.Clear("ISO_Lang") 
-
     LDList.Clear("ISO_Text") 
-
     MenuList = ""
-
     CheckList= "" 
-
     
-
     Localization_XML() 
-
     LastClickedButton = Settings_Close 
-
     MainMenuHandler()
-
   ElseIf LastClickedButton = Settings_Close Then 
-
     listview = ""
-
     Dataview = ""
-
     Pre_MainMenuUI()
-
     MainMenuUI()
-
   ElseIf LastClickedButton = MoveRight Then 'Export UI Controls 
-
     CB_Node = LDControls.ListBoxGetSelected( ExportListBox[1] )
-
     If  LDList.Contains(Export_T2, LDList.GetAt(Export_T1,  CB_Node)) = "False" Then
-
       LDList.Add( Export_T2, LDList.GetAt(Export_T1, CB_Node   )) 
-
       LDList.SetAt(Export_T1,CB_Node ,"") 
-
       Export_T1 =  LDList.FromArray( LDList.ToArray(Export_T1) )
-
       LDControls.ListBoxContent( ExportListBox[1],Export_T1 ) 
-
       LDControls.ListBoxContent(ExportListBox[2] ,Export_T2)
-
     EndIf 
-
   ElseIf LastClickedButton = MoveLeft Then
-
     CB_Node = LDControls.ListBoxGetSelected( ExportListBox[2] )
-
     If  LDList.Contains(Export_T1, LDList.GetAt(Export_T2,  CB_Node)) = "False" Then
-
       LDList.Add( Export_T1, LDList.GetAt(Export_T2, CB_Node   )) 
-
       LDList.SetAt(Export_T2,CB_Node ,"") 
-
       Export_T2 =  LDList.FromArray( LDList.ToArray(Export_T2) )
-
       LDControls.ListBoxContent( ExportListBox[1],Export_T1 ) 
-
       LDControls.ListBoxContent(ExportListBox[2] ,Export_T2)
-
     EndIf 
-
   ElseIf LastClickedButton = NextButton Then 'Create SQL Export Query :) 
-
     
-
   ElseIf LastClickedButton = RefreshButton Then 
-
     Get_SCHEMA()
-
   ElseIf LastClickedButton = CheckForUpdates Then 
-
     MannualUpdateCheck = 1 
-
     UpdateFunction()
-
   ElseIf LastClickedButton = ToggleTransaction Then
-
     If Transactions_mode = 1 Then 
-
       Transactions_mode = 0 
-
     ElseIf Transactions_mode = 0 Then 
-
       Transactions_mode = 1 
-
     EndIf 
-
     Settings["Transactions"] = Transactions_mode 
-
     SaveSettings()
-
     
-
   ElseIf LastClickedButton = Export_Close Then
-
     listview = "" 
-
     Dataview = ""
-
     Pre_MainMenuUI()
-
     MainMenuUI()
-
     LastClickedButton = ViewDB_Button
-
     MainMenuHandler()
-
   ElseIf LastClickedButton = Export_UI_Button Then 
-
     Export_UI()
-
   ElseIf LastClickedButton = CLoseTW_Button Then
-
     TextWindow.Clear()
-
     TextWindow.Hide()
-
   Else
-
     GraphicsWindow.ShowMessage ( LastClickedButton + " "+ LDCall.Function2( Function_UI_Query , Register , LastClickedButton )  ,"") 
-
   EndIf
-
   
-
   If LastClickedButton = ExportHTML_Button Or LastClickedButton = ExportCSV_Button Or LastClickedButton = ExportXML_Button or LastClickedButton = ExportSQL_Button Then
-
     LDCall.Function2(logfunction, "Exported: " + databasepath+" | " +TypesOfSorts[ SortByMode ] +":" + Default_Table + " INTO " + LastClickedButton,LangList["Application"]) '//Localize 
-
     GraphicsWindow.ShowMessage("RAN EXPORT INTO " + LastClickedButton, LangList[ "Export"]) '//Localize  
-
   EndIf 
-
 EndSub
 
-
-
 '______________________________________________________________________________
-
 '                                                                                     Graphic Magic
-
 '______________________________________________________________________________
-
 Sub Hide_Display_Results
-
   default_Brush = GraphicsWindow.BrushColor
-
   GraphicsWindow.BrushColor = "WHITE"
-
   GraphicsWindow.FillRectangle( UIx -5 ,45 ,320 ,350)
-
   GraphicsWindow.BrushColor = default_Brush
-
   For I = 1 To Array.GetItemCount(Display_Results_MasterControlsList)
-
     Controls.HideControl(Display_Results_MasterControlsList[I] )
-
   EndFor
-
 EndSub
-
-
 
 Sub Show_Display_Results
-
   GraphicsWindow.DrawRectangle( UIx ,50 ,310 ,240)
-
   GraphicsWindow.FontSize = 15
-
   GraphicsWindow.DrawText( UIx + 100 , 52 ,LangList[ "Display Settings" ]) 
-
   GraphicsWindow.DrawText( UIx + 20 ,73 ,LangList["Sort by"])
-
   GraphicsWindow.DrawText( UIx + 100 , 150 , LangList["Search Settings"])
-
   GraphicsWindow.DrawText( UIx + 20,180,LangList["Search in"])
-
   GraphicsWindow.DrawText( UIx + 20,210,LangList["Search"] +":")
-
   For I = 1 To Array.GetItemCount(Display_Results_MasterControlsList)
-
     Controls.ShowControl(Display_Results_MasterControlsList[I] )
-
   EndFor
-
 EndSub
-
-
 
 Sub Display_Results 
-
   
-
   GraphicsWindow.Width = Desktop.Width
-
   GraphicsWindow.Height = Desktop.Height
-
   GraphicsWindow.Left = 0
-
   GraphicsWindow.Top = 0
-
   UIx = Listview_Width + 50
-
   OrderByOptions = "1=ASC;2=DESC;"
-
   
-
   GraphicsWindow.DrawRectangle( UIx ,50 ,310 ,340)
-
   GraphicsWindow.FontSize = 15
-
   GraphicsWindow.DrawText( UIx + 100 , 52 , LangList["Display Settings"])
-
   GraphicsWindow.DrawText( UIx + 20 ,73 , LangList["Sort by"])
-
   GraphicsWindow.DrawText( UIx + 100 , 150 , LangList["Search Settings"])
-
   GraphicsWindow.DrawText( UIx + 20,180,LangList["Search in"])
-
   GraphicsWindow.DrawText( UIx + 20,210,LangList["Search"] +":")
-
   GraphicsWindow.DrawText( UIx + 127,290,LangList["Functions"] +":")
-
   
-
   GraphicsWindow.FontSize = 13
-
   List = Text.ConvertToUpperCase( SchemaList )
-
   FunctionList = ""
-
   
-
   'Sort
-
   SortByCB = LDControls.AddComboBox(List,100,100)
-
   AscDescString = "1=" + LangList["Asc"] +";2=" +LangList["Desc"]+";"
-
   ASCDESC_CB = LDControls.AddComboBox(AscDescString,110,100) 
-
   SortButton = Controls.AddButton(LangList["SORT"], UIx + 10 , 120)
-
   Controls.Move(SortByCB, UIx + 80 , 72 )
-
   Controls.Move(ASCDESC_CB,  UIx + 190, 72)
-
   Controls.SetSize(SortButton,290,25)
-
   
-
   LDCall.Function5( Function_UI_Add , Register, SortButton , Function_Handler_MainMenu ,"","")
-
   LDCall.Function5( Function_UI_Add , Register, ASCDESC_CB,"" ,"","")
-
   LDCall.Function5( Function_UI_Add , Register, SortByCB ,"" ,"","")
-
   
-
   
-
   'Search
-
   SearchByCB = LDControls.AddComboBox(List,200,120)
-
   SearchTextTB = Controls.AddTextBox(UIx + 100,210)
-
   StrictSearchCheckBox = LDControls.AddCheckBox(LangList["Strict Search"])
-
   SearchButton = Controls.AddButton(Text.ConvertToUpperCase( LangList["Search"] ),UIx +10,260)
-
   Controls.SetSize(SearchTextTB, 200, 25)
-
   Controls.SetSize(SearchButton,290,25)
-
   Controls.Move(StrictSearchCheckBox,UIx+20,240)
-
   Controls.Move(SearchByCB, UIx + 100 , 160 +20 )
-
   
-
   LDCall.Function5( Function_UI_Add ,Register,  SearchButton , Function_Handler_MainMenu ,"","")
-
   LDCall.Function5( Function_UI_Add , Register, SearchByCB ,"" ,"","")
-
   
-
   'Functions
-
   FunctionListCB =  LDControls.AddComboBox(SQLFunctionsList,130,100)
-
   Controls.Move( FunctionListCB , UIx + 10 , 310 )
-
   ColumnListCB = LDControls.AddComboBox(List,135,100)
-
   Controls.Move( ColumnListCB , UIx + 160 , 310 )
-
   
-
   RunFunctionButton = Controls.AddButton(Text.ConvertToUpperCase( LangList["Run Function"] ),UIx +10 , 340)
-
   Controls.SetSize( RunFunctionButton, 290 , 25 )
-
   
-
   LDCall.Function5( Function_UI_Add , Register, FunctionListCB ,"" ,"","")
-
   LDCall.Function5( Function_UI_Add , Register, ColumnListCB ,"" ,"","")
-
   LDCall.Function5( Function_UI_Add , Register, RunFunctionButton, Function_Handler_MainMenu ,"","")
-
   
-
   
-
   'Custom Query
-
   CustomQuery =  Controls.AddMultiLineTextBox(UIx,420)
-
   Controls.SetSize(CustomQuery,310, 150)
-
   CustomQueryButton = Controls.AddButton(Text.ConvertToUpperCase( LangList[ "Query" ] ),UIx , 580) 
-
   Controls.SetSize(CustomQueryButton, 310 ,25)
-
   CommandButton =  Controls.AddButton(Text.ConvertToUpperCase( LangList["Command"] ) ,UIx, 580 +35)
-
   Controls.SetSize(CommandButton, 310 ,25)
-
   
-
   LDCall.Function5( Function_UI_Add , Register, CustomQueryButton , Function_Handler_MainMenu ,"","")
-
   LDCall.Function5( Function_UI_Add ,Register, CommandButton , Function_Handler_MainMenu ,"","")
-
   
-
   
-
   Controls.SetTextBoxText(CustomQuery,"This Textbox allows you to use Custom" +CLLF+" SQL Queries. Remove this and type in an SQL"+CLLF+" statement."+CLLF+"You also use it to export data") '//Localize ??
-
   
-
   Display_Results_MasterControlsList = "1="+SortByCB+";2="+ASCDESC_CB+";3="+SortButton+";4="+SearchByCB+";5="+SearchTextTB+";6="+StrictSearchCheckBox+";7="+SearchButton+";8="+CustomQuery+";9="+CustomQueryButton+";"
-
   Display_Results_MasterControlsList = Display_Results_MasterControlsList +"10="+CommandButton+";11="+FunctionListCB+";12="+ColumnListCB+";13="+RunFunctionButton+";"
-
 EndSub
-
-
 
 Sub Export_UI 'Currently not in use  
-
   GraphicsWindow.Clear()
-
   If SortByMode = 1 Then 
-
     Export_Default_Table = default_Table + " (T)"
-
   ElseIf SortByMode = 2 Then
-
     Export_Default_Table = default_Table + " (I)"
-
   ElseIf SortByMode = 3 Then
-
     Export_Default_Table = default_Table + " (V)"
-
   EndIf 
-
   GraphicsWindow.Title = "Export"
-
   
-
   Export_Tables_UI = "" 
-
   For I = 1 To Array.GetItemCount(SCHEMA_TableList ) 
-
     Export_Tables_UI[ Array.GetItemCount(Export_Tables_UI) + 1] = SCHEMA_TableList[I] + " (T)"
-
   EndFor 
-
   
-
   For I = 1 To Array.GetItemCount(SCHEMA_IndexList ) 
-
     Export_Tables_UI[ Array.GetItemCount(Export_Tables_UI) + 1] = SCHEMA_IndexList[I] + " (I)"
-
   EndFor
-
   
-
   For I = 1 To Array.GetItemCount(SCHEMA_ViewList ) 
-
     Export_Tables_UI[ Array.GetItemCount(Export_Tables_UI) + 1] = SCHEMA_ViewList[I] + " (V)"
-
   EndFor
-
   
-
   For I = 1 to Array.GetItemCount( Export_Tables_UI )
-
     If Export_Tables_UI[I] = Export_Default_Table Then
-
       Export_Default_Node = I 
-
     EndIf 
-
   EndFor
-
   
-
   ExportComboBox =  LDControls.AddComboBox( Export_Tables_UI , 200 , 50 ) 
-
   LDCall.Function5( Function_UI_Add , Register , ExportComboBox ,Function_Handler_ExportCB,"","" ) 
-
   
-
   Controls.Move (ExportComboBox , 10, 10 ) 
-
   LDControls.ComboBoxSelect( ExportComboBox , Export_Default_Node )
-
   
-
   Export_T1 = LDList.FromArray( SchemaList )
-
   ExportListBox[1] = LDControls.AddListBox(SCHEMAList,200,200)
-
   ExportListBox[2] = LDControls.AddListBox("",200,200)
-
   Controls.Move(ExportListBox[1] , 1, 60 )
-
   Controls.Move(ExportListBox[2] , 300,60 )
-
   
-
   ToolTip[1] = Shapes.AddText("Columns" )
-
   ToolTip[2] = Shapes.AddText("Export Following:")
-
   Shapes.Move(ToolTip[1], 25 ,40 )
-
   Shapes.Move(ToolTip[2], 345,40 )
-
   
-
   MoveRight =  Controls.AddButton(">",230,120)
-
   MoveLeft = Controls.AddButton("<",230,150)
-
   NextButton = Controls.AddButton("Next", 230,180 )
-
   Export_Close = Controls.AddButton("Close",50,300) 
-
   
-
   LDCall.Function5( Function_UI_Add , Register , MoveRight ,Function_Handler_MainMenu,"","" ) 
-
   LDCall.Function5( Function_UI_Add , Register , MoveLeft ,Function_Handler_MainMenu,"","" ) 
-
   LDCall.Function5( Function_UI_Add , Register , NextButton ,Function_Handler_MainMenu,"","" ) 
-
   LDCall.Function5( Function_UI_Add , Register , Export_Close ,Function_Handler_MainMenu,"","" ) 
-
   
-
   Controls.SetSize( MoveRight ,50 , 25)
-
   Controls.SetSize( MoveLeft ,50 , 25)
-
   Controls.SetSize( NextButton , 50 , 25 )
-
   
-
   LDControls.ComboBoxItemChanged = Universal_ComboBoxChanged
-
 EndSub
-
-
 
 Sub Export_CB_Handler
-
   If args[1] <> "" Then 
-
     LastClickedCB = args[1] 
-
   Else 
-
     LastClickedCB =  LDControls.LastComboBox
-
   EndIf 
-
   LastCBIndex = LDControls.LastComboBoxIndex
-
   If LastClickedCB = ExportComboBox Then 'Export Menu Control 
-
     
-
     If LDText.FindAll(Export_Tables_UI[ LastCBIndex ] ,"(T)")  <> 0 Then 
-
       SCHEMA_CurrentList = SCHEMA_TableList
-
       LastCBIndex = LastCBIndex 
-
     ElseIf LDText.FindAll(Export_Tables_UI[ LastCBIndex ] ,"(I)" ) <> 0 Then
-
       SCHEMA_CurrentList = SCHEMA_IndexList
-
       LastCBIndex = LastCBIndex - ( Array.GetItemCount( SCHEMA_TableList ) )
-
     ElseIf LDText.FindAll(Export_Tables_UI[ LastCBIndex ] ,"(V)" ) <> 0 Then
-
       SCHEMA_CurrentList =  SCHEMA_ViewList
-
       LastCBIndex = LastCBIndex - ( Array.GetItemCount( SCHEMA_TableList ) + Array.GetItemCount( SCHEMA_IndexList) ) 
-
     EndIf 
-
     
-
     Default_Table = SCHEMA_CurrentList[ LastCBIndex ]
-
     
-
     Get_SCHEMA_Private()
-
     LDControls.ListBoxContent( ExportListBox[1] , SchemaList ) 
-
     Export_T1 = LDList.FromArray( SchemaList )
-
     LDControls.ListBoxContent( ExportListBox[2] , "" ) 
-
   EndIf
-
 EndSub 
-
-
 
 Sub Settings_UI
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.Title = LangList["Settings"]  
-
   
-
   GraphicsWindow.CanResize = "False"
-
   LDGraphicsWindow.CancelClose = "True"
-
   LDGraphicsWindow.ExitOnClose = "False" 
-
   LDGraphicsWindow.Closing = Closing 
-
   LDGraphicsWindow.ExitButtonMode(LangList["Settings"],"Disabled")
-
   
-
   GraphicsWindow.FontSize = 20
-
   
-
   GraphicsWindow.DrawText(10,30, LangList["Listview Width"]) 
-
   Settings_WidthTB = Controls.AddTextBox(200,25)
-
   
-
   GraphicsWindow.DrawText(10,65,LangList["Listview Height"]) 
-
   Settings_HeigthTB = Controls.AddTextBox(200, 60)
-
   
-
   GraphicsWindow.DrawText(10,100,LangList["Extensions"])
-
   Settings_ExtensionsTB = Controls.AddTextBox(200,95)
-
   
-
   GraphicsWindow.DrawText(10,135,LangList["Deliminator"]) 
-
   Settings_DeliminatorTB = Controls.AddTextBox(200,130)
-
   
-
   GraphicsWindow.DrawText(10,165,LangList["Language"])
-
   
-
   Language_LB = LDControls.AddComboBox( LDList.ToArray("ISO_Text") , 200,120 ) 
-
   LDControls.ComboBoxSelect( Language_LB , LDList.IndexOf("ISO_Lang", Localization_lang )  ) 
-
   
-
   Controls.Move( Language_LB , 200 , 165 )
-
   
-
   Settings_Debug_Parser = LDControls.AddCheckBox("Debug Parser")
-
   Controls.Move(Settings_Debug_Parser , 10 ,220 )
-
   
-
   Settings_Debug_Mode = LDControls.AddCheckBox("Debug Mode")
-
   Controls.Move(Settings_Debug_Mode , 10 ,270 )
-
   
-
   Setting_Save = Controls.AddButton(LangList[ "Save and Close"],50,320) 
-
   Settings_Close = Controls.AddButton(LangList["Close wo saving"] , 50, 370 )
-
   
-
   Controls.SetSize ( Setting_Save , 280 , 35 )
-
   Controls.SetSize ( Settings_Close , 280 , 35 )
-
   LDCall.Function5( Function_UI_Add , Register , Setting_Save ,Function_Handler_MainMenu,"","" ) 
-
   LDCall.Function5( Function_UI_Add , Register , Settings_Close ,Function_Handler_MainMenu,"","" ) 
-
   
-
   Controls.SetTextBoxText(Settings_WidthTB , Listview_Width )
-
   Controls.SetTextBoxText(Settings_HeigthTB, Listview_Height )
-
   Controls.SetTextBoxText(Settings_ExtensionsTB , Settings["Extensions"] )
-
   Controls.SetTextBoxText( Settings_DeliminatorTB , Settings["Deliminator"] ) 
-
   
-
   LDControls.CheckBoxState(Settings_Debug_Mode , Booleans[ debug_mode ] )
-
   LDControls.CheckBoxState( Settings_Debug_Parser ,  Booleans[ debug_Parser ] ) 
-
   
-
   GraphicsWindow.FontSize = Default_FontSize 
-
 EndSub
-
 '______________________________________________________________________________
-
 '                                                                                    Operations
-
 '______________________________________________________________________________
-
 Sub GenerateQuery
-
   SearchByGQ = LDControls.ComboBoxGetSelected(SearchByCB)
-
   OrderByGQ =  LDControls.ComboBoxGetSelected(SortByCB)
-
   SortOrder =  LDControls.ComboBoxGetSelected(ASCDESC_CB)
-
   StrictSearchChecked = LDControls.CheckBoxGetState(StrictSearchCheckBox)
-
   FunctionListGQ = LDControls.ComboBoxGetSelected( FunctionListCB )
-
   ColumnListGQ = LDControls.ComboBoxGetSelected( ColumnListCB)
-
   SearchTextGQ = Controls.GetTextBoxText(SearchTextTB)
-
   
-
   CMD = "" 'Techincally not needed , keep it in for clarity 
-
   CMD = "SELECT * FROM " +Default_Table +" "
-
   If Results_Sort = 1 Then
-
   ElseIf Results_Search = 1 Then
-
     SearchTextGQ = LDText.Replace(SearchByGQ,"'","''")
-
     CMD = CMD + "WHERE "+ List[SearchByGQ]
-
     If StrictSearchChecked = "False" Then ' Non Strict
-
       CMD = CMD +" LIKE '%" + Controls.GetTextBoxText(SearchTextTB)+"%' "
-
     Else 'Strict
-
       CMD = CMD +"='" + Controls.GetTextBoxText(SearchTextTB)+"' "
-
     EndIf
-
   ElseIf Results_Function = 1 Then
-
     CMD = ""
-
     CMD = "SELECT " + SQLFunctionsList[FunctionListGQ] +"(" + List[ColumnListGQ]+") FROM " +Default_Table +" "
-
   EndIf
-
   
-
   'Apply Sort Constraints
-
   CMD = CMD + "ORDER BY " + List[OrderByGQ] +" "
-
   If SortOrder = 1 Then
-
     CMD = CMD + "ASC;"
-
   ElseIf SortOrder = 2 Then
-
     CMD = CMD + "DESC;"
-
   EndIf
-
   
-
 ' The following line could be harmful and has been automatically commented.
-
 '   LDCall.Function5(QueryFunction,CMD,CurrentControl,"False",LangList["App"],"Auto Generated Query on behalf of " + LDFile.UserName) '//Localize 
-
 EndSub
-
-
 
 Sub Get_SCHEMA
-
   If database <> "" Then 'Prevents Application from querying a nonexistent db 
-
     TableList = LDCall.Function5(QueryFunction,"SELECT tbl_name , name FROM sqlite_master WHERE type ='table';","","True",LangList["App"],"SCHEMA")
-
     ViewList  = LDCall.Function5(QueryFunction,"SELECT tbl_name , name FROM sqlite_master WHERE type ='view';","","True",LangList["App"],"SCHEMA")
-
     IndexList = LDCall.Function5(QueryFunction,"SELECT tbl_name , name FROM sqlite_master WHERE type ='index';","","True",LangList["App"],"SCHEMA")
-
     
-
     For I = 1 To Array.GetItemCount(TableList)
-
       SCHEMA_TableList[I] = TableList[I]["tbl_name"]
-
     EndFor
-
     
-
     For I = 1 To Array.GetItemCount(ViewList)
-
       SCHEMA_ViewList[I] = ViewList[I]["tbl_name"] 
-
     EndFor
-
     
-
     For I = 1 To Array.GetItemCount(IndexList)
-
       SCHEMA_IndexList[I] = IndexList[I]["tbl_name"] 
-
     EndFor
-
     
-
     Default_Table  = SCHEMA_TableList[1]
-
     LDList.Add(TrackDefaultTable,1)
-
     Get_SCHEMA_Private()
-
   EndIf 
-
 EndSub
-
-
 
 Sub Get_SCHEMA_Private 'Fetches the rows from the Current Table , Index, or View 
-
   SchemaList = ""
-
   LDList.Clear("SCHEMA")
-
   SCHEMA = LDCall.Function5(QueryFunction,"PRAGMA table_info("+Default_Table+");","","True",LangList["App"],"SCHEMA-PRIVATE") '//Localize 
-
   For Get_SCHEMA_I = 1 To Array.GetItemCount(SCHEMA)
-
     LDList.Add("SCHEMA",SCHEMA[Get_SCHEMA_I]["name"] )
-
   EndFor
-
   SchemaList= LDList.ToArray("SCHEMA")
-
 EndSub
 
-
-
 '______________________________________________________________________________
-
 '                                                                                    Utilities 
-
 '______________________________________________________________________________
-
-
 
 Sub XML_Fetch_All
-
   XML_Array[1] = LDxml.Attributes
-
   XML_Array[2] = LDxml.AttributesCount
-
   XML_Array[3] = LDxml.ChildrenCount
-
   XML_Array[4] = LDxml.NodeName
-
   XML_Array[5] = LDxml.NodeType
-
   XML_Array[6] = LDxml.NodeInnerText 
-
   
-
   XML_Array_SCHEMA ="1=Attributes:;2=Attribute Count:;3=Children count:;4=Node Name:;5=Node Type:;"
-
   return = XML_Array 
-
 EndSub
-
-
 
 Sub Add_UI_Controls '5 Args needed 
-
   
-
   Add_UI_Args =  args 
-
   If Add_UI_Args[1] = "Menu" Then 
-
     MenuList[ Add_UI_Args[2] ] = Add_UI_Args[4] 
-
     If LDList.IndexOf(List_UI_Name , Add_UI_Args[2] ) = 0 OR Add_UI_Args[2] ="-" Then 
-
       LDList.Add( List_UI_Name , Add_UI_Args[2] )
-
       LDList.Add( List_UI_Handler , Add_UI_Args[3] )
-
       LDList.Add( List_UI_Action , Add_UI_Args[5] )
-
     Else 
-
       Temp_UI_Num =  LDList.IndexOf( List_UI_Name , Add_UI_Args[2] )
-
       LDList.SetAt( List_UI_Handler , Temp_UI_Num , Add_UI_Args[3] )
-
       LDList.SetAt( List_UI_Action , Temp_UI_Num , Add_UI_Args[5])
-
     EndIf 
-
     return = 1
-
   ElseIf Add_UI_Args[1] = Register Then 
-
     If LDList.IndexOf(List_UI_Name , Add_UI_Args[2] ) = 0 Then  
-
       LDList.Add( List_UI_Name , Add_UI_Args[2] )
-
       LDList.Add( List_UI_Handler , Add_UI_Args[3] )
-
       LDList.Add( List_UI_Action , Add_UI_Args[5] )
-
     Else 
-
       Temp_UI_Num =  LDList.IndexOf( List_UI_Name , Add_UI_Args[2] )
-
       LDList.SetAt( List_UI_Handler , Temp_UI_Num , Add_UI_Args[3] )
-
       LDList.SetAt( List_UI_Action , Temp_UI_Num , Add_UI_Args[5])
-
     EndIf
-
     return = 1 
-
   Else 
-
     LDCall.Function2(Function_Log ,"UI ADD: Parameters unknown" + Add_UI_Args , LangList["App"] ) 
-
     return = "Parameters unknown"
-
   EndIf 
-
 EndSub 
-
-
 
 Sub Query_UI_Controls
-
   Query_UI_Args = args   
-
   If Query_UI_Args[1] = "Menu" Or Query_UI_Args[1] = Register Then 
-
     return =  LDList.GetAt( List_UI_Handler , LDList.IndexOf( List_UI_Name , args[2] ) )
-
   ElseIf Query_UI_Args[1] = "Action" Then
-
     return = LDList.GetAt( List_UI_Action ,LDList.IndexOf( List_UI_Name , args[2] ) )
-
   Else
-
     LDCall.Function2(Function_Log ,"UI QUERY: Parameters unknown " + Query_UI_Args , LangList["App"] ) 
-
     return = "Parameters unknown"
-
   EndIf    
-
 EndSub
-
-
 
 Sub Universal_BD
-
   LDCall.Function( Function_Handler_Universal , Controls.LastClickedButton ) 
-
 EndSub 
-
-
 
 Sub Universal_MenuClicked
-
   LDCall.Function( Function_Handler_Universal , LDControls.LastMenuItem )
-
 EndSub
-
-
 
 Sub Universal_ComboBoxChanged
-
   LDCall.Function( Function_Handler_Universal , LDControls.LastComboBox )
-
 EndSub
-
-
 
 Sub Universal_Handler
-
   Universal_Args = args 
-
   Universal_Name = Universal_Args[1]
-
   Universal_Find_Hanlder =  LDCall.Function2( Function_UI_Query ,Register , Universal_Args[1] )
-
   Universal_Find_Action  =  LDCall.Function2( Function_UI_Query ,"Action" , Universal_Args[1] ) 
-
   
-
   If Universal_Find_Hanlder = Function_RunMod_Parser Then 'Runs Mod 
-
     LDCall.Function( Universal_Find_Hanlder , Universal_Find_Action ) 
-
     return = 1 
-
   ElseIf Universal_Find_Action = ""  Then  
-
     LDCall.Function( Universal_Find_Hanlder , Universal_Name ) 
-
     return = 1 
-
   EndIf 
-
 EndSub 
 
-
-
 '______________________________________________________________________________
-
 '                                                                                          MOD
-
 '______________________________________________________________________________
-
 Sub MOD_XML
-
   
-
 EndSub
-
-
 
 Sub MOD_READ_AutoRunFile
-
 ' The following line could be harmful and has been automatically commented.
-
 '   AutoRunMod_Cnts =  File.ReadContents( AutoRunMod_Path )
-
 ' The following line could be harmful and has been automatically commented.
-
 '   For I = 1 To LDFile.Length( AutoRunMod_Path )
-
 ' The following line could be harmful and has been automatically commented.
-
 '     Temp_Cnts = File.ReadLine( AutoRunMod_Path , I ) 
-
     If Text.StartsWith( Temp_Cnts ,"#" ) = "True" Then
-
       ' AutoRunMod_Cnts[ ( Array.GetItemCount( AutoRunMod_Cnts ) + 1 ) ] = "Comment"
-
     Else 
-
       AutoRunMod_Cnts[ ( Array.GetItemCount( AutoRunMod_Cnts ) + 1 ) ] = Temp_Cnts
-
     EndIf 
-
   EndFor
-
   
-
   'TextWindow.WriteLine( AutoRunMod_Cnts ) 
-
 EndSub
 
-
-
 Sub MOD_AutoRun 
-
   For I = 1 To Array.GetItemCount( AutoRunMod_Cnts ) 
-
     LDCall.Function( Function_RunMod_Parser , AutoRunMod_Cnts[I])
-
   EndFor 
-
 EndSub 
-
-
-
 
 
 Sub MOD_RUN_Parser
-
   Dynamically_Added_Mod = 0 
-
   Mod_Run_Args = args
-
   
-
   If Array.GetItemCount(Mod_Run_Args) = 1 AND Text.GetIndexOf(Mod_Run_Args[1],".") <> 0 Then 'Normalizes arguments  into two arguments 
-
     Mod_Index_of_Dot = Text.GetIndexOf(Mod_Run_Args[1],".") 
-
     Mod_Run_Args[2] = Text.GetSubTextToEnd( Mod_Run_Args[1] ,( Mod_Index_of_Dot + 1 ) )
-
     Mod_Run_Args[1] = Text.GetSubText( Mod_Run_Args[1] , 1 ,( Mod_Index_of_Dot - 1 ) )
-
   EndIf 
-
   
-
   If LDList.IndexOf( List_Mod_Name , Mod_Run_Args[1] ) <> 0 AND Mod_Name[ Mod_Run_Args[1] ] = "" Then 'If the Mod Is known but has not yet been included
-
     Temp_Mod_Path = LDList.GetAt( List_Mod_Path , LDList.IndexOf( List_Mod_Name , Mod_Run_Args[1] ) ) 
-
     Temp_Mod_Name = Mod_Run_Args[1]
-
     Mod_Name[  Mod_Run_Args[1] ]  =  LDCall.Include( Temp_Mod_Path ) 'Dynamically adds the MOD 
-
     Dynamically_Added_Mod = 1 
-
   EndIf 
-
   
-
   If Mod_Name[ Mod_Run_Args[1] ] <> "" And Array.GetItemCount(Mod_Run_Args) = 2 Then 'If the Mod basically is known to exist and has been included
-
     return =  LDCall.CallInclude(Mod_Name[ Mod_Run_Args[1] ],Mod_Run_Args[2]) 
-
     
-
     If Dynamically_Added_Mod = 1 And debug_mode = 1 Then 'Debug type info , useless to most people 
-
       LDCall.Function2(logfunction ,"Dynamically added " + Temp_Mod_Name + " ("+Mod_Name[  Temp_Mod_Name ]+")" + " FROM " + Temp_Mod_Path, LangList["System"])  
-
       Temp_Mod_Name = ""
-
       Temp_Mod_Path = "" 
-
     EndIf 
-
     
-
   Else
-
     LDCall.Function2(logfunction ,"Error : Critical Fault. Could not call " + Mod_Run_Args[1]+"."+Mod_Run_Args[2] +" as it could not be found. " , LangList["System"]) '//Localize 
-
     GraphicsWindow.ShowMessage("Error : Critical Fault. Could not call " + Mod_Run_Args[1]+"."+Mod_Run_Args[2] +" as it could not be found. (" + Mod_Run_Args +")","Critical Fault Error" )'//Localize 
-
   EndIf 
-
   
-
 EndSub 
-
-
 
 Sub MOD_Find_All
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Mod_Files =  File.GetFiles( ModPath )
-
   LDList.Clear( List_Mod_Path ) 
-
   LDList.Clear( List_Mod_Name ) 
-
   For I = 1 To Array.GetItemCount ( Mod_Files ) 
-
 ' The following line could be harmful and has been automatically commented.
-
 '     If LDFile.GetExtension( Mod_Files[I] ) = "exe" Then 'Loads all EXE Files into Mod List 
-
       LDList.Add( List_Mod_Path , Mod_Files[I] )
-
 ' The following line could be harmful and has been automatically commented.
-
 '       LDList.Add( List_Mod_Name , LDFile.GetFile(Mod_Files[I]) )
-
     EndIf 
-
   EndFor 
-
 EndSub 
-
-
 
 Sub MOD_Include_All ' Includes all mods even when it may not be nessecarry !! Obselete , left over as a failsafe 
-
   debug_mode = 1 
-
   TextWindow.WriteLine("FORCE DEBUG MODE ON")
-
   TextWindow.WriteLine("YOU ARE USING AN OBSOLUTE FUNCTION NAMED : MOD_Include_All " )
-
   TextWindow.WriteLine("Mod_Find_All and Mod_Run are the replacements for this function")
-
   TextWindow.WriteLine("Please stop using function at the earliest possible moment as it WILL be REMOVED in future versions") 
-
   
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Mod_Files =  File.GetFiles( ModPath )
-
   For I = 1 To Array.GetItemCount ( Mod_Files ) 
-
 ' The following line could be harmful and has been automatically commented.
-
 '     If LDFile.GetExtension( Mod_Files[I] ) = "exe" Then 'Loads all EXE Files into Mod List 
-
 ' The following line could be harmful and has been automatically commented.
-
 '       Mod_Name[  LDFile.GetFile(Mod_Files[I]) ]  =  LDCall.Include( Mod_Files[I] )
-
     EndIf 
-
   EndFor 
-
 EndSub
 
-
-
 '______________________________________________________________________________
-
 '                                                                                     Query
-
 '______________________________________________________________________________
-
 Sub Query
-
   QueryArgs = args
-
   If database <> "" Then 
-
     If Text.IsSubText(QueryArgs[5] , "SCHEMA" ) <> "True" Then 
-
       LDCall.Function5( TransactionFunction, QueryArgs[4] , database , QueryArgs[1] , "Query" , QueryArgs[5] ) 
-
     EndIf
-
     return  =  LDDataBase.Query(database,Queryargs[1],Queryargs[2],Queryargs[3])
-
   Else 
-
     LDCall.Function2(logfunction , LangList["Query Error"] + ": " + LangList["Error No DB"]  , LangList["UI"] )
-
     GraphicsWindow.ShowMessage(LangList["Error No DB"] , LangList["Query Error"] ) 
-
   EndIf 
-
 EndSub
 
-
-
 '______________________________________________________________________________
-
 '                                                                                     Database Command 
-
 '______________________________________________________________________________
-
-
 
 Sub Command 'Runs A Command Function  
-
   CommandArgs = args 
-
   If Array.GetItemCount( CommandArgs ) = 4 Then 
-
     ' LDDialogs.Wait("PROCCESSING...","BLUE")
-
     If CommandArgs[1] <> "" Then
-
       LDCall.Function5( TransactionFunction , CommandArgs[3] , CommandArgs[1], CommandArgs[2] ,"CMD", CommandArgs[4] ) 
-
       CommandArgs[2] = LDText.Trim( CommandArgs[2] ) 
-
       
-
       LDList.Clear( List_Command_Parser ) 
-
       LDList.Clear( List_Command_Parser_OnFail ) 
-
       LDList.Clear( List_Command_Parser_OnFail_Index ) 
-
       LDList.Clear( List_Command_Parser_Status )
-
       
-
       InString = 0 
-
       Command_Counter = 0 
-
       Command_Parser_Length = Text.GetLength( CommandArgs[2] ) 
-
       For I = 1 to Command_Parser_Length
-
         Character = Text.GetSubText( CommandArgs[2] , I , 1 )
-
         If debug_Parser = 1 Then 
-
           TextWindow.Title = Math.Floor( I/ Command_Parser_Length ) * 100 
-
         EndIf 
-
         If  Character = ";" And InString = 0   Then
-
           LDList.Add(List_Command_Parser , String +";")
-
           String = ""
-
         ElseIf Character ="'" Then 
-
           If InString = 0 Then 
-
             InString = 1 
-
           ElseIf InString = 1 Then
-
             InString = 0 
-
           EndIf
-
           String = String + Character 
-
         Else  
-
           String = String + Character 
-
         EndIf 
-
       EndFor 
-
       
-
       For I = 1 To LDList.Count(List_Command_Parser) 
-
         Temp_Command_Counter = LDDataBase.Command( CommandArgs[1] , LDList.GetAt(List_Command_Parser,I) )
-
         LDList.Add( List_Command_Parser_Status , Temp_Command_Counter ) 
-
         
-
         If Temp_Command_Counter = 0 Then 
-
           LDList.Add( List_Command_Parser_OnFail , LDList.GetAt(List_Command_Parser,I) ) 
-
           LDList.Add( List_Command_Parser_OnFail_Index , I ) 
-
         EndIf 
-
         Command_Counter = Command_Counter + Temp_Command_Counter
-
       EndFor
-
       
-
       If debug_Parser = 1 Then
-
         LDList.Print( List_Command_Parser ) 
-
         LDList.Print( List_Command_Parser_Status ) 
-
         If LDList.Count( List_Command_Parser_OnFail ) > 0 Then 'Only If there are failed statements display them 
-
           LDList.Print( List_Command_Parser_OnFail ) 
-
         EndIf 
-
       EndIf 
-
       
-
       Command_Num_Cmds = LDList.Count( List_Command_Parser_Status ) 
-
       return = Command_Counter
-
     Else 
-
       LDCall.Function2(logfunction ,LangList["Command"] + LangList["Error No DB"] , LangList["UI"])
-
       GraphicsWindow.ShowMessage(LangList["Error No DB"] , LangList["Command"] + " " + LangList["Error"] )
-
     EndIf
-
     ' LDDialogs.EndWait()
-
   Else
-
     debug_mode = 1 
-
     TextWindow.WriteLine("FORCE DEBUG : ON ")
-
     TextWindow.WriteLine("Function_Command : Expected 4 Arguments but recsived " + Array.GetItemCount( CommandArgs ) )
-
   EndIf 
-
 EndSub
-
-
 
 Sub TransactionRecord
-
   TransactionArgs = args 
-
   If Transactions_mode = 1  Then 
-
     If Array.GetItemCount(TransactionArgs ) = 5 Then
-
       Transaction_DB_Path_Temp = LDList.GetAt("DB_Path",  LDList.IndexOf("DB_Name",TransactionArgs[2] ) )
-
 ' The following line could be harmful and has been automatically commented.
-
 '       Transactions_SQL = "INSERT INTO Transactions (USER,DB,SQL,TYPE,Reason,UTC_DATE,UTC_TIME,PATH,SNAME) VALUES('"+TransactionArgs[1] +"','"+TransactionArgs[2]+"','"+ LDText.Replace(TransactionArgs[3],"'","''")+"','"+TransactionArgs[4]+"','"+ TransactionArgs[5]+"',Date(),TIME(),'" + Transaction_DB_Path_Temp+"','"+ LDFile.GetFile(Transaction_DB_Path_Temp) +"');" 
-
       LDDataBase.Command( TransactionDB , Transactions_SQL )  
-
     Else 
-
       debug_mode = 1 
-
       TextWindow.WriteLine("FORCE DEBUG : ON ")
-
       TextWindow.WriteLine("Function_Transaction : Expected 5 Arguments but recsived " + Array.GetItemCount( TransactionArgs ) )
-
     EndIf 
-
   EndIf 
-
 EndSub 
 
-
-
 '______________________________________________________________________________
-
 '                                                                                     Logging
-
 '______________________________________________________________________________
-
 Sub Closing
-
   If databasepath = "" Then 
-
     LDCall.Function2(logfunction, "Program Closing ",LangList["Application"]) '//Localize 
-
   Else 
-
     LDCall.Function2(logfunction, "Program Closing - Closing : " + databasepath ,LangList["Application"]) '//Localize 
-
   EndIf 
-
   Program.End()
-
 EndSub
-
-
 
 Sub ErrorHandler
-
   If MOD_Running_False = 1  Then 
-
     debug_mode = 1 '<< ANNOYING AT TIMES
-
   EndIf 
-
   TextWindow.WriteLine("Error : " +  LDEvents.LastError )
-
   LDCall.Function2(logfunction, LDEvents.LastError ,LangList["System"])
-
 EndSub
-
-
 
 Sub Log
-
   LogEvent = args[1]
-
   TypeofError = args[2] 
-
   If debug_mode = 1 Then 
-
     TextWindow.WriteLine(TypeofError +":" + LogEvent ) 
-
   EndIf 
-
   If TypeofError = "Debug" And debug_mode = 0 Then 'DO NOT STORE IF TRUE 
-
   Else 
-
     If TypeofError = "" Then 
-
       TypeofError = "Unknown"
-
     EndIf 
-
     
-
     If debug_mode = 1  Then 
-
       If Text.StartsWith(LogEvent,"LDDataBase.Query") = "True" Then 
-
         TextWindow.ForegroundColor = "RED"
-
         TextWindow.WriteLine( LogEvent )
-
         TextWindow.WriteLine(QueryArgs )
-
       ElseIf Text.StartsWith(LogEvent,"LDDataBase.Command") = "True" Then
-
         TextWindow.ForegroundColor = "RED"
-
         TextWindow.WriteLine( LogEvent )
-
         TextWindow.WriteLine( CommandArgs ) 
-
       EndIf 
-
     EndIf 
-
     
-
     LogNumber = LogNumber + 1
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(logpath,LogNumber +"," + Clock.Date + "," + Clock.Time +"," + DoubleQuotesCharacter + LDText.Replace( LDFile.UserName , DoubleQuotesCharacter , DoubleQuotesCharacter + DoubleQuotesCharacter ) + DoubleQuotesCharacter +"," + ProductID +","+ VersionID+"," + DoubleQuotesCharacter +  LDText.Replace( TypeofError , DoubleQuotesCharacter , DoubleQuotesCharacter + DoubleQuotesCharacter ) +DoubleQuotesCharacter +","+  DoubleQuotesCharacter +  LDText.Replace( LogEvent , DoubleQuotesCharacter , DoubleQuotesCharacter + DoubleQuotesCharacter ) + DoubleQuotesCharacter)
-
     
-
     If Text.IsSubText( LogEvent , "Operation is not valid due to the current state of the object" ) = "True" Then
-
     Else 
-
 ' The following line could be harmful and has been automatically commented.
-
 '       LOG_CMD = "INSERT INTO LOG (ID,UTC_DATE,UTC_TIME,DATE,TIME,USER,ProductID,ProductVersion,Event,Type) VALUES('"+LogNumber+"',DATE(),TIME(),DATE('now','localtime'),TIME('now','localtime'),'"+LDFile.UserName+"','"+ProductID+"','"+PrgmVersionID+"','"+LogEvent+"','"+TypeofError+"');"
-
       
-
       LDCall.Function4( CommandFunction , LOG_DB , LOG_CMD , LangList["App"] ,"Auto Log")  '//Localize  
-
     EndIf 
-
   EndIf 
-
 EndSub
 
-
-
 '______________________________________________________________________________
-
 '                       Update Function
-
 '______________________________________________________________________________
-
-
 
 Sub UpdateFunction
-
   LDCall.Function( Function_RunMod_Parser , "Updater.Main")
-
 EndSub
-
-

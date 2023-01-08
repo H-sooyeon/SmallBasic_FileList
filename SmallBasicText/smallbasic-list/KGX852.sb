@@ -1,939 +1,469 @@
 ' GameStates: canbet, betPlaced, spinning, paying, broke
 
-
-
 'wheelImg = imagelist.LoadImage("https://www.dropbox.com/s/r8fpebdoblluulw/roulette_wheel.png?dl=1")
 
-
-
 InitGlobals()
-
 CreateWindow()
 
-
-
 ' Load local image for speed during testing - comment out for publishing
-
 'wheelImg = ImageList.LoadImage(Program.Directory + "\roulette_wheel.png")
-
 wheelImg = imagelist.LoadImage("https://www.dropbox.com/s/r8fpebdoblluulw/roulette_wheel.png?dl=1")
-
 Shapes.Remove(loadingLabel)
-
 Shapes.Remove(loadingCover)
 
-
-
 DrawTable()
-
 createUI()
-
 initGame()
 
 
-
-
-
 GraphicsWindow.BrushColor = "black"
-
 playeBetLabel = Shapes.AddText(playerBet)
-
 Shapes.HideShape(playeBetLabel)
-
 Shapes.Move(playeBetLabel, gw-80, gh-80)
 
 
-
-
-
 Sub InitGame
-
   playerBet = False
-
   playerStake = 10
-
   Shapes.SetText(playerStakeLabel, playerStake)
-
   Shapes.SetText(msgResult, "")
-
   Shapes.Animate(bettingChip, 0, 0, 600)
-
   spinResult = ""
-
   eraseSpinResult()
-
   gameState = canBet
-
 EndSub
-
-
-
-
-
 
 
 
 
 Sub DrawTable
-
   betH = gh / 14
-
   betW = 50
-
   
-
   GraphicsWindow.PenColor = "white"
-
   
-
   GraphicsWindow.BrushColor = "red"
-
   GraphicsWindow.FillRectangle(0, 5 * betH, betW, 2*betH)
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.FillRectangle(0, 7 * betH, betW, 2*betH)
-
   
-
   betCol0 = "0=False;1=1to18;2=1to18;3=evenbet;4=evenbet;5=redbet;6=redbet;7=blackbet;8=blackbet;9=oddbet;10=oddbet;11=19to36;12=19to36;13=False"
-
   
-
   count = 1
-
   For y = 1 To 12
-
     For x = 2 To 4
-
       If Array.ContainsValue(redBets, count) Then
-
         GraphicsWindow.BrushColor = "red"
-
       Else
-
         GraphicsWindow.BrushColor = "black"
-
       EndIf
-
       GraphicsWindow.FillRectangle(x*betW, y*betH, betW, betH)
-
       count = count + 1
-
     EndFor
-
   EndFor
-
   
-
   GraphicsWindow.DrawRectangle(2 * betW, 0, 3 * betW, betH)
-
   GraphicsWindow.DrawLine(0 * betW, betH, 0 * betW, 13 * betH)
-
   GraphicsWindow.DrawLine(1 * betW, betH, 1 * betW, 13 * betH)
-
   
-
   For x = 2 to 5
-
     GraphicsWindow.DrawLine(x * betW, betH, x * betW, gh)
-
   EndFor
-
   
-
   For y = 1 To 13
-
     GraphicsWindow.DrawLine(2 * betW, y * betH, 5 * betW, y * betH)
-
     If Math.Remainder(y, 2) = 1 Then
-
       GraphicsWindow.DrawLine(0 * betW, y * betH, 1 * betW, y * betH)
-
     EndIf
-
     If Math.Remainder(y, 4) = 1 Then
-
       GraphicsWindow.DrawLine(1 * betW, y * betH, 2 * betW, y * betH)
-
     EndIf
-
   EndFor
-
   
-
   ' Draw Bet options
-
   GraphicsWindow.BrushColor = "white"
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.FontBold = "False"
-
   GraphicsWindow.DrawText(3 * betW + betW * 0.4, 5, 0)
-
   betNum = 1
-
   For y = 1 To 12
-
     For x = 2 to 4
-
       numX = x * betW + betW / 3
-
       numY = y * betH + betH / 5
-
       GraphicsWindow.DrawText(numX, numY, betNum)
-
       betNum = betNum + 1
-
     EndFor
-
   EndFor
-
   numY = 13 * betH + betH / 5
-
   For x = 2 To 4
-
     numX = x * betW + betW / 5
-
     GraphicsWindow.DrawText(numX, numY, "2-1")
-
   EndFor  
-
   label1 = Shapes.AddText("1st 12")
-
   Shapes.Rotate(label1, 90)
-
   Shapes.Move(label1, betW, betH * 2.7)
-
   label2 = Shapes.AddText("2nd 12")
-
   Shapes.Rotate(label2, 90)
-
   Shapes.Move(label2, betW, betH * 6.7)
-
   label2 = Shapes.AddText("3rd 12")
-
   Shapes.Rotate(label2, 90)
-
   Shapes.Move(label2, betW, betH * 10.7)
-
   labelRed = Shapes.AddText("Red")
-
   Shapes.Rotate(labelRed, 90)
-
   Shapes.Move(labelRed, 6, betH * 5.7)
-
   labelBlack = Shapes.AddText("Black")
-
   Shapes.Rotate(labelBlack, 90)
-
   Shapes.Move(labelBlack, 0, betH * 7.65)
-
   labelEven = Shapes.AddText("Even")
-
   Shapes.Rotate(labelEven, 90)
-
   Shapes.Move(labelEven, 4, betH * 3.65)
-
   labelOdd = Shapes.AddText("Odd")
-
   Shapes.Rotate(labelOdd, 90)
-
   Shapes.Move(labelOdd, 6, betH * 9.65)
-
   label1to18 = Shapes.AddText("1 - 18")
-
   Shapes.Rotate(label1to18, 90)
-
   Shapes.Move(label1to18, -2, betH * 1.65)
-
   label19to36 = Shapes.AddText("19 - 36")
-
   Shapes.Rotate(label19to36, 90)
-
   Shapes.Move(label19to36, -4, betH * 11.65)
-
 EndSub
-
-
 
 Sub CreateWindow
-
   GraphicsWindow.Hide()
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Left = (Desktop.Width - gw) /2
-
   GraphicsWindow.Top = (Desktop.Height - gh) /2
-
   GraphicsWindow.Title = "Roulette"
-
   
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   GraphicsWindow.MouseDown = OnMouseClick
-
   'GraphicsWindow.MouseMove = onMouseMove
-
   
-
   Timer.Interval = spinInterval
-
   Timer.Pause()
-
   Timer.Tick = Tick
-
   
-
   GraphicsWindow.BackgroundColor = "Green"
-
   
-
   GraphicsWindow.BrushColor = "Green"
-
   loadingCover = Shapes.AddRectangle(gw, gh)
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FontSize = 50
-
   loadingLabel = Shapes.AddText("Loading")
-
   Shapes.Move(loadingLabel, 350, 180)
-
   
-
   GraphicsWindow.Show()   
-
 EndSub
-
-
 
 Sub initGlobals
-
   gw = 900
-
   gh = 500
-
   True = "True"
-
   False = "False"
-
   
-
   playerBet = False
-
   playerStake = 20
-
   spinResult = ""
-
   spinAngle = 0
-
   
-
   ' GAMESTATES: canbet, betPlaced, spinning, paying, broke
-
   canBet = 0
-
   betPlaced = 1
-
   spinning = 2
-
   paying = 3
-
   broke = 4
-
   
-
   ' Numerous game variables
-
   spinInterval = 30
-
   
-
   ' BETS - Assign a value for all non-numerical bets for consistency
-
   red = "redbet"
-
   black = "blackbet"
-
   first12 = "first12"
-
   second12 = "sec12"
-
   third12 = "third12"
-
   col1 = "col1"
-
   col2 = "col2"
-
   col3 = "col3"
-
   even = "evenbet"
-
   odd = "oddbet"
-
   first18 = "1to18"
-
   second18 = "19to36"
-
   ' Array listing all red numbers to determine colour of winning bet, also used in the table drawing logic to get the colour right
-
   redBets = "0=1;1=3;2=5;3=7;4=9;5=12;6=14;7=16;8=18;9=19;10=21;11=23;12=25;13=27;14=30;15=32;16=34;17=36"
-
   
-
   '  Arrys of winning bets by their multipliers
-
   singleBets = "0=redbet;1=blackbet;2=evenbet;3=oddbet;4=1to18;5=19to36" ' Pays 1:1 plus stake back
-
   doubleBets = "0=first12;1=sec12;2=third12;3=col1;4=col2;5=col3" ' pays 2:1 plus stake back
-
   ' Everything else pays 35:1 plus stake back
-
 EndSub
-
-
-
 
 
 Sub createUI
-
   ' Messages to the Player
-
   fsize = GraphicsWindow.FontSize
-
   GraphicsWindow.FontSize = 35
-
   msgPlaceBets = "Place your Bets!"
-
   msgSpinWheel = "Spin the Wheel!"
-
   betMessage = Shapes.AddText(msgPlaceBets)
-
   Shapes.Move(betMessage, 390, 310) ' TODO: --------------------------------------------Move this into the bottom of the wheel ---------------(previously (300, 5)
-
   msgSpin = "Spinning....."
-
   
-
   GraphicsWindow.DrawText(560, 5, "Your Stake: ")
-
   playerStakeLabel = Shapes.AddText(playerStake)
-
   Shapes.Move(playerStakeLabel, 750, 5)
-
   
-
   wheel = Shapes.AddImage(wheelImg)
-
   Shapes.Move(wheel, 320, 80)
-
   
-
   GraphicsWindow.FontSize = 40
-
   GraphicsWindow.FontBold = True
-
   GraphicsWindow.BrushColor = "DarkRed"
-
   msgYouLose = "You Lose!"
-
   msgYouWin = "You Win!"
-
   msgResult = Shapes.AddText("")
-
   Shapes.Move(msgResult, 415, 150)
-
   
-
   ' Spin result Label - to be removed if it works with drawText
-
   GraphicsWindow.BrushColor = "white"
-
   GraphicsWindow.FontSize = 100
-
   spinResultLabel = Shapes.AddText(spinResult)
-
   spinResultX = 450
-
   spinResultY = 200
-
   Shapes.Move(spinResultLabel, spinResultX, spinResultY)
-
   
-
   GraphicsWindow.FontSize = fsize
-
   GraphicsWindow.BrushColor = "black"
-
   spinButton = Controls.AddButton("Spin", 330, 40)
-
   Controls.HideControl(spinButton)
-
   Controls.SetSize(spinButton, 100, 36)
-
   Controls.ButtonClicked = OnButtonClick
-
   
-
   bettingChip = Shapes.AddEllipse(25, 25)
-
 EndSub
-
-
 
 Sub selectBet
-
   If (gameState=canBet) Or (gameState=betPlaced) Then
-
     playerBet = False
-
     If mouseX < (5 * betW) Then
-
       rowNum = Math.Floor(mouseY / betH)
-
       colNum = Math.Floor(mouseX / betW)
-
       
-
       If colNum > 1 Then    
-
         If rowNum = 0 Then
-
           playerBet = 0
-
         ElseIf rowNum = 13 Then
-
           playerBet = Text.Append("col", colNum-1)
-
         Else
-
           playerBet = ((rowNum -1) * 3) + (colNum - 1)
-
         EndIf
-
       ElseIf colNum = 1 Then
-
         If (rowNum > 0) And (rowNum < 5) Then
-
           playerBet = first12
-
         ElseIf (rowNum > 4) And (rowNum < 9) Then
-
           playerBet = second12
-
         ElseIf (rowNum > 8) And (rowNum < 13) Then
-
           playerBet = third12
-
         EndIf
-
       ElseIf colNum = 0 then
-
         playerBet = betCol0[rowNum]
-
       Endif
-
     EndIf ' Last endif, relates to < 5 * Betw
-
     
-
     If playerBet <> False Then
-
       gameState = betPlaced
-
       Controls.ShowControl(spinButton)
-
       Shapes.SetText(betMessage, msgSpinWheel)
-
       Shapes.SetText(msgResult, "")
-
       Shapes.Animate(bettingChip, mouseX-12, mouseY-12,200)
-
       'spinResult = ""
-
       'Shapes.SetText(spinResultLabel, "")
-
       eraseSpinResult()
-
     Else
-
       Shapes.Animate(bettingChip, 0,0,100)
-
     EndIf
-
     
-
     'Shapes.SetText(playeBetLabel, playerBet)
-
     
-
   EndIf
-
 EndSub
-
-
 
 Sub spinWheel
-
   If gameState = betPlaced Then
-
     gameState = spinning
-
   EndIf
-
   update = Math.Remainder(spinCount, 3)
-
   If gameState = spinning Then
-
     If update=0 Then ' Only update the visual every few frames
-
       spinResult = Math.GetRandomNumber(37)-1
-
       
-
       fsize = GraphicsWindow.FontSize
-
       GraphicsWindow.FontSize = 100
-
       eraseSpinResult()
-
       If Array.ContainsValue(redBets, spinResult) Then
-
         GraphicsWindow.BrushColor = "Red"
-
       ElseIf spinResult = 0 Then
-
         GraphicsWindow.BrushColor = "White"
-
       Else
-
         GraphicsWindow.BrushColor = "Black"
-
       EndIf
-
       
-
       If (Text.GetLength(spinResult) = 1) Then
-
         'Shapes.Move(spinResultLabel, spinResultX + 25, spinResultY)
-
         GraphicsWindow.DrawText(spinResultX + 25, spinResultY, spinResult)
-
       Else
-
         'Shapes.Move(spinResultLabel, spinResultX, spinResulty)
-
         GraphicsWindow.DrawText(spinResultX, spinResultY, spinResult)
-
       EndIf
-
       
-
       'Shapes.SetText(spinResultLabel, spinResult)
-
       
-
       GraphicsWindow.FontSize = fsize
-
     EndIf
-
     Shapes.Rotate(wheel, spinAngle)
-
     spinAngle = spinAngle + 3
-
   EndIf
-
   spinCount = spinCount + 1
-
 EndSub
-
-
 
 Sub eraseSpinResult
-
   GraphicsWindow.BrushColor = "Green"
-
   GraphicsWindow.FillRectangle(spinResultX, spinResultY, 150, 120)
-
 EndSub
-
-
 
 Sub checkWinner
-
   ' Last Spin stored in spinResult
-
   winningBets = ""
-
   playerWon = False
-
   winCount = 0
-
   If spinResult = 0 Then
-
     winningBets[winCount] = 0
-
   Else
-
     winningBets[winCount] = spinResult
-
     winCount = winCount + 1
-
     If Array.ContainsValue(redBets, spinResult) Then
-
       winningBets[winCount] = red
-
       winCount = winCount + 1
-
     Else
-
       winningBets[winCount] = black
-
       winCount = winCount + 1
-
     EndIf
-
     
-
     If Math.Remainder(spinResult, 2) = 0 Then
-
       winningBets[winCount] = even
-
       winCount = winCount + 1
-
     Else
-
       winningBets[winCount] = odd
-
       winCount = winCount + 1
-
     EndIf
-
     If (spinResult > 18) Then
-
       winningBets[winCount]  = second18
-
       winCount = winCount + 1
-
     Else
-
       winningBets[winCount] = first18
-
       winCount = winCount + 1
-
     EndIf
-
     If (spinResult < 13) then
-
       winningBets[winCount] = first12
-
       winCount = winCount + 1
-
     ElseIf (spinResult < 25) Then
-
       winningBets[winCount] = second12
-
       winCount = winCount + 1
-
     Else
-
       winningBets[winCount] = third12
-
       winCount = winCount + 1
-
     EndIf
-
     col = Math.Remainder(spinResult, 3)
-
     If col = 1 Then
-
       winningBets[winCount] = col1
-
       winCount = winCount + 1
-
     ElseIf col = 2 Then
-
       winningBets[winCount] = col2
-
       winCount = winCount + 1
-
     Else
-
       winningBets[winCount] = col3
-
       winCount = winCount + 1
-
     EndIf
-
   EndIf
-
   
-
   If Array.ContainsValue(winningBets, playerBet) Then
-
     Shapes.SetText(msgResult, msgYouWin)
-
     playerWon = True
-
   Else
-
     Shapes.SetText(msgResult, msgYouLose)
-
   EndIf
-
   
-
   updateScore()
-
   
-
   gameState = canBet
-
   Controls.HideControl(spinButton)
-
   Shapes.SetText(betMessage, msgPlaceBets)
-
 EndSub
-
-
-
 
 
 Sub updateScore
-
   If playerWon Then
-
     If Array.ContainsValue(singleBets, playerBet) Then
-
       playerStake = playerStake + 2
-
     ElseIf Array.ContainsValue(doubleBets, playerBet) Then
-
       playerStake = playerStake + 3
-
     Else
-
       playerStake = playerStake + 35
-
     EndIf
-
     Sound.PlayBellRing()
-
   Else
-
     playerStake = playerStake - 1
-
   EndIf
-
   
-
   Shapes.SetText(playerStakeLabel, playerStake)
-
   If playerStake = 0 Then
-
     GraphicsWindow.ShowMessage("You ran out of money!"+ Text.GetCharacter(13) + Text.GetCharacter(10) + "Start again?", "Game Over")
-
     InitGame()
-
   EndIf
-
   
-
 EndSub
-
-
-
 
 
 Sub onMouseClick
-
   Sound.PlayClick()
-
   mouseX = GraphicsWindow.MouseX
-
   mouseY = GraphicsWindow.MouseY
-
   If gameState = canBet or gameState = betPlaced Then
-
     selectBet()
-
   EndIf
-
 EndSub
-
-
 
 Sub OnButtonClick
-
   lastButton = Controls.LastClickedButton
-
   If lastButton = spinButton Then
-
     Shapes.SetText(betMessage, "")
-
     spinCount = 0
-
     spinWheel()
-
     spinStart = Clock.ElapsedMilliseconds
-
     Timer.Resume()
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   lastKey = GraphicsWindow.LastKey
-
   If lastKey = "Escape" Then
-
     Program.End()
-
   EndIf
-
 EndSub
-
-
 
 Sub Tick
-
   'GraphicsWindow.BackgroundColor = GraphicsWindow.GetRandomColor()
-
   spinWheel()
-
   If (Clock.ElapsedMilliseconds - spinStart > 2000) then
-
     Timer.Pause()
-
     checkWinner()
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub OnMouseMove
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   GraphicsWindow.Title = mx + " | " + my
-
 EndSub
-
-

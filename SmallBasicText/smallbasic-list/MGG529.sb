@@ -1,1441 +1,720 @@
 ''' Taurus
-
 ''' Version 0.1
-
-' ?��?��?��
-
+' おうし
 ' May
-
 ''' Copyright © 2016 Nonki Takahashi.  The MIT License.
-
 ''' Last update 2016-04-29
-
 '
-
 ' Reference:
-
 '  http://en.wikipedia.org/wiki/List_of_stars_in_Taurus
-
 '
-
 GraphicsWindow.Title = "Taurus 0.1"
-
 SB_Workaround()
-
 wrap = "True"
-
 gw = 598
-
 gh = 428
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.BackgroundColor = "Black"
-
 ' initialize shapes
-
 Shapes_Init()
-
 ' add shapes
-
 scale = 1
-
 angle = 0
-
 iMin = 1
-
 iMax = 31
-
 Shapes_Add()
-
 If silverlight Then
-
   Program.Delay(msWait)
-
 EndIf
-
 GraphicsWindow.FontSize = 100
-
 GraphicsWindow.BrushColor = "Gray"
-
-symbol = Shapes.AddText("?��")
-
+symbol = Shapes.AddText("♉")
 Shapes.Move(symbol, gw - 120, 10)
-
 InitStars()
-
 num = Array.GetItemCount(star)
-
 index = Array.GetAllIndices(star)
-
 offsetX = 0
-
 offsetY = 0
-
 GetMinMax()
-
 offsetX = -xMin - 170
-
 offsetY = -yMin + 70
-
 DrawGrids()
-
 GraphicsWindow.PenWidth = 1
-
 GraphicsWindow.PenColor = "DarkGray"
-
 num = Array.GetItemCount(edge)
-
 index = Array.GetAllIndices(edge)
-
 For i = 1 To num
-
   e = edge[index[i]]
-
   m = Text.GetIndexOf(e, "-")
-
   ra = star[Text.GetSubText(e, 1, m - 1)]["RA"]
-
   dec = star[Text.GetSubText(e, 1, m - 1)]["Dec"]
-
   RADec2XY()
-
   x1 = x
-
   y1 = y
-
   ra = star[Text.GetSubTextToEnd(e, m + 1)]["RA"]
-
   dec = star[Text.GetSubTextToEnd(e, m + 1)]["Dec"]
-
   RADec2XY()
-
   x2 = x
-
   y2 = y
-
   Shapes.AddLine(x1, y1, x2, y2)
-
 EndFor
-
 num = Array.GetItemCount(star)
-
 index = Array.GetAllIndices(star)
-
 GraphicsWindow.BrushColor = "White"
-
 For i = 1 To num
-
   ra = star[index[i]]["RA"]
-
   dec = star[index[i]]["Dec"]
-
   RADec2XY()
-
   mag = star[index[i]]["Mag"]
-
   d = 16 / mag
-
   ell = Shapes.AddEllipse(d, d)
-
   Shapes.Move(ell, x - d / 2, y - d / 2) 
-
 EndFor
-
 GraphicsWindow.BrushColor = "White"
-
 If silverlight Then
-
   Program.Delay(msWait)
-
 EndIf
-
 GraphicsWindow.FontSize = 30
-
 x = 450
-
 y = 300
-
 GraphicsWindow.DrawText(x, y, "May")
-
 If silverlight Then
-
   Program.Delay(msWait)
-
 EndIf
-
 GraphicsWindow.FontSize = 40
-
 year = 2016
-
 GraphicsWindow.DrawText(x, y + 30, year)
-
 Cal_Init()
-
 sBuf = year + ",5"
-
 Command_GetArgs()
-
 iYear = sArg[1]
-
 if iYear = "" Then
-
   Goto lEnd
-
 Endif
-
 If Math.Remainder(iYear, 4) = 0 And Math.Remainder(iYear, 100) > 0 Or Math.Remainder(iYear, 400) = 0 Then
-
   iDoM[2] = iDoM[2] + 1
-
 Endif
-
 iNoL = Math.Floor((iYear - 1) / 4) - Math.Floor((iYear - 1) / 100) + Math.Floor((iYear - 1) / 400)  ' number of leap year
-
 iWoY = Math.Remainder((iYear + iNoL), 7)  ' week of year
-
 iMonth = sArg[2]
-
 If iMonth = "" Then
-
   iM0 = 1
-
   iM1 = 12
-
 Else
-
   iM0 = iMonth
-
   iM1 = iMonth
-
 Endif
-
 iDoY = 0  ' days of year
-
 iNoM = 1  ' number of month
-
 For iM = iM0 To iM1
-
   While iNoM < iM
-
     iDoY = iDoY + iDoM[iNoM]
-
     iNoM = iNoM + 1
-
   EndWhile
-
   Cal_DrawMonth()
-
 EndFor  
-
 lEnd:
-
 ' Blink start
-
 While "True"
-
   Program.Delay(2900)
-
   Shapes.HideShape(shape[17]["obj"])
-
   Program.Delay(100)
-
   Shapes.ShowShape(shape[17]["obj"])
-
 EndWhile
-
 ' end of main
-
 Sub Cal_Init
-
   ''' Calendar | Initialize days of month
-
   ''' return CRLF - carriage return + line feed
-
   ''' return iDoM[] - days of months
-
   CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
-
   iDoM = "1=31;2=28;3=31;4=30;5=31;6=30;7=31;8=31;9=30;10=31;11=30;12=31;"
-
 EndSub
-
 Sub Cal_DrawMonth
-
   ''' Calendar | Print month
-
   ''' param iM - month
-
   ''' param iDoY - days of year
-
   ''' param iWoY - week of year
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.FontName = "Consolas"
-
   iW = Math.Remainder((iDoY + iWoY), 7)
-
   line = "SUN MON TUE WED THU FRI SAT" + CRLF
-
   iWoM = 0
-
   While iWoM < iW
-
     line = line + "    "
-
     iWoM = iWoM + 1
-
   EndWhile
-
   For iD = 1 To iDoM[iM]
-
     If iD < 10 Then
-
       line = line + "  " + iD + " "
-
     Else
-
       line = line + " " + iD + " "
-
     EndIf
-
     If Math.Remainder(iWoM, 7) = 6 Then
-
       line = line + CRLF
-
     EndIf
-
     iWoM = iWoM + 1
-
   EndFor
-
   If Math.Remainder(iWoM, 7) > 0 Then
-
     line = line + CRLF
-
   EndIf
-
   cal = Shapes.AddText(line)
-
   Shapes.Move(cal, 60, 290)
-
 EndSub
-
 Sub Command_GetArgs
-
   ''' Command line | Get arguments
-
   ''' param sBuf - input buffer
-
   ''' return sArg[] - arguments
-
   ''' return iN - number of arguments
-
   iP = 1  ' buffer pointer
-
   iN = 1  ' number of args
-
   iC = Text.GetIndexOf(sBuf, ",")   ' index of comma
-
   While iC > iP
-
     sArg[iN] = Text.GetSubText(sBuf, iP, iC - iP)
-
     iP = iC + 1
-
     iN = iN + 1
-
     iC = Text.GetIndexOf(sBuf, ",")
-
   EndWhile
-
   iE = Text.GetLength(sBuf) + 1     ' end of buffer
-
   sArg[iN] = Text.GetSubText(sBuf, iP, iE - iP)  
-
 EndSub
-
 Sub GetMinMax
-
   ''' Get minimum and maximum coordinates
-
   ''' return decMin - minimum declination
-
   ''' return decMax - maximum declination
-
   ''' return raMin - minimum right ascension
-
   ''' return raMax - maximum right ascension
-
   ''' return xMin - minimum x coordinate
-
   ''' return xMax - maximum x coordinate
-
   ''' return yMin - minimum y coordinate
-
   ''' return yMax - maximum y coordinate
-
   For i = 1 To num
-
     ra = star[index[i]]["RA"]
-
     dec = star[index[i]]["Dec"]
-
     RADec2XY()
-
     ra1 = Text.GetSubText(ra, 1, 2)
-
     If wrap And 12 < ra1 Then
-
       ra1 = ra1 - 24
-
     EndIf
-
     If i = 1 Then
-
       raMin = ra1
-
       decMin = Text.GetSubText(dec, 1, 3)
-
       raMax = ra1
-
       decMax = Text.GetSubText(dec, 1, 3)
-
       xMin = x
-
       yMin = y
-
       xMax = x
-
       yMax = y
-
     Else
-
       raMin = Math.Min(ra1, raMin)
-
       decMin = Math.Min(Text.GetSubText(dec, 1, 3), decMin)
-
       raMax = Math.Max(ra1, raMax)
-
       decMax = Math.Max(Text.GetSubText(dec, 1, 3), decMax)
-
       xMin = Math.Min(x, xMin)
-
       yMin = Math.Min(y, yMin)
-
       xMax = Math.Max(x, xMax)
-
       yMax = Math.Max(y, yMax)
-
     EndIf
-
   EndFor
-
   decMin = Math.Floor(decMin / 10) * 10
-
   raMax = raMax + 1
-
   decMax = decMax + 1
-
 EndSub
-
 Sub InitStars
-
   ''' Initialize stars in Taurus
-
   ''' return star[] - array of stars
-
   ' index: Flamsteed designation
-
   ' RA (Right ascension), Dec (Declination), Mag (Apparent magnitude)
-
   star[87] = "name=Aldebaran;ra=04 35 55.20;dec=+16 30 35.1;mag=0.87;"
-
   star[112] = "name=β Tau;ra=05 26 17.50;dec=+28 36 28.3;mag=1.65;"
-
   star[25] = "name=Alcyone A;ra=03 47 29.06;dec=+24 06 18.9;mag=2.85;"
-
   star[123] = "name=ζ Tau;ra=05 37 38.68;dec=+21 08 33.3;mag=2.97;"
-
   star[78] = "name=θ2 Tau;ra=04 28 39.67;dec=+15 52 15.4;mag=3.40;"
-
   star[35] = "name=λ Tau;ra=04 00 40.82;dec=+12 29 25.4;mag=3.41;"
-
   star[74] = "name=ε Tau;ra=04 28 36.93;dec=+19 10 49.9;mag=3.53;"
-
   star[1] = "name=ο Tau;ra=03 24 48.84;dec=+09 01 44.6;mag=3.61;"
-
   star[27] = "name=Atlas A;ra=03 49 09.73;dec=+24 03 12.7;mag=3.62;"
-
   star[54] = "name=γ Tau;ra=04 19 47.53;dec=+15 37 39.7;mag=3.65;"
-
   star[17] = "name=Electra;ra=03 44 52.52;dec=+24 06 48.4;mag=3.72;"
-
   star[2] = "name=ξ Tau;ra=03 27 10.12;dec=+09 43 58.0;mag=3.73;"
-
   star[61] = "name=δ1 Tau;ra=04 22 56.03;dec=+17 32 33.3;mag=3.77;"
-
   star[77] = "name=θ1 Tau;ra=04 28 34.43;dec=+15 57 44.0;mag=3.84;"
-
   star[20] = "name=Maia;ra=03 45 49.59;dec=+24 22 04.3;mag=3.87;"
-
   star[38] = "name=ν Tau;ra=04 03 09.38;dec=+05 59 21.5;mag=3.91;"
-
   star[5] = "name=5 Tau;ra=03 30 52.37;dec=+12 56 12.1;mag=4.14;"
-
   star[23] = "name=Merope;ra=03 46 19.56;dec=+23 56 54.5;mag=4.14;"
-
   star[65] = "name=κ1 Tau;ra=04 25 22.10;dec=+22 17 38.3;mag=4.21;"
-
   star[88] = "name=88 Tau;ra=04 35 39.23;dec=+10 09 39.3;mag=4.25;"
-
   star[49] = "name=μ Tau;ra=04 15 32.05;dec=+08 53 32.7;mag=4.27;"
-
   star[90] = "name=90 Tau;ra=04 38 09.40;dec=+12 30 39.1;mag=4.27;"
-
-  star[94] = "name=?? Tau;ra=04 42 14.70;dec=+22 57 25.1;mag=4.27;"
-
-  star[69] = "name=?? Tau;ra=04 26 18.39;dec=+22 48 49.3;mag=4.28;"
-
+  star[94] = "name=τ Tau;ra=04 42 14.70;dec=+22 57 25.1;mag=4.27;"
+  star[69] = "name=υ Tau;ra=04 26 18.39;dec=+22 48 49.3;mag=4.28;"
   star[10] = "name=10 Tau;ra=03 36 52.52;dec=+00 24 10.2;mag=4.29;"
-
   star[19] = "name=Taygeta;ra=03 45 12.48;dec=+24 28 02.6;mag=4.30;"
-
   star[68] = "name=68 Tau;ra=04 25 29.32;dec=+17 55 40.8;mag=4.30;"
-
   star[119] = "name=119 Tau;ra=05 32 12.75;dec=+18 35 39.3;mag=4.32;"
-
   star[37] = "name=37 Tau;ra=04 04 41.66;dec=+22 04 55.4;mag=4.36;"
-
   star[71] = "name=71 Tau;ra=04 26 20.67;dec=+15 37 06.0;mag=4.48;"
-
   star[136] = "name=136 Tau;ra=05 53 19.64;dec=+27 36 44.2;mag=4.56;"
-
   star[102] = "name=ι Tau;ra=05 03 05.70;dec=+21 35 24.2;mag=4.62;"
-
-  star[86] = "name=?? Tau;ra=04 33 50.86;dec=+14 50 40.2;mag=4.65;"
-
-  star[92] = "name=??2 Tau;ra=04 39 16.45;dec=+15 55 04.9;mag=4.67;"
-
-  star[73] = "name=? Tau;ra=04 26 36.38;dec=+14 42 49.9;mag=4.69;"
-
+  star[86] = "name=ρ Tau;ra=04 33 50.86;dec=+14 50 40.2;mag=4.65;"
+  star[92] = "name=σ2 Tau;ra=04 39 16.45;dec=+15 55 04.9;mag=4.67;"
+  star[73] = "name=π Tau;ra=04 26 36.38;dec=+14 42 49.9;mag=4.69;"
   star[64] = "name=64 Tau;ra=04 24 05.69;dec=+17 26 39.2;mag=4.80;"
-
   star[139] = "name=139 Tau;ra=05 57 59.66;dec=+25 57 14.1;mag=4.81;"
-
   star[47] = "name=47 Tau;ra=04 13 56.39;dec=+09 15 50.0;mag=4.84;"
-
   star[126] = "name=126 Tau;ra=05 41 17.72;dec=+16 32 03.1;mag=4.84;"
-
   star[114] = "name=114 Tau;ra=05 27 38.08;dec=+21 56 13.1;mag=4.88;"
-
   star[132] = "name=132 Tau;ra=05 49 00.96;dec=+24 34 03.2;mag=4.88;"
-
   star[134] = "name=134 Tau;ra=05 49 32.94;dec=+12 39 04.9;mag=4.89;"
-
   star[104] = "name=104 Tau;ra=05 07 26.68;dec=+18 38 42.0;mag=4.91;"
-
-  star[50] = "name=??2 Tau;ra=04 17 15.69;dec=+20 34 43.5;mag=4.93;"
-
+  star[50] = "name=ω2 Tau;ra=04 17 15.69;dec=+20 34 43.5;mag=4.93;"
   star[75] = "name=75 Tau;ra=04 28 26.37;dec=+16 21 34.7;mag=4.96;"
-
   star[109] = "name=109 Tau;ra=05 19 16.59;dec=+22 05 48.1;mag=4.96;"
-
-  star[52] = "name=?? Tau;ra=04 20 21.23;dec=+27 21 03.4;mag=4.97;"
-
+  star[52] = "name=φ Tau;ra=04 20 21.23;dec=+27 21 03.4;mag=4.97;"
   star[111] = "name=111 Tau;ra=05 24 25.31;dec=+17 23 00.8;mag=5.00;"
-
   star[79] = "name=79 Tau;ra=04 28 50.10;dec=+13 02 51.5;mag=5.02;"
-
   star[28] = "name=Pleione;ra=03 49 11.20;dec=+24 08 12.6;mag=5.05;"
-
   star[30] = "name=30 Tau;ra=03 48 16.25;dec=+11 08 36.1;mag=5.08;"
-
-  star[91] = "name=??1 Tau;ra=04 39 09.20;dec=+15 48 00.1;mag=5.08;"
-
+  star[91] = "name=σ1 Tau;ra=04 39 09.20;dec=+15 48 00.1;mag=5.08;"
   star[97] = "name=97 Tau;ra=04 51 22.41;dec=+18 50 23.8;mag=5.08;"
-
   star[66] = "name=66 Tau;ra=04 23 51.84;dec=+09 27 39.5;mag=5.10;"
-
   star[4] = "name=4 Tau;ra=03 30 24.48;dec=+11 20 11.3;mag=5.14;"
-
   star[41] = "name=41 Tau;ra=04 06 36.40;dec=+27 36 00.1;mag=5.18;"
-
   star[125] = "name=125 Tau;ra=05 39 44.19;dec=+25 53 49.7;mag=5.18;"
-
-  star[42] = "name=?? Tau;ra=04 07 00.52;dec=+29 00 04.6;mag=5.21;"
-
+  star[42] = "name=ψ Tau;ra=04 07 00.52;dec=+29 00 04.6;mag=5.21;"
   star[58] = "name=58 Tau;ra=04 20 36.24;dec=+15 05 43.8;mag=5.26;"
-
   star[67] = "name=κ2 Tau;ra=04 25 24.94;dec=+22 12 00.4;mag=5.27;"
-
   star[106] = "name=l Tau;ra=05 07 48.43;dec=+20 25 06.4;mag=5.28;"
-
   star[133] = "name=133 Tau;ra=05 47 42.90;dec=+13 53 58.7;mag=5.28;"
-
   star[46] = "name=46 Tau;ra=04 13 33.11;dec=+07 42 57.7;mag=5.29;"
-
   star[40] = "name=40 Tau;ra=04 03 44.60;dec=+05 26 08.3;mag=5.32;"
-
   star[29] = "name=29 Tau;ra=03 45 40.43;dec=+06 03 00.1;mag=5.34;"
-
   star[56] = "name=56 Tau;ra=04 19 36.69;dec=+21 46 24.9;mag=5.34;"
-
   star[121] = "name=121 Tau;ra=05 35 27.12;dec=+24 02 22.7;mag=5.37;"
-
-  star[59] = "name=?? Tau;ra=04 22 34.93;dec=+25 37 45.7;mag=5.38;"
-
+  star[59] = "name=χ Tau;ra=04 22 34.93;dec=+25 37 45.7;mag=5.38;"
   star[44] = "name=44 Tau;ra=04 10 49.88;dec=+26 28 51.7;mag=5.39;"
-
   star[83] = "name=83 Tau;ra=04 30 37.30;dec=+13 43 28.0;mag=5.40;"
-
   star[115] = "name=115 Tau;ra=05 27 10.09;dec=+17 57 44.2;mag=5.40;"
-
   star[16] = "name=Celaeno;ra=03 44 48.20;dec=+24 17 22.5;mag=5.45;"
-
   star[93] = "name=93 Tau;ra=04 40 03.42;dec=+12 11 51.5;mag=5.45;"
-
   star[36] = "name=36 Tau;ra=04 04 21.67;dec=+24 06 21.7;mag=5.46;"
-
   star[81] = "name=81 Tau;ra=04 30 38.83;dec=+15 41 31.0;mag=5.47;"
-
   star[118] = "name=118 Tau;ra=05 29 16.49;dec=+25 09 01.1;mag=5.47;"
-
   star[130] = "name=130 Tau;ra=05 47 26.20;dec=+17 43 44.9;mag=5.47;"
-
   star[53] = "name=53 Tau;ra=04 19 26.08;dec=+21 08 32.7;mag=5.50;"
-
   star[103] = "name=103 Tau;ra=05 08 06.62;dec=+24 15 54.7;mag=5.50;"
-
-  star[43] = "name=??1 Tau;ra=04 09 09.90;dec=+19 36 33.5;mag=5.51;"
-
+  star[43] = "name=ω1 Tau;ra=04 09 09.90;dec=+19 36 33.5;mag=5.51;"
   star[116] = "name=116 Tau;ra=05 27 45.61;dec=+15 52 26.8;mag=5.52;"
-
   star[72] = "name=72 Tau;ra=04 27 17.45;dec=+22 59 46.9;mag=5.53;"
-
   star[(44)] = "name=44 Eri;ra=04 28 32.11;dec=+01 22 51.1;mag=5.53;"
-
   star[122] = "name=122 Tau;ra=05 37 03.71;dec=+17 02 25.5;mag=5.53;"
-
   star[135] = "name=135 Tau;ra=05 50 28.90;dec=+14 18 20.5;mag=5.54;"
-
   star[12] = "name=12 Tau;ra=03 39 51.14;dec=+03 03 24.6;mag=5.55;"
-
   star[57] = "name=57 Tau;ra=04 19 57.63;dec=+14 02 06.9;mag=5.58;"
-
   star[80] = "name=80 Tau;ra=04 30 08.53;dec=+15 38 16.4;mag=5.58;"
-
   star[137] = "name=137 Tau;ra=05 52 22.30;dec=+14 10 18.5;mag=5.60;"
-
   star[32] = "name=32 Tau;ra=03 56 52.03;dec=+22 28 41.7;mag=5.62;"
-
   star[51] = "name=51 Tau;ra=04 18 23.14;dec=+21 34 45.8;mag=5.64;"
-
   star[63] = "name=63 Tau;ra=04 23 25.00;dec=+16 46 38.4;mag=5.64;"
-
   star[18] = "name=18 Tau;ra=03 45 09.73;dec=+24 50 21.7;mag=5.66;"
-
   star[31] = "name=31 Tau;ra=03 52 00.22;dec=+06 32 05.7;mag=5.66;"
-
   star[120] = "name=120 Tau;ra=05 33 31.63;dec=+18 32 24.8;mag=5.67;"
-
   star[13] = "name=13 Tau;ra=03 42 18.94;dec=+19 42 01.0;mag=5.68;"
-
   star[45] = "name=45 Tau;ra=04 11 20.20;dec=+05 31 22.9;mag=5.71;"
-
   star[60] = "name=60 Tau;ra=04 22 03.45;dec=+14 04 38.1;mag=5.72;"
-
   star[131] = "name=131 Tau;ra=05 47 13.15;dec=+14 29 18.3;mag=5.72;"
-
   star[6] = "name=6 Tau;ra=03 32 35.93;dec=+09 22 24.8;mag=5.76;"
-
   star[21] = "name=Sterope I;ra=03 45 54.46;dec=+24 33 16.6;mag=5.76;"
-
   star[117] = "name=117 Tau;ra=05 28 01.60;dec=+17 14 21.3;mag=5.77;"
-
   star[89] = "name=89 Tau;ra=04 38 09.38;dec=+16 02 00.2;mag=5.78;"
-
   star[99] = "name=99 Tau;ra=04 57 48.65;dec=+23 56 54.9;mag=5.79;"
-
   star[98] = "name=98 Tau;ra=04 58 09.38;dec=+25 03 01.9;mag=5.79;"
-
   star[105] = "name=105 Tau;ra=05 07 55.43;dec=+21 42 17.4;mag=5.84;"
-
   star[39] = "name=39 Tau;ra=04 05 20.15;dec=+22 00 33.2;mag=5.90;"
-
   star[76] = "name=76 Tau;ra=04 28 23.34;dec=+14 44 27.7;mag=5.90;"
-
   star[7] = "name=7 Tau;ra=03 34 26.62;dec=+24 27 52.1;mag=5.95;"
-
   star[129] = "name=129 Tau;ra=05 46 45.49;dec=+15 49 21.0;mag=6.00;"
-
   star[85] = "name=85 Tau;ra=04 31 51.69;dec=+15 51 05.9;mag=6.01;"
-
   star[33] = "name=33 Tau;ra=03 57 03.80;dec=+23 10 32.1;mag=6.05;"
-
   star[96] = "name=96 Tau;ra=04 49 44.08;dec=+15 54 15.3;mag=6.09;"
-
   star[110] = "name=110 Tau;ra=05 23 37.72;dec=+16 41 57.7;mag=6.09;"
-
   star[11] = "name=11 Tau;ra=03 40 46.30;dec=+25 19 46.3;mag=6.11;"
-
   star[14] = "name=14 Tau;ra=03 43 47.14;dec=+19 39 54.6;mag=6.13;"
-
   star[95] = "name=95 Tau;ra=04 43 13.75;dec=+24 05 20.3;mag=6.18;"
-
   star[113] = "name=113 Tau;ra=05 26 05.72;dec=+16 42 00.6;mag=6.23;"
-
   star[108] = "name=108 Tau;ra=05 15 27.66;dec=+22 17 05.5;mag=6.26;"
-
   star[24] = "name=24 Tau;ra=03 47 20.90;dec=+24 06 58.0;mag=6.28;"
-
   star[84] = "name=84 Tau;ra=04 31 07.16;dec=+15 06 18.6;mag=6.28;"
-
   star[48] = "name=48 Tau;ra=04 15 46.21;dec=+15 24 02.7;mag=6.31;"
-
   star[62] = "name=62 Tau;ra=04 23 59.76;dec=+24 18 03.7;mag=6.34;"
-
   star[22] = "name=Sterope II;ra=03 46 02.89;dec=+24 31 40.8;mag=6.43;"
-
   star[70] = "name=70 Tau;ra=04 25 37.25;dec=+15 56 27.9;mag=6.44;"
-
   star[26] = "name=26 Tau;ra=03 48 56.91;dec=+23 51 26.2;mag=6.47;"
-
   star[9] = "name=9 Tau;ra=03 36 58.03;dec=+23 12 40.0;mag=6.72;"
-
   star[101] = "name=101 Tau;ra=04 59 44.27;dec=+15 55 00.5;mag=6.75;"
-
   star[55] = "name=55 Tau;ra=04 19 54.78;dec=+16 31 21.6;mag=6.85;"
-
   edge = "1=112-74;2=74-68;3=68-54;4=123-87;5=87-78;6=78-54;7=54-49;"
-
   edge = edge + "8=54-35;9=25-35;10=35-2;"
-
 EndSub
-
 Sub DrawGrids
-
   ''' Draw grids
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "DimGray"
-
   GraphicsWindow.BrushColor = "DimGray"
-
   GraphicsWindow.FontSize = 12
-
   y1 = 0
-
   y2 = GraphicsWindow.Height
-
   For ra = raMin To raMax
-
     RADec2XY()
-
     Shapes.AddLine(x, y1, x, y2)
-
     raTxt = ra
-
     If wrap And raTxt < 0 Then
-
       raTxt = raTxt + 24
-
     EndIf
-
     txt = Shapes.AddText(raTxt + "h")
-
     Shapes.Move(txt, x, 5) 
-
   EndFor
-
   x1 = 0
-
   x2 = GraphicsWindow.Width
-
   For dec = decMin To decMax + 10 Step 10
-
     If dec > 0 Then
-
       dec = Text.Append("+", Math.Abs(dec))
-
     EndIf
-
     RADec2XY()
-
     Shapes.AddLine(x1, y, x2, y)
-
     txt = Shapes.AddText(dec)
-
     Shapes.Move(txt, x1, y) 
-
   EndFor
-
 EndSub
-
 Sub RADec2XY
-
   ''' Convert ra, dec to x, y
-
   ''' param ra - right ascension
-
   ''' param dec - declination
-
   ''' return x, y - coordinates in graphics window
-
   x = Text.GetSubText(ra, 1, 2)
-
   If wrap And 12 < x Then
-
     x = x - 24
-
   EndIf
-
   x = x + Text.GetSubText(ra, 4, 2) / 60
-
   x = x + Text.GetSubText(ra, 7, 5) / 3600
-
   x = offsetX - (x - raMin) * 3600 / 24
-
   y = Text.GetSubText(dec, 2, 2)
-
   y = y + Text.GetSubText(dec, 5, 2) / 60
-
   y = y + Text.GetSubText(dec, 8, 5) / 3600
-
   y = y * Text.Append(Text.GetSubText(dec, 1, 1), "1")
-
   y = offsetY - y * 3600 / 360
-
 EndSub
-
 Sub Shapes_Init
-
   ''' Shapes | Initialize shapes data
-
   ''' return shX, shY - current position of shapes
-
   ''' return shape - array of shapes
-
   shX = 120 ' x offset
-
   shY = 14 ' y offset
-
   shape = ""
-
   shape[1] = "func=ell;x=75;y=49;width=86;height=134;angle=24;bc=#000000;pc=#66411F;pw=16;"
-
   shape[2] = "func=rect;x=56;y=71;width=67;height=57;angle=24;bc=#000000;pw=0;"
-
   shape[3] = "func=ell;x=71;y=29;width=52;height=53;bc=#66411F;pw=0;"
-
   shape[4] = "func=ell;x=34;y=105;width=52;height=53;bc=#66411F;pw=0;"
-
   shape[5] = "func=ell;x=58;y=0;width=70;height=68;bc=#000000;pw=0;"
-
   shape[6] = "func=ell;x=0;y=107;width=73;height=75;bc=#000000;pw=0;"
-
   shape[7] = "func=ell;x=240;y=111;width=148;height=154;bc=#66411F;pw=0;"
-
   shape[8] = "func=rect;x=213;y=213;width=104;height=37;angle=334;bc=#66411F;pw=0;"
-
   shape[9] = "func=rect;x=202;y=265;width=105;height=29;angle=33;bc=#66411F;pw=0;"
-
   shape[10] = "func=rect;x=148;y=190;width=104;height=37;angle=358;bc=#66411F;pw=0;"
-
   shape[11] = "func=rect;x=113;y=245;width=105;height=29;angle=76;bc=#66411F;pw=0;"
-
   shape[12] = "func=ell;x=132;y=187;width=48;height=46;bc=#66411F;pw=0;"
-
   shape[13] = "func=ell;x=194;y=228;width=48;height=46;bc=#66411F;pw=0;"
-
   shape[14] = "func=ell;x=200;y=119;width=3;height=1;bc=#66411F;pw=0;"
-
   shape[15] = "func=rect;x=199;y=78;width=178;height=88;angle=351;bc=#66411F;pw=0;"
-
   shape[16] = "func=ell;x=117;y=83;width=105;height=120;angle=34;bc=#66411F;pc=#000000;pw=4;"
-
   shape[17] = "func=ell;x=183;y=123;width=23;height=24;bc=#000000;pw=0;"
-
   shape[18] = "func=ell;x=171;y=50;width=23;height=54;angle=42;bc=#66411F;pw=0;"
-
   shape[19] = "func=ell;x=108;y=163;width=23;height=54;angle=20;bc=#66411F;pw=0;"
-
   shape[20] = "func=ell;x=166;y=150;width=85;height=67;angle=315;bc=#66411F;pc=#000000;pw=4;"
-
   shape[21] = "func=ell;x=217;y=173;width=12;height=15;bc=#000000;pw=0;"
-
   shape[22] = "func=ell;x=193;y=197;width=11;height=16;angle=260;bc=#000000;pw=0;"
-
   shape[23] = "func=ell;x=179;y=136;width=30;height=68;angle=46;bc=#66411F;pw=0;"
-
   shape[24] = "func=tri;x=135;y=311;x1=34;y1=0;x2=0;y2=25;x3=68;y3=25;angle=270;bc=#66411F;pw=0;"
-
   shape[25] = "func=tri;x=157;y=306;x1=34;y1=0;x2=0;y2=25;x3=68;y3=25;angle=69;bc=#66411F;pw=0;"
-
   shape[26] = "func=tri;x=260;y=311;x1=34;y1=0;x2=0;y2=25;x3=68;y3=25;angle=233;bc=#66411F;pw=0;"
-
   shape[27] = "func=tri;x=272;y=293;x1=34;y1=0;x2=0;y2=25;x3=68;y3=25;angle=32;bc=#66411F;pw=0;"
-
   shape[28] = "func=ell;x=321;y=44;width=73;height=67;bc=#000000;pw=0;"
-
   shape[29] = "func=ell;x=329;y=104;width=73;height=67;bc=#000000;pw=0;"
-
   shape[30] = "func=ell;x=325;y=155;width=74;height=70;bc=#000000;pw=0;"
-
   shape[31] = "func=ell;x=325;y=211;width=74;height=70;bc=#000000;pw=0;"
-
 EndSub
-
 Sub Math_CartesianToPolar
-
   ''' Math | convert cartesian coodinate to polar coordinate
-
   ''' param x, y - cartesian coordinate
-
   ''' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   ElseIf x = 0 Then
-
     a = 0
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
 Sub SB_RotateWorkaround
-
   ''' Small Basic | Rotate workaround for Silverlight
-
   ''' param shp - current shape
-
   ''' param x, y - original coordinate
-
   ''' param alpha - angle [radian]
-
   ''' returns x, y - workaround coordinate
-
   If shp["func"] = "tri" Then
-
     x1 = -Math.Floor(shp["x3"] / 2)
-
     y1 = -Math.Floor(shp["y3"] / 2)
-
   ElseIf shp["func"] = "line" Then
-
     x1 = -Math.Floor(Math.Abs(shp["x1"] - shp["x2"]) / 2)
-
     y1 = -Math.Floor(Math.Abs(shp["y1"] - shp["y2"]) / 2)
-
   EndIf
-
   ox = x - x1
-
   oy = y - y1
-
   x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
   y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
 EndSub
-
 Sub SB_Workaround
-
   ''' Small Basic | Workaround for Silverlight
-
   ''' returns silverlight - "True" if in remote
-
   color = GraphicsWindow.GetPixel(0, 0)
-
   If Text.GetLength(color) > 7 Then
-
     silverlight = "True"
-
     msWait = 300
-
   Else
-
     silverlight = "False"
-
   EndIf
-
 EndSub
-
 Sub Shapes_Add
-
   ''' Shapes | add shapes as shapes data
-
   ''' param iMin, iMax - shape indices to add
-
   ''' param shape - array of shapes
-
   ''' param scale - 1 if same scale
-
   ''' return shWidth, shHeight - total size of shapes
-
   ''' return shAngle - current angle of shapes
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   Shapes_CalcWidthAndHeight()
-
   s = scale
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     GraphicsWindow.PenWidth = shp["pw"] * s
-
     If shp["pw"] > 0 Then
-
       GraphicsWindow.PenColor = shp["pc"]
-
     EndIf
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) Then
-
       GraphicsWindow.BrushColor = shp["bc"]
-
     EndIf
-
     If shp["func"] = "rect" Then
-
       shp["obj"] = Shapes.AddRectangle(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "ell" Then
-
       shp["obj"] = Shapes.AddEllipse(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "tri" Then
-
       shp["obj"] = Shapes.AddTriangle(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s, shp["x3"] * s, shp["y3"] * s)
-
     ElseIf shp["func"] = "line" Then
-
       shp["obj"] = Shapes.AddLine(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s)
-
     ElseIf shp["func"] = "text" Then
-
       If silverlight Then
-
         fs = Math.Floor(shp["fs"] * 0.9)
-
       Else
-
         fs = shp["fs"]
-
       EndIf
-
       If silverlight Then
-
         Program.Delay(msWait)
-
       EndIf
-
       GraphicsWindow.FontSize = fs * s
-
       GraphicsWindow.FontName = shp["fn"]
-
       shp["obj"] = Shapes.AddText(shp["text"])
-
     EndIf
-
     x = shp["x"]
-
     y = shp["y"]
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(shp["angle"])
-
       SB_RotateWorkaround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) And (shp["angle"] <> 0) And (shp["angle"] <> "") Then
-
       Shapes.Rotate(shp["obj"], shp["angle"])
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
   shAngle = 0
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_CalcRotatePos
-
   ''' Shapes | Calculate position for rotated shape
-
   ''' param["x"], param["y"] - position of a shape
-
   ''' param["width"], param["height"] - size of a shape
-
   ''' param ["cx"], param["cy"] - center of rotation
-
   ''' param ["angle"] - rotate angle
-
   ''' return x, y - rotated position of a shape
-
   _cx = param["x"] + param["width"] / 2
-
   _cy = param["y"] + param["height"] / 2
-
   x = _cx - param["cx"]
-
   y = _cy - param["cy"]
-
   Math_CartesianToPolar()
-
   a = a + param["angle"]
-
   x = r * Math.Cos(a * Math.Pi / 180)
-
   y = r * Math.Sin(a * Math.Pi / 180)
-
   _cx = x + param["cx"]
-
   _cy = y + param["cy"]
-
   x = _cx - param["width"] / 2
-
   y = _cy - param["height"] / 2
-
 EndSub
-
 Sub Shapes_CalcWidthAndHeight
-
   ''' Shapes | Calculate total width and height of shapes
-
   ''' param iMin, iMax - shape indices to add
-
   ''' return shWidth, shHeight - total size of shapes
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If shp["func"] = "tri" Or shp["func"] = "line" Then
-
       xmin = shp["x1"]
-
       xmax = shp["x1"]
-
       ymin = shp["y1"]
-
       ymax = shp["y1"]
-
       If shp["x2"] < xmin Then
-
         xmin = shp["x2"]
-
       EndIf
-
       If xmax < shp["x2"] Then
-
         xmax = shp["x2"]
-
       EndIf
-
       If shp["y2"] < ymin Then
-
         ymin = shp["y2"]
-
       EndIf
-
       If ymax < shp["y2"] Then
-
         ymax = shp["y2"]
-
       EndIf
-
       If shp["func"] = "tri" Then
-
         If shp["x3"] < xmin Then
-
           xmin = shp["x3"]
-
         EndIf
-
         If xmax < shp["x3"] Then
-
           xmax = shp["x3"]
-
         EndIf
-
         If shp["y3"] < ymin Then
-
           ymin = shp["y3"]
-
         EndIf
-
         If ymax < shp["y3"] Then
-
           ymax = shp["y3"]
-
         EndIf
-
       EndIf
-
       shp["width"] = xmax - xmin
-
       shp["height"] = ymax - ymin
-
     EndIf
-
     If i = 1 Then
-
       shWidth = shp["x"] + shp["width"]
-
       shHeight = shp["y"] + shp["height"]
-
     Else
-
       If shWidth < shp["x"] + shp["width"] Then
-
         shWidth = shp["x"] + shp["width"]
-
       EndIf
-
       If shHeight < shp["y"] + shp["height"] Then
-
         shHeight = shp["y"] + shp["height"]
-
       EndIf
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
 EndSub
-
 Sub Shapes_Move
-
   ''' Shapes | Move shapes
-
   ''' param iMin, iMax - shape indices to add
-
   ''' param shape - array of shapes
-
   ''' param scale - to zoom
-
   ''' param x, y - position to move
-
   ''' return shX, shY - new position of shapes
-
   Stack.PushValue("local", i)
-
   s = scale
-
   shX = x
-
   shY = y
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       _x = shp["wx"]
-
       _y = shp["wy"]
-
     Else
-
       _x = shp["rx"]
-
       _y = shp["ry"]
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + _x * s, shY + _y * s)
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Remove
-
   ''' Shapes | Remove shapes
-
   ''' param iMin, iMax - shapes indices to remove
-
   ''' param shape - array of shapes
-
   Stack.PushValue("local", i)
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     Shapes.Remove(shp["obj"])
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Rotate
-
   ''' Shapes | Rotate shapes
-
   ''' param iMin, iMax - shapes indices to rotate
-
   ''' param shape - array of shapes
-
   ''' param cx, cy - rotation center
-
   ''' param scale - to zoom
-
   ''' param angle - to rotate
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   s = scale
-
   param["angle"] = angle
-
   If cx <> "" Then
-
     param["cx"] = cx
-
   Else
-
     cx = ""   ' to avoid syntax error
-
     param["cx"] = shWidth / 2
-
   EndIf
-
   If cy <> "" Then
-
     param["cy"] = cy
-
   Else
-
     cy = ""   ' to avoid syntax error
-
     param["cy"] = shHeight / 2
-
   EndIf
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     param["x"] = shp["x"]
-
     param["y"] = shp["y"]
-
     param["width"] = shp["width"]
-
     param["height"] = shp["height"]
-
     Shapes_CalcRotatePos()
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(angle + shp["angle"])
-
       SB_RotateWorkAround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     Shapes.Rotate(shp["obj"], angle + shp["angle"])
-
     shape[i] = shp
-
   EndFor
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-

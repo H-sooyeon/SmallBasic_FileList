@@ -1,631 +1,315 @@
 'Lunar Lander
-
 'An example of the power of variabls. The all the code through line 70 sets up varaibles
-
 'that are used to manage the simulation (acccurate to the moon and the apollo landers).
-
 'All user interaction is handle through events - Timer and keyboard
-
 '
-
 'Goal - land on the pad traveling less then 2 meters per second (horizontal and vertical)
-
 'Controls  (arrows)  up: increases vertical thrust; Left/Right: changes horizontal speed.
 
 
-
-
-
 GraphicsWindow.BackgroundColor = "black"
-
 displayAreaTop = 70
-
 displayAreaBottom = 425
-
 displayAreaMaxHeight = displayAreaBottom - displayAreaTop
-
 simulatedMaxHeight = 900 'simulated height of displayed screen in meters
-
 displayScale = ((displayAreaMaxHeight * 100) / simulatedMaxHeight) / 100 'Ratio of display height to simulated height as a fraction
-
 GraphicsWindow.PenColor = "white"
-
 GraphicsWindow.Drawline(0,displayAreaTop,GraphicsWindow.Width,displayAreaTop)
-
 GraphicsWindow.Drawline(0,displayAreaTop+displayAreaMaxHeight,GraphicsWindow.Width,displayAreaTop+displayAreaMaxHeight)
 
-
-
 hold = GraphicsWindow.FontSize
-
 GraphicsWindow.FontSize = 30
-
 pauseText = Shapes.AddText("-- Paused --")
-
 GraphicsWindow.FontSize = hold
-
 Shapes.HideShape(pauseText)
-
 Shapes.Move(pauseText,320,15)
 
-
-
 lander = Shapes.AddEllipse(7,7)
-
 landerHeight = 7
-
 landerWidth = 7
 
-
-
 kDnEvent = "False"
-
 kUpEvent = "False"
-
 tTkEvent = "False"
 
-
-
 secFrac = 0.10 '1 tenth of a second
-
 intvl = 1000 * secFrac
 
-
-
 Timer.Tick = OnTick
-
 Timer.Interval = intvl
 
-
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 GraphicsWindow.KeyUp = OnKeyUp
 
-
-
 'gravity = 9.81 ' Earth gravity 9.81 m/s^2
-
 gravity = 1.63 'Moon's gravity 1.63 m/s^2
-
 thrustMax = ((0.3924 * 10) * secFrac)  '10% of throttle of the real LEM was less then 1/25G.  1/25 of a G = 0.3924; This value times 10 (full thrust), chopped up in to the time slices
-
 thrustIncreaseRate = (thrustMax * secFrac) / 1 'at  increase rate it will take three seconds to reach max thrust (max * interval ) = max sliced into 10ths of a second, divided by the number of seconds
-
 thrustCur = 0  'No thrust at start, engine is off
-
 lateralThrustRate = (0.25 * secFrac) 'Lateral thrust is 25% of a G
-
 lateralThrust = 0
-
-
 
 safeLandingSpeed = 2  'Landing speed of apollo was 1 m/s
 
-
-
 'Lander stats at start of simulation
-
 alt = 750   'meters
-
 hloc = 100  'Horizontal location - arbitrary starting point, with left margin being zero 
-
 fuel = 250  'Fuel reserves
-
 vSpd = 0    'Vertical Speed
-
 hspd = 5    'Horizontal speed
 
-
-
 padPos = Math.GetRandomNumber(GraphicsWindow.Width-200) + 100 'Location of landing pad (closest waypoint)  
-
 GraphicsWindow.DrawRectangle(padPos-5,displayAreaBottom,10,5)
-
-
 
 textColor = "white"
 
-
-
 GraphicsWindow.BrushColor = textColor
-
 GraphicsWindow.DrawText(0,0,   "V-Speed:")
-
 GraphicsWindow.DrawText(0,20,  "Thrust:")
-
 GraphicsWindow.DrawText(0,40,  "H-Speed:")
-
 GraphicsWindow.DrawText(125,0, "Altitude:")
-
 GraphicsWindow.DrawText(125,20,"Distance:")
-
 GraphicsWindow.DrawText(125,40,"Fuel:")
-
-
 
 displayStats()
 
-
-
 '--- Events and Subroutines to follow ---------------------------------------------------------------
 
-
-
 'Events -----------------------------------
-
 Sub OnTick 'Timer event - Update simulation once ever time slice
-
   If kUpEvent = "False" And kDnEvent = "False" And tTkEvent = "False" Then
-
     tTkEvent = "True"
-
     updateStats()
-
     displayStats()
-
     landingCheck()
-
     updateSimulation()
-
     tTkEvent = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown 'Keydown Event - Process controls
-
   If kUpEvent = "False" And kDnEvent = "False" And tTkEvent = "False" Then
-
     kDnEvent = "True"
-
     If GraphicsWindow.LastKey = "Up" Then
-
       thrustKeyPressed = "True"
-
     ElseIf GraphicsWindow.LastKey = "Left" then
-
       lateralThrust = lateralThrustRate * -1
-
     elseif GraphicsWindow.LastKey = "Right" then
-
       lateralThrust = lateralThrustRate
-
     elseif GraphicsWindow.LastKey = "I" then
-
       zoomIn()
-
     elseif GraphicsWindow.LastKey = "O" then
-
       zoomOut()
-
     ElseIf GraphicsWindow.LastKey = "P" then
-
       If Timer.Interval <> intvl then
-
         Shapes.HideShape(pauseText)
-
         Timer.Interval = intvl
-
       Else
-
           Shapes.ShowShape(pauseText)
-
           Timer.Interval = 100000000  ''if game paused, shut down the event
-
       EndIf
-
     EndIf
-
     kDnEvent = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyUp 'Shut down any key generated actions
-
   If kUpEvent = "False" And kDnEvent = "False" And tTkEvent = "False" Then
-
     kUpEvent = "True"
-
     If GraphicsWindow.LastKey = "Up" Then
-
       thrustKeyPressed = "False"
-
     ElseIf GraphicsWindow.LastKey = "Left" Then
-
       lateralThrust = 0
-
     ElseIf GraphicsWindow.LastKey = "Right" then
-
       lateralThrust = 0
-
     EndIf
-
     kUpEvent = "False"
-
   EndIf
-
 EndSub
-
-
 
 'Subroutines ------------------------------
-
 Sub updateStats 'Update values controling the simulation (thrust, speed, altitude, etc)
-
   If thrustKeyPressed Then
-
     If fuel >= 0 Then
-
       thrustCur = thrustCur + thrustIncreaseRate
-
       If thrustCur > thrustMax Then
-
         thrustCur = thrustMax
-
       EndIf      
-
       fuel = fuel - thrustCur
-
       vSpd = vSpd - thrustCur
-
     Else
-
       thrustCur = 0  
-
       fuel = 0
-
     EndIf
-
   Else
-
     thrustCur = thrustCur / 2
-
     If thrustCur < thrustIncreaseRate Then
-
       thrustCur = 0
-
     EndIf
-
   EndIf
-
   hspd = hspd + lateralThrust
-
   
-
   hloc = hloc + (hspd * secFrac) ' Horizontal location
-
   
-
   padDist = Math.Abs(padPos - hloc)
-
   vSpd = vSpd + (gravity * secFrac)
-
   alt = alt - (vSpd * secFrac)
-
   If alt < 0 Then 
-
     alt = 0
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub zoomIn
-
   tTkEvent = "True" 'Suspend events
-
   kUpEvent = "True"
-
   kDnEvent = "True"
-
   zoomFrames = 15
-
   zh = 30
-
   zw = 100
-
   zHmax = displayAreaMaxHeight
-
   zWmax = GraphicsWindow.Width
-
   zHmid = displayAreaTop + (zHmax / 2)
-
   zWmid = zWmax / 2
-
   
-
   penWhold = GraphicsWindow.PenWidth
-
   penChold = GraphicsWindow.PenColor
-
   penBhold = GraphicsWindow.BrushColor
-
   GraphicsWindow.BrushColor = "Black"
-
   For zi = 1 To zoomFrames
-
     GraphicsWindow.PenWidth = 2
-
     GraphicsWindow.PenColor = "white"
-
     GraphicsWindow.DrawRectangle(zWmid - zw / 2, zHmid - zh / 2, zw, zh)
-
     pmPause = 100
-
     pauseMe()
-
     GraphicsWindow.PenWidth = 4
-
     GraphicsWindow.PenColor = "black"
-
     GraphicsWindow.FillRectangle(zWmid - zw / 2, zHmid - zh / 2, zw, zh)
-
     
-
     zh = zh + ((zHmax-30) / zoomFrames)
-
     zw = zw + ((zWmax-100) / zoomFrames)
-
   EndFor
-
   GraphicsWindow.BrushColor = penBhold
-
   GraphicsWindow.PenColor = penWhold
-
   GraphicsWindow.PenWidth = penChold
-
   tTkEvent = "False" 'Resume events
-
   kUpEvent = "False"
-
   kDnEvent = "False"  
-
 EndSub
-
-
 
 Sub pauseMe
-
   pmstart = Clock.ElapsedMilliseconds
-
   While Clock.ElapsedMilliseconds - pmstart < pmPause
-
   EndWhile
-
 EndSub
-
-
 
 Sub zoomOut
-
   holdtm = Timer.Interval
-
   Timer.Interval = 100000000
-
   hold = GraphicsWindow.PenColor
-
   GraphicsWindow.PenColor = "white"
-
   holdbrush = GraphicsWindow.BrushColor
-
   GraphicsWindow.BrushColor = "black"
-
   displayAreaMiddle = (displayAreaTop + (displayAreaMaxHeight / 2))
-
   fstWidth = 50
-
   zoomHeight = displayAreaMaxHeight
-
   stps = 10
-
   For zi = GraphicsWindow.Width To  fstWidth Step -((GraphicsWindow.Width - fstWidth) / stps)
-
     GraphicsWindow.FillRectangle(0,displayAreaTop,GraphicsWindow.Width,displayAreaMaxHeight)    
-
     zoomHeight = zoomHeight - (displayAreaMaxHeight-50) / stps
-
     GraphicsWindow.DrawRectangle((GraphicsWindow.Width / 2) - (zi/2), displayAreaMiddle - (zoomHeight / 2) ,zi,zoomHeight)
-
     Program.Delay(50)
-
     
-
   EndFor   
-
   GraphicsWindow.PenColor = hold 
-
   GraphicsWindow.BrushColor = holdbrush
-
   Timer.Interval = holdtm
-
 EndSub
-
-
-
 
 
 Sub landingCheck  'Check if ship has reached the ground
-
   If alt < 1 Then
-
     Timer.Interval = 100000000  'If the ship has landed, shut down the event
-
     displayFinish()
-
     
-
     alt = 0
-
     thrustCur = 0
-
     displayStats()    
-
   EndIf
-
 EndSub
-
-
 
 Sub displayFinish
-
   hold = GraphicsWindow.FontSize  
-
   GraphicsWindow.FontSize = 50
-
   If vSpd < safeLandingSpeed and Math.Abs(hspd) < 2 And Math.Abs(padDist) < 5 then
-
     GraphicsWindow.DrawText(0,150, "Touch Down")
-
   Else
-
     GraphicsWindow.DrawText(0,150, "Boom")
-
   EndIf
-
   GraphicsWindow.FontSize = hold
-
 EndSub
-
-
 
 Sub updateSimulation 'Change the ship display based on the status of the simulation
-
   landX = hloc
-
   landX = landX  - (landerWidth / 2)  'Center the lander over its horizontal location
-
   landY = (displayAreaBottom - (alt * displayScale))
-
   landY = landY - landerHeight 'Place the lander above its vertical location
-
   Shapes.Move(lander,landX,landY) 
-
 EndSub
-
-
 
 Sub displayStats 'Display the current values of simulation values
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.FillRectangle(60,0,60,60)
-
   GraphicsWindow.FillRectangle(185,0,60,60) 
-
   GraphicsWindow.BrushColor = textColor
-
   
-
   displayNumber = vSpd
-
   convertNumberForDisplay()
-
   GraphicsWindow.DrawText(60,0,Text.GetSubTextToEnd(displayNumberText,2))
-
   
-
   displayThrustMeter()
-
   displayNumber = thrustPercent 'calcuated during the meter display
-
   convertNumberForDisplay()
-
   displayNumberText = displayNumberText + "%"
-
   GraphicsWindow.DrawText(60,20,Text.GetSubTextToEnd(displayNumberText,2))
-
   
-
   displayNumber = hspd
-
   convertNumberForDisplay()
-
   GraphicsWindow.DrawText(60,40,Text.GetSubTextToEnd(displayNumberText,2))
-
   
-
   displayNumber = alt
-
   convertNumberForDisplay()
-
   GraphicsWindow.DrawText(185,0,Text.GetSubTextToEnd(displayNumberText,2))
-
   
-
   displayNumber = padDist
-
   convertNumberForDisplay()
-
   GraphicsWindow.DrawText(185,20,Text.GetSubTextToEnd(displayNumberText,2))
-
   
-
   displayNumber = fuel
-
   convertNumberForDisplay()
-
   GraphicsWindow.DrawText(185,40,Text.GetSubTextToEnd(displayNumberText,2))
-
 EndSub
-
-
 
 Sub displayThrustMeter 'Display a graphic interpretation of the current thrust level
-
   meterWidthMax = 60
-
   thrustPercent = (thrustCur * 100) / thrustMax  'Percentage that current thrust is of max thrust
-
   meterWidth = (meterWidthMax * thrustPercent) / 100  'with of the meter matching percentage of current thrust
-
   GraphicsWindow.BrushColor = "red"
-
   GraphicsWindow.FillRectangle(60,20,meterWidth,16)
-
   GraphicsWindow.BrushColor = textColor
-
 EndSub
-
-
 
 Sub convertNumberForDisplay 'Convert a number for display, always with two decimal places
-
   displayNumber = displayNumber * 100
-
   displayNumber = Math.Round(displayNumber)
-
   displayNumber = displayNumber / 100
-
   
-
   displayNumberText = "A" + displayNumber 'Added to force small basic to interpret as text and prevent the trailing zeros from being removed
-
   dotLoc = text.GetIndexOf(displayNumberText,".")
-
   If dotLoc = 0 Then
-
     displayNumberText = displayNumberText + ".00"
-
   ElseIf dotLoc = Text.GetLength(displayNumberText) - 1 then
-
     displayNumberText = displayNumberText + "0"
-
   EndIf
-
 EndSub
-
     
-
-

@@ -1,1139 +1,569 @@
 ' MSDN Blog Article List
-
 ' Version 0.4
-
 ' Copyright © 2016-2018 Nonki Takahashi.  The MIT License.
-
 ' Last update 2018-12-08
-
 ' Program ID NPB609-3
 
-
-
 WQ = Text.GetCharacter(34)
-
 SQ = "'"
-
 LT = "<"
-
 Not = "False=True;True=False;"
-
 formID = "SHP804-2"
-
 formName = "Blog.frm.sb"
-
 indent = ""
-
 result = ""   ' dummy
-
 dirs = ""     ' dummy
-
 Form_ImportForm()
-
 Form_GetForm()
-
 Form_ShowForm()
-
 site = "https://blogs.msdn.microsoft.com"
-
 While "True"
-
   If buttonClicked Then
-
     GenerateHTML()
-
     buttonClicked = "False"
-
   Else
-
     Program.Delay(200)
-
   EndIf
-
 EndWhile
 
-
-
 Sub ConvertTag
-
   ' Convert tag for the MSDN blog
-
   ' param tagB - tag in the blog
-
   ' return tagM - converted tag for the URL
-
   tagM = Text.ConvertToLowerCase(tagB)
-
   len = Text.GetLength(tagM)
-
   For i = 1 To len
-
     If Text.GetSubText(tagM, i, 1) = " " Then
-
       tagM = Text.GetSubText(tagM, 1, i - 1) + "-" + Text.GetSubTextToEnd(tagM, i + 1)
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub ConvertTitle
-
   ' Convert title
-
   ' param txt - original title in a tag
-
   ' return title - title for HTML
-
   len = Text.GetLength(txt)
-
   title = ""
-
   delim = " " + CR + LF
-
   lastDelim = 0
-
   For i = 1 To len
-
     c = Text.GetSubText(txt, i, 1)
-
     If Not[Text.IsSubText(delim, c)] Then
-
       s = i
-
       i = len ' exit for
-
     EndIf
-
   EndFor
-
   For i = len To 1 Step -1
-
     c = Text.GetSubText(txt, i, 1)
-
     If Not[Text.IsSubText(delim, c)] Then
-
       e = i
-
       i = 1 ' exit for
-
     EndIf
-
   EndFor
-
   title = Text.GetSubText(txt, s, e - s + 1)
-
 EndSub
-
-
 
 Sub ConvertText
-
   ' Convert &*; to unicode character
-
   ' param txt
-
   ' return txt
-
   While Text.IsSubText(txt, "&") And Text.IsSubText(txt, ";")
-
     c = Text.GetIndexOf(txt, "&")
-
     l = Text.GetIndexOf(Text.GetSubTextToEnd(txt, c), ";")
-
     kw = Text.GetSubText(txt, c + 1, l - 2)
-
     If Text.StartsWith(kw, "#") Then
-
       txtMid = Text.GetCharacter(Text.GetSubTextToEnd(kw, 2))
-
     ElseIf kw = "quot" Then
-
       txtMid = Text.GetCharacter(34)
-
     Else
-
       txtMid = ""
-
     EndIf
-
     txtLeft = Text.GetSubText(txt, 1, c - 1)
-
     txtRight = Text.GetSubTextToEnd(txt, c + l)
-
     txt = Text.Append(txtLeft, Text.Append(txtMid, txtRight))
-
   EndWhile
-
 EndSub
-
-
 
 Sub FindTag
-
   ' Find tag from html buffer
-
   ' param["tag"] - tag name
-
   ' param["class"] - class name
-
   ' param["rel"] - rel name
-
   ' param["id"] - id
-
   ' param p - pointer for buffer
-
   ' param buf - html buffer
-
   ' return tag - found tag
-
   pSave = p
-
   tag = ""
-
   findNext = "True"
-
   While findNext
-
     findNext = "False"        ' tag may be not found
-
     pTag = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), LT + param["tag"] + " ")
-
     If 0 < pTag Then
-
       pTag = p + pTag - 1
-
       len = Text.GetIndexOf(Text.GetSubTextToEnd(buf, pTag), "/" + param["tag"] + ">")
-
       If 0 < len Then
-
         findNext = "True"     ' tag may be different
-
         lTag = Text.GetLength(param["tag"]) + 1
-
         len = len + lTag
-
         tag = Text.GetSubText(buf, pTag, len)
-
         Stack.PushValue("local", pTag)
-
         GetAttrAndText()
-
         pTag = Stack.PopValue("local")
-
         If param["id"] <> "" Then
-
           target = "id"
-
         ElseIf param["class"] <> "" Then
-
           target = "class"
-
         Else
-
           target = "rel"
-
         EndIf
-
         If param[target] = attr[target] Then
-
           findNext = "False"  ' found the tag
-
         Else
-
           tag = ""
-
         EndIf
-
         p = pTag + len
-
       EndIf
-
     EndIf
-
   EndWhile
-
   If tag = "" Then
-
     p = pSave
-
   EndIf
-
 EndSub
-
-
 
 Sub GenerateHTML
-
   ' Generate HTML
-
   boxbuf = ""
-
   frm = form[id["articles"]]
-
   Shapes.SetText(frm["obj"], "0 articles")
-
   frm = form[id["blog"]]
-
   blog = Controls.GetTextBoxText(frm["obj"])
-
   frm = form[id["tag"]]
-
   tagB = Controls.GetTextBoxText(frm["obj"])
-
   If tagB <> "" Then
-
     ConvertTag()
-
     folder = "/" + blog + "/tag/" + tagM + "/"
-
   Else
-
     folder = "/" + blog + "/"
-
   EndIf
-
   frm = form[id["output"]]
-
   outfile = Program.Directory + "\" + Controls.GetTextBoxText(frm["obj"])
-
   nPosts = 0
-
   maxPage = 1
-
   outbuf = ""
-
   block = ""
-
   nArticle = 0
-
   For page = 1 To maxPage
-
     If page = 1 Then
-
       pg = ""
-
     Else
-
       pg = "page/" + page + "/"
-
     EndIf
-
     url = site + folder + pg + "?orderby=date"
-
     buf = Network.GetWebPageContents(url)
-
     p = 1
-
     eod = "False"
-
     If page = 1 Then
-
       param = "tag=a;class=for-desktop;"
-
       FindTag()
-
       GetAttrAndText()
-
       ConvertTitle()
-
       html = LT + "!DOCTYPE html>" + CR + LF
-
       html = html + LT + "html lang=" + WQ + "en" + WQ + ">" + CR + LF
-
       html = html + LT + "head>" + CR + LF
-
       html = html + LT + "meta charset=" + WQ + "UTF-8" + WQ + ">" + CR + LF
-
       html = html + LT + "title>" + title + LT + "/title>" + CR + LF
-
       html = html + LT + "/head>" + CR + LF
-
       html = html + LT + "body>" + CR + LF
-
       html = html + LT + "h1>" + title + LT + "/h1>" + CR + LF
-
       If tagB <> "" Then
-
         html = html + LT + "p>Tag: " + tagB + LT + "/p>" + CR + LF
-
       EndIf
-
       html = html + LT + "ul>" + CR + LF
-
     EndIf
-
     While Not[eod]
-
       param = "tag=a;rel=bookmark;"
-
       FindTag()
-
       If tag = "" Then
-
         eod = "True"
-
       Else
-
         GetAttrAndText()
-
         ConvertText()
-
         block = "url   | " + attr["href"] + CR + LF
-
         block = block + "title | " + txt + CR + LF
-
         html = html + LT + "li>"
-
         html = html + LT + "a href=" + WQ + attr["href"] + WQ + ">" + txt + LT + "/a>"
-
         param = "tag=time;class=entry-date published updated;"
-
         FindTag()
-
         html = html + " ("
-
         If tag = "" Then
-
           html = html + " "
-
           eod = "True"
-
         Else
-
           GetAttrAndText()
-
           block = block + "date  | " + txt + CR + LF
-
           html = html + txt
-
         EndIf
-
         block = block + CR + LF
-
         html = html + ")</li>" + CR + LF
-
         nArticle = nArticle + 1
-
         frm = form[id["articles"]]
-
         Shapes.SetText(frm["obj"], nArticle + " articles")
-
         outbuf = outbuf + block
-
         frm = form[id["log"]]
-
         Controls.SetTextBoxText(frm["obj"], outbuf)
-
       EndIf
-
     EndWhile
-
     If page = 1 Then
-
       param = "tag=a;class=page-numbers;"
-
       FindTag()
-
       While tag <> ""
-
         tagSave = tag
-
         FindTag()
-
       EndWhile
-
       tag = tagSave
-
       GetAttrAndText()
-
       maxPage = txt
-
     EndIf
-
   EndFor
-
   block = "Total " + nArticle + " articles"
-
   frm = form[id["articles"]]
-
   Shapes.SetText(frm["obj"], block)
-
   outbuf = outbuf + block + "." + CR + LF
-
   frm = form[id["log"]]
-
   Controls.SetTextBoxText(frm["obj"], outbuf)
-
   html = html + LT + "/ul>" + CR + LF
-
   html = html + LT + "p>" + block + ".</p>" + CR + LF
-
   html = html + LT + "/html>" + CR + LF
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteContents(outfile, html) ' outbuf for text
-
 EndSub
-
-
 
 Sub GetAttrAndText
-
   ' Get attributes and text from given tag
-
   ' param tag - given tag
-
   ' return attr[] - array of attributes in the tag
-
   ' return txt - text in the tag
-
   pTag = Text.GetIndexOf(tag, " ") + 1
-
   pEnd = Text.GetIndexOf(tag, ">")
-
   attr = ""
-
   While pTag <= pEnd 
-
     pEq = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), "=")
-
     If 0 < pEq Then
-
       pEq = pTag + pEq - 1
-
       pQ = Text.GetIndexOf(SQ + WQ, Text.GetSubText(tag, pEq + 1, 1))
-
       If 0 < pQ Then
-
         Q = Text.GetSubText(SQ + WQ, pQ, 1)
-
         pQ = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pEq + 2), Q)
-
         If 0 < pQ Then
-
           pQ = pEq + 2 + pQ - 1
-
           txt = Text.GetSubText(tag, pEq + 2, pQ - pEq - 2)
-
           ConvertText()
-
           attr[Text.GetSubText(tag, pTag, pEq - pTag)] = txt
-
           pTag = pQ + 2
-
         EndIf
-
       Else ' to avoid hang with no quotes after equal
-
         txt = Text.GetSubText(tag, pEq + 2, pEnd - pEq - 2)
-
         ConvertText()
-
         attr[Text.GetSubText(tag, pTag, pEq - pTag)] = txt
-
         pTag = pEnd + 1
-
       EndIf
-
     Else
-
       pTag = pEnd + 1
-
     EndIf
-
   EndWhile
-
   len = Text.GetLength(tag)
-
   txt = ""
-
   While pTag <= len
-
     pL = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), LT)
-
     If pL = 0 Then
-
       txt = Text.Append(txt, Text.GetSubTextToEnd(tag, pTag))
-
       pTag = len + 1
-
     Else
-
       pL = pTag + pL - 1
-
       txt = Text.Append(txt, Text.GetSubText(tag, pTag, pL - pTag))
-
       pR = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), ">")
-
       If 0 < pR Then
-
         pTag = pTag + pR
-
       Else
-
         pTag = len + 1
-
       EndIf
-
     EndIf  
-
   EndWhile
-
 EndSub
-
-
 
 Sub Buf_GetLine
-
   ' Buffer | Get line from buf
-
   ' param p - pointer to buf
-
   ' param buf - buffer
-
   ' param len - length of the buffer
-
   ' return line - current line
-
   ' return p - updated pointer to next line in buf
-
   If p <= len Then
-
     nl = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), CR)
-
     If 0 < nl Then
-
       line = Text.GetSubText(buf, p, nl - 1)
-
       p = p + nl
-
     Else
-
       line = Text.GetSubTextToEnd(buf, p)
-
       p = len + 1
-
     EndIf
-
     If Text.GetSubText(buf, p, 1) = LF Then
-
       p = p + 1
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub Buf_Init
-
   ' Buffer | Initialization
-
   ' param buf - buffer
-
   ' return CR - carriage return
-
   ' return LF - line feed
-
   ' return len - length of text in buf
-
   ' return p - pointer to buf
-
   CR = Text.GetCharacter(13)
-
   LF = Text.GetCharacter(10)
-
   len = Text.GetLength(buf)
-
   p = 1
-
 EndSub
-
-
 
 Sub File_CheckResult
-
   ' param result, dirs or files - result of a File operation
-
   ' param op - name of File operation
-
   If op = "CreateDirectory" And result = "FAILED" Then
-
     FileHelper_ShowError()
-
   ElseIf op = "DeleteDirectory" And result = "FAILED" Then
-
     FileHelper_ShowError()
-
   ElseIf op = "GetDirectories" And dirs = "FAILED" Then
-
     FileHelper_ShowError()
-
   ElseIf op = "DeleteFile" And result = "FAILED" Then
-
     FileHelper_ShowError()
-
   ElseIf op = "GetFiles" And files = "FAILED" Then
-
     FileHelper_ShowError()
-
   EndIf
-
 EndSub
-
-
 
 Sub File_Exists
-
   ' param["path"] - the full path of the file that needs to be checked 
-
   ' return fileExists - "True" if the file exists
-
   fileExists = "False"
-
   Path_GetDirectoryName()
-
 ' The following line could be harmful and has been automatically commented.
-
 '   files = File.GetFiles(directoryName)
-
   op = "GetFiles"
-
   File_CheckResult()
-
   nFiles = Array.GetItemCount(files)
-
   For i = 1 To nFiles
-
     If Text.ConvertToLowerCase(files[i]) = Text.ConvertToLowerCase(param["path"]) Then
-
       fileExists = "True"
-
       i = nFiles  ' break
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub FileHelper_ShowError
-
   ' param op - oparation name
-
   ' param indent - indent space if needed
-
   TextWindow.ForegroundColor = "Yellow"
-
   TextWindow.WriteLine(indent + op + ":FAILED")
-
 ' The following line could be harmful and has been automatically commented.
-
 '   TextWindow.WriteLine(indent + "LastError:" + File.LastError)
-
   TextWindow.ForegroundColor = "Gray"
-
 EndSub
-
-
 
 Sub Form_GetForm
-
   ' Form | Get form from file
-
   ' param formName - form file name
-
   ' return form - array for the form
-
   folder = Program.Directory
-
 ' The following line could be harmful and has been automatically commented.
-
 '   buf = File.ReadContents(folder + "/" + formName)
-
   Buf_Init()
-
   nForm = 0
-
   While p <= len
-
     Buf_GetLine()
-
     Line_RemoveLeadingSpace()
-
     If Text.StartsWith(line, "'") Then
-
       func = Text.GetIndexOf(line, "func=")
-
       If 0 < func Then
-
         nForm = nForm + 1
-
         form[nForm] = Text.GetSubTextToEnd(line, func)
-
       EndIf
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 Sub Form_ImportForm
-
   ' Form | Get form from file
-
   ' param formID - form program ID
-
   ' param formName - form file name
-
   param = ""
-
   param["path"] = Program.Directory + "/" + formName
-
   File_Exists()
-
   If Not[fileExists] Then
-
     url = "http://smallbasic.com/program/?" + formID
-
     Program_Import()
-
     folder = Program.Directory
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.WriteContents(param["path"], pgm)
-
   EndIf
-
 EndSub
-
-
 
 Sub Form_ShowForm
-
   ' Form | Show form
-
   ' param form - array of the form
-
   ' param nForm - number of objects in the form
-
   ' return gw - width of the graphics window
-
   ' return gh - height of the graphics window
-
   ' return id - array of ids in the form
-
   For i = 1 To nForm
-
     frm = form[i]
-
     If frm["id"] <> "" Then
-
       id[frm["id"]] = i
-
     EndIf 
-
     If frm["func"] = "form" Then
-
       ' func=form;bg=LightGray;gx=10;gy=10;gw=598;gh=428;title=Sample 0.5b;
-
       If frm["bg"] <> "" Then
-
         GraphicsWindow.BackgroundColor = frm["bg"]
-
       EndIf
-
       If frm["gx"] <> "" Then
-
         GraphicsWindow.Left = frm["gx"]
-
       EndIf
-
       If frm["gx"] <> "" Then
-
         GraphicsWindow.Top = frm["gy"]
-
       EndIf
-
       If frm["gw"] <> "" Then
-
         GraphicsWindow.Width = frm["gw"]
-
       EndIf
-
       gw = GraphicsWindow.Width
-
       If frm["gh"] <> "" Then
-
         GraphicsWindow.Height = frm["gh"]
-
       EndIf
-
       gh = GraphicsWindow.Height
-
       If frm["title"] <> "" Then
-
         GraphicsWindow.Title = frm["title"]
-
       EndIf
-
     ElseIf frm["func"] = "text" Then
-
       ' func=text;text=Folder;x=10;y=15;bc=Black;fn=Segoe UI;fs=12;fb=True;fi=False;
-
       ' func=text;text=Filename;x=10;y=45;bc=Black;fn=Segoe UI;fs=12;fb=True;fi=False;
-
       GraphicsWindow.FontName = frm["fn"]
-
       GraphicsWindow.FontSize = frm["fs"]
-
       GraphicsWindow.FontBold = frm["fb"]
-
       GraphicsWindow.FontItalic = frm["fi"]
-
       GraphicsWindow.BrushColor = frm["bc"]
-
       frm["obj"] = Shapes.AddText(frm["text"])
-
       Shapes.Move(frm["obj"], frm["x"], frm["y"])
-
     ElseIf frm["func"] = "tbox" Then
-
       ' func=tbox;id=folder;x=70;y=12;width=460;height=22;bc=Black;fn=Segoe UI;fs=12;fb=True;fi=False;text=.;
-
       ' func=tbox;id=filename;x=70;y=42;width=140;height=22;bc=Black;fn=Segoe UI;fs=12;fb=True;fi=False;text=Form.sb;
-
       GraphicsWindow.FontName = frm["fn"]
-
       GraphicsWindow.FontSize = frm["fs"]
-
       GraphicsWindow.FontBold = frm["fb"]
-
       GraphicsWindow.FontItalic = frm["fi"]
-
       GraphicsWindow.BrushColor = frm["bc"]
-
       frm["obj"] = Controls.AddTextBox(frm["x"], frm["y"])
-
       Controls.SetSize(frm["obj"], frm["width"], frm["height"])
-
       Controls.SetTextBoxText(frm["obj"], frm["text"])
-
     ElseIf frm["func"] = "btn" Then
-
       ' func=btn;caption=OK;x=220;y=40;width=28;height=26;bc=Black;fn=Segoe UI;fs=12;fb=True;fi=False;
-
       GraphicsWindow.FontName = frm["fn"]
-
       GraphicsWindow.FontSize = frm["fs"]
-
       GraphicsWindow.FontBold = frm["fb"]
-
       GraphicsWindow.FontItalic = frm["fi"]
-
       GraphicsWindow.BrushColor = frm["bc"]
-
       frm["obj"] = Controls.AddButton(frm["caption"], frm["x"], frm["y"])
-
       Controls.SetSize(frm["obj"], frm["width"], frm["height"])
-
       Controls.ButtonClicked = OnButtonClicked
-
     ElseIf frm["func"] = "rect" Then
-
       ' func=rect;x=546;y=10;width=2;height=32;scale=2;pw=0;pc=Black;bc=#999999;
-
       GraphicsWindow.PenWidth = frm["pw"]
-
       GraphicsWindow.PenColor = frm["pc"]
-
       GraphicsWindow.BrushColor = frm["bc"]
-
       frm["obj"] = Shapes.AddRectangle(frm["width"], frm["height"])
-
       Shapes.Move(frm["obj"], frm["x"], frm["y"])
-
     ElseIf frm["func"] = "img" Then
-
       ' func=img;src=img/Form32.png;x=556;y=10;width=32;height=32;
-
       img = ImageList.LoadImage(Program.Directory + "/" + frm["src"])
-
       ix = ImageList.GetWidthOfImage(img)
-
       iy = ImageList.GetHeightOfImage(img)
-
       scaleX = frm["width"] / ix
-
       scaleY = frm["height"] / iy
-
       frm["obj"] = Shapes.AddImage(img)
-
       Shapes.Move(frm["obj"], frm["x"] + (frm["width"] - ix) / 2, frm["y"] + (frm["height"] - iy) / 2)
-
       Shapes.Zoom(frm["obj"], scaleX, scaleY)
-
     ElseIf frm["func"] = "mtbox" Then
-
       ' func=mtbox;id=data;x=10;y=72;width=578;height=346;bc=Black;fn=Segoe UI;fs=12;fb=True;fi=False;
-
       GraphicsWindow.FontName = frm["fn"]
-
       GraphicsWindow.FontSize = frm["fs"]
-
       GraphicsWindow.FontBold = frm["fb"]
-
       GraphicsWindow.FontItalic = frm["fi"]
-
       GraphicsWindow.BrushColor = frm["bc"]
-
       frm["obj"] = Controls.AddMultiLineTextBox(frm["x"], frm["y"])
-
       Controls.SetSize(frm["obj"], frm["width"], frm["height"])
-
     Else
-
       id[frm["id"]] = ""
-
     EndIf
-
     form[i] = frm
-
   EndFor
-
 EndSub
-
-
 
 Sub OnButtonClicked
-
   buttonClicked = "True"
-
 EndSub
-
-
 
 Sub Line_RemoveLeadingSpace
-
   ' Line | Remove leading space
-
   ' param line - to remove leading space
-
   ' return line - the result
-
   Stack.PushValue("local", p)
-
   p = 1
-
   While Text.GetSubText(line, p, 1) = " "
-
     p = p + 1
-
   EndWhile
-
   line = Text.GetSubTextToEnd(line, p)
-
   p = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Path_GetDirectoryName
-
   ' param["path"] - the full path to be gotton directory name 
-
   ' return directoryName - the directory name
-
   directoryName = ""
-
   For p = Text.GetLength(param["path"]) To 1 Step -1
-
     c = Text.GetSubText(param["path"], p, 1)
-
     If c = "\" Or c = "/" Then
-
       directoryName = Text.GetSubText(param["path"], 1, p - 1)
-
       p = 1 ' break
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub Program_Import
-
   ' Program | Import program from Program List server
-
   ' param url - program URL
-
   ' return pgm
-
   Stack.PushValue("local", param)
-
   buf = Network.GetWebPageContents(url)
-
   p = 1
-
   param = "tag=div;id=codeListing;"
-
   FindTag()
-
   GetAttrAndText()
-
   pgm = ""
-
   p = 1
-
   While p <= Text.GetLength(txt)
-
     pLT = Text.GetIndexOf(Text.GetSubTextToEnd(txt, p), LT)
-
     If 0 < pLT Then
-
       pGT = Text.GetIndexOf(Text.GetSubTextToEnd(txt, p + pLT), ">")
-
       tag = Text.GetSubText(txt, p + pLT - 1, pGT + 1)
-
       pgm = Text.Append(pgm, Text.GetSubText(txt, p, pLT - 1))
-
       If tag = LT + "br />" Then
-
         pgm = pgm + CR + LF
-
       EndIf
-
       p = p + pLT + pGT
-
     Else
-
       pgm = Text.Append(pgm, Text.GetSubTextToEnd(txt, p))
-
       p = Text.GetLength(txt) + 1
-
     EndIf
-
   EndWhile
-
   param = Stack.PopValue("local")
-
 EndSub
-
-

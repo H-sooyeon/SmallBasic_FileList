@@ -1,291 +1,145 @@
 'Message Crawl and Fade Prototype -- by Matthew L. Parets aka codingCat
-
 'A message is defined as a series of text shapes.
-
 'The message is then repeated crawled up the screen,
-
 'slowly fading in as it moves upwards and then
-
 'fading back out as it reaches the top
 
-
-
 GraphicsWindow.Show()
-
 GraphicsWindow.BackgroundColor = "black"
-
-
 
 '--------------------------------------------------------------------------
 
-
-
 openingMsg[1] = "-A death defying search for"
-
 openingMsg[2] = "scientific riches amongst the rocks."
-
 openingMsg[3] = "-Use the arrow keys to move your ship."
-
 openingMsg[4] = "-Avoid being hit by the meteors while"
-
 openingMsg[5] = "you move from the home base (left)" 
-
 openingMsg[6] = "to the new base (right)." 
-
 openingMsg[7] = "-Each hit by a rock damages your ship"
-
 openingMsg[8] = "and returns you to the home." 
-
 openingMsg[9] = "-The density of rocks increases as you" 
-
 openingMsg[10] = "move deep into the field." 
-
 openingMsg[11] = "-Points are awarded based on the density" 
-
 openingMsg[12] = "of the rocks and time you take jumping" 
-
 openingMsg[13] = "from base to base." 
-
 openingMsg[14] = "-Good luck! You are going to need it."
 
-
-
 crawlMsg = openingMsg
-
 crawlMsgLength = Array.GetItemCount(crawlMsg)
 
-
-
 'Build the message shapes
-
 GraphicsWindow.FontBold = "True"
-
 GraphicsWindow.FontSize = 12
-
 crLinHei = 15  'Font size plus line spacing
-
 For i = 1 To crawlMsgLength
-
   If Text.GetSubText(crawlMsg[i], 1,1) = "-" Then
-
     msg = text.GetCharacter(10147) + " " + text.GetSubText(crawlMsg[i],2,Text.GetLength(crawlMsg[i])-1) 
-
   Else
-
     msg = "         " + crawlMsg[i] 
-
   EndIf
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(87,87,87)
-
   msgshpshad[i] = Shapes.AddText(msg)
-
   Shapes.HideShape(msgshpshad[i])
-
   GraphicsWindow.BrushColor = "red"
-
   msgshp[i] = Shapes.AddText(msg)
-
   Shapes.HideShape(msgshp[i])
-
 EndFor
 
-
-
 openingMsgShpShad = msgshpshad
-
 openingMsgShp = msgshp
 
-
-
 msgshp = " "
-
 msgshpshad = " "
 
-
-
 msgshpshad = openingMsgShpShad
-
 msgshp = openingMsgShp
 
-
-
 'Top of the display location
-
 crDispY = 150
-
 crDispX = 0
 
-
-
 'Current view into the message array
-
 crDspSiz = 11                    'Size of view port should always be odd
-
 startPnt = crawlMsgLength       'Start at the end, the last line in the message
-
 endPnt = crawlMsgLength + (crDspSiz-1) 'end down past the size of the view port (this starts the message at the bottom, undisplayed)
-
 crDspMid = math.Round(crDspSiz / 2) 'Find the middle. This should be a single line and is why the view port should be an odd number of lines
-
 crPrcntBefAft = 100 / (crDspMid - 1) 'Percentage step for each line before and then after middle 
-
 crOpcyChngPerLine = crPrcntBefAft / crLinHei  'Percentage change of opacity for each pixel line moved
 
-
-
 'Loop until escaped by the user
-
 umc = 1 'Starting point for the message crawl
-
 While GraphicsWindow.LastKey <> "Escape"
-
   CrawlUpdateMessage()
-
 EndWhile
-
-
-
 
 
 Program.End()
 
-
-
 'Move each line in the view port one pixel line
-
 'Loop is external - umc must be set to 1 at the start of this process
-
 Sub CrawlUpdateMessage
-
   CrawlUpdateViewPort()
-
   umc = umc + 1
-
   If umc > crLinHei then 'When text has completly scrolled from one line to another
-
     'Hide the one at the top
-
     If startPnt <= crawlMsgLength then 'do not access display arrays if outside their range
-
       Shapes.HideShape(msgshpshad[startPnt])
-
       Shapes.HideShape(msgshp[startPnt])
-
     EndIf
-
     'move the front of the array up (wrap if needed)
-
     startPnt = startPnt + 1
-
     If startPnt > crawlMsgLength + (crDspSiz+3) then 
-
       startPnt = 1
-
     EndIf
-
     'move the back of the array up (wrap if needed)
-
     endPnt = endPnt + 1
-
     If endPnt > crawlMsgLength + (crDspSiz+3) then 
-
       endPnt = 1
-
     EndIf
-
     'show the next one at the bottom
-
     If endPnt <= crawlMsgLength then 'do not access display arrays if outside their range
-
       Shapes.Move(msgshpshad[endPnt], crDispX+ 1, crDispY + (crLinHei * crDspSiz) + 1 - 1)  
-
       Shapes.Move(msgshp[endPnt], crDispX, crDispY + (crLinHei * crDspSiz) - 1)
-
       Shapes.SetOpacity(msgshpshad[endPnt],0)
-
       Shapes.SetOpacity(msgshp[endPnt],0)
-
       Shapes.ShowShape(msgshpshad[endPnt])
-
       Shapes.ShowShape(msgshp[endPnt])
-
     EndIf
-
     umc = 1
-
   EndIf
-
 EndSub
-
-
-
 
 
 'Update each line of the viewport
-
 'Move and modify the opacity of each display line one step
-
 Sub CrawlUpdateViewPort
-
   mvDispPos = 1          'Track the display line
-
   crAryPos = startPnt    'Index into the display array
-
   For uel = 1 To crDspSiz  'for eah line in the display
-
     If crAryPos <= crawlMsgLength then 'do not access display arrays if outside their range
-
       'Move the text
-
       Shapes.Move(msgshpshad[crAryPos], crDispX+ 1, crDispY + (crLinHei * mvDispPos) + 1 - umc)  
-
       Shapes.Move(msgshp[crAryPos], crDispX, crDispY + (crLinHei * mvDispPos) - umc)
-
       'Set the visibility level
-
       If uel = crDspMid then  'if the middle line, set fully visible
-
         Shapes.SetOpacity(msgshpshad[crAryPos],100)
-
         Shapes.SetOpacity(msgshp[crAryPos],100)
-
       Else               'Update visibity based on location in view
-
         If uel < crDspMid then 'above the middle of the view
-
           opcy = ( (uel - 1) * crPrcntBefAft ) + ((crLinHei-umc) * crOpcyChngPerLine)
-
         Else                 'below the middle of the view
-
           opcy = ( (crDspSiz - uel) * crPrcntBefAft ) + (umc * crOpcyChngPerLine)
-
         EndIf
-
         Shapes.SetOpacity(msgshpshad[crAryPos],opcy)
-
         Shapes.SetOpacity(msgshp[crAryPos],opcy)
-
       endif
-
       
-
     EndIf
-
     mvDispPos = mvDispPos + 1 '
-
     crAryPos = crAryPos + 1   
-
     If crAryPos > crawlMsgLength + (crDspSiz+3) Then  'Wrap the position in the array
-
       crAryPos = 1
-
     EndIf
-
   EndFor 
-
 EndSub
-
       
-
-

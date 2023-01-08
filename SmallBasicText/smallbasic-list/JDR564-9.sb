@@ -1,413 +1,206 @@
 ' Spring 0.5
-
 ' Copyright (c) 2012 Nonki Takahashi.  All rights reserved.
-
 '
-
 ' History:
-
 '  0.5 2012/10/15 Considered horizontal parameters. (JDR565-9)
-
 '  0.42 2012/10/15 Minor change.
-
 '  0.41 2012/10/15 Fixed to be worked on Silverlight. (JDR564-8)
-
 '  0.32 2012/10/14 Work on the web too + restart option by GoToLoop. (JDR564-6)
-
 '  0.31 2012/10/14 Minor change. (JDR564-2)
-
 '  0.3 2012/10/14 Changed to use image. (JDR564-1)
-
 '  0.2 2012/10/13 Timer event mod by GoToLoop. (JDR564-0)
-
 '  0.1 2012/10/13 Created. (JDR564)
-
 '
-
 title = "Spring 0.5"
-
 msg = " - Hit space key to start/pause, R key to restart, or Q key to quit."
-
 GraphicsWindow.Title = title + msg
-
-
 
 scale = 3139            ' [dot/m]
 
-
-
 spring[1]["l"]  = 0.05  ' spring length [m]
-
 spring[1]["w"]  = 0.006 ' spring width [m]
-
 spring[1]["le"] = 0.006 ' spring edge length [m]
-
 spring[1]["k"]  = 20    ' spring constant [N/m]
-
 spring[1]["xs"] = 0.1   ' stationary point from left [m]
-
 spring[1]["ys"] = 0     ' stationary point from top [m]
-
 spring[1]["a"]  = 0     ' angle of spring [degree]
-
 spring[1]["cl"] = spring[1]["l"] + 0.05           ' initial length of spring [m]
 
-
-
 m   = 0.01              ' mass of weight [kg]
-
 d   = 0.01              ' diameter of weight [m]
 
-
-
 g   = 9.8               ' acceleration of gravity [m/(s^2)]
-
 x0  = spring[1]["xs"]                             ' initial center x of weight from left [m]
-
 y0  = spring[1]["ys"] + spring[1]["cl"] + d / 2   ' initial center y of weight from top [m]
-
 vx0 = 0.001             ' initial x velocity of weight [m/s]
-
 vy0 = 0                 ' initial y velocity of weight [m/s]
-
 InitParam()
 
-
-
 fps  = 12               ' frame rate [FPS (frames per second)]
-
 time = Math.Round(1000 / fps)
-
 dt   = time / 1000
-
-
 
 InitWeight()
 
-
-
 Timer.Tick = OnTick
-
 Timer.Interval = time
-
 Timer.Pause()
-
 pause = "True"
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 tick = "False"
-
 continue = "True"
-
 key = ""
 
-
-
 While continue
-
   If tick Then
-
     Animation()
-
     tick = "False"
-
   ElseIf key = "Space" Then
-
     If pause Then
-
       pause = "False"
-
       Timer.Resume()
-
     Else
-
       pause = "True"
-
       Timer.Pause()
-
     EndIf
-
     key = ""
-
   ElseIf key = "R" Then
-
     InitParam()
-
     ShowWeight()
-
     key = ""
-
   ElseIf key = "Q" Then
-
     continue = "False"
-
   Else
-
     Program.Delay(time / 10)
-
   EndIf
-
 EndWhile
 
-
-
 Sound.PlayClickAndWait()
-
 Program.End()
 
-
-
 Sub Animation
-
   kx = spring[1]["k"] * Math.Sin(Math.GetRadians(spring[1]["a"]))
-
   ky = spring[1]["k"] * Math.Cos(Math.GetRadians(spring[1]["a"]))
-
   dvx = -(spring[1]["cl"] - spring[1]["l"]) * kx * dt
-
   dvy = (m * g - (spring[1]["cl"] - spring[1]["l"]) * ky) * dt
-
   vx  = vx + dvx              ' next x velocity of weight
-
   vy  = vy + dvy              ' next y velocity of weight
-
   dx = (2 * vx + dvx) * dt / 2
-
   dy = (2 * vy + dvy) * dt / 2
-
   x  = x + dx                 ' next center x of weight
-
   y  = y + dy                 ' next center y of weight
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   _y = x - spring[1]["xs"]
-
   x = y - spring[1]["ys"]
-
   y = _y
-
   Math_CartesianToPolar()
-
   spring[1]["a"] = a
-
   spring[1]["cl"] = r - d / 2 ' current length of spring
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   ShowWeight()
-
 EndSub
-
-
 
 Sub OnTick
-
   tick = "True"
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
 EndSub
-
-
 
 Sub InitParam
-
   x  = x0   ' initial center x of weight
-
   y  = y0   ' initial center y of weight
-
   vx = vx0  ' initial x velocity of weight
-
   vy = vy0  ' initial y velocity of weight
-
 EndSub
-
-
 
 Sub InitWeight
-
   url = "http://www.nonkit.com/smallbasic.files/spring.png"
-
   img = ImageList.LoadImage(url)
-
   spring[1]["spring"] = Shapes.AddImage(img)
-
   spring[1]["ld"]  = ImageList.GetHeightOfImage(img)  ' spring length (without edges) [dot]
-
   If spring[1]["ld"] < 1 Then                         ' patch to make it work on Silverlight
-
     spring[1]["ld"] = 276
-
   EndIf
-
   
-
   GraphicsWindow.PenColor = "DimGray"
-
   spring[1]["edge0"] = Shapes.AddLine(0, 0, 0, spring[1]["le"] * scale)
 
-
-
   GraphicsWindow.PenColor = "DimGray"
-
   spring[1]["edge1"] = Shapes.AddLine(0, 0, 0, spring[1]["le"] * scale)
 
-
-
   pw = GraphicsWindow.PenWidth
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "Black"
-
   weight = Shapes.AddEllipse(d * scale, d * scale)
 
-
-
   ShowWeight()
-
 EndSub
-
-
 
 Sub ShowWeight
-
   ' param y
-
   Shapes.Move(weight, (x - d / 2) * scale, (y - d / 2) * scale)
-
   
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   param = "x=" + spring[1]["xs"] + ";y=" + (spring[1]["ys"] + spring[1]["le"] / 2) + ";width=0;height=0;cx=" + spring[1]["xs"] + ";cy=" + spring[1]["ys"] + ";angle=" + (-spring[1]["a"]) + ";"
-
   Shapes_CalcRotatePos()
-
   Shapes.Move(spring[1]["edge0"], x * scale, (y - spring[1]["le"] / 2) * scale)
-
   Shapes.Rotate(spring[1]["edge0"], -spring[1]["a"])
 
-
-
   param["y"] = spring[1]["ys"] + spring[1]["le"] + (spring[1]["cl"] - 2 * spring[1]["le"]) / 2
-
   Shapes_CalcRotatePos()
-
   Shapes.Move(spring[1]["spring"], (x - spring[1]["w"] / 2) * scale, y * scale - spring[1]["ld"] / 2)
-
   Shapes.Zoom(spring[1]["spring"], 1, (spring[1]["cl"] - 2 * spring[1]["le"]) * scale / spring[1]["ld"])
-
   Shapes.Rotate(spring[1]["spring"], -spring[1]["a"])
 
-
-
   param["y"] = spring[1]["ys"] + spring[1]["cl"] - spring[1]["le"] / 2
-
   Shapes_CalcRotatePos()
-
   Shapes.Move(spring[1]["edge1"], x * scale, (y - spring[1]["le"] / 2) * scale)
-
   Shapes.Rotate(spring[1]["edge1"], -spring[1]["a"])
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Math_CartesianToPolar
-
   ' Math | convert cartesian coodinate to polar coordinate
-
   ' param x, y - cartesian coordinate
-
   ' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
-
 
 Sub Shapes_CalcRotatePos
-
   ' Shapes | Calculate position for rotated shape
-
   ' param["x"], param["y"] - position of a shape
-
   ' param["width"], param["height"] - size of a shape
-
   ' param ["cx"], param["cy"] - center of shapes
-
   ' param ["angle"] - rotate angle
-
   ' return x, y - rotated position of a shape
-
   _cx = param["x"] + param["width"] / 2
-
   _cy = param["y"] + param["height"] / 2
-
   x = _cx - param["cx"]
-
   y = _cy - param["cy"]
-
   Math_CartesianToPolar()
-
   a = a + param["angle"]
-
   x = r * Math.Cos(a * Math.Pi / 180)
-
   y = r * Math.Sin(a * Math.Pi / 180)
-
   _cx = x + param["cx"]
-
   _cy = y + param["cy"]
-
   x = _cx - param["width"] / 2
-
   y = _cy - param["height"] / 2
-
 EndSub
-
-

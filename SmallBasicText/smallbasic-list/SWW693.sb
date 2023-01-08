@@ -1,677 +1,338 @@
 ' Snap
-
 ' Version 0.1
-
 ' Copyright © 2018 Nonki Takahashi.  The MIT License.
-
 ' Last update 2018-02-07
 
-
-
 GraphicsWindow.Title = "Snap 0.1"
-
 Not = "False=True;True=False;"
-
 LF = Text.GetCharacter(10)
-
 sim = "True"
-
 Cards_Init()
-
 Form()
-
 p = 0
-
 ShuffleCards()
-
 DealCards()
-
 turn = 1
-
 inGame = "True"
-
 While inGame
-
   OpenCard()
-
   turn = 3 - turn
-
   Program.Delay(600)
-
   If keyDown Then
-
     Judge()
-
     KeyDown = "False"
-
   EndIf
-
   If inGame Then
-
     For src = 2 To 4 Step 2
-
       dst = src - 1
-
       If bottom[dst] < top[dst] Then
-
         p = src
-
         ShuffleCards()
-
         fromTop = "False"
-
         toTop = "False"
-
         face = "down"
-
         While top[src] <= bottom[src]
-
           Cards_Move()
-
         EndWhile
-
       EndIf
-
     EndFor
-
   EndIf
-
 EndWhile
 
-
-
 Sub DealCards
-
   ' deal cards from deck
-
   turn = 1
-
   src = 0
-
   fromTop = "True"
-
   toTop = "True"
-
   face = "down"
-
   For i = 1 To 52
-
     dst = 2 * turn - 1
-
     Cards_Move()
-
     turn = 3 - turn
-
   EndFor
-
 EndSub
-
-
 
 Sub Form
-
   bc = "#004400"
-
   GraphicsWindow.BackgroundColor = bc
-
   GraphicsWindow.FontName = "Courier New"
-
   GraphicsWindow.Width = 598  ' (width + 10) * nNumbers + 10
-
   GraphicsWindow.Height = 428 ' (height + 10) * (nSuites + 1) + 10
-
   x0 = 20 * scale
-
   y0 = 20 * scale
-
   p = 0
-
   index = 0
-
   Cards_Draw()
-
   GraphicsWindow.FontSize = 12 * scale
-
   GraphicsWindow.BrushColor = "White"
-
   txtWinner = Shapes.AddText("")
-
   Shapes.Move(txtWinner, 140 * scale, y0 + 30 * scale)
-
   cc = 2
-
   rr = 3
-
   x = x0 + (cc - 1) * (width + 10)
-
   y = y0 + (rr - 1) * (height + 30)
-
   GraphicsWindow.DrawText(x, y, "Player 1" + LF + "Hit 'S' Key")
-
   rem[1] = 26
-
   txtRem[1] = Shapes.AddText("26 Card[s]")
-
   Shapes.Move(txtRem[1], x, y + 60)
-
   cc = 5
-
   x = x0 + (cc - 1) * (width + 10)
-
   GraphicsWindow.DrawText(x, y, "Player 2" + LF + "Hit 'P' Key")
-
   rem[2] = 26
-
   txtRem[2] = Shapes.AddText("26 Card[s]")
-
   Shapes.Move(txtRem[2], x, y + 60)
-
   keyDown = "False"
-
   GraphicsWindow.KeyDown = OnKeyDown
-
 EndSub
-
-
 
 Sub Judge
-
   key = GraphicsWindow.LastKey
-
   num1 = Math.Remainder(oLast[1] - 1, 13) + 1
-
   num2 = Math.Remainder(oLast[2] - 1, 13) + 1
-
   If num1 = num2 Then
-
     If key = "S" Then
-
       src = 4
-
       dst = 2
-
       player = 1
-
       Judge1()
-
     ElseIf key = "P" Then
-
       src = 2
-
       dst = 4
-
       player = 2
-
       Judge1()
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub Judge1
-
   ' param src
-
   ' param dst
-
   ' param player
-
   face = "up"
-
   fromTop = "True"
-
   toTop = "False"
-
   Shapes.SetText(txtWinner, "Snap! by Player " + player)
-
   While top[src] <= bottom[src]
-
     Cards_Move()
-
   EndWhile
-
   If bottom[src - 1] < top[src - 1] Then
-
     Sound.PlayBellRing()
-
     inGame = "False"
-
     Shapes.SetText(txtWinner, "Winner Player " + player)
-
   Else
-
     Sound.PlayChimes()
-
   EndIf
-
   rem[3 - player] = (bottom[src - 1] - top [src - 1] + 1) + (bottom[src] - top [src] + 1)
-
   rem[player] = (bottom[dst - 1] - top[dst - 1] + 1) + (bottom[dst] - top[dst] + 1)
-
   Shapes.SetText(txtRem[3 - player], rem[3 - player] + " Card[s]")
-
   Shapes.SetText(txtRem[player], rem[player] + " Card[s]")
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   keyDown = "True"
-
 EndSub
-
-
 
 Sub OpenCard
-
   ' param turn - player
-
   src = (2 * turn - 1)
-
   dst = src + 1
-
   fromTop = "True"
-
   toTop = "True"
-
   face = "up"
-
   Cards_Move()
-
   oLast[turn] = index
-
 EndSub
-
-
 
 Sub ShuffleCards
-
   ' Shuffle  cards
-
   ' param p - pile index to shuffle
-
   If top[p] < bottom[p] Then
-
     For i = top[p] To bottom[p]
-
       i1 = i
-
       i2 = Math.GetRandomNumber(bottom[p] - top[p]) + top[p]
-
       Cards_Swap()
-
     EndFor
-
   EndIf
-
 EndSub
-
-
 
 Sub Cards_Close
-
   ' param index - card index
-
   If isOpen[index] Then
-
     isOpen[index] = "False"
-
     p = where[index]
-
     Stack.PushValue("local", index)
-
     index = 0
-
     Cards_Draw()
-
     index = Stack.PopValue("local")
-
   EndIf
-
 EndSub
-
-
 
 Sub Cards_Draw
-
   ' param index - card index (-1:remove, 0:back, 1-52:faces, 53-54:wild cards)
-
   ' param p - pile to draw a card
-
   GraphicsWindow.BrushColor = "White"
-
   x = x0 + (col[p] - 1) * (width + 10)
-
   y = y0 + (row[p] - 1) * (height + 30)
-
   GraphicsWindow.FillRectangle(x, y, width, height)
-
   If index = -1 Then
-
     GraphicsWindow.BrushColor = bc
-
     x = x0 + (col[p] - 1) * (width + 10)
-
     y = y0 + (row[p] - 1) * (height + 30)
-
     GraphicsWindow.FillRectangle(x - 1, y - 1, width + 2, height + 2)
-
   ElseIf index = 0 Then
-
     hex = pattern["code"]
-
     Math_Hex2Dec()
-
     ch = Text.GetCharacter(dec)
-
     GraphicsWindow.BrushColor = pattern["color"]
-
     GraphicsWindow.FontSize = 60 * scale
-
     GraphicsWIndow.DrawText(x + cards["xp"], y + cards["yp"], ch)
-
   ElseIf index = 53 Then
-
     GraphicsWindow.PenColor = "Black"
-
     GraphicsWindow.PenWidth = 2
-
     x1 = x + width * 1.5 / 5
-
     x2 = x + width * 1.5 / 5
-
     y1 = y + height * 1.5 / 7
-
     y2 = y + height * 2.5 / 7
-
     GraphicsWindow.DrawLine(x1, y1, x2, y2)
-
     x1 = x + width * 3.5 / 5
-
     x2 = x + width * 3.5 / 5
-
     GraphicsWindow.DrawLine(x1, y1, x2, y2)
-
   ElseIf index = 54 Then
-
     GraphicsWindow.PenColor = "Black"
-
     GraphicsWindow.PenWidth = 2
-
     x1 = x + width * 1 / 5
-
     x2 = x + width * 2 / 5
-
     y1 = y + height * 2 / 7
-
     y2 = y + height * 2 / 7
-
     GraphicsWindow.DrawLine(x1, y1, x2, y2)
-
     x1 = x + width * 3 / 5
-
     x2 = x + width * 4 / 5
-
     GraphicsWindow.DrawLine(x1, y1, x2, y2)
-
   Else
-
     s = Math.Floor((index - 1) / 13) + 1
-
     suite = suites[iSuites[s]]
-
     hex = suite["code"]
-
     Math_Hex2Dec()
-
     sChar = Text.GetCharacter(dec)
-
     n = Math.Remainder(index - 1, 13) + 1
-
     GraphicsWindow.BrushColor = suite["color"]
-
     GraphicsWindow.FontSize = 28 * scale
-
     GraphicsWindow.DrawText(x + cards["xs"], y + cards["ys"], sChar)
-
     GraphicsWindow.DrawText(x + cards["xn"], y + cards["yn"], numbers[n])
-
   EndIf
-
 EndSub
-
-
 
 Sub Cards_Init
-
   ' return cards - array for cards properties
-
   ' return nSuites - number of suites
-
   ' return nNumbers - number of numbers
-
   scale = 1.4
-
   width = 50 * scale
-
   height = 70 * scale
-
   cards["width"] = width
-
   cards["height"] = height
-
   cards["xs"] = 4 * scale ' offset for suite in a card
-
   cards["ys"] = 30 * scale
-
   cards["xn"] = 4 * scale ' offset for number in a card
-
   cards["yn"] = 5 * scale
-
   cards["xp"] = 6 * scale ' offset for pattern in card
-
   cards["yp"] = 0
-
   pattern = "color=DarkBlue;code=2593;"
-
   suites["club"] = "color=Black;code=2663;"
-
   suites["diamond"] = "color=#AA0000;code=2666;"
-
   suites["heart"] = "color=#AA0000;code=2665;"
-
   suites["spade"] = "color=Black;code=2660;"
-
   numbers = "1=A;2=2;3=3;4=4;5=5;6=6;7=7;8=8;9=9;10=10;11=J;12=Q;13=K;"
-
   nSuites = Array.GetItemCount(suites)
-
   nNumbers = Array.GetItemCount(numbers)
-
   iSuites = Array.GetAllIndices(suites)
-
   For index = 1 To 52
-
     isOpen[index] = "False"
-
     pile[0][index] = index  ' pile[0] is deck
-
     where[index] = 0
-
   EndFor
-
   top[0] = 1
-
   bottom[0] = 52
-
   For p = 1 To 4
-
     top[p] = 1
-
     bottom[p] = 0
-
   EndFor
-
   row = "0=1;1=2;2=2;3=2;4=2;"
-
   col = "0=1;1=2;2=3;3=5;4=6;"
-
 EndSub
-
-
 
 Sub Cards_Move
-
   ' param src - source pile index
-
   ' param fromTop - "True" if from top
-
   ' param dst - desination pile index
-
   ' param toTop - "True" if to top
-
   ' param face - "up" or "down"
-
   ' return index - moved card index
-
   ' get a card from source pile
-
   If fromTop Then
-
     index = pile[src][top[src]]
-
     pile[src][top[src]] = ""
-
     top[src] = top[src] + 1
-
   Else
-
     index = pile[src][bottom[src]]
-
     pile[src][bottom[src]] = ""
-
     bottom[src] = bottom[src] - 1
-
   EndIf
-
   If bottom[src] < top[src] Then
-
     ' no cards
-
     Stack.PushValue("local", index)
-
     index = -1
-
     p = src
-
     Cards_Draw()
-
     index = Stack.PopValue("local")
-
   EndIf
-
   If toTop Then
-
     top[dst] = top[dst] - 1
-
     pile[dst][top[dst]] = index
-
   Else
-
     bottom[dst] = bottom[dst] + 1
-
     pile[dst][bottom[dst]] = index
-
   EndIf
-
   p = dst
-
   If face = "up" And (toTop Or (bottom[dst] = top[dst])) Then
-
     isOpen[index] = "True"
-
     Cards_Draw()
-
   EndIf
-
   If face = "down" And (toTop Or (bottom[dst] = top[dst]))Then
-
     isOpen[index] = "False"
-
     Stack.PushValue("local", index)
-
     index = 0
-
     Cards_Draw()
-
     index = Stack.PopValue("local")
-
   EndIf
-
   where[index] = dst
-
 EndSub
-
-
 
 Sub Cards_Open
-
   ' param index - card index
-
   If Not[isOpen[index]] Then
-
     isOpen[index] = "True"
-
     p = where[index]
-
     Cards_Draw()
-
   EndIf
-
 EndSub
-
-
 
 Sub Cards_Swap
-
   ' param i1, i2 - indices of two cards
-
   ' param p - pile index to shuffle
-
   iswap = pile[p][i1]
-
   pile[p][i1] = pile[p][i2]
-
   pile[p][i2] = iswap
-
 EndSub
-
-
 
 Sub Math_Hex2Dec
-
   ' Math | Convert hexadecimal to decimal
-
   ' param hex
-
   ' return dec
-
   dec = 0
-
   len = Text.GetLength(hex)
-
   For ptr = 1 To len
-
     dec = dec * 16 + Text.GetIndexOf("0123456789ABCDEF", Text.GetSubText(hex, ptr, 1)) - 1
-
   EndFor
-
 EndSub
-
-

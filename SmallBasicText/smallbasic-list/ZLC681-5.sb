@@ -1,777 +1,388 @@
 ' Maze 1.5
-
 ' Copyright © 2012-2018 Nonki Takahashi.  The MIT License.
-
 '
-
 ' History:
-
 ' 1.5 2018-11-07 Removed some features. (ZLC681-5)
-
 ' 1.42 2018-11-07 Modified for the Challenge of the Month. (ZLC681-4)
-
 ' 1.41 2018-11-05 Turtle.MoveTo error workaround. (ZLC681-3)
-
 ' 1.4 2016-01-22 Modified to use graph and breadth-first search. (ZLC681-0)
-
 ' 1.3 2016-01-22 Changed maze size to 11x9. (ZLC681)
-
 ' 0.61 2012-10-29 Modified for Sliverlight (about pen width). (PNC833-4)
-
 ' 0.5 2012-10-27 Modified for Sliverlight and removed debug routines. (PNC833-1)
-
 ' 0.4 2012-09-04 Changed time unit from [ms] to [s]. (PNC833-0)
-
 ' 0.3 2012-06-22 Maze genaration algorithm changed. (PNC833)
-
 ' 0.2 2012-06-08 Title added.
-
 ' 0.1 2012-06-08 Created.
-
 '
-
 ' Reference :
-
 ' [1] Wikipedia, Randomized Prim's algorithm, http://en.wikipedia.org/wiki/Maze_generation_algorithm#Randomized_Prim.27s_algorithm
-
 ' [2] YouTube, Breadth First Search Algorithm, https://www.youtube.com/watch?v=QRq6p9s8NVg
-
 '
-
 ' Data structure :
-
 ' start : cell[2][2] (node #1)
-
 ' goal : cell[rows - 1][cols - 1] (node #rowsPassage*colsPassage)
-
 '
-
 title = "Maze 1.5"
-
 debug = "False"
-
 GraphicsWindow.Title = title
-
 WALL = "W"
-
 PASSAGE = " "
-
 Not = "False=True;True=False;"
-
 Form()
-
 ScanMaze()
-
 Controls.ShowControl(oStart)
-
 WaitButtonClick()
-
 Controls.HideControl(oStart)
-
 SolveMaze()
-
 Turtle.Turn(180 - Turtle.Angle)
 
-
-
 Sub AddButtons
-
   GraphicsWindow.BrushColor = "Black"
-
   y1 = y0 + (rowsPassage + 0.3) * pathh
-
   oStart = Controls.AddButton("Start", x0, y1)
-
   Controls.HideControl(oStart)
-
   Controls.ButtonClicked = OnButtonClicked
-
 EndSub
-
-
 
 Sub AddWallToList
-
   ' param col, row - cell
-
   ' return nWalls - number of wall list
-
   ' return iWalls - index of wall list
-
   ' return colWalls[], rowWalls[] - wall list
-
   ' return colOpp[], rowOpp[] - cell list (on the opposite side)
-
   For d = 0 To 3
-
     colw = col + colAdj[d]
-
     roww = row + rowAdj[d]
-
     If 1 < colw And colw < cols And 1 < roww And roww < rows And cell[roww][colw] = WALL Then
-
       i = colw + (roww - 1) * cols
-
       ' find i in wall list
-
       FindWallInList()
-
       If i = iFound Then ' found
-
         ' remove the wall
-
         nWalls = nWalls - 1
-
         iWalls[iPrev] = iWalls[iFound]
-
       Else
-
         ' add the wall to wall list
-
         nWalls = nWalls + 1
-
         iNext = iWalls[0]
-
         iWalls[0] = i
-
         iWalls[i] = iNext
-
         colWall[i] = colw            ' wall
-
         rowWall[i] = roww
-
         colOpp[i] = colw + colAdj[d] ' cell on the opposite side
-
         rowOpp[i] = roww + rowAdj[d]
-
         colPath[i] = col              ' for graph
-
         rowPath[i] = row              ' for graph
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub BreadthFirstSearch
-
   ' param root - root number
-
   visited = ""
-
   Queue_Init()
-
   node = root
-
   Queue_Put()
-
   Queue_Check()
-
   While Not[isEmpty]
-
     Queue_Get()
-
     GrayNode()
-
     moves = moves + 1
-
     If node = goal Or maxmoves <= moves Then
-
       isEmpty = "True"
-
     Else
-
       index = Array.GetAllIndices(edge[node])
-
       n = Array.GetItemCount(edge[node])
-
       from = node
-
       For i = 1 To n
-
         node = index[i]
-
         If visited[node] Then
-
         Else
-
           Queue_Put()
-
           edge[from][node] = ""
-
         EndIf
-
       EndFor
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 Sub DownArrow
-
   ' param bc - brush color
-
   ' param x, y - top left corner
-
   ' param width 
-
   ' param height
-
   GraphicsWIndow.BrushColor = bc
-
   w = width * 0.45
-
   GraphicsWindow.FillRectangle(x + (width - w) / 2, y, w, height / 2)
-
   x1 = x
-
   y1 = y + height / 2
-
   x2 = x + width
-
   y2 = y1
-
   x3 = x + width / 2
-
   y3 = y + height
-
   GraphicsWindow.FillTriangle(x1, y1, x2, y2, x3, y3)
-
 EndSub
-
-
 
 Sub DrawStartAndGoal
-
   x = 47
-
   y = 20
-
   width = 30
-
   height = 60
-
   bc = "Red"
-
   DownArrow()
-
   x = 551
-
   y = 360
-
   bc = "#0AB000"
-
   DownArrow()
-
 EndSub
-
-
 
 Sub DumpCell
-
   For j = 1 To rows
-
     For i = 1 To cols
-
       TextWindow.Write(cell[j][i])
-
     EndFor
-
     TextWindow.WriteLine("")
-
   EndFor
-
 EndSub
-
-
 
 Sub DumpSparseMatrix
-
   For j = 1 To rowsPassage * colsPassage
-
     For i = 1 To rowsPassage * colsPassage 
-
       If edge[j][i] Then
-
         TextWindow.Write("(" + j + "," + i + ") ")
-
       EndIf
-
     EndFor
-
     TextWindow.WriteLine("")
-
   EndFor
-
 EndSub
-
-
 
 Sub FindWallInList
-
   ' param i - index to remove of wall list
-
   ' return iPrev - previous index of i
-
   ' return iFound - i if found
-
   iFound = 0
-
   c = 1
-
   While i <> iFound And c <= nWalls
-
     c = c + 1
-
     iPrev = iFound
-
     iFound = iWalls[iFound]
-
   EndWhile
-
 EndSub
-
-
 
 Sub Form
-
   gw = 624
-
   gh = 441
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   colsPassage = 10
-
   rowsPassage = 5
-
   cols = 2 * colsPassage + 1
-
   rows = 2 * rowsPassage + 1
-
   pathw = 56    ' path width
-
   pathh = 64.4  ' path height
-
   wallw = 12    ' wall width (even number)
-
   colorRoute = "Gray"
-
   colorWall = "#333333"
-
   colorPassage = "White"
-
   x0 = (gw - colsPassage * pathw) / 2
-
   y0 = (gh - rowsPassage * pathh) / 2
-
   colAdj = "0=1;1=0;2=-1;3=0;"
-
   rowAdj = "0=0;1=1;2=0;3=-1;"
-
   url = "https://social.msdn.microsoft.com/Forums/getfile/1354354"
-
   GraphicsWindow.DrawResizedImage(url, 0, 0, gw, gh)
-
   AddButtons()
-
   InitTurtle()
-
 EndSub
-
-
 
 Sub ScanMaze
-
   ' Scan maze from the screen
-
   ' but this version is scanning following array maze[]
-
   ' return cell[][] - cell contains WALL or PASSAGE
-
   ' return edge[][] - sparse matrix for maze graph 
-
   maze[1]  = "WSWWWWWWWWWWWWWWWWWWW"
-
   maze[2]  = "W     W     W       W"
-
   maze[3]  = "W WWW W WWW W WWWWW W"
-
   maze[4]  = "W W   W   W   W W   W"
-
   maze[5]  = "W WWWWWWW WWW W W WWW"
-
   maze[6]  = "W   W   W   W   W W W"
-
   maze[7]  = "WWW W WWW W WWWWW W W"
-
   maze[8]  = "W     W   W   W     W"
-
   maze[9]  = "W WWWWW W WWWWW WWWWW"
-
   maze[10] = "W       W   W       W"
-
   maze[11] = "WWWWWWWWWWWWWWWWWWWGW"
-
   For row = 1 To rows
-
     For col = 1 To cols
-
       cell[row][col] = WALL
-
     EndFor
-
   EndFor
-
   nWalls = 0
-
   edge = "" ' sparse matrix for maze graph
-
   For row = 2 To rows Step 2
-
     For col = 2 To cols Step 2
-
       cell[row][col] = PASSAGE
-
       colw = col + 1
-
       roww = row
-
       If Text.GetSubText(maze[roww], colw, 1) = PASSAGE Then
-
         cell[roww][colw] = PASSAGE
-
         colp = col + 2  ' for graph
-
         rowp = row      ' for graph
-
         node1 = (rowp / 2 - 1) * colsPassage + colp / 2 ' node # for graph
-
         node2 = (row / 2 - 1) * colsPassage + col / 2 ' node # for graph
-
         edge[node1][node2] = "True" ' one direction edge to maze graph 
-
         edge[node2][node1] = "True" ' opposite direction edge to maze graph
-
       EndIf
-
       colw = col
-
       roww = row + 1
-
       If Text.GetSubText(maze[roww], colw, 1) = PASSAGE Then
-
         cell[roww][colw] = PASSAGE
-
         colp = col      ' for graph
-
         rowp = row + 2  ' for graph
-
         node1 = (rowp / 2 - 1) * colsPassage + colp / 2 ' node # for graph
-
         node2 = (row / 2 - 1) * colsPassage + col / 2 ' node # for graph
-
         edge[node1][node2] = "True" ' one direction edge to maze graph 
-
         edge[node2][node1] = "True" ' opposite direction edge to maze graph
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub GetRandomIndex
-
   ' get random index of wall list
-
   ' return i - index
-
   n = Math.GetRandomNumber(nWalls)
-
   i = 0
-
   For c = 1 To n
-
     i = iWalls[i]
-
   EndFor
-
 EndSub
-
-
 
 Sub GrayNode
-
   ' param node
-
   GraphicsWindow.BrushColor = "#80000000"
-
   visited[node] = "True"
-
   Node2Pos()
-
 EndSub
-
-
 
 Sub InitTurtle
-
   Turtle.Show()
-
   Turtle.PenUp()
-
   Turtle.Speed = 9
-
   x = Math.Round(x0 + pathw / 2)
-
   y = Math.Round(y0 + pathh / 2)
-
   Turtle.MoveTo(x, y)
-
   Turtle.Turn(180 - Turtle.Angle)
-
   Turtle.Speed = 10
-
 EndSub
-
-
 
 Sub KnockDownWall
-
   ' param colw, roww - wall
-
   ' param col, row - cell on the opposite side
-
   x = x0 + (col / 2 - 1) * pathw
-
   y = y0 + (row / 2 - 1) * pathh
-
   GraphicsWindow.BrushColor = colorPassage
-
   GraphicsWindow.FillRectangle(x + (wallw / 2), y + (wallw / 2), pathw - wallw, pathh - wallw)
-
   If Math.Remainder(colw, 2) = 1 Then ' vertical wall
-
     x = x0 + (colw - 1) / 2 * pathw
-
     y1 = y0 + (roww / 2 - 1) * pathh
-
     y2 = y0 + (roww / 2) * pathh
-
     GraphicsWindow.FillRectangle(x - (wallw / 2), y1 + (wallw / 2), wallw, pathh - wallw)
-
   ElseIf Math.Remainder(roww, 2) = 1 Then ' horizontal wall
-
     x1 = x0 + (colw / 2 - 1) * pathw
-
     x2 = x0 + (colw / 2) * pathw
-
     y = y0 + (roww - 1) / 2 * pathh
-
     GraphicsWindow.FillRectangle(x1 + (wallw / 2), y - (wallw / 2), pathw - wallw, wallw)
-
   EndIf
-
 EndSub
-
-
 
 Sub Node2Pos
-
   ' param node
-
   ' return x, y
-
   col = Math.Remainder(node - 1, colsPassage) + 1
-
   row = Math.Floor((node - 1) /  colsPassage) + 1 
-
   x = Math.Round(x0 + pathw / 2 + (col - 1) * pathw)
-
   y = Math.Round(y0 + pathh / 2 + (row - 1) * pathh)
-
 EndSub
-
-
 
 Sub OnButtonClicked
-
   bIdle = "False"
-
 EndSub
-
-
 
 Sub Queue_Init
-
   inQ = 0
-
   outQ = 0
-
   queue = ""
-
 EndSub
-
-
 
 Sub Queue_Check
-
   ' return isEmpty
-
   If inQ = outQ Then
-
     isEmpty = "True"
-
   Else
-
     isEmpty = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub Queue_Put
-
   ' param node
-
   inQ = inQ + 1
-
   queue[inQ] = node
-
 EndSub
-
-
 
 Sub Queue_Get
-
   ' return node
-
   Queue_Check()
-
   If Not[isEmpty] Then
-
     outQ = outQ + 1
-
     node = queue[outQ]
-
     queue[outQ] = ""
-
   EndIf
-
 EndSub
-
-
 
 Sub RemoveWallFromList
-
   ' param i - index to remove of wall list
-
   ' param wall[] - wall list
-
   ' param nWalls - number of wall list
-
   FindWallInList()
-
   If i = iFound Then ' found
-
     iWalls[iPrev] = iWalls[iFound]
-
     iWalls[iFound] = ""
-
     nWalls = nWalls - 1
-
   EndIf
-
 EndSub
-
-
 
 Sub SolveMaze
-
   root = 1
-
   goal = colsPassage * rowsPassage
-
   moves = 0
-
   maxmoves = goal * 2
-
   BreadthFirstSearch()
-
   If node = goal Then
-
     While node <> root
-
       Stack.PushValue("path", node)
-
       index = Array.GetAllIndices(edge[node])
-
       node = index[1]
-
     EndWhile
-
   EndIf
-
   Turtle.PenDown()
-
   GraphicsWindow.PenWidth = 4
-
   GraphicsWindow.PenColor = "DarkCyan"
-
   While 0 < Stack.GetCount("path")
-
     node = Stack.PopValue("path")
-
     Node2Pos()
-
     Turtle.MoveTo(x, y)
-
   EndWhile
-
   Sound.PlayBellRing()
-
 EndSub
-
-
 
 Sub WaitButtonClick
-
   bIdle = "True"
-
   While bIdle
-
     Program.Delay(300)
-
   EndWhile
-
   If Controls.LastClickedButton = oStart Then
-
     bStart = "True"
-
   Else
-
     bStart = "False"
-
   EndIf
-
 EndSub
-
-

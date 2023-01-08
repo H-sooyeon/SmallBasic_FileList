@@ -1,787 +1,393 @@
 ' Asteroids Game
-
 ' Copyright (C) 2009, Jason T. Jacques <jtjacques@gmail.com>
-
 ' License: MIT license http://www.opensource.org/licenses/mit-license.php
 
-
-
 ' Game area controls
-
 gameWidth  = 640
-
 gameHeight = 480
-
 backColor = "black"
 
-
-
 ' Window title
-
 gameTitle = "Asteroids, Score: "
 
-
-
 ' Target frames per second
-
 fps = 25
 
-
-
 ' Key controls
-
 leftKey  = "Left"
-
 rightKey = "Right"
-
 forwardKey = "Up"
-
 backKey = "Down"
-
 fireKey = "Space"
-
 pauseKey = "P"
 
-
-
 ' Asteroid (rock) settings
-
 rockSpeed = 1
-
 initRocks = 5
 
-
-
 ' Ammo settings
-
 ammoSpeed = 5
-
 ammoColor = "white"
-
 ammoLife = 60 ' moves before auto destruct
-
 ammoMax = 10
-
 ammoSize = 5
 
-
-
 ' Player settings
-
 playerHeight = 30
-
 playerWidth = 20
-
 safeTime = 100 ' time player has to get out of the way on level up
-
 maxSpeed = 10
-
 inertia = 3 ' percentage of speed lost on each screen update
 
-
-
 ' Point multiplier
-
 pointsMultiply = 10
 
-
-
 ' Array name initialisation
-
 rock = "rockArray"
-
 rockAngle = "rockAngle"
-
 rockSize = "rockSize"
-
 ammo = "ammoArray"
-
 ammoAngle = "ammoAngle"
-
 ammoAge = "ammoAge"
 
-
-
 ' Game graphics
-
 bigRock = ImageList.LoadImage("http://smallbasic.com/drop/Asteroids_BigRock.png")
-
 medRock = ImageList.LoadImage("http://smallbasic.com/drop/Asteroids_MediumRock.png")
-
 smlRock = ImageList.LoadImage("http://smallbasic.com/drop/Asteroids_SmallRock.png")
-
 background = ImageList.LoadImage("http://smallbasic.com/drop/Asteroids_Sky.jpg")
-
 shipImage = ImageList.LoadImage("http://smallbasic.com/drop/Asteroids_Ship.png")
 
-
-
 ' Asteroid settings graphics version.
-
 '  -- Don't change without appropriate mod to code.
-
 rockMin = 20 ' small size rock
-
 rockTypes = 3 ' number of rock sizes (multiples of small rock size)
 
-
-
 'Keypress flags
-
 KeyLeft = 0
-
 KeyRight = 0
-
 KeyForward = 0
-
 KeyBack = 0
-
 KeyFire = 0
-
 KeyPause = 0
 
-
-
 ' Start game
-
 Init()
-
 Play()
 
 
-
-
-
 ' Setup world
-
 Sub Init
-
   GraphicsWindow.Hide()
-
   GraphicsWindow.Title = gameTitle + "0"
-
   GraphicsWindow.CanResize = false
-
   GraphicsWindow.Width = gameWidth
-
   GraphicsWindow.Height = gameHeight
-
   
-
   
-
   GraphicsWindow.BackgroundColor = backColor
-
   GraphicsWindow.BrushColor = backColor
-
   GraphicsWindow.DrawImage(background, 0, 0)
-
   
-
   LevelCheck()
-
    
-
    player = Shapes.AddImage(shipImage)
-
    Shapes.Move(player, (gameWidth - playerWidth) / 2, (gameHeight - playerHeight) / 2)
-
    playerAngle = 0
-
 EndSub
-
-
 
 ' Main gane routine
-
 Sub Play
-
   GraphicsWindow.Show()
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   GraphicsWindow.KeyUp = OnKeyUp  
-
   
-
   ' Main loop
-
   play = 1
-
   pause = 0
-
   While(play = 1)
-
     ChangeDirection()
-
     Program.Delay(1000/fps)
-
     If (pause = 0) Then 
-
       Move()
-
       CollisionCheck()
-
       AgeAmmo()
-
       LevelCheck()
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 ' Read key event and act
-
 Sub ChangeDirection
-
   If(KeyRight = 1) Then
-
     playerAngle = Math.Remainder(playerAngle + 10, 360)
-
   ElseIf(KeyLeft = 1) Then
-
     playerAngle = Math.Remainder(playerAngle - 10, 360)
-
   ElseIf(KeyForward = 1) Then
-
     If (playerSpeed < maxSpeed) Then
-
       playerSpeed = playerSpeed + 1
-
     EndIf
-
   ElseIf(KeyBack = 1) Then
-
     If (playerSpeed > (0 - maxSpeed)) Then
-
       playerSpeed = playerSpeed - 1
-
     EndIf
-
   ElseIf(KeyFire = 1) Then
-
     Fire()
-
     KeyFire = 2 ' Dont register another shot until the Key is released
-
   ElseIf(KeyPause = 1) Then
-
     pause = Math.Remainder(pause + 1, 2)
-
     KeyPause = 0
-
   EndIf
-
   Shapes.Rotate(player, playerAngle)
-
 EndSub
-
-
 
 ' Move all on screen items
-
 Sub Move
-
   ' Move player
-
   x = Math.Remainder(Shapes.GetLeft(player) + (Math.Cos(Math.GetRadians(playerAngle - 90)) * playerSpeed) + gameWidth, gameWidth) 
-
   y = Math.Remainder(Shapes.GetTop(player) + (Math.Sin(Math.GetRadians(playerAngle - 90)) * playerSpeed) + gameHeight, gameHeight)
-
   Shapes.Move(player, x, y)
-
   playerSpeed = playerSpeed - (playerSpeed / 100 * inertia)
-
   
-
   ' Move rocks
-
   For m_i = 1 To Array.GetItemCount(rock)
-
     x = Math.Remainder(Shapes.GetLeft(Array.GetValue(rock, m_i)) + (Math.Cos(Math.GetRadians(Array.GetValue(rockAngle, m_i) - 90)) * rockSpeed) + gameWidth, gameWidth) 
-
     y = Math.Remainder(Shapes.GetTop(Array.GetValue(rock, m_i)) + (Math.Sin(Math.GetRadians(Array.GetValue(rockAngle, m_i) - 90)) * rockSpeed) + gameHeight, gameHeight)
-
     Shapes.Move(Array.GetValue(rock, m_i), x, y)
-
   EndFor
-
   
-
   ' Move ammo
-
   For m_i = 1 To Array.GetItemCount(ammo)
-
     x = Math.Remainder(Shapes.GetLeft(Array.GetValue(ammo, m_i)) + (Math.Cos(Math.GetRadians(Array.GetValue(ammoAngle, m_i) - 90)) * ammoSpeed) + gameWidth, gameWidth) 
-
     y = Math.Remainder(Shapes.GetTop(Array.GetValue(ammo, m_i)) + (Math.Sin(Math.GetRadians(Array.GetValue(ammoAngle, m_i) - 90)) * ammoSpeed) + gameHeight, gameHeight)
-
     Shapes.Move(Array.GetValue(ammo, m_i), x, y)
-
     Array.SetValue(ammoAge, m_i, Array.GetValue(ammoAge, m_i) + 1)
-
   EndFor
-
 EndSub
-
-
 
 ' Check for collisions between onscreen items
-
 Sub CollisionCheck
-
   ' Calculate player bounding box.
-
   px1 = Shapes.GetLeft(player) - ( (Math.Abs(playerWidth * Math.Cos(Math.GetRadians(playerAngle)) + playerHeight * Math.Sin(Math.GetRadians(playerAngle))) - playerWidth) / 2)
-
   py1 = Shapes.GetTop(player) - ( (Math.Abs(playerWidth * Math.Sin(Math.GetRadians(playerAngle)) + playerHeight * Math.Cos(Math.GetRadians(playerAngle))) - playerHeight) / 2)
-
   px2 = px1 + Math.Abs(playerWidth * Math.Cos(Math.GetRadians(playerAngle)) + playerHeight * Math.Sin(Math.GetRadians(playerAngle)))
-
   py2 = py1 + Math.Abs(playerWidth * Math.Sin(Math.GetRadians(playerAngle)) + playerHeight * Math.Cos(Math.GetRadians(playerAngle)))
-
   
-
   ' Re-order co-oridinates if they are the wrong way arround
-
   If(px1 > px2) Then
-
     tmp = px1
-
     px1 = px2
-
     px2 = tmp
-
   EndIf
-
   If(py1 > py2) Then
-
     tmp = py1
-
     py1 = py2
-
     py2 = tmp
-
   EndIf
-
   
-
   ' Check if each rock has hit something
-
   For i = 1 To Array.GetItemCount(rock)
-
     ax1 = Shapes.Getleft(Array.GetValue(rock, i))
-
     ay1 = Shapes.GetTop(Array.GetValue(rock, i))
-
     ax2 = ax1 + Array.GetValue(rockSize, i)
-
     ay2 = ay1 + Array.GetValue(rockSize, i)
-
     
-
     
-
     ' Player collison
-
     If(playerSafe < 1) Then
-
       If ( (ax1 < px1 And ax2 > px1) Or (ax1 < px2 And ax2 > px2) ) Then
-
         If ( (ay1 < py1 And ay2 > py1) Or (ay1 < py2 And ay2 > py2) ) Then
-
           EndGame()
-
         EndIf
-
       EndIf
-
     EndIf
-
     
-
     
-
     ' Ammo collison
-
     For j = 1 to Array.GetItemCount(ammo)
-
       bx1 = Shapes.Getleft(Array.GetValue(ammo, j))
-
       by1 = Shapes.GetTop(Array.GetValue(ammo, j))
-
       bx2 = bx1 + ammoSize
-
       by2 = by1 + ammoSize
-
      
-
       If ( (ax1 < bx1 And ax2 > bx1) Or (ax1 < bx2 And ax2 > bx2) ) Then
-
         If ( (ay1 < by1 And ay2 > by1) Or (ay1 < by2 And ay2 > by2) ) Then
-
           nextRemove = i
-
           RemoveRock()
-
           nextAmmoRemove = j
-
           RemoveAmmo()
-
         EndIf
-
       EndIf
-
     EndFor
-
     
-
   EndFor
-
   
-
   ' Decrease the time player is safe
-
   If (playerSafe > 0) Then
-
     playerSafe = playerSafe - 1
-
   EndIf
-
 EndSub
-
-
-
 
 
 ' Add a new rock to the world
-
 Sub AddRock
-
   ' Check if the next rock size/position has been specified
-
   If (nextSize <> 0) Then
-
     size = rockMin* nextSize
-
     x = Shapes.GetLeft(nextPosition)
-
     y = Shapes.GetTop(nextPosition)
-
     nextSize = 0
-
   Else
-
     ' Choose a random size and position
-
     size = rockMin * Math.GetRandomNumber(rockTypes)
-
     x = Math.GetRandomNumber(gameWidth - size)
-
     y = Math.GetRandomNumber(gameHeight - size)
-
   EndIf
-
   
-
   ' Draw the rock
-
   If size = 60 Then
-
     Array.SetValue(rock, (Array.GetItemCount(rock) + 1), Shapes.AddImage(bigRock))
-
   ElseIf size = 40 Then
-
     Array.SetValue(rock, (Array.GetItemCount(rock) + 1), Shapes.AddImage(medRock))
-
   Else
-
     Array.SetValue(rock, (Array.GetItemCount(rock) + 1), Shapes.AddImage(smlRock))
-
   EndIf
-
   
-
   Shapes.Move(Array.GetValue(rock, Array.GetItemCount(rock)), x, y)
-
   Array.SetValue(rockAngle, Array.GetItemCount(rock), Math.GetRandomNumber(360))
-
   Array.SetValue(rockSize, Array.GetItemCount(rock), size)
-
 EndSub
-
-
 
 ' Remove a rock from the world and update score
-
 Sub RemoveRock
-
   removeSize = Array.GetValue(rockSize, nextRemove) / rockMin
-
   ' If not a mini rock
-
   If (removeSize > 1) Then
-
     ' ... add new rocks until we have made up for it being broken apart...
-
     While(removeSize > 0)
-
       nextSize = Math.GetRandomNumber(removeSize - 1)
-
       nextPosition = Array.GetValue(rock, nextRemove)
-
       removeSize = removeSize - nextSize
-
       AddRock()
-
     EndWhile
-
     ' And give a point for a 'hit'
-
     score = score + 1 * pointsMultiply
-
   Else
-
     ' We've destroyed it - give some extra points and 
-
     score = score + 5 * pointsMultiply
-
   EndIf
-
   
-
   ' Show updated score
-
   GraphicsWindow.Title = gameTitle + score
-
   
-
   ' Remove all references from the arrays
-
   Shapes.Remove(Array.GetValue(rock, nextRemove))
-
   For m_i = nextRemove To (Array.GetItemCount(rock) - 1)
-
     Array.SetValue(rock, m_i, Array.GetValue(rock, m_i+1))
-
     Array.SetValue(rockAngle, m_i, Array.GetValue(rockAngle, m_i+1))
-
     Array.SetValue(rockSize, m_i, Array.GetValue(rockSize, m_i+1))
-
   EndFor
-
   Array.RemoveValue(rock, Array.GetItemCount(rock))
-
   Array.RemoveValue(rockAngle, Array.GetItemCount(rockAngle))
-
   Array.RemoveValue(rockSize, Array.GetItemCount(rockSize))
-
 EndSub
-
-
 
 ' Check if the player has completed the level, if so, level up
-
 Sub LevelCheck
-
   If(Array.GetItemCount(rock) < 1) Then
-
     nextSize = 0
-
     For m_j = 1 To initRocks
-
       AddRock()
-
     EndFor
-
     initRocks = initRocks + 1
-
   
-
     ' Give players some time to move out of the way
-
     playerSafe = safeTime
-
   EndIf
-
 EndSub
-
-
 
 ' Add ammo to game
-
 Sub Fire
-
   ' Remove additional ammo
-
   While(Array.GetItemCount(ammo) > (ammoMax - 1))
-
     nextAmmoRemove = 1
-
     RemoveAmmo()
-
   EndWhile
-
   
-
   If (score >= pointsMultiply / 2) Then
-
     score = score - (pointsMultiply / 2)
-
   
-
     ' Show updated score
-
     GraphicsWindow.Title = gameTitle + score
-
   EndIf
-
   
-
   ' Add the ammo
-
   GraphicsWindow.PenColor = ammoColor
-
   Array.SetValue(ammo, (Array.GetItemCount(ammo) + 1), Shapes.AddEllipse(ammoSize, ammoSize))
-
   Shapes.Move(Array.GetValue(ammo, Array.GetItemCount(ammo)), (px1 + px2 - ammoSize) / 2, (py1 + py2 - ammoSize) / 2)
-
   Array.SetValue(ammoAngle, Array.GetItemCount(ammo), playerAngle)
-
 EndSub
-
-
 
 ' Check ammo age
-
 Sub AgeAmmo
-
   While (Array.GetValue(ammoAge, 1) > ammoLife)
-
     nextAmmoRemove = 1
-
     RemoveAmmo()
-
   EndWhile
-
 EndSub
-
-
 
 ' Remove top Ammo
-
 Sub RemoveAmmo
-
   Shapes.Remove(Array.GetValue(ammo, nextAmmoRemove))
-
   For m_i = nextAmmoRemove To (Array.GetItemCount(ammo) - 1)
-
     Array.SetValue(ammo, m_i, Array.GetValue(ammo, m_i+1))
-
     Array.SetValue(ammoAngle, m_i, Array.GetValue(ammoAngle, m_i+1))
-
     Array.SetValue(ammoAge, m_i, Array.GetValue(ammoAge, m_i+1))
-
   EndFor
-
   Array.RemoveValue(ammo, Array.GetItemCount(ammo))
-
   Array.RemoveValue(ammoAngle, Array.GetItemCount(ammoAngle))
-
   Array.RemoveValue(ammoAge, Array.GetItemCount(ammoAge))
-
 EndSub
-
-
 
 ' Display simple end game message box
-
 Sub EndGame
-
   play = 0
-
   Shapes.Remove(player)
-
   GraphicsWindow.ShowMessage("You scored " + score + " points. Thanks for Playing.", "Game Over!")
-
 EndSub
-
-
 
 'KeyDown
-
 Sub OnKeyDown
-
   Key = GraphicsWindow.LastKey
-
   If (Key = leftKey) Then
-
     KeyLeft = 1
-
   ElseIF (Key = rightKey) Then
-
     KeyRight = 1
-
   ElseIF (Key = forwardKey) Then
-
     KeyForward = 1
-
   ElseIF (Key = backKey) Then
-
     KeyBack = 1
-
   ElseIF (KeyFire = 0 And Key = fireKey) Then ' Only fire if the key has been released since the last shot
-
     KeyFire = 1
-
   ElseIF (Key = pauseKey) Then
-
     KeyPause = 1
-
   EndIf
-
 EndSub
-
-
 
 'Key Up
-
 Sub OnKeyUp
-
   Key = GraphicsWindow.LastKey
-
   If (Key = leftKey) Then
-
     KeyLeft = 0
-
   ElseIF (Key = rightKey) Then
-
     KeyRight = 0
-
   ElseIF (Key = forwardKey) Then
-
     KeyForward = 0
-
   ElseIF (Key = backKey) Then
-
     KeyBack = 0
-
   ElseIF (Key = fireKey) Then
-
     KeyFire = 0
-
   EndIf
-
 EndSub
-
-
-
-
-
 
 
 

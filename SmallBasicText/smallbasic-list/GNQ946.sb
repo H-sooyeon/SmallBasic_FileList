@@ -1,591 +1,295 @@
 gw = 600
-
 gh = 600
 
-
-
 SetupWindow()
-
 InitGlobals()
-
 playerInit()
-
 ObstacleInit()
-
 ExplosionInit()
 
 
-
-
-
 While (gamePlay = true)
-
   start = Clock.ElapsedMilliseconds
-
   
-
   ObstacleUpdate()
-
   
-
   If (exploding = false) Then
-
     playerUpdate()
-
   Else
-
     Explode()
-
     PlayerDie()
-
   EndIf
-
   
-
   
-
   delay = 20 - (Clock.ElapsedMilliseconds - start)
-
   If (delay > 0) Then
-
     Program.Delay(delay)
-
   EndIf
-
 EndWhile
 
-
-
 ' End Game
-
 Shapes.Move(gameOverLabel, 160, gh/2-50)
-
 Shapes.ShowShape(gameOverLabel)
-
 For op = 1 to 200 Step 0.5
-
   ObstacleUpdate()
-
   Shapes.SetOpacity(gameOverLabel, op)
-
   Program.Delay(20)
-
 EndFor
 
 
-
-
-
 Sub SetupWindow
-
   GraphicsWindow.Hide()
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BackgroundColor = "Black"
-
   GraphicsWindow.Left = (Desktop.Width - gw) /2
-
   GraphicsWindow.Top = (Desktop.Height - gh) /3
-
   GraphicsWindow.Title = "Dodge the Falling Things"
-
   GraphicsWindow.Show()
-
   
-
   ' Setup Score display
-
   GraphicsWindow.FontSize = 35
-
   GraphicsWindow.FontBold = false
-
   GraphicsWindow.BrushColor = "White"
-
   scoreLabel = Shapes.AddText(0)
-
   Shapes.Move(scoreLabel, gw - 100, 20)
-
   
-
   ' Setup Game Over Display
-
   GraphicsWindow.FontSize = 50
-
   gameOverLabel = Shapes.AddText("")
-
   Shapes.Move(gameOverLabel, -100, -100)
-
   Shapes.HideShape(gameOverLabel)
-
   Shapes.SetText(gameOverLabel, "GAME OVER")
-
   
-
   ' Add Event Handlers
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   GraphicsWindow.KeyUp = OnKeyUp
-
   interval = 1000
-
   Timer.Interval = interval
-
   Timer.Tick = AddObstacle
-
   Timer.Pause()
-
 EndSub
-
-
 
 Sub InitGlobals
-
   true = "True"
-
   false = "False"
-
   keyLeft = false
-
   keyRight = false
-
   gamePlay = true
-
   gravity = 0.1
-
   exploding = false
-
   score = 0
-
 EndSub
-
-
 
 Sub playerInit
-
   playerSpeed = 5
-
   playerX = gw/2
-
   playerY = gh - 40
-
   playerW = 30
-
   playerH = 20
-
   playerZoom = 1.0
-
   GraphicsWindow.PenColor = "White"
-
   GraphicsWindow.BrushColor = "Blue"
-
   player = Shapes.AddRectangle(playerW, playerH)
-
   Shapes.Move(player, playerX - playerW/2, playerY - playerH/2)
-
   'GraphicsWindow.DrawLine(gw/2,0,gw/2,gh)
-
 EndSub
-
-
 
 sub ObstacleInit
-
   numObstacles = 14
-
   activeObstacles = 0
-
   For i = 1 To numObstacles
-
     radius = (Math.GetRandomNumber(7) + 5) * 3
-
     r = Math.GetRandomNumber(200) + 50
-
     g = Math.GetRandomNumber(200) + 50
-
     b = Math.GetRandomNumber(200) + 50
-
     GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(r,g,b)
-
     
-
     GraphicsWindow.PenColor = "Transparent"
-
     
-
     obstacles[i] = Shapes.AddEllipse(radius*2,radius*2)
-
     shapes.Move(obstacles[i], -100, -100) 
-
     obstacleRadius[i] = radius   
-
   EndFor
-
   
-
   For i = 1 To numObstacles
-
     obstacleIndex = i
-
     ObstacleReset()
-
   EndFor
-
   Timer.Resume()
-
 EndSub
-
-
-
 
 
 Sub ObstacleReset
-
   ' Takes in 'obstacleIndex' as a parameter to determine the obstacle to act on
-
   ' obstacleIndex' must be set to the current obstacle prior to calling this finction
-
   localX = Math.GetRandomNumber(gw-30) + 15
-
   localY = -(Math.GetRandomNumber(30) + 50)
-
   obstacleX[obstacleIndex] = localX
-
   obstacleY[obstacleIndex] = localY
-
   obstacleSpeed[obstacleIndex] = Math.GetRandomNumber(6) + 1
-
   Shapes.Move(obstacles[obstacleIndex], localX-obstacleRadius[obstacleIndex], localY-obstacleRadius[obstacleIndex])
-
 EndSub
-
-
 
 Sub ObstacleUpdate
-
   For i = 1 To activeObstacles
-
     obstacleY[i] = obstacleY[i] + obstacleSpeed[i]
-
     obstacleSpeed[i] = obstacleSpeed[i]  + gravity
-
     Shapes.Move(obstacles[i], obstacleX[i]-obstacleRadius[i], obstacleY[i]-obstacleRadius[i])
-
     
-
     If (exploding = false) Then 
-
       If (obstacleY[i] > gh + 36) Then
-
         obstacleIndex = i
-
         ObstacleReset()
-
         ScoreUpdate()
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub ScoreUpdate
-
   score = score + 1
-
   Shapes.SetText(scoreLabel, score)
-
 EndSub
-
-
 
 Sub playerUpdate
-
   If (keyLeft) Then
-
     playerX = playerX - playerSpeed
-
   ElseIf (keyRight) Then
-
     playerX = playerX + playerSpeed
-
   EndIf
-
   
-
   playerX = Math.Min(playerX, gw-playerW/2)
-
   playerX = Math.Max(playerX, playerW/2)
-
   playerLeft = playerX - playerW/2
-
   playerTop = playerY - playerH/2
-
   playerRight = playerLeft + playerW
-
   playerBottom = playerTop + playerH
-
   
-
   Shapes.Move(player, playerX-playerW/2, playerY-playerH/2)
-
   CheckCollisions()
-
 EndSub
-
-
 
 Sub PlayerDie
-
   deathElapsed = (Clock.ElapsedMilliseconds - explosionStart)
-
   If (playerZoom >= 0.1) Then
-
     playerZoom = 1.0 - ((deathElapsed / 500) * 1.0)
-
     Shapes.Zoom(player, playerZoom, playerZoom)
-
   Else
-
     Shapes.HideShape(player)
-
   EndIf
-
 EndSub
-
-
-
 
 
 Sub CheckCollisions
-
   For i = 1 To activeObstacles
-
     closestX = Math.Min(Math.Max(obstacleX[i], playerLeft), playerRight)
-
     closestY = Math.Min(Math.Max(obstacleY[i], playerTop), playerBottom)
-
     
-
     distanceX = closestX - obstacleX[i]
-
     distanceY = closestY - obstacleY[i]
-
     distance = Math.SquareRoot((distanceX * distanceX) + (distanceY * distanceY))
-
     
-
     If distance < obstacleRadius[i] Then
-
       collision = true
-
       collisionIndex = i
-
     EndIf
-
   EndFor
-
   If collision = true Then
-
     SetExplosion()
-
   EndIf
-
 EndSub
-
-
 
 Sub ExplosionInit
-
   numParticles = 15
-
   explosionTime = 1000
-
   explosionZoom = 1.0
-
   GraphicsWindow.BrushColor = "Red"
-
   For i = 1 To numParticles
-
     particles[i] = Shapes.AddEllipse(20,20)
-
     Shapes.Move(particles[i], -100, -100)
-
     px[i] = Math.GetRandomNumber(10) - 5
-
     py[i] = -Math.GetRandomNumber(5)
-
   EndFor  
-
 EndSub
-
-
 
 Sub SetExplosion
-
   'GraphicsWindow.BackgroundColor = "Yellow"
-
   For i = 1 To numParticles
-
     pStartY = playerY - 10
-
     pStartX = playerX - 10
-
     Shapes.Move(particles[i], pStartX, pStartY)
-
     Shapes.SetOpacity(particles[i], 100)
-
     Shapes.ShowShape(particles[i])
-
   EndFor
-
   
-
   collision = false
-
   exploding = true
-
   Timer.Pause()
-
   playerZoom = 1.0
-
   explosionTime = 1000
-
   opacity = 100
-
   explosionStart = Clock.ElapsedMilliseconds
-
   For i = 1 To numParticles
-
     destX = pStartX + (px[i] * 50)
-
     destY = pStartY + (py[i] * 50)
-
     Shapes.Animate(particles[i], destX, destY, explosionTime)
-
   EndFor
-
 EndSub
-
-
-
 
 
 Sub Explode
-
   elapsed = Clock.ElapsedMilliseconds - explosionStart
-
   If opacity >= 0 Then
-
     opacity = 100 - ((elapsed/explosionTime) * 100)
-
     explosionZoom = explosionZoom + ((elapsed/explosionTime) * 0.5)
-
     For o = 1 to numParticles
-
       Shapes.SetOpacity(particles[o], opacity)
-
       Shapes.Zoom(particles[o], explosionZoom,explosionZoom)
-
     endfor  
-
   EndIf 
-
   If opacity < 0 Then
-
     Shapes.HideShape(particles[o])
-
     gamePlay = false
-
   EndIf
-
 EndSub
 
 
-
-
-
 '++++++++++++++++++++++++
-
 '           Event Handlers
-
 '++++++++++++++++++++++++
-
 Sub OnKeyDown
-
   lastKeyDown = GraphicsWindow.LastKey
-
   If (lastKeyDown = "Escape") Then
-
     Program.End()
-
   ElseIf (lastKeyDown = "Left") Then
-
     keyLeft = true
-
   ElseIf (lastKeyDown = "Right") Then
-
     keyRight = true
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   lastKeyUp = GraphicsWindow.LastKey
-
   If (lastKeyUp = "Left") Then
-
     keyLeft = false
-
   ElseIf (lastKeyUp = "Right") Then
-
     keyRight = false
-
   EndIf
-
 EndSub
-
-
 
 Sub AddObstacle
-
   ' Timer event to increase the number of falling obstacles
-
   If (activeObstacles < numObstacles) Then
-
     activeObstacles = activeObstacles + 1
-
   EndIf
-
   
-
   'initally add obstacles quickly, then slow down after a few seconds
-
   If (Timer.Interval < 3000) Then
-
     Timer.Interval = Timer.Interval + 500
-
   Endif
-
   If activeObstacles > 9 Then
-
     Timer.Interval = 30000
-
   EndIf
-
 EndSub
-
-

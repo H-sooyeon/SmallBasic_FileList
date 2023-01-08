@@ -1,1109 +1,554 @@
 ' Combination nCr
-
 ' Copyright (c) 2012 Nonki Takahashi
-
-
 
 t0 = Clock.ElapsedMilliseconds
 
-
-
 DIGITS = 13 ' separate big number to avoid overflow within this digits
-
 POW10DIG = Math.Power(10, DIGITS)
-
 DIGITS2 = 27 ' for minus, compare, and find division
-
 Z="000000000000000000000000000"
-
 COMMA = ","
 
-
-
 n = 52
-
 r = 4
-
 Combi()
-
 TextWindow.Write("C(" + n + "," + r + ")=")
-
 TextWindow.Write("(" + n + "!)/((" + r + "!)(" + (n - r) + "!))=")
-
 x = ans
-
 WriteLineWithComma()
 
-
-
 t1 = Clock.ElapsedMilliseconds
-
 TextWindow.WriteLine("(" + (t1 - t0) + "ms)")
-
 ' end of program
 
-
-
 ' Combi : Combination nCr
-
 ' param n
-
 ' param r
-
 ' return ans = nCr
-
 Sub Combi
-
   TextWindow.ForegroundColor = "Green"
-
   ' n!
-
   TextWindow.Write(n + "!=")
-
   Factorial()
-
   nf = ans
-
   x = nf
-
   WriteLineWithComma()
-
   TextWindow.WriteLine("")
-
   ' r!
-
   Stack.PushValue("local", n)
-
   n = r
-
   TextWindow.Write(r + "!=")
-
   Factorial()
-
   n = Stack.PopValue("local")
-
   rf = ans
-
   x = rf
-
   WriteLineWithComma()
-
   TextWindow.WriteLine("")
-
   ' (n - r)!
-
   n_r = n - r
-
   Stack.PushValue("local", n)
-
   n = n_r
-
   TextWindow.Write(n_r + "!=")
-
   Factorial()
-
   n = Stack.PopValue("local")
-
   n_rf = ans
-
   x = n_rf
-
   WriteLineWithComma()
-
   TextWindow.WriteLine("")
-
   ' (r!)((n-r)!)
-
   TextWindow.Write("(" + r + "!)")
-
   TextWindow.Write("(" + n_r + "!)=")
-
   a = rf
-
   b = n_rf
-
   Mul()
-
   rfn_rf = ans
-
   x = rfn_rf
-
   WriteLineWithComma()
-
   TextWindow.WriteLine("")
-
   ' nCr = (n!)/((r!)((n-r)!))
-
   a = nf
-
   b = rfn_rf
-
   Div()
-
   x = ans
-
   TextWindow.ForegroundColor = "Gray"
-
 EndSub
-
-
 
 ' Factorial : Factorial of n
-
 ' param n
-
 ' return ans
-
 Sub Factorial
-
 ans = 1
-
 For i = 1 to n
-
   a = ans
-
   b = i
-
   Mul() ' c = a * b
-
 EndFor
-
 EndSub
-
-
 
 ' Div : Divide a by b
-
 ' fraction part will be cut off
-
 ' param a : big number >=0
-
 ' param b : big number > 0
-
 ' return ans = a / b
-
 Sub Div
-
   Stack.PushValue("local", a)
-
   ' Calculate length of a and b.
-
   la = Text.GetLength(a)
-
   lb = Text.GetLength(b)
-
   If la < lb Then
-
     ans = 0
-
     Goto return_div
-
   EndIf
-
   li = la - lb  ' means integral part of quotient
-
   ' Get upper part of a as length lb.
-
   a_u = Text.GetSubText(a, 1, lb)
-
   a_l = Text.GetSubTextToEnd(a, lb + 1)
-
   ans = ""
-
   While li >= 0
-
     ' Calculate q : a digit of quotient
-
     a = a_u
-
     Stack.PushValue("local", ans)
-
     FindDiv()   ' ans = a / b
-
     q = ans
-
     ans = Stack.PopValue("local")
-
     If (ans <> 0) Or (q > 0) Then ' Don't use ans > 0
-
       ans = Text.Append(ans, q)
-
     EndIf
-
     If li > 0 Then
-
       ' a_u = a_u mod b = a_u - q * b.
-
       ' (avoiding to use Math.Remainder buggy for big number)
-
       a = q
-
       Stack.PushValue("local", ans)
-
       Stack.PushValue("local", b)
-
       Mul()
-
       a = a_u
-
       b = ans
-
       Minus()
-
       a_u = ans
-
       b = Stack.PopValue("local")
-
       ans = Stack.PopValue("local")
-
       ' Add trailing digit to a_u from leading digit of a_l.
-
       d = Text.GetSubText(a_l, 1, 1)
-
       a_l = Text.GetSubTextToEnd(a_l, 2)
-
       a_u = Text.Append(a_u, d)
-
     EndIf
-
     li = li - 1
-
   EndWhile '  li >= 0
-
 return_div:
-
   a = Stack.PopValue("local")
-
 EndSub
-
-
 
 ' Find division of  a / b
-
 ' fraction part will be cut off
-
 ' param a : big number < b * 10
-
 ' param b : big number
-
 ' return ans = a / b
-
 Sub FindDiv
-
   la = Text.GetLength(a)
-
   lb = Text.GetLength(b)
-
   If la <= DIGITS2 And lb <= DIGITS2 Then
-
     ans = Math.Floor(a / b)
-
   ElseIf (a = 0) Or (la < lb) Then
-
     ans = 0
-
   Else
-
     lmax = la
-
     If lb > lmax Then
-
       lmax = lb
-
     EndIf
-
     la = la - (lmax - DIGITS2)
-
     lb = lb - (lmax - DIGITS2)
-
     au = Text.GetSubText(a, 1, la)
-
     bu = Text.GetSubText(b, 1, lb)
-
     Stack.PushValue("local", a)
-
     q = Math.Floor(au / bu)
-
     a = q
-
     Mul() ' ans = q * b in order to confirm q
-
     a = Stack.PopValue("local")
-
     If ans > a Then ' q is bigger
-
       q = q - 1
-
     EndIf
-
     ans = q
-
   EndIf
-
 EndSub
-
   
-
 ' Comp : Compare a to b
-
 ' const DIGITS2 = 27
-
 ' param a : big number
-
 ' param b : big number
-
 ' return lt = "True" if = a < b
-
 Sub Comp
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", n)
-
   la = Text.GetLength(a)
-
   lb = Text.GetLength(b)
-
   If la < lb Then
-
     lt = "True"
-
     eq = "False"
-
   ElseIf la > lb Then
-
     lt = "False"
-
     eq = "False"
-
   Else ' la = lb
-
     n = Math.Ceiling(la / DIGITS2)
-
     For i = 1 To n
-
       If i = 1 Then
-
         s = 1
-
         l = Math.Remainder(la - 1, DIGITS2) + 1
-
       Else ' i > 1
-
         s = la - DIGITS2 * (n - i + 1) + 1
-
         l = DIGITS2
-
       EndIf
-
       ai = Text.GetSubText(a, s, l)
-
       bi = Text.GetSubText(b, s, l)
-
       If ai < bi Then
-
         lt = "True"
-
         eq = "False"
-
         Goto comp_return
-
       ElseIf ai > bi Then
-
         lt = "False"
-
         eq = "False"
-
         Goto comp_return
-
       Endif
-
     EndFor
-
     lt = "False"  ' a = b
-
     eq = "True"
-
   EndIf
-
 comp_return:
-
   n = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 ' Minus : Calculate a minus b
-
 ' const DIGITS2 = 27
-
 ' param a : big number
-
 ' param b : big number
-
 ' return ans = a - b
-
 Sub Minus
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", m)
-
   Stack.PushValue("local", n)
-
   Stack.PushValue("local", a)
-
   Stack.PushValue("local", b)
-
   Sign = ""
-
   ' Compare a and b.
-
   Comp()
-
   If eq Then ' a = b
-
     ans = 0
-
     Goto minus_return
-
   ElseIf lt Then  ' a < b
-
     Sign = "-"
-
     ' Swap a and b
-
     c = a
-
     a = b
-
     b = c
-
   EndIf
-
   ' Calc m and la to separate a into m parts.
-
   la = Text.GetLength(a)
-
   m = Math.Ceiling(la / DIGITS2)
-
   ' Calc n and lb to separate b into n parts.
-
   lb = Text.GetLength(b)
-
   n = Math.Ceiling(lb / DIGITS2)
-
   borrow = 0
-
   ans=""
-
   For i = 1 To m
-
     ' Get ith part of a into ai.
-
     If i < m Then
-
       s = la - DIGITS2 * i + 1
-
       l = DIGITS2
-
     Else ' i = m
-
       s = 1
-
       l = Math.Remainder(la - 1, DIGITS2) + 1
-
     EndIf
-
     ai = Text.GetSubText(a, s, l)
-
     ' Get ith part of b into bi.
-
     If i < n Then
-
       s = lb - DIGITS2 * i + 1
-
       l = DIGITS2
-
     Else ' i = n
-
       s = 1
-
       l = Math.Remainder(lb - 1, DIGITS2) + 1
-
     EndIf
-
     If i > n Then
-
       bi = 0
-
     Else
-
       bi = Text.GetSubText(b, s, l)
-
     EndIf
-
     If (ai < borrow) Or (ai < bi) Then
-
       ai = Text.Append("1", ai) - borrow
-
       borrow = 1
-
     Else
-
       ai = ai - borrow
-
       borrow = 0
-
     EndIF
-
     ai_bi = ai - bi
-
     If (i > 1) And (ai_bi > 0) Then ' need zeros
-
       nz = DIGITS2 * (i - 1) - Text.GetLength(ans)
-
       ans = Text.Append(Text.GetSubText(Z, 1, nz), ans)
-
     EndIf
-
     ans = Text.Append(ai_bi, ans)
-
   EndFor
-
   ans = Text.Append(sign, ans)
-
 minus_return:
-
   b = Stack.PopValue("local")
-
   a = Stack.PopValue("local")
-
   n = Stack.PopValue("local")
-
   m = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 ' Mul : Multiply a by b
-
 ' const DIGITS = 13
-
 ' const POW10DIG = 10^DIGITS
-
 ' const Z = "0000000000000000000000000"
-
 ' param a : big number
-
 ' param b : big number
-
 ' return ans = a * b
-
 Sub Mul
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", m)
-
   Stack.PushValue("local", n)
-
   Stack.PushValue("local", x)
-
   
-
   s = Text.GetLength(a)
-
   While s >= 1 And Text.GetSubText(a, s, 1) = "0"
-
     s = s - 1
-
   EndWhile
-
   If s = 0 Then
-
     ans = 0
-
     Goto mul_return
-
   EndIf
-
   az = Text.GetSubTextToEnd(a, s + 1)
-
   an = Text.GetSubText(a, 1, s)
-
   la = Text.GetLength(an)
-
   m = Math.Ceiling(la / DIGITS)
-
   
-
   s = Text.GetLength(b)
-
   While s >= 1 And Text.GetSubText(b, s, 1) = "0"
-
     s = s - 1
-
   EndWhile
-
   If s = 0 Then
-
     ans = 0
-
     Goto mul_return
-
   EndIf
-
   bz = Text.GetSubTextToEnd(b, s + 1)
-
   bn = Text.GetSubText(b, 1, s)
-
   lb = Text.GetLength(bn)
-
   n = Math.Ceiling(lb / DIGITS)
-
   
-
   For k = 1 To n + m
-
     ab[k] = 0
-
   EndFor
-
   For i = 1 To n
-
     For j = 1 To m
-
       If j < m Then
-
         s = la - DIGITS * j + 1
-
         l = DIGITS
-
       Else ' j = m
-
         s = 1
-
         l = Math.Remainder(la - 1, DIGITS) + 1
-
       EndIf
-
       aj = Text.GetSubText(an, s, l)
-
       If i < n Then
-
         s = lb - DIGITS * i + 1
-
         l = DIGITS
-
       Else ' i = n
-
         s = 1
-
         l = Math.Remainder(lb - 1, DIGITS) + 1
-
       EndIf
-
       bi = Text.GetSubText(bn, s, l)
-
       x = aj * bi
-
       k = i + j
-
       l = Text.GetLength(x)
-
       s = l - DIGITS + 1
-
       If s < 1 Then
-
         s = 1
-
         xn = Text.GetSubText(x, s, l)
-
         xc = 0
-
       Else
-
         l = DIGITS
-
         xn = Text.GetSubText(x, s, l)
-
         xc = Text.GetSubText(x, 1, s - 1)
-
       EndIf  
-
       ab[k] = ab[k] + xc
-
       ab[k - 1] = ab[k - 1] + xn
-
       While (k - 1 <= n + m) And (ab[k - 1] >= POW10DIG)
-
         l = Text.GetLength(ab[k - 1])
-
         s = l - DIGITS + 1
-
         If s < 1 Then
-
           s = 1
-
           xn = Text.GetSubText(ab[k - 1], s, l)
-
           xc = 0
-
         Else
-
           l = DIGITS
-
           xn = Text.GetSubText(ab[k - 1], s, l)
-
           xc = Text.GetSubText(ab[k - 1], 1, s - 1)
-
         EndIf  
-
         ab[k] = ab[k] + xc
-
         ab[k - 1] = xn
-
         k = k + 1
-
       EndWhile
-
     EndFor
-
   EndFor
-
   ans = ""
-
   For k = 1 To n + m - 2
-
     ans = Text.Append(ab[k], ans)
-
     l = DIGITS * k - Text.GetLength(ans)
-
     If l > 0 Then
-
       ans = Text.Append(Text.GetSubText(Z, 1, l), ans)
-
     EndIf
-
   EndFor
-
   ' k = n + m - 1
-
   ans = Text.Append(ab[k], ans)
-
   l = DIGITS * k - Text.GetLength(ans)
-
   If (l > 0) And (ab[k + 1] > 0) Then
-
     ans = Text.Append(Text.GetSubText(Z, 1, l), ans)
-
   EndIf
-
   k = k + 1
-
   ' k = n + m 
-
   If ab[k] > 0 Then
-
     ans = Text.Append(ab[k], ans)
-
   EndIf
-
   ans = Text.Append(ans, az)
-
   ans = Text.Append(ans, bz)
-
 mul_return:
-
   x = Stack.PopValue("local")
-
   n = Stack.PopValue("local")
-
   m = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 ' WriteWithComma : Write with Comma
-
 ' const COMMA = "," or "." or " " or "" etc.
-
 ' param x
-
 Sub WriteWithComma
-
   Stack.PushValue("local", n)
-
   l = Text.GetLength(x)
-
   n = Math.Ceiling(l / 3)
-
   l = Math.Remainder(l, 3)
-
   If l = 0 Then
-
     l = 3
-
   EndIf
-
   s = 1
-
   For i = 1 To n
-
     TextWindow.Write(Text.GetSubText(x, s, l))
-
     If i < n Then
-
       TextWindow.Write(COMMA)
-
     EndIf
-
     s = s + l
-
     l = 3
-
   EndFor
-
   n = Stack.PopValue("local")
-
 EndSub
-
-
 
 ' WriteLineWithComma : Write Line with Comma
-
 ' const COMMA = "," or "." or " " or "" etc.
-
 ' param x
-
 Sub WriteLineWithComma
-
   WriteWithComma()
-
   TextWindow.WriteLine("")
-
 EndSub  
-
   
-
 '---------------------------------------------------- 
-
 ' Following subroutines are only for debug. 
-
 '---------------------------------------------------- 
-
   
-
 ' TestDiv : Tester for Div()
-
 Sub TestDiv
-
   Stack.PushValue("local", i)
-
   a = ""
-
   For i = 1 To 29
-
     r = Math.GetRandomNumber(10) - 1
-
     a = Text.Append(r, a)
-
   EndFor
-
   r = Math.GetRandomNumber(9)
-
   a = Text.Append(r, a)
-
   b = ""
-
   For i = 1 To 12
-
     r = Math.GetRandomNumber(10) - 1
-
     b = Text.Append(r, b)
-
   EndFor
-
   r = Math.GetRandomNumber(9)
-
   b = Text.Append(r, b)
-
   'a = "434399216531770650390143258708"
-
   'b = "6752306690329"
-
   'a = "397896921587794748049229269710"
-
   'b = "8642083658481"
-
   Mul()
-
   TextWindow.ForegroundColor = "Cyan"
-
   TextWindow.WriteLine(a + "*" + b + "=" + ans)
-
   TextWindow.ForegroundColor = "Gray"
-
   a_saved = a
-
   a = ans
-
   Div()
-
   If ans <> a_saved Then
-
     TextWindow.ForegroundColor = "Red"
-
     TextWindow.WriteLine("TestDiv(): Answer " + ans + " is not " + a_saved + ".")
-
     TextWindow.Read()
-
     TextWindow.ForegroundColor = "Gray"
-
   EndIf
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 ' TestMinus : Tester for Minus()
-
 Sub TestMinus
-
   Stack.PushValue("local", i)
-
   ' Set small random number to n
-
   n = Math.GetRandomNumber(15)
-
   n=12
-
   TextWindow.ForegroundColor = "Cyan"
-
   TextWindow.WriteLine("n=" + n)
-
   ' Set big random number to m
-
   m = ""
-
   For i = 1 To 29
-
     r = Math.GetRandomNumber(10) - 1
-
     m = Text.Append(r, m)
-
   EndFor
-
   r = Math.GetRandomNumber(9)
-
   m = Text.Append(r, m)
-
   m="407015112893819671469130134878"
-
   TextWindow.WriteLine("m=" + m)
-
   TextWindow.ForegroundColor = "Gray"
-
   ' Set x = m - n
-
   a = m
-
   b = n
-
   Minus()
-
   x = ans
-
   ' Set o = m - x
-
   a = m
-
   b = x
-
   Minus()
-
   o = ans
-
   If o <> n Then
-
     TextWindow.ForegroundColor = "Red"
-
     TextWindow.WriteLine("TestMinus(): m-(m-n) is not m.")
-
     TextWindow.WriteLine("m-n=" + x)
-
     TextWindow.WriteLine("m-(m-n)=" + o)
-
     TextWindow.ForegroundColor = "Gray"
-
     TextWindow.Read()
-
   EndIf
-
   ' Set a = n  * m
-
   a = n
-
   b = m
-
   Mul()
-
   TextWindow.ForegroundColor = "Cyan"
-
   TextWindow.WriteLine("n*m=" + ans)
-
   TextWindow.ForegroundColor = "Gray"
-
   TextWindow.WriteLine("m=" + m)
-
   a = ans
-
   b = m
-
   For i = 1 To n
-
     ' Set a = a - m
-
     iwatch = i
-
     Minus()
-
     TextWindow.ForegroundColor = "Cyan"
-
     TextWindow.WriteLine("[" + i +"]" + a + "-" + b + "=" + ans)
-
     TextWindow.ForegroundColor = "Gray"
-
     a = ans
-
   EndFor
-
   If a <> 0 Then
-
     TextWindow.ForegroundColor = "Red"
-
     TextWindow.WriteLine("TestMinus(): Answer " + ans + " is not zero.")
-
     TextWindow.ForegroundColor = "Gray"
-
     TextWindow.Read()
-
   EndIf
-
   i = Stack.PopValue("local")
-
 EndSub
-
-

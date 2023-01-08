@@ -1,691 +1,345 @@
 '########################################################'
-
 ' Death Valley (v1.8)
 
-
-
 ' Adapted from ZX81 by GoToLoop
-
 ' Original of Computer Space Games
-
 ' From Usbourne Publishing (1982)
-
-
 
 ' KTX387-0
 
-
-
 ' http://social.msdn.microsoft.com/Forums/en-US/smallbasic
-
 '/thread/58a7a05d-41b7-408c-8466-56625e0bb787
-
 '########################################################'
 
-
-
 '________________________________________________________'
-
 ' Constants:
-
 fps    = 30        ' Starting scrolled up lines per second
-
 steer  = 2         ' How fast craft steers
-
 stgNum = 5         ' Number of ravine stages to endure
 
-
-
 widthInit = 15     ' Ravine's initial half width
-
 distMax   = 2000   ' Ravine's total length of lines for each stage
 
-
-
 confLoad = "True"
-
 confSave = "True"
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' ' confPath = File.GetSettingsFilePath()
-
 '________________________________________________________'
-
 ' Initialization:
-
 TextWindow.Top = 250
-
 TextWindow.BackgroundColor = "Green"
-
 TextWindow.ForegroundColor = "Black"
-
 TextWindow.Clear()
 
-
-
 ASCIIData()
-
 StoryData()
 
-
-
 ReadArgs()
-
 ConfigData()
-
-
 
 distPercent = Math.Floor(distMax/100)  ' 1% of distMax
 
-
-
 Timer.Tick = StoryDisplay
-
 Timer.Interval = 1500       ' Activates timer to display the story
 
-
-
 TextWindow.PauseWithoutMessage() ' Even though execution is temporarily
-
 'paused, the timer thread keeps going!
-
 ResetGame()
-
 '________________________________________________________'
-
 Start:
-
 If stg >= stgNum Then
-
   Victory()
-
 EndIf
 
-
-
 stg = stg + 1
-
 width = width - 1
-
 RefreshVars()
 
-
-
 TextWindow.ForegroundColor = valleyColor
-
 TextWindow.BackgroundColor = "Black"
-
 TextWindow.Clear()
 
-
-
 Sound.PlayChimesAndWait()
-
 Timer.Interval = 1000/fps   ' Activates timer for ravine's game loop
-
 '________________________________________________________'
-
 ' InKey Loop:
-
 While isAlive And dist > 0
-
   
-
   key = Text.ConvertToLowerCase( TextWindow.ReadKey() )
-
   Sound.PlayClick()
-
   
-
   If key = ESC Then
-
     Program.End()
-
     
-
   ElseIf key = CR Or key = " " Then
-
     If isPaused Then
-
       isPaused = "False"
-
       Timer.Resume()
-
     Else
-
       isPaused = "True"
-
       Timer.Pause()
-
     EndIf
-
     
-
   ElseIf key = "q" Or key = "a" Then
-
     wallLeft  = wallLeft  - steer
-
     wallRight = wallRight + steer
-
     
-
   Else
-
     wallLeft  = wallLeft  + steer
-
     wallRight = wallRight - steer
-
   EndIf
-
   
-
 EndWhile
-
 '________________________________________________________'
-
 ' Next Ravine:
-
 Timer.Pause()
-
 Program.Delay(3000)
 
-
-
 Goto Start
-
 '________________________________________________________'
-
 Sub ResetGame
-
   
-
   isAlive = "False"
-
   
-
   Timer.Pause()
-
   Timer.Tick = GameLoop
-
   
-
   stg = 0
-
   width = widthInit + 1
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub GameLoop
-
   
-
   Timer.Pause()   ' Turn off timer to avoid some print sync glitches
-
   
-
   move = Math.GetRandomNumber(3) - 2
-
   If offSet+move >= 0 And offSet+move < widthMax Then
-
     offSet    = offSet    + move
-
     wallLeft  = wallLeft  - move
-
     wallRight = wallRight + move
-
   EndIf
-
   
-
   PrintRavine()
-
   
-
   dist = dist - 1
-
   If Math.Remainder(dist, distPercent) = 0 Then
-
     spd = spd + 1
-
     Timer.Interval = 1000/spd ' Increases FPS based on how close to goal
-
   EndIf
-
   
-
   msg = Z + stg + "   Dist: " + dist + "km   Spd: " + spd + "km/s"
-
   TextWindow.Title = msg
-
   
-
   Timer.Resume()  ' All print's done now. Re-activate timer
-
   
-
   If wallLeft < 1 Or wallRight < 1 Then
-
     GameOver()
-
   EndIf
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub PrintRavine
-
   
-
   TextWindow.CursorLeft = offSet
-
   TextWindow.Write(wall1)
-
   
-
   TextWindow.BackgroundColor = valleyColor
-
   For i = 1 To wallLeft
-
     TextWindow.Write(" ")
-
   EndFor
-
   
-
   TextWindow.BackgroundColor = 0
-
   TextWindow.ForegroundColor = shipColor
-
   TextWindow.Write(ship)
-
   
-
   TextWindow.BackgroundColor = valleyColor
-
   For i = 1 To wallRight
-
     TextWindow.Write(" ")
-
   EndFor
-
   
-
   TextWindow.BackgroundColor = 0
-
   TextWindow.WriteLine(wall2)
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub GameOver
-
   
-
   ResetGame()
-
   
-
   TextWindow.WriteLine(LF+"  You've crashed into a ravine wall")
-
   TextWindow.WriteLine("and got disintegrated!"+LF)
-
   
-
   Sound.PlayMusic("o1 g#")
-
   
-
   Program.Delay(4000)
-
   TextWindow.PauseWithoutMessage()
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub Victory
-
   
-
   ResetGame()
-
   
-
   TextWindow.WriteLine(LF+"  CONGRATULATIONS!!!")
-
   TextWindow.WriteLine("  You've proved the impossible wrong!"+LF)
-
   TextWindow.WriteLine("  You've survived Death Valley")
-
   TextWindow.WriteLine("and escaped the odious Dissectitrons!"+LF)
-
   
-
   Sound.PlayMusic("t120s8m5 l8 o4 g.ga16g. l16 gab o5 c8")
-
   
-
   Program.Delay(5000)
-
   TextWindow.Pause()
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub RefreshVars
-
   
-
   isAlive = "True"
-
   spd  = fps
-
   dist = distMax
-
   
-
   offSet   = 80/2 - width ' Init. dist. between text window's left & left wall
-
   wallLeft = width        ' Init. distance between left wall  & ship
-
   wallRight= width        ' Init. distance between ship & right wall
-
   
-
   valley   = 1 + wallLeft + 1 + wallRight + 1
-
   widthMax = 80 - valley
-
   
-
   rand  = Math.GetRandomNumber(shipsCount)
-
   ship  = Text.GetCharacter(ships[rand])
-
   shipColor   = Math.GetRandomNumber(6) + 8
-
   
-
   rand  = Math.GetRandomNumber(wallsCount)
-
   wall1 = Text.GetCharacter(wallsL[rand])
-
   wall2 = Text.GetCharacter(wallsR[rand])
-
   valleyColor = Math.GetRandomNumber(15)
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub ASCIIData
-
   
-
   LF  = Text.GetCharacter(10)
-
   CR  = Text.GetCharacter(13)
-
   ESC = Text.GetCharacter(27)
-
   Z   = "Stage: "
-
   
-
   ships  = "1=1;2=2;3=3;4=4;5=11;6=12;7=14;8=15;9=21;"
-
   ships  = ships + "10=31;11=165;12=632;13=934;"
-
   shipsCount = Array.GetItemCount(ships)
-
   
-
   wallsL = "1=18;2=19;3=29;4=35;5=124;6=161;7=166;8=176;"
-
   wallsR = wallsL
-
   wallsL = wallsL + "9=47;10=92;11=91;12=28;13=171;"
-
   wallsR = wallsR + "9=92;10=47;11=93;12=172;13=187;"
-
   wallsCount = Array.GetItemCount(wallsL)
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub StoryData
-
   
-
   t[1]  = "   There is only one way to escape"
-
   t[2]  = "the forces of the evil Dissectitrons." + LF
-
   
-
   t[3]  = "   You will have to steel every nerve"
-
   t[4]  = "and fly your single-seater Speed Dart"
-
   t[5]  = "along the jagged, bottomless ravine"
-
   t[6]  = "known as Death Valley." + LF
-
   
-
   t[7]  = "   The valley starts reasonably large,"
-
   t[8]  = "but as you venture further in,"
-
   t[9]  = "it gets impossibly very narrower!" + LF
-
   
-
   t[10] = "   Steer your craft using the keyboard,"
-
   t[11] = "and see if you can make it safely"
-
   t[12] = "through Death Valley." + LF
-
   
-
   t[13] = "Good luck!!!" + LF
-
   
-
   t[14] = "Press any key to start..." + LF
-
   
-
   textLines = Array.GetItemCount(t)
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub StoryDisplay
-
   
-
   i = i + 1
-
   
-
   TextWindow.WriteLine(t[i])
-
   Sound.PlayClick()
-
   
-
   If i >= textLines Then
-
     Timer.Pause()
-
   EndIf
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub ConfigData
-
   
-
   If confLoad Then
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '     confs = File.ReadContents(confPath)
-
   EndIf
-
   
-
   If confs <> "" Then
-
     ConfigRead()
-
   Else
-
     ConfigDump()
-
   EndIf
-
   
-
   If confSave Then
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '     File.WriteContents(confPath, confs)
-
   EndIf
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub ConfigRead
-
   
-
   fps    = confs["fps"]
-
   steer  = confs["steer"]
-
   stgNum = confs["stgNum"]
-
   
-
   widthInit = confs["widthInit"]
-
   distMax   = confs["distMax"]
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub ConfigDump
-
   
-
   confs["fps"]    = fps
-
   confs["steer"]  = steer
-
   confs["stgNum"] = stgNum
-
   
-
   confs["widthInit"] = widthInit
-
   confs["distMax"]   = distMax
-
   
-
 EndSub
-
 '________________________________________________________'
-
 Sub ReadArgs
-
   
-
   If Program.ArgumentCount > 0 Then
-
     
-
     arg1 = Text.ConvertToLowerCase( Program.GetArgument(1) )
-
     arg2 = Text.ConvertToLowerCase( Program.GetArgument(2) )
-
     
-
     If Text.StartsWith(arg1, "t") Then
-
       confLoad = "True"
-
     Else
-
       confLoad = "False"
-
     EndIf
-
     
-
     If Text.StartsWith(arg2, "t") Then
-
       confSave = "True"
-
     Else
-
       confSave = "False"
-
     EndIf
-
     
-
   EndIf
-
   
-
 EndSub
-
 '________________________________________________________'
-
-

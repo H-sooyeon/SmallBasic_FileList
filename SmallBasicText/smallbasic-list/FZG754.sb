@@ -1,1243 +1,621 @@
 playerSightRadius = 9
-
 viewportSize = playerSightRadius * 2 - 1
-
 tileSize = 24
-
-
 
 viewportPixels = viewportSize * tileSize
 
-
-
 center = viewportPixels / 2
 
-
-
 resourceMode = "online"
-
 'resourceMode = "local"
-
-
 
 debugMode = "False"
 
-
-
 healthLimit = 15
 
-
-
 imageName[ 1 ] = "Floor"
-
 imageName[ 2 ] = "Wall"
-
 imageName[ 3 ] = "Breakable"
-
 imageName[ 4 ] = "Broken"
-
 imageName[ 5 ] = "Stairs"
-
 imageName[ 6 ] = "Up"
-
 imageName[ 7 ] = "PowerUp"
-
 imageName[ 8 ] = "Monster"
-
 imageName[ 9 ] = "FloorB"
-
 imageName[ 10 ] = "WallB"
 
-
-
 imageName[ 11 ] = "Player"
-
 imageName[ 12 ] = "Health"
-
 imageName[ 13 ] = "MaxHealth"
-
 imageName[ 14 ] = "EmptyHealth"
-
 imageName[ 15 ] = "Orb"
 
-
-
 'The level tiles are tiles that change for each level - the engine looks for an image that has the name followed by the level number
-
 levelTilesEndIndex = 10
 
-
-
 blockings[ 1 ] = "Wall"
-
 blockings[ 2 ] = "WallB"
-
 blockings[ 3 ] = "Breakable"
 
-
-
 GraphicsWindow.CanResize = "False"
-
 GraphicsWindow.BackgroundColor = "Black"
-
 GraphicsWindow.Clear()
-
-
 
 working = "False"
 
-
-
 ResetPlayer()
-
 DownLevel()
-
-
 
 LoadResources()
 
-
-
 Draw()
 
-
-
 'move when the player releases the key so that they have to press it once for each movement
-
 GraphicsWindow.KeyUp = MoveKeyboard 
-
 GraphicsWindow.MouseUp = MoveMouse
 
-
-
 Sub StartProgress  
-
   GetDimensions()
-
   working = "True"
-
   GraphicsWindow.BrushColor = "Gray"
-
   GraphicsWindow.FillRectangle( offsetX, offsetY, ( viewportSize ) * tileSize, ( viewportSize ) * tileSize )
-
   GraphicsWindow.BrushColor = "Black"
-
   progressWidth = viewportSize - 2
-
   GraphicsWindow.FillRectangle( tileSize + offsetX, ( viewportSize / 2 ) * tileSize + offsetY, progressWidth * tileSize, tileSize )
 
-
-
   progress = 0
-
   stepAmount = progressWidth / steps
-
   GraphicsWindow.BrushColor = "Green"  
-
 EndSub
-
-
 
 Sub Progress
-
   progress = progress + 1
-
   GraphicsWindow.FillRectangle( tileSize + offsetX, ( viewportSize / 2 ) * tileSize + offsetY, stepAmount * progress * tileSize, tileSize )   
-
 EndSub
-
-
 
 Sub EndProgress
-
   working = "False"
-
 EndSub
-
-
 
 Sub Restart
-
   ResetPlayer()
-
   DownLevel()
-
   Draw()   
-
 EndSub
 
-
-
 Sub ResetPlayer
-
   playerX = 0
-
   playerY = 0
-
-
 
   score = 0
 
-
-
   level = 0
-
   maxLevel = 5
 
-
-
   maxHealth = 5
-
   health = maxHealth
-
   
-
   map = 0
-
   monsters = 0
-
   lastDrawn = 0
-
   
-
   nextLevelUp = 100  
-
   topLevel = 0
-
   foundOrb = "False"
-
   
-
   debugMessage = ""
-
 EndSub
-
-
 
 Sub LoadResources
-
   If ( resourceMode = "online" ) Then
-
     path = "http://dl.dropbox.com/u/26751885/Small%20Basic%20Tile%20Engine/"
-
   Else 
-
     path = Program.Directory + "\"
-
   EndIf
-
   
-
   steps = levelTilesEndIndex * maxLevel + Array.GetItemCount( imageName ) - levelTilesEndIndex
-
   StartProgress()
 
-
-
   For i = 1 to Array.GetItemCount( imageName )
-
     If ( i > levelTilesEndIndex ) Then
-
       loadImageName = imageName[ i ]
-
       LoadImage()
-
     Else
-
       For l = 1 To maxLevel
-
         loadImageName = imageName[ i ] + l
-
         LoadImage()
-
       EndFor
-
     EndIf
-
     indexFromName[ imageName[ i ] ] = i  
-
   EndFor
-
-
 
   EndProgress()  
-
 EndSub  
-
-
 
 Sub LoadImage
-
   fullPath = path + loadImageName + ".png"
-
   tiles[ loadImageName ] = ImageList.LoadImage( fullPath )
-
   Progress()
-
 EndSub
-
-
 
 Sub MoveKeyboard
-
   If( working = "False" ) Then
-
     direction = GraphicsWindow.LastKey  
-
     Update()
-
   EndIf
-
 EndSub
-
-
 
 Sub MoveMouse
-
   If ( working = "False" ) Then
-
     upAmount = centerY - GraphicsWindow.MouseY
-
     downAmount = GraphicsWindow.MouseY - centerY
-
     leftAmount = centerX - GraphicsWindow.MouseX
-
     rightAmount = GraphicsWindow.MouseX - centerX
-
     
-
     If( upAmount > downAmount And upAmount > leftAmount And upAmount > rightAmount ) Then
-
       direction = "Up"
-
     ElseIf( downAmount > leftAmount And downAmount > rightAmount ) Then
-
       direction = "Down"
-
     ElseIf( leftAmount > rightAmount ) Then 
-
       direction = "Left"
-
     Else
-
       direction = "Right"
-
     EndIf
-
     
-
     Update()
-
   EndIf
-
 EndSub
-
-
 
 Sub ShowMessage
-
   GraphicsWindow.ShowMessage( message, "" )
-
 EndSub  
-
-
 
 Sub Update 
-
   'make a copy of the player's current location
-
   oldX = playerX
-
   oldY = playerY
-
   
-
   'check if the player is moving and if so change the copy of the location accordingly
-
   If ( direction = "Up" ) Then 
-
     playerY = playerY - 1
-
   ElseIf ( direction = "Down" ) Then
-
     playerY = playerY + 1
-
   ElseIf ( direction = "Left" ) Then
-
     playerX = playerX - 1
-
   ElseIf ( direction = "Right" ) Then
-
     playerX = playerX + 1
-
   EndIf
-
   
-
   'set location to the new position
-
   location = playerX + ":" + playerY 
-
   
-
   'the square of map at this location might not have been created yet
-
   CheckMapAtLocation() 
-
   
-
   monsterScore = 20 * level
-
   powerUpScore = level
-
   downLevelScore = 50 * level
-
   maxHealthScore = 5 * level
-
   
-
   clearFloor = "False"
-
   'only update position if they're not trying to move into a wall
-
   If ( Array.ContainsValue( blockings, map[ level ][ location ] ) ) Then 
-
     If ( map[ level ][ location ] = "Breakable" ) Then
-
       updateLocation = location
-
       updateTilename = "Broken"
-
       UpdateMap()             
-
     EndIf  
-
     playerX = oldX
-
     playerY = oldY
-
   Else    
-
     If ( monsters[ level ][ location ] = "True" ) Then
-
       If ( Math.GetRandomNumber( 5 + level ) <= 5 ) Then
-
         scoreAmount = monsterScore
-
         GiveScore()
-
         monsters[ level ][ location ] = "False"  
-
       EndIf
-
       playerX = oldX      
-
       playerY = oldY
-
     ElseIf( map[ level ][ location ] = "Orb" ) Then 
-
       message = "You found the Orb! You win!"
-
       ShowMessage()
-
       Restart()     
-
     ElseIf( map[ level ][ location ] = "PowerUp" ) Then 
-
       'give them a point
-
       scoreAmount = powerUpScore
-
       GiveScore()      
-
       clearFloor = "True"
-
     ElseIf ( map[ level ][ location ] = "Stairs" ) Then
-
       DownLevel()
-
       If ( level > topLevel ) Then
-
         topLevel = level
-
         scoreAmount = downLevelScore
-
         GiveScore()
-
       EndIf      
-
     ElseIf ( map[ level ][ location ] = "Up" ) Then 
-
       UpLevel()            
-
     ElseIf( map[ level ][ location ] = "Health" ) Then
-
       If ( health < maxHealth ) Then
-
         health = health + 1
-
       Else
-
         scoreAmount = powerUpScore
-
         GiveScore()
-
       EndIf
-
       clearFloor = "True"
-
     ElseIf( map[ level ][ location ] = "MaxHealth" ) Then
-
       gotHealth = "False"
-
       If ( maxHealth < healthLimit ) Then
-
         maxHealth = maxHealth + 1
-
         gotHealth = "True"
-
       EndIf
-
       If ( health < maxHealth ) Then
-
         health = maxHealth
-
         gotHealth = "True"
-
       EndIf
-
       If ( gotHealth = "False" ) Then
-
         scoreAmount = maxHealthScore
-
         GiveScore()      
-
       EndIf
-
       clearFloor = "True"
-
     EndIf
-
   EndIf
-
   If( clearFloor ) Then
-
     updateLocation = location
-
     updateTilename = "Floor"
-
     UpdateMap()
-
   EndIf
-
   
-
   MoveMonsters()
-
   
-
   Draw()
-
   direction = "None"
-
 EndSub
-
-
 
 Sub GiveScore
-
   For i = 1 To scoreAmount
-
     score = score + 1
-
     If( score = nextLevelUp ) Then
-
       If( maxHealth < healthLimit ) Then
-
         maxHealth = maxHealth + 1
-
       EndIf
-
       health = maxHealth
-
       nextLevelUp = nextLevelUp * 2
-
       message = "You gained a new level!"
-
       ShowMessage()
-
     EndIf
-
   EndFor
-
 EndSub  
-
-
 
 Sub GetDimensions
-
   offsetX = ( GraphicsWindow.Width - viewportPixels ) / 2 
-
   offsetY = ( GraphicsWindow.Height - viewportPixels ) / 2
-
   centerX = center + offsetX
-
   centerY = center + offsetY  
-
 EndSub
-
-
 
 Sub MoveMonsters
-
   monstersOnScreen = 0
-
   GetDimensions()  
-
   i = 1
-
   For y = 0 To viewportSize - 1
-
     For x = 0 to viewportSize - 1
-
       GetLocationRelativeToPlayer()      
-
       'the part of the map at this location might not have been created yet       
-
       CheckMapAtLocation()   
-
       
-
       If ( monsters[ level ][ location ] = "True" ) Then
-
         monstersOnScreen[ i ][ "x" ] = locationX
-
         monstersOnScreen[ i ][ "y" ] = locationY
-
         i = i + 1
-
       EndIf  
-
     EndFor
-
   EndFor
-
   For m = 1 To i - 1   
-
     locationX = monstersOnScreen[ m ][ "x" ]   
-
     locationY = monstersOnScreen[ m ][ "y" ]
-
     location = locationX + ":" + locationY
-
     
-
     monsterX = locationX
-
     monsterY = locationY
-
     
-
     newLocation = monsterX + ":" + ( monsterY - 1 )
-
     IsPassable()
-
     canMoveUp = passable
 
-
-
     newLocation = monsterX + ":" + ( monsterY + 1 )
-
     IsPassable()
-
     canMoveDown = passable
-
     
-
     newLocation = ( monsterX - 1 ) + ":" + monsterY
-
     IsPassable()
-
     canMoveLeft = passable
 
-
-
     newLocation = ( monsterX + 1 ) + ":" + monsterY
-
     IsPassable()
-
     canMoveRight = passable
-
     
-
     'move randomly occasionally to prevent getting stuck - otherwise try to move towards player
-
     If ( Math.GetRandomNumber( 8 ) = 1 ) Then
-
       MoveMonsterRandomly()
-
     ElseIf ( canMoveRight And monsterX < playerX ) Then
-
       monsterX = monsterX + 1
-
     ElseIf ( canMoveDown And monsterY < playerY ) Then
-
       monsterY = monsterY + 1
-
     ElseIf ( canMoveUp And monsterY > playerY ) Then
-
       monsterY = monsterY - 1
-
     ElseIf ( canMoveLeft And monsterX > playerX ) Then
-
       monsterX = monsterX - 1
-
     Else
-
       'can't move towards player - try to move randomly
-
       MoveMonsterRandomly()
-
     EndIf
-
       
-
     monsterLocation = monsterX + ":" + monsterY 
-
     If ( monsterX = playerX And monsterY = playerY ) Then
-
       health = health - 1  
-
       If ( health <= 0 ) Then
-
         message = "Aw shucks, you died!"
-
         ShowMessage()
-
         Restart()
-
       EndIf
-
     Else
-
       newLocation = monsterLocation
-
       IsPassable()
-
       If ( passable And monsters[ level ][ monsterLocation ] <> "True" ) Then
-
         monsters[ level ][ location ] = "False"
-
         monsters[ level ][ monsterLocation ] = "True"
-
       EndIf
-
     EndIf    
-
   EndFor  
-
 EndSub  
-
-
 
 Sub MoveMonsterRandomly
-
   'try to move randomly
-
   dirCount = 0
-
   directions = 0
-
   If( canMoveUp ) Then
-
     dirCount = dirCount + 1
-
     directions[ dirCount ][ "x" ] = 0
-
     directions[ dirCount ][ "y" ] = -1
-
   EndIf
-
   If( canMoveDown ) Then
-
     dirCount = dirCount + 1
-
     directions[ dirCount ][ "x" ] = 0
-
     directions[ dirCount ][ "y" ] = 1
-
   EndIf
-
   If( canMoveLeft ) Then
-
     dirCount = dirCount + 1
-
     directions[ dirCount ][ "x" ] = -1
-
     directions[ dirCount ][ "y" ] = 0
-
   EndIf
-
   If( canMoveRight ) Then
-
     dirCount = dirCount + 1
-
     directions[ dirCount ][ "x" ] = 1
-
     directions[ dirCount ][ "y" ] = 0
-
   EndIf
-
   If( dirCount > 0 ) Then
-
     randomDirection = directions[ Math.GetRandomNumber( dirCount ) ]
-
     monsterX = monsterX + randomDirection[ "x" ]
-
     monsterY = monsterY + randomDirection[ "y" ]
-
   EndIf  
-
 EndSub
-
-
 
 Sub Draw
-
   GetDimensions()
-
   uncached = 0
-
   'draw a section of the map that is 17 x 17 tiles in size  
-
   For y = 0 To viewportSize - 1
-
     For x = 0 to viewportSize - 1
-
       GetLocationRelativeToPlayer()
-
       
-
       GetScreenPosition()
-
       
-
       'the part of the map at this location might not have been created yet       
-
       CheckMapAtLocation() 
-
       
-
       GetLevelTileName()
-
       
-
       viewPortLocation = x + ":" + y
-
       
-
       'check lastDrawn array for this tile - we only want to bother drawing if the tile is different to the last one we drew here
-
       If ( Array.ContainsIndex( lastDrawn, viewPortLocation ) = "False" Or tile <> lastDrawn[ viewPortLocation ] ) Then
-
         uncached = uncached + 1
-
         'draw a floor first        
-
         GraphicsWindow.DrawImage( tiles[ "Floor" + level ], screenX,  screenY )
-
         
-
         'if the current tile IS a floor then no point in drawing it again
-
         If ( map[ level ][ location ] <> "Floor" ) Then        
-
           GraphicsWindow.DrawImage( tiles[ tile ], screenX, screenY )
-
         EndIf
-
       EndIf
-
       
-
       lastDrawn[ viewPortLocation ] = tile
-
       
-
       If ( monsters[ level ][ location ] = "True" ) Then
-
         GraphicsWindow.DrawImage( tiles[ "Monster" + level ], screenX, screenY )
-
         lastDrawn[ viewPortLocation ] = "Monster" + tile
-
       EndIf
-
       
-
       'now overlay the player sprite if the current location is the player's location
-
       If ( x = playerSightRadius - 1 And y = playerSightRadius - 1 ) Then
-
         GraphicsWindow.DrawImage( tiles[ "Player" ],  screenX,  screenY )
-
       EndIf     
-
     EndFor
-
   EndFor
-
   'too much flicker - look into fixing maybe in the mean time display in the titlebar
-
   'DrawHealth()
-
   
-
   GraphicsWindow.Title = "Score: " + score + " Health: " + health + "/" + maxHealth      
-
   
-
   If ( debugMode ) Then
-
     cached = ( 17 * 17 ) - uncached
-
     cachedPerc = Math.Round( ( 1000 / ( 17 * 17 ) ) * cached ) / 10
-
     
-
     debugMessage = ( " | " + cachedPerc + "% from cache" ) + debugMessage
-
     
-
     GraphicsWindow.BrushColor = "DarkGray"
-
     GraphicsWindow.FillRectangle( offsetX, offsetY + viewportPixels, viewportPixels, tileSize )
-
     GraphicsWindow.BrushColor = "White"
-
     GraphicsWindow.DrawText( offsetX, offsetY + viewportPixels, debugMessage )
-
   EndIf
-
 EndSub
-
-
 
 Sub DrawHealth
-
   For h = 1 To maxHealth
-
     hX = ( viewportSize - maxHealth + h - 1 ) * tileSize + offsetX
-
     hY = offsetY
-
     If( h > health ) Then
-
       hTile = "EmptyHealth"
-
     Else
-
       hTile = "MaxHealth"
-
     EndIf        
-
     GraphicsWindow.DrawImage( tiles[ hTile ],  hX,  hY )
-
   EndFor 
-
 EndSub  
-
-
 
 Sub DownLevel
-
   If ( level < maxLevel ) Then
-
     level = level + 1  
-
     ClearAroundPlayer()
-
     lastDrawn = ""
-
   EndIf  
-
 EndSub
-
-
 
 Sub UpLevel
-
   If ( level > 1 ) Then
-
     level = level - 1    
-
     lastDrawn = ""
-
   EndIf  
-
 EndSub
-
-
 
 Sub ClearAroundPlayer 
-
   updateTilename = "Floor"
 
-
-
   updateLocation = playerX + ":" + ( playerY - 1 )
-
   UpdateMap()
-
-
 
   updateLocation = ( playerX - 1 ) + ":" + playerY
-
   UpdateMap()
-
    
-
   updateLocation = playerX + ":" + ( playerY + 1 )
-
   UpdateMap()
-
-
 
   updateLocation = ( playerX + 1 ) + ":" + playerY 
-
   UpdateMap()
-
   
-
   If ( level > 1 ) Then
-
     updateTilename = "Up"
-
   EndIf
-
   
-
   updateLocation = playerX + ":" + playerY
-
   UpdateMap()
-
 EndSub
-
-
 
 Sub UpdateMap
-
   map[ level ][ updateLocation ] = updateTilename
-
 EndSub
-
-
 
 Sub GetLocationRelativeToPlayer
-
   locationX = x - playerSightRadius + playerX + 1
-
   locationY = y - playerSightRadius + playerY + 1
-
   location = locationX + ":" + locationY
-
 EndSub  
 
-
-
 Sub GetScreenPosition
-
   screenX = x * tileSize + offsetX
-
   screenY = y * tileSize + offsetY  
-
 EndSub
-
-
 
 Sub GetTile
-
   tile = map[ level ][ location ]
-
 EndSub
-
-
 
 Sub IsPassable
-
   oldLocation = location
-
   location = newLocation
-
   GetTile()
-
   passable = "True"
-
   If ( Array.ContainsValue( blockings, tile ) ) Then
-
     passable = "False"
-
   EndIf
-
   location = oldLocation  
-
 EndSub
-
-
 
 Sub GetLevelTileName
-
   GetTile()
-
   tileIndex = indexFromName[ tile ]
-
   If ( tileIndex <= levelTilesEndIndex ) Then
-
     tile = tile + level
-
   EndIf
-
 EndSub
-
-
 
 'check if the map is empty at this location and if it is then randomly pick a tile to place here
-
 Sub CheckMapAtLocation 
-
   'higher is less likely
-
   orbProbability = 1000
-
   maxHealthProbability = 2000
-
   stairProbability = 750    
-
   healthProbability = 400
-
   powerupProbability = 50
-
   monsterProbability = Math.Floor( 75 / level )
-
   alternateWallProbability = 16
-
   wallProbability = 4
-
   alternateFloorProbability = 4
-
   breakableWallProbability = Math.Round( 1.5 * level )
-
   
-
   If( debugMode ) Then
-
     maxHealthProbability = 500
-
     healthProbability = 100
-
     stairProbability = 100
-
     monsterProbability = 500
-
     orbProbability = 200
-
   EndIf
-
   
-
   If ( Array.ContainsIndex( map[ level ], location ) = "False" ) Then
-
     '2nd condition - don't put stairs here if a tile has already been generated at this location on the level below
-
     If ( level < maxLevel And Math.GetRandomNumber( stairProbability ) = 1 And Array.ContainsIndex( map[ level + 1 ], location ) = "False" ) Then
-
       'Stairs - next level
-
       map[ level ][ location ] = "Stairs"
-
       map[ level + 1 ][ location ] = "Up"
-
     ElseIf ( Math.GetRandomNumber( maxHealthProbability ) = 1 ) Then            
-
       'Max Health - heals 1 damage and adds 1 to max
-
       map[ level ][ location ] = "MaxHealth" 
-
     ElseIf ( level > 1 And Math.GetRandomNumber( stairProbability ) = 1 And Array.ContainsIndex( map[ level - 1 ], location ) = "False" ) Then
-
       'Stairs up - previous level
-
       map[ level ][ location ] = "Up"
-
       map[ level - 1 ][ location ] = "Stairs"
-
     ElseIf ( Math.GetRandomNumber( healthProbability ) = 1 ) Then            
-
       'Health - heals 1 damage
-
       map[ level ][ location ] = "Health" 
-
     ElseIf ( Math.GetRandomNumber( powerupProbability ) = 1 ) Then            
-
       'PowerUp - increases your score
-
       map[ level ][ location ] = "PowerUp" 
-
     ElseIf ( Math.GetRandomNumber( monsterProbability ) = 1 ) Then            
-
       'Monster
-
       If( location <> ( playerX + ":" + playerY ) And monsters[ level ][ location ] <> "True" ) Then 
-
         monsters[ level ][ location ] = "True"  
-
       EndIf      
-
       map[ level ][ location ] = "Floor"
-
     ElseIf ( Math.GetRandomNumber( alternateWallProbability ) = 1 ) Then
-
       'Wall - a square you can't move through
-
       map[ level ][ location ] = "WallB" 
-
     ElseIf ( Math.GetRandomNumber( wallProbability ) = 1 ) Then
-
       'Wall - a square you can't move through
-
       map[ level ][ location ] = "Wall" 
-
     ElseIf ( Math.GetRandomNumber( alternateFloorProbability ) = 1 ) Then
-
       map[ level ][ location ] = "FloorB" 
-
     ElseIf ( Math.GetRandomNumber( breakableWallProbability ) = 1 ) Then
-
       'Breakable - a wall you can break down
-
       map[ level ][ location ] = "Breakable" 
-
     ElseIf ( level = maxLevel And foundOrb = "False" And Math.GetRandomNumber( orbProbability ) = 1 ) Then
-
       'win condition
-
       map[ level ][ location ] = "Orb"
-
       foundOrb = "True"
-
       message = "The Orb is near..."
-
       ShowMessage()
-
     Else
-
       'Floor - a square you can move over
-
       map[ level ][ location ] = "Floor" 
-
     EndIf
-
   EndIf
-
 EndSub
-
-

@@ -1,551 +1,275 @@
 '  Missile Turret
-
 '  by Zock77 & GoToLoop
-
 '  MJV649-1
-
 '  http://Social.MSDN.Microsoft.com/Forums/en-US/smallbasic/thread/1f6bce18-6021-443c-97e2-6ad181f8bd3e
-
 '_______________________________________________________________________________'
-
 xRes     = 1024
-
 yRes     = 768
 
-
-
 numTanks = 15
-
 TankSp   = 2
 
-
-
 TWide    = 40
-
 THigh    = 15
-
 TWideH   = TWide/2
-
 THighH   = THigh/2
-
 TWideQ   = TWide/4
-
 THighQ   = THigh/4
-
 TWideD   = TWide*2
-
 THighD   = THigh*2
 
-
-
 MWide    = 10
-
 MHigh    = 5
-
 MWideH   = MWide/2
-
 MHighH   = MHigh/2
 
-
-
 Delay    = 1
-
 Radius   = 200
-
 Grav     = 300
-
 GravH    = Grav/2
-
 Grav1000 = Grav/1000
 
-
-
 InitX    = 55     '  X  offset starting point for missiles
-
 InitY    = yRes/2 '  Y  offset starting point for missiles and also turret's Y position
-
 TrackMin = Math.Round(xRes*12/640) ' Minimum moving missiles-1 necessary to keep track on the screen
 
-
-
 If Math.Abs(yRes - Grav) <= yRes * 2/3 Then
-
   TrackMin = TrackMin * 2
-
 EndIf
-
-
 
 LoadShapes()
-
 CreateShapes()
 
-
-
 GraphicsWindow.CanResize       = "False"
-
 GraphicsWindow.BackgroundColor = "Khaki"
-
 GraphicsWindow.BrushColor      = "White"
-
 GraphicsWindow.PenColor        = "Red"
 
-
-
 GraphicsWindow.Width  = xRes
-
 GraphicsWindow.Height = yRes
-
 GraphicsWindow.Left   = 0
-
 GraphicsWindow.Top    = 0
-
 'GraphicsWindow.Left   = (Desktop.Width  - GraphicsWindow.Width ) / 2
-
 'GraphicsWindow.Top    = (Desktop.Height - GraphicsWindow.Height) / 2
 
-
-
 GraphicsWindow.MouseDown  = MouseDown
-
 GraphicsWindow.MouseMove  = MouseMove
-
 GraphicsWindow.KeyDown    = Quit
 
-
-
 i  = 0
-
 ii = 0
 
-
-
 Elapsed   = 0
-
 Missed    = 0
-
 Destroyed = 0
 
-
-
 Timer.Tick = GarbageCleanup
-
 Timer.Interval = 1000  '  < --- Cleanup and Timer happens for each 1sec
-
 '_______________________________________________________________________________'
-
 Loop:
 
-
-
 MouseY   = MouseYY - InitY
-
 Angle    = Math.ArcTan( MouseY/MouseXX )
-
 Degrees  = Math.GetDegrees(Angle)
 
-
-
 AngleCos = Math.Cos(Angle)
-
 AngleSin = Math.Sin(Angle)
 
-
-
 x = Radius*AngleCos
-
 y = Radius*AngleSin + InitY
 
-
-
 If Angle > 360 Then
-
   Angle = 0
-
 EndIf
 
-
-
 Shapes.Rotate( Turret,Degrees )
-
 Shapes.Move  ( Aim   x,y )
 
-
-
 MoveTanks()
-
 MoveMissiles()
 
-
-
 msg = "Fired: " + i + "  Erased: " + ii + "   Destroyed: " + Destroyed
-
 msg = msg + "  Missed: " + Missed + "  Elapsed: " + Elapsed + "s"
-
 GraphicsWindow.Title = msg
-
-
 
 Program.Delay(Delay)
 
-
-
 Goto Loop
-
 '_______________________________________________________________________________'
-
 Sub LoadShapes
-
   
-
   path = Program.Directory + "\"
-
   path = "http://Sean.Alyrica.net/"
-
   
-
   AimImg    = ImageList.LoadImage(path + "crosshair.png")
-
   TurretImg = ImageList.LoadImage(path + "Turrit.png")
-
   
-
   TurSzH = ImageList.GetHeightOfImage(Turret) / 2  '  <--- Half size of turret shape 
-
   If TurSzH < 5 Then  '  <---  If it fails to determine its size, consider it to be 17
-
     TurSzH = 17
-
   EndIf
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub CreateShapes
-
   
-
   Aim    = Shapes.AddImage(AimImg)
-
   Turret = Shapes.AddImage(TurretImg)
-
   Shapes.Move( Turret  10,InitY-TurSzH )
-
   
-
   For j = 1 To numTanks
-
     GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
-
     Tank [j] = Shapes.AddRectangle(TWide,THigh)
-
     Shapes.Move( Tank[j]  0,-50 )  '  <---  Hide it ASAP!
-
   EndFor
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub SpawnTanks
-
   
-
   For j = 1 To numTanks
-
     
-
     For z = 0 To 0 Step 0  '  <---  Infinite For ... EndFor loop
-
       z = 1  '  <--- If at the end of loop z = 1 (or any value > 0), loop breaks free
-
       TX[j] = Math.GetRandomNumber(xRes/2) + xRes ' <---  Spawns tanks some place beyond east side
-
       
-
       For jj = j-1 To 1 Step -1 '  <---   Makes sure all tanks are not horizontally overlapping too much
-
         If Math.Abs( TX[j] - TX[jj] ) < TWideQ Then
-
           z  = 0  ' <---  If they are, do not let loop break free, setting z = 0 again
-
           jj = 0
-
         EndIf
-
       EndFor
-
       
-
     EndFor
-
     
-
     For z = 0 To 0 Step 0
-
       z = 1
-
       TY[j] = Math.GetRandomNumber(yRes/1.5)
-
       
-
       For jj = j-1 To 1 Step -1 '  <---   Makes sure all tanks are not vertically overlapping too much
-
         If Math.Abs( TY[j] - TY[jj] ) < THighQ Then
-
           z  = 0
-
           jj = 0
-
         EndIf
-
       EndFor
-
       
-
     EndFor
-
     
-
     Shapes.Move( Tank[j]  TX[j],TY[j] ) ' <---  Move them to their random set position
-
     Shapes.ShowShape(Tank[j])           ' <---  Before displaying them up
-
     
-
   EndFor
-
   
-
   Sound.PlayChimesAndWait()
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub MouseMove
-
   
-
   MouseXX = GraphicsWindow.MouseX
-
   MouseYY = GraphicsWindow.MouseY
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub MouseDown
-
   
-
   i = i + 1   '   <---   Missile # i
-
   
-
   Missile[i] = Shapes.AddRectangle( MWide,MHigh )  '  <---  Creates a missile shape number = i
-
   Shapes.Move  ( Missile[i]  0 , -50 )             '  <---  Hide it ASAP!
-
   Shapes.Rotate( Missile[i]  Degrees )
-
   
-
   vCos[i] = Math.GetDegrees(AngleCos) * 10
-
   vSin[i] = Math.GetDegrees(AngleSin) * 10
-
   
-
   TimeStart[i] = Clock.ElapsedMilliseconds / 1000
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub CheckHit
-
   
-
   For j = 1 To numTanks
-
     If TX[j] <> "" Then  '   <---  If tank still exists, check weather a missile had hit it
-
       MSizeX = MX[p] + MWide
-
       MSizeY = MY[p] + MHigh
-
       TSizeX = TX[j] + TWideH
-
       TSizeY = TY[j] + THighH
-
       
-
       If MSizeX > TX[j] And MX[p] < TSizeX And MSizeY > TY[j] And MY[p] < TSizeY Then
-
         TX[j] = ""       '  <---  If so, flags this tank is no more
-
         Destroyed = Destroyed + 1
-
         Shapes.HideShape(Missile[p])
-
         Shapes.HideShape(Tank[j])
-
       EndIf
-
     EndIf
-
   EndFor
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub MoveMissiles
-
   
-
   For p = i To i-TrackMin Step -1 '  <---   From newest to the older past TrackMin missiles + 1
-
     TimeNow[p] = Clock.ElapsedMilliseconds / 1000 - TimeStart[p]
-
     MX[p] = vCos[p]*TimeNow[p] + InitX
-
     MY[p] = vSin[p]*TimeNow[p] + TimeNow[p]*TimeNow[p] * GravH + InitY
-
     Shapes.Move( Missile[p]  MX[p],MY[p] )
-
     CheckHit()  '  <---  For each missile movement, check against numTanks number of tanks!
-
   EndFor
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub MoveTanks
-
   
-
   For j = 1 To numTanks
-
     If TX[j] > 0 Then        '  <---   If tank has not reached the left-most screen's border, move it to left
-
       TX[j] = TX[j] - TankSp
-
       TY[j] = TY[j] + Grav1000
-
       Shapes.Move( Tank[j]  TX[j],TY[j] )
-
     ElseIf TX[j] <> "" Then  '  <---   Otherwise, tank has escaped
-
       TX[j]  = ""            '  <---   Thus, flags this tank is no more
-
       Missed = Missed + 1
-
       Shapes.HideShape(Tank[j])
-
     EndIf
-
   EndFor
-
   
-
   If Array.IsArray(TX) = "False" Then  ' <--- If all TX[]'s values became empty
-
     SpawnTanks()                       ' <--- Respawn all of the tanks again
-
   EndIf
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub GarbageCleanup
-
   
-
   Elapsed = Elapsed + 1
-
   
-
   While ii < i-TrackMin
-
     del = ii
-
     EraseData()
-
     ii = ii + 1
-
   EndWhile
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub EraseData
-
   
-
   Shapes.Remove( Missile[del] )
-
   
-
   Missile   [del] = ""
-
   MX        [del] = ""
-
   MY        [del] = ""
-
   
-
   TimeStart [del] = ""
-
   TimeNow   [del] = ""
-
   
-
   vCos      [del] = ""
-
   vSin      [del] = ""
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub Quit
-
   
-
   Sound.PlayChimeAndWait()
-
   Program.End()
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
-

@@ -1,447 +1,223 @@
 '=====================================================================
-
 'CREATES A MAZE - HOPEFULLY GUARANTEED THAT ALL REGIONS ARE CONNECTED, WHILE STILL RANDOM AND HARD TO TRAVERSE
-
 'box[i][j][k] is 1 for a border and 0 for a hole: i is row, j is column, k=1(left) k=2(right) k= 3(top) k=4(bottom)
-
 '=====================================================================
 
-
-
 '=====================================================================
-
 'KEY PARAMETERS AND SETUP
-
 '=====================================================================
-
-
 
 nbox = 30 'Number of cells in the X and Y directions
-
 wbox = 800/nbox 'Width of each cell in pixels
-
-
 
 initialise()
 
-
-
 '=====================================================================
-
 'INITIALISATION AND FINISH SUBROUTINES
-
 '=====================================================================
-
-
 
 Sub initialise
-
   'Maze creation
-
   gw = nbox*wbox
-
   gh = gw
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Top = 0
-
   GraphicsWindow.Left = (Desktop.Width-gw)/2
-
   GraphicsWindow.BackgroundColor = "LightBlue"
-
   'GraphicsWindow.CanResize = "False" 
-
   GraphicsWindow.Clear()
-
   createMaze()
-
 EndSub
 
-
-
 '=====================================================================
-
 'MAZE CREATION SUBROUTINES
-
 '=====================================================================
-
-
 
 Sub createMaze
-
   'Start by all faces set to a border (barrier)
-
   For i = 1 To nbox
-
     For j = 1 To nbox
-
       For k = 1 To 4
-
         box[i][j][k] = 1
-
       EndFor
-
     EndFor
-
   EndFor
-
   
-
   'Make some holes in the box sides - not essential but gives a better grid faster
-
   If ("True") Then
-
     For i = 1 To nbox
-
       For j = 1 To nbox
-
         For l = 1 To 1 'Just one hole here
-
           holeMade = 0
-
           While (holeMade = 0) 'Keep trying until an internal hole is made
-
             k = Math.GetRandomNumber(4)
-
             makeHole()
-
           EndWhile
-
         EndFor
-
       EndFor
-
     EndFor
-
   EndIf
-
   
-
   'Make some random holes in blocks that have 3 or more borders - not essential but gives a better grid faster
-
   If ("True") Then
-
     For n = 1 To nbox*nbox
-
       i = Math.GetRandomNumber(nbox)
-
       j = Math.GetRandomNumber(nbox)
-
       nborder = 0
-
       For k = 1 To 4
-
         nborder = nborder + box[i][j][k]
-
       EndFor
-
       If (nborder >= 3) Then
-
         holeMade = 0
-
         ntry = 0
-
         While (holeMade = 0 And ntry < 10) 'Keep trying until an internal hole is made OR we cant
-
           ntry = ntry+1
-
           k = Math.GetRandomNumber(4)
-
           While (box[i][j][k] = 0) 'Must be a face that is currently a border so keep having a go while we find faces with a hole
-
             k = Math.GetRandomNumber(4)
-
           EndWhile
-
           makeHole()
-
         EndWhile
-
       EndIf
-
     EndFor
-
   EndIf
-
   
-
   'Ensure all boxes are connected - add some more holes as required - some debugging available here
-
   checkConnectivity()
-
   
-
   'Draw the box borders
-
   GraphicsWindow.PenColor = "Black"
-
   For i = 1 To nbox
-
     For j = 1 To nbox
-
       xCen = (i-0.5)*wbox
-
       yCen = (j-0.5)*wbox
-
       For k = 1 To 4
-
         If (box[i][j][1] = 1) Then
-
           GraphicsWindow.DrawLine(xCen-0.5*wbox,yCen-0.5*wbox,xCen-0.5*wbox,yCen+0.5*wbox)
-
         EndIf
-
         If (box[i][j][2] = 1) Then
-
           GraphicsWindow.DrawLine(xCen+0.5*wbox,yCen-0.5*wbox,xCen+0.5*wbox,yCen+0.5*wbox)
-
         EndIf
-
         If (box[i][j][3] = 1) Then
-
           GraphicsWindow.DrawLine(xCen-0.5*wbox,yCen-0.5*wbox,xCen+0.5*wbox,yCen-0.5*wbox)
-
         EndIf
-
         If (box[i][j][4] = 1) Then
-
           GraphicsWindow.DrawLine(xCen-0.5*wbox,yCen+0.5*wbox,xCen+0.5*wbox,yCen+0.5*wbox)
-
         EndIf
-
       EndFor
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub makeHole
-
   holeMade = 0
-
   'If a hole is made on one box, then it must also be a hole on its neighbour
-
   'Don't make holes on the outside maze boundary
-
   If (k = 1 And i > 1) Then
-
     box[i][j][1] = 0
-
     box[i-1][j][2] = 0   
-
     holeMade = 1  
-
   ElseIf (k = 2 And i < nbox) Then
-
     box[i][j][2] = 0
-
     box[i+1][j][1] = 0     
-
     holeMade = 1  
-
   ElseIf (k = 3 And j > 1) Then
-
     box[i][j][3] = 0
-
     box[i][j-1][4] = 0     
-
     holeMade = 1  
-
   ElseIf (k = 4 And j < nbox) Then
-
     box[i][j][4] = 0
-
     box[i][j+1][3] = 0
-
     holeMade = 1  
-
   EndIf
-
 EndSub
-
-
 
 'Utility to check maze connectivity - the idea is to find all boxes in unconnected regions,
-
 'then open up a connecting hole between unconnected regions
-
 Sub checkConnectivity
-
   'Initially no regions defined
-
   For i = 1 To nbox
-
     For j = 1 To nbox
-
       conn[i][j] = 0
-
     EndFor
-
   EndFor
-
   'Recursively find which unconnected region each box is in
-
   connection = 0
-
   'GraphicsWindow.FontSize = 10 'Debugging
-
   For i = 1 To nbox
-
     For j = 1 To nbox
-
       If (conn[i][j] = 0) Then
-
         connection = connection+1
-
         'The stacks hold all the unprocessed blocks in the current connection region
-
         'Unprocessed is those where all connected neighbours have not been found (and added to the stack for later processing)
-
         'When the stack is empy there are no more connected blocks in this region so check for next block with no region set (it must be a new region)
-
         Stack.PushValue("connectI",i)
-
         Stack.PushValue("connectJ",j)
-
         While (Stack.GetCount("connectI") > 0)
-
           ii = Stack.PopValue("connectI")
-
           jj = Stack.PopValue("connectJ")
-
           conn[ii][jj] = connection
-
           'xCen = (ii-0.5)*wbox 'Debugging
-
           'yCen = (jj-0.5)*wbox 'Debugging
-
           'GraphicsWindow.DrawText(xCen-(wbox/2-2),yCen-(wbox/2-2),connection) 'Debugging
-
           If (box[ii][jj][1] = 0 And conn[ii-1][jj] = 0) Then
-
             Stack.PushValue("connectI",ii-1)
-
             Stack.PushValue("connectJ",jj)
-
           EndIf
-
           If (box[ii][jj][2] = 0 And conn[ii+1][jj] = 0) Then
-
             Stack.PushValue("connectI",ii+1)
-
             Stack.PushValue("connectJ",jj)
-
           EndIf
-
           If (box[ii][jj][3] = 0 And conn[ii][jj-1] = 0) Then
-
             Stack.PushValue("connectI",ii)
-
             Stack.PushValue("connectJ",jj-1)
-
           EndIf
-
           If (box[ii][jj][4] = 0 And conn[ii][jj+1] = 0) Then
-
             Stack.PushValue("connectI",ii)
-
             Stack.PushValue("connectJ",jj+1)
-
           EndIf
-
         EndWhile
-
       EndIf
-
     EndFor
-
   EndFor
-
   'Open holes between adjacent unconnected regions - only want to open the first connected to lower region number
-
   'i.e connect region 2 to 1, 3 to (2 or 1), 4 to (3, 2, or 1) etc with only one connection (hole) opened between them
-
   'GraphicsWindow.PenColor = "Red" 'Debugging
-
   For iCon = 2 To connection
-
     For i = 1 To nbox
-
       For j = 1 To nbox
-
         If (conn[i][j] = iCon) Then
-
           'xCen = (i-0.5)*wbox 'Debugging
-
           'yCen = (j-0.5)*wbox 'Debugging
-
           'Any neighbour block with a different region number must have a barrier, so open it and move to the next region at 'nextCon'
-
           If (i > 1 And conn[i-1][j] < iCon) Then
-
             box[i][j][1] = 0
-
             box[i-1][j][2] = 0
-
             'GraphicsWindow.DrawLine(xCen-0.5*wbox,yCen-0.5*wbox,xCen-0.5*wbox,yCen+0.5*wbox) 'Debugging
-
             Goto nextCon
-
           EndIf
-
           If (i < nbox And conn[i+1][j] < iCon) Then
-
             box[i][j][2] = 0
-
             box[i+1][j][1] = 0
-
             'GraphicsWindow.DrawLine(xCen+0.5*wbox,yCen-0.5*wbox,xCen+0.5*wbox,yCen+0.5*wbox) 'Debugging
-
             Goto nextCon
-
           EndIf
-
           If (j > 1 And conn[i][j-1] < iCon) Then
-
             box[i][j][3] = 0
-
             box[i][j-1][4] = 0
-
             'GraphicsWindow.DrawLine(xCen-0.5*wbox,yCen-0.5*wbox,xCen+0.5*wbox,yCen-0.5*wbox) 'Debugging
-
             Goto nextCon
-
           EndIf
-
           If (j < nbox And conn[i][j+1] < iCon) Then
-
             box[i][j][4] = 0
-
             box[i][j+1][3] = 0
-
             'GraphicsWindow.DrawLine(xCen-0.5*wbox,yCen+0.5*wbox,xCen+0.5*wbox,yCen+0.5*wbox) 'Debugging
-
             Goto nextCon
-
           EndIf
-
         EndIf
-
       EndFor
-
     EndFor 
-
     nextCon:
-
   EndFor 
-
 EndSub
-
-

@@ -1,263 +1,131 @@
 ' SmallBasic Version 1.2
-
 ' Program: Gradient Slider
-
 ' Changelog: 16.1
-
 ' Author: Pappa Lapub, Koopakilla (Tom Lambert)
-
 ' Website: https://social.msdn.microsoft.com/Forums/en-US/ca8db35c-abc7-4a9f-9e92-a1e4ae7c4ea4/colors-shapes-and-brushes
-
 '  https://code.msdn.microsoft.com/Slider-mit-Farbverlauf-im-04ec91b4
-
 ' ImportURL: http://smallbasic.com/program/?
-
 ' Extension: LitDev
-
 ' Comment: https://code.msdn.microsoft.com/Slider-mit-Farbverlauf-im-04ec91b4
-
 '  https://social.msdn.microsoft.com/profile/tom%20lambert%20(koopakiller)/
-
 '  http://code-13.net/
-
 '   http://dotnet-snippets.de/user/koopakiller/1829	de.
-
 '  http://dotnet-snippets.com/user/koopakiller/6677	engl.
-
 ' Variables: Selection of 100*100*100 = 1E6 colors
-
 ' KEYS: Esc .. Exit;  Space .. Reset to init. Values
-
 '  R-Mouse click in color square copies #RRGGBB to clipbrd; R-Mouse + R key as R,G,B
-
 ' ================================================================================
-
 arrInitVal = "1=128;2=128;3=128;"   ' 0 - 255
-
 'arrInitVal = "1=0;2=0;3=1;"   ' needs (below) ShowNoShapeErrors = "", if value < 2
 
-
-
 arrSlidVal = arrInitVal
-
 title = "GradientSlider  ["
 
-
-
 GraphicsWindow.Hide()
-
 GraphicsWindow.CanResize = ""
-
 GraphicsWindow.Width = 370
-
 GraphicsWindow.Height = 120
-
 GraphicsWindow.BackgroundColor = "#101010"
-
 'LDGraphicsWindow.Icon = .....
 
-
-
 GraphicsWindow.PenWidth = 0
-
 shpCol = Shapes.AddRectangle(100,100)
-
 Shapes.Move(shpCol, 10,10)
 
-
-
 LDUtilities.ShowNoShapeErrors = ""     '' for value < 2 in arrSlidVal
-
 For n = 1 To 3
-
   arrSlider[n] = LDControls.AddSlider(200,22, "H")
-
   Shapes.Move(arrSlider[n], 160, 19 + (n-1) * 30)
-
   'LDControls.SliderValue(arrSlider[n], arrSlidVal[n] / 2.55)
-
 EndFor
-
 Reset()
 
-
-
 GraphicsWindow.FontBold = ""
-
 GraphicsWindow.BrushColor = "Red"
-
 GraphicsWindow.DrawText(120, 24, "#RR:")    ' "Rot:")
-
 GraphicsWindow.BrushColor = "Lime"
-
 GraphicsWindow.DrawText(120, 53, "#GG:")    ' "Grün:")
-
 GraphicsWindow.BrushColor = "Blue"
-
 GraphicsWindow.DrawText(120, 82, "#BB:")    ' "Blau:")
 
-
-
 bInitBrush = "True"
-
 OnSliderChange()	' set init. Brushes, lastSlider is/was Control3 (from .AddSlider)
-
 bInitBrush = ""
-
 GraphicsWindow.Show()
 
 
-
-
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 GraphicsWindow.KeyUp = OnKeyUp
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 LDControls.SliderChanged = OnSliderChange
 
 
-
-
-
 ' //////////  EVENTs  \\\\\\\\\\
-
 Sub OnKeyDown
-
   lastKey = GraphicsWindow.LastKey
-
   If lastKey = "Escape" Then
-
     Program.End()
-
   ElseIf lastKey = "Space" Then
-
     Reset()
-
   EndIf  
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   lastKey = ""
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   If Mouse.IsRightButtonDown Then
-
     mx = GraphicsWindow.MouseX
-
     my = GraphicsWindow.MouseY
-
     'If mx > 9 And mx < 111 And my > 9 And my < 111 Then   ' Pos./Incl.
-
     If mx < 10 Or mx > 110 Or my < 10 Or my > 110 Then    ' Neg./Excl.
-
     Else
-
       If lastKey = "R" Then
-
         LDClipboard.SetText(arrSlidVal[1] +","+ arrSlidVal[2] +","+ arrSlidVal[3])   ' "R,G,B: "+ 
-
       Else
-
         LDClipboard.SetText(col)    ' "#RRGGBB:"+ col
-
       EndIf
-
       LDShapes.AnimateOpacity(shpCol, 200, 5)
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub OnSliderChange
-
   '' 0 - 100 %,  0 - 255
-
   lastSlider = LDControls.LastSlider    '' Control#
-
   lastNo = Text.GetSubTextToEnd(lastSlider, Text.GetLength(lastSlider)) '' # from Control#
-
   arrSlidVal[lastNo] = Math.Round(2.55 * LDControls.SliderGetValue(arrSlider[lastNo]))
-
   
-
   col = GraphicsWindow.GetColorFromRGB(arrSlidVal[1], arrSlidVal[2], arrSlidVal[3])
-
   LDShapes.BrushColour(shpCol, col)
-
   
-
   If lastSlider <> arrSlider[1] Then  '' don't process current slider1
-
     arrCols[1] = GraphicsWindow.GetColorFromRGB(0, arrSlidVal[2], arrSlidVal[3])
-
     arrCols[2] = GraphicsWindow.GetColorFromRGB(255, arrSlidVal[2], arrSlidVal[3])
-
     LDShapes.BrushShape(arrSlider[1], LDShapes.BrushGradient(arrCols, "H"))
-
   EndIf
-
   
-
   If lastSlider <> arrSlider[2] Then  '' don't process current slider2
-
     arrCols[1] = GraphicsWindow.GetColorFromRGB(arrSlidVal[1], 0, arrSlidVal[3])
-
     arrCols[2] = GraphicsWindow.GetColorFromRGB(arrSlidVal[1], 255, arrSlidVal[3])
-
     LDShapes.BrushShape(arrSlider[2], LDShapes.BrushGradient(arrCols, "H"))
-
   EndIf
-
   
-
   If lastSlider <> arrSlider[3] Or bInitBrush Then  '' also process Control3 on first call
-
     arrCols[1] = GraphicsWindow.GetColorFromRGB(arrSlidVal[1], arrSlidVal[2], 0)
-
     arrCols[2] = GraphicsWindow.GetColorFromRGB(arrSlidVal[1], arrSlidVal[2], 255)
-
     LDShapes.BrushShape(arrSlider[3], LDShapes.BrushGradient(arrCols, "H"))
-
   EndIf
-
   
-
   GraphicsWindow.Title = title + col + "]"
-
 EndSub
-
-
 
 ' //////////  SUB  \\\\\\\\\\
-
 Sub Reset
-
   For n = 1 To 3
-
     LDControls.SliderValue(arrSlider[n], Math.Round(arrInitVal[n] / 2.55))
-
     '' AUTO calls OnSliderChange event
-
   EndFor
-
 EndSub
-
     
-
-

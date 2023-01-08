@@ -1,845 +1,422 @@
 ' Basketball 0.2
-
 ' Copyright (c) 2012 Nonki Takahashi.  All rights reserved.
-
 '
-
 ' History : 
-
 ' 0.2 2012/08/09 Equation corrected.
-
 ' 0.1 2012/06/24 Created.
-
 '
-
 ' TODO :
-
 ' (1) Something is wrong with bound of ball.
-
 ' (2) Rewrote structure of limb (leg and arm) .
-
 ' (3) Detect corrision.
-
 ' (4) Graphical user interface to throw.
-
 ' 
-
 GraphicsWindow.Title = "Basketball 0.2"
-
 GraphicsWindow.Width = 950
-
 GraphicsWindow.Height = 600
-
 FLOORY = 550  ' floor y
-
 ENDX = 105    ' end x  
-
 size = 24
-
 DrawRoom()
-
 Ball_Add()
-
 Goal_Add()
-
 Man_Add()
-
 AddControls()
-
 x = 0
-
 y = FLOORY - size
-
 Ball_Move()
-
 angle = 0 ' [degree]
-
 delta = 8
-
 While "True"
-
   If x <= 0 Then
-
     x = 0
-
     For i = 1 To 80
-
       x = x + delta 
-
       Ball_Move()
-
       angle = angle + delta / ((size / 2) * (Math.Pi / 180))
-
       Ball_Rotate()
-
       Program.Delay(i * 2)
-
     EndFor
-
   EndIf
-
   Man_Hold()
-
   WaitButton()
-
   DrawRoom()
-
   Man_Throw()
-
 EndWhile
 
-
-
 Sub AddControls
-
   GraphicsWindow.BrushColor = "Black"
-
   oVelocity = Controls.AddTextBox(700, 100)
-
   Controls.SetTextBoxText(oVelocity, 15)
-
   oAngle = Controls.AddTextBox(700, 150)
-
   Controls.SetTextBoxText(oAngle, 45)
-
   oThrow = Controls.AddButton("Throw", 700, 200)
-
   Controls.HideControl(oThrow)
-
   ' unit for textbox
-
   oUnit = Shapes.AddText("[km/h]")
-
   Shapes.Move(oUnit, 870, 104)
-
   oUnit = Shapes.AddText("[degree]")
-
   Shapes.Move(oUnit, 870, 154)
-
 EndSub
-
-
 
 Sub DrawRoom
-
   ' wall
-
   width = GraphicsWindow.Width
-
   height = GraphicsWindow.Height
-
   GraphicsWindow.BrushColor = "DarkGray"
-
   GraphicsWindow.FillRectangle(0, 0, width, FLOORY)
-
   ' floor
-
   GraphicsWindow.BrushColor = "Sienna"
-
   GraphicsWindow.FillRectangle(0, FLOORY, width, height - FLOORY)
-
   GraphicsWindow.PenColor = "#773D22" ' Sienna L: 40->30
-
   GraphicsWindow.DrawRectangle(0, FLOORY, width, height - FLOORY)
-
   ' end line
-
   GraphicsWindow.PenColor = "White"
-
   GraphicsWindow.DrawRectangle(ENDX - 5, FLOORY, 5, 0)
-
   ' free throw line
-
   GraphicsWindow.PenColor = "White"
-
   GraphicsWindow.DrawRectangle(ENDX + 120 + 455, FLOORY, 5, 0)
-
   ' free throw circle
-
   GraphicsWindow.PenColor = "White"
-
   GraphicsWindow.DrawRectangle(ENDX + 580 + 180, FLOORY, 5, 0)
-
   ' 3 point line
-
   GraphicsWindow.PenColor = "White"
-
   GraphicsWindow.DrawRectangle(ENDX + 120 + 670, FLOORY, 5, 0)
-
 EndSub
-
-
 
 Sub WaitButton
-
   Controls.ShowControl(oThrow)
-
   notClicked = "True"
-
   Controls.ButtonClicked = OnButtonClicked
-
   While notClicked
-
     Program.Delay(200)
-
   EndWhile
-
   Controls.HideControl(oThrow)
-
 EndSub
-
-
 
 Sub OnButtonClicked
-
   notClicked = "False"
-
 EndSub
-
-
 
 Sub Ball_Add
-
   ' Ball | Add ball
-
   ' param size - ball size
-
   ' return oBall
-
   ball["num"] = ball["num"] + 1
-
   oBall = "Ball" + ball["num"]
-
   ball[oBall + ".size"] = size
-
   ball[oBall + ".angle"] = 0
-
   rad = angle / 180 * Math.Pi  ' radian
-
   GraphicsWindow.BrushColor = "OrangeRed"
-
   GraphicsWindow.PenColor = "SaddleBrown"
-
   GraphicsWindow.PenWidth = 2
-
   ball[oBall + ".oBall"] = Shapes.AddEllipse(size, size)
-
   GraphicsWindow.PenWidth = 2
-
   oLineU = Shapes.AddEllipse(size * 0.6, size * 0.4)
-
   ball[oBall + ".oLineU"] = oLineU
-
   oLineC = Shapes.AddEllipse(size * 0.6, size * 0.4)
-
   ball[oBall + ".oLineC"] = oLineC
-
   GraphicsWindow.PenColor = "SaddleBrown"
-
   oLineH = Shapes.AddLine(0, 0, size - 2, 0)
-
   ball[oBall + ".oLineH"] = oLineH
-
   oLineV = Shapes.AddLine(0, 0, 0, size - 2)
-
   ball[oBall + ".oLineV"] = oLineV
-
   GraphicsWindow.PenColor = "White"
-
   GraphicsWindow.BrushColor = "White"
-
   oHighlight = Shapes.AddEllipse(size * 0.7 , size * 0.7)
-
   Shapes.SetOpacity(oHighlight, 30)
-
   ball[oBall + ".oHighlight"] = oHighlight
-
   Ball_Move()
-
 EndSub
-
-
 
 Sub Ball_Move
-
   ' Ball | Move ball
-
   ' param oBall
-
   ' param x, y - position to move
-
   ball[oBall + ".x"] = x
-
   ball[oBall + ".y"] = y
-
   angle = ball[oBall + ".angle"]
-
   rad = angle / 180 * Math.Pi  ' radian
-
   size = ball[oBall + ".size"]
-
   Shapes.Move(ball[oBall + ".oBall"], x, y)
-
   xU = x + size * (0.5 + 0.3 * Math.Sin(rad) - 0.3)
-
   yU = y + size * (0.5 - 0.3 * Math.Cos(rad) - 0.2)
-
   Shapes.Move(ball[oBall + ".oLineU"], xU, yU)
-
   xC = x + size * (0.5 - 0.3 * Math.Sin(rad) - 0.3)
-
   yC = y + size * (0.5 + 0.3 * Math.Cos(rad) - 0.2)
-
   Shapes.Move(ball[oBall + ".oLineC"], xC, yC)
-
   Shapes.Move(ball[oBall + ".oLineH"], x + 1, y + size * 0.5)
-
   Shapes.Move(ball[oBall + ".oLineV"], x + size * 0.5, y)
-
   Shapes.Move(ball[oBall + ".oHighlight"], x + 1, y + 1)
-
 EndSub
-
-
 
 Sub Ball_Rotate
-
   ' Ball | Rotate ball
-
   ' param oBall
-
   ' param angle - rotate angle
-
   angle = Math.Remainder(angle, 360)
-
   If angle < 0 Then
-
     angle = 360 - angle
-
   EndIf
-
   ball[oBall + ".angle"] = angle
-
   rad = angle / 180 * Math.Pi  ' radian
-
   x = ball[oBall + ".x"]
-
   y = ball[oBall + ".y"]
-
   xU = x + size * (0.5 + 0.3 * Math.Sin(rad) - 0.3)
-
   yU = y + size * (0.5 - 0.3 * Math.Cos(rad) - 0.2)
-
   Shapes.Move(ball[oBall + ".oLineU"], xU, yU)
-
   Shapes.Rotate(ball[oBall + ".oLineU"], angle)
-
   xC = x + size * (0.5 - 0.3 * Math.Sin(rad) - 0.3)
-
   yC = y + size * (0.5 + 0.3 * Math.Cos(rad) - 0.2)
-
   Shapes.Move(ball[oBall + ".oLineC"], xC, yC)
-
   Shapes.Rotate(ball[oBall + ".oLineC"], angle)
-
   Shapes.Rotate(ball[oBall + ".oLineH"], angle)
-
   Shapes.Rotate(ball[oBall + ".oLineV"], angle)
-
 EndSub
-
-
 
 Sub Goal_Add
-
   ' Goal | Add goal
-
   ' pole
-
   GraphicsWindow.PenColor = "#333333"
-
   GraphicsWindow.BrushColor = "Black"
-
   oPole = Shapes.AddRectangle(ENDX + 120 - 24 - 15, 10)
-
   Shapes.Move(oPole, 0, FLOORY - 305 - 107 + 15 + 10)
-
   oPole = Shapes.AddRectangle(ENDX + 120 - 24 - 15, 10)
-
   Shapes.Move(oPole, 0, FLOORY - 305 + 15 - 20)
-
   ' flange
-
   GraphicsWindow.PenColor = "DarkRed"
-
   oFlange = Shapes.AddLine(0, 0, 15, 0)
-
   r = 24
-
   Shapes.Move(oFlange, x + ENDX + 120 - r - 15, FLOORY - 305)
-
   ' ring
-
   GraphicsWindow.PenColor = "Red"
-
   oRing = Shapes.AddLine(0, 0, r * 2, 0)
-
   Shapes.Move(oRing, x + ENDX + 120 - r, FLOORY - 305)
-
   ' board
-
   GraphicsWindow.PenColor = "Gray"
-
   GraphicsWindow.BrushColor = "White"
-
   oBoard = Shapes.AddRectangle(6, 107)
-
   Shapes.Move(oBoard, x + ENDX + 120 - r - 15 - 6, FLOORY - 305 - 107 + 15)
-
   ' net
-
   xNet[0] = "0=0;1=5;2=19;3=41;4=69;5=100;6=131;7=159;8=181;9=195;10=200;"
-
   xNet[1] = "0=30;1=33;2=43;3=59;4=78;5=100;6=122;7=141;8=157;9=167;10=170;"
-
   xNet[2] = "0=40;1=52;2=60;3=71;4=85;5=100;6=115;7=129;8=140;9=148;10=160;"
-
   xNet[3] = "0=50;1=52;2=60;3=71;4=85;5=100;6=115;7=129;8=140;9=148;10=150;"
-
   x0 = x + ENDX + 120 - r
-
   y0 = FLOORY - 305
-
   y1 = 0
-
   y2 = 15
-
   GraphicsWindow.PenColor = "White"
-
   For j = 0 To 2
-
     For i = 0 To 4
-
       If Math.Remainder(j, 2) = 0 Then 
-
         x1 = xNet[j][i * 2] * r / 100
-
         x2 = xNet[j + 1][i * 2 + 1] * r / 100
-
         oNet = Shapes.AddLine(0, 0, x2 - x1, y2 - y1)
-
         Shapes.Move(oNet, x0 + x1, y0 + y1)
-
         x1 = xNet[j + 1][i * 2 + 1] * r / 100
-
         x2 = xNet[j][i * 2 + 2] * r / 100
-
         oNet = Shapes.AddLine(0, y2 - y1, x2 - x1, 0)
-
         Shapes.Move(oNet, x0 + x1, y0 + y1)
-
       Else
-
         x1 = xNet[j + 1][i * 2] * r / 100
-
         x2 = xNet[j][i * 2 + 1] * r / 100
-
         oNet = Shapes.AddLine(0, y2 - y1, x2 - x1, 0)
-
         Shapes.Move(oNet, x0 + x1, y0 + y1)
-
         x1 = xNet[j][i * 2 + 1] * r / 100
-
         x2 = xNet[j + 1][i * 2 + 2] * r / 100
-
         oNet = Shapes.AddLine(0, 0, x2 - x1, y2 - y1)
-
         Shapes.Move(oNet, x0 + x1, y0 + y1)
-
       EndIf
-
     EndFor
-
     y1 = y1 + 15
-
     y2 = y2 + 15
-
   EndFor
-
 EndSub
-
-
 
 Sub Joint_Add
-
   ' param id
-
   ' param xj[id] - x beam root
-
   ' param yj[id] - y beam root
-
   ' param lj[id] - length beam
-
   ' param aj[id] - angle beam
-
   ' return xj[id+1] - x beam front
-
   ' return yj[id+1] - y beam front
-
   oLeg[id] = Shapes.AddLine(0, 0, lj[id], 0)
-
   Joint_Move()
-
 EndSub
-
   
-
 Sub Joint_Move
-
   ' param id
-
   ' param xj[id] - x beam root
-
   ' param yj[id] - y beam root
-
   ' param aj[id] - angle beam
-
   ' return xj[id+1] - x beam front
-
   ' return yj[id+1] - y beam front
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   x = xj[id] + (lj[id] / 2) * Math.Cos(aj[id] * Math.Pi / 180) - (lj[id] / 2)
-
   y = yj[id] + (lj[id] / 2) * Math.Sin(aj[id] * Math.Pi / 180)
-
   Shapes.Move(oLeg[id], x, y)
-
   Shapes.Rotate(oLeg[id], aj[id])
-
   xj[id + 1] = xj[id] + lj[id] * Math.Cos(aj[id] * Math.Pi / 180)
-
   yj[id + 1] = yj[id] + lj[id] * Math.Sin(aj[id] * Math.Pi / 180)
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Man_Add
-
   ' Man | Add man
-
   ' return oMan
-
   xMan = ENDX + 580 + 12 + 28
-
   yMan = FLOORY - 48 * 2
-
   man["num"] = man["num"] + 1
-
   oMan = "Man" + man["num"]
-
   man[oMan + ".x"] = xMan
-
   man[oMan + ".y"] = yMan
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.PenColor = "Black"
-
   oHead = Shapes.AddEllipse(24, 24)
-
   man[oMan + ".oHead"] = oHead
-
   Shapes.Move(oHead, xMan - 12, yMan - 84)
-
   oBody = Shapes.AddLine(0, 0, 0, 48)
-
   man[oMan + ".oBody"] = oBody
-
   Shapes.Move(oBody, xMan, yMan - 48)
-
   GraphicsWindow.PenColor = "Black"
-
   id = 10 ' for arm
-
   xj[id] = xMan
-
   yj[id] = yMan - 48
-
   al = "1=60;2=90;3=-45;4=-15;"
-
   ll = "1=36;2=36;3=9;4=12;"
-
   Man_AddLimb()
-
   id = 20 ' for leg
-
   xj[id] = xMan
-
   yj[id] = yMan
-
   al = "1=100;2=-20;3=100;4=0;"
-
   ll = "1=48;2=48;3=21;4=7;"
-
   Man_AddLimb()
-
 EndSub
-
-
 
 Sub Man_AddLimb
-
   ' param id - limb id
-
   ' param al[] - angle of joints
-
   ' param ll[] - length of linterjoint
-
   Stack.PushValue("local", id)
-
   For i = 1 To 4
-
     lj[id] = ll[i]      ' length
-
     Joint_Add()
-
     id = id + 1
-
   EndFor
-
   id = Stack.PopValue("local")
-
   Man_MoveLimb()
-
 EndSub
-
-
 
 Sub Man_Catch
-
   ' Man | Catch ball
-
   ' param oBall
-
   ' param oMan
-
   ' param x, y - top left positon of ball
-
 EndSub
-
-
 
 Sub Man_Hold
-
   ' Man | Hold ball
-
   ' param oBall
-
   ' param oMan
-
   x = man[oMan + ".x"] - 48
-
   y = man[oMan + ".y"] - 48
-
   Ball_Move()
-
   id = 10 ' for arm
-
   al = "1=85;2=120;3=90;4=-20;"
-
   Man_MoveLimb()
-
 EndSub
-
   
-
 Sub Man_MoveLimb
-
   ' param id - id limb
-
   ' param al[] - angle of joints
-
   Stack.PushValue("local", id)
-
   aj[id] = al[1]                ' angle
-
   Joint_Move()
-
   id = id + 1
-
   For i = 2 To 4
-
     aj[id] = aj[id - 1] + al[i] ' angle
-
     Joint_Move()
-
     id = id + 1
-
   EndFor
-
   id = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Man_Throw
-
   ' Man | Throw ball
-
   ' param oBall
-
   ' param oMan
-
   size = ball[oBall + ".size"]
-
   x = man[oMan + ".x"] - 48
-
   y = FLOORY - 144 - size
-
   Ball_Move()
-
   id = 10 ' for arm
-
   al = "1=120;2=120;3=110;4=-40;"
-
   Man_MoveLimb()
-
   Program.Delay(500)
-
   x = man[oMan + ".x"] - 48
-
   y = FLOORY - 192 - 12
-
   Ball_Move()
-
   id = 10 ' for arm
-
   al = "1=180;2=80;3=100;4=-40;"
-
   Man_MoveLimb()
-
   Program.Delay(1000)
-
   id = 10 ' for arm
-
   al[3] = -45
-
   Man_MoveLimb()
-
   g = 9.80665 ' acceleration of gravity [m/s^2]
-
   y0 = y
-
   x0 = x
-
   v0_ = Controls.GetTextBoxText(oVelocity)  '  [km/h]
-
   v0 = v0_ * 1000 / 3600                    ' [m/s]
-
   angle = Controls.GetTextBoxText(oAngle)   ' [degree]
-
   v0x = v0 * Math.Cos(angle * Math.Pi / 180)
-
   v0y = v0 * Math.Sin(angle * Math.Pi / 180)
-
   up = "False"
-
   a = ball[oBall + ".angle"]
-
   da = 10
-
   dt = 0.01
-
   vy = v0y
-
   vx = v0x
-
   For t = 0.1 To 30.0 Step dt     ' [s]
-
     a = a + da
-
     angle = a
-
     Ball_Rotate()
-
     vy = vy - g * dt / 2          ' velocity [m/s]
-
     y = y - (vy * dt) * 100       ' vertical position [cm]
-
     x = x - (vx * dt) * 100       ' horizontal position [cm]
-
     If up And (y > ylast) Then
-
       up = "False"
-
     EndIf
-
     ylast = y
-
     If FLOORY - 24 < y Then
-
       y = FLOORY - 24
-
       t = 0
-
       y0 = y
-
       x0 = x
-
       vy = Math.Abs(vy) * 1.3 / 1.8
-
       If vy > 1 Then
-
         up = "True"
-
         da = -1 * Math.Abs(da)
-
       ElseIf 676 <= x Then
-
         Goto exit_throw
-
       EndIf
-
       If x < 0 Then 
-
         Goto exit_throw
-
       EndIf
-
     EndIf
-
     Ball_Move()
-
     If Math.Remainder(t * 100, 10) = 0 Then
-
       GraphicsWindow.BrushColor = "Gray"
-
       GraphicsWindow.FillEllipse(x, y, size, size)
-
     EndIf
-
     Program.Delay(10)
-
   EndFor
-
 exit_throw:
-
   id = 10 ' for arm
-
   al = "1=60;2=90;3=-45;4=-15;"
-
   Man_MoveLimb()
-
 EndSub
-
-

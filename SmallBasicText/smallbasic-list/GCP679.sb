@@ -1,791 +1,395 @@
 using System;
-
 using System.IO;
-
 using System.Diagnostics;
-
 using Microsoft.SmallBasic.Library;
 
-
-
 namespace SBTools
-
 {
-
     /// <summary>Dateisystem Funktionen</summary>
-
     [SmallBasicType]
-
     public static class SBFile
-
     {
-
 		/// <summary>Ermittelt ob der angegebene Pfad ein Ordner ist.</summary>
-
         /// <param name="directorypath">Der volle Pfad des Objektes.</param>
-
         /// <returns>"True" oder "False".</returns>
-
 		public static Primitive IsDirectory(Primitive directorypath)
-
 		{
-
 ' The following line could be harmful and has been automatically commented.
-
 ' 			return ((System.IO.File.GetAttributes(directorypath) & System.IO.FileAttributes.Directory) == System.IO.FileAttributes.Directory);
-
 		}
-
 		
-
     	/// <summary>Ermittelt ob der angegebene Pfad eine Datei ist.</summary>
-
 		/// <param name="filepath">Der volle Pfad des Objektes.</param>
-
 		/// <returns>"True" oder "False".</returns>
-
 		public static Primitive IsFile(Primitive filepath)
-
 		{
-
 ' The following line could be harmful and has been automatically commented.
-
 ' 			return ((System.IO.File.GetAttributes(filepath) & System.IO.FileAttributes.Directory) != System.IO.FileAttributes.Directory);
-
 		}
-
 		
-
 		/// <summary>Ermittelt ob der angegebene Dateipfad existiert.</summary>
-
         /// <param name="filepath">Der volle Dateipfad.</param>
-
         /// <returns>"True" oder "False".</returns>
-
 		public static Primitive FileExists(Primitive filepath)
-
 		{
-
 ' The following line could be harmful and has been automatically commented.
-
 ' 			if(System.IO.File.Exists(filepath))
-
             {
-
                 return true;
-
             }       
-
             else
-
             {
-
                 return false;
-
             }
-
 		}
-
 		
-
 		/// <summary>Ermittelt ob der angegebene Ordnerpfad existiert.</summary>
-
         /// <param name="directorypath">Der volle Ordnerpfad.</param>
-
         /// <returns>"True" oder "False".</returns>
-
 		public static Primitive DirectoryExists(Primitive directorypath)
-
 		{
-
 			if(System.IO.Directory.Exists(directorypath))
-
             {
-
                 return true;
-
             }   
-
             else
-
             {
-
                 return false;
-
             }
-
 		}
-
 		
-
 		/// <summary>Ermittelt ob der angegebene Datei- bzw. Ordnerpfad existiert.</summary>
-
         /// <param name="path">Der volle zu überprüfende Datei- oder Ordnerpfad.</param>
-
         /// <returns>"True" oder "False".</returns>
-
 		public static Primitive PathExists(Primitive path)
-
 		{
-
 ' The following line could be harmful and has been automatically commented.
-
 ' 			return (System.IO.Directory.Exists(path) || System.IO.File.Exists(path));
-
 		}
-
 		
-
 		// ToDo: Besser InstallPfad aus Registry lesen
-
 		/// <summary>Gibt den Pfad des SmallBasic Installationsverzeichnisses zurück (W7-32).</summary>
-
         /// <returns>Der Pfad des SmallBasic Installationsordners.</returns>
-
 		public static Primitive SBDirectory
-
 		{
-
             get
-
             {
-
 				return @"C:\Program Files\Microsoft\Small Basic";
-
 			}
-
         }
-
         
-
 		/// <summary>
-
 		/// Ermittelt den Dateinamen mit Erweiterung aus einem Dateipfadstring (auch für relative Pfade mit ".", "..", keine Existenzprüfung, String-Operation).
-
 		/// </summary>
-
 		/// <param name="filepath">Der (volle) Dateipfad zB. Program.Directory + "\..\Dir\Datei.ext".</param>
-
 		/// <returns>Der Dateiname (incl. Erweiterung) aus dem angegebenen Dateipfad (ohne Ordnerpfad).</returns>
-
 		public static Primitive GetFileName(Primitive filepath)
-
 		{
-
 			Primitive result;
-
 			try
-
 			{
-
 				result = Path.GetFileName(filepath);
-
 			}
-
 			catch
-
 			{
-
 				return "FAILED";
-
 			}
-
 			return result;
-
 		}
-
 		
-
 		/// <summary>
-
 		/// Ermittelt den vollen Datei-/Ordnerpfad aus einer Datei-/Ordnerangabe (auch für relative Pfade mit ".", "..", keine Existenzprüfung, String-Operation).
-
 		/// </summary>
-
 		/// <param name="path">Die Datei-/Ordnerangabe zB. Program.Directory + "\..\Dir\Datei.ext".</param>
-
 		/// <returns>Der volle Datei-/Ordnerpfad des Objektes (dieses muß nicht existieren).</returns>
-
 		public static Primitive GetFullPath(Primitive path)
-
 		{
-
 			Primitive result;
-
 			try
-
 			{
-
 				result = Path.GetFullPath(path);
-
 			}
-
 			catch
-
 			{
-
 				return "FAILED";
-
 			}
-
 			return result;
-
 		}
-
 		
-
 		/// <summary>
-
 		/// Kombiniert zwei Pfadstrings zu einem Gesamtpfad (auch für relative Pfade mit ".", "..", keine Existenzprüfung, String-Operation).
-
 		/// </summary>
-
 		/// <param name="path1">Der erste Pfadteil.</param>
-
 		/// <param name="path2">Der zweite Pfadteil.</param>
-
 		/// <returns>Der kombinierte Gesamtpfad des Ordners bzw. Datei aus beiden Teilen.</returns>
-
 		public static Primitive CombinePaths(Primitive path1, Primitive path2)
-
 		{
-
 			Primitive result;
-
 			try
-
 			{
-
 				result = Path.Combine(path1, path2);
-
 			}
-
 			catch
-
 			{
-
 				result = "FAILED";
-
 			}
-
 			return result;
-
 		}
-
 		
-
 		/// <summary>Ermittelt den Erstellungszeitpunkt eines Verzeichnisses in der Form  TT.MM.JJ HH:mm:ss (gem. Systemeinst.).</summary>
-
 		/// <param name="directorypath">Der volle Ordnerpfad.</param>
-
 		/// <returns>Erstellungszeitpunkt des Verzeichnisses bei Erfolg, "" bei Mißerfolg zB. Ordner existiert nicht.</returns>
-
 		public static Primitive GetDirCreateTime(Primitive directorypath)
-
 		{
-
 			try
-
 			{
-
 				return System.IO.Directory.Exists(directorypath) ? System.IO.Directory.GetCreationTime(directorypath).ToString() : "";
-
 			}
-
 			catch
-
 			{
-
 				return "FAILED";
-
 			}
-
 		}
-
 		
-
 		/// <summary>Ermittelt den Zeitpunkt der letzten Änderung eines Verzeichnisses in der Form  TT.MM.JJ HH:mm:ss (gem. Systemeinst.).</summary>
-
 		/// <param name="directorypath">Der volle Ordnerpfad.</param>
-
 		/// <returns>Letzter Änderungszeitpunkt des Verzeichnisses bei Erfolg, "" bei Mißerfolg zB. Ordner existiert nicht.</returns>
-
 		public static Primitive GetDirModTime(Primitive directorypath)
-
 		{
-
 			try
-
 			{
-
 				return System.IO.Directory.Exists(directorypath) ? System.IO.Directory.GetLastWriteTime(directorypath).ToString() : "";
-
 			}
-
 			catch
-
 			{
-
 				return "FAILED";
-
 			}
-
 		}
-
 		
-
 		/// <summary>Ermittelt den letzten Zugriffszeitpunkt auf ein Verzeichnis in der Form  TT.MM.JJ HH:mm:ss (gem. Systemeinst.).</summary>
-
 		/// <param name="directorypath">Der volle Ordnerpfad.</param>
-
 		/// <returns>Der letzte Zugriffszeitpunkt auf das Verzeichnis bei Erfolg, "" bei Mißerfolg zB. Ordner existiert nicht.</returns>
-
 		public static Primitive GetDirAccessTime(Primitive directorypath)
-
 		{
-
 			try
-
 			{
-
 				return System.IO.Directory.Exists(directorypath) ? System.IO.Directory.GetLastAccessTime(directorypath).ToString() : "";
-
 			}
-
 			catch
-
 			{
-
 				return "FAILED";
-
 			}
-
 		}
-
 		
-
 		/// <summary>Ermittelt die Versionsinformation zu einer angegebenen Datei.</summary>
-
 		/// <param name="filepath">Der volle Dateipfad.</param>
-
 		/// <returns>Die Dateiversion der angegebenen Datei wenn verfügbar, sonst "".</returns>
-
 		public static Primitive GetFileVersion(Primitive filepath)
-
 		{
-
 			return FileVersionInfo.GetVersionInfo(filepath).FileVersion;
-
 		}
-
 		
-
 		/// <summary>Ermittelt die Kommentarinformation zu einer angegebenen Datei (exe, dll, ocx, tlb, usw.).</summary>
-
 		/// <param name="filepath">Der volle Dateipfad.</param>
-
 		/// <returns>Die Kommentare zu der angegebenen Datei wenn verfügbar, sonst "".</returns>
-
 		public static Primitive GetFileComment(Primitive filepath)
-
 		{
-
 			return FileVersionInfo.GetVersionInfo(filepath).Comments;
-
 		}
-
 		
-
 		/// <summary>Ermittelt die Größe einer angegebenen Datei.</summary>
-
 		/// <param name="filepath">Der volle Dateipfad.</param>
-
 		/// <returns>Die Größe der angegebenen Datei in Bytes wenn erfolgreich, sonst "FAILED". "FAILED" wenn Datei nicht existiert.</returns>
-
 		public static Primitive GetFileSize(Primitive filepath)
-
 		{
-
 ' The following line could be harmful and has been automatically commented.
-
 ' 			if(System.IO.File.Exists(filepath))
-
 			{
-
 				FileInfo fi = new FileInfo(filepath);
-
 				if(fi != null)
-
 				{
-
 					decimal l = fi.Length;
-
 					return l;
-
 				}
-
 				return "FAILED";
-
 			}
-
 			else
-
 			{
-
 				return "FAILED";
-
 			}
-
 		}
-
 		
-
 		/// <summary>Ermittelt alle Dateinamen mit angegebener Spezifikation in einem Ordner (und Unterordnern).</summary>
-
 		/// <param name="directorypath">Der volle Ordnerpfad.</param>
-
 		/// <param name="spec">Die Dateispezifikation, zB. "*test*", "*.exe" (* kein oder mehrere Zeichen, ? kein oder ein Zeichen), Groß-/Kleinschreibung ignoriert, "" gibt keine Auflistung.</param>
-
 		/// <param name="subs">Incl. aller Unterordner durchsuchen?  "True" oder "False" bzw. "".</param>
-
 		/// <returns>Ein Array mit den Pfaden aller Dateien mit zutreffender Spezifikation (Reihenfolge unbestimmt).</returns>
-
 		public static Primitive GetSpecFiles(Primitive directorypath, Primitive spec, Primitive subs)
-
 		{
-
 			Primitive files = new Primitive();
-
 			bool inSubs = subs;
-
 			if(inSubs)
-
 			{
-
 				foreach(string file in Directory.GetFiles(directorypath, spec, SearchOption.AllDirectories))
-
 					files[files.GetItemCount() + 1] = file;
-
 			}
-
 			else
-
 			{
-
 				foreach(string file in Directory.GetFiles(directorypath, spec, SearchOption.TopDirectoryOnly))
-
 					files[files.GetItemCount() + 1] = file;
-
 			}
-
 			return files;
-
 		}
-
 		
-
 		/// <summary>Ermittelt alle Ordnernamen mit angegebener Spezifikation in einem Ordner (und Unterordnern).</summary>
-
 		/// <param name="directorypath">Der volle Ordnerpfad.</param>
-
 		/// <param name="spec">Die Ordnerspezifikation, zB. *test*, ?Files usw. (* kein oder mehrere Zeichen, ? kein oder ein Zeichen), Groß-/Kleinschreibung ignoriert, "" gibt keine Auflistung.</param>
-
 		/// <param name="subs">Incl. aller Unterordner durchsuchen?  "True" oder "False" bzw. "".</param>
-
 		/// <returns>Ein Array mit den Pfaden aller Ordner mit zutreffender Spezifikation (Reihenfolge unbestimmt).</returns>
-
 		public static Primitive GetSpecDirectories(Primitive directorypath, Primitive spec, Primitive subs)
-
 		{
-
 			Primitive folders = new Primitive();
-
 			bool inSubs = subs;
-
 			if(inSubs)
-
 			{
-
 				foreach(string folder in Directory.GetDirectories(directorypath, spec, SearchOption.AllDirectories))
-
 					folders[folders.GetItemCount() + 1] = folder;
-
 			}
-
 			else
-
 			{
-
 				foreach(string folder in Directory.GetDirectories(directorypath, spec, SearchOption.TopDirectoryOnly))
-
 					folders[folders.GetItemCount() + 1] = folder;
-
 			}
-
 			return folders;
-
 		}
-
 		
-
 		/// <summary>Ermittelt einen automatisch umbenannten Dateipfad (Pfad\Name_N.ext für N&gt;=2), wenn die angegebene Datei bereits existiert.</summary>
-
 		/// <param name="filePath">Der volle beabsichtigte Dateipfad.</param>
-
 		/// <returns>Der neu angepasste freie Dateipfad. "FAILED" wenn Elternordner nicht existiert.</returns>
-
         public static Primitive AutoFilePath(Primitive filePath)
-
         {
-
 			string pathToCheck = filePath;
-
 			string folder = Path.GetDirectoryName(pathToCheck);
-
 			if (!System.IO.Directory.Exists(folder))
-
 			{
-
 				return "FAILED";
-
 			}
-
 			else
-
 			{
-
 				string file = Path.GetFileNameWithoutExtension(pathToCheck);
-
 				string ext = Path.GetExtension(pathToCheck);
-
 				string tempfileName = "";
-
 ' The following line could be harmful and has been automatically commented.
-
 ' 				if (System.IO.File.Exists(pathToCheck))
-
 				{
-
 					int counter = 2;
-
 ' The following line could be harmful and has been automatically commented.
-
 ' 					while (System.IO.File.Exists(pathToCheck))
-
 					{
-
 						tempfileName = file + "_" + counter.ToString() + ext;
-
 						pathToCheck = Path.Combine(folder, tempfileName);
-
 						counter ++;
-
 					}
-
 					return pathToCheck;
-
 				}
-
 				else
-
 				{
-
 					return pathToCheck;
-
 				}
-
 			}
-
         }
-
         
-
         /// <summary>Ermittelt einen automatisch umbenannten Ordnerpfad (Pfad\Ordner_N für N&gt;=2), wenn der angegebene Ordner bereits existiert.</summary>
-
 		/// <param name="folderPath">Der volle beabsichtigte Ordnerpfad ohne abschließenden \.</param>
-
 		/// <returns>Der neu angepasste freie Ordnerpfad. "FAILED" wenn Elternordner nicht existiert.</returns>
-
         public static Primitive AutoFolderPath(Primitive folderPath)
-
         {
-
 			string pathToCheck = folderPath;
-
 			string parent = Path.GetDirectoryName(pathToCheck);
-
 			if (!System.IO.Directory.Exists(parent))
-
 			{
-
 				return "FAILED";
-
 			}
-
 			else
-
 			{
-
 				string folder = Path.GetFileNameWithoutExtension(pathToCheck);
-
 				string tempfolderName = "";
-
 				if (System.IO.Directory.Exists(pathToCheck))
-
 				{
-
 					int counter = 2;
-
 					while (System.IO.Directory.Exists(pathToCheck))
-
 					{
-
 						tempfolderName = folder + "_" + counter.ToString();
-
 						pathToCheck = Path.Combine(parent, tempfolderName);
-
 						counter ++;
-
 					}
-
 					return pathToCheck;
-
 				}
-
 				else
-
 				{
-
 					return pathToCheck;
-
 				}
-
 			}
-
         }
-
         
-
         /// <summary>Ermittelt die Attribute für eine Datei oder Ordner.</summary>
-
 		/// <param name="path">Der volle Datei- oder Ordnerpfad.</param>
-
 		/// <returns>Die Attribute der Datei oder des Ordners als CSV String (zB. ReadOnly, Hidden, System, Archive).</returns>
-
 		public static Primitive GetAttributes(Primitive path)
-
 		{
-
 			string pathToCheck = path;
-
 ' The following line could be harmful and has been automatically commented.
-
 ' 			if (System.IO.File.Exists(pathToCheck))
-
 				{ FileInfo fi = new FileInfo(pathToCheck);
-
 				return fi.Attributes.ToString(); }
-
 			else if (System.IO.Directory.Exists(pathToCheck))
-
 				{ DirectoryInfo di = new DirectoryInfo(pathToCheck);
-
 				return di.Attributes.ToString(); }
-
 			else
-
 				{ return "FAILED"; }
-
 		
-
 		}
-
 		
-
 		/// <summary>Löscht alle SmallBasic bezogenen Dateien aus dem %TEMP% Ordner oder zeigt diese an.
-
         /// Dies sind alle Dateien beginnend mit tmp und den Erweiterungen tmp.exe, tmp und pdb. (s. LDUtilities.CleanTemp)</summary>
-
         /// <param name="clean">Bereinigen? "True" oder "False" bzw. "" (nur Auflistung als Array).</param>
-
         /// <returns>Die Anzahl der gelöschten Dateien bei Bereinigung "True", sonst die gefundenen Dateinamen als Array.</returns>
-
         public static Primitive CleanTemp(Primitive clean)
-
         {
-
 			bool del = clean;
-
 			int fileCount = 0;
-
 			var comp = StringComparison.OrdinalIgnoreCase;
-
 			Primitive tfiles = new Primitive();
-
             string[] files = Directory.GetFiles(Path.GetTempPath(), "tmp*");
-
             foreach (string file in files)
-
             {
-
                 string fileName = Path.GetFileName(file);
-
                 // if (fileName.EndsWith(".pdb",comp) || (fileName.StartsWith("tmp",comp) && (fileName.EndsWith(".tmp.exe",comp) || fileName.EndsWith(".tmp",comp))))
-
                 if (fileName.EndsWith(".pdb",comp) || fileName.EndsWith(".exe",comp) || fileName.EndsWith(".tmp",comp))
-
                 {
-
 					if(del)
-
 					{
-
 						try
-
 						{
-
 							System.IO.FileInfo f = new System.IO.FileInfo(file);
-
 							f.Delete();
-
 							fileCount++;
-
 						}
-
 						catch
-
 						{
-
 							continue;
-
 						}
-
 					}
-
 					else
-
 					{ tfiles[tfiles.GetItemCount() + 1] = fileName; }
-
                 }
-
             }
-
             if(del)
-
             { return fileCount; }
-
             else
-
             { return tfiles; }
-
         }
-
 		
-
     }
-
     }
-
     
-
-

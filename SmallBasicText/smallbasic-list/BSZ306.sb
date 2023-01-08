@@ -1,701 +1,350 @@
 'Initialise, get SmallBasic files in directory containing this file, choose a file, then Parse it
-
 'The Parse1 makes a copy with indentation sorted out and lists variables and the lines on which they are set
-
 'The Parse2 finds all lines where the variables are used
-
 'Finally any potential unitialised varibles are identified
 
-
-
 Init()
-
 GetFiles()
-
 SetFile()
-
 Parse1()
-
 Output1()
-
 Parse2()
-
 Output2()
-
 Unititialised()
 
-
-
 Sub Init
-
   'List of keywords which have indentation following them
-
   Array.SetValue("Indents",1,"For")
-
   Array.SetValue("Indents",2,"If")
-
   Array.SetValue("Indents",3,"Else")
-
   Array.SetValue("Indents",4,"ElseIf")
-
   Array.SetValue("Indents",5,"Sub")
-
   Array.SetValue("Indents",6,"While")
-
   
-
   'List of keywords that return indentation (outdent)
-
   Array.SetValue("Outdents",1,"EndFor")
-
   Array.SetValue("Outdents",2,"EndIf")
-
   Array.SetValue("Outdents",3,"Else")
-
   Array.SetValue("Outdents",4,"ElseIf")
-
   Array.SetValue("Outdents",5,"EndSub")
-
   Array.SetValue("Outdents",6,"EndWhile")
-
   
-
   'Text colour
-
   TextWindow.ForegroundColor = "White"
-
 EndSub
-
-
 
 Sub GetFiles
-
   'Get all the files in the current program directory
-
   dir = Program.Directory
-
   lendir = Text.GetLength(dir)+2
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.GetFiles(dir,"files")
-
   
-
   'Remove the directory path and store the files that are SB (*.sb) in Array SBFiles
-
   For i = 1 To Array.GetItemCount("files")
-
     filename = Array.GetValue("files",i)
-
     filename = Text.GetSubTextToEnd(filename,lendir)
-
     If (Text.EndsWith(filename,".sb")) Then
-
       Array.SetValue("SBfiles",Array.GetItemCount("SBfiles")+1,filename)
-
     EndIf
-
   EndFor
-
   
-
   'Remove the orginal files Array - we won't need it again
-
   For i = Array.GetItemCount("files") To 1 Step -1
-
     Array.RemoveValue("files",i)
-
   EndFor
-
   
-
   'Write out a list of SB files and their index number
-
   For i = 1 To Array.GetItemCount("SBfiles")
-
     TextWindow.WriteLine(i+" : "+Array.GetValue("SBfiles",i))
-
   EndFor
-
 EndSub
-
-
 
 Sub SetFile
-
   'Read the index number for selected SB file to work on
-
   TextWindow.WriteLine("")
-
   TextWindow.WriteLine("Enter file number")
-
   ifile = TextWindow.ReadNumber()
-
   TextWindow.WriteLine("")
-
   
-
   'Flag to output line numbers in output file
-
   TextWindow.WriteLine("Include line numbers in output file Y/N")
-
   answer = TextWindow.Read()
-
   TextWindow.WriteLine("")
-
   If (Text.StartsWith(answer,"Y") Or Text.StartsWith(answer,"y")) Then
-
     linenumbers = "True"
-
   Else
-
     linenumbers = "False"
-
   EndIf
-
-
 
   'Make a copy of the file to work on since we don't want any chance of destroying the original
-
   Infile = dir+"\"+Array.GetValue("SBfiles",ifile)
-
   Outfile = dir+"\Indent-"+Array.GetValue("SBfiles",ifile)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.CopyFile(Infile,Outfile)
-
 EndSub
-
-
 
 Sub Parse1
-
   'level is the indentation level
-
   level = 0
-
   
-
   'Read each line (max lines 10000)
-
   For line = 1 To 10000
-
 ' The following line could be harmful and has been automatically commented.
-
 '     SBline = File.ReadLine(Outfile,line)
-
     'If read error then we are finished
-
 ' The following line could be harmful and has been automatically commented.
-
 '     If (File.LastError <> "") Then
-
       Goto Finished
-
     EndIf
-
     
-
     'Remove all white space from the start of the line
-
     While (Text.StartsWith(SBline," "))
-
       SBline = Text.GetSubTextToEnd(SBline,2)
-
     EndWhile
-
     
-
     'Identify variables in line
-
     GetVariables()
-
     'Overwrite indented line to copy file
-
     Indent()
-
   EndFor
-
   Finished:
-
   'Alphabetically sort variables
-
   SortVar()
-
 EndSub
-
-
 
 Sub GetVariables
-
   'Make a copy of the line to work with
-
   variable = SBline
-
   'Ignore anything to the right of "'" (comments)
-
   pos = Text.GetIndexOf(variable,"'")
-
   If (pos > 0) Then
-
     variable = Text.GetSubText(variable,1,pos-1)
-
   EndIf
-
   'A variable is immediately before an equals
-
   pos = Text.GetIndexOf(variable,"=")
-
   If (pos > 1) Then
-
     'Remove = and all text to the right of it and store in variable
-
     variable = Text.GetSubText(variable,1,pos-1)
-
     While (Text.EndsWith(variable," "))
-
       variable = Text.GetSubText(variable,1,Text.GetLength(variable)-1)
-
     EndWhile
-
     'Remove all text to the left of the last " " in variable
-
     pos = Text.GetIndexOf(variable," ")
-
     While (pos > 0)
-
       variable = Text.GetSubText(variable,pos+1,Text.GetLength(variable)-pos)
-
       pos = Text.GetIndexOf(variable," ")
-
     EndWhile
-
     'If the variable doesn't contain "(" ")" "<" ">" or "." then it is probably a user variable (Returns 0 if not found, not -1 as documentation suggests)
-
     If (Text.GetIndexOf(variable,"(") = 0 And Text.GetIndexOf(variable,")") = 0 And Text.GetIndexOf(variable,"<") = 0 And Text.GetIndexOf(variable,">") = 0 And Text.GetIndexOf(variable,".") = 0) Then
-
       'Add it to an list of variables if we haven't already got it
-
       If (Array.ContainsValue("Var",variable) = "False") Then
-
         Array.SetValue("Var",Array.GetItemCount("Var")+1,variable)
-
       EndIf
-
       'Add the line number of this occurence
-
       Array.SetValue(variable,Array.GetItemCount(variable)+1,line)
-
     EndIf
-
   EndIf
-
 EndSub
-
-
-
 
 
 Sub Indent
-
   'convert to lower case to do comparisons with keywords
-
   keyword = Text.ConvertToLowerCase(SBline)
-
   
-
   'Remove all text to the right of any " "
-
   len = Text.GetIndexOf(keyword," ")-1
-
   If (len > 1) Then
-
     keyword = Text.GetSubText(keyword,1,len)
-
   EndIf
-
   
-
   'Remove all text to the right of any "("
-
   len = Text.GetIndexOf(keyword,"(")-1
-
   If (len > 1) Then
-
     keyword = Text.GetSubText(keyword,1,len)
-
   EndIf
-
   
-
   'Set a flag if we are going to indent the next line - also replace the keyword with the Capitalised version
-
   indent = 0
-
   For i = 1 To Array.GetItemCount("Indents")
-
     command = Array.GetValue("Indents",i)
-
     If (keyword = Text.ConvertToLowerCase(command)) Then
-
       indent = 1
-
       SBline = command+Text.GetSubTextToEnd(SBline,Text.GetLength(command)+1)
-
     EndIf
-
   EndFor
-
   
-
   'Set a flag if we are going to outdent this line - also replace the keyword with the Capitalised version
-
   outdent = 0
-
   For i = 1 To Array.GetItemCount("Outdents")
-
     command = Array.GetValue("Outdents",i)
-
     If (keyword = Text.ConvertToLowerCase(command)) Then
-
       outdent = 1
-
       SBline = command+Text.GetSubTextToEnd(SBline,Text.GetLength(command)+1)
-
     EndIf
-
   EndFor
-
   
-
   'Outdent level-1
-
   If (outdent = 1) Then
-
     level = level-1
-
   EndIf
-
   
-
   'Apply indentation to current level
-
   For i = 1 To level
-
     SBline = "  "+SBline
-
   EndFor
-
   
-
   'Indent level+1
-
   If (indent = 1) Then
-
     level = level+1
-
   EndIf
-
   
-
   'Add line numbers if required
-
   If (linenumbers) Then
-
     SBline = SBline+"' "+line
-
   EndIf
-
   'Output indented line to copy file
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteLine(Outfile,line,SBline)
-
 EndSub
-
-
 
 Sub SortVar
-
   'bubble sort variables
-
   For i = 1 To Array.GetItemCount("Var")-1
-
     For j = i+1 To Array.GetItemCount("Var")
-
       iVar = Array.GetValue("Var",i)
-
       jVar = Array.GetValue("Var",j)
-
       iValue = 0
-
       jValue = 0
-
       char = 0
-
       While (iValue = jValue)
-
         char = char+1
-
         iValue = Text.GetCharacterCode(Text.GetSubText(iVar,char,1))
-
         jValue = Text.GetCharacterCode(Text.GetSubText(jVar,char,1))
-
       EndWhile
-
       If (jValue < iValue) Then
-
         Array.SetValue("Var",i,jVar)
-
         Array.SetValue("Var",j,iVar)
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub Output1
-
   'Output some statistics on the variables and where they are set
-
   TextWindow.WriteLine("Lines "+line)
-
   TextWindow.WriteLine("")
-
   TextWindow.WriteLine("Variables "+Array.GetItemCount("Var"))
-
   TextWindow.WriteLine("")
-
-
 
   For i = 1 To Array.GetItemCount("Var")
-
     variable = Array.GetValue("Var",i)
-
     TextWindow.ForegroundColor = "Red"
-
     TextWindow.Write(variable)
-
     TextWindow.ForegroundColor = "White"
-
     TextWindow.Write(" Set on "+Array.GetItemCount(variable)+" line(s) ")
-
     For j = 1 To Array.GetItemCount(variable)
-
       TextWindow.Write(Array.GetValue(variable,j)+" ")
-
     EndFor
-
     TextWindow.WriteLine("")
-
   EndFor
-
   TextWindow.WriteLine("")
-
 EndSub
-
-
 
 Sub Parse2
-
   'Read each line (max lines 10000)
-
   For line = 1 To 10000
-
 ' The following line could be harmful and has been automatically commented.
-
 '     SBline = File.ReadLine(Outfile,line)
-
     'If read error then we are finished
-
 ' The following line could be harmful and has been automatically commented.
-
 '     If (File.LastError <> "") Then
-
       Goto Finished
-
     EndIf
-
     'Ignore anything to the right of "'" (comments)
-
     pos = Text.GetIndexOf(SBline,"'")
-
     If (pos > 0) Then
-
       SBline = Text.GetSubText(SBline,1,pos-1)
-
     EndIf
-
     'Store of line
-
     SBlineStore = SBline
-
     
-
     'Check each variable in line - redo if a substring found
-
     For i = 1 To Array.GetItemCount("Var")
-
       'Restore line, since it might have been truncated after finding sub-strings
-
       SBline = SBlineStore
-
       variable = Array.GetValue("Var",i)
-
       redo:
-
       pos = Text.GetIndexOf(SBline,variable)
-
       If (pos > 0) then
-
         'Check this occurence is not a sub-string
-
         substring = 0
-
         before = pos-1
-
         after = pos+Text.GetLength(variable)
-
         If (before >= 1) Then
-
           unicode = Text.GetCharacterCode(Text.GetSubText(SBline,before,1))
-
           'These unicodes are a-z, A-Z and 0-9 - if the characters either side of the variable are one of these, then it is probably a substring of something else
-
           'e.g. "red" is a substring of "reduce" and should not be counted as an instance of variable "red"
-
           If ((unicode >= 65 And unicode <= 90) Or (unicode >= 97 And unicode <= 122) Or (unicode >= 48 And unicode <= 57)) Then
-
             substring = 1
-
             'If we found a substring, there may still be a valid variable later on the same line
-
             If (pos < Text.GetLength(SBline)) Then
-
               SBline = Text.GetSubTextToEnd(SBline,pos+1)
-
               Goto redo
-
             EndIf
-
           EndIf
-
         EndIf
-
         If (after <= Text.GetLength(SBline)) Then
-
           unicode = Text.GetCharacterCode(Text.GetSubText(SBline,after,1))
-
           If ((unicode >= 65 And unicode <= 90) Or (unicode >= 97 And unicode <= 122) Or (unicode >= 48 And unicode <= 57)) Then
-
             substring = 1
-
             If (pos < Text.GetLength(SBline)) Then
-
               SBline = Text.GetSubTextToEnd(SBline,pos+1)
-
               Goto redo
-
             EndIf
-
           EndIf
-
         EndIf
-
         'If not a substring then add to Array and line number
-
         If (substring = 0) Then
-
           'Add the line number of this occurence
-
           Array.SetValue(variable+"X",Array.GetItemCount(variable+"X")+1,line)
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub Output2
-
   'Output some statistics on the variables and where they are used
-
   For i = 1 To Array.GetItemCount("Var")
-
     variable = Array.GetValue("Var",i)
-
     TextWindow.ForegroundColor = "Red"
-
     TextWindow.Write(variable)
-
     TextWindow.ForegroundColor = "White"
-
     TextWindow.Write(" Used on "+Array.GetItemCount(variable+"X")+" line(s) ")
-
     For j = 1 To Array.GetItemCount(variable+"X")
-
       TextWindow.Write(Array.GetValue(variable+"X",j)+" ")
-
     EndFor
-
     TextWindow.WriteLine("")
-
   EndFor
-
   TextWindow.WriteLine("")
-
 EndSub
-
-
 
 Sub Unititialised
-
   'Uninitialised variables are used before they are set  - this may not be correct if it is set in a later subroutine that is called earlier
-
   found = 0
-
   For i = 1 To Array.GetItemCount("Var")
-
     variable = Array.GetValue("Var",i)
-
     If (Array.GetValue(variable+"X",1) < Array.GetValue(variable,1)) Then
-
       TextWindow.Write("Possible uninitialised variable ")
-
       TextWindow.ForegroundColor = "Red"
-
       TextWindow.WriteLine(variable)
-
       TextWindow.ForegroundColor = "White"
-
       found = 1
-
     EndIf
-
   EndFor
-
   If (found = 0) Then
-
     TextWindow.WriteLine("No uninitialised variables found")
-
   EndIf
-
   TextWindow.WriteLine("")
-
 EndSub
-
-

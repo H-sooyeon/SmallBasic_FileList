@@ -1,3381 +1,1690 @@
 'Meteor Shower
-
 'An original game concept by codingCat aka Matthew L. Parets
-
 'Product Parets Programming
-
 'Originally developed in Extended Basic for the TI-99/4a circa 1983
-
 'Redeveloped for SmallBasic in March/April of 2015. 
-
 'Released under Creative Commons Attribution-NonCommercial-
-
 'ShareAlike 4.0 International License. 
-
 'Free to use, share and modify as you as you tell them I said hi. 
 
-
-
 'HOW TO PLAY:
-
 '----> Move the ship from the home base (left) to the far base (right)
-
 '----> Double the muliplier by continuing right past the far base.
-
 '----> Avoid the Metseors. Each hit damages your ship.
-
 '--------> Damage sets the multipler back to 1
-
 '--------> Game is over when damage = 100%
-
 '----> Points awared: (100 per meteor + time bonus) * multipier
-
 '--------> Points cut in half if shields used
-
 '--------> Final bonus at games end = score * number of meteors
-
 '----> Control the ship: Arrow keys
-
 '----> Activate Shields: Space Bar (available twice after each docking)
-
 '----> GOOD LUCK!!
-
-
 
 '*** To enable saving of high scores uncomment lines: 1456 and 1522
 
-
-
 '-----------------------------------------------------------------------------------------------------------
-
 'Initial setup - Only happens once, each time you run the program
-
 '-----------------------------------------------------------------------------------------------------------
-
 GraphicsWindow.Show()
-
 GraphicsWindow.CanResize = "false"
-
 GraphicsWindow.BackgroundColor = "black"
-
 gameTitleText = "Meteor Shower"
-
 GraphicsWindow.Title = gameTitleText
-
 meteorCharacter = Text.GetCharacter(9733) 'Unicode character used for meteor - Replaced: 9732
-
 shipCharacter = Text.GetCharacter(10148)  'Unicode character used for ship
-
 shieldCharacter = Text.GetCharacter(11094)'Unicode character used for shield
-
-
 
 LoadHighScore()
 
-
-
 'Build the games shapes (messages and ships)
-
 PlayerShapesBuild()
-
 TitleScreenMessageBuild()
-
 GameOverScreenMessageBuild()
-
 TitleMessageCrawlBuild()
-
 GameOverMessageCrawlBuild()
-
 InitialsEntryBuild()
-
 FlashBackGround() 'reset the background following the build
-
-
 
 GraphicsWindow.KeyDown = OnKeyDown
 
-
-
 '-----------------------------------------------------------------------------------------------------------
-
 'Main Program Loop - happens for each game played
-
 '-----------------------------------------------------------------------------------------------------------
-
 exiting = "False"     'User interaction - Has the escape key been pressed
-
 While exiting = "False"
-
   'Set the inital game state
-
   pressed = "False"   'User interaction - Has a key been pressed?
-
   shipCourseChange = "False" 'Has the ship changed course?
-
   progressingLevel = "False" 'Are we between levels?
-
   meteorStart = 5     'How many meteors start out on the screen
-
   shieldsPerRound = 2 'How many shields can be used per round
-
   shieldDurration = 2500  'How long do shields last?  2500 = 2.5 seconds
-
   frameRate = 13      'Minimum Milliseconds per frame - the smaller the number, the more often the screen is updated
-
   shotLength = 10000  'Number of milliseconds in the shot clock. Reach the base before zero for a bonus
-
   scoreMultiplier = 1 'No multiplier at the start of the game
-
   
-
   'Setup initial game conditions
-
   MeteorInitialPlacement()
-
   RelocateBase()
-
   SetInitialShipConditions()
-
   
-
   'Title and Instruction Screen
-
   TitleScreenMessageShow()
-
   CrawlStartOpeningMessage()
-
   
-
   '-----------------------------------------------------------------------------------------------------------
-
   'Opening Screen - Introduction to the game
-
   '-----------------------------------------------------------------------------------------------------------
-
   keyPressed = "False"                'Loop until a key is pressed
-
   While keyPressed = "False" And exiting = "False"
-
     frameStart = Clock.ElapsedMilliseconds
-
     paceMessage = paceMessage + 1     'Message crawl and ready message happn out of sync with meteor updates
-
     If Math.Remainder(paceMessage,3) = 0 Then
-
       CrawlUpdateMessage()
-
       FlashReadyMessage()
-
     endif
-
     UpdateMeteors()
-
     WaitKey()
-
   EndWhile
-
   CrawlMessageHide()                  'Hide the start screen as the game begins
-
   OutlinedMessageHide()
-
   clClr = "Black"
-
   ClearColor()
-
   
-
   gameOver = "False"                  'Setup the main game loop
-
   ShowPlayerShapes()
-
   ShowStatus()
-
   FlashHome()
-
   
-
   shotClock = Clock.ElapsedMilliseconds 'Start the bonus clock for the first time
-
   '-----------------------------------------------------------------------------------------------------------
-
   'Main Game Loop - Processing of the main game
-
   '-----------------------------------------------------------------------------------------------------------
-
   While gameOver = "False" And exiting = "False"
-
     frameStart = Clock.ElapsedMilliseconds
-
     GameKeyCheck()          'Read the keyboard
-
     MoveTheShip()           'Respond to user interaction
-
     DetectBaseCollision()   'Interaction with other objects
-
     DetectMeteorCollision()
-
     UpdateMeteors()         'Move the meteors, pause afterward to pace the frame rate
-
   endWhile
-
   
-
   HidePlayerShapes()
-
   
-
   'Game over Man - GAME OVER!!  -------------------------------------------------------------------
-
   
-
   ShowFinalBonusMessage()   'Flash the screen as the bonus is calculated
-
   GameOverScreenMessageShow()
-
   ShowStatus()
-
   
-
   '-----------------------------------------------------------------------------------------------------------
-
   'High Score Initial entry
-
   '-----------------------------------------------------------------------------------------------------------
-
   If score > highscore[10] Then 'Was the score in the top 10 of all time?
-
     FinalScoreMessage()
-
     initialEntryShow()
-
     'Keep going until enter or escape is pressed
-
     While InitEntry = "True" And exiting = "False"
-
       frameStart = Clock.ElapsedMilliseconds
-
       EnterInitials()
-
       paceMessage = paceMessage + 1 'Score flash happens out of sync with meteors and ey presses
-
       If Math.Remainder(paceMessage,3) = 0 Then
-
         FlashScoreMessage()
-
       EndIf
-
       UpdateMeteors()
-
       WaitKey()
-
     EndWhile
-
     InitialEntryHide()
-
   EndIf
-
   
-
   'Setup the game over screen
-
   UpdateHighScore()             'Save the high scores to a file, update the crawl
-
   CrawlStartGameOverMessage()
-
   FinalScoreMessage()
-
   FinalStatus()
-
   
-
   '-----------------------------------------------------------------------------------------------------------
-
   'Score / Credits / Restart  Screen
-
   '-----------------------------------------------------------------------------------------------------------
-
   keyPressed = "False"
-
   While keyPressed = "False" And exiting = "False"
-
     frameStart = Clock.ElapsedMilliseconds
-
     paceMessage = paceMessage + 1
-
     If Math.Remainder(paceMessage,3) = 0 Then
-
       FlashRestartMessage()
-
       FlashScoreMessage()
-
       CrawlUpdateMessage()
-
     endif
-
     UpdateMeteors()
-
     WaitKey()
-
   EndWhile  
-
   CrawlMessageHide()
-
   OutlinedMessageHide()
-
   clClr = "Black"
-
   ClearColor()
-
 endwhile
 
-
-
 Program.End() 'close the window and exit
-
-
-
-
 
 
 
 'Sub Routines -------------------------------------------------------------------------------------------
 
 
-
-
-
 '--- ShowFinalBonusMessage ------------------------------------------------------------------------
-
 '--- Displayed the bonus screen a the end of each game. Bonus is current score times
-
 '--  the number of meteors
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub ShowFinalBonusMessage 
-
   FlashScoreStart = score
-
   sfbm = Clock.ElapsedMilliseconds
-
   flashTotalDur = 3000        'How long should bonus flashing be (in millesconds)?
-
   flashPartDur = (flashTotalDur * 0.8) / meteorCount  'The multipler flash should take 80% of the time available
-
   multiplierIncrement = math.Floor(FlashScoreStart / (flashPartDur / frameRate))
-
   flashPartStart = Clock.ElapsedMilliseconds
-
   multiplierDisplay = 1
-
   flashFinalBonusBackground = "True"
-
   
-
   keyPressed = "False"
-
   While Clock.ElapsedMilliseconds - sfbm < flashTotalDur And exiting = "False"
-
     frameStart = Clock.ElapsedMilliseconds
-
     
-
     If Clock.ElapsedMilliseconds - sfbm > (flashTotalDur * 0.8) And flashFinalBonusBackground = "True" Then
-
       'Bonus update is complete, prevent over flow  of the score
-
       flashFinalBonusBackground = "False"
-
       score = FlashScoreStart * meteorCount
-
       multiplierDisplay = meteorCount
-
       clClr = "Black"                 'set background stays black
-
       ClearColor()      
-
     EndIf
-
     If flashFinalBonusBackground = "True" Then
-
       If score < FlashScoreStart * meteorCount then
-
         score = score + multiplierIncrement
-
         GraphicsWindow.Title = score
-
       EndIf
-
       If Clock.ElapsedMilliseconds - flashPartStart > flashPartDur And multiplierDisplay < meteorCount then
-
         multiplierDisplay = multiplierDisplay + 1
-
         flashPartStart = Clock.ElapsedMilliseconds
-
       EndIf
-
       FlashBackGroundOnce()
-
     EndIf
-
     
-
     FlashFinalBonusMessage()
-
     UpdateMeteors()
-
     WaitKey()
-
   EndWhile
-
   clClr = "Black"
-
   ClearColor()
-
 EndSub
-
-
 
 '--- FlashFinalBonusMessage ------------------------------------------------------------------------
-
 '--- Keep the message flashing in different colors. Multiple calls to FlashAnyMessage
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub FlashFinalBonusMessage
-
   flshMsg = "FINAL BONUS"
-
   flshMX = 3
-
   flshMY = 30
-
   GraphicsWindow.FontSize = 90
-
   GraphicsWindow.FontItalic = "False"
-
   GraphicsWindow.FontBold = "True"
-
   FlashAnyMessage()
-
   
-
   flshMsg = "x" + multiplierDisplay
-
   flshMX = 200
-
   flshMY = 100
-
   GraphicsWindow.FontSize = 150
-
   GraphicsWindow.FontItalic = "False"
-
   GraphicsWindow.FontBold = "True"
-
   FlashAnyMessage()
-
   
-
   commaNumber = score
-
   AddCommasToNumber()
-
   nudgeNum = ((Text.GetLength(commaNumber)-1) - math.Floor(Text.GetLength(commaNumber) / 4)) * 45
-
   nudgeCom  = math.Floor(Text.GetLength(commaNumber) / 4) * 19
-
   nudge = nudgeNum + nudgeCom
-
   
-
   FlashScoreMessage()
-
   FlashAnyMessage()
-
 EndSub
-
-
 
 '--- FlashReadyMessage ------------------------------------------------------------------------------
-
 '--- Repaint the ready message in a random color
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub FlashReadyMessage
-
   flshMsg = "< < < Ready Player One - Press Any Key to Begin > > >"
-
   flshMX = 50
-
   flshMY = 250
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.FontItalic = "True"
-
   GraphicsWindow.FontBold = "False"
-
   FlashAnyMessage()
-
 EndSub
-
-
 
 '--- FlashRestartMessage ------------------------------------------------------------------------------
-
 '--- Repaint the restart message in a random color
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub FlashRestartMessage
-
   flshMsg = "< < < Press Any Key for the Next Player > > >"
-
   flshMX = 220
-
   flshMY = GraphicsWindow.Height - 15
-
   GraphicsWindow.FontSize = 10
-
   GraphicsWindow.FontItalic = "True"
-
   GraphicsWindow.FontBold = "False"
-
   FlashAnyMessage()
-
 EndSub
-
-
 
 '--- FlashScoreMessage -------------------------------------------------------------------------------
-
 '--- Repaint the final score message in a random color
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub FlashScoreMessage
-
   flshMX = 560 - nudge
-
   flshMY = 350
-
   flshMsg = commaNumber
-
   GraphicsWindow.FontSize = 70
-
   GraphicsWindow.FontBold = "true"
-
   GraphicsWindow.FontItalic = "True"
-
   FlashAnyMessage()
-
 EndSub
-
-
 
 '--- FlashAnyMessage ---------------------------------------------------------------------------------
-
 '--- Generic flash routine. Picks a mid-range color at random and displays the message
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub FlashAnyMessage
-
   flashMsgClr = GraphicsWindow.GetColorFromRGB(Math.GetRandomNumber(180)+75,Math.GetRandomNumber(180)+75,Math.GetRandomNumber(180)+75)
-
   GraphicsWindow.BrushColor = flashMsgClr
-
   GraphicsWindow.DrawText(flshMX,flshMY,flshMsg)
-
 EndSub
-
-
 
 '--- ClearColor ------------------------------------------------------------------------------------------
-
 '--- Clear the screen to the selected color - This routine is used instead of 
-
 '--- graphicswindow.clear to avoid disrupting the shapes
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub ClearColor
-
   GraphicsWindow.BrushColor = clClr
-
   GraphicsWindow.FillRectangle(0,0,GraphicsWindow.Width,GraphicsWindow.Height)
-
 EndSub
-
-
 
 '--- ShowPlayerShapes -------------------------------------------------------------------------------
-
 '--- Turn on the shapes used by the player during the came
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub ShowPlayerShapes
-
   Shapes.ShowShape(base)
-
   Shapes.ShowShape(home)
-
   Shapes.ShowShape(ship)
-
 EndSub
-
-
 
 '--- HidePlayerShapes --------------------------------------------------------------------------------
-
 '--- Turn off the shapes used by the player during the came
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub HidePlayerShapes
-
   GraphicsWindow.BrushColor = "black"               'clear the green home base
-
   GraphicsWindow.FillRectangle(homex,homey, 20,15)
-
   HideShield()
-
   Shapes.HideShape(home)
-
   Shapes.HideShape(base)
-
   Shapes.HideShape(Ship)
-
 EndSub
-
-
 
 '--- FinalScoreMessage -------------------------------------------------------------------------------
-
 '--- Display the end of game message showing the players final progress
-
 '-----------------------------------------------------------------------------------------------------------
-
 sub FinalScoreMessage
-
   GraphicsWindow.FontSize = 40
-
   GraphicsWindow.FontBold = "true"
-
   GraphicsWindow.FontItalic = "true"
-
   GraphicsWindow.BrushColor = "white"
-
   msg = "Score amongst " + meteorCount + " meteors ="
-
   GraphicsWindow.DrawText(11,306, msg)
-
   GraphicsWindow.BrushColor = "blue"
-
   GraphicsWindow.DrawText(10,305, msg)
-
   GraphicsWindow.FontSize = 70        'Setup for flashing score
-
   commaNumber = score                 'format the score with commas and right justify it
-
   AddCommasToNumber()
-
   nudgeNum = ((Text.GetLength(commaNumber)-1) - math.Floor(Text.GetLength(commaNumber) / 4)) * 45
-
   nudgeCom  = math.Floor(Text.GetLength(commaNumber) / 4) * 19
-
   nudge = nudgeNum + nudgeCom
-
   GraphicsWindow.BrushColor = "white" 'display he white shaddow
-
   GraphicsWindow.DrawText(563 - nudge,353, commaNumber)
-
 EndSub
-
-
 
 '--- GameKeyCheck -----------------------------------------------------------------------------------
-
 '--- Keyboard check routine used during game loop
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub GameKeyCheck
-
   If pressed = "True" Then          'has a key been pressed since the last key press?
-
     homeBase = "False"              'Any key press launchs from home base
-
     Shapes.HideShape(home)
-
     key = GraphicsWindow.LastKey
-
     If key = "Left" Then            'Check for direction keys
-
       If shipmovex = -1 Then        'Double tap backwards to fly straight
-
         shipmovey = 0
-
       EndIf
-
       shipmovex = -1
-
     ElseIf key = "Right" then
-
       If shipmovex = 1 then         'Double tap forward to fly straight
-
         shipmovey = 0
-
       EndIf
-
       shipmovex = 1
-
     ElseIf key = "Up" then
-
       shipmovey = -1
-
     ElseIf key = "Down" then
-
       shipmovey = 1
-
     ElseIf key = "Space" then       'Space bar invokes the shields
-
       shieldUse = shieldUse + 1
-
       If shieldUse <= shieldsPerRound then  'if we have not used the shields this round
-
         shieldStrength = 100
-
         shieldStart = Clock.ElapsedMilliseconds
-
       EndIf
-
     ElseIf key = "Escape" then      'hide the window and crash out of game
-
       GraphicsWindow.Hide()
-
       exiting = "True"
-
     EndIf
-
     If key <> "Space" And lastPressed <> key Then  'track if the ship has changed direction
-
       shipCourseChange = "True"     'This check is to prevent the player from gliding for multiple rounds without changing directions
-
     EndIf
-
     lastPressed = key
-
     pressed = "False"               'Reset, waiting for next key to be pressed
-
   EndIf
-
 EndSub
-
-
 
 '--- WaitKey -------------------------------------------------------------------------------------------
-
 '--- keyboard check routine used in places that are not the game itself.
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub WaitKey
-
   If pressed = "True" Then
-
     'The difference between pressed and keyPress is subtle, and
-
     'keyPressed is not strictly needed. It is used to smooth the 
-
     'logic and separate the physical key press (handled by the
-
     'key event and the pressed varaible) from the logic
-
     'of determining what key has been pressed
-
     keyPressed = "True"
-
     key = GraphicsWindow.LastKey
-
     If key = "Escape" then
-
       GraphicsWindow.Hide()
-
       exiting = "True"
-
     EndIf
-
     pressed = "False"
-
   endif
-
 EndSub
-
-
 
 '--- MoveTheShip -------------------------------------------------------------------------------------
-
 '--- Animate the ship. Updates its location on the screen
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub MoveTheShip
-
   
-
   shipx = shipx + shipmovex                 'New ship location
-
   shipy = shipy + shipmovey                 
-
   If shipx > GraphicsWindow.Width - 5 Then  'Handle the edges of the screen
-
     PushLevel()
-
   ElseIf shipx < 1 then 
-
     shipx = 1
-
     shipmovex = 0
-
   endif
-
   If shipy > GraphicsWindow.Height - 12 Then 
-
     shipy = GraphicsWindow.Height - 12 
-
     shipmovey = 0
-
   ElseIf shipy < -2 then 
-
     shipy = -2
-
     shipmovey = 0
-
   EndIf
-
   Shapes.Move(Ship,shipx, shipy)            'Move the ship
-
   
-
   If shieldStrength > 1 Then                'Handle the sheilds
-
     ShieldFade()
-
   EndIf
-
 EndSub
-
-
 
 '--- ShieldFade -----------------------------------------------------------------------------------------
-
 '--- While flashing the colors, fade the shield from full to the 
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub ShieldFade
-
   shieldStrength = 100 - (((Clock.ElapsedMilliseconds - shieldStart) * 100) / shieldDurration)
-
   Shapes.SetOpacity(shield[shieldNum],shieldStrength)
-
   If shieldStrength > 1 Then
-
     Shapes.HideShape(shield[shieldNum])
-
     shieldCnt = shieldCnt + 1
-
     shieldNum = math.Remainder(shieldCnt,Array.GetItemCount(shield)) + 1
-
     Shapes.Move(shield[shieldNum],shipx-10,shipy-14)
-
     Shapes.ShowShape(shield[shieldNum])
-
   EndIf
-
 EndSub
-
-
 
 '--- HideShield -----------------------------------------------------------------------------------------
-
 '--- Turn off the shield entirly - hide their shapes
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub HideShield
-
   For hpsi = 1 To array.GetItemCount(shield)
-
     Shapes.HideShape(shield[hpsi])
-
   endfor
-
 EndSub
-
-
 
 '--- DetectBaseCollision ------------------------------------------------------------------------------
-
 '--- Detect Base - Has the ship made it to the remote base?
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub DetectBaseCollision
-
   '          Top left of ship inside of base                                                                                                                                                                      bottom right inside of base?                                                                                                                                                                                               bottom left                                                                                                                                                                                                            top right
-
   If ((shipx > basex And shipx < basex + 20) And (shipy + 2 > basey And shipy + 2 < basey + 15)) or ((shipx + 10 > basex And shipx + 10 < basex + 20) And (shipy + 12 > basey And shipy + 12 < basey + 15))  or ((shipx > basex And shipx < basex + 20) And (shipy + 12 > basey And shipy + 12 < basey + 15)) or ((shipx + 10 > basex And shipx + 10 < basex + 20) And (shipy + 2 > basey And shipy + 2 < basey + 15)) Then
-
     'Setup for next level      
-
     Shapes.HideShape(Ship)
-
     HideShield()
-
     CalculateScore()
-
     homeBase = "True"       'Reset for next level
-
     shieldUse = 0
-
     shipmovex = 0
-
     shipmovey = 0
-
     FlashBase()
-
     NextLevel()
-
     shipx = 7
-
     shipy = homey
-
     Shapes.Move(Ship,shipx, shipy)
-
     Shapes.ShowShape(ship)
-
     FlashHome()
-
     ShowStatus()
-
     shotClock = Clock.ElapsedMilliseconds
-
   EndIf
-
 EndSub
-
-
 
 '--- DetectMeteorCollision ---------------------------------------------------------------------------
-
 '--- Detect colision with meteor - Is the  ship occupying the same space as a meteor
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub DetectMeteorCollision
-
   If homeBase = "False" Then  'Ignore if at home base and no key has been pressed, or the shields are up
-
     For i = 1 To meteorCount
-
       If ((shipx > meteorX[i] And shipx < meteorX[i]+18) And (shipy + 2 > meteorY[i]+6 And shipy + 2 < meteorY[i]+21)) or ((shipx + 10 > meteorX[i] And shipx + 10 < meteorX[i]+18) And (shipy + 12 > meteorY[i]+6 And shipy + 12 < meteorY[i]+21))  or ((shipx > meteorX[i] And shipx <meteorX[i]+18) And (shipy + 12 > meteorY[i]+6 And shipy + 12 < meteorY[i]+21)) or ((shipx + 10 > meteorX[i] And shipx + 10 < meteorX[i]+18) And (shipy + 2 > meteorY[i]+6 And shipy + 2 < meteorY[i]+21)) Then
-
         If shieldStrength > 1 then 'If the shields are up
-
           meteorX[i] = meteorX[i] + meteorSpeed[i]  'Push the meteor back
-
           metydir = Math.GetRandomNumber(3) - 2 'random up or down, or straight
-
           meteorY[i] = meteorY[i] + (3 * metydir) 'push the vertical
-
         Else 'No shields
-
           'SpinHome and setup for restart
-
           homeBase = "True"
-
           UpdateDamage()
-
           ShowStatus()
-
           SpinHome()        
-
           FlashHome()
-
           ShowStatus()
-
           scoreMultiplier = 1
-
         EndIf
-
       endif
-
     EndFor
-
   endif
-
 EndSub
-
-
 
 '--- ShowStatus -----------------------------------------------------------------------------------------
-
 '--- Update the title bar with the score, number of meteors and ship damage
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub ShowStatus
-
   title = "Score: "
-
   commaNumber = score
-
   AddCommasToNumber()
-
   title = title + commaNumber 
-
   title = title + " - Meteors: "
-
   title = title + meteorCount
-
   title = title + " - Damage: "
-
   title = title + damage
-
   title = title + "%"
-
   GraphicsWindow.Title = title
-
 EndSub
-
-
 
 '--- FinalStatus -----------------------------------------------------------------------------------------
-
 '--- Update the status bar at the end of the game with the final status
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub FinalStatus
-
   title = "Score = "
-
   commaNumber = score
-
   AddCommasToNumber()
-
   title = title + commaNumber 
-
   title = title + " - Meteors = "
-
   title = title + meteorCount
-
   title = title + " - "
-
   title = title + Text.GetSubTextToEnd(rankingMsg2,9)
-
   GraphicsWindow.Title = title
-
 EndSub
-
-
 
 '--- UpdateDamage ------------------------------------------------------------------------------------
-
 '--- Process the damage taken after a collision with a meteor
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub UpdateDamage
-
   damage = damage + (5 * meteorSpeed[i])
-
   If damage >= 100 Then
-
     damage = 100
-
     gameOver = "True"
-
   EndIf
-
 EndSub
-
-
 
 '--- FlashHome -----------------------------------------------------------------------------------------
-
 '--- Flash the homebase base at the start of each level
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub FlashHome
-
   holdb = base    'flash the home base location
-
   base = home
-
   holdbx = basex
-
   basex= homex
-
   holdby = basey
-
   basey = homey
-
   FlashBase()
-
   base = holdb    
-
   basex = holdbx
-
   basey = holdby
-
   shipmovex = 0     'stop the ship from moving
-
   shipmovey = 0
-
   homeBase = "True" 'We are docked at the home base
-
   pressed = "False" 'no key has been currently pressed (don't buffer)
-
 endsub
-
-
 
 '--- FlashBase ------------------------------------------------------------------------------------------
-
 '--- Flash the remote base as the player completes the level
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub FlashBase
-
   Shapes.HideShape(base)
-
   fbnow = Clock.ElapsedMilliseconds
-
   While Clock.ElapsedMilliseconds - fbnow < 1000
-
     frameStart = Clock.ElapsedMilliseconds
-
     color = GraphicsWindow.GetRandomColor()
-
     GraphicsWindow.BrushColor = color
-
     GraphicsWindow.FillRectangle(basex, basey, 20, 15)
-
     UpdateMeteors()
-
   EndWhile
-
   GraphicsWindow.BrushColor = "green"
-
   GraphicsWindow.fillRectangle(basex,basey, 20,15)
-
   
-
   Shapes.ShowShape(base)
-
 EndSub
-
-
 
 '--- UpdateMeteors ------------------------------------------------------------------------------------
-
 '--- Move the meteors. If they fly of the screen at the left, replace them at the right
-
 '-----------------------------------------------------------------------------------------------------------
-
 sub UpdateMeteors
-
   For ium = 1 to meteorCount
-
     'GraphicsWindow.PenColor = "black"               'Test code -- will clear the hit boxes around the meteors
-
     'GraphicsWindow.DrawRectangle(meteorX[ium],meteory[ium]+6,20,15)
-
     meteorX[ium] = meteorX[ium] - meteorSpeed[ium]
-
     'respawn if the screen edge is reached
-
     If meteorX[ium] < 0 - 13 Then  '18 is the width of the meteors 
-
       smsPos = ium
-
       SetMeteorStart()
-
     EndIf
-
     'GraphicsWindow.PenColor = "green"             'Test code -- will display the hit boxes around the meteors
-
     'GraphicsWindow.DrawRectangle(meteorX[ium],meteory[ium]+6,20,15)
-
     Shapes.Move(meteor[ium], meteorX[ium], meteorY[ium])
-
   EndFor
-
   'Spin in place to pace the game
-
   While Clock.ElapsedMilliseconds - frameStart < frameRate
-
   endwhile
-
 endsub
-
-
 
 '--- SetMeteorStart ------------------------------------------------------------------------------------
-
 '--- Place the current meteor at a random y position off the screen to the right
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub SetMeteorStart
-
   meteorX[smsPos] = GraphicsWindow.Width  'location just off screen to the right
-
   If shipCourseChange = "False" And homeBase = "False" Then 'Has the ship changed course since the last level push?
-
     meteorY[smsPos] = shipy - 6           'target the ship directly with a rock
-
     shipCourseChange = "True"
-
   Else                                    'choose a random location for this rock
-
     meteorY[smsPos] = Math.GetRandomNumber(GraphicsWindow.Height) - 5 'subtract half the height of the meteor - this will let the meteor hug the top and bottom
-
   EndIf
-
   speedbump = Math.Round(meteorCount / 5) 'Increase the top speed every fifth new meteor
-
   meteorSpeed[smsPos] = Math.GetRandomNumber(30 + ((speedbump-1) * 5)) / 10
-
   If meteorSpeed[smsPos] > 10 Then        'If the speed bump gets out of hand
-
     meteorSpeed[smsPos] = 10              'Set it to its maximum
-
   EndIf
-
   If progressingLevel Then 'Warp speed if we are in the process of moving from one level to another
-
     meteorSpeed[smsPos] = meteorSpeed[smsPos] + (GraphicsWindow.Width / stepCount)
-
   EndIf
-
 EndSub
-
-
 
 '--- MeteorInitialPlacement --------------------------------------------------------------------------
-
 '--- Meteor reset at start of game - clear old meteors, create the default number of new ones
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub MeteorInitialPlacement
-
   If Array.GetItemCount(meteor) > 0 then 'Remove any meteors in the list - reset from previous game
-
     For mip = 1 To meteorCount
-
       shapes.Remove(meteor[mip])
-
       shapes.Remove(meteorX[mip])
-
       shapes.Remove(meteorY[mip])
-
       shapes.Remove(meteorSpeed[mip])
-
     EndFor
-
   EndIf
-
   meteorCount = 0                         'Start at zero, raised to meteorStart by AddNewMeteor
-
   
-
   For mip = 1 to meteorStart              'Add the first meteors
-
     AddNewMeteor()
-
   endfor
-
 EndSub
-
-
 
 '--- AddNewMeteor ------------------------------------------------------------------------------------
-
 '--- Create and add a new meteor to the list, setting its initail position and speed.
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub AddNewMeteor
-
   meteorCount = meteorCount + 1         'Increase number of meteors
-
   GraphicsWindow.FontSize = 20          'set the size shape and color of meteor
-
   GraphicsWindow.FontItalic = "False"
-
   GraphicsWindow.FontBold = "False"
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(Math.GetRandomNumber(100) + 155,0,0)
-
   meteor[meteorCount] = Shapes.AddText(meteorCharacter) 'Create the meteor shape
-
   Shapes.Rotate(meteor[meteorCount], 26)                'Rotate from default to face left
-
   smsPos = meteorCount                                  'Set its initial position
-
   SetMeteorStart()
-
   Shapes.Move(meteor[meteorCount], meteorX[meteorCount], meteorY[meteorCount])
-
 EndSub
-
-
 
 '--- RelocateBase ---------------------------------------------------------------------------------------
-
 '--- Move the far base to a new random location
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub RelocateBase
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.FillRectangle(basex,basey, 20,15)  'clear the non-shape background
-
   GraphicsWindow.FillRectangle(homex,homey, 20,15)
-
   homey = basey                                     'Home takes over location of far base
-
   Shapes.Move(home, homex, homey)                   'relocate home
-
   
-
   basey = Math.GetRandomNumber(GraphicsWindow.Height - 19) + 2
-
   Shapes.Move(base, basex, basey)                   'relocate the far base
-
 EndSub
-
-
 
 '--- CalculateScore -------------------------------------------------------------------------------------
-
 '--- 
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub CalculateScore
-
   prevScore = score                                   'Keep track of the current score
-
   shieldMultiplier = 1 
-
   If shieldUse >= shieldsPerRound Then                'Half the multiplier if the shields are used
-
     shieldMultiplier = shieldMultiplier / 2
-
   endif
-
   roundScore = meteorCount * 100                      'Base score is 100 points per meteor
-
   timeToBase = clock.ElapsedMilliseconds - shotClock  'Bonus of 1 point per millisecond for time left in shot clock
-
   If timeToBase > shotLength Then                     'Make sure there isn't an odd wrapping situation
-
     timebonus = 0
-
   Else
-
     timebonus = shotLength - timeToBase
-
   EndIf
-
   'Calculate the score - score multiplier is doubled each time you push past the far base
-
   score = score + ((roundScore + timebonus) * scoreMultiplier * shieldMultiplier)
-
   score = Math.Round(score)
-
 EndSub
-
-
 
 '--- AddCommasToNumber --------------------------------------------------------------------------
-
 '--- Add commas every three digits in a number
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub AddCommasToNumber
-
   commaNumber = "G" + commaNumber + "Q"  'random letters added to enforce concatenation rather than additon
-
   commaResult = "M"
-
   commaPos = 0
-
   For actni = text.GetLength(commaNumber)-1 To 2 Step -1  'Stepping backwards through the number
-
     commaSub = Text.GetSubText(commaNumber,actni,1)       'The next digit
-
     commaPos = commaPos + 1                               'The next position in the result
-
     If math.Remainder(commaPos-1,3) = 0 and text.GetLength(commaResult) > 3 Then  'time for a comma?
-
       commaResult = "," + commaResult                     'Add a comma
-
     EndIf
-
     commaResult = commaSub + commaResult                  'Add the next digit to the result
-
   EndFor
-
   commaNumber = text.GetSubText(commaResult,1,Text.GetLength(commaResult)-1)  'Return the number
-
 EndSub
-
-
 
 '--- 'NoTheName -----------------------------------------------------------------------------------------
-
 '--- 
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub SpinHome
-
   'Use of animate is almost cheating given the design of this program. It is hard to resist given its simplicity
-
   Shapes.Animate(ship, homex, homey, 1000) 'Send the ship home - 1000ms = 1 second
-
   starthome = Clock.ElapsedMilliseconds
-
   rotateAngle = 0
-
   rotatehome = Clock.ElapsedMilliseconds
-
   ShowPow()
-
   While Clock.ElapsedMilliseconds - starthome < 1000 ' Take a full second fly home, regardless of distance
-
     frameStart = Clock.ElapsedMilliseconds    
-
     
-
     'Spin while moving home - update the spin every 50 mils
-
     If Clock.ElapsedMilliseconds - rotatehome < 50 then 
-
       rotateAngle = rotateAngle + 5
-
       Shapes.Rotate(Ship,rotateAngle)
-
       rotatehome = Clock.ElapsedMilliseconds
-
     EndIf
-
     
-
     'Flash message to let the user know the multipler has been lost
-
     multiplierCount = multiplierCount + 1 'Do this only one in five times through the loop
-
     If math.Remainder(multiplierCount, 5) = 0 Then
-
       If GraphicsWindow.Title = "" then   'Alternate between clear and display
-
         GraphicsWindow.Title = "Score Multiplier Lost"
-
       Else
-
         GraphicsWindow.Title = "" 
-
       EndIf    
-
     EndIf
-
     
-
     'Pow - zoom and fade during spin home
-
     powTimePercent = ((Clock.ElapsedMilliseconds - starthome) * 100) / 1000 
-
     powSize = 3 * (powTimePercent/100)  ' Multiplier, how many times its original size will it be when its done?
-
     powFade = 100-powTimePercent
-
     Shapes.Zoom(pow,powsize,powsize)
-
     Shapes.SetOpacity(pow,powfade)
-
     
-
     UpdateMeteors() 'Keep the meteors in motion during this process
-
   EndWhile
-
   shipx = 7
-
   shipy = homey
-
   shipmovex = 0
-
   shipmovey = 0
-
   Shapes.Move(Ship,shipx, shipy)
-
   Shapes.Rotate(Ship,0)
-
   GraphicsWindow.Title = "Score Multiplier Lost"
-
   HidePow()
-
 EndSub
-
-
 
 '--- PushLevel -----------------------------------------------------------------------------------------
-
 '--- push to next level - has the ship gone past the right edge of the Window?
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub PushLevel
-
   shipVisible = "True"
-
   shieldStrength = 100
-
   shieldStart = Clock.ElapsedMilliseconds
-
   scoreMultiplier = scoreMultiplier * 2
-
   ProgressLevel()
-
   shipx = 1
-
   GraphicsWindow.BrushColor = "green"
-
   GraphicsWindow.fillRectangle(homex,homey, 20,15)
-
   homeBase = "False"
-
   ShowStatus()
-
 EndSub
-
-
 
 '--- NextLevel -------------------------------------------------------------------------------------------
-
 '--- Following dock with the far base, push to the next level. make use of progress level
-
 '--- to save on code and increase maintablity.
-
 '-----------------------------------------------------------------------------------------------------------
-
 'Setup for the level jump
-
 Sub NextLevel
-
   shipVisible = "False"
-
   Shapes.HideShape(ship)
-
   ProgressLevel()
-
   Shapes.ShowShape(home)
-
   Shapes.ShowShape(ship)
-
 EndSub
-
-
 
 '--- ProgressLevel -------------------------------------------------------------------------------------
-
 '--- Push to the next level following either docking with far base, or when the ship moves
-
 '--- to the next level (increasing the multiplier)
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub ProgressLevel
-
   progressingLevel = "True" 'needed to prevent duplicating code in UpdateMeteors
-
   stepCount = 100 'The number of steps (the speed) to move the base to the home position
-
   scoreUpStep = score - prevScore
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.FillRectangle(basex,basey, 20,15)
-
   GraphicsWindow.FillRectangle(homex,homey, 20,15)
-
   Shapes.HideShape(home)
-
   'Increase the difficulty by adding another meteor
-
   AddNewMeteor()
-
   'Set the speed of the meteors to get everything to the edge of the screen in stepCount number of jumps
-
   For nlc = 1 To meteorCount
-
     meteorSpeed[nlc] = meteorSpeed[nlc] + (GraphicsWindow.Width / stepCount)
-
   EndFor
-
   'Jump to the next level, quickly moving everything from one edge of the screen to the other
-
   For driftCnt = 1 To stepCount
-
     frameStart = Clock.ElapsedMilliseconds
-
     basex = basex - (GraphicsWindow.Width / stepCount)    'Move the base
-
     Shapes.Move(base, basex, basey)
-
     If shipVisible="True" Then                            'Move the ship - when pushing a level rather than docking
-
       shipx = shipx - (GraphicsWindow.Width / stepCount)
-
       Shapes.Move(ship, shipx, shipy)
-
       ShieldFade()                                        'Shields are up during push
-
       multiplierCount = multiplierCount + 1
-
       If math.Remainder(multiplierCount, 5) = 0 Then      'Flash multiplier message during push
-
         If GraphicsWindow.Title = "" then 
-
           GraphicsWindow.Title = "Multiplier Increased To: " + scoreMultiplier
-
         Else
-
           GraphicsWindow.Title = "" 
-
         EndIf    
-
       EndIf
-
     Else                                                  'Spin the score up
-
       prevScore = math.Round(prevScore + (scoreUpStep / stepCount))
-
       scoreMsg = "Score = " + prevScore
-
       GraphicsWindow.Title = scoreMsg
-
     endif
-
     UpdateMeteors()
-
   EndFor
-
   'Slow the meteors down again
-
   For nlc = 1 To meteorCount
-
     meteorSpeed[nlc] = meteorSpeed[nlc] - (GraphicsWindow.Width / stepCount)
-
   EndFor
-
   Shapes.HideShape(base)
-
   homey = basey
-
   Shapes.Move(home, homex, homey)
-
   basex = GraphicsWindow.Width - 22
-
   basey = Math.GetRandomNumber(GraphicsWindow.Height - 19) + 2
-
   Shapes.Move(base, basex, basey)
-
   Shapes.ShowShape(base)
-
   shipCourseChange = "False"  'tracked to force the player to manuver
-
   progressingLevel = "False"  'needed to prevent duplicating code in UpdateMeteors
-
 EndSub
-
-
 
 '--- SetInitialShipConditions -------------------------------------------------------------------------
-
 '--- Ship conditions at the start of the game
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub SetInitialShipConditions
-
   shipx = 7
-
   shipy = homey
-
   shipmovex = 0
-
   shipmovey = 0
-
   homeBase = "True"
-
   score = 0
-
   damage = 0
-
   Shapes.Move(ship, shipx, shipy)
-
 EndSub
-
-
 
 '--- PlayerShapesBuild --------------------------------------------------------------------------------
-
 '--- Construct the player resrouces - Ship, Shield, Crash messages, and Bases, 
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub PlayerShapesBuild
-
   'Place the ship
-
   clClr = "Blue" 'Set background to brush color to hide shape creation
-
   ClearColor()
-
   GraphicsWindow.BrushColor = "blue"
-
   Ship = Shapes.AddText(shipCharacter)
-
   Shapes.HideShape(ship)
-
   Shapes.Rotate(ship,0)
-
   
-
   'Construct and hide the shields 
-
   clClr = "magenta"
-
   ClearColor()
-
   GraphicsWindow.BrushColor = "magenta"
-
   GraphicsWindow.FontSize = 30
-
   shield[1] = Shapes.AddText(shieldCharacter)
-
   Shapes.HideShape(shield[1])
-
   clClr = "cyan"
-
   ClearColor()
-
   GraphicsWindow.BrushColor = "cyan"
-
   shield[2] = Shapes.AddText(shieldCharacter)
-
   Shapes.HideShape(shield[2])  
-
   
-
   'Place the Pow
-
   powMsgLst[1] = "POW"
-
   powMsgLst[2] = "BAM"
-
   powMsgLst[3] = "ZAP"
-
   powMsgLst[4] = "OUCH"
-
   powMsgLst[5] = "ARGH"
-
   powMsgLst[6] = "DRAT"
-
   powMsgLst[7] = "EEK"
-
   powMsgLst[8] = "HEY"
-
   powMsgLst[9] = "MEH"
-
   powMsgLst[10] = "OOPS"
-
   powMsgLst[11] = "RATS"
-
   powMsgLst[12] = "UGGH"
-
   
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(255,175,255)
-
   clClr = GraphicsWindow.BrushColor 'Set background to brush color to hide shape creation
-
   ClearColor()
-
   GraphicsWindow.FontItalic = "True"
-
   GraphicsWindow.FontBold = "True"
-
   GraphicsWindow.FontSize = 15
-
   For pbi = 1 To Array.GetItemCount(powMsgLst)
-
     powShape[pbi] = Shapes.AddText(powMsgLst[pbi])
-
     Shapes.HideShape(powShape[pbi])
-
     Shapes.SetOpacity(powShape[pbi],0)
-
     Shapes.Rotate(powShape[pbi],-20)
-
     Shapes.Move(powShape[pbi],300,200)
-
   EndFor
-
   
-
   'Place the Bases 
-
   clClr = "orange" 'Set background to brush color to hide shape creation
-
   ClearColor()
-
   GraphicsWindow.BrushColor = "orange"
-
   GraphicsWindow.PenColor = "orange"
-
   home = Shapes.AddRectangle(20,15)
-
   Shapes.HideShape(home)
-
   base = Shapes.AddRectangle(20,15)
-
   Shapes.HideShape(base)
-
   homex = 2
-
   homey = 0
-
   basex = GraphicsWindow.Width - 22
-
   basey = GraphicsWindow.Height / 2
-
 EndSub
-
-
 
 '--- ShowPow -------------------------------------------------------------------------------------------
-
 '--- Turn on a random pow shape. Setup for the fade and zoom effect
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub ShowPow
-
   powChoice = Math.GetRandomNumber(Array.GetItemCount(powMsgLst))
-
   pow = powShape[powChoice]
-
   powSize = 1
-
   powFade = 100
-
   Shapes.Move(pow, shipx, shipy)
-
   Shapes.ShowShape(pow)
-
 EndSub
-
-
 
 '--- HidePow -------------------------------------------------------------------------------------------
-
 '--- Tirm off the current pow message
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub HidePow
-
   Shapes.HideShape(pow)
-
 EndSub
-
-
 
 '--- TitleScreenMessageBuild ------------------------------------------------------------------------
-
 '--- Builds the multi-cololor outlined message used as the title for the opening screen
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub TitleScreenMessageBuild
-
   olmColors[1] = "white"
-
   olmColors[2] = "Yellow"
-
   olmColors[3] = "green"
-
   olmColors[4] = "blue"
-
   olmColors[5] = "red"
-
   
-
   outlinedMessage = gameTitleText
-
   olmx = 9
-
   olmy = 75
-
   olmOffset = 1
-
   GraphicsWindow.FontSize = 78
-
   GraphicsWindow.FontBold = "true"
-
   GraphicsWindow.FontItalic = "True"
-
   OutlinedMessageBuild()
-
   TitleMessageShapes = olmshp
-
 EndSub
-
-
 
 '--- TitleScreenMessageShow ------------------------------------------------------------------------
-
 '--- Show the title screen shapes
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub TitleScreenMessageShow
-
   GraphicsWindow.Title = gameTitleText
-
   olmshp = TitleMessageShapes
-
   OutlinedMessageShow()
-
 EndSub
-
-
 
 '--- TitleScreenMessageHide -------------------------------------------------------------------------
-
 '--- Hide the title screen shapes
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub TitleScreenMessageHide
-
   olmshp = TitleMessageShapes
-
   OutlinedMessageHide()
-
 EndSub
-
-
 
 '--- GameOverScreenMessageBuild -----------------------------------------------------------------
-
 '--- Builds the multi-cololor outlined message used as the title for the game over screen
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub GameOverScreenMessageBuild
-
   olmColors[1] = "white"
-
   olmColors[2] = "Yellow"
-
   olmColors[3] = "green"
-
   olmColors[4] = "blue"
-
   olmColors[5] = "red"
-
   
-
   outlinedMessage = "Game Over"
-
   olmx = 4
-
   olmy = 30
-
   olmOffset = 2
-
   GraphicsWindow.FontSize = 105
-
   GraphicsWindow.FontItalic = "True"
-
   GraphicsWindow.FontBold = "True"
-
   OutlinedMessageBuild()
-
   GamesOverMessageShapes = olmshp
-
 EndSub
-
-
 
 '--- GameOverScreenMessageShow ----------------------------------------------------------------
-
 '--- Show the game over screen shapes
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub GameOverScreenMessageShow
-
   olmshp = GamesOverMessageShapes
-
   OutlinedMessageShow()
-
 EndSub
-
-
 
 '--- GameOverScreenMessageHide -----------------------------------------------------------------
-
 '--- Hide the game over screen shapes
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub GameOverScreenMessageHide
-
   olmshp = GamesOverMessageShapes
-
   OutlinedMessageHide()
-
 EndSub
-
-
 
 '--- OutlinedMessageBuild ----------------------------------------------------------------------------
-
 '--- Create the shapes used for an outlined message. The message, color and location
-
 '--- are all set during the build process. This allows the message to be quickly show
-
 '--- when it is needed, and hidden again without the need to clear the screen
-
 '--- For each color used draw create four shapes for the message, each at different offsets
-
 '--- from the center where the final copy is placed
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub OutlinedMessageBuild
-
   For olmcnt = 1 To 5
-
     clClr = olmColors[olmcnt] 'Set background to brush color to hide shape creation
-
     ClearColor()
-
     GraphicsWindow.BrushColor = olmColors[olmcnt]
-
     olmshp[olmcnt][1] = Shapes.AddText(outlinedMessage)
-
     Shapes.Move(olmshp[olmcnt][1], olmx + (olmOffset*(5-olmcnt)), olmy + (olmOffset*(5-olmcnt)))
-
     Shapes.HideShape(olmshp[olmcnt][1])
-
     olmshp[olmcnt][2] = Shapes.AddText(outlinedMessage)
-
     Shapes.Move(olmshp[olmcnt][2], olmx + (olmOffset*(5-olmcnt)), olmy - (olmOffset*(5-olmcnt)))
-
     Shapes.HideShape(olmshp[olmcnt][2])
-
     olmshp[olmcnt][3] = Shapes.AddText(outlinedMessage)
-
     Shapes.Move(olmshp[olmcnt][3], olmx - (olmOffset*(5-olmcnt)), olmy + (olmOffset*(5-olmcnt)))
-
     Shapes.HideShape(olmshp[olmcnt][3])
-
     olmshp[olmcnt][4] = Shapes.AddText(outlinedMessage)
-
     Shapes.Move(olmshp[olmcnt][4], olmx - (olmOffset*(5-olmcnt)), olmy - (olmOffset*(5-olmcnt)))
-
     Shapes.HideShape(olmshp[olmcnt][4])
-
   EndFor  
-
 EndSub
-
-
 
 '--- OutlinedMessageShow ---------------------------------------------------------------------------
-
 '--- Turn the outlined message on by showing the shapes it is composed of.
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub OutlinedMessageShow
-
   For olmcnt = 1 To 5
-
     For olmclr = 1 To 4
-
       shapes.ShowShape(olmshp[olmcnt][olmclr])
-
     EndFor
-
   EndFor
-
 endsub
 
-
-
 '--- OutlinedMessageHide ----------------------------------------------------------------------------
-
 '--- Turn the outline message off by hiding the shapes it is composed of.
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub OutlinedMessageHide
-
   For olmcnt = 1 To 5
-
     For olmclr = 1 To 4
-
       shapes.HideShape(olmshp[olmcnt][olmclr])
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 '--- FlashBackGround ---------------------------------------------------------------------------------
-
 '--- flash the background to make the background color change to hide 
-
 '--- the shape building process seem on purpose
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub FlashBackGround
-
   For i = 1 To 10
-
     FlashBackGroundOnce()
-
     Program.Delay(25)
-
   EndFor
-
   clClr = "black" 'Set background to brush color to hide shape creation
-
   ClearColor()
-
 EndSub
-
-
 
 '--- FlashBackGroundOnce ---------------------------------------------------------------------------
-
 '--- Clear the backgroun to a random color
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub FlashBackGroundOnce
-
   clClr = GraphicsWindow.GetRandomColor()
-
   ClearColor()
-
 EndSub
-
-
 
 '--- 'GameOverMessageCrawlBuild -----------------------------------------------------------------
-
 '--- Set up the shapes for the message crawl on the game over screen
-
 '--- Blanks will be filled in at the end of each game
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub GameOverMessageCrawlBuild
-
   'High score message text
-
   highScoreMsg[1] = "Your Score:"
-
   highScoreMsg[2] = " "
-
   highScoreMsg[3] = " "
-
   highScoreMsg[4] = " "
-
   highScoreMsg[5] = "Leader Board"
-
   highScoreMsg[6] = " "
-
   highScoreMsg[7] = " "
-
   highScoreMsg[8] = " "
-
   highScoreMsg[9] = " "
-
   highScoreMsg[10] = " "
-
   highScoreMsg[11] = " "
-
   highScoreMsg[12] = " "
-
   highScoreMsg[13] = " "
-
   highScoreMsg[14] = " "
-
   highScoreMsg[15] = " "
-
   highScoreMsg[16] = " "
-
   highScoreMsg[17] = " "
-
   highScoreMsg[18] = "Product Parets Programming."
-
   highScoreMsg[19] = gameTitleText + " is an original game"
-
   highScoreMsg[20] = "concept by codingCat aka Matthew L. Parets." 
-
   highScoreMsg[21] = "Originally developed in ExtendedBasic"
-
   highScoreMsg[22] = "for the TI-99/4a circa 1983. Redeveloped"
-
   highScoreMsg[23] = "for SmallBasic in March/April of 2015."
-
   highScoreMsg[24] = "Released under Creative Commons:"
-
   highScoreMsg[25] = "Attribution-NonCommercial-ShareAlike 4.0"
-
   highScoreMsg[26] = "International License. Free to use, share"
-
   highScoreMsg[27] = "and modify as long as you tell them I said hi." 
-
   
-
   'Call the routine to build the needed shapes
-
   crawlMsg = highScoreMsg
-
   crawlMsgLength = Array.GetItemCount(crawlMsg)
-
   crTexColor = GraphicsWindow.GetColorFromRGB(62,200,62)
-
   BuildCrawlMessage()
-
   
-
   'Store them until needed
-
   highScoreMsgShpShad = msgshpshad
-
   highScoreMsgShp = msgshp
-
 EndSub
-
-
 
 '--- 'CrawlStartGameOverMessage -----------------------------------------------------------------
-
 '--- Setup for the Game Over message crawl. Current high score values are replaced 
-
 '--- at the end of eaach game
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub CrawlStartGameOverMessage
-
   'Top left of the opening message crawl view port
-
   msgshpshad = highScoreMsgShpShad
-
   msgshp = highScoreMsgShp 
-
   
-
   clClr = GraphicsWindow.GetColorFromRGB(62,200,62) 'Set background to brush color to hide shape creation
-
   ClearColor()
-
   crTexColor = GraphicsWindow.GetColorFromRGB(62,200,62)
-
   GraphicsWindow.FontBold = "True"
-
   GraphicsWindow.FontSize = 12
-
   crLinHei = 15                                    'Font size plus line spacing
-
   clClr = GraphicsWindow.GetColorFromRGB(87,87,87) 'Set background to brush color to hide shape creation
-
   ClearColor()
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(87,87,87)
-
   commaNumber = score                              'Set the current score
-
   AddCommasToNumber()
-
   rankingMsg1 = "         " + commaNumber + " against " + meteorCount + " Meteors"
-
   rankingMsg2 = "         Ranking = " + (fndPos - 1) + " of " + (extraCount - 1)
-
   msgshpshad[2] = Shapes.AddText(rankingMsg1)
-
   Shapes.HideShape(msgshpshad[2])
-
   msgshpshad[3] = Shapes.AddText(rankingMsg2)
-
   Shapes.HideShape(msgshpshad[3])
-
   clClr = crTexColor 'Set background to brush color to hide shape creation
-
   ClearColor()
-
   GraphicsWindow.BrushColor = crTexColor
-
   msgshp[2] = Shapes.AddText(rankingMsg1)
-
   Shapes.HideShape(msgshp[2])
-
   msgshp[3] = Shapes.AddText(rankingMsg2)
-
   Shapes.HideShape(msgshp[3])
-
   
-
   For chsm = 1 To 10                                'Include the top 10 scores
-
     commaNumber = highscore[chsm]
-
     AddCommasToNumber()
-
     msg = (chsm-1) + ") " + highname[chsm] + Text.GetCharacter(9657) + highlevel[chsm] + Text.GetCharacter(9657) + commaNumber
-
     clClr = GraphicsWindow.GetColorFromRGB(87,87,87) 'Set background to brush color to hide shape creation
-
     ClearColor()
-
     GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(87,87,87)
-
     msgshpshad[chsm + 5] = Shapes.AddText("         " +msg)
-
     Shapes.HideShape(msgshpshad[chsm + 5])
-
     clClr = crTexColor 'Set background to brush color to hide shape creation
-
     ClearColor()
-
     GraphicsWindow.BrushColor = crTexColor
-
     msgshp[chsm + 5] = Shapes.AddText("         " +msg)
-
     Shapes.HideShape(msgshp[chsm + 5])
-
   EndFor
-
   FlashBackGround()  'reset the background following the build
-
   
-
   crDispY = 140
-
   crDispX = 200
-
   crDspSiz = 11                    'Size of view port should always be odd
-
   crStrtOff = 3                    'Number of lines of invisible scroll before visible lines appear (3 = 0)
-
   CrawlStartEveryMessage()
-
 EndSub
-
-
 
 '--- TitleMessageCrawlBuild -------------------------------------------------------------------------
-
 '--- Set up the shapes for the message crawl on the opening title screen
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub TitleMessageCrawlBuild
-
   openingMsg[1] = "-A death defying search for scientific "
-
   openingMsg[2] = ">riches amongst the rocks."
-
   openingMsg[3] = "-Use the arrow keys to move your ship. "
-
   openingMsg[4] = "-Avoid being hit by the meteors while you "
-
   openingMsg[5] = ">move from the home base (left) to the "
-
   openingMsg[6] = ">new base (right). If you bypass the new"
-
   openingMsg[7] = ">base, the multiplier is doubled."
-
   openingMsg[8] = "-Space Bar activates two seconds of shields." 
-
   openingMsg[9] = ">Shields are recharged at each new base."
-
   openingMsg[10] = "-Each hit by a rock damages your ship, "
-
   openingMsg[11] = ">resets the multiplier and returns you to "
-
   openingMsg[12] = ">the home base. "
-
   openingMsg[13] = "-The speed and density of rocks increases "
-
   openingMsg[14] = ">as you travel deeper into the field. "
-
   openingMsg[15] = "-Points are awarded based on the multiplier "
-
   openingMsg[16] = ">value, density of the rocks, shield use and "
-
   openingMsg[17] = ">the time taken jumping from base to base. "
-
   openingMsg[18] = ">A final bonus is awarded based on how "
-
   openingMsg[19] = ">many meteors you faced."
-
   openingMsg[20] = "-Good luck! You are going to need it."
-
   
-
   'Call the routine to build the needed shapes
-
   crawlMsg = openingMsg
-
   crawlMsgLength = Array.GetItemCount(crawlMsg)
-
   crTexColor = GraphicsWindow.GetColorFromRGB(0,200,0)
-
   BuildCrawlMessage()
-
   
-
   'Store them until needed
-
   openingMsgShpShad = msgshpshad
-
   openingMsgShp = msgshp
-
 EndSub
-
-
 
 '--- CrawlStartOpeningMessage --------------------------------------------------------------------
-
 '---  Setup to start the opening title screen crawl
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub CrawlStartOpeningMessage
-
   'Top left of the opening message crawl view port
-
   msgshpshad = openingMsgShpShad
-
   msgshp = openingMsgShp 
-
   
-
   crDispY = 295
-
   crDispX = 175
-
   crDspSiz = 7                    'Size of view port should always be odd
-
   crStrtOff = 0                   'Number of lines of invisible scroll before visible lines appear (0 = 3)
-
   CrawlStartEveryMessage()
-
 EndSub
-
-
-
 
 
 '--- BuildCrawlMessage ------------------------------------------------------------------------------
-
 '--- Build the message shapes for the message crawls -- Title and Game Over screens
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub BuildCrawlMessage
-
   GraphicsWindow.FontBold = "True"
-
   GraphicsWindow.FontSize = 12
-
   crLinHei = 15  'Font size plus line spacing
-
   For i = 1 To crawlMsgLength                       'For each line in the crawl message
-
     If Text.GetSubText(crawlMsg[i], 1,1) = "-" Then 'Outline entry
-
       msg = text.GetCharacter(10147) + " " + text.GetSubText(crawlMsg[i],2,Text.GetLength(crawlMsg[i])-1) 
-
     ElseIf Text.GetSubText(crawlMsg[i], 1,1) = ">"  then 'Secondary outline entry
-
       msg = "         " + text.GetSubText(crawlMsg[i],2,Text.GetLength(crawlMsg[i])-1)
-
     Else                                            'Straight up message by itself
-
       msg = crawlMsg[i] 
-
     EndIf
-
     clClr = GraphicsWindow.GetColorFromRGB(87,87,87) 'Set background to brush color to hide shape creation
-
     ClearColor()
-
     GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(87,87,87) 'shaddow
-
     msgshpshad[i] = Shapes.AddText(msg)
-
     Shapes.HideShape(msgshpshad[i])
-
     clClr = crTexColor 'Set background to brush color to hide shape creation
-
     ClearColor()
-
     GraphicsWindow.BrushColor = crTexColor
-
     msgshp[i] = Shapes.AddText(msg)
-
     Shapes.HideShape(msgshp[i])
-
   EndFor
-
 EndSub
-
-
 
 '--- CrawlStartEveryMessage -----------------------------------------------------------------------
-
 '--- Start the crawl message. Setting position on the screen and starting point in array
-
 '--- Opening view into the crawl message array
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub CrawlStartEveryMessage
-
   crawlMsgLength = Array.GetItemCount(msgshp)
-
   startPnt = crawlMsgLength + crStrtOff                 'Start at the end, the last line in the message
-
   endPnt = crawlMsgLength + (crDspSiz-1)  + crStrtOff   'end down past the size of the view port (this starts the message at the bottom, undisplayed)
-
   crDspMid = math.Round(crDspSiz / 2) 'Find the middle. This should be a single line and is why the view port should be an odd number of lines
-
   crPrcntBefAft = 100 / (crDspMid - 1) 'Percentage step for each line before and then after middle 
-
   crOpcyChngPerLine = crPrcntBefAft / crLinHei  'Percentage change of opacity for each pixel line moved
-
   
-
   umc = 1 'Starting point to loop through the dot lines of each line of text
-
 EndSub
-
-
 
 '--- 'CrawlUpdateMessage ---------------------------------------------------------------------------
-
 '--- Move each line in the view port one pixel line
-
 '--- Loop is external - umc must be set to 1 at the start of this process
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub CrawlUpdateMessage
-
   CrawlUpdateViewPort()
-
   umc = umc + 1
-
   If umc > crLinHei then 'When text has completly scrolled from one line to another
-
     'Hide the one at the top
-
     If startPnt <= crawlMsgLength then 'do not access display arrays if outside their range
-
       Shapes.HideShape(msgshpshad[startPnt])
-
       Shapes.HideShape(msgshp[startPnt])
-
     EndIf
-
     'move the front of the array up (wrap if needed)
-
     startPnt = startPnt + 1
-
     If startPnt > crawlMsgLength + (crDspSiz+3) then 
-
       startPnt = 1
-
     EndIf
-
     'move the back of the array up (wrap if needed)
-
     endPnt = endPnt + 1
-
     If endPnt > crawlMsgLength + (crDspSiz+3) then 
-
       endPnt = 1
-
     EndIf
-
     'show the next one at the bottom
-
     If endPnt <= crawlMsgLength then 'do not access display arrays if outside their range
-
       Shapes.Move(msgshpshad[endPnt], crDispX+ 1, crDispY + (crLinHei * crDspSiz) + 1 - 1)  
-
       Shapes.Move(msgshp[endPnt], crDispX, crDispY + (crLinHei * crDspSiz) - 1)
-
       Shapes.SetOpacity(msgshpshad[endPnt],0)
-
       Shapes.SetOpacity(msgshp[endPnt],0)
-
       Shapes.ShowShape(msgshpshad[endPnt])
-
       Shapes.ShowShape(msgshp[endPnt])
-
     EndIf
-
     umc = 1
-
   EndIf
-
 EndSub
-
-
 
 '--- 'CrawlUpdateViewPort ---------------------------------------------------------------------------
-
 '--- Update each line of the viewport
-
 '--- Move and modify the opacity of each display line one step
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub CrawlUpdateViewPort
-
   mvDispPos = 1          'Track the display line
-
   crAryPos = startPnt    'Index into the display array
-
   For uel = 1 To crDspSiz  'for eah line in the display
-
     If crAryPos <= crawlMsgLength then 'do not access display arrays if outside their range
-
       'Move the text
-
       Shapes.Move(msgshpshad[crAryPos], crDispX+ 1, crDispY + (crLinHei * mvDispPos) + 1 - umc)  
-
       Shapes.Move(msgshp[crAryPos], crDispX, crDispY + (crLinHei * mvDispPos) - umc)
-
       'Set the visibility level
-
       If uel = crDspMid then  'if the middle line, set fully visible
-
         Shapes.SetOpacity(msgshpshad[crAryPos],100)
-
         Shapes.SetOpacity(msgshp[crAryPos],100)
-
       Else                    'Update visibity based on location in view
-
         If uel < crDspMid then 'above the middle of the view
-
           opcy = ( (uel - 1) * crPrcntBefAft ) + ((crLinHei-umc) * crOpcyChngPerLine)
-
         Else                  'below the middle of the view
-
           opcy = ( (crDspSiz - uel) * crPrcntBefAft ) + (umc * crOpcyChngPerLine)
-
         EndIf
-
         Shapes.SetOpacity(msgshpshad[crAryPos],opcy)
-
         Shapes.SetOpacity(msgshp[crAryPos],opcy)
-
       endif
-
       
-
     EndIf
-
     mvDispPos = mvDispPos + 1
-
     crAryPos = crAryPos + 1   
-
     If crAryPos > crawlMsgLength + (crDspSiz+3) Then  'Wrap the position in the array
-
       crAryPos = 1
-
     EndIf
-
   EndFor 
-
 EndSub
-
-
 
 '--- CrawlMessageHide -------------------------------------------------------------------------------
-
 '--- Hide the current message, icluding setting its visibity (opacity) to zero
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub CrawlMessageHide
-
   For cri = 1 To crawlMsgLength
-
     Shapes.HideShape(msgshpshad[cri])
-
     Shapes.HideShape(msgshp[cri])
-
     Shapes.SetOpacity(msgshpshad[cri],0)
-
     Shapes.SetOpacity(msgshp[cri],0)
-
   EndFor
-
 EndSub
-
-
 
 '--- 'SortScores -----------------------------------------------------------------------------------------
-
 '--- Once a new score has been added to the leader board,  place it in its correct location
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub SortScores
-
   For si = 1 To 10 'a simple bubble sort
-
     For sj = 1 To 10
-
       If highscore[si] > highscore[sj] Then
-
         holdscore = highscore[si]
-
         holdlevel = highlevel[si]
-
         holdname = highname[si]
-
         highscore[si] = highscore[sj]
-
         highlevel[si] = highlevel[sj]
-
         highname[si] = highname[sj]
-
         highscore[sj] = holdscore
-
         highlevel[sj] = holdlevel
-
         highname[sj] = holdname
-
       EndIf
-
     EndFor
-
   EndFor      
-
 EndSub
-
-
 
 '--- UpdateExtraScores -------------------------------------------------------------------------------
-
 '--- The array extraScores tracks the infinite leader board. Every unique score is sorted
-
 '--- into its correct position. Duplicates are discarded
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub UpdateExtraScores
-
   spos = 0
-
   fndPos = -1
-
   found = "False"
-
   'Search for new scores position in the high score list
-
   While spos < extraCount And fndPos = -1   'while less then list size and not found
-
     spos = spos + 1                         'next position please
-
     If extraScore[spos] = score Then        'did we find an exact match?
-
       fndPos = spos                         'take note of matching position
-
       found = "True"                        'note the fact that a match was found
-
     EndIf
-
     If score > extraScore[spos] Then        'is the score bigger than this position
-
       fndPos = spos                         'note the position
-
     EndIf
-
   EndWhile
-
   If found = "False" Then                   'did we find an exact match?
-
     extraCount = extraCount + 1             'expand the size of the list
-
     If fndPos <> -1 Then                    'If  not less then last on the list
-
       For sei = extraCount To fndPos + 1 Step - 1 'Push down the rest of the list - back to front
-
         extraScore[sei] = extraScore[sei - 1]     'Current equals next one up
-
       EndFor
-
       extraScore[spos] = score              'place the new value at the calcualted position
-
     Else                                    'Less the the last on the list?
-
       extraScore[extraCount] = score        'Place it at the end.
-
       fndPos = extraCount                   'take note of the fact
-
     EndIf
-
   EndIf 
-
   For sei = extraCount To 11 Step -1        'Drop any zeros off the list (ignore the top 10)
-
     If extraScore[sei] = 0 Then             'If the bottom on is zero
-
       extraCount = extraCount - 1           'Bring the bottom up by one
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 '--- LoadHighScore ------------------------------------------------------------------------------------
-
 '--- Load high score from file. If no file present, go with codingCat's high scores. 
-
 '--- The scores are read into an array all at once before processing to minimise the number
-
 '--- of read commands making it easier to enable the system after importing.
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub LoadHighScore
-
   filename = Program.Directory + "\MeteorShowerScores.txt"
-
   readend = 31
-
   For ih = 1 To readend
-
     readArray[ih] = "" 'needed to avoid error caused by autocomment of following line
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '     readArray[ih] = File.ReadLine(filename,ih)
-
     If ih = 31 And readArray[ih] <> "" Then
-
       readend = readArray[ih] + 21
-
     EndIf
-
   EndFor
-
   
-
   highname[1] = readArray[1]   'Load the first entry, name, score and level (meteor count)
-
   highscore[1] = readArray[2]
-
   highlevel[1] = readArray[3]
-
   extraScore[1] = highscore[1]              'track as part of infinite leader board
-
   If highscore[1] <= 0 Or highlevel[1] <=0 Then 'File was empty? Gotta beat codingCat for the top spot :-) 
-
     highname[1] = "cC"                      'cC's high score
-
     highscore[1] = 29599294023
-
     highlevel[1] = 46
-
     For ih = 2 To 10                        'Fill in zeros for the rest of the top 10
-
       highname[ih] = "cC"
-
       highscore[ih] = 0
-
       extraScore[ih] = 0
-
       highlevel[ih] = 0      
-
     EndFor
-
     extraCount = 10
-
   Else                                      'File not empty? Load the remaining 9 of top 10
-
     For ih = 2 To 10
-
       highname[ih] = readArray[((ih-1)*3)+1]
-
       highscore[ih] = readArray[((ih-1)*3)+2]
-
       extraScore[ih] = highscore[ih]
-
       highlevel[ih] = readArray[((ih-1)*3)+3]    
-
     EndFor
-
     extraCount = readArray[31]              'After the top ten, entires are just scores for the infinite leader board
-
     For ih = 11 To extraCount
-
       extraScore[ih] = readArray[31 - 10 + ih]
-
     EndFor
-
   EndIf
-
 EndSub
-
-
 
 '--- 'UpdateHighScore ---------------------------------------------------------------------------------
-
 '--- Update the highscore file
-
 '--- If the current score beats the best (better than position 10), update the high score file
-
 '--- The scores are compiled in an array before writing to the file all at once to minimize
-
 '--- the number of write commands making it easier to enable the system after importing.
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub UpdateHighScore
-
   If score > highscore[10] Then   'New to the to 10 list?
-
     highname[10] = initials       'Push the current position 10 off the list
-
     highscore[10] = score
-
     highlevel[10] = meteorCount
-
     SortScores()                  'Sort the top 10
-
   EndIf
-
   UpdateExtraScores()             'Update the infinite list - Sorting and dropping duplicates
-
   filename = Program.Directory + "\MeteorShowerScores.txt"
-
   FlashBackGroundOnce()           
-
   For ih = 0 To 9                 'top 10 first
-
     writeArray[(ih*3) + 1] = highname[ih+1]
-
     writeArray[(ih*3) + 2] = highscore[ih+1]
-
     writeArray[(ih*3) + 3] = highlevel[ih+1]
-
   endfor
-
   writeArray[31] = extraCount
-
   For ih = 11 To extraCount + 10  'Everyone else, infinite leader board
-
     writeArray[31 - 10 + ih] = extraScore[ih]
-
     WriteArrayLength = 31 - 10 + ih 
-
   EndFor
-
   For ih = 1 To WriteArrayLength
-
    updateHSCount = updateHSCount + 1
-
     If math.Remainder(multiplierCount, 5) = 0 Then
-
       FlashBackGroundOnce()       'Flash the background periodically to make sure the screen doesn't freeze
-
     endif
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '     File.WriteLine(filename,ih,writeArray[ih])
-
   EndFor
-
 EndSub
-
-
 
 '--- InitialsEntryBuild ---------------------------------------------------------------------------------
-
 '--- Set up and hide the shapes to be used in the initial entry process
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub InitialsEntryBuild
-
   initials = ""
-
   curWid = 50
-
   curHei = 65
-
   promptx = (GraphicsWindow.Width / 2) + (((curWid + 5) * 1) / 2)
-
   prompty = (GraphicsWindow.Height / 2) - 30
-
   
-
   'Titles first. Inlcuding white shaddows
-
   fontnameHold = GraphicsWindow.FontName
-
   fontsizeHold = GraphicsWindow.FontSize
-
   fontboldHold = GraphicsWindow.FontBold
-
   fontitalicHold = GraphicsWindow.FontItalic  
-
   GraphicsWindow.FontName = "Tahoma"
-
   GraphicsWindow.FontBold = "false"
-
   clClr = "white" 'Set background to brush color to hide shape creation
-
   ClearColor()
-
   GraphicsWindow.BrushColor = "white"
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.FontItalic = "true"
-
   titleinitials1 = Shapes.AddText("You Scored in the Top 10!")
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.FontItalic = "False"
-
   titleinitials2 = Shapes.AddText("Enter initials for the")
-
   GraphicsWindow.FontSize = 30
-
   titleinitials3 = Shapes.AddText("Leader Board")
-
   Shapes.Move(titleinitials1, 50, prompty - 25)
-
   Shapes.HideShape(titleinitials1)
-
   Shapes.Move(titleinitials2, 50, prompty + 15)
-
   Shapes.HideShape(titleinitials2)
-
   Shapes.Move(titleinitials3, 50, prompty + 40)
-
   Shapes.HideShape(titleinitials3)
-
   
-
   'Cursor flashes betwee three colors
-
   cclrnam[1] = "cyan"
-
   cclrnam[2] = "magenta"
-
   cclrnam[3] = "yellow"
-
   For cci = 1 To Array.GetItemCount(cclrnam)
-
     clClr = cclrnam[cci] 'Set background to brush color to hide shape creation
-
     ClearColor()
-
     GraphicsWindow.PenColor = cclrnam[cci]
-
     GraphicsWindow.BrushColor = cclrnam[cci]
-
     cursor[cci] = Shapes.AddRectangle(curWid,curHei)
-
     Shapes.HideShape(cursor[cci])
-
   EndFor
-
   GraphicsWindow.FontName = fontnameHold
-
   GraphicsWindow.FontSize = fontsizeHold
-
   GraphicsWindow.FontBold = fontboldHold
-
   GraphicsWindow.FontItalic = fontitalicHold  
-
 EndSub
-
-
 
 '--- initialEntryShow ----------------------------------------------------------------------------------
-
 '--- Show (unhide) the inital entry shapes. This is done at the start of the entry process
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub initialEntryShow
-
   curcnt = Array.GetItemCount(cursor)
-
   
-
   Shapes.ShowShape(titleinitials1)
-
   Shapes.ShowShape(titleinitials2)
-
   Shapes.ShowShape(titleinitials3)
-
   
-
   cur = 1
-
   pressed = "False"
-
   pos = 0
-
   InitEntry = "true"
-
   EnterHighScore = "True"
-
   initials = ""
-
 EndSub
 
-
-
 '--- InitialEntryHide ----------------------------------------------------------------------------------
-
 '--- When the initial entry process is complete, hide the shapes used in the process
-
 '-----------------------------------------------------------------------------------------------------------
-
 sub InitialEntryHide
-
   GraphicsWindow.BrushColor = "black"
-
   For ii = 1 To Text.GetLength(initials)
-
     GraphicsWindow.FillRectangle(promptx + ((curWid + 5) * (pos-ii)),prompty+5,curWid,curHei)  
-
   EndFor
-
   For ii = 1 To curcnt
-
     Shapes.HideShape(cursor[ii])
-
   EndFor
-
   Shapes.HideShape(titleinitials1)
-
   Shapes.HideShape(titleinitials2)
-
   Shapes.HideShape(titleinitials3)
-
 endsub
-
-
 
 '--- EnterInitials ---------------------------------------------------------------------------------------
-
 '--- Prompt for initials when a high score has been earned. This routine handles a single
-
 '--- step in the process. The loop is handled elsewhere.
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub EnterInitials
-
   If keyPressed = "True" Then 
-
     If key = "Return" then  'Finished if enter pressed
-
       InitEntry = "False"
-
     EndIf
-
     If key = "Space" then   'Process the space bar
-
       key = " "
-
     endif
-
     If Text.GetLength(key) = 2 and Text.GetSubText(key,1,1) = "D" then  'Convert D keys to normal
-
       key = Text.GetSubTextToEnd(key,2)
-
     endif
-
     If (key = "Back" Or key = "Left") and pos > 0 then                  'Backing up for backspace or left
-
       GraphicsWindow.BrushColor = "black"
-
       GraphicsWindow.FillRectangle(promptx + ((curWid + 5) * (pos-1)),prompty+5,curWid,curHei)
-
       initials = Text.GetSubText(initials,1,Text.GetLength(initials)-1)
-
       pos = pos - 1
-
     ElseIf pos < 3 then                                                 'Room for more characters?
-
       If Text.GetLength(key) = 1 then
-
         keycode = Text.GetCharacterCode(key)                            'Ascii code for the key
-
         If keycode >= 97 And keycode <= 122 then                        'convert upper to lower case
-
           keycode = keycode - 32
-
         EndIf
-
         If keycode = 32 or (keycode >= 65 and keycode <= 90) or (keycode >= 48 and keycode < 57) then 'Numbers or letters?
-
           key = Text.GetCharacter(keycode)                              'draw it with a background
-
           initials = initials + key
-
           fontnameHold = GraphicsWindow.FontName
-
           fontsizeHold = GraphicsWindow.FontSize
-
           fontboldHold = GraphicsWindow.FontBold
-
           fontitalicHold = GraphicsWindow.FontItalic
-
           GraphicsWindow.FontName = "Courier New"
-
           GraphicsWindow.FontBold = "True"
-
           GraphicsWindow.FontItalic = "False"
-
           GraphicsWindow.FontSize = 70
-
           GraphicsWindow.BrushColor = "darkgray"
-
           GraphicsWindow.DrawText(promptx + (((curWid + 5) * pos+1)) + 2 + 2,prompty + 2,key)
-
           GraphicsWindow.BrushColor = "white"
-
           GraphicsWindow.DrawText(promptx + (((curWid + 5) * pos+1)) + 2,prompty,key)
-
           GraphicsWindow.FontName = fontnameHold
-
           GraphicsWindow.FontSize = fontsizeHold
-
           GraphicsWindow.FontBold = fontboldHold
-
           GraphicsWindow.FontItalic = fontitalicHold
-
           pos = pos + 1
-
         endif
-
       EndIf
-
     endif
-
     keyPressed = "False"
-
   EndIf
-
   If Math.Remainder(paceMessage,5) = 0 Then       'Only do this every fifth time through
-
     Shapes.HideShape(cursor[cur])                 'Change cursors (flashing)
-
     cur = cur + 1
-
     If cur > curcnt Then
-
       cur = 1
-
     EndIf
-
     Shapes.Move(cursor[cur],promptx + ((curWid + 5) * pos),prompty+5)
-
     Shapes.ShowShape(cursor[cur])
-
   EndIf
-
 endsub
-
-
 
 'Event Subroutines ------------------------------------------------------------------------------------
 
-
-
 '--- 'OnKeyDown ---------------------------------------------------------------------------------------
-
 '---   Take note of the fact that a key has been pressed. This event is 
-
 '---   needed because the GraphicsWindow.lastkey property never
-
 '---   clears. Making otherwise impossible to distinguish between
-
 '---   multiple presses of the same key
-
 '-----------------------------------------------------------------------------------------------------------
-
 Sub OnKeyDown
-
   pressed = "True"
-
 EndSub
-
-
-
 

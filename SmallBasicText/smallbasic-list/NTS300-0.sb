@@ -1,2135 +1,1067 @@
 ' Sudoku Puzzle
-
 ' Version 0.2b
-
 ' Copyright © 2019 Nonki Takahashi.  The MIT License.
-
 ' Last update 2019-08-24
-
 ' Program ID NTS300-0
-
-
 
 title = "Sudoku Puzzle 0.2b"
 
-
-
 debug = "False"
-
 auto = "False"
-
 csv = "True"
-
 SU_Init()
-
 If auto Then
-
   TextWindow.Title = title
-
   TextWindow.Left = GraphicsWindow.Left + (gw * 1.1)
-
   TextWindow.Top = GraphicsWindow.Top
-
   If csv Then
-
     TextWindow.WriteLine("lap,time,clue,sudoku")
-
   EndIf
-
 EndIf
-
 While "True"
-
   If auto Then
-
     t0 = Clock.ElapsedMilliseconds
-
   EndIf
-
   boardU = board
-
   SU_Start()
-
   SG_GenerateAnswer()
-
   If auto Then
-
     lap = Clock.ElapsedMilliseconds - t0
-
     If csv Then
-
       TextWindow.Write((lap / 1000) + ",")
-
     Else
-
       TextWindow.Write("lap = " + (lap / 1000) + "[s], ")
-
     EndIf
-
   EndIf
-
   SG_ReduceClue()
-
   answer = board
-
   Timer.Pause()
-
   Shapes.HideShape(wait)
-
   Shapes.HideShape(mask)
-
   SU_ClearAnime()
-
   colA = 1
-
   rowA = 1
-
   SU_SelectA()
-
   GraphicsWindow.Title = title + " (clue = " + filled + ")"
-
   SC_InitCandidate()
-
   SC_UpdateCandidate()
-
   If auto Then
-
     time = Clock.ElapsedMilliseconds - t0
-
     If csv Then
-
       TextWindow.Write((time / 1000) + ",")
-
       TextWindow.Write(filled + ",")
-
     Else
-
       TextWindow.Write("time = " + (time / 1000) + "[s], ")
-
       TextWindow.WriteLine("clue = " + filled)
-
     EndIf
-
   EndIf
-
   SU_ShowBoard()
-
   If debug Then
-
     SD_DumpBoard()
-
   EndIf
-
   If auto Then
-
     SD_DumpAnswer()
-
   EndIf
-
   If debug Then
-
     SS_Solve()
-
     SD_DumpBoard()
-
     SD_DumpAnswer()
-
   EndIf
-
   If Not[auto] Then
-
     SU_Play()
-
   EndIf
-
   SU_ClearNote()
-
 EndWhile
 
-
-
 Sub Math_Dec2Hex
-
   ' Math | convert decimal to hexadecimal
-
   ' param dec - decimal number
-
   ' returns hex - hexadecimal text
-
   Stack.PushValue("local", dec)
-
   hex = ""
-
   While 0 < dec
-
     digit = Math.Remainder(dec, 16)
-
     dec = Math.Floor(dec / 16)
-
     hex = Text.Append(Text.GetSubText("0123456789ABCDEF", digit + 1, 1), hex)
-
   EndWhile
-
   If hex = "" Then
-
     hex = "0"
-
   EndIf
-
   dec = Stack.PopValue("local")  
-
 EndSub
-
-
 
 Sub SC_CreateRandomList
-
   ' Sudoku Common | create random list
-
   ' param sizeL - list size
-
   ' return list[] - random list
-
   list = ""
-
   list[0] = 1 ' link to index 1
-
   list[1] = 0 ' eod
-
   For seqL = 2 To sizeL
-
     pos = Math.GetRandomNumber(seqL) - 1 ' insert position
-
     link = list[pos]
-
     list[pos] = seqL
-
     list[seqL] = link
-
   EndFor
-
 EndSub
-
-
 
 Sub SC_InitBoard
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       board[row][col] = " "
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SC_InitCandidate
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       can[row][col] = "123456789"
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SC_InitRemain
-
   For _p = 1 To 81
-
     remain[_p] = "True"
-
   EndFor
-
 EndSub
-
-
 
 Sub SC_RemoveCandidate
-
   ' param r, c - position
-
   ' param n - number to remove
-
   p = Text.GetIndexOf(can[r][c], n)
-
   If 0 < p Then
-
     left = Text.GetSubText(can[r][c], 1, p - 1)
-
     right = Text.GetSubTextToEnd(can[r][c], p + 1)
-
     can[r][c] = Text.Append(left, right)
-
   EndIf
-
 EndSub
-
-
 
 Sub SC_UpdateCandidate
-
   ' Sudoku Common | update the candidate numbers table
-
   Stack.PushValue("local", row)
-
   Stack.PushValue("local", col)
-
   Stack.PushValue("local", n)
-
   'InitCandidate()
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       n = board[row][col]
-
       If n <> " " Then
-
         can[row][col] = ""
-
         SC_UpdateCellCandidate()
-
       EndIf
-
     EndFor
-
   EndFor
-
   n = Stack.PopValue("local")
-
   col = Stack.PopValue("local")
-
   row = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub SC_UpdateCellCandidate
-
   ' Sudoku Common | update a cell of candidate numbers table
-
   ' param row, col - set position
-
   ' param n - set number
-
   rowB = Math.Floor((row - 1) / 3) * 3 + 1
-
   colB = Math.Floor((col - 1) / 3) * 3 + 1
-
   For r = rowB To rowB + 2
-
     For c = colB To colB + 2
-
       SC_RemoveCandidate()
-
     EndFor
-
   EndFor
-
   c = col
-
   For r = 1 To 9
-
     SC_RemoveCandidate()
-
   EndFor
-
   r = row
-
   For c = 1 To 9
-
     SC_RemoveCandidate()
-
   EndFor
-
 EndSub
-
-
 
 Sub SD_Check
-
   ' Sudoku Debug | check for debugging
-
   For rowC = 1 To 9
-
     For colC = 1 To 9
-
       If board[rowC][colC] <> " " Then
-
         error = "False"
-
         SD_CheckRow()
-
         SD_CheckColumn()
-
         SD_CheckBlock()
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SD_CheckColumn
-
   ' Sudoku Debug | check for debugging
-
   For _colC = 1 To 9
-
     error = "False"
-
     If (colC < _colC) And (board[rowC][colC] = board[rowC][_colC]) Then
-
       TextWindow.WriteLine("BOARD ERROR on " + place)
-
       TextWindow.Write(rowC + "," + colC + "=")
-
       TextWindow.Write(rowC + "," + _colC + "=")
-
       TextWindow.WriteLine(board[rowC][colC])
-
       error = "True"
-
     EndIf
-
     If Text.IsSubText(can[rowC][_colC], board[rowC][colC]) Then
-
       TextWindow.WriteLine("CANDIDATE ERROR on " + place)
-
       TextWindow.Write("board " + rowC + "," + colC + "=")
-
       TextWindow.Write(board[rowC][colC])
-
       TextWindow.WriteLine("is in candidate " + rowC + "," + _colC)
-
     EndIf
-
     SD_DumpBoard2()
-
   EndFor
-
 EndSub
-
-
 
 Sub SD_CheckBlock
-
   ' Sudoku Debug | check for debugging
-
   rowBC = Math.Floor((rowC - 1) / 3) * 3
-
   colBC = Math.Floor((colC - 1) / 3) * 3
-
   iC = Math.Remainder(rowC - 1, 3) * 3
-
   iC = iC + Math.Remainder(colC - 1, 3) + 1
-
   rowC = rowBC + Math.Floor((iC - 1) / 3) + 1
-
   colC = colBC + Math.Remainder(iC - 1, 3) + 1
-
   For _iC = 1 To 9
-
     _rowC = rowBC + Math.Floor((_iC - 1) / 3) + 1
-
     _colC = colBC + Math.Remainder(_iC - 1, 3) + 1
-
     error = "False"
-
     If (iC < _iC) And (board[rowC][colC] = board[_rowC][_colC]) Then
-
       TextWindow.WriteLine("CHECK ERROR on " + place)
-
       TextWindow.Write(rowC + "," + colC + "=")
-
       TextWindow.Write(_rowC + "," + _colC + "=")
-
       TextWindow.WriteLine(board[rowC][colC])
-
       error = "True"
-
     EndIf
-
     If Text.IsSubText(can[_rowC][_colC], board[rowC][colC]) Then
-
       TextWindow.WriteLine("CHECK ERROR on " + place)
-
       TextWindow.Write("board " + rowC + "," + colC + "=")
-
       TextWindow.Write(board[rowC][colC])
-
       TextWindow.WriteLine("is in candidate " + _rowC + "," + _colC)
-
       error = "True"
-
     EndIf
-
     SD_DumpBoard2()
-
   EndFor
-
 EndSub
-
-
 
 Sub SD_CheckRow
-
   ' Sudoku Debug | check for debugging
-
   For _rowC = 1 To 9
-
     error = "False"
-
     If (rowC < _rowC) And (board[rowC][colC] = board[_rowC][colC]) Then
-
       TextWindow.WriteLine("BOARD ERROR on " + place)
-
       TextWindow.Write(rowC + "," + colC + "=")
-
       TextWindow.Write(_rowC + "," + colC + "=")
-
       TextWindow.WriteLine(board[rowC][colC])
-
       error = "True"
-
     EndIf
-
     If Text.IsSubText(can[_rowC][colC], board[rowC][colC]) Then
-
       TextWindow.WriteLine("CANDIDATE ERROR on " + place)
-
       TextWindow.Write("board " + rowC + "," + colC + "=")
-
       TextWindow.Write(board[rowC][colC])
-
       TextWindow.WriteLine("is in candidate " + _rowC + "," + colC)
-
       error = "True"
-
     EndIf
-
     SD_DumpBoard2()
-
   EndFor
-
 EndSub
-
-
 
 Sub SD_DumpAnswer
-
   If csv Then
-
     TextWindow.Write(WQ)
-
   Else
-
     TextWindow.Write("sudoku = " + WQ)
-
   EndIf
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       TextWindow.Write(board[row][col])
-
     EndFor
-
   EndFor
-
   TextWindow.WriteLine(WQ)
-
   If Not[csv] Then
-
     TextWindow.WriteLine("")
-
   EndIf
-
 EndSub
-
-
 
 Sub SD_DumpBoard
-
   For r = 1 To 9
-
     For c = 1 To 9
-
       If board[r][c] = " " Then
-
         TextWindow.Write("  ")
-
       Else
-
         TextWindow.Write(board[r][c] + " ")
-
       EndIf
-
     EndFor
-
     TextWindow.Write(" ")
-
     For c = 1 To 9
-
       SD_DumpCandidate()
-
       TextWindow.Write(hex + " ")
-
     EndFor
-
     TextWindow.WriteLine("")
-
   EndFor
-
   TextWindow.WriteLine("")
-
 EndSub
-
-
 
 Sub SD_DumpBoard2
-
   ' check for debugging
-
   If error Then
-
     Stack.PushValue("local", board)
-
     Stack.PushValue("local", can)
-
     board = boardC
-
     can = canC
-
     SD_DumpBoard()
-
     can = Stack.PopValue("local")
-
     board = Stack.PopValue("local")
-
     SD_DumpBoard()
-
     TextWindow.Pause()
-
   EndIf
-
 EndSub
-
-
 
 Sub SD_DumpCandidate
-
   ' param r, c - position
-
   ' return hex
-
   dec = 0
-
   For _i = 1 To 9
-
     If Text.IsSubText(can[r][c], _i) Then
-
       dec = dec * 2 + 1
-
     Else
-
       dec = dec * 2
-
     EndIf
-
   EndFor
-
   Math_Dec2Hex()
-
   hex = Text.Append(Text.GetSubTextToEnd("00", Text.GetLength(hex)), hex)
-
 EndSub
-
-
 
 Sub SD_DumpList
-
   randD = list[0]
-
   iD = 0
-
   While 0 < randD
-
     iD = iD + 1
-
     TextWindow.Write(iD + " = " + randD)
-
     If Math.Remainder(iD, 10) = 0 Then
-
       TextWindow.WriteLine("")
-
     Else
-
       TextWindow.Write(" ")
-
     EndIf
-
     randD = list[randD]
-
   EndWhile
-
   TextWindow.WriteLine("")
-
 EndSub
-
-
 
 Sub SG_GenerateAnswer
-
   ' Sudoku Generator | generate Sudoku answer
-
   complete = "False"
-
   nTrial = 0
-
   iMax = 0
-
   While Not[complete]
-
     SC_InitBoard()
-
     ' initialize candidate array
-
     SC_InitCandidate()
-
     continue = "True"
-
     filled = 0
-
     While continue
-
       row = Math.Floor(filled / 9) + 1
-
       col = Math.Remainder(filled, 9) + 1
-
       ' get candidate
-
       len = Text.GetLength(can[row][col])
-
       If len = 0 Then
-
         continue = "False"
-
       Else
-
         n = Text.GetSubText(can[row][col], Math.GetRandomNumber(len), 1)
-
         filled = filled + 1
-
         board[row][col] = n
-
         SC_UpdateCellCandidate()
-
         If 67 <= filled Then
-
           filledL = filled
-
           boardL = board
-
           canL = can
-
           SS_Solve()
-
           filled = filledL
-
           If solved Then
-
             continue = "False"
-
             complete = "True"
-
           Else
-
             board = boardL
-
             can = canL
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndWhile
-
     If iMax < filled Then
-
       iMax = filled
-
     EndIf
-
     nTrial = nTrial + 1
-
     GraphicsWindow.Title = "nTrial = " + nTrial + ", filled = " + filled + ", iMax = " + iMax
-
   EndWhile
-
 EndSub
-
-
 
 Sub SG_ReduceClue
-
   SC_InitRemain()
-
   filled = 81
-
   _index = Array.GetAllIndices(remain)
-
   sizeL = Array.GetItemCount(remain)
-
   SC_CreateRandomList()
-
   rand = list[0]
-
   'DumpList()
-
   While 0 < rand
-
     SC_InitCandidate() ' needed because reducing clue
-
     SC_UpdateCandidate()
-
     boardB = board
-
     filledB = filled
-
     rowD = Math.Floor((_index[rand] - 1) / 9) + 1
-
     colD = Math.Remainder(_index[rand] - 1, 9) + 1
-
     board[rowD][colD] = " "
-
     filled = filled - 1
-
     SC_InitCandidate() ' needed because reducing clue
-
     SC_UpdateCandidate()
-
     SS_Solve()
-
     board = boardB
-
     If solved Then
-
       board[rowD][colD] = " "
-
       filled = filledB - 1
-
       GraphicsWindow.Title = "clue = " + filled
-
     Else
-
       filled = filledB
-
     EndIf
-
     rand = list[rand]
-
   EndWhile
-
 EndSub
-
-
 
 Sub SS_BlockUnique
-
   ' Sudoku Solver | Block Unique solution to the board
-
   For b = 1 To 9
-
     rowB = Math.Floor((b - 1) / 3) * 3 + 1
-
     colB = Math.Remainder(b - 1, 3) * 3 + 1
-
     For n = 1 To 9
-
       found = 0
-
       For row = rowB To rowB + 2
-
         For col = colB To colB +2
-
           If Text.IsSubText(can[row][col], n) Then
-
             found = found + 1
-
             rowU = row
-
             colU = col
-
             If 1 < found Then
-
               row = rowB + 2
-
               col = colB + 2
-
             EndIf
-
           EndIf
-
         EndFor
-
       EndFor
-
       If (found = 1) And (board[rowU][colU] = " ") Then
-
         If debug Then
-
           boardC = board
-
           canC = can
-
         EndIf
-
         board[rowU][colU] = n
-
         Stack.PushValue("local", b)
-
         Stack.PushValue("local", rowB)
-
         Stack.PushValue("local", colB)
-
         row = rowU
-
         col = colU
-
         SC_UpdateCellCandidate()
-
         colB = Stack.PopValue("local")
-
         rowB = Stack.PopValue("local")
-
         b = Stack.PopValue("local")
-
         If debug Then
-
           place = "BlockUnique"
-
           SD_Check()
-
         EndIf
-
         filled = filled + 1
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SS_CellUnique
-
   ' Sudoku Solver | Cell Unique solution to the board
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       If (Text.GetLength(can[row][col]) = 1) And (board[row][col] = " ") Then
-
         If debug Then
-
           boardC = board
-
           canC = can
-
         EndIf
-
         n = can[row][col]
-
         board[row][col] = n
-
         SC_UpdateCellCandidate()
-
         If debug Then
-
           place = "CellUnique"
-
           SD_Check()
-
         EndIf
-
         filled = filled + 1
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SS_LineUnique
-
   ' Sudoku Solver | Line Unique solution to the board
-
   For row = 1 To 9
-
     For n = 1 To 9
-
       found = 0
-
       For col = 1 To 9
-
         If Text.IsSubText(can[row][col], n) Then
-
           found = found + 1
-
           colU = col
-
           If 1 < found Then
-
             col = 9 ' exit For
-
           EndIf
-
         EndIf
-
       EndFor
-
       If (found = 1) And (board[row][colU] = " ") Then
-
         If debug Then
-
           boardC = board
-
           canC = can
-
         EndIf
-
         board[row][colU] = n
-
         col = colU
-
         SC_UpdateCellCandidate()
-
         If debug Then
-
           place = "LineUnique: row"
-
           SD_Check()
-
         EndIf
-
         filled = filled + 1
-
       EndIf
-
     EndFor
-
   EndFor
-
   For col = 1 To 9
-
     For n = 1 To 9
-
       found = 0
-
       For row = 1 To 9
-
         If Text.IsSubText(can[row][col], n) Then
-
           found = found + 1
-
           rowU = row
-
           If 1 < found Then
-
             row = 9 ' exut For
-
           EndIf
-
         EndIf
-
       EndFor
-
       If (found = 1) And (board[rowU][col] = " ") Then
-
         If debug Then
-
           boardC = board
-
           canC = can
-
         EndIf
-
         board[rowU][col] = n
-
         row = rowU
-
         SC_UpdateCellCandidate()
-
         If debug Then
-
           place = "LineUnique: col"
-
           SD_Check()
-
         EndIf
-
         filled = filled + 1
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SS_ReservedPair
-
   ' Sudoku Solver | Reserved Pair (Naked Pair or Hidden Pair) solution to the candidate
-
   ' check each row line
-
   For r = 1 To 9
-
     pair = ""
-
     For c = 1 To 9
-
       len = Text.GetLength(can[r][c])
-
       pair[len] = Text.Append(pair[len], c)
-
     EndFor
-
     pair[1] = ""
-
     pair[9] = ""
-
     maxSize = Array.GetItemCount(pair)
-
     index = Array.GetAllIndices(pair)
-
     For iSize = 1 To maxSize
-
       nPair = index[iSize]
-
       cols = pair[index[iSize]]
-
       c = Text.GetSubText(cols, 1, 1)
-
       _pair = can[r][c]
-
       found = "True"
-
       For iPair = 2 To nPair
-
         c = Text.GetSubText(cols, iPair, 1)
-
         If can[r][c] <> _pair Then
-
           found = "False"
-
           iPair = nPair
-
         EndIf
-
       EndFor
-
       If found Then
-
         For c = 1 To 9
-
           If Not[Text.IsSubText(cols, c)] Then
-
             For iPair = 1 To nPair
-
               n = Text.GetSubText(_pair, iPair, 1)
-
               SC_RemoveCandidate()
-
             EndFor
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndFor
-
   EndFor
-
   ' check each column line
-
   For c = 1 To 9
-
     pair = ""
-
     For r = 1 To 9
-
       len = Text.GetLength(can[r][c])
-
       pair[len] = Text.Append(pair[len], r)
-
     EndFor
-
     pair[1] = ""
-
     pair[9] = ""
-
     maxSize = Array.GetItemCount(pair)
-
     index = Array.GetAllIndices(pair)
-
     For iSize = 1 To maxSize
-
       nPair = index[iSize]
-
       rows = pair[index[iSize]]
-
       r = Text.GetSubText(rows, 1, 1)
-
       _pair = can[r][c]
-
       found = "True"
-
       For iPair = 2 To nPair
-
         r = Text.GetSubText(rows, iPair, 1)
-
         If can[r][c] <> _pair Then
-
           found = "False"
-
           iPair = nPair
-
         EndIf
-
       EndFor
-
       If found Then
-
         For r = 1 To 9
-
           If Not[Text.IsSubText(rows, r)] Then
-
             For iPair = 1 To nPair
-
               n = Text.GetSubText(_pair, iPair, 1)
-
               SC_RemoveCandidate()
-
             EndFor
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndFor
-
   EndFor
-
   ' check each block
-
   For b = 1 To 9
-
     rowB = Math.Floor((b - 1) / 3) * 3 + 1
-
     colB = Math.Remainder(b - 1, 3) * 3 + 1
-
     pair = ""
-
     i = 0
-
     For r = rowB To rowB + 2
-
       For c = colB To colB + 2
-
         i = i + 1
-
         len = Text.GetLength(can[r][c])
-
         pair[len] = Text.Append(pair[len], i)
-
       EndFor
-
     EndFor
-
     pair[1] = ""
-
     pair[9] = ""
-
     maxSize = Array.GetItemCount(pair)
-
     index = Array.GetAllIndices(pair)
-
     For iSize = 1 To maxSize
-
       nPair = index[iSize]
-
       cells = pair[index[iSize]]
-
       i = Text.GetSubText(cells, 1, 1)
-
       r = rowB + Math.Floor((i - 1) / 3)
-
       c = colB + Math.Remainder(i - 1, 3)
-
       _pair = can[r][c]
-
       found = "True"
-
       For iPair = 2 To nPair
-
         i = Text.GetSubText(cells, iPair, 1)
-
         r = rowB + Math.Floor((i - 1) / 3)
-
         c = colB + Math.Remainder(i - 1, 3)
-
         If can[r][c] <> _pair Then
-
           found = "False"
-
           iPair = nPair
-
         EndIf
-
       EndFor
-
       If found Then
-
         For i = 1 To 9
-
           If Not[Text.IsSubText(cells, i)] Then
-
             For iPair = 1 To nPair
-
               r = rowB + Math.Floor((i - 1) / 3)
-
               c = colB + Math.Remainder(i - 1, 3)
-
               n = Text.GetSubText(_pair, iPair, 1)
-
               SC_RemoveCandidate()
-
             EndFor
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SS_Solve
-
   ' Sudoku Solver | solve Sudoku puzzle
-
   ' param board
-
   ' param candidate - candidate numbers table
-
   ' return solved - if solved
-
   solved = "False"
-
   odd = "False"
-
   While Not[solved] And Not[odd]
-
     _can = can
-
     _board = board
-
     odd = "False"
-
     ' X-Wing solution to the candidate
-
     SS_XWing()
-
     ' Reserved Pair solutions to the candidate
-
     SS_ReservedPair()
-
     ' Line Unique solution to the board
-
     SS_LineUnique()
-
     '  Block Unique solution to the board
-
     SS_BlockUnique()
-
     ' Cell Unique solution to the board
-
     SS_CellUnique()
-
     ' update candidate is needed for reducing more clues (why?)
-
     SC_UpdateCandidate()
-
     If (board = _board) And (can = _can) Then
-
       ' board and candidate don't changed from loop top
-
       odd = "True"
-
     EndIf
-
     If filled = 81 Then
-
       solved = "True"
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 Sub SS_XWing
-
   ' X-Wing solution to the candidate
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       _pair = can[row][col]
-
       len = Text.GetLength(_pair)
-
       cols = col
-
       For c = col + 1 To 9
-
         If can[row][c] = _pair Then
-
           cols = Text.Append(cols, c)
-
         EndIf
-
       EndFor
-
       If Text.GetLength(cols) = len Then
-
         rows = ""
-
         For r = row + 1 To 9
-
           match = "True"
-
           For i = 1 To len
-
             c = Text.GetSubText(cols, i, 1)
-
             If can[r][c] <> _pair Then
-
               match = "False"
-
               i = len
-
             EndIf
-
           EndFor
-
           If match Then
-
             rows = Text.Append(rows, r)
-
           EndIf
-
         EndFor
-
         If Text.GetLength(rows) = len Then
-
           For r = 1 To 9
-
             If Not[Text.IsSubText(rows, r)] Then
-
               For c = 1 To 9
-
                 If Not[Text.IsSubText(cols, c)] Then
-
                   For i = 1 To len
-
                     n = Text.GetSubText(_pair, i, 1)
-
                     SC_RemoveCandidate()
-
                   EndFor
-
                 EndIf
-
               EndFor
-
             EndIf
-
           EndFor
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SU_ClearAnime
-
   ' Sudoku UI | clear animation
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       Shapes.SetText(numU[row][col], " ")
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SU_ClearNote
-
   ' Sudoku UI | clear note
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       For i = 1 To 9
-
         canN[row][col] = " "
-
         Shapes.SetText(note[row][col][i], " ")
-
       EndFor
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SU_GetNoteText
-
   ' Sudoku UI | get note text
-
   txt = canN[row][col]
-
 EndSub
-
-
 
 Sub SU_Grid
-
   GraphicsWindow.PenColor = pc
-
   GraphicsWindow.PenWidth = pw
-
   For x = x0 To x1 Step delta
-
     GraphicsWindow.DrawLine(x, y0 - pw / 2, x, y0 + size9 + pw / 2)
-
   EndFor
-
   For y = y0 To y1 Step delta
-
     GraphicsWindow.DrawLine(x0 - pw / 2, y, x0 + size9 + pw / 2, y)
-
   EndFor
-
 EndSub
-
-
 
 Sub SU_Init
-
   LF = Text.GetCharacter(10)
-
   WQ = Text.GetCharacter(34)
-
   Not = "False=True;True=False;"
-
   gw = 400
-
   gh = 400
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BackgroundColor = "SkyBlue"
-
   size = 34
-
   size9 = size * 9
-
   x0 = (gw - size9) / 2
-
   x1 = x0 + size9
-
   y0 = (gh - size9) / 2 - size / 2
-
   y1 = y0 + size9
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FillRectangle(x0, y0, size9, size9)
-
   pc = "Gray"
-
   pw = 1
-
   delta = size
-
   SU_Grid()
-
   pc = "Black"
-
   pw = 4
-
   delta = size * 3
-
   SU_Grid()
-
   GraphicsWindow.FontName = "Trebuchet MS"
-
   SU_Numbers()
-
   GraphicsWindow.BrushColor = "Black"
-
   btn = Controls.AddButton("Next", 10, gh - (size * 1.3 + 10))
-
   GraphicsWindow.PenColor = "#99FF0000"
-
   GraphicsWindow.BrushColor = "Transparent"
-
   cell = Shapes.AddRectangle(size, size)
-
   col = 1
-
   row = 1
-
   SU_Select()
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "#99000000"
-
   mask = Shapes.AddRectangle(gw, gh)
-
   GraphicsWindow.BrushColor = "White"
-
   wait = Shapes.AddText("")
-
   x = (gw - size * 2.5) / 2
-
   y = (gh - size * 2) / 2
-
   Shapes.Move(wait, x, y)
-
   textA = "SUDOKU "
-
   GraphicsWindow.MouseDown = SU_OnMouseDown
-
   GraphicsWindow.KeyDown = SU_OnKeyDown
-
   GraphicsWindow.KeyUp = SU_OnKeyUp
-
   Controls.ButtonClicked = SU_OnButtonClicked
-
   Timer.Tick = SU_OnTick
-
 EndSub
-
-
 
 Sub SU_Judge
-
   solved = "True"
-
   For rowJ = 1 To 9
-
     For colJ = 1 To 9
-
       If answer[rowJ][colJ] = board[rowJ][colJ] Then
-
         solved = "False"
-
         rowJ = 9
-
         colJ = 9
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SU_Numbers
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       GraphicsWindow.BrushColor = "Black"
-
       x = x0 + (col - 1) * size + size * 0.25
-
       y = y0 + (row - 1) * size
-
       GraphicsWindow.FontSize = size * 0.8
-
       num[row][col] = Shapes.AddText(" ")
-
       Shapes.Move(num[row][col], x, y)
-
       GraphicsWindow.BrushColor = "#0099CC"
-
       GraphicsWindow.FontSize = size * 0.25
-
       SU_GetNoteText()
-
       For i = 1 To 9
-
         r = Math.Floor((i - 1) / 3) + 1
-
         c = Math.Remainder(i - 1, 3) + 1
-
         If Text.IsSubText(txt, i) Then
-
           note[row][col][i] = Shapes.AddText(i)
-
         Else
-
           note[row][col][i] = Shapes.AddText(" ")
-
         EndIf
-
         Shapes.Move(note[row][col][i], x + (c - 1) * size * 0.27 - size * 0.08, y + (r - 1) * size * 0.29 + size * 0.06)
-
       EndFor
-
       GraphicsWindow.FontSize = size * 0.8
-
       numU[row][col] = Shapes.AddText(" ")
-
       Shapes.Move(numU[row][col], x, y)
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SU_OnButtonClicked
-
   buttonClicked = "True"
-
 EndSub
-
-
 
 Sub SU_OnKeyDown
-
   keyDown = "True"
-
 EndSub
-
-
 
 Sub SU_OnKeyUp
-
   keyUp = "True"
-
 EndSub
-
-
 
 Sub SU_OnMouseDown
-
   mouseDown = "True"
-
 EndSub
-
-
 
 Sub SU_OnTick
-
   ' animation
-
   char = char + 1
-
   If Text.GetLength(textA) < char Then
-
     char = 1
-
   EndIf
-
   numA = Text.GetSubText(textA, char, 1)
-
   comma = comma + 1
-
   If 3 < comma Then
-
     comma = 1
-
   EndIf
-
   Shapes.SetText(wait, "Wait" + Text.GetSubText("...", 1, comma))
-
   If numA = 10 Then
-
     numA = " "
-
   EndIf
-
   Shapes.SetText(numU[rowA][colA], numA)
-
   If boardU[rowA][colA] <> " " Then
-
     Shapes.SetText(num[rowA][colA], " ")
-
     boardU[rowA][colA] = " "
-
   EndIf
-
   posA = Math.GetRandomNumber(81)
-
   rowA = Math.Floor((posA - 1) / 9) + 1
-
   colA = Math.Remainder(posA - 1, 9) + 1
-
   SU_SelectA()
-
 EndSub
-
-
 
 Sub SU_Play
-
   row = 1
-
   col = 1
-
   puzzle = board
-
   buttonClicked = "False"
-
   While Not[buttonClicked]
-
     If keyDown Then
-
       key = GraphicsWindow.LastKey
-
       If (key = "Ctrl") Or (key = "LeftCtrl") Or (key = "RightCtrl") Then
-
         ctrl = "True"
-
       EndIf
-
       keyDown = "False"
-
     EndIf
-
     If keyUp Then
-
       key = GraphicsWindow.LastKey
-
       If (key = "Left") And (1 < col) Then
-
         col = col - 1
-
         SU_Select()
-
       ElseIf (key = "Right") And (col < 9) Then
-
         col = col + 1
-
         SU_Select()
-
       ElseIf (key = "Up") And (1 < row) Then
-
         row = row - 1
-
         SU_Select()
-
       ElseIf (key = "Down") And (row < 9) Then
-
         row = row + 1
-
         SU_Select()
-
       ElseIf (key = "Delete") Or (key = "Back") Then
-
         ' Space and Enter will be used for Next button
-
         If puzzle[row][col] = " " Then 
-
           Shapes.SetText(numU[row][col], " ")
-
           If board[row][col] <> " " Then
-
             filled = filled - 1
-
           EndIf
-
           board[row][col] = " "
-
         EndIf
-
       ElseIf (key = "Ctrl") Or (key = "LeftCtrl") Or (key = "RightCtrl") Then
-
         ctrl = "False"
-
       Else
-
         n = Text.GetSubText(key, Text.GetLength(key), 1)
-
         If (1 <= n) And (n <= 9) And (puzzle[row][col] = " ") Then
-
           If ctrl Then
-
             SU_UpdateNote()
-
           Else
-
             Shapes.SetText(numU[row][col], n)
-
             If board[row][col] = " " Then
-
               filled = filled + 1
-
             EndIf
-
             board[row][col] = n
-
             If filled = 81 Then
-
               SU_Judge()
-
               If solved Then
-
                 Sound.PlayBellRingAndWait()
-
               EndIf
-
             EndIf
-
           EndIf
-
         EndIf
-
       EndIf
-
       keyUp = "False"
-
     EndIf
-
     If mouseDown Then
-
       mx = GraphicsWindow.MouseX
-
       my = GraphicsWindow.MouseY
-
       mc = Math.Floor((mx - x0) / size) + 1
-
       mr = Math.Floor((my - y0) / size) + 1
-
       If (1 <= mc) And (mc <= 9) And (1 <= mr) And (mr <= 9) Then
-
         col = mc
-
         row = mr
-
         SU_Select()
-
       EndIf
-
       mouseDown = "False"
-
     EndIf
-
     Program.Delay(100)
-
   EndWhile
-
 EndSub
-
-
 
 Sub SU_Select
-
   ' param row, col - position to move cell
-
   x = x0 + (col - 1) * size
-
   y = y0 + (row - 1) * size
-
   Shapes.Move(cell, x, y)
-
 EndSub
-
-
 
 Sub SU_SelectA
-
   ' param row, col - position to move cell
-
   x = x0 + (colA - 1) * size
-
   y = y0 + (rowA - 1) * size
-
   Shapes.Animate(cell, x, y, 500)
-
 EndSub
-
-
 
 Sub SU_ShowBoard
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       n = board[row][col]
-
       Shapes.SetText(num[row][col], n)
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub SU_Start
-
   Timer.Interval = 1500
-
   Timer.Resume()
-
   Shapes.ShowShape(mask)
-
   Shapes.ShowShape(wait)
-
   posA = Math.GetRandomNumber(81)
-
   rowA = Math.Floor((posA - 1) / 9) + 1
-
   colA = Math.Remainder(posA - 1, 9) + 1
-
   SU_SelectA()
-
   canN = "" ' candidate note
-
 EndSub
-
   
-
 Sub SU_UpdateNote
-
   ' param row, col - position to update note
-
   ' param n - number to toggle
-
   If canN[row][col] = "" Then
-
     canN[row][col] = "         "
-
   EndIf
-
   left = Text.GetSubText(canN[row][col], 1, n - 1)
-
   _n = Text.GetSubText(canN[row][col], n, 1)
-
   right = Text.GetSubTextToEnd(canN[row][col], n + 1)
-
   If _n = " " Then
-
     canN[row][col] = Text.Append(Text.Append(left, n), right) 
-
   Else
-
     canN[row][col] = Text.Append(Text.Append(left, " "), right) 
-
   EndIf
-
   SU_GetNoteText()
-
   Stack.PushValue("local", i)
-
   For i = 1 To 9
-
     If Text.IsSubText(txt, i) Then
-
       Shapes.SetText(note[row][col][i], i)
-
     Else
-
       Shapes.SetText(note[row][col][i], " ")
-
     EndIf
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
-

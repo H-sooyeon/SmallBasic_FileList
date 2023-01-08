@@ -1,1045 +1,522 @@
 ' Program Database
-
 ' Version 0.7b
-
 ' Copyright © 2014-2017 Nonki Takahashi.  The MIT License.
-
 ' Repository https://github.com/nonkit/ProgramDB
-
 ' Last update 2017-05-21
-
 ' Program ID HMK932-2
 
-
-
 ' History:
-
 '  0.7b 2017-05-21 Changed to close combo box menu when button clicked again.
-
 '  0.6b 2016-08-01 Supported wide window.
-
 '  0.5b 2015-12-14 #6 Supported compare texts. (HMK932-1)
-
 '  0.4a 2015-12-12 #5 Supported Search button.
-
 '  0.3a 2015-12-07 #1 Supported combo box.
-
 '  0.2a 2014-06-24 Design changed. (HMK932-0)
-
 '  0.1a 2014-06-09 Created. (HMK932)
 
-
-
 GraphicsWindow.Title = "Program Database 0.7b"
-
 CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
-
 Not = "False=True;True=False;"
-
 Form()
-
 While "True"
-
   If Controls_triggered Then
-
     If Controls.LastClickedButton = bt Then
-
       Search()
-
       Controls_triggered = "False"
-
     Else
-
       Controls_Proc()
-
     EndIf
-
   Else
-
     Program.Delay(200)
-
   EndIf
-
 EndWhile
 
-
-
 Sub Form
-
   gw = Desktop.Width - 16
-
   gh = 428
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Left = 0
-
   CRLF = Text.GetCharacter(13) + text.GetCharacter(10)
-
   GraphicsWindow.BackgroundColor = "LightGray"
-
   GraphicsWindow.BrushColor = "Black"
-
   hd = "1=Program ID;2=Source Filename;3=Screen Shot;4=Description;5=Last Update;"
-
   hd = hd + "6=Version;7=Author;8=Lines;9=Subroutines;10=Challenge;"
-
   filename = Program.Directory + "\ProgramDB.csv"
-
   y = 10
-
   Controls_Init()
-
   For i = 1 To 3
-
     x = 10
-
     If 1 < i Then
-
       item = "1=AND;2=OR;"
-
       left = x
-
       top = y
-
       Controls_AddComboBox()
-
       cbLOp[i] = cbox
-
     EndIf
-
     x = x + 80
-
     item = hd
-
     left = x
-
     top = y
-
     Controls_AddComboBox()
-
     cbItem[i] = cbox
-
     x = x + 190
-
     item = "1=\=;2=>;3=<;4=>\=;5=<\=;6=<>;7=LIKE;"
-
     left = x
-
     top = y
-
     Controls_AddComboBox()
-
     cbOp[i] = cbox
-
     x = x + 80
-
     tb[i] = Controls.AddTextBox(x, y)
-
     Controls.SetSize(tb[i], gw - 10 - x, 22)
-
     y = y + 30
-
   EndFor
-
   x = 10
-
   bt = Controls.AddButton("Search", x, y)
-
   msg = "Loading "
-
   tx = Shapes.AddText(msg)
-
   Shapes.Move(tx, gw / 2, y + 4)
-
   y = y + 40
-
   mtb = Controls.AddMultiLineTextBox(x, y)
-
   Controls.SetSize(mtb, gw - 20, gh - y - 10)
-
   Timer.Interval = 1000
-
   Timer.Tick = OnTick
-
   ReadCSV()
-
   buf = ""
-
   For i = 1 To num
-
     For j = 1 To 10
-
       buf = buf + pgm[i][j]
-
       If j < 10 Then
-
         buf = Text.Append(buf, ",")
-
       EndIf
-
     EndFor
-
     buf = buf + CRLF
-
   EndFor
-
   Controls.SetTextBoxText(mtb, buf)
-
   Timer.Pause()
-
   Shapes.SetText(tx, "Records: " + num + " / " + num)
-
 EndSub
-
-
 
 Sub Compare
-
   ' Compare numbers or texts
-
   ' param text1, text2
-
   ' returns eq ="True" if text1 = text2
-
   ' returns gt = "True" if text1 > text2
-
   ' returns lt = "True" if text1 < text2
-
   If (text1 + 0 = text1) And (text2 + 0 = text2) Then
-
     ' both text1 and text2 are numbers
-
     eq = "False"
-
     gt = "False"
-
     lt = "False"
-
     If text1 = text2 Then
-
       eq = "True"
-
     ElseIf text1 > text2 Then
-
       gt = "True"
-
     ElseIf text1 < text2 Then
-
       lt = "True"
-
     EndIf
-
   Else
-
     CompareTexts()
-
   EndIf
-
 EndSub
-
-
 
 Sub CompareTexts
-
   ' Compare texts
-
   ' param text1, text2
-
   ' returns eq ="True" if text1 = text2
-
   ' returns gt = "True" if text1 > text2
-
   ' returns lt = "True" if text1 < text2
-
   eq = "False"
-
   gt = "False"
-
   lt = "False"
-
   txt1 = Text.ConvertToLowerCase(text1)
-
   txt2 = Text.ConvertToLowerCase(text2)
-
   len1 = Text.GetLength(txt1)
-
   len2 = Text.GetLength(txt2)
-
   len = Math.Min(len1, len2)
-
   For p = 1 To len
-
     c1 = Text.GetCharacterCode(Text.GetSubText(txt1, p, 1))
-
     c2 = Text.GetCharacterCode(Text.GetSubText(txt2, p, 1))
-
     If c1 > c2 Then
-
       gt = "True"
-
       p = len + 1 ' break
-
     ElseIf c1 < c2 Then
-
       lt = "True"
-
       p = len + 1 ' break
-
     Else
-
       ' compare case
-
       c1 = Text.GetCharacterCode(Text.GetSubText(text1, p, 1))
-
       c2 = Text.GetCharacterCode(Text.GetSubText(text2, p, 1))
-
       If c1 > c2 Then
-
         gt = "True"
-
         p = len + 1 ' break
-
       ElseIf c1 < c2 Then
-
         lt = "True"
-
         p = len + 1 ' break
-
       EndIf
-
     EndIf
-
   EndFor
-
   If gt = "False" And lt = "False" Then
-
     If len1 > len2 Then
-
       gt = "True"
-
     ElseIf len1 < len2 Then
-
       lt = "True"
-
     Else
-
       eq = "True"
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub GetItemNumber
-
   ' Get item number
-
   ' param item
-
   ' return j - item number
-
   n = Array.GetItemCount(hd)
-
   For j = 1 To n
-
     If hd[j] = item Then
-
       Goto break
-
     EndIf
-
   EndFor
-
   break:
-
 EndSub
-
-
 
 Sub OnTick
-
   ' Timer event handler
-
   msg = msg + "."
-
   Shapes.SetText(tx, msg)
-
 EndSub
-
-
 
 Sub SelectLine
-
   ' Select line
-
   ' param lOp - left operation "", "AND" or "OR"
-
   ' param i - index of line array
-
   ' return line[i] - "True" if selected
-
   If lOp = "" Or lOp = "OR" Then
-
     line[i] = "True"
-
   EndIf
-
 EndSub
-
-
 
 Sub UnselectLine
-
   ' Unselect line
-
   ' param lOp - left operation "", "AND" or "OR"
-
   ' param i - index of line array
-
   ' return line[i] - "" if unselected
-
   If lOp = "AND" Then
-
     line[i] = ""
-
   EndIf
-
 EndSub
-
-
 
 Sub Search
-
   ' Search
-
   msg = "Searching "
-
   Shapes.SetText(tx, msg)
-
   Timer.Resume()
-
   line = ""
-
   For iCond = 1 To 3
-
     If 1 < iCond Then
-
       cbox = cbLOp[iCond]
-
       Controls_GetComboBoxText()
-
       lOp = txt
-
     Else
-
       lOp = ""
-
     EndIf
-
     cbox = cbItem[iCond]
-
     Controls_GetComboBoxText()
-
     item = txt
-
     GetItemNumber()
-
     cbox = cbOp[iCond]
-
     Controls_GetComboBoxText()
-
     op = txt
-
     kw = Controls.GetTextBoxText(tb[iCond])
-
     If iCond = 1 Or lOp <> "" Then
-
       For i = 1 To num
-
         If op = "=" Then
-
           If pgm[i][j] = kw Then
-
             SelectLine()
-
           Else
-
             UnselectLine()
-
           EndIf
-
         ElseIf op = "<>" Then
-
           text1 = pgm[i][j]
-
           text2 = kw
-
           Compare()
-
           If Not[eq] Then
-
             SelectLine()
-
           Else
-
             UnselectLine()
-
           EndIf
-
         ElseIf op = "<" Then
-
           text1 = pgm[i][j]
-
           text2 = kw
-
           Compare()
-
           If lt Then
-
             SelectLine()
-
           Else
-
             UnselectLine()
-
           EndIf
-
         ElseIf op = "<=" Then
-
           text1 = pgm[i][j]
-
           text2 = kw
-
           Compare()
-
           If lt Or eq Then
-
             SelectLine()
-
           Else
-
             UnselectLine()
-
           EndIf
-
         ElseIf op = ">" Then
-
           text1 = pgm[i][j]
-
           text2 = kw
-
           Compare()
-
           If gt Then
-
             SelectLine()
-
           Else
-
             UnselectLine()
-
           EndIf
-
         ElseIf op = ">=" Then
-
           text1 = pgm[i][j]
-
           text2 = kw
-
           Compare()
-
           If gt Or eq Then
-
             SelectLine()
-
           Else
-
             UnselectLine()
-
           EndIf
-
         ElseIf op = "LIKE" Then
-
           If Text.IsSubText(pgm[i][j], kw) Then
-
             SelectLine()
-
           Else
-
             UnselectLine()
-
           EndIf
-
         EndIf
-
       EndFor
-
     EndIf
-
   EndFor
-
   buf = ""
-
   hit = Array.GetItemCount(line)
-
   index = Array.GetAllIndices(line)
-
   For i = 1 To hit
-
     For j = 1 To 10
-
       buf = buf + pgm[index[i]][j]
-
       If j < 10 Then
-
         buf = Text.Append(buf, ",")
-
       EndIf
-
     EndFor
-
     buf = buf + CRLF
-
   EndFor
-
   Controls.SetTextBoxText(mtb, buf)
-
   Timer.Pause()
-
   Shapes.SetText(tx, "Records: " + hit + " / " + num)
-
 EndSub
-
-
 
 Sub ReadCSV
-
   ' Read CSV file
-
   ' param filename - CSV filename
-
   ' return pgm
-
   ' return num
-
   buf = "dummy"
-
   num = 0
-
   While buf <> ""
-
     num = num + 1
-
 ' The following line could be harmful and has been automatically commented.
-
 '     buf = File.ReadLine(filename, num)
-
     If buf = "" Then
-
       num = num - 1
-
     Else
-
       j = 1
-
       p = 1
-
       c = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), ",")
-
       While 0 < c
-
         pgm[num][j] = Text.GetSubText(buf, p, c - 1)
-
         p = p + c
-
         j = j + 1
-
         c = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), ",")
-
       EndWhile
-
       pgm[num][j] = Text.GetSubTextToEnd(buf, p)
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 Sub WriteCSV
-
   ' Write CSV file
-
   ' param filename - CSV filename
-
   ' param pgm
-
   ' param num
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteContents(filename, "")
-
   For i = 1 To num
-
     n = Array.GetItemCount(pgm[i])
-
     buf = ""
-
     For j = 1 To n
-
       buf = buf + pgm[i][j]
-
       If j < n Then
-
         buf = buf + ","
-
       EndIf
-
     EndFor
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.WriteLine(filename, i, buf)
-
   EndFor
-
 EndSub
-
-
 
 Sub Controls_AddComboBox
-
   ' Controls | Add a combo box
-
   ' param item - array of items
-
   ' param left - the x co-ordinate of the combo box
-
   ' param top - the y co-ordinate of the combo box
-
   ' return cbox - the combo box
-
   ' version 0.2b
-
   Stack.PushValue("local", i)
-
   nCBox = nCBox + 1
-
   fs = GraphicsWindow.FontSize
-
   cbProp[nCBox]["height"] = fs * 1.8
-
   nItem = Array.GetItemCount(item)
-
   cbProp[nCBox]["nItem"] = nItem
-
   cbProp[nCBox]["item"] = item
-
   widthMax = 0
-
   For i = 1 To nItem
-
     len = Text.GetLength(item[i])
-
     width = 0
-
     For j = 1 To len
-
       width = width + Math.Floor(luw[Text.GetSubText(item[i], j, 1)] * fs / 100)
-
     EndFor
-
     If widthMax < width Then
-
       widthMax = width
-
     EndIf
-
   EndFor
-
   tboxWidth = widthMax + fs
-
   cbProp[nCBox]["width"] = tboxWidth
-
   cbProp[nCBox]["x"] = left
-
   cbProp[nCBox]["y"] = top
-
   cbProp[nCBox]["tbox"] = Controls.AddTextBox(left, top)
-
   Controls.SetSize(cbProp[nCBox]["tbox"], tboxWidth, cbProp[nCBox]["height"])
-
-  cbProp[nCBox]["btn"] = Controls.AddButton("?��", left + tboxWidth - 1, top)
-
+  cbProp[nCBox]["btn"] = Controls.AddButton("▾", left + tboxWidth - 1, top)
   Controls.SetSize(cbProp[nCBox]["btn"], fs * 1.8, cbProp[nCBox]["height"])
-
   cbox = "ComboBox" + nCBox
-
   Controls.ButtonClicked = Controls_OnButtonClicked
-
   GraphicsWindow.MouseMove = Controls_OnMouseMove
-
   GraphicsWindow.MouseDown = Controls_OnMouseDown
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Controls_GetComboBoxText
-
   ' Controls | Get combo box text
-
   ' version 0.4a
-
   ' param cbox - name of combo box
-
   ' return txt
-
   Stack.PushValue("local", i)
-
   i = Text.GetSubTextToEnd(cbox, 9)
-
   txt = Controls.GetTextBoxText(cbProp[i]["tbox"])
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Controls_Proc
-
   ' Controls | Procedure
-
   ' version 0.2b
-
   For i = 1 To nCBox
-
     If Controls.LastClickedButton = cbProp[i]["btn"] Then
-
       GraphicsWindow.PenColor = "LightGray"
-
       GraphicsWindow.PenWidth = 1
-
       GraphicsWindow.BrushColor = "White"
-
       rect = Shapes.AddRectangle(cbProp[i]["width"], cbProp[i]["height"] * cbProp[i]["nItem"])
-
       Shapes.Move(rect, cbProp[i]["x"], cbProp[i]["y"] + cbProp[i]["height"] - 1)
-
       GraphicsWindow.BrushColor = "Black"
-
       For j = 1 To cbProp[i]["nItem"]
-
         it[j] = Shapes.AddText(cbProp[i]["item"][j])
-
         Shapes.Move(it[j], cbProp[i]["x"] + cbProp[i]["height"] * 0.3, cbProp[i]["y"] + (j + 0.2) * cbProp[i]["height"])
-
       EndFor
-
       Controls_mouseDown = "False"
-
       Controls_triggered = "False"
-
       While Not[Controls_mouseDown]
-
         If Controls_mouseMove Then
-
           Controls_Select()
-
           Controls_mouseMove = "False"
-
         ElseIf Controls_triggered Then
-
           ' button clicked again
-
           _bt = Controls.LastClickedButton
-
           Controls_mx = Shapes.GetLeft(_bt)
-
           Controls_my = Shapes.GetTop(_bt)
-
           Controls_mouseDown = "True"
-
         Else
-
           Program.Delay(200)
-
         EndIf
-
       EndWhile
-
       Controls_Select()
-
       Shapes.Remove(cbSelect)
-
       cbSelect = ""
-
       For j = 1 To cbProp[i]["nItem"]
-
         Shapes.Remove(it[j])
-
       EndFor
-
       Shapes.Remove(rect)
-
       If selected <> 0 Then
-
         Controls.SetTextBoxText(cbProp[i]["tbox"],cbProp[i]["item"][selected])
-
       EndIf
-
     EndIf
-
   EndFor
-
   Controls_triggered = "False"
-
 EndSub
-
-
 
 Sub Controls_Init
-
   ' Controls | Initialize
-
   ' version 0.1a
-
   Not = "False=True;True=False;"
-
   GraphicsWindow.FontName = "Lucida UI"
-
   GraphicsWindow.BrushColor = "Black"
-
   WQ = Text.GetCharacter(34)
-
   ' Lucida UI font width [px] table while the size (height) 100 [px]
-
   luw = " =60;!=65;" + WQ + "=82;#=92;$=90;%=119;&=117;'=62;(=69;)=69;"
-
   luw = luw + "*=78;+=103;,=59;-=73;.=59;/=77;0=90;1=90;2=90;3=90;4=90;"
-
   luw = luw + "5=90;6=90;7=90;8=90;9=90;:=59;\;=59;<=103;\==103;>=103;"
-
   luw = luw + "?=76;@=128;A=86;B=94;C=80;D=94;E=86;F=71;G=94;H=93;I=61;"
-
   luw = luw + "J=61;K=88;L=61;M=124;N=93;O=94;P=94;Q=94;R=72;S=76;T=71;"
-
   luw = luw + "U=93;V=87;W=112;X=88;Y=86;Z=80;[=69;\\=76;]=69;^=103;_=74;"
-
   luw = luw + "`=64;{=69;|=65;}=69;~=103; =60;¡=65;¢=90;£=90;¤=88;¥=90;"
-
   luw = luw + "¦=65;§=81;¨=79;©=120;ª=73;«=90;¬=103;­=32;®=120;¯=74;°=70;"
-
   luw = luw + "±=103;²=73;³=73;´=63;µ=94;¶=83;·=59;¸=54;¹=72;º=78;»=90;"
-
-  luw = luw + "¼=128;½=129;¾=130;¿=76;?=86;Á=86;Â=86;Ã=86;Ä=86;Å=86;Æ=115;"
-
+  luw = luw + "¼=128;½=129;¾=130;¿=76;À=86;Á=86;Â=86;Ã=86;Ä=86;Å=86;Æ=115;"
   luw = luw + "Ç=80;È=86;É=86;Ê=86;Ë=86;Ì=61;Í=61;Î=61;Ï=61;Ð=92;Ñ=93;Ò=93;"
-
   luw = luw + "Ó=93;Ô=93;Õ=93;Ö=93;×=103;Ø=94;Ù=93;Ú=93;Û=93;Ü=93;Ý=86;"
-
   luw = luw + "Þ=94;ß=95;÷=103;ÿ=86;"
-
   Controls_triggered = "False"
-
 EndSub
-
-
 
 Sub Controls_OnButtonClicked
-
   ' Controls | Button event handler
-
   ' version 0.1a
-
   Controls_triggered = "True"
-
 EndSub
-
-
 
 Sub Controls_OnMouseMove
-
   ' Controls | Mouse event handler
-
   ' version 0.1a
-
   Controls_mx = GraphicsWindow.MouseX
-
   Controls_my = GraphicsWindow.MouseY
-
   Controls_mouseMove = "True"
-
 EndSub
-
-
 
 Sub Controls_OnMouseDown
-
   ' Controls | Mouse event handler
-
   ' version 0.1a
-
   Controls_mx = GraphicsWindow.MouseX
-
   Controls_my = GraphicsWindow.MouseY
-
   Controls_mouseDown = "True"
-
 EndSub
-
-
 
 Sub Controls_Select
-
   ' Controls | Select a combo box menu item
-
   ' version 0.1a
-
   selected = 0
-
   If cbProp[i]["x"] <= Controls_mx And Controls_mx <= cbProp[i]["x"] + cbProp[i]["width"] Then
-
     For j = 1 To cbProp[i]["nItem"]
-
       y1 = cbProp[i]["y"] + j * cbProp[i]["height"]
-
       y2 = y1 + cbProp[i]["height"]
-
       If y1 <= Controls_my And Controls_my <= y2 Then
-
         GraphicsWindow.BrushColor = "#663399FF"
-
         GraphicsWindow.PenWidth = 0
-
         If cbSelect = "" Then
-
           cbSelect = Shapes.AddRectangle(cbProp[i]["width"], cbProp[i]["height"])
-
         EndIf
-
         Shapes.Move(cbSelect, cbProp[i]["x"], y1 - 1)
-
         selected = j
-
       EndIf
-
     EndFor
-
   EndIf
-
 EndSub
-
-

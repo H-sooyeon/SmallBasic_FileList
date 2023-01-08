@@ -1,349 +1,174 @@
 ' SmallBasic Version 1.2
-
 ' Program: HSL-HSV/HSB (Color Conversions)  Forum
-
 ' Changelog: 16.5
-
 ' Author: Pappa Lapub
-
 ' Website: https://social.msdn.microsoft.com/Forums/en-US/85911319-9ced-438e-9af4-d4ac1e9e9d12/small-basic-graphic-and-animations-and-more-2
-
 ' ImportURL: http://smallbasic.com/program/?
-
 ' Extension: LitDev
-
 ' Comment: http://lodev.org/cgtutor/examples.html (QuickCG Functions)
-
 '  http://lodev.org/cgtutor/color.html  (Light and Color)
-
 ' 
-
 ' KEYS: C .. Copy ColorValues to Clipboard;  S .. Save PaletteImage (again);  ESC .. Exit
-
 ' Variables: 
-
 ' ToDo: 
-
 ' ================================================================================
-
 gw = 360
-
 gh = 256
-
 args = ""
-
 crlf = Text.GetCharacter(13) + Text.GetCharacter(10)
-
 ' The following line could be harmful and has been automatically commented.
-
 ' 'selfImgPath = LDRegex.Replace(File.GetSettingsFilePath(), ".settings",".png", "")   ''  ALTERNAT1
-
 ' The following line could be harmful and has been automatically commented.
-
 ' 'selfImgPath = LDText.Replace(File.GetSettingsFilePath(), ".settings",".png")        ''  ALTERNAT1
-
 ' The following line could be harmful and has been automatically commented.
-
 ' selfImgPath = Program.Directory +"\"+ LDFile.GetFile(File.GetSettingsFilePath()) +".png"
 
-
-
 GraphicsWindow.Width = 2*gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.Title = "HSL vs HSV"
-
 LDGraphicsWindow.Icon = Program.Directory +"\Icons\HSL-HSV.ico"
 
-
-
 '' Try to load selfImgPath, if it's there with correct dimensions and use that, else DrawImage and SaveImage for future use.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' If ImageList.GetWidthOfImage(selfImgPath) = 2*gw And ImageList.GetHeightOfImage(selfImgPath) = gh Then  ' And LDFile.Exists(selfImgPath)
-
   GraphicsWindow.DrawImage(selfImgPath, 0,0)
-
   'LDGraphicsWindow.BackgroundImage(selfImgPath)   '' ALTERNAT2
-
   done = "True"
-
 Else
-
   DrawImage()
-
   If done Then
-
     SaveImage()
-
   EndIf
-
 EndIf
-
-
 
 LDCursors.Cross()
 
 
-
-
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 GraphicsWindow.MouseDown = OnMouseDown
 
 
-
-
-
 ' //////////  SUBs  \\\\\\\\\\
-
 Sub DrawImage
-
   For x = 0 To gw-1
-
     For y = 0 To gh-1
-
       'col = HSLtoRGB(ColorHSL(x, 255, y))   '' convert color "hue=x, saturation=255, lightness=y" to RGB;  HSL 0,0,0 - 360,100,255
-
       col = LDColours.HSLtoRGB(x, 1, y/gh)
-
       GraphicsWindow.SetPixel(x, gh-1 -y, col)  '' plot a pixel from the HSL model
-
       
-
       'col = HSVtoRGB(ColorHSV(x,255, y))        '' convert color "hue=x, saturation=255, value=y" to RGB;  HSV  0,0,0 - 360,100,255
-
       col = LDCall.Function3("HSVtoRGB", x, 1, y/gh)
-
       GraphicsWindow.SetPixel(x+gw, gh-1 -y, col)   '' plot a pixel from the HSV model
-
     EndFor
-
   EndFor
-
   done = "True"
-
 EndSub
-
-
 
 '' https://en.wikipedia.org/wiki/HSL_and_HSV
-
 '' http://www.codeproject.com/Articles/19045/Manipulating-colors-in-NET-Part  (HSB to RGB)
-
 Sub HSVtoRGB  ' (h, s, v) [0,360] [0,1] [0,1] -> #RRGGBB
-
   r = 0
-
   g = 0
-
   b = 0
-
   If args[2] = 0 Then
-
     r = args[3]
-
     g = args[3]
-
     b = args[3]
-
   Else
-
     sectPos = args[1] / 60
-
     sectNum = Math.Floor(sectPos)
-
     fractSect = sectPos - sectNum
-
     p = args[3] * (1 - args[2])
-
     q = args[3] * (1 - fractSect * args[2])
-
     t = args[3] * (1 - (args[2] * (1 - fractSect)))
-
     
-
     If sectNum = 0 Then
-
       r = args[3]
-
       g = t
-
       b = p
-
     ElseIf sectNum = 1 Then
-
       r = q
-
       g = args[3]
-
       b = p
-
     ElseIf sectNum = 2 Then
-
       r = p
-
       g = args[3]
-
       b = t
-
     ElseIf sectNum = 3 Then
-
       r = p
-
       g = q
-
       b = args[3]
-
     ElseIf sectNum = 4 Then
-
       r = t
-
       g = p
-
       b = args[3]
-
     ElseIf sectNum = 5 Then
-
       r = args[3]
-
       g = p
-
       b = q
-
     EndIf
-
   EndIf
-
   return = GraphicsWindow.GetColorFromRGB(255*r, 255*g, 255*b)
-
 EndSub
-
-
 
 Sub GetValue  ' /Brightness
-
   r = LDColours.GetRed(col)
-
   g = LDColours.GetGreen(col)
-
   b = LDColours.GetBlue(col)
-
   min = Math.Min(r, Math.Min(g, b))
-
   v = 2 * LDColours.GetLightness(col) - min/255
-
 EndSub
-
-
 
 Sub SaveImage
-
   'imgShot = LDGraphicsWindow.Capture("","")
-
   LDImage.SaveAs(LDGraphicsWindow.Capture("",""), selfImgPath)  ' imgShot, selfImgPath)
-
   GraphicsWindow.ShowMessage("Palette image saved for future use:"+ crlf + selfImgPath, "Palette SAVED")
-
 EndSub
-
-
-
 
 
 ' //////////  EVENTs \\\\\\\\\\
-
 Sub OnMouseDown
-
   If done Then
-
     mx = GraphicsWindow.MouseX
-
     my = GraphicsWindow.MouseY
-
     
-
     col = GraphicsWindow.GetPixel(mx,my)
-
     'col = LDGraphicsWindow.GetPixel(mx,my)     '' ALTERNAT2
-
     
-
     GetValue()
-
     h = Math.Round(100 * LDColours.GetHue(col)) / 100
-
     s = Math.Round(100 * LDColours.GetSaturation(col)) / 100
-
     l = Math.Round(100 * LDColours.GetSaturation(col)) / 100
-
     v = Math.Round(100 * v) / 100
-
     hsl = h +", "+ s +", "+ l
-
     hsv = h +", "+ s +", "+ v
-
     rgb = r +", "+ g +", "+ b
-
     'rgb = LDColours.GetRed(col) +","+ LDColours.GetGreen(col) +","+ LDColours.GetBlue(col)
-
     
-
     'GraphicsWindow.Title = "HSL: "+ hsl +" | HSV: "+ hsv +" | RGB: "+ rgb +" | HEX: "+ col
-
     title = "HSL: "+ hsl +" | HSV: "+ hsv +" | RGB: "+ rgb +" | HEX: "+ col
-
     GraphicsWindow.Title = title
-
     
-
     If Mouse.IsRightButtonDown Then
-
       CopyValues()
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   lastKey = GraphicsWindow.LastKey
-
   If lastKey = "Escape" Then
-
     Program.End()
-
   ElseIf lastKey = "S" And done Then
-
     SaveImage()
-
   ElseIf lastKey = "C" And rgb <> "" Then
-
     CopyValues()
-
   EndIf
-
 EndSub
-
-
 
 Sub CopyValues
-
   'vals = "HSL: "+ hsl + crlf +"HSV: "+ hsv + crlf +"RGB: "+ rgb + crlf +"HEX: "+ col
-
   vals = LDText.Replace(title, " | ", crlf)
-
   LDClipboard.SetText(vals)
-
 EndSub
-
   
-
-

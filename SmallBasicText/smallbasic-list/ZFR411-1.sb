@@ -1,1799 +1,899 @@
 ' Methane Hydrate
-
 ' Version 0.3
-
 ' Copyright © 2020 Nonki Takahashi.  The MIT License.
-
 ' Last update 2020-03-25
-
 ' Program ID ZFR411-1
 
-
-
 option = "number=True;edge=True;"
-
 Init()
-
 InitAtoms()
-
 If option["edge"] Then
-
   InitEdges()
-
 EndIf
-
 InitVectors()
-
 scale = 272 / (1 - 1 / Math.SquareRoot(3)) / 4
-
 While "True"
-
   If option["edge"] Then
-
     DrawEdges()
-
   EndIf
-
   DrawAtoms()
-
   loop = "True"
-
   While loop
-
     keyUp = "False"
-
     While Not[keyUp]
-
       Program.Delay(100)
-
     EndWhile
-
     key = GraphicsWindow.LastKey
-
     loop = Not[Text.IsSubText("Up|Down|Left|Right", key)]
-
   EndWhile
-
   RotateAtoms()
-
   GraphicsWindow.Clear()
-
 EndWhile
 
-
-
 Sub DrawAtoms
-
   ' insert sort for drawing order
-
   btree = ""
-
   branch = "l=0;r=0;"  ' end
-
   btree[81] = branch   ' start
-
   For j = 1 To nVector
-
     If indexV[j] <> 81 Then
-
       param = ""
-
       i = 81
-
       param["name1"] = "v" + i
-
       param["name2"] = "v" + indexV[j]
-
       Vector_Comp()
-
       branch = btree[i]
-
       While (gt And (0 < branch["r"])) Or (lt And (0 < branch["l"]))
-
         If gt Then
-
           i = branch["r"]
-
         Else ' lt
-
           i = branch["l"]
-
         EndIf
-
         param["name1"] = "v" + i
-
         param["name2"] = "v" + indexV[j]
-
         Vector_Comp()
-
         branch = btree[i]
-
       EndWhile
-
       ' insert vj before vi (or end)
-
       If gt And (branch["r"] = 0) Then
-
         branch["r"] = indexV[j]
-
       ElseIf lt And (branch["l"] = 0) Then
-
         branch["l"] = indexV[j]
-
       EndIf
-
       btree[i] = branch
-
       _branch = "l=0;r=0;"
-
       btree[indexV[j]] = _branch
-
     EndIf
-
   EndFor
-
   ' draw atoms
-
   GetBTreeOrder()
-
   buf = buf + "drawing order" + LF
-
   For iOrder = 1 To nOrder
-
     entry = matrix["v" + order[iOrder]]
-
     values = entry["values"]
-
     p["x"] = values[1][1]
-
     p["y"] = values[2][1]
-
     p["z"] = values[3][1]
-
     Map()
-
     p = atom[order[iOrder]]
-
     e = p["element"]
-
     c = element[e]["color"]
-
     rate = 0.3 * (1 + values[3][1] / Math.SquareRoot(3))
-
     Color_Blacken()
-
     GraphicsWindow.BrushColor = c
-
     size = element[e]["size"] / 4
-
     GraphicsWindow.FillEllipse(x - size / 2, y - size / 2, size, size)
-
     If option["number"] Then
-
       GraphicsWindow.FontSize = 9
-
       If element[e]["color"] = "White" Then
-
         GraphicsWindow.BrushColor = "Black"
-
       Else
-
         GraphicsWindow.BrushColor = "White"
-
       EndIf
-
       If Text.GetLength(order[iOrder]) = 3 Then
-
         dx = size * 0.4
-
       Else
-
         dx = size * 0.28
-
       EndIf
-
       If p <> "" Then
-
         GraphicsWindow.DrawText(x - dx, y - size * 0.3, order[iOrder])
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub DrawEdges
-
   index = Array.GetAllIndices(edge)
-
   n = Array.GetItemCount(edge)
-
   For i = 1 To n
-
     e = edge[index[i]]
-
     _p = Text.GetIndexOf(e, ",")
-
     pc = ec[Text.GetSubText(e, 1, _p - 1)]
-
     GraphicsWindow.PenColor = pc
-
     _p = _p + 1
-
     _h = Text.GetIndexOf(Text.GetSubTextToEnd(e, _p), "-")
-
     x1 = ""
-
     While 0 < _h
-
       v = Text.GetSubText(e, _p, _h - 1)
-
       entry = matrix["v" + v]
-
       values = entry["values"]
-
       p["x"] = values[1][1]
-
       p["y"] = values[2][1]
-
       p["z"] = values[3][1]
-
       Map()
-
       x2 = x
-
       y2 = y
-
       If x1 <> "" Then
-
         GraphicsWindow.DrawLine(x1, y1, x2, y2)
-
       EndIf
-
       x1 = x2
-
       y1 = y2
-
       _p = _p + _h
-
       _h = Text.GetIndexOf(Text.GetSubTextToEnd(e, _p), "-")
-
     EndWhile
-
     v = Text.GetSubTextToEnd(e, _p)
-
     entry = matrix["v" + v]
-
     values = entry["values"]
-
     p["x"] = values[1][1]
-
     p["y"] = values[2][1]
-
     p["z"] = values[3][1]
-
     Map()
-
     x2 = x
-
     y2 = y
-
     If x1 <> "" Then
-
       GraphicsWindow.DrawLine(x1, y1, x2, y2)
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub GetBTreeOrder
-
   index = Array.GetAllIndices(btree)
-
   nBTree = Array.GetItemCount(btree)
-
   order = ""
-
   done = ""
-
   nOrder = 0
-
   i = 81
-
   GetNext()
-
 EndSub
-
-
 
 Sub GetNext
-
   branch = btree[i]
-
   If 0 < branch["l"] Then
-
     Stack.PushValue("local", i)
-
     i = branch["l"]
-
     GetNext()
-
     i = Stack.PopValue("local")
-
   EndIf
-
   branch = btree[i]
-
   nOrder = nOrder + 1
-
   order[nOrder] = i
-
   If 0 < branch["r"] Then
-
     Stack.PushValue("local", i)
-
     i = branch["r"]
-
     GetNext()
-
     i = Stack.PopValue("local")
-
   EndIf
-
 EndSub
-
-
 
 Sub Init
-
   LF = Text.GetCharacter(10)
-
   Not = "False=True;True=False;"
-
   GraphicsWindow.Title = "Methane Hydrate"
-
   GraphicsWindow.BackgroundColor = "Gray"
-
   gw = GraphicsWindow.Width
-
   gh = GraphicsWindow.Height
-
   xo = gw / 2
-
   yo = gh / 2
-
   zo = 0
-
   element["H"] = "color=White;size=55;1=32;"
-
   element["C"] = "color=#222222;size=85;1=75;2=67;3=60;"
-
   element["O"] = "color=#EE0000;size=76;1=63;2=57;3=53;h=272;"
-
   ec = "solid=White;dotted=#333333;"
-
   GraphicsWindow.KeyUp = OnKeyUp
-
 EndSub
-
-
 
 Sub InitAtoms
-
   ' z1
-
   atom[11] = "element=C;x=-1;y=-1;z=1;"
-
   atom[12] = "element=C;x=1;y=-1;z=1;"
-
   atom[13] = "element=C;x=-0.5;y=0;z=1;"
-
   atom[14] = "element=C;x=0.5;y=0;z=1;"
-
   atom[15] = "element=C;x=-1;y=1;z=1;"
-
   atom[16] = "element=C;x=1;y=1;z=1;"
-
   p = "element=O;y=-0.75;z=1;"
-
   p["x"] = -Math.SquareRoot(3) / 4
-
   atom[17] = p
-
   p["x"] = Math.SquareRoot(3) / 4
-
   atom[18] = p
-
   p = "element=O;x=0;y=-0.5;z=1;"
-
   atom[19] = p
-
   p["y"] = 0.5
-
   atom[20] = p
-
   p = "element=O;y=0.75;z=1;"
-
   p["x"] = -Math.SquareRoot(3) / 4
-
   atom[21] = p
-
   p["x"] = Math.SquareRoot(3) / 4
-
   atom[22] = p
-
   
-
   ' z2
-
   p = "element=O;x=-1;z=0.75;"
-
   p["y"] = -1 + 1 / Math.SquareRoot(3)
-
   atom[31] = p
-
   p["x"] = 1
-
   atom[32] = p
-
   p["x"] = -1
-
   p["y"] = 1 - 1 / Math.SquareRoot(3)
-
   atom[33] = p
-
   p["x"] = 1
-
   atom[34] = p
-
   
-
   ' z3
-
   p = "element=O;x=0;y=-0.25;"
-
   p["z"] = 1 / Math.SquareRoot(3)
-
   atom[41] = p
-
   p["y"] = 0.25
-
   atom[42] = p
-
   p["x"] = -0.375 * Math.SquareRoot(3)
-
   p["y"] = -1 + 0.375
-
   atom[43] = p
-
   p["x"] = 0.375 * Math.SquareRoot(3)
-
   atom[44] = p
-
   p["x"] = -0.375 * Math.SquareRoot(3)
-
   p["y"] = 1 - 0.375
-
   atom[45] = p
-
   p["x"] = 0.375 * Math.SquareRoot(3)
-
   atom[46] = p
-
   
-
   ' z4
-
   p = "element=C;x=0;y=-1;z=0.5;"
-
   atom[51] = p
-
   p["y"] = 1
-
   atom[52] = p
-
   p = "element=O;x=-1;y=0;z=0.5;"
-
   atom[53] = p
-
   p["x"] = 1
-
   atom[54] = p
-
   
-
   ' z5
-
   p = "element=O;x=-0.75;y=-1;"
-
   p["z"] = Math.SquareRoot(3) / 4
-
   atom[61] = p
-
   p["x"] =  0.75
-
   atom[62] = p
-
   p["x"] = -0.75
-
   p["y"] = 1
-
   atom[63] = p
-
   p["x"] =  0.75
-
   atom[64] = p
-
   p["x"] = -0.375
-
   p["y"] = -1 + 0.375 * Math.SquareRoot(3)
-
   atom[65] = p
-
   p["x"] = 0.375
-
   atom[66] = p
-
   p["x"] = -0.375
-
   p["y"] = 1 - 0.375 * Math.SquareRoot(3)
-
   atom[67] = p
-
   p["x"] = 0.375
-
   atom[68] = p
-
   
-
   ' z6
-
   p = "element=O;y=0;z=0.25;"
-
   p["x"] = -1 / Math.SquareRoot(3)
-
   atom[71] = p
-
   p["x"] = 1 / Math.SquareRoot(3)
-
   atom[72] = p
-
   
-
   ' z7
-
   atom[81] = "element=C;x=0;y=0;z=0;"
-
   p = "element=C;x=-1;y=-0.5;z=0;
-
   atom[82] = p
-
   p["x"] = 1
-
   atom[83] = p
-
   p = "element=C;x=-1;y=0.5;z=0;
-
   atom[84] = p
-
   p["x"] = 1
-
   atom[85] = p
-
   p = "element=O;x=-0.5;y=-1;z=0;"
-
   atom[86] = p
-
   p["x"] = 0.5
-
   atom[87] = p
-
   p = "element=O;x=-0.5;y=1;z=0;"
-
   atom[88] = p
-
   p["x"] = 0.5
-
   atom[89] = p
-
   p = "element=O;x=-0.25;z=0;"
-
   p["y"] = -1 / Math.SquareRoot(3)
-
   atom[90] = p
-
   p["x"] = 0.25
-
   atom[91] = p
-
   p = "element=O;x=-0.25;z=0;"
-
   p["y"] = 1 / Math.SquareRoot(3)
-
   atom[92] = p
-
   p["x"] = 0.25
-
   atom[93] = p
-
   
-
   ' z8
-
   p = "element=O;y=0;z=-0.25"
-
   p["x"] = -1 / Math.SquareRoot(3)
-
   atom[101] = p
-
   p["x"] = 1 / Math.SquareRoot(3)
-
   atom[102] = p
-
   
-
   ' z9
-
   p = "element=O;x=-0.75;y=-1;"
-
   p["z"] = -Math.SquareRoot(3) / 4
-
   atom[111] = p
-
   p["x"] =  0.75
-
   atom[112] = p
-
   p["x"] = -0.75
-
   p["y"] = 1
-
   atom[113] = p
-
   p["x"] =  0.75
-
   atom[114] = p
-
   p["x"] = -0.375
-
   p["y"] = -1 + 0.375 * Math.SquareRoot(3)
-
   atom[115] = p
-
   p["x"] = 0.375
-
   atom[116] = p
-
   p["x"] = -0.375
-
   p["y"] = 1 - 0.375 * Math.SquareRoot(3)
-
   atom[117] = p
-
   p["x"] = 0.375
-
   atom[118] = p
-
   
-
   ' z10
-
   p = "element=C;x=0;y=-1;z=-0.5;"
-
   atom[121] = p
-
   p["y"] = 1
-
   atom[122] = p
-
   p = "element=O;x=-1;y=0;z=-0.5;"
-
   atom[123] = p
-
   p["x"] = 1
-
   atom[124] = p
-
   
-
   ' z11
-
   p = "element=O;x=0;y=-0.25;"
-
   p["z"] = -1 / Math.SquareRoot(3)
-
   atom[131] = p
-
   p["y"] = 0.25
-
   atom[132] = p
-
   p["x"] = -0.375 * Math.SquareRoot(3)
-
   p["y"] = -1 + 0.375
-
   atom[133] = p
-
   p["x"] = 0.375 * Math.SquareRoot(3)
-
   atom[134] = p
-
   p["x"] = -0.375 * Math.SquareRoot(3)
-
   p["y"] = 1 - 0.375
-
   atom[135] = p
-
   p["x"] = 0.375 * Math.SquareRoot(3)
-
   atom[136] = p
-
   
-
   ' z12
-
   p = "element=O;x=-1;z=-0.75;"
-
   p["y"] = -1 + 1 / Math.SquareRoot(3)
-
   atom[141] = p
-
   p["x"] = 1
-
   atom[142] = p
-
   p["x"] = -1
-
   p["y"] = 1 - 1 / Math.SquareRoot(3)
-
   atom[143] = p
-
   p["x"] = 1
-
   atom[144] = p
-
   
-
   ' z13
-
   atom[151] = "element=C;x=-1;y=-1;z=-1;"
-
   atom[152] = "element=C;x=1;y=-1;z=-1;"
-
   p = "element=C;x=-0.5;y=0;z=-1;"
-
   atom[153] = p
-
   p["x"] = 0.5
-
   atom[154] = p
-
   atom[155] = "element=C;x=-1;y=1;z=-1;"
-
   atom[156] = "element=C;x=1;y=1;z=-1;"
-
   p = "element=O;y=-0.75;z=-1;"
-
   p["x"] = -Math.SquareRoot(3) / 4
-
   atom[157] = p
-
   p["x"] = Math.SquareRoot(3) / 4
-
   atom[158] = p
-
   p = "element=O;x=0;y=-0.5;z=-1;"
-
   atom[159] = p
-
   p["y"] = 0.5
-
   atom[160] = p
-
   p = "element=O;y=0.75;z=-1;"
-
   p["x"] = -Math.SquareRoot(3) / 4
-
   atom[161] = p
-
   p["x"] = Math.SquareRoot(3) / 4
-
   atom[162] = p
-
 EndSub
-
-
 
 Sub InitEdges
-
   ' z1
-
   p = atom[17]
-
   p["y"] = -1
-
   vertex[217] = p
-
   p = atom[18]
-
   p["y"] = -1
-
   vertex[218] = p
-
   p = atom[31]
-
   p["z"] = 1
-
   vertex[231] = p
-
   p = atom[32]
-
   p["z"] = 1
-
   vertex[232] = p
-
   p = atom[33]
-
   p["z"] = 1
-
   vertex[233] = p
-
   p = atom[34]
-
   p["z"] = 1
-
   vertex[234] = p
-
   p = atom[21]
-
   p["y"] = 1
-
   vertex[221] = p
-
   p = atom[22]
-
   p["y"] = 1
-
   vertex[222] = p
-
   
-
   ' z5
-
   p = atom[61]
-
   p["x"] = -1
-
   vertex[261] = p
-
   p = atom[62]
-
   p["x"] = 1
-
   vertex[262] = p
-
   p = atom[63]
-
   p["x"] = -1
-
   vertex[263] = p
-
   p = atom[64]
-
   p["x"] = 1
-
   vertex[264] = p
-
   
-
   ' z9
-
   p = atom[111]
-
   p["x"] = -1
-
   vertex[311] = p
-
   p = atom[112]
-
   p["x"] = 1
-
   vertex[312] = p
-
   p = atom[113]
-
   p["x"] = -1
-
   vertex[313] = p
-
   p = atom[114]
-
   p["x"] = 1
-
   vertex[314] = p
-
   
-
   ' z13
-
   p = atom[157]
-
   p["y"] = -1
-
   vertex[357] = p
-
   p = atom[158]
-
   p["y"] = -1
-
   vertex[358] = p
-
   p = atom[141]
-
   p["z"] = -1
-
   vertex[341] = p
-
   p = atom[142]
-
   p["z"] = -1
-
   vertex[342] = p
-
   p = atom[143]
-
   p["z"] = -1
-
   vertex[343] = p
-
   p = atom[144]
-
   p["z"] = -1
-
   vertex[344] = p
-
   p = atom[161]
-
   p["y"] = 1
-
   vertex[361] = p
-
   p = atom[162]
-
   p["y"] = 1
-
   vertex[362] = p
-
   
-
   ' z1
-
   edge = "1=dotted,11-12-16-15-11;2=solid,217-17-19-18-218;"
-
   edge = edge + "3=dotted,17-231;4=dotted,18-232;"
-
   edge = edge + "5=dotted,21-233;6=dotted,22-234;"
-
   edge = edge + "7=solid,221-21-20-22-222;"
-
   edge = edge + "8=dotted,19-20;"
-
   
-
   ' z1 - z2
-
   edge = edge + "9=solid,231-31;10=solid,232-32;"
-
   edge = edge + "11=solid,233-33;12=solid,234-34;"
-
   
-
   ' z1 - z3
-
   edge = edge + "13=solid,17-43;14=solid,18-44;15=solid,19-41;"
-
   edge = edge + "16=solid,21-45;17=solid,22-46;18=solid,20-42;"
-
   
-
   ' z3
-
   edge = edge + "19=solid,41-42;"
-
   
-
   ' z2 - z3
-
   edge = edge + "20=solid,31-43;21=solid,32-44;"
-
   edge = edge + "22=solid,33-45;23=solid,34-46;"
-
   
-
   ' z2 - z4
-
   edge = edge + "24=solid,31-53;25=solid,32-54;"
-
   edge = edge + "26=solid,33-53;27=solid,34-54;"
-
   
-
   ' z1 - z5
-
   edge = edge + "28=dotted,217-61;29=dotted,218-62;"
-
   edge = edge + "30=dotted,221-63;31=dotted,222-64;"
-
   
-
   ' z2 - z5
-
   edge = edge + "32=dotted,31-261;33=dotted,32-262;"
-
   edge = edge + "34=dotted,33-263;35=dotted,34-264;"
-
   
-
   ' z3 - z5
-
   edge = edge + "36=solid,41-65;37=solid,41-66;"
-
   edge = edge + "38=solid,42-67;39=solid,42-68;"
-
   edge = edge + "40=solid,43-61;41=solid,43-65;"
-
   edge = edge + "42=solid,44-62;43=solid,44-66;"
-
   edge = edge + "44=solid,45-63;45=solid,45-67;"
-
   edge = edge + "46=solid,46-64;47=solid,46-68;"
-
   
-
   ' z5
-
   edge = edge + "48=solid,261-61;49=solid,262-62;"
-
   edge = edge + "50=solid,263-63;51=solid,264-64;"
-
   
-
   ' z4 - z6
-
   edge = edge + "52=solid,53-71;53=solid,54-72;"
-
   
-
   ' z5 - z6
-
   edge = edge + "54=solid,65-71;55=solid,67-71;"
-
   edge = edge + "56=solid,66-72;57=solid,68-72;"
-
   
-
   ' z5 - z7
-
   edge = edge + "58=solid,61-86;59=solid,62-87;"
-
   edge = edge + "60=solid,63-88;61=solid,64-89;"
-
   edge = edge + "62=solid,65-90;63=solid,66-91;"
-
   edge = edge + "64=solid,67-92;65=solid,68-93;"
-
   
-
   ' z7
-
   edge = edge + "66=solid,86-90-91-87;67=solid,88-92-93-89;"
-
   edge = edge + "68=dotted,86-87;69=dotted,88-89;"
-
   
-
   ' z6 - z8
-
   edge = edge + "70=solid,71-101;71=solid,72-102;"
-
   
-
   ' z7 - z9
-
   edge = edge + "72=solid,86-111;73=solid,87-112;"
-
   edge = edge + "74=solid,88-113;75=solid,89-114;"
-
   edge = edge + "76=solid,90-115;77=solid,91-116;"
-
   edge = edge + "78=solid,92-117;79=solid,93-118;"
-
   
-
   ' z8 - z9
-
   edge = edge + "80=solid,101-115;81=solid,101-117;"
-
   edge = edge + "82=solid,102-116;83=solid,102-118;"
-
   
-
   ' z9
-
   edge = edge + "84=solid,311-111;85=solid,312-112;"
-
   edge = edge + "86=solid,313-113;87=solid,314-114;"
-
   
-
   ' z4 - z10
-
   edge = edge + "88=dotted,53-123;89=dotted,54-124;"
-
   
-
   ' z8 - z10
-
   edge = edge + "90=solid,101-123;91=solid,102-124;"
-
   
-
   ' z9 - z11
-
   edge = edge + "92=solid,115-133;93=solid,115-131;"
-
   edge = edge + "94=solid,116-134;95=solid,116-131;"
-
   edge = edge + "96=solid,117-135;97=solid,117-132;"
-
   edge = edge + "98=solid,118-136;99=solid,118-132;"
-
   edge = edge + "100=solid,111-133;101=solid,112-134;"
-
   edge = edge + "102=solid,113-135;103=solid,114-136;"
-
   
-
   ' z11
-
   edge = edge + "104=solid,131-132;"
-
   
-
   ' z9 - z12
-
   edge = edge + "105=dotted,311-141;106=dotted,312-142;"
-
   edge = edge + "107=dotted,313-143;108=dotted,314-144;"
-
   
-
   ' z10 - z12
-
   edge = edge + "109=solid,123-141;110=solid,123-143;"
-
   edge = edge + "111=solid,124-142;112=solid,124-144;"
-
   
-
   ' z11 - z12
-
   edge = edge + "113=solid,133-141;114=solid,134-142;"
-
   edge = edge + "115=solid,135-143;116=solid,136-144;"
-
   
-
   ' z1 - z13
-
   edge = edge + "117=dotted,11-151;118=dotted,12-152;"
-
   edge = edge + "119=dotted,15-155;120=dotted,16-156;"
-
   
-
   ' z9 - z13
-
   edge = edge + "121=dotted,111-357;122=dotted,112-358;"
-
   edge = edge + "123=dotted,113-361;124=dotted,114-362;"
-
   
-
   ' z11 - z13
-
   edge = edge + "125=solid,133-157;126=solid,134-158;"
-
   edge = edge + "127=solid,135-161;128=solid,136-162;"
-
   edge = edge + "129=solid,131-159;130=solid,132-160;"
-
   
-
   ' z12 - z13
-
   edge = edge + "131=solid,141-341;132=solid,142-342;"
-
   edge = edge + "133=solid,143-343;134=solid,144-344;"
-
   
-
   ' z13
-
   edge = edge + "135=dotted,151-152-156-155-151;"
-
   edge = edge + "136=solid,357-157-159-158-358;"
-
   edge = edge + "137=dotted,157-341;138=dotted,158-342;"
-
   edge = edge + "139=dotted,161-343;140=dotted,162-344;"
-
   edge = edge + "141=solid,361-161-160-162-362;"
-
   edge = edge + "142=dotted,159-160;"
-
 EndSub
-
-
 
 Sub InitVectors
-
   nVector = 0
-
   indexV = ""
-
   index = Array.GetAllIndices(atom)
-
   nAtom = Array.GetItemCount(atom)
-
   For iAtom = 1 To nAtom
-
     i = index[iAtom]
-
     p = atom[i]
-
     v[1][1] = p["x"]
-
     v[2][1] = p["y"]
-
     v[3][1] = p["z"]
-
     param = "rows=3;cols=1;"
-
     param["name"] = "v" + i
-
     param["init"] = v
-
     Matrix_Init()
-
     nVector = nVector + 1
-
     indexV[nVector] = index[iAtom]
-
   EndFor
-
   If option["edge"] Then
-
     index = Array.GetAllIndices(vertex)
-
     nVertex = Array.GetItemCount(vertex)
-
     For iVertex = 1 To nVertex
-
       i = index[iVertex]
-
       p = vertex[i]
-
       v[1][1] = p["x"]
-
       v[2][1] = p["y"]
-
       v[3][1] = p["z"]
-
       param = "rows=3;cols=1;"
-
       param["name"] = "v" + i
-
       param["init"] = v
-
       Matrix_Init()
-
       nVector = nVector + 1
-
       indexV[nVector] = index[iVertex]
-
     EndFor
-
   EndIf
-
 EndSub
-
-
 
 Sub Map
-
   x = xo + scale * p["x"]
-
   y = yo + scale * p["y"]
-
   z = zo + scale * p["z"]
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   keyUp = "True"
-
 EndSub
-
-
 
 Sub RotateAtoms
-
   α = 0 ' angle around x-axis [radians]
-
   β = 0 ' angle around y-axis [radians]
-
   γ = 0 ' angle around z-axis [radians]
-
   If key = "Up" Then
-
     α = -Math.GetRadians(5)
-
   ElseIf key = "Down" Then
-
     α = Math.GetRadians(5)
-
   ElseIf key = "Left" Then
-
     β = Math.GetRadians(5)
-
   Else ' key = "Right"
-
     β = -Math.GetRadians(5)
-
   EndIf
-
   m[1][1] = Math.Cos(β) * Math.Cos(γ)
-
   m[1][2] = Math.Sin(α) * Math.Sin(β) * Math.Cos(γ) - Math.Cos(α) * Math.Sin(γ)
-
   m[1][3] = Math.Sin(α) * Math.Sin(γ) + Math.Cos(α) * Math.Sin(β) * Math.Cos(γ)
-
   m[2][1] = Math.Cos(β) * Math.Sin(γ)
-
-  m[2][2] = Math.Sin(α) * Math.Sin(β) * Math.Sin(??) + Math.Cos(α) * Math.Cos(γ)
-
+  m[2][2] = Math.Sin(α) * Math.Sin(β) * Math.Sin(γ) + Math.Cos(α) * Math.Cos(γ)
   m[2][3] = -Math.Sin(α) * Math.Cos(γ) + Math.Cos(α) * Math.Sin(β) * Math.Sin(γ)
-
   m[3][1] = -Math.Sin(β)
-
   m[3][2] = Math.Sin(α) * Math.Cos(β)
-
   m[3][3] = Math.Cos(α) * Math.Cos(β)
-
   param = "name=R;rows=3;cols=3;"
-
   param["init"] = m
-
   Matrix_Init()
-
   For iVector = 1 To nVector
-
     param = "name1=R;"
-
     param["name2"] = "v" + indexV[iVector]
-
     param["name"] = "v" + indexV[iVector]
-
     Matrix_Mul()
-
   EndFor
-
 EndSub
-
-
 
 Sub Color_Blacken
-
   ' Color | Blacken given color
-
   ' param c - given color
-
   ' param rate - 0..1
-
   ' return c - color blackened
-
   Color_NameToColor()
-
   Color_ColorToRGB()
-
   r = Math.Floor(r * (1 - rate))
-
   g = Math.Floor(g * (1 - rate))
-
   b = Math.Floor(b * (1 - rate))
-
   c = GraphicsWindow.GetColorFromRGB(r, g, b)
-
 EndSub
-
-
 
 Sub Color_ColorToRGB
-
   ' Color | convert color To RGB values
-
   ' param c - "#rrggbb" (hexadecimal values)
-
   ' return r, g, b - RGB values 0..255
-
   If Text.GetLength(c) = 9 Then
-
     _alpha = 2
-
   Else
-
     _alpha = 0
-
   EndIf
-
   hex = Text.GetSubText(c, _alpha + 2, 2)
-
   Math_Hex2Dec()
-
   r = dec
-
   hex = Text.GetSubText(c, _alpha + 4, 2)
-
   Math_Hex2Dec()
-
   g = dec
-
   hex = Text.GetSubText(c, _alpha + 6, 2)
-
   Math_Hex2Dec()
-
   b = dec
-
 EndSub
-
-
 
 Sub Color_NameToColor
-
   ' Color | convert color name to color
-
   ' param c - color name
-
   ' returns c -"#rrggbb"
-
   If Text.StartsWith(c, "#") And 6 < Text.GetLength(c) Then
-
     c = Text.ConvertToUpperCase(c)
-
   Else
-
     Stack.PushValue("local", GraphicsWindow.PenColor)
-
     GraphicsWindow.PenColor = c
-
     c = GraphicsWindow.PenColor
-
     GraphicsWindow.PenColor = Stack.PopValue("local")
-
   EndIf
-
 EndSub
-
-
 
 Sub Math_Hex2Dec
-
   ' Math | convert hexadecimal to decimal
-
   ' param hex
-
   ' returns dec
-
   dec = 0
-
   len = Text.GetLength(hex)
-
   For ptr = 1 To len
-
     dec = dec * 16 + Text.GetIndexOf("123456789ABCDEF", Text.GetSubText(hex, ptr, 1))
-
   EndFor
-
 EndSub
-
-
 
 Sub Matrix_Init
-
   ' param["name"] - matrix name to initialize
-
   ' param["rows"] - number of rows
-
   ' param["cols"] - number of columns
-
   ' param["init"] - initial data array
-
   name = param["name"]
-
   rows = param["rows"]
-
   cols = param["cols"]
-
   init = param["init"]
-
   _init = ""
-
   _rows = Array.GetItemCount(init)
-
   _row = Array.GetAllIndices(init)
-
   For j = 1 To _rows
-
     row = _row[j]
-
     _cols = Array.GetItemCount(init[row])
-
     _col = Array.GetAllIndices(init[row])
-
     For i = 1 To _cols
-
       col = _col[i]
-
       _init[row][col] = init[row][col]
-
     EndFor
-
   EndFor
-
   entry["rows"] = rows
-
   entry["cols"] = cols
-
   entry["values"] = _init
-
   matrix[name] = entry
-
 EndSub
-
-
 
 Sub Matrix_Mul
-
   ' multiply two matrices
-
   ' param["name1"] - left matrix name
-
   ' param["name2"] - right matrix name
-
   ' param["name"] - matrix name to return
-
   name1 = param["name1"]
-
   entry1 = matrix[name1]
-
   cols1 = entry1["cols"]
-
   rows1 = entry1["rows"]
-
   name2 = param["name2"]
-
   entry2 = matrix[name2]
-
   cols2 = entry2["cols"]
-
   rows2 = entry2["rows"]
-
   If cols1 = rows2 Then
-
     values1 = entry1["values"]
-
     values2 = entry2["values"]
-
     values = ""
-
     For col = 1 To cols2
-
       For row = 1 To rows1
-
         For i = 1 To cols1
-
           values[row][col] = values[row][col] + values1[row][i] * values2[i][col]
-
         EndFor
-
       EndFor
-
     EndFor
-
     name = param["name"]
-
     Stack.PushValue("local", param)
-
     param = ""
-
     param["name"] = name
-
     param["cols"] = cols2
-
     param["rows"] = rows1
-
     param["init"] = values
-
     Matrix_Init()
-
     param = Stack.PopValue("local")
-
   Else
-
     msg = "Matrix " + name1 + " has " + cols1 + "column[s],"
-
     msg = msg + LF + "but matrix " + name2 + " has " + rows2 + "row[s]"
-
     GraphicsWindow.ShowMessage(msg, "Matrix_Mul Error")
-
   EndIf
-
 EndSub
-
-
 
 Sub Vector_Comp
-
   ' param["name1"] - v1 name to compare
-
   ' param["name2"] - v2 name to compare
-
   ' return le - "True" if v1 <= v2
-
   ' return lt - "True" if v1 < v2
-
   ' return eq - "True" if v1 = v2
-
   ' return ge - "True" if v1 >= v2
-
   ' return gt - "True" if v1 > v2
-
   name1 = param["name1"]
-
   name2 = param["name2"]
-
   entry1 = matrix[name1]
-
   entry2 = matrix[name2]
-
   cols1 = entry1["cols"]
-
   cols2 = entry2["cols"]
-
   rows1 = entry1["rows"]
-
   rows2 = entry2["rows"]
-
   If cols1 <> 1 Then
-
     msg = "Vector " + name1 + " has " + cols1 + "columns"
-
     GraphicsWindow.ShowMessage(msg, "Vector_Comp Error")
-
   ElseIf rows1 <> 3 Then
-
     msg = "Vector " + name1 + " has " + rows1 + "row[s]"
-
     GraphicsWindow.ShowMessage(msg, "Vector_Comp Error")
-
   ElseIf cols2 <> 1 Then
-
     msg = "Vector " + name2 + " has " + cols2 + "columns"
-
     GraphicsWindow.ShowMessage(msg, "Vector_Comp Error")
-
   ElseIf rows2 <> 3 Then
-
     msg = "Vector " + name1 + " has " + rows2 + "row[s]"
-
     GraphicsWindow.ShowMessage(msg, "Vector_Comp Error")
-
   Else
-
     values1 = entry1["values"]
-
     values2 = entry2["values"]
-
     z1 = values1[3][1]
-
     z2 = values2[3][1]
-
     lt = "False"
-
     le = "False"
-
     eq = "False"
-
     gt = "False"
-
     ge = "False"
-
     If z1 < z2 Then
-
       lt = "True"
-
       le = "True"
-
     ElseIf z1 = z2 Then
-
       y1 = values1[2][1]
-
       y2 = values2[2][1]
-
       If y1 < y2 Then
-
         gt = "True"
-
         ge = "True"
-
       ElseIf y1 = y2 Then
-
         x1 = values1[1][1]
-
         x2 = values2[1][1]
-
         If x1 < x2 Then
-
           gt = "True"
-
           ge = "True"
-
         ElseIf x1 = x2 Then
-
           le = "True"
-
           eq = "True"
-
           ge = "True"
-
         Else ' x1 > x2
-
           le = "True"
-
           lt = "True"
-
         EndIf
-
       Else ' y1 > y2
-
         le = "True"
-
         lt = "True"
-
       EndIf
-
     Else  ' z1 > z2
-
       gt = "True"
-
       ge = "True"
-
     EndIf
-
   EndIf
-
 EndSub
-
-

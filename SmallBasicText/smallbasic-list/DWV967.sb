@@ -1,1153 +1,576 @@
 ' NOTE TO SELF - 
-
 ' change this so that the mini-map becomes 5 blocks wide x 6 blocks long
-
 ' note 2 -
-
 ' change this so that it does not attempt to draw blocks that you cannot see....
-
 ' so the minimap needs to be updated to set those "invisible" blocks to zeroes.
 
 
 
-
-
-
-
 'main section
-
 'set up the map to walk around
-
 definemap()
-
 TextWindow.WriteLine ("definemap subroutine completed")
-
 '
-
 'create the 3d map points and 2d (screen) plot points for any potentially drawable map block
-
 createblocks()
-
 TextWindow.WriteLine ("createblocks subroutine completed")
-
 '
-
 setupcolours()
-
 TextWindow.WriteLine ("colour array set up - white to darkgray")
-
 '
-
 '    screenX = screenWidth * x / z   +  screenWidth / 2
-
 '    screenY = screenHeight * y / z   +  screenHeight / 2
 
-
-
 'set up graphics window and size of virtual screen
-
 GraphicsWindow.Width = 790
-
 GraphicsWindow.Height = 800
-
 GraphicsWindow.CanResize = 1
-
 GraphicsWindow.BackgroundColor = "black"
-
 '
-
 scrw = 800                'screen width 
-
 scrh = 800                'screen height
-
 scale = 250               'used to scale up the 3d plot points
-
 zoffset = 0               ' z offset - used to move the depth of the 3d blocks, into and out of the screen
-
 xoffset = 0               ' used to move camera slightly, as it didn't line up with window exactly
 
-
-
 'set up the starting location and direction to face in the map
-
 myxpos = startx
-
 myypos = starty
-
 mydir  = startdir
 
-
-
 TextWindow.WriteLine ("xpos = "+ myxpos)
-
 TextWindow.WriteLine ("ypos = "+ myypos)
-
 TextWindow.WriteLine ("dir  = "+ mydir)
 
-
-
 minimap()
-
 TextWindow.WriteLine ("minimap subroutine completed")
 
-
-
 drawblocknew()
-
 GraphicsWindow.BrushColor = "yellow"
-
 GraphicsWindow.DrawBoundText (390,50,100,mydir)
-
 '
-
 GraphicsWindow.Keydown = OnKeydown
-
 GraphicsWindow.Keyup = OnKeyup
-
-
 
 loop:
 
-
-
 Goto loop
 
-
-
 Sub OnKeyDown
-
   ' Code for key presses goes here. 
-
   keypress = GraphicsWindow.LastKey
-
   move()
-
   minimap()
-
   If moved = 1 Then
-
     GraphicsWindow.Clear()
-
     drawblocknew()
-
     GraphicsWindow.brushcolor = "yellow"
-
     GraphicsWindow.DrawBoundText (390,50,100,mydir)
-
     moved = 0
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   keypress = ""
-
 EndSub
-
-
 
 Sub move
-
   If keypress = "Up" Then
-
     moveforward()
-
   EndIf
-
   If keypress = "Left" Then
-
     turnleft()
-
   EndIf
-
   If keypress = "Right" Then
-
     turnright()
-
   EndIf
-
 EndSub
-
-
 
 Sub moveforward
-
 'determine direction facing and if "Up" (forward) key is being pressed
-
   If mydir = "n" Then
-
     If map[myxpos][myypos-1]= 0 Then
-
       myypos = myypos-1
-
       moved = 1
-
     EndIf
-
   EndIf
-
   If mydir = "e" Then
-
     If map[myxpos+1][myypos]= 0 Then
-
       myxpos = myxpos+1
-
       moved = 1
-
     EndIf
-
   EndIf
-
   If mydir = "s" Then
-
     If map[myxpos][myypos+1]= 0 Then
-
       myypos = myypos+1
-
       moved = 1
-
     EndIf
-
   EndIf
-
   If mydir = "w" Then
-
     If map[myxpos-1][myypos]= 0 Then
-
       myxpos = myxpos-1
-
       moved = 1
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub turnleft
-
   'check for rotating to the left
-
   If mydir = "n" and keypress = "Left" then
-
     mydir = "w"
-
     moved = 1
-
     keypress = ""
-
   EndIf
-
   If mydir = "e" and keypress = "Left" then
-
     mydir = "n"
-
     moved = 1
-
     keypress = ""
-
   EndIf
-
   If mydir = "s" and keypress = "Left" then
-
     mydir = "e"
-
     moved = 1
-
     keypress = ""
-
   EndIf
-
   If mydir = "w" and keypress = "Left" then
-
     mydir = "s"
-
     moved = 1
-
     keypress = ""
-
   EndIf
-
 EndSub
-
 Sub turnright
-
   'check for rotating to the right
-
   If mydir = "n" and keypress = "Right" then
-
     mydir = "e"
-
     moved = 1
-
     keypress = ""
-
   EndIf
-
   If mydir = "e" and keypress = "Right" then
-
     mydir = "s"
-
     moved = 1
-
     keypress = ""
-
   EndIf
-
   If mydir = "s" and keypress = "Right" then
-
     mydir = "w"
-
     moved = 1
-
     keypress = ""
-
   EndIf
-
   If mydir = "w" and keypress = "Right" then
-
     mydir = "n"
-
     moved = 1
-
     keypress = ""
-
   EndIf
-
 EndSub
-
-
 
 Sub drawblocknew
-
     For f = 6 To 1 Step -1
-
       If viewrow1[1][f] = 1 Then
-
         blockdr = f
-
         colour = colours[f]
-
         draw3dblock()
-
       EndIf
-
     EndFor
-
     For f = 18 To 13 Step -1
-
       If viewrow1[3][f-12] = 1 Then
-
         blockdr = f
-
         colour = colours[f-12]
-
         draw3dblock()
-
       EndIf
-
     EndFor
-
     For f = 12 To 8 Step -1
-
       If viewrow1[2][f-6] = 1 Then
-
         blockdr = f
-
         colour = colours[f-7]
-
         draw3dblock()
-
       EndIf
-
     EndFor
-
     
-
 EndSub
-
-
 
 Sub draw3dblock
-
   'first set the brush colour - used for drawing the block faces,
-
   'and the pen colour - used for filling in some of the gaps in the faces
-
   GraphicsWindow.BrushColor = colour
-
   GraphicsWindow.PenColor = colour
-
   GraphicsWindow.PenWidth = 3
-
   '
-
   'scale up the size of the points for the block
-
   For a = 1 To 6
-
     x[a] = block[blockdr][a][1] * scale + xoffset   'used to re-align the render with the screen
-
     y[a] = block[blockdr][a][2] * (scale/2)         ' i worked out that y settings were too big, so divided the scale by 2
-
     z[a] = block[blockdr][a][3] * scale + zoffset   'will later be used to zoom in, when walking forward to next block
-
   EndFor
-
   '
-
   'calculate 2d screen co-ords for each visible 3d point of the block to be drawn
-
   For a = 1 To 6
-
     scrnx[a] = scrw * x[a]/z[a] + scrw/2
-
     scrny[a] = scrh * y[a]/z[a] + scrw/2
-
   EndFor
-
   '
-
   'draw the filled in 3d block as 4 triangles (allows for the perspective by using triangles)
-
   'and draw the forward facing plane of the block as 2 triangles
-
   'skipfront = 0
-
   If blockdr = 13 Then
-
     skipfront = 1
-
   EndIf
-
   If skipfront = 0 Then
-
     GraphicsWindow.Filltriangle (scrnx[1],scrny[1],scrnx[2],scrny[2],scrnx[3],scrny[3])
-
     GraphicsWindow.FillTriangle (scrnx[2],scrny[2],scrnx[3],scrny[3],scrnx[4],scrny[4]) 
-
     '
-
     'for some reason there is a gap between the triangles, so draw an extra line to fill in gap...
-
     GraphicsWindow.DrawLine (scrnx[2],scrny[2],scrnx[3],scrny[3])
-
     
-
   EndIf
 
-
-
   '
-
   'if the block is either at the left or right of the view, then also draw in the visible side plane, using another 2 triangles
-
   'and also another line to fill the gap between the triangles.
-
   GraphicsWindow.FillTriangle (scrnx[2],scrny[2],scrnx[5],scrny[5],scrnx[4],scrny[4])
-
   GraphicsWindow.FillTriangle (scrnx[4],scrny[4],scrnx[5],scrny[5],scrnx[6],scrny[6])    
-
   GraphicsWindow.DrawLine (scrnx[4],scrny[4],scrnx[5],scrny[5])
-
   '
-
   'now draw lines around each block - to make it easier to see the block edges
-
   GraphicsWindow.pencolor = "black"
-
   GraphicsWindow.PenWidth = 2
-
   GraphicsWindow.DrawLine (scrnx[1],scrny[1],scrnx[2],scrny[2])
-
   GraphicsWindow.DrawLine (scrnx[2],scrny[2],scrnx[4],scrny[4])
-
   GraphicsWindow.DrawLine (scrnx[4],scrny[4],scrnx[3],scrny[3])
-
   GraphicsWindow.DrawLine (scrnx[3],scrny[3],scrnx[1],scrny[1])
-
   If blockdr < 7 Or blockdr > 13 Then
-
     GraphicsWindow.DrawLine (scrnx[2],scrny[2],scrnx[5],scrny[5])
-
     GraphicsWindow.DrawLine (scrnx[5],scrny[5],scrnx[6],scrny[6])
-
     GraphicsWindow.DrawLine (scrnx[6],scrny[6],scrnx[4],scrny[4])
-
     GraphicsWindow.DrawLine (scrnx[4],scrny[4],scrnx[2],scrny[2])
-
   EndIf
-
   skipfront = 0
-
 EndSub
-
-
 
 Sub minimap
-
   'determing which direction the player is facing
-
   'and fill in the copy the main map details into the minimap
-
   'the minimap will be used by the "3d" drawing subroutine to draw
-
   'the maze blocks that are in front of the player
-
   '
-
   'clear the viewrows first to make sure there is no rubbish left in there...
-
   For x = 1 To 3
-
     For y = 1 To 6
-
       viewrow1[x][y] = 0
-
     EndFor
-
   EndFor
-
   '
-
   'which direction is the player looking?
-
   If mydir = "n" Then
-
     minimapn()
-
   EndIf
-
   If mydir = "e" Then
-
     minimape()
-
   EndIf
-
   If mydir = "s" Then
-
     minimaps()
-
   EndIf
-
   If mydir = "w" Then 
-
     minimapw()     
-
   EndIf
-
   '
-
   ' viewrow[2][1] will always be zero as it's where the player is standing
-
   viewrow1[2][1] = 0
-
   '
-
   'tidy the minimap so that it does not hold block data for blocks that you cannot see
-
   For loop = 2 To 5
-
     If viewrow1[2][loop] = 1 Then
-
       For loop2 = loop+1 to 6
-
         viewrow1[2][loop2] = 0
-
       EndFor
-
     EndIf
-
   EndFor
-
       
-
  For yloop1 = 1 To 6
-
     For xloop1 = 1 To 3
-
       b = 7-yloop1
-
       TextWindow.CursorLeft = xloop1
-
       TextWindow.CursorTop  = 30+yloop1
-
       TextWindow.WriteLine (viewrow1[xloop1][b])
-
     EndFor
-
   EndFor 
-
 EndSub
-
-
 
 Sub minimapn
-
   'the player is facing north...
-
   'read the row of map cells in line with the player
-
   viewrow1[1][1] = map[myxpos-1][myypos]
-
   viewrow1[3][1] = map[myxpos+1][myypos]
-
   '
-
   'read the 1st row of map cells in front of the player
-
   viewrow1[1][2] = map[myxpos-1][myypos-1]
-
   viewrow1[2][2] = map[myxpos][myypos-1]
-
   viewrow1[3][2] = map[myxpos+1][myypos-1]
-
   '
-
   'need to check if we're going to read beyond the edge of the map...
-
   If myypos > 2 then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][3] = map[myxpos-1][myypos-2]
-
     viewrow1[2][3] = map[myxpos][myypos-2]
-
     viewrow1[3][3] = map[myxpos+1][myypos-2]
-
   EndIf
-
   If myypos > 3 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][4] = map[myxpos-1][myypos-3]
-
     viewrow1[2][4] = map[myxpos][myypos-3]
-
     viewrow1[3][4] = map[myxpos+1][myypos-3]
-
   EndIf
-
   If myypos > 4 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][5] = map[myxpos-1][myypos-4]
-
     viewrow1[2][5] = map[myxpos][myypos-4]
-
     viewrow1[3][5] = map[myxpos+1][myypos-4]
-
   EndIf  
-
   If myypos > 5 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][6] = map[myxpos-1][myypos-5]
-
     viewrow1[2][6] = map[myxpos][myypos-5]
-
     viewrow1[3][6] = map[myxpos+1][myypos-5]
-
   EndIf    
-
 EndSub
-
-
 
 Sub minimape
-
   'the player is facing east
-
   'read the row of map cells in line with the player
-
   viewrow1[1][1] = map[myxpos][myypos-1]
-
   viewrow1[3][1] = map[myxpos][myypos+1]
-
   '
-
   'read the 1st row of map cells in front of the player
-
   viewrow1[1][2] = map[myxpos+1][myypos-1]
-
   viewrow1[2][2] = map[myxpos+1][myypos]
-
   viewrow1[3][2] = map[myxpos+1][myypos+1]
-
   '
-
   'need to check if we're going to read beyond the edge of the map...
-
   If myxpos < mapsizex-1 then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][3] = map[myxpos+2][myypos-1]
-
     viewrow1[2][3] = map[myxpos+2][myypos]
-
     viewrow1[3][3] = map[myxpos+2][myypos+1]
-
   EndIf
-
   If myxpos < mapsizex-2 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][4] = map[myxpos+3][myypos-1]
-
     viewrow1[2][4] = map[myxpos+3][myypos]
-
     viewrow1[3][4] = map[myxpos+3][myypos+1]
-
   EndIf
-
   If myxpos < mapsizex-3 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][5] = map[myxpos+4][myypos-1]
-
     viewrow1[2][5] = map[myxpos+4][myypos]
-
     viewrow1[3][5] = map[myxpos+4][myypos+1]
-
   EndIf
-
   If myxpos < mapsizex-4 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][6] = map[myxpos+5][myypos-1]
-
     viewrow1[2][6] = map[myxpos+5][myypos]
-
     viewrow1[3][6] = map[myxpos+5][myypos+1]
-
   EndIf
-
 EndSub
-
-
 
 Sub minimaps
-
   'the player is facing south...
-
   'read the row of map cells in line with the player
-
   viewrow1[1][1] = map[myxpos+1][myypos]
-
   viewrow1[3][1] = map[myxpos-1][myypos]
-
   '
-
   'read the 1st row of map cells in front of the player
-
   viewrow1[1][2] = map[myxpos+1][myypos+1]
-
   viewrow1[2][2] = map[myxpos][myypos+1]
-
   viewrow1[3][2] = map[myxpos-1][myypos+1]
-
   '
-
   'need to check if we're going to read beyond the edge of the map...
-
   If myypos < mapsizey-1 then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][3] = map[myxpos+1][myypos+2]
-
     viewrow1[2][3] = map[myxpos][myypos+2]
-
     viewrow1[3][3] = map[myxpos-1][myypos+2]
-
   EndIf
-
   If myypos < mapsizey-2 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][4] = map[myxpos+1][myypos+3]
-
     viewrow1[2][4] = map[myxpos][myypos+3]
-
     viewrow1[3][4] = map[myxpos-1][myypos+3]
-
   EndIf
-
   If myypos < mapsizey-3 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][5] = map[myxpos+1][myypos+4]
-
     viewrow1[2][5] = map[myxpos][myypos+4]
-
     viewrow1[3][5] = map[myxpos-1][myypos+4]
-
   EndIf
-
   If myypos < mapsizey-4 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][6] = map[myxpos+1][myypos+5]
-
     viewrow1[2][6] = map[myxpos][myypos+5]
-
     viewrow1[3][6] = map[myxpos-1][myypos+5]
-
   EndIf    
-
 EndSub
-
-
 
 Sub minimapw
-
   'the player is facing west...
-
   'read the row of map cells in line with the player
-
   viewrow1[1][1] = map[myxpos][myypos+1]
-
   viewrow1[3][1] = map[myxpos][myypos-1]
-
   '
-
   'read the 1st row of map cells in front of the player
-
   viewrow1[1][2] = map[myxpos-1][myypos+1]
-
   viewrow1[2][2] = map[myxpos-1][myypos]
-
   viewrow1[3][2] = map[myxpos-1][myypos-1]
-
   '
-
   'need to check if we're going to read beyond the edge of the map...
-
   If myxpos > 2 then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][3] = map[myxpos-2][myypos+1]
-
     viewrow1[2][3] = map[myxpos-2][myypos]
-
     viewrow1[3][3] = map[myxpos-2][myypos-1]
-
   EndIf
-
   If myxpos > 3 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][4] = map[myxpos-3][myypos+1]
-
     viewrow1[2][4] = map[myxpos-3][myypos]
-
     viewrow1[3][4] = map[myxpos-3][myypos-1]
-
   EndIf
-
   If myxpos > 4 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][5] = map[myxpos-4][myypos+1]
-
     viewrow1[2][5] = map[myxpos-4][myypos]
-
     viewrow1[3][5] = map[myxpos-4][myypos-1]
-
   EndIf
-
   If myxpos > 5 Then
-
     'read the next row of map cells in front of the player
-
     viewrow1[1][6] = map[myxpos-5][myypos+1]
-
     viewrow1[2][6] = map[myxpos-5][myypos]
-
     viewrow1[3][6] = map[myxpos-5][myypos-1]
-
   EndIf
-
 EndSub
-
-
 
 Sub definemap
-
   'trying to set up a small map
-
   'and covert it into a two dimensional array
-
   '
-
   'map set up as text strings to begin with in a single dimension array
-
   '
-
   '
-
   'define the starting position, and direction to face in the map
-
   startx = 20
-
   starty = 20
-
   startdir = "w"
-
   '
-
   'define the map in the mapline array as strings
-
   mapline[1] =  "111111111111111111111"
-
   mapline[2] =  "100000001001000010001
-
   mapline[3] =  "101110101101101010111
-
   mapline[4] =  "100000100000101010001
-
   mapline[5] =  "101110101110101011101
-
   mapline[6] =  "101010001000001000001
-
   mapline[7] =  "101011111011101111101
-
   mapline[8] =  "100010000010001000101
-
   mapline[9] =  "111110111010101010101
-
   mapline[10] = "100000100000001010101
-
   mapline[11] = "101111101010111011101
-
   mapline[12] = "100000101010101000101
-
   mapline[13] = "101110101010101110101
-
   mapline[14] = "100010001000000010001
-
   mapline[15] = "101111111011111011011
-
   mapline[16] = "101000100010000000001
-
   mapline[17] = "111010101110101101101
-
   mapline[18] = "101010001000100000001
-
   mapline[19] = "101010101011101101111
-
   mapline[20] = "100000001000001000001
-
   mapline[21] = "111111111111111111111
-
   
-
   ' 
-
   ' define some parameters that state how big the map is
-
   mapsizex = Text.GetLength (mapline[1])
-
   mapsizey = array.GetItemCount (mapline)
-
   TextWindow.WriteLine ("mapsizex = " + mapsizex + " mapsizey = "+ mapsizey)
-
   '
-
   'try to read this in and convert it into a two dimensional array
-
   For yloop = 1 To mapsizey
-
     For xloop = 1 To mapsizex
-
       map[xloop][yloop] = Text.GetSubText(mapline[yloop],xloop,1)
-
     EndFor
-
   EndFor
-
   '
-
 '  'now print the contents of the mapline array and see if it's the same as
-
 '  'the input data
-
 '  '
-
  For yloop1 = 1 To mapsizey
-
     For xloop1 = 1 To mapsizex
-
       Textwindow.CursorTop = yloop1
-
       TextWindow.CursorLeft = xloop1-1
-
       TextWindow.WriteLine (map[xloop1][yloop1])
-
     EndFor
-
   EndFor
-
 EndSub
-
   
-
 Sub createblocks
-
   ' [block number][point][x/y/z]
-
   '
-
   'block1 face co-ordinates
-
   block[1][1][1] = -1.5   'x co-ord
-
   block[1][1][2] = -1   'y co-ord
-
   block[1][1][3] =  1   'z co-ord
-
   block[1][2][1] = -0.5
-
   block[1][2][2] = -1
-
   block[1][2][3] =  1
-
   block[1][3][1] = -1.5
-
   block[1][3][2] =  1
-
   block[1][3][3] =  1
-
   block[1][4][1] = -0.5
-
   block[1][4][2] =  1
-
   block[1][4][3] =  1
-
   block[1][5][1] = -0.5
-
   block[1][5][2] = -1
-
   block[1][5][3] =  2
-
   block[1][6][1] = -0.5
-
   block[1][6][2] =  1
-
   block[1][6][3] =  2
 
-
-
   'face co-ordinates for remaining blocks on left hand side...
-
   For a = 2 To 6
-
     For b = 1 To 6
-
       block[a][b][1] = block[1][b][1]
-
       block[a][b][2] = block[1][b][2]
-
       block[a][b][3] = block[1][b][3]+(a-1)
-
     EndFor
-
   EndFor
-
   '
-
   For a = 8 To 12
-
     For b = 1 To 4
-
       block[a][b][1] = block[1][b][1]+1
-
       block[a][b][2] = block[1][b][2]
-
       block[a][b][3] = block[1][b][3]+(a-7)
-
     EndFor
-
   EndFor
-
-
 
   'face co-ordinates for remaining blocks on right hand side...
-
   'x co-ord mutliplied by -1 to flip the x axis
-
   For a = 13 To 18
-
     For b = 1 To 6
-
       c = a-12
-
       block[a][b][1] = block[c][b][1]*-1
-
       block[a][b][2] = block[c][b][2]
-
       block[a][b][3] = block[c][b][3]
-
     EndFor
-
   EndFor
-
   ' clip blocks 2 and 14 so that their front faces don't overlap the edges of the draw window
-
   block[2][1][1] = -1
-
   block[2][3][1] = -1  
-
   block[14][1][1] = 1
-
   block[14][3][1] = 1
-
 EndSub
-
   
-
 Sub setupcolours
-
 colours[1] = "#B0B0B0"
-
 colours[2] = "#808080"
-
 colours[3] = "#505050"
-
 colours[4] = "#303030"
-
 colours[5] = "#202020"
-
 colours[6] = "#101010"
-
 For a = 1 To 6
-
   TextWindow.WriteLine ("Colour " + a + " is " +colours[a])
-
 EndFor
 
-
-
 EndSub
-
-

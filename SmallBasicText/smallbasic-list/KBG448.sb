@@ -1,2651 +1,1325 @@
 ' Program structure:   
-
 '
-
 '    InitVars() ->                StartFEN ,  pEv, pPtY,  LoadImages(), Autoplay(), dragXY, moveXY, Side,
-
 '                                            OnTimerTick =1 sec, OnMousedown, Delay 16,66min.
-
 '..........................................................................................................................................................................................................
-
 '    OnTimerTick()->       SetFEN(), Autoplay(), DrawBoard(),DoTakeBack(),GetNextMoves(),ScanNextMoves(),DoMove(),
-
 '                                            LocateKingPos(),IsCheck(), GetFEN(),HistToPgn(),DrawBoard().
-
 '..........................................................................................................................................................................................................
-
 '   
-
 '     OnMouseDown()->  Autoplay(), GetNextMoves(),FormateMove(),DoMove(),CleaCurs(),DrawBoard().
-
 '..........................................................................................................................................................................................................
-
 '     SetFEN() ->                 LocateKingPos() , IsCheck().
-
 '    DoTakeBack()->         SetFEN(), DoMove().
-
 '    DoMove() ->                GetNextMoves() , MovePiece().
-
 '   GetNextMoves()->      GenNking, rook , bishop , knight , pawn().
-
 '   ScanNextMoves() ->   Push(),MovePiece(),GetNextMoves(),>>>ScanNextMoves()<<<,
-
 '                                             LocateKingPos(),IsCheck(),Pop(),FormateMove().
-
 '    FormateMove().
-
 '     HistToPgn().
-
 '     GetFEN().
-
 '      LocateKingPos().
-
 '      IsCheck().
-
 '      GenNpawn()  ->       AddMoveV().
-
 '      GenNknight() ->      AddMoveV().
-
 '      GenNbishop() ->      AddMoveV().
-
 '      GenNrook() ->          AddMoveV().
-
 '      GenNking() ->          IsCheck() , AddMove().
-
 '      DispNextMoves() -> FormateMove().  (nur Debug)
-
 '      MovePiece() ->   LocateKingPos() , IsCheck()
-
 '      Push().
-
 '      Pop().
-
 '      LoadImages().
-
 '      AutoPlay().
-
 '      DrawBoard() ->DrawCursor().
-
 '      DrawCursor().
-
 '-------------------------------------------------------------------------------------------------------------------------------- - - - - - - - -
-
 '  Globale Variablen:
-
 '
-
 ' ------------------------------------- Dateien -------------------------------
-
 ' Pfad                    Programmverzeichnis
-
 '  ImgSrc              Bildverzeichnis
-
 ' ------------------------------------- Steuerung --------------------------- 
-
 '  side                     white=1, black = -1
-
 '  MovingNow
-
 ' takeback            Zug zurücknehmen(nicht ganz sauber,blaue Felder!)
-
 ' newgame           This will set all other variables on timer tick
-
 ' mX, mY              Mausposition
-
 ' newgame           process on timer
-
 ' auto                     auto game on/off
-
 ' turn                      Seite?
-
 '  ------------------------------------ Brett ---------------------------------
-
 ' dragX,dragY               mouse cursor on board
-
 ' movedX, movedY        lastmove
-
 '
-
 '  ------------------------------ Auswertung ---------------------------------
-
 ' mc                          MoveCount
-
 ' mv
-
 ' mv[mc][ ]            Zugliste (legal,generiert)
-
 ' mi
-
 ' depth                   Auswerteebene
-
 ' hist                       Size Spielhistory
-
 ' mvhist[ ][8]       Spielhistory
-
 ' Ev[ ][ ]
-
 ' Result
-
 ' GameOver
-
 '-------------------------------------------------------------------------------------------------------------------------------- - - - - - - - -
-
 ' Simple MS Small Basic program that plays chess
-
 ' 
-
 ' Moves are correct and validated, including castlings, en-passants and promotions.
-
 ' AI is able to play weak chess - captures pieces and attacks the king, plays till checkmate. 
-
 ' Chess standards FEN and PGN are also implemented.
-
 'Welcome to http://chessforeva.appspot.com
-
-
 
 Pfad=Program.Directory
 
-
-
 CR=Text.GetCharacter(13)
-
 LF=Text.GetCharacter(10)
-
 CRLF=Text.Append(CR,LF)
-
-
 
 ch_InitVars()     'Initialization
 
-
-
 'Set event for timer
-
 Timer.Interval = 1000 ' one tick per second
-
 Timer.Tick = OnTimerTick
 
-
-
 'Set event for mouse-press
-
 GraphicsWindow.MouseDown = OnMouseDown
 
-
-
 'TextWindow.WriteLine("Started - ok.")
-
 Controls.SetTextBoxText(INFO_Box,"Started")
-
 Controls.SetTextBoxText(HIST_Box,Pfad)
-
 Program.Delay(10000000) ' Do nothing and process events only
-
 'Program.End()
-
 '==================================================================================
-
 '-- timer event
-
 Sub OnTimerTick
-
 GraphicsWindow.BrushColor = "Red"
-
 GraphicsWindow.FillEllipse((54*8)+14,10, 13, 13)
-
   
-
   If ch_MovingNow = 0 Then
-
     If ch_newgame = 1 Then
-
       ch_side = -ch_side
-
       ch_FEN = ch_StartFEN
-
       ch_SetFEN()         'set starting position
-
       'TextWindow.WriteLine("NEW GAME")
-
       Controls.SetTextBoxText(INFO_Box,"NEW GAME")
-
       ch_CleaCurs()
-
       ch_DrawBoard()
-
     Else
-
       If ch_takeback = 1 Then
-
         ch_DoTakeBack()     'take back move
-
         'TextWindow.WriteLine("TAKEBACK")
-
         Controls.SetTextBoxText(INFO_Box,"TAKEBACK")
-
         ch_CleaCurs()
-
         ch_DrawBoard()
-
       Else
 
-
-
         'Automatic gameplay mode
-
         If (ch_auto = 1 Or ch_turn <> ch_side) Then
-
           If ch_GameOver = 0 and ch_MovingNow = 0 Then
-
             ch_MovingNow = 1    ' to disable event
-
             ch_GetNextMoves()   ' Next moves list
-
             ch_DispNextMoves()
-
             If ch_mc>0 Then
-
               ch_depth = 1
-
               ch_ScanNextMoves()  'Scan them and calculate best evaluation
-
               'TextWindow.WriteLine(ch_move)
-
               Controls.SetTextBoxText(INFO_Box,ch_move)     
-
               ch_DoMove()
-
               ch_movedX = ch_mvhist[ch_hist][3] 'lastmove
-
               ch_movedY = ch_mvhist[ch_hist][4]
-
               'next tick will read status
-
             Else
-
               'what's the status on board?
-
               ch_LocateKingPos()
-
               ch_IsCheck()
-
               If ch_check = 1 Then
-
                 ch_mvhist[ch_hist][8]="#"   'checkmate
-
                 ch_Result = Text.GetSubText("1-0,0-1", 1+((ch_turn+1)*2), 3)
-
               Else
-
                 ch_Result = "{Stalemate} 1/2-1/2"
-
               EndIf
-
               Controls.SetTextBoxText(INFO_Box,"GAME OVER!")
-
               'TextWindow.WriteLine("GAME OVER!")
-
               ch_GameOver = 1
-
             EndIf
-
             ch_GetFEN()
-
             'TextWindow.WriteLine("FEN:" + ch_FEN)
-
             ch_HistToPgn()
-
             'TextWindow.WriteLine("PGN:" + ch_pgn)
-
             ch_DrawBoard()
-
             ch_MovingNow = 0
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndIf
-
   EndIf
-
 GraphicsWindow.BrushColor = "Black"
-
 'GraphicsWindow.FillRectangle(1,450,500,16)
-
 'GraphicsWindow.FillRectangle(1,450,500,16)
-
 GraphicsWindow.BrushColor = "Yellow"
-
 Controls.SetTextBoxText(FEN_Box,ch_FEN)
-
 Controls.SetTextBoxText(PGN_Box,ch_pgn)
-
 Line=""
-
 For hn = 1 To ch_hist
-
 Line=Text.Append(Line,hn)
-
 Line=Text.Append(Line,"> ")
-
 Line=Text.Append(Line,ch_mvhist[hn])
-
 Line=Text.Append(Line,CRLF)
-
 Endfor
-
 Controls.SetTextBoxText(HIST_Box,Line)
 
-
-
 'GraphicsWindow.BrushColor = "Black"
-
 'GraphicsWindow.DrawBoundText(450,250,150,ch_mvhist)
-
 GraphicsWindow.BrushColor = "Lavender"
-
 GraphicsWindow.FillEllipse((54*8)+14,10, 13, 13)
-
 EndSub
-
 '==================================================================================
-
 '-- clears cursors on board
-
 Sub ch_CleaCurs
-
   ch_dragX = 0  ' mouse cursor on board
-
   ch_dragY = 0
-
   ch_movedX = 0 'lastmove
-
   ch_movedY = 0
-
 EndSub
-
 '==================================================================================
-
 '-- mouse event
-
 Sub OnMouseDown
-
 GraphicsWindow.BrushColor = "Red"
-
 GraphicsWindow.FillEllipse((54*8)+14,30, 13, 13)
-
   If Mouse.IsLeftButtonDown Then
-
     'If button pressed
-
     ch_mX = Mouse.MouseX - GraphicsWindow.Left  'windowed X
-
     ch_mY = Mouse.MouseY - GraphicsWindow.Top   'windowed Y
-
     If Math.Abs(ch_mX-((54*8)+4 + 43))<43 Then
 
-
-
       If Math.Abs(ch_mY-(54+42))<13 Then  'New Game
-
         ch_newgame = 1  'process on timer
-
       EndIf
-
       If Math.Abs(ch_mY-(104+42))<13 Then
-
         ch_auto = 1-ch_auto   'auto game on/off
-
         ch_AutoPlay()
-
       EndIf
-
       If Math.Abs(ch_mY-(154+42))<13 Then  'TakeBack
-
         ch_takeback = 1  'process on timer
-
       EndIf
-
       ch_CleaCurs()
-
     Else
-
       If ch_auto = 0 and ch_MovingNow = 0 Then     ' If auto-mode is off
-
         If ch_turn = ch_side Then   ' If our move then allow mouse control
-
           ch_MovingNow = 1    ' disable events
-
           ch_matX = Math.Floor((ch_mX)/54) + 1
-
           ch_matY = 9 - Math.Floor((ch_mY+27)/54)
-
           If ch_side<0 Then
-
             ch_matX = 9-ch_matX
-
             ch_matY = 9-ch_matY
-
           EndIf
-
           If ch_matX>=1 And ch_matX<=8 And ch_matY>=1 And ch_matY<=8 Then
-
             ch_GetNextMoves()   ' Next moves list
-
             'ch_DispNextMoves()
-
             For ch_i = 1 To ch_mc
-
               If ch_matX = ch_mv[ch_i][1] and ch_matY = ch_mv[ch_i][2] Then
-
                 ch_dragX = ch_matX
-
                 ch_dragY = ch_matY
-
               EndIf
-
               If ch_dragX > 0 Then  ' drag if there is a move from square
-
                 If ch_matX = ch_mv[ch_i][3] and ch_matY = ch_mv[ch_i][4] Then
-
                   If ch_dragX = ch_mv[ch_i][1] and ch_dragY = ch_mv[ch_i][2] Then
-
                     ch_FormateMove()
-
                     ch_DoMove()
-
                     ch_CleaCurs()
-
                     ch_movedX = ch_matX
-
                     ch_movedY = ch_matY
-
                   EndIf
-
                 EndIf
-
               EndIf
-
             EndFor
-
             ch_DrawBoard()  'and redraw cursors
-
           EndIf
-
           ch_MovingNow = 0
-
         EndIf
-
       EndIf
-
     EndIf
-
   EndIf
-
 GraphicsWindow.BrushColor = "Lavender"
-
 GraphicsWindow.FillEllipse((54*8)+14,30, 13, 13)
-
 EndSub
-
 '==================================================================================
-
 '-- initializes variables
-
 Sub ch_InitVars
-
-
 
   ch_StartFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
-
-
  ' position for checkmate in one move
-
   'ch_StartFEN = "7k/Q7/5K2/8/8/8/8/8 w - - 1 1" 
 
-
-
   ch_pEv[1]=100
-
   ch_pEv[2]=280
-
   ch_pEv[3]=300
-
   ch_pEv[4]=500
-
   ch_pEv[5]=900
-
   ch_pEv[6]=9999
 
-
-
   ch_pPtY[1]=8
-
   ch_pPtY[2]=7
-
   ch_pPtY[3]=4
-
   ch_pPtY[4]=2
-
   ch_pPtY[5]=5
-
   ch_pPtY[6]=1
 
-
-
   'pictures of pieces on inernet
-
   'ch_ImgSrc = "http://chessforeva.appspot.com/d_img/"
-
   'ch_ImgSrc = "chessforeva.appspot.com/d_img/"
-
   'pictures of pieces in images
-
   'ch_ImgSrc = Pfad + "\Images\Original\"
-
   'TextWindow.WriteLine("Pictures:" + ch_ImgSrc)
-
-
 
   ch_LoadImages()        'Load them into memory (takes time once)
 
-
-
   ch_auto = 0   'Set autogame on - presentation mode 
-
   ch_AutoPlay()
 
-
-
   ch_dragX = 0  ' mouse cursor on board
-
   ch_dragY = 0
-
   ch_movedX = 0 ' to see the last move on board
-
   ch_movedY = 0
-
-
 
   ch_side = ((Math.GetRandomNumber(2)-1)*2)-1     'random white=1, black = -1
 
-
-
   ch_MovingNow = 0
-
   ch_takeback = 0
-
   ch_newgame = 1  'This will set all other variables on timer tick
 
-
-
   INFO_Box=Controls.AddTextBox(550,7)
-
   Controls.SetSize(INFO_Box,160,20)
-
   FEN_Box=Controls.AddTextBox(0,433)
-
   Controls.SetSize(FEN_Box,700,20)
-
   PGN_Box=Controls.AddMultiLineTextBox(0,455)
-
   Controls.SetSize(PGN_Box,150,100)
-
   HIST_Box=Controls.AddMultiLineTextBox(160,455)
-
   Controls.SetSize(HIST_Box,320,100)
-
   MOVES_Box=Controls.AddMultiLineTextBox(437,190)
-
   Controls.SetSize(MOVES_Box,100,240)
-
   EVAL_Box=Controls.AddMultiLineTextBox(550,190)
-
   Controls.SetSize(EVAL_Box,150,240)
-
   'Newline=Text.GetCharacter(13)+Text.GetCharacter(10)
-
   OnTimerTick()   'And process it
-
 EndSub
-
 '==================================================================================
-
 '-- sets position from FEN
-
 Sub ch_SetFEN
 
-
-
   ch_q = 1
-
   For ch_x = 1 To 8
-
     For ch_y = 1 To 8
-
       ch_B[ch_x][ch_y] = " "
-
     EndFor
-
   EndFor
 
-
-
   'flags For current position
-
   ch_fl[1][1] = 0 'wK castling
-
   ch_fl[1][2] = 0 'wQ castling
-
   ch_fl[2][1] = 0 'bK castling
-
   ch_fl[2][2] = 0 'bQ castling
-
   ch_fl[3] = 0  'enpassant column
-
-
 
   ch_MvNr = 0  'move number
 
-
-
   ch_x = 1
-
   ch_y = 8
-
   ch_n = 0
-
   For ch_i=1 To Text.GetLength(ch_FEN)
-
     ch_c = Text.GetSubText(ch_FEN,ch_i,1)
-
     If ch_c=" "  Then
-
       ch_q = ch_q+1
-
     Else
-
-
 
       If ch_q = 1 Then    ' reading board
-
         If Text.IsSubText("PNBRQKpnbrqk", ch_c) Then
-
           ch_B[ch_x][ch_y] = ch_c
-
           ch_x = ch_x + 1
-
         Else
-
           If ch_c="/" Then
-
             ch_y = ch_y-1
-
             ch_x = 1
-
           Else
-
             ch_n = Text.GetIndexOf("0123456789", ch_c)-1
-
             ch_x = ch_x + ch_n
-
           EndIf
-
         EndIf
-
       EndIf
-
-
 
       If ch_q = 2 Then    ' reading turn info
-
         If ch_c = "w" Then
-
           ch_turn = 1
-
         Else
-
           ch_turn = -1
-
         EndIf
-
       EndIf
-
-
 
       If ch_q = 3 Then    ' reading castling info
-
         If ch_c="K" Then
-
           ch_fl[1][1] = 1
-
         EndIf
-
         If ch_c="Q" Then
-
           ch_fl[1][2] = 1
-
         EndIf
-
         If ch_c="k" Then
-
           ch_fl[2][1] = 1
-
         EndIf
-
         If ch_c="q" Then
-
           ch_fl[2][2] = 1
-
         EndIf
-
       EndIf
-
-
 
       If ch_q = 4 Then    ' reading en-passant info
-
         ch_n = Text.GetIndexOf("abcdefgh", ch_c)
-
         If ch_n>0 Then
-
           ch_fl[3] = ch_n
-
         EndIf
-
       EndIf
-
       ' ignore 50-move info
-
       If ch_q = 6 Then    ' reading move number 
-
         ch_MvNr = (ch_MvNr * 10) + (Text.GetIndexOf("0123456789", ch_c)-1)
-
       EndIf
-
-
 
     EndIf
-
   EndFor
-
-
 
   ' prepares for new game
-
   ch_hist = 0
-
   ch_GameOver = 0
-
   ch_MovingNow = 0
-
   ch_Result = ""
-
   ch_newgame = 0
 
-
-
   ch_LocateKingPos()
-
   ch_IsCheck()
-
 EndSub
-
-
 
 '-- gets FEN from position
-
 Sub ch_GetFEN
-
   ch_FEN = ""
-
   ch_q = 0
-
   For ch_y = 8 To 1 Step -1
-
     For ch_x = 1 To 8
-
       ch_c = ch_B[ch_x][ch_y]
-
       If ch_c = " " Then
-
         ch_q = ch_q+1
-
       Else
-
         If ch_q>0 Then
-
           ch_FEN = ch_FEN + Text.GetSubText("12345678",ch_q,1)
-
           ch_q = 0
-
         EndIf
-
         ch_FEN = ch_FEN + ch_c
-
       EndIf
-
     EndFor
-
     If ch_q>0 Then
-
       ch_FEN = ch_FEN + Text.GetSubText("12345678",ch_q,1)
-
       ch_q = 0
-
     EndIf
-
     If ch_y>1 Then
-
       ch_FEN = ch_FEN + "/"
-
     EndIf
-
   EndFor
-
   ch_FEN = ch_FEN + " "
-
-
 
   If ch_turn>0 Then     ' turn
-
     ch_FEN = ch_FEN + "w"
-
   Else
-
     ch_FEN = ch_FEN + "b"
-
   EndIf
-
   ch_FEN = ch_FEN + " "
 
-
-
   ch_c = ""    ' castling info
-
   If ch_fl[1][1]>0 Then
-
     ch_c=ch_c+"K"
-
   EndIf
-
   If ch_fl[1][2]>0 Then
-
     ch_c=ch_c+"Q"
-
   EndIf
-
   If ch_fl[2][1]>0 Then
-
     ch_c=ch_c+"k"
-
   EndIf
-
   If ch_fl[2][2]>0 Then
-
     ch_c=ch_c+"q"
-
   EndIf
-
   If Text.GetLength(ch_c) = 0 Then
-
     ch_c = "-"
-
   EndIf
-
   ch_FEN = ch_FEN + ch_c + " "
 
-
-
   If ch_fl[3]>0 Then    ' en-passant info
-
     ch_c = Text.GetSubText("abcdefgh", ch_fl[3],1)
-
     If ch_turn>0 Then
-
       ch_c = ch_c + "6"
-
     Else
-
       ch_c = ch_c + "3"
-
     EndIf
-
   Else
-
     ch_c = "-"
-
   EndIf
-
   ch_FEN = ch_FEN + ch_c + " 0 " + (ch_MvNr)
 
-
-
 EndSub
-
 '==================================================================================
-
 '-- displays to screen next legal moves
-
 Sub ch_DispNextMoves
-
   Stack.PushValue("p",ch_move)
-
   ch_out = ""
-
   Line =""
-
   For ch_i = 1 To ch_mc
-
     ch_FormateMove()
-
     ch_out = ch_out + ch_move + ";"
-
     Line=Text.Append(Line,ch_i)
-
     Line=Text.Append(Line,">")
-
     Line=Text.Append(Line,ch_move)
-
     Line=Text.Append(Line,CRLF)
-
   EndFor
-
   'TextWindow.WriteLine(ch_out) 
-
   Controls.SetTextBoxText(MOVES_Box,Line)
-
   ch_move = Stack.PopValue("p")
-
 EndSub
-
 '==================================================================================
-
 '-- formates a move
-
 Sub ch_FormateMove
-
   ch_move = ""
-
   ch_move = ch_move + Text.GetSubText("abcdefgh", ch_mv[ch_i][1],1)
-
   ch_move = ch_move + Text.GetSubText("12345678", ch_mv[ch_i][2],1)
-
   ch_move = ch_move + Text.GetSubText("abcdefgh", ch_mv[ch_i][3],1)
-
   ch_move = ch_move + Text.GetSubText("12345678", ch_mv[ch_i][4],1)
-
   ch_move = ch_move + ch_mv[ch_i][5]
-
 EndSub
-
 '==================================================================================
-
 '-- convert saved history to normal chess game notation format (pgn)
-
 Sub ch_HistToPgn
-
   ch_pgn = ""
-
   For ch_i = 1 To ch_hist
-
     If Math.Remainder(ch_i,2)>0 Then
-
       ch_pgn = ch_pgn + ((ch_i+1)/2) + "."
-
     EndIf
-
     ch_c = ch_mvhist[ch_i][6]
-
     If Text.IsSubText(ch_c,"0-") Then
-
       ch_pgn = ch_pgn + ch_c
-
     Else
-
       If ch_c <> "p" Then
-
         ch_pgn = ch_pgn + ch_c  'piece
-
       EndIf
-
       ch_pgn = ch_pgn + Text.GetSubText("abcdefgh",ch_mvhist[ch_i][1],1)
-
       ch_pgn = ch_pgn + Text.GetSubText("12345678",ch_mvhist[ch_i][2],1)
-
       ch_pgn = ch_pgn + ch_mvhist[ch_i][7]  ' goes to
-
       ch_pgn = ch_pgn + Text.GetSubText("abcdefgh",ch_mvhist[ch_i][3],1)
-
       ch_pgn = ch_pgn + Text.GetSubText("12345678",ch_mvhist[ch_i][4],1)
-
       ch_pgn = ch_pgn + ch_mvhist[ch_i][5]  'promotes
-
       ch_pgn = ch_pgn + ch_mvhist[ch_i][8]  'check 
-
     EndIf
-
     ch_pgn = ch_pgn + " "
-
     If Math.Remainder(ch_i,2) = 0 Then
-
       ch_pgn = ch_pgn + CRLF  
-
     EndIf
-
   EndFor
-
   ch_pgn = ch_pgn + ch_Result
-
 EndSub
-
 '==================================================================================
-
 '-- genereates array of all current legal moves that are possible
-
 Sub ch_GetNextMoves
 
-
-
   Stack.PushValue("p",ch_move)
-
   ch_move = ""
 
-
-
   While ch_mc > 0
-
     Array.RemoveValue(ch_mv,ch_mc)
-
     ch_mc = ch_mc-1
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.FillRectangle(550,50,20,13)
-
     GraphicsWindow.FillRectangle(575,50,20,13)
-
     GraphicsWindow.FillRectangle(600,50,20,13)
-
     GraphicsWindow.BrushColor = "Yellow"
-
     GraphicsWindow.DrawBoundText(550,50,20,ch_mc)
-
     GraphicsWindow.DrawBoundText(575,50,20,ch_n)
-
     GraphicsWindow.DrawBoundText(600,50,20,ch_mi)
-
   EndWhile
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FillRectangle(550,80,100,100)
-
   GraphicsWindow.FillRectangle(660,80,20,15)
-
   For ch_x = 1 To 8
-
     For ch_y = 1 To 8
-
       If ch_B[ch_x][ch_y]<>" " Then
-
         ch_n = Text.GetIndexOf(" PNBRQKpnbrqk", ch_B[ch_x][ch_y])-1
-
         ch_enm = Text.GetSubText( "pnbrqkPNBRQK", ch_n-Math.Remainder(ch_n-1,6), 6 )
-
         If ch_turn<0 Then
-
           ch_n = ch_n - 6 ' the same for both sides
-
         EndIf
-
         If ch_n = 1 Then
-
           ch_GenNpawn()
-
         EndIf
-
         If ch_n = 2 Then
-
           ch_GenNknight()
-
         EndIf
-
         If ch_n = 3 Or ch_n = 5 Then
-
           ch_GenNbishop()
-
         EndIf
-
         If ch_n = 4 Or ch_n = 5 Then
-
           ch_GenNrook()
-
         EndIf
-
         If ch_n = 6 Then
-
           ch_GenNking()
-
         EndIf
-
       EndIf
-
       GraphicsWindow.BrushColor = "Yellow"
-
       GraphicsWindow.DrawText(550+10*ch_x,80+10*ch_y,ch_B[ch_x][ch_y])
-
       GraphicsWindow.DrawText(660,80,ch_depth)
-
     EndFor
-
   EndFor
-
   ch_move = Stack.PopValue("p")
 
-
-
 EndSub
-
 '==================================================================================
-
 ' -- Pawn's moves
-
 Sub ch_GenNpawn
-
   ch_dy = ch_turn
-
   If ch_B[ch_x][ch_y+ch_dy] = " " Then  'go square forward
-
     ch_dx = 0
-
     ch_AddMoveV()
-
     ch_dy = ch_dy+ch_turn       ' try 2nd square forward
-
     If Math.Remainder(ch_y-ch_dy,9)=0 Then  ' 2,7 horiz.
-
       If ch_B[ch_x][ch_y+ch_dy] = " " Then
-
         ch_AddMoveV()
-
       EndIf
-
     EndIf
-
     ch_dy = ch_dy-ch_turn
-
   EndIf
 
-
-
   For ch_dx = -1 To 1 Step 2    ' try to capture
-
     If ch_x+ch_dx>0 and ch_x+ch_dx<9 Then
-
       If Text.IsSubText( ch_enm, ch_B[ch_x+ch_dx][ch_y+ch_dy] ) Then
-
         ch_AddMoveV()
-
       Else
-
         If ch_x+ch_dx= ch_fl[3] Then
-
           If Math.Remainder(ch_y-(5*ch_dy),11)=0 Then '4, 5 horiz.
-
             If ch_B[ch_x+ch_dx][ch_y+ch_dy] = " " Then
-
               If Text.IsSubText( ch_enm, ch_B[ch_x+ch_dx][ch_y] ) Then
-
                 ch_AddMoveV() ' en-passant
-
               EndIf
-
             EndIf
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndSub
-
 '==================================================================================
-
 '-- Knight's moves
-
 Sub ch_GenNknight
-
   For ch_dx = -2 To 2
-
     If ch_x+ch_dx>0 and ch_x+ch_dx<9 Then
-
       For ch_dy = -2 To 2
-
         If ch_y+ch_dy>0 and ch_y+ch_dy<9 Then
-
           If Math.Abs(ch_dx)+ Math.Abs(ch_dy)=3 Then  'all 2+1 combinations
-
             If Text.IsSubText( " "+ch_enm, ch_B[ch_x+ch_dx][ch_y+ch_dy] ) Then
-
               ch_AddMoveV()
-
             EndIf
-
           EndIf
-
         EndIf
-
       EndFor
-
     EndIf
-
   EndFor
-
 EndSub
-
 '==================================================================================
-
 '-- Bishop's (and queen's) moves
-
 Sub ch_GenNbishop
-
   For ch_di1 = -1 To 1 Step 2
-
     For ch_di2 = -1 To 1 Step 2
-
       ch_dx = 0
-
       ch_dy = 0
-
       For ch_di3 = 1 To 7
-
         ch_dx = ch_dx + ch_di1 ' diognals
-
         ch_dy = ch_dy + ch_di2
-
         If ch_x+ch_dx<1 or ch_x+ch_dx>8 or ch_y+ch_dy<1 or ch_y+ch_dy>8 Then
-
           ch_di3 = 9
-
         Else
-
           If Text.IsSubText( " "+ch_enm, ch_B[ch_x+ch_dx][ch_y+ch_dy] ) Then
-
             ch_AddMoveV()
-
           EndIf
-
           If ch_B[ch_x+ch_dx][ch_y+ch_dy]<>" " Then
-
             ch_di3 = 9
-
           EndIf
-
         EndIf
-
       EndFor
-
     EndFor
-
   EndFor
-
 EndSub
-
 '==================================================================================
-
 '-- Rook's (and queen's) moves
-
 Sub ch_GenNrook
-
   For ch_di1 = -1 To 1
-
     For ch_di2 = -1 To 1
-
       If Math.Abs(ch_di1)+ Math.Abs(ch_di2)=1 Then   ' verticals and horizontals
-
         ch_dx = 0
-
         ch_dy = 0
-
         For ch_di3 = 1 To 7
-
           ch_dx = ch_dx + ch_di1
-
           ch_dy = ch_dy + ch_di2
-
           If ch_x+ch_dx<1 or ch_x+ch_dx>8 or ch_y+ch_dy<1 or ch_y+ch_dy>8 Then
-
             ch_di3 = 9
-
           Else
-
             If Text.IsSubText( " "+ch_enm, ch_B[ch_x+ch_dx][ch_y+ch_dy] ) Then
-
               ch_AddMoveV()
-
             EndIf
-
             If ch_B[ch_x+ch_dx][ch_y+ch_dy]<>" " Then
-
               ch_di3 = 9
-
             EndIf
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
 '==================================================================================
-
 '-- King's moves
-
 Sub ch_GenNking
-
   For ch_dj1 = -1 To 1
-
     If ch_x+ch_dj1>0 and ch_x+ch_dj1<9 Then
-
       For ch_dj2 = -1 To 1
-
         If ch_y+ch_dj2>0 and ch_y+ch_dj2<9 Then
-
           If ch_dj1<>0 or ch_dj2<>0 Then
-
             If Text.IsSubText( " "+ch_enm, ch_B[ch_x+ch_dj1][ch_y+ch_dj2] ) Then
-
               ch_x = ch_x + ch_dj1
-
               ch_y = ch_y + ch_dj2
-
               ch_isCheck()
-
               ch_x = ch_x - ch_dj1
-
               ch_y = ch_y - ch_dj2
-
               If ch_check = 0 Then
-
                 ch_dx = ch_dj1
-
                 ch_dy = ch_dj2
-
                 ch_AddMove()
-
               EndIf
-
             EndIf
-
           EndIf
-
         EndIf
-
       EndFor
-
     EndIf
-
   EndFor
-
-
 
   'Add castling moves, If no check and castling possible
 
-
-
   ch_dj1 = 1+((1-ch_turn)/2)   '1,2 - for castling flags
-
   ch_dj11 = ((ch_dj1-1)*7)+1  '1,8 - king's line
-
   ch_check = -9
-
   If (ch_fl[ch_dj1][1]+ch_fl[ch_dj1][2])>0 Then
-
     ch_dj3 = 0
-
     For ch_dj2 = -1 To 1 Step 2
-
       ch_dj22 = ch_dj2*2
-
       ch_dj3 = ch_dj3 + 1
-
       If ch_fl[ch_dj1][ch_dj3]>0 Then   ' castling flag allows
-
         ch_dj42 = 3- ((ch_dj2+1)/2)
-
         For ch_dj4 = 1 To ch_dj42
-
           If ch_B[5+(ch_dj2*ch_dj4)][ch_dj11]<>" " Then  'squares empty
-
             ch_dj4 = 9
-
           EndIf
-
         EndFor
-
         If ch_dj4<5 Then
-
           If ch_check = -9 Then
-
             ch_isCheck()
-
           EndIf
-
           If ch_check = 0 Then
-
             For ch_dj4 = 1 To 2
-
               ch_x = ch_x + ch_dj2
-
               If ch_check = 0 Then
-
                 ch_isCheck()
-
               EndIf
-
             EndFor
-
             ch_x = ch_x-ch_dj22
-
           EndIf
-
           If ch_check = 0 Then
-
             ch_dy = 0
-
             ch_dx =ch_dj22
-
             ch_AddMove()
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndIf
 
-
-
 EndSub
-
 '==================================================================================
-
 ' -- Locate king position before check detection
-
 Sub ch_LocateKingPos
-
   ch_x = 1
-
   ch_y = 1
-
   ch_c2 = Text.GetSubText("k-K",ch_turn+2,1)
-
   While ch_y<9 and ch_B[ch_x][ch_y]<>ch_c2
-
     ch_x = ch_x+1
-
     If ch_x>8 Then
-
       ch_x = 1
-
       ch_y = ch_y + 1
-
     EndIf
-
   EndWhile
-
 EndSub
-
 '==================================================================================
-
 ' -- Detects If king's square is under attack
-
 Sub ch_IsCheck
-
   ch_check = 0
-
   For ch_di1 = -1 To 1
-
     For ch_di2 = -1 To 1
-
       If ch_di1<>0 Or ch_di2<>0 Then
-
         ch_dx = 0
-
         ch_dy = 0
-
         For ch_di3 = 1 To 7
-
           ch_dx = ch_dx + ch_di1 ' diognals, verticals and horizontals
-
           ch_dy = ch_dy + ch_di2
-
           If ch_x+ch_dx<1 or ch_x+ch_dx>8 or ch_y+ch_dy<1 or ch_y+ch_dy>8 Then
-
             ch_di3 = 9
-
           Else
-
             ch_n = Text.GetIndexOf(" PNBRQKpnbrqk", ch_B[ch_x+ch_dx][ch_y+ch_dy])-1
-
             If ch_n<>0 Then
-
               ch_n = ch_n - ((ch_turn+1) * 3)
-
               If ch_n = 1 Then 'oponent's pawn
-
                 If Math.Abs(ch_dx) = 1 and ch_dy = ch_turn Then
-
                   ch_check = 1
-
                 EndIf
-
               Else
-
                 If ch_n = 3 Then 'oponent's bishop
-
                   If Math.Abs(ch_di1) + Math.Abs(ch_di2) = 2 Then
-
                     ch_check = 1
-
                   EndIf
-
                 Else
-
                   If ch_n = 4 Then 'oponent's rook
-
                     If Math.Abs(ch_di1) + Math.Abs(ch_di2) = 1 Then
-
                       ch_check = 1
-
                     EndIf
-
                   Else
-
                     If ch_n = 5 Then 'oponent's queen
-
                       ch_check = 1
-
                     Else
-
                       If ch_n = 6 Then 'oponent's king
-
                         If Math.Abs(ch_dx)<2 and Math.Abs(ch_dy) < 2 Then
-
                           ch_check = 1
-
                         EndIf
-
                       EndIf
-
                     EndIf
-
                   EndIf
-
                 EndIf
-
               EndIf
-
               If ch_check Then
-
                 ch_di1 = 9
-
                 ch_di2 = 9
-
               EndIf
-
               ch_di3 = 9
-
             EndIf
-
           EndIf
-
         EndFor
 
-
-
       EndIf
-
     EndFor
-
   EndFor
 
-
-
   If ch_check = 0 Then    'maybe oponent's knight's check
-
     For ch_dx = -2 To 2
-
       If ch_x+ch_dx>0 and ch_x+ch_dx<9 Then
-
         For ch_dy = -2 To 2
-
           If ch_y+ch_dy>0 and ch_y+ch_dy<9 Then
-
             If Math.Abs(ch_dx) + Math.Abs(ch_dy) = 3 Then
-
               ch_n = Text.GetIndexOf(" PNBRQKpnbrqk", ch_B[ch_x+ch_dx][ch_y+ch_dy])-1
-
               If ch_n>1 Then
-
                 ch_n = ch_n - ((ch_turn+1) * 3)
-
                 If ch_n = 2 Then 'oponent's knight
-
                   ch_check = 1
-
                   ch_dx = 9
-
                   ch_dy = 9
-
                 EndIf
-
               EndIf
-
             EndIf
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndFor
-
   EndIf
-
 EndSub
-
 '==================================================================================
-
 '-- add and verify king's threat before put this move into the list (heavy, but proper)
-
 Sub ch_AddMoveV
-
-
 
   Stack.PushValue( "q", ch_check )
 
-
-
   Stack.PushValue( "q", ch_B )
-
   Stack.PushValue( "q", ch_x )
-
   Stack.PushValue( "q", ch_y )
-
   Stack.PushValue( "q", ch_dx )
-
   Stack.PushValue( "q", ch_dy )
-
   Stack.PushValue( "q", ch_di1 )
-
   Stack.PushValue( "q", ch_di2 )
-
   Stack.PushValue( "q", ch_di3 )
-
   Stack.PushValue( "q", ch_n )
 
-
-
   ch_B[ch_x+ch_dx][ch_y+ch_dy] = ch_B[ch_x][ch_y]
-
   ch_B[ch_x][ch_y] = " "
 
-
-
   ch_LocateKingPos()
-
   ch_IsCheck()
 
-
-
   ch_n = Stack.PopValue("q")
-
   ch_di3 = Stack.PopValue("q")
-
   ch_di2 = Stack.PopValue("q")
-
   ch_di1 = Stack.PopValue("q")
-
   ch_dy = Stack.PopValue("q")
-
   ch_dx = Stack.PopValue("q")
-
   ch_y = Stack.PopValue("q")
-
   ch_x = Stack.PopValue("q")
-
   ch_B = Stack.PopValue("q")
 
-
-
   If ch_check = 0 Then
-
     ch_AddMove()
-
   EndIf
 
-
-
   ch_check = Stack.PopValue("q")
-
 EndSub
-
 '==================================================================================
-
 '-- add this legal move to the list
-
 Sub ch_AddMove
-
   ch_mc = ch_mc + 1
-
   ch_mv[ch_mc][1] = ch_x
-
   ch_mv[ch_mc][2] = ch_y
-
   ch_mv[ch_mc][3] = ch_x+ch_dx
-
   ch_mv[ch_mc][4] = ch_y+ch_dy
-
   ch_mv[ch_mc][5] = ""
-
 EndSub
-
 '==================================================================================
-
 '-- Checking all generated moves, searches best answer (max. depth level 2)
-
 Sub ch_ScanNextMoves
 
-
-
   For ch_mi = 1 To ch_mc
-
-
 
     ch_Push()
 
-
-
     ch_MovePiece()
-
-
 
     If ch_depth = 1 Then
 
-
-
       ch_Ei = ch_mi
-
       ch_Ev[ch_Ei][1] = ch_E + (Math.GetRandomNumber(9)-5)
-
       ch_depth = ch_depth + 1
-
       ch_GetNextMoves()     ' Oponent's move
-
       If ch_mc > 0 Then
-
         ch_ScanNextMoves()
-
       Else
-
         ch_LocateKingPos()
-
         ch_IsCheck()
-
         ch_Ev[ch_Ei][1] = 99999 * (-ch_turn) * (1+ch_check)  ' go this case, or stalemate 
-
         ch_Ev[ch_Ei][2] = 0
-
       EndIf
-
       ch_depth = ch_depth - 1
-
       ch_E = ch_Ev[ch_Ei][1]+ch_Ev[ch_Ei][2]  ' Our move+ and oponent's answer- = evaluation 
-
     Else
-
       If ch_depth = 2 Then
 
-
-
         ch_EvN = 0
-
         If ch_mi = 1 Then
-
           ch_EvN = 1
-
         Else
-
           If ch_turn>0 Then
-
             If ch_Ev[ch_Ei][2] > ch_E Then
-
               ch_EvN = 1      ' seems strongest answer
-
             EndIf
-
           Else
-
             If ch_Ev[ch_Ei][2] < ch_E Then
-
               ch_EvN = 1      ' seems strongest answer
-
             EndIf
-
           EndIf
-
         EndIf
-
         If ch_EvN>0 Then
-
           ch_Ev[ch_Ei][2] = ch_E
-
         EndIf
-
       EndIf
-
     EndIf
-
-
 
     ch_Pop()
 
-
-
     If ch_depth = 1 Then
-
       ch_EvN = 0
-
       If ch_mi = 1 Then
-
         ch_EvN = 1
-
       Else
-
         If ch_turn>0 Then
-
           If ch_Evb < ch_E Then
-
             ch_EvN = 1      ' seems better after all, if we are white
-
           EndIf
-
         Else
-
           If ch_Evb > ch_E Then
-
             ch_EvN = 1      'seems better after all, if we are black
-
           EndIf
-
         EndIf
-
       EndIf
-
       If ch_EvN>0 Then
-
         ch_Evb = ch_E
-
         ch_i = ch_Ei
-
         ch_FormateMove()    'ch_move contains the best move
-
       EndIf
-
     EndIf
 
-
-
   EndFor
-
 Line=""
-
 'Controls.SetTextBoxText(EVAL_Box,Line)
-
 For hn = 1 To ch_mc
-
 Line=Text.Append(Line,hn)
-
 Line=Text.Append(Line,">")
-
 Line=Text.Append(Line,ch_Ev[hn])
-
 Line=Text.Append(Line,CRLF)
-
 endfor
-
 Controls.SetTextBoxText(EVAL_Box,Line)
 
-
-
 EndSub
-
 '==================================================================================
-
 '-- Process move from the list for normal notation ("e2e4")
-
 Sub ch_DoMove
-
   ch_GetNextMoves()
-
   For ch_mi = 1 To ch_mc
-
     If ch_mv[ch_mi][1] = Text.GetIndexOf("abcdefgh", Text.GetSubText(ch_move,1,1) ) Then
-
       If ch_mv[ch_mi][2] = Text.GetIndexOf("12345678", Text.GetSubText(ch_move,2,1) ) Then
-
         If ch_mv[ch_mi][3] = Text.GetIndexOf("abcdefgh", Text.GetSubText(ch_move,3,1) ) Then
-
           If ch_mv[ch_mi][4] = Text.GetIndexOf("12345678", Text.GetSubText(ch_move,4,1) ) Then
-
             ch_depth = 0
-
             'save to history
-
             ch_hist = ch_hist + 1
-
             ch_mvhist[ch_hist][1] = ch_mv[ch_mi][1] ' from
-
             ch_mvhist[ch_hist][2] = ch_mv[ch_mi][2]
-
             ch_mvhist[ch_hist][3] = ch_mv[ch_mi][3] ' to
-
             ch_mvhist[ch_hist][4] = ch_mv[ch_mi][4]
-
             ch_mvhist[ch_hist][5] = ch_mv[ch_mi][5] 'promo
-
             ch_mvhist[ch_hist][6] = ""  ' piece, or 0-0, or 0-0-0
-
             ch_mvhist[ch_hist][7] = "-" ' move, capture
-
             ch_mvhist[ch_hist][8] = ""  'check
-
             ch_mvhist[ch_hist][9] = ch_move 'save move text
-
             ch_MovePiece()
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndSub
-
 '==================================================================================
-
 '-- Moving piece on board and counting evaluation improvements (+ for white, - for black)
-
 Sub ch_MovePiece
-
   ch_E = 0
-
   ch_fl[3] = 0
-
   ch_n = Text.GetIndexOf(" PNBRQKpnbrqk", ch_B[ch_mv[ch_mi][3]][ch_mv[ch_mi][4]])-1
-
   If ch_n>0 Then
-
     If ch_turn>0 Then
-
       ch_n = ch_n - 6
-
     EndIf
-
     If ch_n>0 And ch_n<7 Then
-
       ch_E = ch_E + (ch_turn * ch_pEv[ch_n])  ' Got points by capturing enemy's piece
-
       If ch_depth = 0 Then  'save to history
-
         ch_[ch_hist][7] = "x"
-
       EndIf
-
     EndIf
-
   EndIf
-
   ch_n = Text.GetIndexOf(" PNBRQKpnbrqk", ch_B[ch_mv[ch_mi][1]][ch_mv[ch_mi][2]])-1
-
   If ch_n>0 Then
-
     If ch_turn<0 Then
-
       ch_n = ch_n - 6
-
     EndIf
-
-
 
     If ch_depth = 0 Then  'save to history
-
       ch_mvhist[ch_hist][6] = Text.GetSubText("pNBRQK",ch_n,1)  ' piece 
-
     EndIf
-
-
 
     ' Moving piece's evaluations
-
     If ch_n = 1 Then
-
       If ch_mv[ch_mi][1]<>ch_mv[ch_mi][3] and ch_B[ch_mv[ch_mi][3]][ch_mv[ch_mi][4]] = " " Then
-
         ch_B[ch_mv[ch_mi][3]][ch_mv[ch_mi][2]] = " "  'en-passant
-
         ch_E = ch_E + (ch_turn * ch_pEv[1])
-
         If ch_depth = 0 Then  'save to history
-
           ch_mvhist[ch_hist][7] = "x"
-
         EndIf
-
       Else
-
         If Math.Abs( ch_mv[ch_mi][4]-ch_mv[ch_mi][2] ) = 2 Then
-
           ch_fl[3] = ch_mv[ch_mi][1]  'remember enpassant column
-
         EndIf
-
       EndIf
-
       For ch_di1 = 1 To 8 step 7
-
         If ch_mv[ch_mi][4] = ch_di1 Then       'promoted to queen
-
           If Text.GetLength(ch_move)>4 Then
-
             ch_di2 = Text.GetIndexOf("nbrq",Text.GetSubText(ch_move,5,1)) ' given
-
           Else
-
             ch_di2 = 4  'queen
-
           EndIf
-
           ch_mv[ch_mi][5]= Text.GetSubText("nbrq",ch_di2,1)
-
           If ch_depth = 0 Then  'save to history
-
             ch_mvhist[ch_hist][5] = "=" + ch_mv[ch_mi][5]
-
           EndIf
-
           ch_B[ch_mv[ch_mi][1]][ch_mv[ch_mi][2]] = Text.GetSubText("-nbrq---NBRQ", ch_di1+ch_di2,1)
-
           ch_E = ch_E + (ch_turn * (ch_pEv[5]-ch_pEv[1]))
-
         EndIf
-
       EndFor
-
     EndIf
-
     If ch_n = 2 or ch_n = 3 Then 'knight or bishop
-
       'should attack king
-
     EndIf
-
     If ch_n = 5 Then  'queen
-
       'should attack king
-
     EndIf
-
-
 
     If ch_n = 6 Then   'king
-
       'If it is a castling or move away from e1,e8
-
       If ch_mv[ch_mi][1] = 5 Then
-
         ch_di3 = ch_mv[ch_mi][3]-ch_mv[ch_mi][1]
-
         ch_dj1 = 1+((1-ch_turn)/2)   '1,2 - for castling flags
-
         If Math.Abs(ch_di3)>1 Then
-
           ch_di2 = ch_mv[ch_mi][2]              '1,8 - castling
-
           ch_di4 = 1+(7*((ch_di3+2)/4))  '1,8 Rook 
-
           ch_B[5+(ch_di3/2)][ch_di2] = ch_B[ch_di4][ch_di2]
-
           ch_B[ch_di4][ch_di2] = " "
-
           ch_E = ch_E + (200 * ch_turn)   ' castle If possible
-
           If ch_depth = 0 Then  'save to history
-
             ch_di4 = 5-(((ch_di3+2)/4)*2)  '5,3 length
-
             ch_mvhist[ch_hist][6] = Text.GetSubText("0-0-0",1,ch_di4)
-
           EndIf
-
         Else
-
           If (ch_fl[ch_dj1][1]+ch_fl[ch_dj1][2])>0 Then
-
             ch_E = ch_E - (200 * ch_turn)
-
           EndIf
-
         EndIf
-
         ch_fl[ch_dj1][1] = 0
-
         ch_fl[ch_dj1][2] = 0
-
       EndIf
-
     EndIf
-
-
 
     ' add points for y-position (attack forward)
-
     ch_E = ch_E + ((ch_mv[ch_mi][4] - ch_mv[ch_mi][2]) * ch_pPtY[ch_n])
-
     ' add points for x-position (center)
-
     ch_E = ch_E + (ch_turn * (18 - Math.Abs(9 - (2*ch_mv[ch_mi][3]))))
 
-
-
     ch_B[ch_mv[ch_mi][3]][ch_mv[ch_mi][4]] = ch_B[ch_mv[ch_mi][1]][ch_mv[ch_mi][2]]
-
     ch_B[ch_mv[ch_mi][1]][ch_mv[ch_mi][2]] = " "
 
-
-
     'If rook moved or was captured
-
     For ch_dj1 = 1 To 8 Step 7    'a,h
-
       ch_dj22 = 2-((ch_dj1-1)/7)   '1,2
-
       For ch_dj2 = 1 To 8 Step 7  '1,8
-
         ch_dj11 = 1+((ch_dj2-1)/7)  '1,2
-
         ch_dj23 = (ch_dj11*2)-3  '1,-1
-
         ch_dj24 = 0
-
         If (ch_mv[ch_mi][1] = ch_dj1 and ch_mv[ch_mi][2] = ch_dj2) Then
-
           ch_dj24 = 1
-
         EndIf
-
         If (ch_dj24 = 0) And  (ch_mv[ch_mi][3] = ch_dj1 and ch_mv[ch_mi][4] = ch_dj2) Then
-
           ch_dj24 = 1
-
         EndIf
-
         If ch_dj24 = 1 and ch_fl[ch_dj11][ch_dj22] > 0 Then
-
           ch_fl[ch_dj11][ch_dj22] = 0
-
           ch_E = ch_E + (80 * ch_dj23)   ' penalty for lost castling
-
         EndIf
-
       EndFor
-
     EndFor
 
-
-
   EndIf
-
-
 
   ' motivate center, knights,bishops
-
   If ch_MvNr<10 Then
-
     ch_dj23 = 8-(((ch_turn+1)/2)*7)  '1,8
-
     For ch_dj1 = 2 To 7
-
       If Math.Abs(9 - ch_dj1)>1 and Text.IsSubText("NBnb", ch_B[ch_dj1][ch_dj23]) Then
-
         ch_E = ch_E - (ch_turn * (5*ch_MvNr)) ' penalty for long sitting in back
-
       EndIf
-
     EndFor
-
     If ch_MvNr<8 Then
-
       For ch_dj1 = 4 To 5
-
         If Text.IsSubText("pP",ch_B[ch_dj1][ch_dj23+ch_turn]) Then
-
           ch_E = ch_E - (ch_turn * 60) ' penalty for not taking the center
-
         EndIf
-
       EndFor
-
     EndIf
-
   EndIf
-
-
 
   ch_turn = -ch_turn
-
   If ch_turn>0 Then
-
     ch_MvNr = ch_MvNr + 1   ' increase move-counter
-
   EndIf
-
-
 
   ch_LocateKingPos()
-
   ch_IsCheck()
-
   If ch_check>0 Then    ' Add extra points for check
-
     ch_E = ch_E - (50 * ch_turn)
-
     If ch_depth = 0 Then  'save to history
-
       ch_mvhist[ch_hist][8] = "+"  'check
-
     EndIf
 
-
-
   EndIf
 
-
-
 EndSub
-
 '==================================================================================
-
 '-- Save current position in stack
-
 Sub ch_Push
-
   Stack.PushValue("p", ch_fl)
-
   Stack.PushValue("p", ch_turn)
-
   Stack.PushValue("p", ch_MvNr)
-
   Stack.PushValue("p", ch_mv)
-
   Stack.PushValue("p", ch_mc)
-
   Stack.PushValue("p", ch_mi)
-
   Stack.PushValue("p", ch_B)
-
   Stack.PushValue("p", ch_move)
-
 EndSub
-
 '==================================================================================
-
 '-- Restore position from stack 
-
 Sub ch_Pop
-
   ch_move = Stack.PopValue("p")
-
   ch_B = Stack.PopValue("p")
-
   ch_mi = Stack.PopValue("p")
-
   ch_mc = Stack.PopValue("p")
-
   ch_mv = Stack.PopValue("p")
-
   ch_MvNr = Stack.PopValue("p")
-
   ch_turn = Stack.PopValue("p")
-
   ch_fl = Stack.PopValue("p")
-
 EndSub
-
 '==================================================================================
-
 '-- reproduces all moves till current position
-
 Sub ch_DoTakeBack
-
   ch_tbh = ch_hist - 2
-
   If ch_tbh >= 0 Then
-
     ch_FEN = ch_StartFEN
-
     ch_SetFEN()                 'set starting position
-
     For ch_tbi = 1 To ch_tbh     'do movements
-
       ch_move = ch_mvhist[ch_tbi][9]
-
       ch_DoMove()
-
     EndFor
-
     For ch_tbi = 1 To 2     'remove 2 movements
-
       Array.RemoveValue(ch_mvhist,ch_tbh+1)
-
     EndFor
-
   EndIf
-
   ch_takeback = 0
-
 EndSub
-
 '==================================================================================
-
 '-- Load images into variables 
-
 Sub ch_LoadImages
-
   ch_GrH = (54*8) + 130
-
   ch_GrW = (54*8) + (92) +190
-
   GraphicsWindow.Title = "MS SmallBasic chess presentation (Structure & Global Variables)"
-
   GraphicsWindow.Height = ch_GrH
-
   GraphicsWindow.Width = ch_GrW
-
   GraphicsWindow.DrawBoundText(ch_GrW/2.2,ch_GrH/2.2, 100, "Loading...")
-
  ' For ch_i = 1 to 6
-
  '   ch_c = Text.GetSubText("pnbrqk",ch_i,1)
-
  '   For ch_n = 1 To 2
-
  '     ch_c2 = ch_ImgSrc + Text.GetSubText("wb",ch_n,1) + ch_c + "54.gif"
-
  '     'TextWindow.WriteLine(ch_c2)
-
  '     ch_ImgPc[ch_i][ch_n] = ImageList.LoadImage(ch_c2)
-
  '     Program.Delay(10)
-
  '   EndFor
-
  ' EndFor
-
   'White
-
   ch_ImgPc[1][1] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353369") 'wp
-
   ch_ImgPc[2][1] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353368") 'wn
-
   ch_ImgPc[3][1] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353370") 'wb
-
   ch_ImgPc[4][1] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353371") 'wr
-
   ch_ImgPc[5][1] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353372") 'wq
-
   ch_ImgPc[6][1] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353373") 'wk
 
-
-
   'Black
-
   ch_ImgPc[1][2] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353363") 'bp
-
   ch_ImgPc[2][2] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353361") 'bn
-
   ch_ImgPc[3][2] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353364") 'bb
-
   ch_ImgPc[4][2] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353365") 'br
-
   ch_ImgPc[5][2] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353366") 'bq
-
   ch_ImgPc[6][2] = ImageList.LoadImage("https://social.msdn.microsoft.com/Forums/getfile/1353367") 'bk
-
   
-
   'And also draw buttons
-
   ' GraphicsWindow.BackgroundColor = "#30C8CF"
-
    GraphicsWindow.BackgroundColor = "LightYellow"
-
   
-
   Stack.PushValue("g",GraphicsWindow.BrushColor)
-
   GraphicsWindow.BrushColor = "Black"
-
  GraphicsWindow.DrawBoundText((54*8)+35,10,70,"Tick")
-
  GraphicsWindow.DrawBoundText((54*8)+35,30,70,"Mouse")
-
   GraphicsWindow.BrushColor = "#DDDDDD"
-
   GraphicsWindow.FillEllipse((54*8)+4,54, 86, 26)
-
   GraphicsWindow.FillEllipse((54*8)+4,104, 86, 26)
-
   GraphicsWindow.FillEllipse((54*8)+4,154, 86, 26)
 
-
-
   GraphicsWindow.BrushColor = "#0000FF"
-
   GraphicsWindow.DrawBoundText((54*8)+15,60,70,"New Game")
-
   GraphicsWindow.DrawBoundText((54*8)+15,110,70,"AutoPlay")
-
   GraphicsWindow.DrawBoundText((54*8)+15,160,70,"TakeBack")
-
   
-
     GraphicsWindow.BrushColor = Stack.PopValue("g")
-
 EndSub
-
 '==================================================================================
-
 ' Turtle draws or clears a mark
-
 Sub ch_AutoPlay
-
   Turtle.X = (54*8)+76
-
   Turtle.Y = 111
-
   Stack.PushValue("g",GraphicsWindow.PenColor )
-
   Stack.PushValue("g",GraphicsWindow.PenWidth )
-
   ch_i = 5+(ch_auto*11)
-
   GraphicsWindow.PenColor = Text.GetSubText("OFF:#DDDDDD,ON:#FF0000" ,ch_i,7)
-
   GraphicsWindow.PenWidth = 3
-
   Turtle.Angle = 180
-
   Turtle.Move(12)
-
   Turtle.Angle = Turtle.Angle - 155
-
   Turtle.Move(18)
-
   'Turtle.Hide()
-
   GraphicsWindow.PenWidth  = Stack.PopValue("g")
-
   GraphicsWindow.PenColor  = Stack.PopValue("g")
-
 EndSub
-
 '==================================================================================
-
 'Redraws the chess board 
-
 Sub ch_DrawBoard
 
-
-
   For ch_di1 = 1 To 8
-
     For ch_di2 = 1 To 8
-
       ch_di11 = (ch_di1-1)
-
       ch_di22 = (8-ch_di2)
-
       If ch_side<0 Then
-
         ch_di11 = 7-ch_di11
-
         ch_di22 = 7-ch_di22
-
       EndIf
-
       'Board squares
-
       ch_i = 7+((1-Math.Remainder(ch_di1+ch_di2,2))*14)
-
       Stack.PushValue("g",GraphicsWindow.BrushColor)
-
       GraphicsWindow.BrushColor = Text.GetSubText("white:#E7CEA5,black:#A57B5A",ch_i,7)
-
       GraphicsWindow.FillRectangle(ch_di11*54, ch_di22*54, 54, 54)
 
-
-
       ch_c = ch_B[ch_di1][ch_di2] 'Pieces on board
-
       If ch_c <> " " Then
-
         ch_i = Text.GetIndexOf("pnbrqkPNBRQK", ch_c)
-
         ch_n = 2
-
         ch_c2 = "#0000FF"
-
         If ch_i > 6 Then
-
           ch_i = ch_i - 6
-
           ch_n = 1
-
           ch_c2 = "#FF0000"
-
         EndIf
 
-
-
         GraphicsWindow.BrushColor = ch_c2
-
         GraphicsWindow.DrawBoundText((ch_di11*54)+20, (ch_di22*54)+20,30,ch_c)
 
-
-
         GraphicsWindow.DrawImage(ch_ImgPc[ch_i][ch_n], ch_di11*54, ch_di22*54)
-
 ' The following line could be harmful and has been automatically commented.
-
 '         'File.WriteContents(Pfad + "Test"+ch_i+ch_n+".jpg" ,ch_ImgPc[ch_i][ch_n])
-
         GraphicsWindow.BrushColor = Stack.PopValue("g")
-
       EndIf
-
-
 
       ' cursor for mouse drags
-
       If ch_di1 = ch_dragX And ch_di2 = ch_dragY Then
-
         ch_c2 = "#FF0000"   ' red 
-
         ch_DrawCursor()
-
       EndIf
-
       ' last move on board
-
       If ch_di1 = ch_movedX And ch_di2 = ch_movedY Then
-
         ch_c2 = "#0000FF"   ' blue 
-
         ch_DrawCursor()
-
       EndIf
-
-
 
     EndFor
-
   EndFor
-
 EndSub
-
 '==================================================================================
-
 ' Draws rectangle
-
 Sub ch_DrawCursor
-
   Stack.PushValue("g",GraphicsWindow.PenColor)
-
   GraphicsWindow.PenColor = ch_c2
-
   GraphicsWindow.DrawRectangle((ch_di11*54)+1, (ch_di22*54)+1, 52, 52)
-
   GraphicsWindow.PenColor = Stack.PopValue("g")
-
 EndSub
-
 'Copyright (c) Microsoft Corporation. All rights reserved. 
-
-

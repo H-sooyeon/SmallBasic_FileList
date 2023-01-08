@@ -1,533 +1,266 @@
 'Racing game skeleton - Proof of Concept.
-
 'Written using Microsoft Small Basic
-
 'Software designed and coded by Anthony Yarrell
-
 '___________________________________________________________
-
 'Setup Graphics window:
-
 GraphicsWindow.CanResize = "False
-
 GraphicsWindow.Title = "Driving Game Skeleton"
-
 GraphicsWindow.Width = 600
-
 GraphicsWindow.Height = 500
 
-
-
 Timer.Interval=120 '< - 60 is the minimum
-
 Timer.Pause()
-
 Timer.Tick=FrameCounterUpdate
-
 '____________________________________________________________
-
 'Indexes into the 2D animation queue array:
-
 xx              = 0     'Holds center X of road
-
 yy              = 1     'Holds center Y of road
-
 ww              = 2     'Holds width of road segments
-
 hh              = 3     'Holds height of road segments
-
 iRef            = 4     'Reference to Shape object to animate as it moves though the queue
-
 zFac            = 5     'Zoom factor of shapes as they move though the queue. Used to give the illusion that the object is getting closer
-
 lRoadLineRef    = 6     'Reference to image used to draw left-side of the road
-
 rRoadLineRef    = 7     'Reference to image used to draw right-side of the road 
-
 centerStripeRef = 8     'Reference to image used to draw center road stripes
-
 '_____________________________________________________________
-
 'Starting/default values:
-
 roadWidth       = 600   '800-900 is optimal road width
-
 roadHeight      = 100
-
 lastSegment     = 7     'Number of invisible road segments
-
 firstSegment    = 0
-
 frameCounter    = 1
-
 screenY         = 350
-
 screenX         = 200
-
 curve           = 0      '0=straight, + value = right curve, - value = left curve
-
 '
-
 Queue[lastSegment][ww] = roadWidth
-
 Queue[lastSegment][hh] = roadHeight
-
 Queue[lastSegment][xx] = 100
-
 Queue[lastSegment][yy] = 100
-
 Queue[lastSegment][zFac] = 2
-
 '____________________________________________________________
-
 'MAIN GAME SECTION:
-
 DrawBackground()
-
 CreateCityScape()
-
 CreateRoadSripes()
-
 BuildRoadDataStructure()
-
 DrawRoadBoundaries()
-
 hillValue=0
-
 GAME_OVER = "False"
-
 Timer.Resume()
-
 '_____________________________________________________________
-
 Sub FrameCounterUpdate
-
   frameCounter = frameCounter + 1
-
   GameLoop()
-
 EndSub
-
 '__________________________________________________________________
-
 Sub GameLoop 
-
   
-
   'Animate moving imges toward the player (camera):
-
   ShiftMovingImageQueue()
-
   AnimateImagesInQueue()  
-
   
-
   
-
   '**********START OF DEMO**********'
-
   
-
   'After 100 frames curve the road left for 10 frames and then hold:
-
   If (frameCounter >100 And frameCounter < 110) Then
-
     curve=curve+1.5
-
     EraseRoadBoundaries()    
-
     BuildRoadDataStructure()
-
     DrawRoadBoundaries()
-
   endif
-
   
-
   'Scroll the background cityspace left if the round curves right
-
   'or right if the road curves left:
-
   If (curve > 0) Then
-
     directionFlag = "LEFT"
-
     ShiftBackgroundImageQueue()
-
     MoveBackgroundImages()  
-
   elseIf (curve < 0) Then
-
     directionFlag = "RIGHT"
-
     ShiftBackgroundImageQueue()
-
     MoveBackgroundImages()
-
   EndIf
-
   
-
   
-
   'Now, after 100 additional frames, curve the road back the right for 20 frames then hold:
-
   If (frameCounter >210 And frameCounter < 230) Then
-
     curve=curve-1.5
-
     EraseRoadBoundaries()    
-
     BuildRoadDataStructure()
-
     DrawRoadBoundaries() 
-
   EndIf
-
   
-
   'Finally, after 350 frames, end the demo
-
   If (frameCounter >= 350) Then
-
     GAME_OVER = "True"
-
     Timer.Pause() 
-
   EndIf
-
   
-
   '*******END OF DEMO****************
-
   
-
 endsub
-
 '_____________________________________________________________
-
 'Build road data structure:
-
 Sub BuildRoadDataStructure  
-
   For i = lastSegment To firstSegment+1 Step -1
-
     Queue[i-1][ww] = (Queue[i][ww] * 0.5)
-
     Queue[i-1][hh] = (Queue[i][hh] * 0.5) - hillValue
-
     Queue[i-1][yy] = (Queue[i][yy] - Queue[i][hh])
-
     Queue[i-1][xx] = (Queue[i][xx] - curve)
-
     Queue[i-1][zFac] = Queue[i][zFac] - 0.5
-
   EndFor
-
 EndSub
-
 '_____________________________________________________________
-
 'Draw road border lines:
-
 Sub DrawRoadBoundaries
-
   GraphicsWindow.PenWidth=2
-
   GraphicsWindow.PenColor="white"
-
   
-
   For i = lastSegment To firstSegment+1 Step -1
-
     x1 = (Queue[i-1][xx] + screenX) + (Queue[i-1][ww] * 0.5)
-
     y1 = (Queue[i-1][yy] + screenY)
-
     x2 = (Queue[i][xx] + screenX) + (Queue[i][ww] * 0.5)
-
     y2 = (Queue[i][yy] + screenY)
-
     
-
     Queue[i][lRoadLineRef]=Shapes.AddLine(x1,y1,x2,y2)
-
     x1 = (Queue[i-1][xx] + screenX) - (Queue[i-1][ww] * 0.5)
-
     y1 = (Queue[i-1][yy] + screenY)
-
     x2 = (Queue[i][xx] + screenX) - (Queue[i][ww] * 0.5)
-
     y2 = (Queue[i][yy] + screenY)
-
     Queue[i][rRoadLineRef]=Shapes.AddLine(x1,y1,x2,y2)
-
   EndFor
-
   
-
 EndSub
-
 '-------------------------------------------------------------------------------------------------------------
-
 Sub EraseRoadBoundaries
-
   For i = lastSegment To firstSegment+1 Step -1    
-
     Shapes.Remove(Queue[i][lRoadLineRef])
-
     Shapes.Remove(Queue[i][rRoadLineRef])
-
   EndFor
-
 EndSub
-
 '-------------------------------------------------------------------------------------------------------------
-
 'Shift register queue that moves images from the vanishing point toward
-
 'the player:
-
 Sub ShiftMovingImageQueue
-
   _temp1 =  Queue[lastSegment][iRef]
-
   _temp2 =  Queue[lastSegment][centerStripeRef]   
-
   For i = lastSegment To firstSegment+1 Step -1  
-
     Queue[i][iRef] = Queue[i-1][iRef]
-
     Queue[i][centerStripeRef] = Queue[i-1][centerStripeRef]
-
   endfor  
-
   Queue[firstSegment][iRef] = _temp1
-
   Queue[firstSegment][centerStripeRef] = _temp2 
-
 EndSub
-
 '_________________________________________________________________
-
 'This is a bi-directional shift register queue that allows the backround images to scroll left
-
 'or right:
-
 Sub ShiftBackgroundImageQueue
-
   _bottomSegment = 64
-
   _topSegment = 0
-
   
-
   If (directionFlag = "LEFT") then
-
     
-
     _temp1 =  BackgroundImageQueue[_bottomSegment] 
-
     For i = _bottomSegment To _topSegment+1 Step -1  
-
       BackgroundImageQueue[i] = BackgroundImageQueue[i-1]
-
     endfor  
-
     BackgroundImageQueue[_topSegment] = _temp1
-
     
-
   ElseIf (directionFlag = "RIGHT") then
-
     
-
     _temp1 =  BackgroundImageQueue[_topSegment] 
-
     For i = _topSegment to _bottomSegment -1
-
       BackgroundImageQueue[i] = BackgroundImageQueue[i+1]
-
     endfor  
-
     BackgroundImageQueue[_bottomSegment] = _temp1
-
     
-
   EndIf
-
   
-
 EndSub
-
 '_________________________________________________________________
-
 'Draws the background images off in the distance:
-
 Sub MoveBackgroundImages
-
   xxxx = 0
-
   yyyy = 238
-
   For i = _topSegment To _bottomSegment
-
     Shapes.Move(BackgroundImageQueue[i], xxxx, yyyy)
-
     xxxx = xxxx + 10
-
   EndFor
-
 EndSub
-
 '----------------------------------------------------------------------------------------------------------------
-
 'Each array element in the queue array holds data used to position and zoom graphical items
-
 'on the screen and each element corresponds to a different XY postition and zoom value.
-
 'When items are shifted in the queue, the code below draws the objects to their new
-
 'XY positions with the correct zoom values. This gives the illusion that the object
-
 'is moving toward you as its Y value increases.
-
 '
-
 'It doesn't matter whether the graphic object is a Shape object or a Bitmap - as long as a reference
-
 'to the image is stored somewhere in the queue using one of the reference variables, it will be animated:
-
 Sub AnimateImagesInQueue  
-
   
-
   For aCounter=firstSegment To lastSegment   
-
     
-
     'Animate any objects on the side of the road (houses, trees, signs, etc):
-
     x1 = (Queue[aCounter][xx] + screenX) + (Queue[aCounter][ww] * 0.5)
-
     y1 = (Queue[aCounter][yy] + screenY) + (Queue[aCounter][ww] * 0.5)
-
     Shapes.Zoom(Queue[aCounter][iRef], Queue[aCounter][zFac], Queue[aCounter][zFac])  
-
     Shapes.Move(Queue[aCounter][iRef], x1, y1)      
-
     
-
     'Animate the center road stripes:
-
     x1 = (Queue[aCounter][xx] + screenX)
-
     y1 = (Queue[aCounter][yy] + screenY)
-
     Shapes.Zoom(Queue[aCounter][centerStripeRef], 3, Queue[aCounter][zFac]*2.5)
-
     Shapes.Move(Queue[aCounter][centerStripeRef], x1, y1)
-
   EndFor   
-
   
-
 EndSub
-
 '______________________________________________________________________
-
 'Draws images in the background that represents mountains, buildings, landscapes that are off in the
-
 'distance and adds them to the background image queue. The Shape objects are stand-ins for the
-
 'actual bitmap images:
-
 Sub CreateCityScape
-
   GraphicsWindow.BrushColor="black"
-
   GraphicsWindow.PenColor="black"
-
   BackgroundImageQueue[1] = Shapes.AddRectangle(20,15)
-
   BackgroundImageQueue[3] = Shapes.AddRectangle(10,15)
-
   BackgroundImageQueue[5] = Shapes.AddRectangle(30,15)
-
   BackgroundImageQueue[10] = Shapes.AddRectangle(10,15)
-
   BackgroundImageQueue[20] = Shapes.AddRectangle(50,15)
-
   BackgroundImageQueue[25] = Shapes.AddRectangle(10,15)
-
   BackgroundImageQueue[35] = Shapes.AddRectangle(50,15)
-
   BackgroundImageQueue[40] = Shapes.AddRectangle(0,15)
-
   BackgroundImageQueue[45] = Shapes.AddRectangle(20,15)
-
   BackgroundImageQueue[55] = Shapes.AddRectangle(30,15)
-
   ShiftBackgroundImageQueue()
-
   MoveBackgroundImages()
-
 EndSub  
-
 '_____________________________________________________________________
-
 'Initailize center road stripes and add them to the animation queue. The Shape objects are stand-ins
-
 'for the actual bitmap objects:
-
 Sub CreateRoadSripes
-
   GraphicsWindow.PenColor="yellow"
-
   GraphicsWindow.PenWidth=1
-
   For i = firstSegment To lastSegment Step 3
-
     Queue[i][centerStripeRef] = Shapes.AddRectangle(1,4)
-
   EndFor
-
 EndSub
-
 '______________________________________________________________________
-
 'This is where the clouds and sky would be drawn:
-
 Sub DrawBackground  
-
   GraphicsWindow.BackgroundColor="gray" '<-road color  
-
   GraphicsWindow.BrushColor="skyblue" '<-sky color
-
   GraphicsWindow.FillRectangle(0,0,640,253)
-
   
-
   'Clouds:  
-
   GraphicsWindow.PenColor="white"
-
   GraphicsWindow.BrushColor="white"
-
   For i = 1 To 10
-
     cloudX = Math.GetRandomNumber(800)
-
     cloudY= Math.GetRandomNumber(200)    
-
     GraphicsWindow.fillEllipse(cloudX, cloudY, 40, 10)
-
     GraphicsWindow.fillEllipse(cloudX+10, cloudY + 10, 40, 10)
-
     GraphicsWindow.fillEllipse(cloudX+40, cloudY, 40, 10)
-
   EndFor
-
 EndSub
-
-

@@ -1,2511 +1,1255 @@
 
-
 ' Piano
-
 ' A program that allows people to use a computer's keyboard as a pinao
-
-
 
 'Copyright (c) 2012 Patrick C.F. Lee (patrick.cf.lee@gmail.com).  All rights reserved.
 
-
-
 '@author: Patrick C.F. Lee (patrick.cf.lee@gmail.com)
-
 '@date: Sunday, 7 July, 2012.
-
 '@version: 0.70
 
-
-
 'Developed on:
-
 'Windows XP SP 3
-
 'Microsoft Small Basic 1.0
 
-
-
 'Notice that the Octave notation in  Microsoft Small Basic is 1 higher than the standard 
-
 'musical notation which differs from the Octave notation used in BASICA, GWBASIC,
-
 'QBASIC 'and QuickBASIC. Also O9 C does not work, it produces the same note as O8 C.
-
 ' The default is MF O4 L4 T120?  MN?
 
-
-
 'The following functions fail to work beacuse of bugs in Microsoft Small Basic 1.0:
-
 'PlayMusic("MB")     --- The default is MF
-
 'PlayMusic("MS")
-
 'PlayMusic("MN")
-
 'PlayMusic("ML")
-
 'PlayMusic("Txxx")
 
-
-
 ' What's new in version 0.61
-
 '(1) Provide help to users.
-
 '(2) Record and store the played notes.
-
 '(3) Load music from files
-
 '(4) Adjust the speed of the opening animation for various computers
 
-
-
 ' What's new in version 0.62
-
 '(1) Improve the appearance by changing the fonts fo some text
-
 '(2) Improve the layout of GUI
-
 '(3) Use mouse to play the music
-
 '(4) Rotate finger[1] and finger[2] to fit the underlying keys
 
-
-
 'What's new in version 0.63
-
 '(1) Change the base Octave to O4 in initalize()
-
 '(2)  Partly Implementing  T function -- need to be removed when Small Basic supports this feature
-
 '(3) Improve the help menu
-
 '(4) Imporve the open and save files operations
-
 '(5) Fix bugs in store musicString and keyString
-
 '(6) Clean up codes
-
-
 
 'What's new in version 0.64
-
 '(1) Fix bugs for keys from Z to D, G and P 
-
 '(2) Adjust layout for keyString to match the layout of musicString
 
-
-
 'What's new in version 0.65
-
 '(1) Correct the error for the implementation of dotted half note
-
 '(2) Fix the bug that crashes the program in some computers (all are Intel CPU) when one
-
 '      clicks one of the tempo buttons (to change Lxxx). The bug is caused by the fact that
-
 '      beatsPerMinute has not been initalized.
-
 '(3) Fix a bug in saveFile() that occurs  when the user enter "no" or "No" or "NO" to the
-
 '     question: "Are you sure to save to this file? (yes/no) "
-
 '(4) Include "NO" and "YES" as valid user inputs in saveFile()
-
 '(5) Raplace all GraphicsWindow.DrawText operations with the Shapes.AddText operations
-
 '(6) Fix a bug for keyString when pressing click the key for O1 G
-
 '(7) Clean up codes
 
-
-
 'What's new in version 0.66
-
 '(1) Use raster graphics for the piano
 
-
-
 'What's new in version 0.67
-
 '(1) Shift O1-O7 to O2-O8 used in Sound.PlayMusic
-
 '(2) Improve the help
-
 '(3) Handle the user inputs of 'No', 'no', or 'NO' better in openFile()
-
 '(4) Change the base Octave back to O5 in initalize()
-
 '(5) Clarify some statements in Help
-
 '(6) Clean up codes
 
-
-
 'What's new in version 0.68
-
 '(1) Use GraphicWindow (instead of TextWindow) to display Save, Open, and Help menus
-
 '(2) Change the font "Curtz MT" to the more common font "Times New Roman"
-
 '(3) provide more guidelines to the Help
 
-
-
 'What's new in version 0.69
-
 '(1) Enlarge the Window to 1020 x 700 and do not scale the piano image smaller.
-
 '(2) Improve the file handling
-
 '(3) Fix the bug that the keyboard has no function after returning from other forms to the main form
-
 '(4) Print music  score on the Play File Form
-
 '(5) Partly Implement MS, ML and MN functions
 
-
-
 'What's new in version 0.70
-
 '(1) Using the keys 1, 2, 3, .... , 9, 0, -  and = to play the piano
 
-
-
 'To do list:
-
 '(1) Select the keyboard at the start and adjust the program according to the kind of keyboard.
-
 '(2) Able to play music with T <>120 from file
-
 '(3) Double check the implementation MB,  ML, and MN  functions
-
 '(5) The 88th key 'C8' does not work correctly
-
 '(6) Draw music score on screen
-
 '(7) Multi-thread computing to allow playing two notes at the same time.
 
 
-
-
-
 'TextWindow.WriteLine("Content-type: text/html")
-
 'TextWindow.WriteLine("")
 
-
-
 animationTime = 3000
-
 isWelcome = "yes"
-
 UI()
-
 'initalize()
 
-
-
 GraphicsWindow.KeyDown = playNote
-
 Controls.ButtonClicked = onClick
-
 GraphicsWindow.MouseUp = mouseUp
 
-
-
 Sub mouseUp
-
   mouseX = GraphicsWindow.MouseX
-
   mouseY = GraphicsWindow.MouseY
-
   intOctaveOld = intOctave
-
   
-
   If (mouseX > keyLeft + whiteKeyWidth-blackKeyWidth/2) And (mouseX < keyLeft + whiteKeyWidth+blackKeyWidth/2) And (mouseY > keyTop) And (mouseY < keyTop + blackKeyHeight) Then
-
     intOctave = 0
-
     Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * 0.85, fingerTop, animationSpeed)
-
     Shapes.HideShape(finger[1])
-
     Shapes.ShowShape(finger[2])
-
     Sound.PlayMusic("O1 A#")
-
     musicString = musicString + " O1 A#"
-
     keyString = keyString + " O1 G"
-
     'Shapes.HideShape(finger[2])
-
     Goto restore
-
   EndIf
-
   
-
   For i = 1 To 7 
-
     ' Click on black keys   !!!!   One must write the code for black keys before the code on white keys
-
     If (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+8)-blackKeyWidth/2) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+8)+blackKeyWidth/2) And (mouseY > keyTop) And (mouseY < keyTop + blackKeyHeight) Then
-
       intOctave = i
-
       playI()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+7)-blackKeyWidth/2) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+7)+blackKeyWidth/2) And (mouseY > keyTop) And (mouseY < keyTop + blackKeyHeight) Then
-
       intOctave = i
-
       playY()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+6)-blackKeyWidth/2) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+6)+blackKeyWidth/2) And (mouseY > keyTop) And (mouseY < keyTop + blackKeyHeight) Then
-
       intOctave = i
-
       playR()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+4)-blackKeyWidth/2) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+4)+blackKeyWidth/2) And (mouseY > keyTop) And (mouseY < keyTop + blackKeyHeight) Then
-
       intOctave = i
-
       playQ()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+3)-blackKeyWidth/2) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+3)+blackKeyWidth/2) And (mouseY > keyTop) And (mouseY < keyTop + blackKeyHeight) Then
-
       intOctave = i
-
       PlayK()
-
       Goto restore
-
       
-
       ' Click on white keys
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+8)) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+9)) And (mouseY > keyTop) And (mouseY < keyTop + whiteKeyHeight) Then
-
       intOctave = i
-
       playO()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+7)) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+8)) And (mouseY > keyTop) And (mouseY < keyTop + whiteKeyHeight) Then
-
       intOctave = i
-
       playU()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+6)) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+7)) And (mouseY > keyTop) And (mouseY < keyTop + whiteKeyHeight) Then
-
       intOctave = i
-
       playT()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+5)) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+6)) And (mouseY > keyTop) And (mouseY < keyTop + whiteKeyHeight) Then
-
       intOctave = i
-
       playE()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+1)) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+2)) And (mouseY > keyTop) And (mouseY < keyTop + whiteKeyHeight) Then
-
       intOctave = i
-
       playH()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7)) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+1)) And (mouseY > keyTop) And (mouseY < keyTop + whiteKeyHeight) Then
-
       intOctave = i
-
       playF()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+2)) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+3)) And (mouseY > keyTop) And (mouseY < keyTop + whiteKeyHeight) Then
-
       intOctave = i
-
       playJ()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+3)) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+4)) And (mouseY > keyTop) And (mouseY < keyTop + whiteKeyHeight) Then
-
       intOctave = i
-
       playL()
-
       Goto restore
-
     ElseIf (mouseX > keyLeft + whiteKeyWidth*((i-1)*7+4)) And (mouseX < keyLeft + whiteKeyWidth*((i-1)*7+5)) And (mouseY > keyTop) And (mouseY < keyTop + whiteKeyHeight) Then
-
       intOctave = i
-
       playW()
-
       Goto restore
-
       
-
     EndIf
-
   EndFor
-
   
-
   If (mouseX > keyLeft + whiteKeyWidth*51) And (mouseX < keyLeft + whiteKeyWidth*52) And (mouseY > keyTop) And (mouseY < keyTop + whiteKeyHeight) Then
-
     intOctave = 8
-
     Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 51 , fingerTop, animationSpeed)
-
     Shapes.HideShape(finger[2])
-
     Shapes.ShowShape(finger[1])
-
     Sound.PlayMusic("O9 C")
-
     musicString = musicString + " O9 C"
-
     keyString = keyString + " O7 P"
-
     'Shapes.HideShape(finger[1])
-
   EndIf
-
   
-
   restore:
-
   
-
   'Rotate finger to align with the underlying keys
-
   'If intOctave <=  1 Then
-
   '  Shapes.Rotate(finger[1], 3)
-
   '  Shapes.Rotate(finger[2], 2)
-
   'ElseIf intOctave = 2 Then
-
   '  Shapes.Rotate(finger[1], 2)
-
   '  Shapes.Rotate(finger[2], 1)
-
   'ElseIf intOctave = 3 Then
-
   '  Shapes.Rotate(finger[1], 1)
-
   'ElseIf intOctave = 5 Then
-
   '  Shapes.Rotate(finger[1], -1)
-
   'ElseIf intOctave = 6 Then
-
   '  Shapes.Rotate(finger[1], -2)
-
   '  Shapes.Rotate(finger[2], -1)
-
   'ElseIf intOctave >= 7 Then
-
   '  Shapes.Rotate(finger[1], -3)
-
   '  Shapes.Rotate(finger[2], -2)
-
   'EndIf
-
   
-
   intOctave = intOctaveOld
-
 EndSub
-
-
 
 Sub onClick
-
   'It seems that ML is the default
-
   If Controls.LastClickedButton = butNormal Then
-
     'The following 4 lines will be restored when MN mode is implemented
-
     'musicMode = "MN"
-
     'Sound.PlayMusic(musicMode)
-
     'musicString = musicString + " " + musicMode
-
     'keyString = keyString + " " + musicMode
-
     'The following 3 lines will be deleted when MN mode is implemented
-
     Sound.PlayMusic("L" + Leff)
-
     musicString = musicString + " L" + Leff
-
     keyString = keyString + " L" + Leff
-
   ElseIf Controls.LastClickedButton = butLegato Then
-
     'The following 4 lines will be restored when ML mode is implemented
-
     'musicMode = "ML"
-
     'Sound.PlayMusic(musicMode)
-
     'musicString = musicString + " " + musicMode
-
     'keyString = keyString + " " + musicMode
-
     'The following 3 lines will be deleted when ML mode is implemented
-
     Sound.PlayMusic("L" + (Leff*8/7))
-
     musicString = musicString + " L" + (Leff*8/7)
-
     keyString = keyString + " L" + (Leff*8/7)
-
   ElseIf Controls.LastClickedButton = butStaccato Then
-
     'The following 4 lines will be restored when MS mode is implemented
-
     'musicMode = "MS"
-
     'Sound.PlayMusic(musicMode)
-
     'musicString = musicString + " " + musicMode
-
     'keyString = keyString + " " + musicMode
-
     'The following 3 lines will be deleted when MS mode is implemented
-
     Sound.PlayMusic("L" + (Leff *7/6))
-
     musicString = musicString + " L" + (Leff*7/6)
-
     keyString = keyString + " L" + (Leff*7/6)
-
     
-
   ElseIf Controls.LastClickedButton = butO1 Then
-
     musicOctave = "O1"
-
     Sound.PlayMusic(musicOctave)
-
     intOctave = 1            'Use integer variable so to simplify later programming
-
     musicString = musicString + " O2" 
-
     keyString = keyString + " " + musicOctave
-
     'Shapes.Rotate(finger[1], 3)
-
     'Shapes.Rotate(finger[2], 2)
-
   ElseIf Controls.LastClickedButton = butO2 Then
-
     musicOctave = "O2"
-
     Sound.PlayMusic(musicOctave)
-
     intOctave = 2
-
     musicString = musicString + " O3"
-
     keyString = keyString + " " + musicOctave
-
     'Shapes.Rotate(finger[1], 2)
-
     'Shapes.Rotate(finger[2], 1)
-
   ElseIf Controls.LastClickedButton = butO3 Then
-
     musicOctave = "O3"
-
     Sound.PlayMusic(musicOctave)
-
     intOctave = 3
-
     musicString = musicString + " O4"
-
     keyString = keyString + " " + musicOctave
-
     'Shapes.Rotate(finger[1], 1)
-
   ElseIf Controls.LastClickedButton = butO4 Then
-
     musicOctave = "O4"
-
     Sound.PlayMusic(musicOctave)
-
     intOctave = 4
-
     musicString = musicString + " O5"
-
     keyString = keyString + " " + musicOctave
-
   ElseIf Controls.LastClickedButton = butO5 Then
-
     musicOctave = "O5"
-
     Sound.PlayMusic(musicOctave)
-
     intOctave = 5
-
     musicString = musicString + " O6"
-
     keyString = keyString + " " + musicOctave
-
     'Shapes.Rotate(finger[1], -1)
-
   ElseIf Controls.LastClickedButton = butO6 Then
-
     musicOctave = "O6"
-
     Sound.PlayMusic(musicOctave)
-
     intOctave = 6
-
     musicString = musicString + " O7"
-
     keyString = keyString + " " + musicOctave
-
     'Shapes.Rotate(finger[1], -2)
-
     'Shapes.Rotate(finger[2], -1)
-
     'ElseIf Controls.LastClickedButton = butO7 Then
-
     '  musicOctave = "O7"
-
     '  Sound.PlayMusic(musicOctave)
-
     '  intOctave = 7
-
     '  musicString = musicString + " O8"
-
     '  keyString = keyString + " " + musicOctave
-
     'Shapes.Rotate(finger[1], -3)
-
     'Shapes.Rotate(finger[2], -2)
-
     
-
     ' It MUST be between L999 and L1  
-
   ElseIf Controls.LastClickedButton = butL64 Then
-
     Leff = beatsPerMinute * 64 / 120             ' T * (Lb / T120)
-
     Sound.PlayMusic("L" + Leff)
-
     musicString = musicString + " T" + beatsPerMinute + " L64"
-
     keyString = keyString + " T" + beatsPerMinute + " L64"
-
   ElseIf Controls.LastClickedButton = butL32 Then
-
     Leff = beatsPerMinute * 32 / 120             ' T * (Lb / T120)
-
     Sound.PlayMusic("L" + Leff)
-
     musicString = musicString + " T" + beatsPerMinute + " L32"
-
     keyString = keyString + " T" + beatsPerMinute + " L32"
-
   ElseIf Controls.LastClickedButton = butL16 Then
-
     Leff = beatsPerMinute * 16 / 120             ' T * (Lb / T120)
-
     Sound.PlayMusic("L" + Leff)
-
     musicString = musicString + " T" + beatsPerMinute + " L16"
-
     keyString = keyString + " T" + beatsPerMinute + " L16"
-
   ElseIf Controls.LastClickedButton = butL8 Then
-
     Leff = beatsPerMinute * 8 / 120              ' T * (Lb / T120)
-
     Sound.PlayMusic("L" + Leff)
-
     musicString = musicString + " T" + beatsPerMinute + " L8"
-
     keyString = keyString + " T" + beatsPerMinute + " L8"
-
   ElseIf Controls.LastClickedButton = butL4 Then
-
     Leff = beatsPerMinute * 4 / 120              ' T * (Lb / T120)
-
     Sound.PlayMusic("L" + Leff)
-
     musicString = musicString + " T" + beatsPerMinute + " L4"
-
     keyString = keyString + " T" + beatsPerMinute + " L4"
-
   ElseIf Controls.LastClickedButton = butL2 Then
-
     Leff = beatsPerMinute * 2 / 120              ' T * (Lb / T120)
-
     Sound.PlayMusic("L" + Leff)
-
     musicString = musicString + " T" + beatsPerMinute + " L3"
-
     keyString = keyString + " T" + beatsPerMinute + " L3"
-
   ElseIf Controls.LastClickedButton = butL4_3 Then
-
     Leff = beatsPerMinute * (4/3) / 120              ' T * (Lb / T120)
-
     Sound.PlayMusic("L" + Leff)
-
     musicString = musicString + " T" + beatsPerMinute + " L2"
-
     keyString = keyString + " T" + beatsPerMinute + " L2"
-
   ElseIf Controls.LastClickedButton = butL1 Then
-
     Leff = beatsPerMinute / 120                  ' T * (Lb / T120)
-
     Sound.PlayMusic("L" + Leff)
-
     musicString = musicString + " T" + beatsPerMinute + " L1"
-
     keyString = keyString + " T" + beatsPerMinute + " L1"
-
     
-
   ElseIf Controls.LastClickedButton = butEnter Then
-
     beatsPerMinute = Controls.GetTextBoxText(txtBeatsPerMinute)
-
     If beatsPerMinute >= 20 And beatsPerMinute <= 255 Then
-
       Sound.PlayMusic("T" + beatsPerMinute)
-
       musicString = musicString + " T" + beatsPerMinute
-
       keyString = keyString + " T" + beatsPerMinute
-
       Leff = beatsPerMinute * 4 /120             ' T * (Lb / T120)
-
       Sound.PlayMusic("L" + Leff)
-
     Else
-
       Controls.SetTextBoxText(txtBeatsPerMinute, "Error")
-
     EndIf
-
     
-
   ElseIf Controls.LastClickedButton = butHelp Then
-
     helpMenu()
-
   ElseIf Controls.LastClickedButton = butSave Then
-
     saveFile()
-
   ElseIf Controls.LastClickedButton = butOpen Then
-
     openFile()
-
   ElseIf Controls.LastClickedButton = butExitHelp Then
-
     isWelcome = "no"
-
     Controls.Remove(butExitHelp)
-
     returnMain()
-
   ElseIf Controls.LastClickedButton = butFileOpen Then
-
     fileNameOpen = Controls.GetTextBoxText(txtFileOpen)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     IF File.CopyFile(fileNameOpen, File.GetTemporaryFilePath()) = "FAILED" Then 'Test whether the file exists
-
 ' The following line could be harmful and has been automatically commented.
-
 '       If File.LastError = "Source file doesn't exist." Then
-
         GraphicsWindow.ShowMessage("The file '" + fileNameOpen + "' does not exist.", "Error")
-
       Else
-
 ' The following line could be harmful and has been automatically commented.
-
 '         GraphicsWindow.ShowMessage(File.LastError, "Error")
-
       EndIf
-
     Else
-
 ' The following line could be harmful and has been automatically commented.
-
 '       musicString = File.ReadLine(fileNameOpen, 1)
-
       If musicString = "" Then
-
         GraphicsWindow.ShowMessage("The file '" + fileNameOpen + "' is empty.", "Error")
-
       Else
-
         GraphicsWindow.DrawText(50, 230, "Music Score:")
-
         txtMusicScore = Controls.AddMultiLineTextBox(50, 250)
-
         Controls.SetSize(txtMusicScore, 700, 250)
-
         Controls.SetTextBoxText(txtMusicScore, musicString)
-
         GraphicsWindow.ShowMessage("Click the 'OK' button to play the music.", "Play") 'To stop playing the music before print out the music score
-
         Sound.PlayMusic(musicString)
-
         butPlay = Controls.AddButton("Play Again", 350, 510)
-
       EndIf
-
     EndIf
-
   ElseIf Controls.LastClickedButton = butExitOpen Then
-
     musicString = ""
-
     keyString = ""
-
     isWelcome = "no"
-
     Controls.Remove(butPlay)
-
     Controls.Remove(butFileOpen)
-
     Controls.Remove(butExitOpen)
-
     Controls.Remove(txtFileSave)
-
     returnMain()
-
   ElseIf Controls.LastClickedButton = butPlay Then
-
     Sound.PlayMusic(musicString)
-
   ElseIf Controls.LastClickedButton = butFileSave Then
-
     fileNameSave = Controls.GetTextBoxText(txtFileSave)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     IF File.CopyFile(fileNameSave, File.GetTemporaryFilePath()) = "SUCCESS" Then 'Test whether the file exists
-
       GraphicsWindow.ShowMessage("The file has already existed.", "Warning")
-
       GraphicsWindow.DrawText(50, 300, "Are you sure to save to this file? ")
-
       butYes = Controls.AddButton("Yes", 272, 292)
-
       butNo = Controls.AddButton("No", 320, 292)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     ElseIf File.LastError = "Source file doesn't exist." Then
-
       storeMusicScore()
-
     Else
-
 ' The following line could be harmful and has been automatically commented.
-
 '       GraphicsWindow.ShowMessage(File.LastError, "Error")
-
     EndIf
-
   ElseIF Controls.LastClickedButton = butYes Then
-
     storeMusicScore()
-
   ElseIf Controls.LastClickedButton = butNo Then
-
     GraphicsWindow.ShowMessage("You have chosen not to save to the above file. Please choose another filename", "Cancell")
-
   ElseIf Controls.LastClickedButton = butExitSave Then
-
     musicString = ""
-
     keyString = ""
-
     isWelcome = "no"
-
     Controls.Remove(butSave)
-
     Controls.Remove(butFileSave)
-
     Controls.Remove(butExitSave)
-
     Controls.Remove(butYes)
-
     Controls.Remove(butNo)
-
     Controls.Remove(txtFileSave)
-
     returnMain()
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub playNote
-
   IF GraphicsWindow.Title <> "Open muisc files" And GraphicsWindow.Title <> "Save the played music" Then
-
     If GraphicsWindow.LastKey = "Z" or "z" Then
-
       If intOctave = 1 Then
-
         'Do nothing. Eliminate keys that do not present in the real piano
-
       Else
-
         Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-2)*7 + 1) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[2])
-
         Shapes.ShowShape(finger[1])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO-2) + " B")
-
         musicString = musicString + " O" + (smallBasicO-2) + " B"
-
         keyString = keyString + " O" + intOctave + " Z"
-
         'Shapes.HideShape(finger[1])
-
       EndIf
-
     ElseIf GraphicsWindow.LastKey = "X" or "x" Then
-
       If intOctave = 1 Then
-
         'Do nothing. Eliminate keys that do not present in the real piano
-
       Else
-
         Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-2)*7 + 2) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[2])
-
         Shapes.ShowShape(finger[1])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO-1) + " C")
-
         musicString = musicString + " O" + (smallBasicO-1) + " C"
-
         keyString = keyString + " O" + intOctave + " X"
-
         'Shapes.HideShape(finger[1])
-
       EndIf
-
     ElseIf GraphicsWindow.LastKey = "C" or "c" Then
-
       If intOctave = 1 Then
-
         'Do nothing. Eliminate keys that do not present in the real piano
-
       Else
-
         Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-2)*7 + 2.7) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[1])
-
         Shapes.ShowShape(finger[2])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO-1) + " C#")
-
         musicString = musicString + " O" + (smallBasicO-1) + " C#"
-
         keyString = keyString + " O" + intOctave + " C "
-
         'Shapes.HideShape(finger[2])
-
       EndIf
-
     ElseIf GraphicsWindow.LastKey = "V" or "v" Then
-
       If intOctave = 1 Then
-
         'Do nothing. Eliminate keys that do not present in the real piano
-
       Else
-
         Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-2)*7 + 3) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[2])
-
         Shapes.ShowShape(finger[1])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO-1) + " D")
-
         musicString = musicString + " O" + (smallBasicO-1) + " D"
-
         keyString = keyString + " O" + intOctave + " V"
-
         'Shapes.HideShape(finger[1])
-
       EndIf
-
     ElseIf GraphicsWindow.LastKey = "B" or "b" Then
-
       If intOctave = 1 Then
-
         'Do nothing. Eliminate keys that do not present in the real piano
-
       Else
-
         Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-2)*7 + 3.8) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[1])
-
         Shapes.ShowShape(finger[2])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO-1) + " D#")
-
         musicString = musicString + " O" + (smallBasicO-1) + " D#"
-
         keyString = keyString + " O" + intOctave + " B "
-
         'Shapes.HideShape(finger[2])
-
       EndIf
-
     ElseIf GraphicsWindow.LastKey = "N" or "n" Then
-
       If intOctave = 1 Then
-
         'Do nothing. Eliminate keys that do not present in the real piano
-
       Else
-
         Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-2)*7 + 4) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[2])
-
         Shapes.ShowShape(finger[1])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO-1) + " E")
-
         musicString = musicString + " O" + (smallBasicO-1) + " E"
-
         keyString = keyString + " O" + intOctave + " N"
-
         'Shapes.HideShape(finger[1])
-
       EndIf
-
     ElseIf GraphicsWindow.LastKey = "M" or "m" Then
-
       If intOctave = 1 Then
-
         'Do nothing. Eliminate keys that do not present in the real piano
-
       Else
-
         Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-2)*7 + 5) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[2])
-
         Shapes.ShowShape(finger[1])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO-1) + " F")
-
         musicString = musicString + " O" + (smallBasicO-1) + " F"
-
         keyString = keyString + " O" + intOctave + " M"
-
         'Shapes.HideShape(finger[1])
-
       EndIf
-
     ElseIf GraphicsWindow.LastKey = "A" or "a" Then
-
       If intOctave = 1 Then
-
         'Do nothing. Eliminate keys that do not present in the real piano
-
       Else
-
         Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-2)*7 + 5.6) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[1])
-
         Shapes.ShowShape(finger[2])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO-1) + " F#")
-
         musicString = musicString + " O" + (smallBasicO-1) + " F#"
-
         keyString = keyString + " O" + intOctave + " A "
-
         'Shapes.HideShape(finger[2])
-
       EndIf
-
     ElseIf GraphicsWindow.LastKey = "S" Or "s" Then
-
       If intOctave = 1 Then
-
         'Do nothing. Eliminate keys that do not present in the real piano
-
       Else
-
         Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-2)*7 + 6) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[2])
-
         Shapes.ShowShape(finger[1])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic("O" + (smallBasicO-1) + " G")
-
         musicString = musicString + " O" + (smallBasicO-1) + " G"
-
         keyString = keyString + " O" + intOctave + " S"
-
         'Shapes.HideShape(finger[1])
-
       EndIf
-
     ElseIf GraphicsWindow.LastKey = "D" Or "d" Then
-
       If intOctave = 1 Then
-
         'Do nothing. Eliminate keys that do not present in the real piano
-
       Else
-
         Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-2)*7 + 6.7) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[1])
-
         Shapes.ShowShape(finger[2])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO-1) + " G#")
-
         musicString = musicString + " O" + (smallBasicO-1) + " G#"
-
         keyString = keyString + " O" + intOctave + " D "
-
         'Shapes.HideShape(finger[2])
-
       EndIf
-
     ElseIf GraphicsWindow.LastKey = "F" Or "f" Then
-
       playF()
-
     ElseIf GraphicsWindow.LastKey = "G" Or "g" Then
-
       Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 0.85) , fingerTop, animationSpeed)
-
       Shapes.HideShape(finger[1])
-
       Shapes.ShowShape(finger[2])
-
       smallBasicO = intOctave + 1
-
       Sound.PlayMusic(" O" + (smallBasicO-1) + " A#")
-
       musicString = musicString + " O" + (smallBasicO-1) + " A#"
-
       keyString = keyString + " O" + intOctave + " G "
-
       'Shapes.HideShape(finger[2])
-
     ElseIf GraphicsWindow.LastKey = "H" Or "h" Then
-
       playH()
-
     ElseIf GraphicsWindow.LastKey = "J" Or "j" Then
-
       playJ()
-
     ElseIf GraphicsWindow.LastKey = "K" Or "k" Then
-
       PlayK()
-
     ElseIf GraphicsWindow.LastKey = "L" Or "l" Then
-
       PlayL()
-
     ElseIf GraphicsWindow.LastKey = "Q" or "q" Then
-
       playQ()
-
     ElseIf GraphicsWindow.LastKey = "W" Or "w" Then
-
       PlayW()
-
     ElseIf GraphicsWindow.LastKey = "E" Or "e" Then
-
       PlayE()
-
     ElseIf GraphicsWindow.LastKey = "R" Or "r" Then
-
       PlayR()
-
     ElseIf GraphicsWindow.LastKey = "T" Or "t" Then
-
       PlayT()
-
     ElseIf GraphicsWindow.LastKey = "Y" Or "y" Then
-
       playY()
-
     ElseIf GraphicsWindow.LastKey = "U" Or "u" Then
-
       PlayU()
-
     ElseIf GraphicsWindow.LastKey = "I" Or "i" Then
-
       Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 7.8) , fingerTop, animationSpeed)
-
       Shapes.HideShape(finger[1])
-
       Shapes.ShowShape(finger[2])
-
       Sound.PlayMusic("A#")
-
       musicString = musicString + " A#"
-
       keyString = keyString + " I "
-
       'Shapes.HideShape(finger[2])
-
     ElseIf GraphicsWindow.LastKey = "O" Or "o" Then
-
       playO()
-
     ElseIf GraphicsWindow.LastKey = "P" Or "p" Then
-
       Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 9) , fingerTop, animationSpeed)
-
       Shapes.HideShape(finger[2])
-
       Shapes.ShowShape(finger[1])
-
       smallBasicO = intOctave + 1
-
       Sound.PlayMusic(" O" + (smallBasicO+1) + " C")
-
       musicString = musicString + " O" + (smallBasicO+1) + " C"
-
       keyString = keyString + " O" + intOctave + " P"
-
       'Shapes.HideShape(finger[1])
-
     ElseIf GraphicsWindow.LastKey = "D1" Then
-
       'If (intOctave < 7) Then
-
         Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 9.65) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[1])
-
         Shapes.ShowShape(finger[2])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO+1) + " C#")
-
         musicString = musicString + " O" + (smallBasicO+1) + " C#"
-
         keyString = keyString + " O" + intOctave + " 1"
-
         'Shapes.HideShape(finger[1])
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "D2" Then
-
       'If (intOctave < 7) Then
-
         Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 10) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[2])
-
         Shapes.ShowShape(finger[1])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO+1) + " D")
-
         musicString = musicString + " O" + (smallBasicO+1) + " D"
-
         keyString = keyString + " O" + intOctave + " 2"
-
         'Shapes.HideShape(finger[1])
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "D3" Then
-
       'If (intOctave < 7) Then
-
         Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 10.8) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[1])
-
         Shapes.ShowShape(finger[2])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO+1) + " D#")
-
         musicString = musicString + " O" + (smallBasicO+1) + " D#"
-
         keyString = keyString + " O" + intOctave + " 3"
-
         'Shapes.HideShape(finger[1])
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "D4" Then
-
       'If (intOctave < 7) Then
-
         Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 11) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[2])
-
         Shapes.ShowShape(finger[1])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO+1) + " E")
-
         musicString = musicString + " O" + (smallBasicO+1) + " E"
-
         keyString = keyString + " O" + intOctave + " 4"
-
         'Shapes.HideShape(finger[1])
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "D5" Then
-
       'If (intOctave < 7) Then
-
         Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 12) , fingerTop, animationSpeed)
-
         Shapes.HideShape(finger[2])
-
         Shapes.ShowShape(finger[1])
-
         smallBasicO = intOctave + 1
-
         Sound.PlayMusic(" O" + (smallBasicO+1) + " F")
-
         musicString = musicString + " O" + (smallBasicO+1) + " F"
-
         keyString = keyString + " O" + intOctave + " 5"
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "D6" Then
-
       'If (intOctave < 7) Then
-
       Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 12.6) , fingerTop, animationSpeed)
-
       Shapes.HideShape(finger[1])
-
       Shapes.ShowShape(finger[2])
-
       smallBasicO = intOctave + 1
-
       Sound.PlayMusic(" O" + (smallBasicO+1) + " F#")
-
       musicString = musicString + " O" + (smallBasicO+1) + " F#"
-
       keyString = keyString + " O" + intOctave + " 6"
-
       'Shapes.HideShape(finger[1])
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "D7" Then
-
       'If (intOctave < 7) Then
-
       Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 13) , fingerTop, animationSpeed)
-
       Shapes.HideShape(finger[2])
-
       Shapes.ShowShape(finger[1])
-
       smallBasicO = intOctave + 1
-
       Sound.PlayMusic(" O" + (smallBasicO+1) + " G")
-
       musicString = musicString + " O" + (smallBasicO+1) + " G"
-
       keyString = keyString + " O" + intOctave + " 7"
-
       'Shapes.HideShape(finger[1])
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "D8" Then
-
       'If (intOctave < 7) Then
-
       Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 13.7) , fingerTop, animationSpeed)
-
       Shapes.HideShape(finger[1])
-
       Shapes.ShowShape(finger[2])
-
       smallBasicO = intOctave + 1
-
       Sound.PlayMusic(" O" + (smallBasicO+1) + " G#")
-
       musicString = musicString + " O" + (smallBasicO+1) + " G#"
-
       keyString = keyString + " O" + intOctave + " 8"
-
       'Shapes.HideShape(finger[1])
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "D9" Then
-
       'If (intOctave < 7) Then
-
       Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 14) , fingerTop, animationSpeed)
-
       Shapes.HideShape(finger[2])
-
       Shapes.ShowShape(finger[1])
-
       smallBasicO = intOctave + 1
-
       Sound.PlayMusic(" O" + (smallBasicO+1) + " A")
-
       musicString = musicString + " O" + (smallBasicO+1) + " A"
-
       keyString = keyString + " O" + intOctave + " 9"
-
       'Shapes.HideShape(finger[1])
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "D0" Then
-
       'If (intOctave < 7) Then
-
       Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 14.8) , fingerTop, animationSpeed)
-
       Shapes.HideShape(finger[1])
-
       Shapes.ShowShape(finger[2])
-
       smallBasicO = intOctave + 1
-
       Sound.PlayMusic(" O" + (smallBasicO+1) + " A#")
-
       musicString = musicString + " O" + (smallBasicO+1) + " A#"
-
       keyString = keyString + " O" + intOctave + " 0"
-
       'Shapes.HideShape(finger[1])
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "OemMinus" Then
-
       'If (intOctave < 7) Then
-
       Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 15) , fingerTop, animationSpeed)
-
       Shapes.HideShape(finger[2])
-
       Shapes.ShowShape(finger[1])
-
       smallBasicO = intOctave + 1
-
       Sound.PlayMusic(" O" + (smallBasicO+1) + " B")
-
       musicString = musicString + " O" + (smallBasicO+1) + " B"
-
       keyString = keyString + " O" + intOctave + " -"
-
       'Shapes.HideShape(finger[1])
-
       'EndIf
-
     ElseIf GraphicsWindow.LastKey = "OemPlus" Then
-
       'If (intOctave < 7) Then
-
       Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 16) , fingerTop, animationSpeed)
-
       Shapes.HideShape(finger[2])
-
       Shapes.ShowShape(finger[1])
-
       smallBasicO = intOctave + 1
-
       Sound.PlayMusic(" O" + (smallBasicO+1) + " C")
-
       musicString = musicString + " O" + (smallBasicO+1) + " C"
-
       keyString = keyString + " O" + intOctave + " ="
-
       'Shapes.HideShape(finger[1])
-
       'EndIf
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub UI
-
   setupGW()
-
   drawHeading()
-
   drawPiano()
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "#666666"
-
   GraphicsWindow.BrushColor = "#666666"
-
   finger[1] = Shapes.AddRectangle(whiteKeyWidth, whiteKeyHeight)
-
   Shapes.HideShape(finger[1])
-
   finger[2] = Shapes.AddRectangle(blackKeyWidth, blackKeyHeight)
-
   Shapes.HideShape(finger[2])
-
   
-
   GraphicsWindow.PenColor = "#000000"
-
   GraphicsWindow.BrushColor = "#000000"
-
   GraphicsWindow.FontSize = 12
-
   'GraphicsWindow.FontName = "Curtz MT"
-
   GraphicsWindow.FontName = "Times New Roman"
-
   lblCopyright = Shapes.AddText("Copyright @ 2012 Patrick C.F. Lee. Email: patrick.cf.lee@gmail.com. All rights reserved.")
-
   Shapes.Animate(lblCopyright, 290, 660, animationTime*0.8)
-
   
-
   If isWelcome = "yes" Then
-
     welcome()
-
   EndIf
-
   
-
   GraphicsWindow.FontName = "Script MT Bold"
-
   GraphicsWindow.FontSize = 16
-
   butSave = Controls.AddButton("Save", 390, 80)
-
   Controls.SetSize(butSave, 50, 35)
-
   butOpen = Controls.AddButton("Open", 490, 80)
-
   Controls.SetSize(butOpen, 50, 35)
-
   butHelp = Controls.AddButton("Help", 590, 80)
-
   Controls.SetSize(butHelp, 50, 35)
-
   
-
   line = Shapes.AddRectangle(620, 1)
-
   Shapes.Animate(line , 200, 135, animationTime*0.5)
-
   Program.Delay(animationTime*0.5)
-
   
-
   butStaccato = Controls.AddButton("staccato", 250, 150)
-
   butNormal   = Controls.AddButton("normal"  , 480, 150)
-
   butLegato   = Controls.AddButton("legato"  , 710, 150)
-
   
-
   lblOctave = Shapes.AddText("Select the base Octave:")
-
   Shapes.Animate(lblOctave, 180, 208, animationTime*0.6)
-
   Program.Delay(animationTime*0.6)
-
   
-
   butO1 = Controls.AddButton("1", 325, 200)
-
   butO2 = Controls.AddButton("2", 350, 200)
-
   butO3 = Controls.AddButton("3", 375, 200)
-
   butO4 = Controls.AddButton("4", 400, 200)
-
   butO5 = Controls.AddButton("5", 425, 200)
-
   butO6 = Controls.AddButton("6", 450, 200)
-
   'butO7 = Controls.AddButton("7", 475, 200)
-
   
-
   lblBeatsPerMinute = Shapes.AddText("Number of beats per minute:")  'beat = quarter note
-
   Shapes.Animate(lblBeatsPerMinute, 555, 208, animationTime*0.8)
-
   Program.Delay(animationTime*0.8)
-
   txtBeatsPerMinute = Controls.AddTextBox(740, 205)
-
   Controls.SetSize(txtBeatsPerMinute, 50, 25)
-
   Controls.SetTextBoxText(txtBeatsPerMinute, "120")
-
   butEnter = Controls.AddButton("Enter", 793, 200)
-
   
-
   butL64 = Controls.AddButton("L/64", 195, 250)
-
   butL32 = Controls.AddButton("L/32", 255, 250)
-
   butL16 = Controls.AddButton("L/16", 315, 250)
-
   butL8  = Controls.AddButton("L/8", 375, 250)
-
   butL4  = Controls.AddButton("Quarter note", 425, 250)
-
   butL2  = Controls.AddButton("Half note", 528, 250)
-
   butL4_3  = Controls.AddButton("Dotted half note", 617, 250)
-
   butL1  = Controls.AddButton("Whole note", 745, 250)
-
   
-
 EndSub
-
-
 
 Sub drawPiano
-
   setTimeDelay()
-
   imgPiano = Shapes.AddImage(Program.Directory + "\piano002-paint.jpg")
-
   'Shapes.Zoom(imgPiano, 0.8, 0.8)
-
   Shapes.Animate(imgPiano, 10, 310, animationTime)
-
   'Setup keys size so that one know which key has been pressed.
-
   keyTop    = 441
-
   keyHeight = 111.02 '112.5  = 90*5/4
-
   whiteKeyHeight = keyHeight
-
   whiteKeyWidth  = 17.7  ' 17.75         '15.2 * 5/4   'Actual width = 23.5 mm
-
   keyWidth = 52 * whiteKeyWidth
-
   keyLeft  = 50
-
   blackKeyWidth  = 10        '8 * 5/4   'Actual width = 13.7 mm
-
   blackKeyHeight = keyHeight * 0.6
-
   blackKeyLeft = keyLeft + 0.7 * whiteKeyWidth
-
   Program.Delay(animationTime)
-
 EndSub
-
-
 
 Sub initalize
-
   fingerTopBlack = 441
-
   fingerTop = 441
-
   Shapes.SetOpacity(finger[1], 20)
-
   Shapes.SetOpacity(finger[2], 80)
-
   musicMode = "MN"
-
   musicOctave = "O5"
-
   intOctave = 5
-
   beatsPerMinute = 120
-
   Leff = 4
-
   tempo = "L4"
-
   musicString = ""      'The music string to be played.
-
   keyString   = ""      'The key string to be played.
-
   Sound.PlayMusic("L64 O5 MB MN L4 T120")
-
   animationSpeed = 0
-
 EndSub
-
-
 
 Sub setTimeDelay
-
   startTime = Clock.ElapsedMilliseconds
-
   For i = 1 To 40000
-
     'dummy loop
-
   EndFor
-
   endTime = Clock.ElapsedMilliseconds
-
   elapseTime = endTime - startTime
-
   timeDelay = Math.Round(3000/elapseTime)
-
   'TextWindow.WriteLine(Elapse Time: " + elapseTime + " Time Delay: " + timeDelay)
-
 EndSub
-
-
 
 Sub welcome
-
   initalize()
-
   Sound.PlayMusic("O5")
-
   Shapes.ShowShape(finger[1])
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 23, fingerTop, animationSpeed)
-
   Sound.PlayMusic("C8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 23, fingerTop, animationSpeed)
-
   Sound.PlayMusic("C8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 27, fingerTop, animationSpeed)
-
   Sound.PlayMusic("G8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 27, fingerTop, animationSpeed)
-
   Sound.PlayMusic("G8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 28, fingerTop, animationSpeed)
-
   Sound.PlayMusic("A8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 28, fingerTop, animationSpeed)
-
   Sound.PlayMusic("A8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 27, fingerTop, animationSpeed)
-
   Sound.PlayMusic("G4")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 26, fingerTop, animationSpeed)
-
   Sound.PlayMusic("F8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 26, fingerTop, animationSpeed)
-
   Sound.PlayMusic("F8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 25, fingerTop, animationSpeed)
-
   Sound.PlayMusic("E8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 25, fingerTop, animationSpeed)
-
   Sound.PlayMusic("E8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 24, fingerTop, animationSpeed)
-
   Sound.PlayMusic("D8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 24, fingerTop, animationSpeed)
-
   Sound.PlayMusic("D8")
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * 23, fingerTop, animationSpeed)
-
   Sound.PlayMusic("C4")
-
 EndSub
-
-
 
 Sub playF
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * (intOctave-1)*7 , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[2])
-
   Shapes.ShowShape(finger[1])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic(" O" + (smallBasicO-1) + " A")
-
   musicString = musicString + " O" + (smallBasicO-1) + " A"
-
   keyString = keyString + " O" + intOctave + " F"
-
   'Shapes.HideShape(finger[1])
-
 EndSub
-
-
 
 Sub playH
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 1) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[2])
-
   Shapes.ShowShape(finger[1])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic(" O" + (smallBasicO-1) + " B")
-
   musicString = musicString + " O" + (smallBasicO-1) + " B"
-
   keyString = keyString + " O" + intOctave + " H"
-
   'Shapes.HideShape(finger[1])
-
 EndSub
-
-
 
 Sub playJ
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 2) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[2])
-
   Shapes.ShowShape(finger[1])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " C")
-
   musicString = musicString + " O" + smallBasicO + " C"
-
   keyString = keyString + " O" + intOctave + " J"
-
   'Shapes.HideShape(finger[1])
-
 EndSub
-
-
 
 Sub PlayK
-
   Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 2.6) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[1])
-
   Shapes.ShowShape(finger[2])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " C#")
-
   musicString = musicString + " O" + smallBasicO + " C#"
-
   keyString = keyString + " O" + intOctave + " K "
-
   'Shapes.HideShape(finger[2])
-
 EndSub
-
-
 
 Sub PlayL
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 3) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[2])
-
   Shapes.ShowShape(finger[1])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " D")
-
   musicString = musicString + " O" + smallBasicO + " D"
-
   keyString = keyString + " O" + intOctave + " L"
-
   'Shapes.HideShape(finger[1])
-
 EndSub
-
-
 
 Sub playQ
-
   Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 3.8) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[1])
-
   Shapes.ShowShape(finger[2])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " D#")
-
   musicString = musicString + " O" + smallBasicO + " D#"
-
   keyString = keyString + " O" + intOctave + " Q "
-
   'Shapes.HideShape(finger[2])
-
 EndSub
-
-
 
 Sub PlayW
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 4) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[2])
-
   Shapes.ShowShape(finger[1])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " E")
-
   musicString = musicString + " O" + smallBasicO + " E"
-
   keyString = keyString + " O" + intOctave + " W"
-
   'Shapes.HideShape(finger[1])
-
 EndSub
-
-
 
 Sub PlayE
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 5) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[2])
-
   Shapes.ShowShape(finger[1])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " F")
-
   musicString = musicString + " O" + smallBasicO + " F"
-
   keyString = keyString + " O" + intOctave + " E"
-
   'Shapes.HideShape(finger[1])
-
 EndSub
-
-
 
 Sub PlayR
-
   Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 5.6) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[1])
-
   Shapes.ShowShape(finger[2])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " F#")
-
   musicString = musicString + " O" + smallBasicO + " F#"
-
   keyString = keyString + " O" + intOctave + " R "
-
   'Shapes.HideShape(finger[2])
-
 EndSub
-
-
 
 Sub PlayT
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 6) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[2])
-
   Shapes.ShowShape(finger[1])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " G")
-
   musicString = musicString + " O" + smallBasicO + " G"
-
   keyString = keyString + " O" + intOctave + " T"
-
   'Shapes.HideShape(finger[1])
-
 EndSub
-
-
 
 Sub playY
-
   Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 6.7) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[1])
-
   Shapes.ShowShape(finger[2])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " G#")
-
   musicString = musicString + " O" + smallBasicO + " G#"
-
   keyString = keyString + " O" + intOctave + " Y "
-
   'Shapes.HideShape(finger[2])
-
 EndSub
-
-
 
 Sub PlayU
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 7) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[2])
-
   Shapes.ShowShape(finger[1])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " A")
-
   musicString = musicString + " O" + smallBasicO + " A"
-
   keyString = keyString + " O" + intOctave + " U"
-
   'Shapes.HideShape(finger[1])
-
 EndSub
-
-
 
 Sub playI
-
   Shapes.Animate(finger[2], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 7.85) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[1])
-
   Shapes.ShowShape(finger[2])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " A#")
-
   musicString = musicString + " O" + smallBasicO + " A#"
-
   keyString = keyString + " O" + intOctave + " I "
-
   'Shapes.HideShape(finger[2])
-
 EndSub
-
-
 
 Sub playO
-
   Shapes.Animate(finger[1], keyLeft + whiteKeyWidth * ((intOctave-1)*7 + 8) , fingerTop, animationSpeed)
-
   Shapes.HideShape(finger[2])
-
   Shapes.ShowShape(finger[1])
-
   smallBasicO = intOctave + 1
-
   Sound.PlayMusic("O" + smallBasicO + " B")
-
   musicString = musicString + " O" + smallBasicO + " B"
-
   keyString = keyString + " O" + intOctave + " O"
-
   'Shapes.HideShape(finger[1])
-
 EndSub
-
-
 
 Sub openFile
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.Title = "Open muisc files"
-
   setupOtherForms()
-
   
-
   'GraphicsWindow.FontName = "Curtz MT"
-
   GraphicsWindow.FontName = "Times New Roman"
-
   GraphicsWindow.FontSize = 18
-
   GraphicsWindow.DrawText(50, 100, "You can open a music file and play the music stored in that file.")
-
   GraphicsWindow.DrawText(50, 125, "That music file must be written in the Music Markup Language used by this program.")
-
   
-
   GraphicsWindow.FontSize = 14
-
   GraphicsWindow.DrawText(50, 200, "File to be opened: ")
-
   txtFileOpen = Controls.AddTextBox(175, 195)
-
   Controls.SetSize(txtFileOpen, 460, 25)
-
   butFileOpen = Controls.AddButton("Open", 640, 190)
-
   butExitOpen = Controls.AddButton("Exit", 370, 550)
-
 EndSub
-
-
 
 Sub saveFile
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.Title = "Save the played music"
-
   setupOtherForms()
-
   
-
   'GraphicsWindow.FontName = "Curtz MT"
-
   GraphicsWindow.FontName = "Times New Roman"
-
   GraphicsWindow.FontSize = 24
-
   GraphicsWindow.DrawText(200, 100, "You can store the played music to a file.")
-
   
-
   GraphicsWindow.FontSize = 14
-
   GraphicsWindow.DrawText(50, 200, "File to save the played music: ")
-
   txtFileSave = Controls.AddTextBox(250, 195)
-
   Controls.SetSize(txtFileSave, 410, 25)
-
   butFileSave = Controls.AddButton("Save", 670, 190)
-
   butExitSave = Controls.AddButton("Exit", 370, 450)
-
 EndSub
-
-
 
 Sub helpMenu
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.Title = "Help"
-
   setupOtherForms()
-
   'GraphicsWindow.DrawResizedImage(Program.Directory + "\Garden.jpg", 0, 0, formWidth, formHeight)
-
   
-
   'GraphicsWindow.FontName = "Curtz MT"
-
   GraphicsWindow.FontName = "Times New Roman"
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.DrawText(300, 10, "How to play the piano")
-
   
-
   GraphicsWindow.FontSize = 14
-
   GraphicsWindow.DrawText(10, 40, "Mehtod 1: Click the keys on the piano.")
-
   GraphicsWindow.DrawText(10, 60, "Method 2: Use a keyboard (QWERTY keyboards will provide the best user experience):")
-
   GraphicsWindow.DrawText(83, 80, "1. This porgram will response only to alphabetic keys.")
-
   GraphicsWindow.DrawText(83, 100, "2. Click the buttons labelled as '1', '2' ... '7' to select the base Octave.")
-
   GraphicsWindow.DrawText(100, 120, "The key 'J' is the start of the base Octave. For example, if you have clicked the button '5', then")
-
   GraphicsWindow.DrawText(120, 140, "J represents the note 'C' in the fifth Octave.")
-
   GraphicsWindow.DrawText(120, 160, "K represents the note 'C#' in the fifth Octave.")
-
   GraphicsWindow.DrawText(120, 180, "L represents the note 'D' in the fifth Octave.")
-
   GraphicsWindow.DrawText(120, 200, "Q represents the note 'D#' in the fifth Octave, and so on.")
-
   GraphicsWindow.DrawText(100, 220, "Moving away from 'J' in the opposite direction, we have")
-
   GraphicsWindow.DrawText(120, 240, "H represents the note 'B' in the fourth Octave.")
-
   GraphicsWindow.DrawText(120, 260, "G represents the note 'A#' in the fourth Octave, and so on.")
-
   
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.DrawText(10, 300, "To adjust the beats per minute, one can type a number and then press the 'Enter' button.")
-
   
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.DrawText(10, 340, "To save the music you have played:")
-
   GraphicsWindow.FontSize = 14
-
   GraphicsWindow.DrawText(20, 360, "1. Click the 'Save' button.")
-
   GraphicsWindow.DrawText(20, 380, "2. Type a name for the file you want to save to.")
-
   
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.DrawText(10, 420, "To play the music that stored in files that used our Music Markup Language:")
-
   GraphicsWindow.FontSize = 14
-
   GraphicsWindow.DrawText(20, 440, "1. Click the 'Open' button.")
-
   GraphicsWindow.DrawText(20, 460, "2. Type the name of the music file you want to play.")
-
   
-
   GraphicsWindow.DrawText(10, 500, "To adjust the length of the default notes, one can select a button from buttons 'L/64' to 'Whole note'.")
-
   butExitHelp = Controls.AddButton("Exit", 370, 540)
-
   GraphicsWindow.ShowMessage("The right most key on the piano play the wrong note 'C7'. The correct note is 'C8'", "Warning")'
-
 EndSub
-
-
 
 Sub storeMusicScore
-
 ' The following line could be harmful and has been automatically commented.
-
 '   If File.WriteLine(fileNameSave, 1, musicString) = "SUCCESS" Then
-
 ' The following line could be harmful and has been automatically commented.
-
 '     If File.WriteLine(fileNameSave, 2, keyString) = "SUCCESS" Then
-
       GraphicsWindow.ShowMessage("The played music has been saved to '" + fileNameSave + "'.", "Success")
-
     Else
-
       GraphicsWindow.ShowMessage("Cannot save to '" + fileNameSave + ". You have to change the name of the target folder or the target file.", "Error")
-
     EndIf
-
   Else
-
     GraphicsWindow.ShowMessage("Cannot save to '" + fileNameSave + ". You have to change the name of the target folder or the target file.", "Error")
-
   EndIf
-
 EndSub
-
-
 
 Sub returnMain
-
   GraphicsWindow.Clear()
-
   animationTime = 0
-
   animationSpeed = 0
-
   UI()
-
   Shapes.SetOpacity(finger[1], 20)
-
   Shapes.SetOpacity(finger[2], 80)
-
 EndSub
-
-
 
 Sub setupOtherForms
-
   formWidth  = 800
-
   formHeight = 600
-
   GraphicsWindow.Width  = formWidth
-
   GraphicsWindow.Height = formHeight
-
   GraphicsWindow.Left = (Desktop.Width - formWidth) / 2
-
   GraphicsWindow.Top  = (Desktop.Height - formHeight) / 2
-
   GraphicsWindow.CanResize = "False"
-
   GraphicsWindow.DrawImage(Program.Directory + "\Garden.jpg", 0, 0)
-
 EndSub
-
-
 
 'Sub removeMain
-
 '  Shapes.Remove(butOpen)
-
 '  Shapes.Remove(butSave)
-
 '  Shapes.Remove(butHelp)
-
 '  Shapes.Remove(line)
-
 '  Shapes.Remove(butStaccato)
-
 '  Shapes.Remove(butNormal)
-
 '  Shapes.Remove(butLegato)
-
 '  Shapes.Remove(txtBeatsPerMinute)
-
 '  Shapes.Remove(butEnter)
-
 '  Shapes.Remove(butO1)
-
 '  Shapes.Remove(butO2)
-
 '  Shapes.Remove(butO3)
-
 '  Shapes.Remove(butO4)
-
 '  Shapes.Remove(butO5)
-
 '  Shapes.Remove(butO6)
-
 '  Shapes.Remove(butO7)
-
 '  Shapes.Remove(butL1)
-
 '  Shapes.Remove(butL4_3)
-
 '  Shapes.Remove(butL2)
-
 '  Shapes.Remove(butL4)
-
 '  Shapes.Remove(butL8)
-
 '  Shapes.Remove(butL16)
-
 '  Shapes.Remove(butL32)
-
 '  Shapes.Remove(butL64)
-
 '  Shapes.Remove(imgPiano)
-
 '  Shapes.Remove(lblBeatsPerMinute)
-
 '  Shapes.Remove(lblCopyright)
-
 '  Shapes.Remove(lblHeading)
-
 '  Shapes.Remove(lblOctave)
-
 '  Shapes.Remove(finger[1])
-
 '  Shapes.Remove(finger[2])
-
 'EndSub
 
-
-
 Sub drawHeading
-
   GraphicsWindow.FontSize = 48
-
   GraphicsWindow.FontName = "Script MT Bold"
-
   'GraphicsWindow.FontSize = 36
-
   'GraphicsWindow.FontName = "Castellar"
-
   'GraphicsWindow.FontName = "Edwardian Script ITC"
-
   GraphicsWindow.BrushColor = "#000000"
-
   lblHeading = Shapes.AddText("Patrick's Piano")
-
   Shapes.Animate(lblHeading, formWidth/2.8, 15, animationTime*0.5)
-
   Program.Delay(animationTime*0.5)
-
 EndSub
-
-
 
 Sub setupGW
-
   If isWelcome = "yes" Then 'This is required to fix the bug that the keyboard becomes no function after visiting other forms
-
     GraphicsWindow.Hide()
-
   EndIf
-
   GraphicsWindow.Title = "Patrick's Piano (version 0.70)"
-
   formWidth  = 1020
-
   formHeight = 700
-
   GraphicsWindow.Width  = formWidth
-
   GraphicsWindow.Height = formHeight
-
   GraphicsWindow.Left = (Desktop.Width - formWidth) / 2
-
   GraphicsWindow.Top  = 0 '(Desktop.Height - formHeight) / 2
-
   GraphicsWindow.CanResize = "False"
-
   'If I use Shapes.AddImage, then the background image will NOT zoom correctly after visiting other forms
-
   'bgImage1 = Shapes.AddImage(Program.Directory + "\Garden.jpg")
-
   GraphicsWindow.DrawResizedImage(Program.Directory + "\Garden.jpg", 0, 0, formWidth, formHeight)
-
   'bgImage2 = Shapes.AddImage(Program.Directory + "\piano.jpg")
-
   'Shapes.SetOpacity(bgImage2, 5)
-
   If isWelcome = "yes" Then 'This is required to fix the bug that the keyboard becomes no function after visiting other forms
-
     GraphicsWindow.Show()
-
   EndIf
-
 EndSub
-
     
-
-

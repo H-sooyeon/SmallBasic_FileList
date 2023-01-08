@@ -1,333 +1,166 @@
 include = "//include "
-
 isub = "//sub "
-
 includeLen = Text.GetLength(include)
-
 isublen = Text.GetLength(isub)
-
 fn = ""
-
 lf = Text.Append(Text.GetCharacter(13), Text.GetCharacter(10))
-
 lines = ""
-
 includes = ""
 
-
-
 ln = 1
-
 myFile = ""
-
 While myFile = ""
-
   TextWindow.Write("Enter the name of the file to be converted: ")
-
   fn = TextWindow.Read()
-
 ' The following line could be harmful and has been automatically commented.
-
 '   myFile = File.ReadContents(fn)
-
   If myFile = "" Then
-
     TextWindow.WriteLine("")
-
     TextWindow.WriteLine("Could not get data from file.")
-
     TextWindow.WriteLine("Check path and filename and try again")
-
   EndIf 
-
 EndWhile
-
-
 
 ln = 0
-
 cnt = 0
-
 While cnt=0
-
   ind = text.GetIndexOf(myFile, lf) - 1
-
   '  TextWindow.WriteLine(myFile + " - " + ind)
-
   If ind > 0 Then
-
     ln = ln + 1
-
     lines[ln] = text.GetSubText(myFile, 1, ind)
-
     myFile = Text.GetSubTextToEnd(myFile, ind + 3)
-
   Else
-
     cnt = 1
-
   EndIf
-
 EndWhile
-
 ln = ln + 1
-
 lines[ln] = myFile
-
 ln = ln +1
-
 lines[ln] = " "
 
 
-
-
-
 incln = 0
-
 errno = 0
-
 If Text.GetIndexOf(lines, include) > 0 Then
-
   For i = 1 To ln
-
     loc = Text.GetIndexOf(lines[i], include)
-
     If loc > 0 Then
-
       loc = loc + includeLen
-
       path = Text.GetSubTextToEnd(lines[i], loc)
-
 ' The following line could be harmful and has been automatically commented.
-
 '       incfile = File.ReadContents(path)
-
       If incfile = "" then
-
         errno = errno + 1
-
         errors[errno] = Text.Append("Error - Include file empty or not found: ", path)
-
       Else
-
         While Text.GetLength(incfile) > 2
-
           ln = ln + 1
-
           ind = text.GetIndexOf(incfile, lf) - 1
-
           lines[ln] = text.GetSubText(incfile, 1, ind)
-
           incfile = Text.GetSubTextToEnd(incfile, ind + 3)
-
         EndWhile
-
         If Text.GetLength(incfile) > 0 then
-
           ln = ln + 1
-
           lines[ln] = incfile
-
         EndIf
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndIf
-
-
 
 If Text.GetIndexOf(lines, isub) > 0 Then
-
   nl = 0
-
   For i = ln To 1 Step -1
-
     loc = Text.GetIndexOf(lines[i], isub)
-
     If loc > 0 Then
-
       tmp = lines[i]
-
       loc = loc + isublen
-
       tmp = Text.GetSubTextToEnd(tmp, loc)
-
       While Text.StartsWith(tmp, " ") = "True"
-
         tmp = Text.GetSubTextToEnd(tmp, 2)
-
       EndWhile
-
       iind = Text.GetIndexOf(tmp, "=") - 1
-
       If iind > 0 then
-
         out = Text.GetSubText(tmp, 1, iind) + " = out"
-
         tmp = Text.GetSubTextToEnd(tmp, iind + 2)
-
       EndIf
-
       iind = Text.GetIndexOf(tmp, "(") - 1
-
       nsub = Text.GetSubText(tmp, 1, iind)
-
       tmp = Text.GetSubTextToEnd(tmp, iind+1)
-
       tmp2 = ""
-
       qut = -1 
-
       paren = 0
-
       argcnt = 0
-
       ch = ""
-
       lp = 0
-
       While ((paren > 0) Or (lp=0)) 
-
         ch = Text.GetSubText(tmp, 1, 1)
-
         tmp = Text.GetSubTextToEnd(tmp, 2)
-
         If (ch = "(") And (qut=-1) then
-
           paren = paren + 1
-
           If paren = 1 Then
-
             ch = ""
-
           EndIf
-
         EndIf
-
         
-
         If (ch = ")") And (qut=-1)  then
-
           paren = paren - 1
-
           If paren = 0 then
-
             ch = ""
-
             lp = 1
-
           endif
-
         endif
-
         
-
         If (ch = ",") And (qut=-1) And (paren<2) then
-
           argcnt = argcnt + 1
-
           mln[argcnt] = "arg" + argcnt + " = " + tmp2
-
           tmp2 = ""
-
           ch = ""
-
         EndIf
-
         
-
         If (ch = Text.GetCharacter(34)) then' 34 is double quote
-
           qut = qut * -1
-
         endif
-
         
-
         tmp2 = Text.Append(tmp2, ch)
-
       EndWhile
-
       If tmp2 <> "" then
-
         argcnt = argcnt + 1
-
         mln[argcnt] = "arg" + argcnt + " = " + tmp2
-
       EndIf
-
       argcnt = argcnt + 1
-
       mln[argcnt] = nsub + "()"
-
       argcnt = argcnt + 1
-
       mln[argcnt] = out' + " = output"
-
       out = ""
-
       '      lines[ln] = mln
-
       For xc = argcnt To 1 Step -1
-
         Stack.PushValue(1, mln[xc])
-
       EndFor
-
     Else
-
       Stack.PushValue(1, lines[i])
-
     EndIf
-
   EndFor
-
 Else
-
   errno = errno + 1
-
   errors[errno] = "Warning: No references to Subroutines found."
-
 EndIf
 
-
-
 TextWindow.WriteLine(" ")
-
 For i = 1 To errno
-
   TextWindow.WriteLine(errors[i])
-
 EndFor
 
-
-
 endfile = ""
-
 TextWindow.WriteLine("Enter name of new file: " )
-
 path = TextWindow.Read()
-
 While Stack.GetCount(1) > 0 
-
   endfile = endfile + Stack.PopValue(1) + lf
-
 EndWhile
 
-
-
 ' The following line could be harmful and has been automatically commented.
-
 ' File.WriteContents(path, endfile)
-
 'For i = 1 To ln
-
 '  TextWindow.WriteLine(lines[i])
-
 'EndFor
-
-

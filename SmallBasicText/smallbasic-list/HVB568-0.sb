@@ -1,337 +1,168 @@
 running = "True"
-
 While (running)
-
   TextWindow.Clear()
-
   TextWindow.ForegroundColor = "Yellow"
-
   TextWindow.WriteLine("Exmples:")
-
   TextWindow.ForegroundColor = "cyan"
-
   TextWindow.WriteLine("4+3-2")
-
   TextWindow.WriteLine("-12.8/4")
-
   TextWindow.WriteLine("8-2*7.5")
-
   TextWindow.WriteLine("(4+2)*9")
-
   TextWindow.WriteLine("(4+3)^2+1")
-
   TextWindow.WriteLine("")
-
   TextWindow.ForegroundColor = "Yellow"
-
   TextWindow.WriteLine("Enter a sum")
-
   TextWindow.WriteLine("")
-
   TextWindow.ForegroundColor = "Green"
-
   input = TextWindow.Read()
-
   If (input = "") Then
-
     running = "False"
-
   EndIf
-
   errors = ""
-
   PreParse()
-
   Parse()
-
   TextWindow.WriteLine("")
-
   TextWindow.ForegroundColor = "magenta"
-
   TextWindow.Write("Result = ")
-
   TextWindow.ForegroundColor = "white"
-
   If (errors = "") Then
-
     TextWindow.WriteLine(result)
-
   Else
-
     TextWindow.WriteLine(errors)
-
   EndIf
-
   TextWindow.WriteLine("")
-
   TextWindow.ForegroundColor = "Yellow"
-
   TextWindow.Pause()
-
 EndWhile
-
 Program.End()
 
-
-
 Sub PreParse 'Handle brackets
-
   While (Text.IsSubText(input,"(") Or Text.IsSubText(input,")"))
-
     length = Text.GetLength(input)
-
     open = 0
-
     For i = 1 To length
-
       char = Text.GetSubText(input,i,1)
-
       If (char = "(") Then
-
         open = i
-
       ElseIf (char = ")") Then
-
         close = i
-
         If (open > 0) Then 'We have an open close () to parse
-
           preBracket = Text.GetSubText(input,1,open-1)
-
           postBracket = Text.GetSubTextToEnd(input,close+1)
-
           input = Text.GetSubText(input,open+1,close-open-1)
-
           Parse()
-
           input = Text.Append(preBracket,Text.Append(result,postBracket))
-
           open = 0
-
         Else
-
           errors = errors+" # Badly formed ) # "
-
           input = ""
-
         EndIf
-
       EndIf
-
     EndFor
-
     If (open > 0) Then
-
       errors = errors+" # Badly formed ( # "
-
       input = ""
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 Sub Parse 'Parse input with no brackets
-
   parts = ""
-
   partType = ""
-
   numPart = 0
-
   
-
   length = Text.GetLength(input)
-
   For i = 1 To length
-
     char = Text.GetSubText(input,i,1)
-
     If (char = "-" And partType[numPart] <> "number") Then 'A new Number starting with -
-
       numPart = numPart+1
-
       partType[numPart] = "number"
-
       parts[numPart] = Text.Append(parts[numPart],char)
-
     ElseIf (char = "." And partType[numPart] = "number") Then 'A decimal point within a number
-
       parts[numPart] = Text.Append(parts[numPart],char)
-
     ElseIf (char+0 = char) Then 'A Number
-
       If (partType[numPart] <> "number") Then
-
         numPart = numPart+1
-
         partType[numPart] = "number"
-
       EndIf
-
       parts[numPart] = Text.Append(parts[numPart],char)
-
     ElseIf (char = "^") Then 'Operator precedence 1 (do first)
-
       If (partType[numPart] = "number") Then
-
         numPart = numPart+1
-
         partType[numPart] = "power"
-
         parts[numPart] = char
-
       EndIf
-
     ElseIf (char = "*" Or char = "/") Then 'Operator precedence 2 (do second)
-
       If (partType[numPart] = "number") Then
-
         numPart = numPart+1
-
         partType[numPart] = "mult"
-
         parts[numPart] = char
-
       EndIf
-
     ElseIf (char = "+" Or char = "-") Then 'Operator precedence 3 (do third)
-
       If (partType[numPart] = "number") Then
-
         numPart = numPart+1
-
         partType[numPart] = "add"
-
         parts[numPart] = char
-
       EndIf
-
     Else
-
       errors = errors+" # Unknown character "+char+" # "
-
     EndIf    
-
   EndFor
-
   
-
   result = ""  
-
   'Do ^
-
   operator = "power"
-
   DoSum()
-
   'Do * /
-
   operator = "mult"
-
   DoSum()
-
   'Do + -
-
   operator = "add"
-
   DoSum()
-
   indices = Array.GetAllIndices(parts)
-
   If (errors = "") Then
-
     If (Array.GetItemCount(indices) = 1) Then
-
       result = parts[indices[1]]
-
     Else
-
       errors = errors+" # Unknown Error # "
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub DoSum
-
   indices = Array.GetAllIndices(parts)
-
   numPart = Array.GetItemCount(indices)
-
   For i = 1 To numPart
-
     iPrev = indices[i-1]
-
     iCur = indices[i]
-
     iNext = indices[i+1]
-
     If (partType[iCur] = operator) Then
-
       'Put result in iNext and clear iPrev and iCur so we can do the next sum
-
       If (partType[iPrev] = "number" And partType[iNext] = "number") Then
-
         If (parts[iCur] = "^") Then
-
           If (parts[iPrev] < 0 And Math.Floor(parts[iNext]) <> parts[iNext]) Then
-
             errors = errors+" # Cannot do "+parts[iPrev]+" ^ "+parts[iNext]+" # "
-
           Else
-
             parts[iNext] = Math.Power(parts[iPrev],parts[iNext])
-
           EndIf
-
         ElseIf (parts[iCur] = "*") Then
-
           parts[iNext] = parts[iPrev]*parts[iNext]
-
         ElseIf (parts[iCur] = "/") Then
-
           If (parts[iNext] = 0) Then
-
             errors = errors+" # Cannot do "+parts[iPrev]+" / "+parts[iNext]+" # "
-
           Else
-
             parts[iNext] = parts[iPrev]/parts[iNext]
-
           EndIf
-
         ElseIf (parts[iCur] = "+") Then
-
           parts[iNext] = parts[iPrev]+parts[iNext]
-
         ElseIf (parts[iCur] = "-") Then
-
           parts[iNext] = parts[iPrev]-parts[iNext]
-
         EndIf
-
         parts[iPrev] = ""
-
         parts[iCur] = ""
-
         partType[iPrev] = ""
-
         partType[iCur] = ""
-
       EndIf
-
     EndIf
-
   EndFor  
-
 EndSub
-
-

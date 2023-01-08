@@ -1,899 +1,449 @@
 depth = 4
-
 gw = 640
-
 gh = 480
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.Title = "Connect Four 0.8"
-
 dx = 90
-
 dy = 80
-
 Not = "True=False;False=True;"
-
 InitDisks()
-
 InitBoard()
-
 InitRing()
-
 InitFour()
-
 GraphicsWindow.BackgroundColor ="darkblue"
-
 While "True"
-
   
-
   rec = ""
-
   i = 0
-
   inGame = "True" ' game start
-
   clicked = "False"
-
   GraphicsWindow.MouseDown = OnMouseDown
-
   While inGame
-
     
-
     AI()
-
     If inGame Then
-
       
-
       Human()
-
     EndIf
-
     If inGame And (42 <= i) Then
-
       player = 0
-
       inGame = "False"
-
     EndIf
-
   EndWhile
-
   ShowResult()
-
   ' game reset
-
   Shapes.HideShape(ring)
-
   For i = 1 To 42
-
     board[i] = 0
-
     Shapes.Move(disk[i], 0, -100)
-
   EndFor
-
 EndWhile
-
 Sub AI
-
   succeed = "False"
-
   While Not[succeed]
-
     i = i + 1
-
     CalcTurn()
-
     level = depth
-
     MiniMax()
-
     If succeed Then
-
       DropDisk()
-
       AnimateDisk()
-
     Else
-
       i = i - 1
-
       CalcTurn()
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub MiniMax
-
   ' return max
-
   max = -1
-
   once = "False"  ' once succeed
-
   For col = 1 To 7
-
     
-
     Stack.PushValue("stack", board)
-
     Stack.PushValue("stack", rec)
-
     DropDisk()
-
     'DumpBoard()
-
     If succeed And inGame Then
-
       level = level - 1             ' in game
-
       If level = 0 And max < 0 Then ' deepest level
-
         Evaluate()
-
         If max < score Then 
-
           max = score
-
           maxcol = col
-
           
-
         EndIf
-
       ElseIf 0 < level Then         ' middle level
-
         Stack.PushValue("stack", col)
-
         Stack.PushValue("stack", max)
-
         Stack.PushValue("stack", maxcol)
-
         Stack.PushValue("stack", cell)
-
         Stack.PushValue("stack", succeed)
-
         Stack.PushValue("stack", once)
-
         i = i + 1
-
         CalcTurn()
-
         MiniMax()
-
         i = i - 1
-
         CalcTurn()
-
         child = -max
-
         once = Stack.PopValue("stack")
-
         succeed = Stack.PopValue("stack")
-
         cell = Stack.PopValue("stack")
-
         maxcol = Stack.PopValue("stack")
-
         max = Stack.PopValue("stack")
-
         col = Stack.PopValue("stack")
-
         If max < child Then
-
           max = child
-
           maxcol = col
-
           once = "True"
-
           
-
         EndIf
-
         Evaluate()
-
         
-
         If max < score Then 
-
           max = score
-
           maxcol = col
-
           once = "True"
-
           
-
         EndIf
-
       EndIf
-
       level = level + 1
-
       If Not[once] Then
-
         maxcol = col
-
         once = "True"
-
       EndIf
-
     ElseIf succeed Then               ' game end
-
       If player = 0 And max < 0 Then  ' draw
-
         max = 0
-
         maxcol = col
-
         once = "True"
-
         
-
       ElseIf max < 1 Then           ' win
-
         max = 1
-
         maxcol = col
-
         once = "True"
-
         
-
       EndIf
-
       If Not[once] Then
-
         maxcol = col
-
         once = "True"
-
       EndIf
-
     EndIf
-
     rec = Stack.PopValue("stack")
-
     board = Stack.PopValue("stack")
-
   EndFor
-
   If once Then
-
     succeed = "True"
-
   EndIf
-
   col = maxcol
-
   
-
 EndSub
-
-
 
 Sub CalcTurn  ' param i - number of moves
-
   turn = Math.Remainder(i - 1, 2) + 1
-
 EndSub
-
-
 
 Sub Evaluate
-
   
-
   Stopped()
-
   score = 0.1 * stopped2 + 0.2 * stopped3 + 0.05 * list[cell]["n"]
-
   If 7 < cell Then
-
     Assisted()
-
     score = score - 0.5 * assist
-
   EndIf
-
   If 1 < score Then
-
     score = 1
-
   EndIf
-
   
-
 EndSub
-
 Sub Assisted
-
   ' param board[] - board of connect four
-
   ' param cell - last move
-
   ' param turn - current player
-
   ' return assist - 1 if assisted
-
   upper = cell - 7 ' upper cell
-
   enemy = 3 - turn
-
   assist = 0
-
   For n = 1 To list[upper]["n"]
-
     count = 0
-
     For c = 1 To 4
-
       If board[four[list[upper][n]][c]] = enemy Then
-
         count = count + 1
-
       EndIf
-
     EndFor
-
     If count = 3 Then
-
       assist = 1
-
       Goto break4
-
     EndIf
-
   EndFor
-
   break4:
-
 EndSub
-
-
 
 Sub Stopped
-
   
-
   stopped2 = 0
-
   stopped3 = 0
-
   enemy = 3 - turn
-
   empty = 0
-
   
-
   For n = 1 To list[cell]["n"]
-
     c1 = four[list[cell][n]][1]
-
     c4 = four[list[cell][n]][4]
-
     
-
     If c1 = cell Then
-
       c2 = four[list[cell][n]][2]
-
       c3 = four[list[cell][n]][3]
-
       
-
       If (board[c2] = enemy) And (board[c3] = enemy) And (board[c4] <> turn) Then
-
         If board[c4] = enemy Then
-
           stopped3 = stopped3 + 1
-
         ElseIf board[c4] = empty Then
-
           stopped2 = stopped2 + 1
-
         EndIf
-
       EndIf
-
     ElseIf c4 = cell Then
-
       c2 = four[list[cell][n]][2]
-
       c3 = four[list[cell][n]][3]
-
       
-
       If (board[c2] = enemy) And (board[c3] = enemy) And (board[c1] <> turn) Then
-
         If board[c1] = enemy Then
-
           stopped3 = stopped3 + 1
-
         ElseIf board[c1] = empty Then
-
           stopped2 = stopped2 + 1
-
         EndIf
-
       EndIf
-
     EndIf
-
     
-
   EndFor
-
 EndSub
-
-
 
 Sub Human
-
   succeed = "False"
-
   While Not[succeed]
-
     clicked = "False"
-
     While Not[clicked]
-
       Program.Delay(100)
-
     EndWhile
-
     If (0 <= my) And (my <= gh) And (0 <= mx) Then
-
       For col = 1 To 7
-
         If mx <= cx[col] Then
-
           i = i + 1
-
           CalcTurn()
-
           DropDisk()
-
           If succeed Then
-
             AnimateDisk()
-
           EndIf
-
           Goto break3
-
         EndIf
-
       EndFor
-
       break3:
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   clicked = "True"
-
 EndSub
-
-
 
 Sub InitDisks
-
   color = "0=Green;1=Gold;2=Red;"
-
   
-
   GraphicsWindow.PenWidth = 0
-
   For i = 1 To 42
-
     GraphicsWindow.BrushColor = color[Math.Remainder(i - 1, 2) + 1]
-
     disk[i] = Shapes.AddEllipse(dy, dy)
-
     Shapes.Move(disk[i], 0, -100)
-
   EndFor
-
 EndSub
-
-
 
 Sub InitBoard
-
   For i = 1 To 42
-
     board[i] = 0  ' empty
-
   EndFor
-
   For col = 1 To 7
-
     cx[col] = col * dx + 5
-
   EndFor
-
   url = "http://www.nonkit.com/smallbasic.files/Connect4Board.png"
-
   Shapes.AddImage(url)
-
 EndSub
-
-
 
 Sub InitRing
-
   GraphicsWindow.PenWidth = 10
-
   GraphicsWindow.PenColor = "LightGray"
-
   GraphicsWindow.BrushColor = "#00000000" ' transparent
-
   ring = Shapes.AddEllipse(dy, dy)  ' to show last move
-
   Shapes.SetOpacity(ring, 50)
-
   Shapes.HideShape(ring)
-
 EndSub
-
-
 
 Sub InitFour
-
   InitCheckList()
-
   nFour = 0
-
   For row = 1 To 6  ' horizontal
-
     For col = 1 To 4
-
       nFour = nFour + 1
-
       four[nFour][1] = (row - 1) * 7 + col
-
       four[nFour][2] = (row - 1) * 7 + col + 1
-
       four[nFour][3] = (row - 1) * 7 + col + 2
-
       four[nFour][4] = (row - 1) * 7 + col + 3
-
       AddCheckList()
-
     EndFor
-
   EndFor
-
   For row = 1 To 3  ' vertical
-
     For col = 1 To 7
-
       nFour = nFour + 1
-
       four[nFour][1] = (row - 1) * 7 + col
-
       four[nFour][2] = row * 7 + col
-
       four[nFour][3] = (row + 1) * 7 + col
-
       four[nFour][4] = (row + 2) * 7 + col
-
       AddCheckList()
-
     EndFor
-
   EndFor
-
   For row = 1 To 3  ' diagnostic \
-
     For col = 1 To 4
-
       nFour = nFour + 1
-
       four[nFour][1] = (row - 1) * 7 + col
-
       four[nFour][2] = row * 7 + col + 1
-
       four[nFour][3] = (row + 1) * 7 + col + 2
-
       four[nFour][4] = (row + 2) * 7 + col + 3
-
       AddCheckList()
-
     EndFor
-
   EndFor
-
   For row = 1 To 3  ' diagnostic /
-
     For col = 4 To 7
-
       nFour = nFour + 1
-
       four[nFour][1] = (row - 1) * 7 + col
-
       four[nFour][2] = row * 7 + col - 1
-
       four[nFour][3] = (row + 1) * 7 + col - 2
-
       four[nFour][4] = (row + 2) * 7 + col - 3
-
       AddCheckList()
-
     EndFor
-
   EndFor
-
 EndSub
-
-
-
 
 
 Sub InitCheckList
-
   For i = 1 To 42
-
     list[i]["n"] = 0
-
   EndFor
-
 EndSub
-
-
 
 Sub AddCheckList
-
   ' param nFour - entry index of four
-
   For i = 1 To 4
-
     cell = four[nFour][i]
-
     n = list[cell]["n"] + 1
-
     list[cell][n] = nFour
-
     list[cell]["n"] = n
-
   EndFor 
-
 EndSub
-
-
 
 Sub DropDisk
-
   succeed = "False"
-
   For row = 6 To 1 Step -1
-
     cell = (row - 1) * 7 + col
-
     If board[cell] = 0 Then
-
       board[cell] = Math.Remainder(i - 1, 2) + 1
-
       succeed = "True"
-
       Rec_Rec()
-
       CheckFour()
-
       Goto break
-
     EndIf
-
   EndFor
-
   break:
-
 EndSub
-
-
 
 Sub Rec_Rec
-
   ' param i - disk index
-
   ' param col - column number 1..7
-
   rec[i] = col
-
 EndSub
-
-
 
 Sub AnimateDisk
-
   ' param i - disk index
-
   ' param col - column number 1..7
-
   ' param row - row number 1..6
-
   x = (col - 1) * dx + 10
-
   ms = 500
-
   Shapes.Move(disk[i], x, -100)
-
   y = (row - 1) * dy + 5
-
   Shapes.Animate(disk[i], x, y, ms)
-
   Program.Delay(ms)
-
   Shapes.HideShape(ring)
-
   Shapes.Move(ring, x, y - 5)
-
   Shapes.ShowShape(ring)
-
   Sound.PlayClickAndWait()
-
 EndSub
-
-
 
 Sub InitNumbers
-
   GraphicsWindow.BrushColor = "Blue"
-
   For i = 1 To 42
-
     col = Math.Remainder(i - 1, 7) + 1
-
     row = Math.Floor((i - 1) / 7) + 1
-
     x = (col - 1) * dx + 10
-
     y = (row - 1) * dy + 5
-
     num = Shapes.AddText(i)
-
     Shapes.Move(num, x, y)
-
   EndFor
-
 EndSub
-
-
 
 Sub CheckFour
-
   
-
   inGame = "True"
-
   n = list[cell]["n"]
-
   For f = 1 To n
-
     fi = list[cell][f]
-
     player = board[four[fi][1]]
-
     For d = 2 To 4
-
       If player <> board[four[fi][d]] Then
-
         Goto notFour
-
       EndIf
-
     EndFor
-
     inGame = "False"
-
     Goto break2
-
     notFour:
-
   EndFor
-
   break2:
-
 EndSub
-
-
 
 Sub ShowResult
-
   ' param player - winner (0 means draw)
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "Black"
-
   pw = 300
-
   ph = 200
-
  
-
  fs = 40
-
  ot= GraphicsWindow.Title
-
   If player <> 0 Then
-
     GraphicsWindow.PenWidth = 0
-
     GraphicsWindow.BrushColor = color[player]
-
     GraphicsWindow.Title =color[player]+" WON!"
-
     
-
   Else
-
     GraphicsWindow.FontSize = fs
-
     GraphicsWindow.BrushColor = "White"
-
     GraphicsWindow.Title ="Draw"
-
   EndIf
-
   
-
   GraphicsWindow.BrushColor = "Black"
-
   ok = Controls.AddButton("- NEW game -", gw/2 gh/2)
-
   LDShapes.AnimateZoom (ok 500 3 3 3)
-
   wait = "True"
-
   Sound.PlayChimes()
-
   Controls.ButtonClicked = OnButtonClicked
-
   
-
   While wait
-
     Program.Delay(5)
-
   EndWhile
-
   GraphicsWindow.Title =ot
-
   Controls.Remove(ok)
 
-
-
 EndSub
-
-
 
 Sub OnButtonClicked
-
   wait = "False"
-
 EndSub
-
-

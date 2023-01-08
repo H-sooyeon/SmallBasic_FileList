@@ -1,1851 +1,925 @@
 '----------------------------------------------------------------------------
-
 ' Conway's Game of Life (V2)
-
 ' An attempt at optimising/enhancing the original project.
-
 ' (N.Fawcett May-2015)
-
 '----------------------------------------------------------------------------
-
 ' Original version - http://smallbasic.com/program/?RVR167
-
 '----------------------------------------------------------------------------
-
 ' Definitions/controls
-
 size = 12           ' Size of cells
-
 dimension = 30      ' Default grid to 30 x 30
-
 WorkLoadBar = 1     ' Display workload bar regarding FPS
-
 DoClickSound = 0    ' Do click sounds
 
-
-
 ' Display intro description
-
 DoIntro()
 
-
-
 '  Display main window
-
 GraphicsWindow.Clear()
-
 GraphicsWindow.BackgroundColor = "white"
-
 GraphicsWindow.Title = "Conway`s Game of Life: Rules 23/3"
-
 GraphicsWindow.Show()
 
-
-
 ' Set variables
-
 SetVariables()
 
-
-
 ' Initial Display
-
 ClearBufferGrid()   ' Force initial grid to be drawn
-
 DrawUI()
-
 DrawGrid()
-
 DisplayI()
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.MouseUp = OnMouseUp
-
-
 
 MainLoop:
 
-
-
 If (start = 0) Then ' Can we start or are we paused?
-
   If (MouseDown) Then
-
     DoMouseDown()
-
   EndIf
-
   If (ButtonClicked) Then
-
     DoButtonClicked()
-
   EndIf
-
   If (NewDimension > 0) Then
-
     DoNewDimension()
-
   EndIf  
-
   Program.Delay(1)
-
   Goto MainLoop
-
 EndIf
-
-
 
 starttime = Clock.ElapsedMilliseconds
-
 Do_Life()         ' Do Life calculations
-
 DrawGrid()        ' Draw new life grid
-
 i = i + 1         ' Another generation done
-
 DisplayI()        ' Display generation and and cells counter from Do_Life
-
 DisplayFPS()      ' Display FPS and workload
 
-
-
 WaitLoop:         ' Come here while waiting for refresh time to be reached
-
 If (ButtonClicked) Then
-
   DoButtonClicked()
-
 Endif
-
 If (start = -1) Then  ' Step pressed?
-
   start = 0
-
   Goto MainLoop
-
 EndIf
-
 If (NewDimension > 0) Then
-
   DoNewDimension()
-
 EndIf  
-
 If ((Clock.ElapsedMilliseconds-StartTime) < fpsRate) Then
-
   Program.Delay(1)
-
   Goto WaitLoop
-
 EndIf
-
-
 
 Goto MainLoop
 
-
-
 ' Default  variables
-
 Sub SetVariables
-
   fpsButton = 3
-
   fpsDelay[1] = 1000  ' 1 fps
-
   fpsDelay[2] = 500   ' 2 fps
-
   fpsDelay[3] = 250   ' 4 fps
-
   fpsDelay[4] = 100   ' 10 fps
-
   fpsDelay[5] = 50    ' 20 fps
-
   CalcFPSRate()       ' Calc delay for FPS
-
   sizem1 = size - 1   ' Size of cells-1 (used for cell size)
-
   start = 0           ' Not started
-
   i = 0               ' No generations
-
   cells = 0           ' No cells
-
   ButtonClicked = "False" ' No button clicked
-
   MouseDown = "False" ' Mouse button not down
-
 EndSub
-
-
 
 ' Redraw Life Grid
-
 Sub DrawGrid
-
   change = 0                  ' Assume nothing will change
-
   For x = 0 To dimension-1
-
     x_size = x * size + size         ' Work out once and reuse below
-
     xd = x*dimension
-
     For y = 1 To dimension
-
       gridval = Array.GetValue("grid", xd+y)
-
       If (gridval <> Array.GetValue("buff", xd+y)) Then
-
         change = 1  ' Flag a change
-
         If (gridval = 1) Then
-
           GraphicsWindow.BrushColor = "darkblue"
-
         Else
-
           GraphicsWindow.BrushColor = "lightgray"
-
         EndIf  
-
         GraphicsWindow.FillRectangle(x_size, y * size, sizem1, sizem1)
-
       Endif
-
     EndFor
-
   EndFor
-
-
 
   If (change = 0) Then    ' No change?
-
     If (start = 1) Then   ' In normal run?
-
       start = 0           ' Stop run as no change happening
-
       DoStartButton()     ' Reflect no longer Start
-
       i = i - 1           ' Reflect last generation was the last one
-
       DisplayI()
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 ' Do Life calculations
-
 Sub Do_Life
-
   For x = 0 To dimension-1    ' Copy grid to buffer for work
-
     xd = x*dimension
-
     For y = 1 To dimension
-
       Array.SetValue("buff",xd+y,Array.GetValue("grid",xd+y))
-
     EndFor
-
   EndFor
-
   
-
   cells = 0
 
-
-
   For x = 0 To dimension-1
-
     xd = x*dimension
-
     For y = 1 To dimension
-
       Neighbours = 0
-
       If (y > 1) Then
-
         If (Array.GetValue("buff",xd-dimension+y-1) = 1) Then
-
           Neighbours = Neighbours + 1
-
         EndIf
-
         If (Array.GetValue("buff",xd+y-1) = 1) Then
-
           Neighbours = Neighbours + 1
-
         EndIf
-
         If (Array.GetValue("buff",xd+dimension+y-1)= 1) Then
-
           Neighbours = Neighbours + 1
-
         EndIf
-
       EndIf
-
       If (y < dimension) Then
-
         If (Array.GetValue("buff",xd-dimension+y+1) = 1) Then
-
           Neighbours = Neighbours + 1
-
         EndIf
-
         If (Array.GetValue("buff",xd+dimension+y+1) = 1) Then
-
           Neighbours = Neighbours + 1
-
         EndIf
-
         If (Array.GetValue("buff",xd+y+1) = 1) Then
-
           Neighbours = Neighbours + 1
-
         EndIf
-
       EndIf
-
       
-
       If (Array.GetValue("buff",xd-dimension+y) = 1) Then
-
         Neighbours = Neighbours + 1
-
       EndIf
-
       If (Array.GetValue("buff",xd+dimension+y) = 1) Then
-
         Neighbours = Neighbours + 1
-
       EndIf
-
-
 
       If (Array.GetValue("buff",xd+y) = 1) Then
-
         If (Neighbours = 3 or Neighbours = 2) Then
-
           Array.SetValue("grid",xd+y,1)
-
           cells = cells + 1
-
         Else
-
           Array.SetValue("grid",xd+y,0)
-
         EndIf
-
       Else
-
         If (Neighbours = 3) Then
-
           Array.SetValue("grid",xd+y,1)
-
           cells = cells + 1
-
         Else
-
           Array.SetValue("grid",xd+y,0)
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 ' Draw screen
-
 Sub DrawUI
-
   hdimension = dimension * size + size*2
-
   If (hdimension < 317) Then
-
     hdimension = 317
-
   EndIf
-
   
-
   Xpos = dimension * size + size*2 + 7
-
   i_Xpos = Xpos + 64    ' Used in DisplayI
 
-
-
   GraphicsWindow.Width = dimension * size + size*2 + 166
-
   GraphicsWindow.Height = hdimension
-
   GraphicsWindow.FontName="Arial"
 
-
-
   ' Speed buttons
-
   GraphicsWindow.BrushColor = "green"
-
   GraphicsWindow.FontSize = 9
-
   buttonSpeed1 = Controls.AddButton("1", Xpos, 132)
-
   Controls.SetSize(buttonSpeed1, 29, 22)
-
   buttonSpeed2 = Controls.AddButton("2", Xpos + 31, 132)
-
   Controls.SetSize(buttonSpeed2, 29, 22)
-
   buttonSpeed3 = Controls.AddButton("4", Xpos + 62, 132)
-
   Controls.SetSize(buttonSpeed3, 29, 22)
-
   buttonSpeed4 = Controls.AddButton("10", Xpos + 93, 132)
-
   Controls.SetSize(buttonSpeed4, 29, 22)
-
   buttonSpeed5 = Controls.AddButton("20", Xpos + 124, 132)
-
   Controls.SetSize(buttonSpeed5, 29, 22)
-
   graphicswindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "green"
-
   FPS = Shapes.AddTriangle(Xpos + 77, 156, Xpos + 74, 162, Xpos + 80, 162)
-
   DoFPSPointer()
-
   
-
   ' Preset Buttons
-
   GraphicsWindow.BrushColor = "black"
-
   buttonRandom = Controls.AddButton("Random", Xpos, 184)
-
   Controls.SetSize(buttonRandom, 75, 24)
-
   buttonPento = Controls.AddButton("f-Pentom", Xpos + 78, 184)
-
   Controls.SetSize(buttonPento, 75, 24)
-
   buttonGlider1 = Controls.AddButton("Glider1", Xpos, 210)
-
   Controls.SetSize(buttonGlider1, 75, 24)
-
   buttonExploder1 = Controls.AddButton("Exploder1", Xpos + 78, 210)
-
   Controls.SetSize(buttonExploder1, 75, 24)
-
   buttonGlider2 = Controls.AddButton("Glider2", Xpos, 236)
-
   Controls.SetSize(buttonGlider2, 75, 24)
-
   buttonExploder2 = Controls.AddButton("Exploder2", Xpos + 78, 236)
-
   Controls.SetSize(buttonExploder2, 75, 24)
-
   buttonButterfly = Controls.AddButton("Butterfly", Xpos, 262)
-
   Controls.SetSize(buttonButterfly, 75, 24)
-
   buttonRelay = Controls.AddButton("Relay", Xpos + 78, 262)
-
   Controls.SetSize(buttonRelay, 75, 24)
-
   button54Gen = Controls.AddButton("54 Gen", Xpos, 288)
-
   Controls.SetSize(button54Gen, 75, 24)
-
   buttonDart = Controls.AddButton("Dart", Xpos + 78, 288)
-
   Controls.SetSize(buttonDart, 75, 24)
 
-
-
   ' Control buttons
-
   GraphicsWindow.FontSize = 11
-
   GraphicsWindow.BrushColor = "darkblue"
-
   buttonStart = Controls.AddButton("-----", Xpos, 10)
-
   Controls.SetSize(buttonStart, 49, 26)
-
   DoStartButton()
-
   buttonRecall = Controls.AddButton("Recall", Xpos + 52, 10)
-
   Controls.SetSize(buttonRecall, 49, 26)
-
   buttonClear = Controls.AddButton("Clear", Xpos + 104, 10)
-
   Controls.SetSize(buttonClear, 49, 26)
-
   buttonStep = Controls.AddButton("Step>", Xpos, 38)
-
   Controls.SetSize(buttonStep, 49, 26)
-
   buttonStore = Controls.AddButton("Store", Xpos + 52, 38)
-
   Controls.SetSize(buttonStore, 49, 26)
-
   GraphicsWindow.BrushColor = "red"
-
   buttonExit=Controls.AddButton("Exit", Xpos + 104, 38)
-
   Controls.SetSize(buttonExit, 49, 26)
 
-
-
   GraphicsWindow.PenColor = "black"
-
   graphicswindow.PenWidth = 2
-
   GraphicsWindow.DrawLine(dimension*size + size*2, 0, dimension*size + size*2, hdimension)
-
   GraphicsWindow.DrawLine(dimension*size + size*2, 113, GraphicsWindow.Width, 113)
-
   GraphicsWindow.DrawLine(dimension*size + size*2, 167, GraphicsWindow.Width, 167)
 
-
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.DrawText(Xpos, 73, "Generation:")
-
   GraphicsWindow.DrawText(Xpos, 89, "Grid-size:    (now " + dimension + "x" + dimension + ")")
-
   GraphicsWindow.DrawText(Xpos + 41, 116, "Speed: (0 fps)")
-
   GraphicsWindow.DrawText(Xpos + 55, 170, "Presets")
 
-
-
   Controls.GetTextBoxText(textbox1)
-
   textbox1 = Controls.AddTextBox(Xpos + 133, 85)
-
   Controls.SetSize(textbox1,20,20)
-
   Controls.TextTyped = textinputDimension
-
 EndSub
-
-
 
 Sub DisplayI
-
   GraphicsWindow.BrushColor = "white"
-
   GraphicsWindow.FillRectangle(i_Xpos, 73, 65, 12)            ' Clear old display
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.DrawText(i_Xpos, 73, i + " (" + cells + ")") ' New counter
-
 EndSub
-
-
-
 
 
 Sub DisplayFPS
-
   temptime = Clock.ElapsedMilliseconds - StartTime
-
   If (temptime > fpsRate) Then  ' Can't keep up?
-
     framerate = (Math.Floor(10000/temptime)/10)
-
   Else
-
     framerate = fpsGoal
-
   EndIf
-
   GraphicsWindow.BrushColor = "white"
-
   GraphicsWindow.FillRectangle(Xpos + 80, 116, 50, 12)            ' Clear old display
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.DrawText(Xpos + 80, 116, "("+framerate + " fps)") ' New fps
-
   
-
   If (WorkLoadBar = 1) Then ' Displaying workload bar?
-
     GraphicsWindow.PenWidth = 2
 
-
-
     fpsTime = (temptime + fpsLasttime)/2    ' Buffer over two readings to smooth
-
     lineleft = xpos
-
     linetop = 164
-
     linelength = 153
-
     If (fpsTime > fpsRate) Then  ' Can't keep up?
-
       line = fpsTime/fpsDelay * linelength
-
       GraphicsWindow.PenColor = "green"
-
       GraphicsWindow.DrawLine(lineleft ,linetop , lineleft + linelength, linetop)
-
       line = fpsTime - fpsRate
-
       If (line > fpsRate) Then
-
         line = fpsRate
-
       EndIf
-
       line = line/fpsRate * linelength
-
       GraphicsWindow.PenColor = "red"
-
     Else                      ' Working within limits?
-
       line = fpsTime/fpsRate * linelength
-
       GraphicsWindow.PenColor = "lightgray"
-
       GraphicsWindow.DrawLine(lineleft ,linetop , lineleft + linelength, linetop)
-
       GraphicsWindow.PenColor = "green"
-
     EndIf
-
     GraphicsWindow.DrawLine(lineleft ,linetop , lineleft + line, linetop)
 
-
-
     fpsLasttime = temptime
-
   EndIf
-
 EndSub
-
-
 
 Sub DoFPSPointer
-
   x = (fpsButton-3) * 31
-
   Shapes.Animate(FPS, x, 0, 200)
-
 EndSub
-
-
 
 Sub CalcFPSRate
-
   fpsRate = fpsDelay[fpsButton]
-
   fpsGoal = 1000/fpsRate
-
 EndSub
-
-
 
 Sub DoStartButton
-
   If (start = 1) Then
-
     Controls.SetButtonCaption(buttonStart, "Pause")
-
   Else
-
     Controls.SetButtonCaption(buttonStart, "Start")
-
   EndIf
-
 EndSub
 
-
-
 Sub DoIntro
-
   intro = 1
 
-
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.PenColor = "black"
-
   GraphicsWindow.BackgroundColor = "white"
-
   GraphicsWindow.Title = "Conway`s Game of Life Introduction"
-
   GraphicsWindow.Width = 515
-
   GraphicsWindow.Height = 370
-
   Controls.ButtonClicked = onButtonClick
 
-
-
   GraphicsWindow.BrushColor = "red"
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.DrawText(15, 20, "The rules to understand how Conway´s Game of Life works.")
 
-
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.FontSize = 12
-
   GraphicsWindow.DrawText(40, 60, "1. Any live cell with fewer than two live neighbours dies,")
-
   GraphicsWindow.DrawText(40, 80, "    as if caused by under-population.")
-
   GraphicsWindow.DrawText(40, 105, "2. Any live cell with more than three live neighbours dies,")
-
   GraphicsWindow.DrawText(40, 125, "    as if by overcrowding.")
-
   GraphicsWindow.DrawText(40, 150, "3. Any live cell with two or three live neighbours lives")
-
   GraphicsWindow.DrawText(40, 170, "    on to the next generation.")
-
   GraphicsWindow.DrawText(40, 190, "4. Any dead cell with exactly three live neighbours becomes")
-
   GraphicsWindow.DrawText(40, 215, "    a live cell, as if by reproduction.")
 
-
-
   GraphicsWindow.DrawText(40, 255, "http://en.wikipedia.org/wiki/Conway's_Game_of_Life")
-
   GraphicsWindow.DrawText(40, 280, "http://de.wikipedia.org/wiki/Conways_Spiel_des_Lebens")
-
   
-
   buttonIntro = Controls.AddButton("Start the Program", 40, 325)
-
-
 
   GraphicsWindow.Show()
 
-
-
   While (intro = 1)   ' Sit here waiting to click Start
-
     Program.Delay(10)
-
   Endwhile
-
 EndSub
-
-
 
 Sub TextInputDimension
-
   If (DoClickSound = 1) Then  ' Play click sound?
-
     Sound.PlayClick()
-
   EndIf
-
-
 
   If (Controls.GetTextBoxText(textbox1) > 0 And Controls.GetTextBoxText(textbox1) <> Dimension/10) Then
-
     NewDimension = Controls.GetTextBoxText(textbox1)*10
-
     If (NewDimension > 90) Then ' Max grid size?
-
       NewDimension = 90
-
     EndIf
-
   Else
-
     NewDimension = Dimension
-
   Endif
-
 Endsub
-
-
 
 Sub DoNewDimension      ' Dimension has been changed
-
   move = 0
-
   OldDimension = 0
-
   If (NewDimension > Dimension+1 Or NewDimension < Dimension-1) Then    ' Worry about shuffling existing grid to middle of new one?
-
     OldDimension = Dimension
-
     For x = 0 To OldDimension-1
-
       xd = x*OldDimension
-
       For y = 1 To OldDimension
-
         Array.SetValue("copy", xd+y, Array.GetValue("grid", xd+y))
-
       EndFor
-
     EndFor    
-
     gridmove = math.Round((NewDimension-Dimension)/2)
-
   EndIf
-
-
 
   Dimension = NewDimension
-
   GraphicsWindow.Clear()
-
   DrawUI()
-
   
-
   If (OldDimension > 0) Then    ' Worry about shuffling existing grid to middle of new one?
-
     ClearGrid()
-
-
 
     If (NewDimension > OldDimension) Then
-
       For x = 0 To OldDimension-1
-
         xd = x*Dimension
-
         xdo = x*OldDimension
-
         For y = 1 To OldDimension
-
           Array.SetValue("grid", xd+y + gridmove*dimension+gridmove, Array.GetValue("copy", xdo+y))
-
         EndFor
-
       EndFor
-
     Else
-
       For x = 0 To Dimension-1
-
         xd = x*Dimension
-
         xdo = x*OldDimension
-
         For y = 1 To Dimension
-
           Array.SetValue("grid", xd+y, Array.GetValue("copy", xdo+y - gridmove*OldDimension-gridmove))
-
         EndFor
-
       EndFor
-
     EndIf
-
     CountCells()
-
   Else
-
     ClearBufferGrid()           ' Force all grid to be redisplayed
-
   EndIf
-
   DrawGrid()
-
   DisplayI()
 
-
-
   NewDimension = 0
-
 EndSub
-
-
 
 Sub onButtonClick
-
   If (DoClickSound = 1) Then  ' Play click sound?
-
     Sound.PlayClick()
-
   EndIf
-
   
-
   If (Controls.LastClickedButton = buttonIntro) Then
-
     intro = 0
-
     Goto onButtonClick_End
-
   Endif
-
   
-
   If (buttonclicked) Then
-
     Goto onButtonClick_End
-
   EndIf
-
   
-
   LastClickedButton = Controls.LastClickedButton
-
   ButtonClicked = "True"  
-
   
-
   If (LastClickedButton = buttonSpeed1 Or LastClickedButton = buttonSpeed2 Or LastClickedButton = buttonSpeed3 Or LastClickedButton = buttonSpeed4 Or LastClickedButton = buttonSpeed5) Then
-
     Goto onButtonClick_End  '  Don't affect Start  
-
   EndIf
-
-
 
   prev_start = start
-
   start = 0                 ' Pause by default
-
 onButtonClick_End:
-
 Endsub
 
-
-
 Sub DoButtonClicked
-
   If (LastClickedButton = buttonStart) Then
-
     If (prev_start = 1) Then
-
       start = 0
-
     Else
-
       start = 1
-
     EndIf
-
     Goto DoButtonClick_End
-
   EndIf
-
-
 
   If (LastClickedButton = buttonStep) Then
-
     start = -1
-
     Goto DoButtonClick_End
-
   Endif
 
-
-
   If (LastClickedButton = buttonClear) Then
-
     i = 0
-
     ClearGrid()
-
     DrawGrid()
-
     CountCells()
-
     DisplayI()
-
     Goto DoButtonClick_End
-
   EndIf
-
   
-
   If (LastClickedButton = buttonRecall) Then
-
     If (StoreDimension > 0) Then          ' Have something stored?
-
       If (Dimension <> StoreDimension) Then
-
           ClearGrid()                     ' Force all grid to be redisplayed
-
           Dimension = StoreDimension 
-
           GraphicsWindow.Clear()
-
           DrawUI()
-
       EndIf
-
       For x = 0 To dimension-1
-
         xd = x*dimension
-
         For y = 1 To dimension
-
           array.SetValue("grid", xd+y, Array.GetValue("stor", xd+y))  ' Recall grid
-
           array.SetValue("buff", xd+y, 9)                             ' Make sure and force redisplay of grid
-
         EndFor
-
       EndFor
-
       i = 0
-
       DrawGrid()
-
       CountCells()
-
       DisplayI()
-
     Endif
-
     Goto DoButtonClick_End
-
   EndIf
-
   
-
   If (LastClickedButton = buttonStore) Then
-
     StoreDimension = Dimension
-
     DoStoreBuffer()
-
     Goto DoButtonClick_End
-
   EndIf
-
   
-
   If (LastClickedButton = buttonExit) Then
-
     Program.End()
-
   EndIf
-
-
 
   If (LastClickedButton = buttonSpeed1) Then
-
     fpsButton = 1
-
     CalcFPSRate()
-
     DoFPSPointer()  
-
     Goto DoButtonClick_End
-
   EndIf
-
   If (LastClickedButton = buttonSpeed2) Then
-
     fpsButton = 2
-
     CalcFPSRate()
-
     DoFPSPointer()  
-
     Goto DoButtonClick_End
-
   EndIf
-
   If (LastClickedButton = buttonSpeed3) Then
-
     fpsButton = 3
-
     CalcFPSRate()
-
     DoFPSPointer()  
-
     Goto DoButtonClick_End
-
   EndIf
-
   If (LastClickedButton = buttonSpeed4) Then
-
     fpsButton = 4
-
     CalcFPSRate()
-
     DoFPSPointer()  
-
     Goto onButtonClick_End
-
   EndIf
-
   If (LastClickedButton = buttonSpeed5) Then
-
     fpsButton = 5
-
     CalcFPSRate()
-
     DoFPSPointer()  
-
     Goto DoButtonClick_End
-
   EndIf
-
-
 
   If (LastClickedButton = buttonRandom) Then
-
     i = -1
-
     'ClearBufferGrid()
-
     Random()
-
     Goto DoButtonClick_End
-
   EndIf
-
   
-
   If (LastClickedButton = buttonGlider1) Then
-
     i = -1
-
     ClearGrid()
-
     Glider()
-
     Goto DoButtonClick_End
-
   EndIf
-
-
 
   If (LastClickedButton = buttonGlider2) Then
-
     i = -1
-
     ClearGrid()
-
     Glider2()
-
     Goto DoButtonClick_End
-
   EndIf
-
-
 
   If (LastClickedButton = buttonDart) Then
-
     If (dimension < 21) Then
-
       dimension = 21
-
       GraphicsWindow.Clear()
-
       DrawUI()
-
     EndIf
-
     i = -1
-
     ClearGrid()
-
     Dart()
-
     Goto DoButtonClick_End
-
   EndIf
-
-
 
   If (LastClickedButton = button54Gen) Then
-
     If (dimension <> 33) Then
-
       dimension = 33
-
       GraphicsWindow.Clear()
-
       DrawUI()
-
     EndIf
-
     i = -1
-
     ClearGrid()
-
     Gen()
-
     Goto DoButtonClick_End
-
   EndIf
-
   
-
   If (LastClickedButton = buttonPento) Then
-
     i = -1
-
     ClearGrid()
-
     fPentomino()
-
     Goto DoButtonClick_End
-
   EndIf
-
   
-
   If (LastClickedButton = buttonExploder1) Then
-
     If (dimension <> 17) Then
-
       dimension = 17
-
       GraphicsWindow.Clear()
-
       DrawUI()
-
     EndIf
-
     i = -1
-
     ClearGrid()
-
     Exploder1()
-
     Goto DoButtonClick_End
-
   EndIf
-
   
-
   If (LastClickedButton = buttonExploder2) Then
-
     If (dimension <> 36) Then
-
       dimension = 36
-
       GraphicsWindow.Clear()
-
       DrawUI()
-
     EndIf
-
     i = -1
-
     ClearGrid()
-
     Exploder2()
-
     Goto DoButtonClick_End
-
   EndIf
-
-
 
   If (LastClickedButton = buttonButterfly) Then
-
     If (dimension <> 20) Then
-
       dimension = 20
-
       GraphicsWindow.Clear()
-
       DrawUI()
-
     EndIf
-
     i = -1
-
     ClearGrid()
-
     Butterfly()
-
     Goto DoButtonClick_End
-
   EndIf
-
   
-
   If (LastClickedButton = buttonRelay) Then
-
     If (dimension <> 41) Then
-
       dimension = 41
-
       GraphicsWindow.Clear()
-
       DrawUI()
-
     EndIf
-
     i = -1
-
     ClearGrid()
-
     Relay()
-
     Goto DoButtonClick_End
-
   EndIf
-
     
-
 DoButtonClick_End:
-
   If (i = -1) Then    ' Flagged done a Preset or similar? Do all the follow up stuff
-
     i = 0
-
     DrawGrid()
-
     CountCells()
-
     DisplayI()
-
   EndIf
-
   
-
   DoStartButton()
 
-
-
   ButtonClicked = "False"
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   if (buttonclicked <> "True" And ButtonClicked <> "True") Then
-
     mousedown = "True"
-
     mouseX = Math.Floor(GraphicsWindow.MouseX/size)
-
     mouseY = Math.Floor(GraphicsWindow.MouseY/size)
-
     If (mouseX > 0 And mouseX <= dimension And mouseY > 0 And mouseY <= dimension) Then
-
       start = 0
-
       DoStartButton()
-
       last_mouse_x = 0
-
       last_mouse_y = 0
-
     EndIf    
-
   EndIf    
-
 EndSub
-
-
 
 Sub DoMouseDown
-
   x = Math.Floor(GraphicsWindow.MouseX/size)
-
   y = Math.Floor(GraphicsWindow.MouseY/size)
-
   If (x > 0 And x <= dimension And y > 0 And y <= dimension) Then
-
     If (x <> last_mouse_x Or y <> last_mouse_y) Then
-
       last_mouse_x = x
-
       last_mouse_y = y
-
       xdy = (x-1)*dimension+y
-
       If (Array.GetValue("grid", xdy) = 1) Then
-
         Array.SetValue("grid", xdy, 0)
-
         GraphicsWindow.BrushColor = "lightgray"
-
         cells = cells - 1
-
       Else
-
         Array.SetValue("grid", xdy, 1)
-
         GraphicsWindow.BrushColor = "darkblue"
-
         cells = cells + 1
-
       EndIf
-
       GraphicsWindow.FillRectangle(x * size, y * size, sizem1, sizem1)
-
       DisplayI()
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseUp
-
   mousedown = "False"
-
 EndSub
-
-
 
 Sub DoStoreBuffer     ' For the recall button
-
   For x = 0 To dimension-1
-
     xd = x*dimension
-
     For y = 1 To dimension
-
       Array.SetValue("stor", xd+y, Array.GetValue("grid", xd+y))
-
     EndFor
-
   EndFor      
-
 EndSub
-
-
 
 Sub CountCells      ' Count Cells (use after preset used etc)
-
   cells = 0
-
   For x = 0 To dimension-1
-
     xd = x*dimension
-
     For y = 1 To dimension
-
       If (Array.GetValue("grid", xd+y) = 1) Then
-
         cells = cells + 1
-
       EndIf    
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub ClearGrid       ' Clear grid & buffer (+ 1 size extra in each x&y dimension for grid)
-
   For x = 1 To (dimension+1) * (dimension+1)
-
     Array.SetValue("grid", x, 0)
-
   EndFor
-
   ClearBufferGrid()
-
   cells = 0
-
 EndSub
-
-
 
 Sub ClearBufferGrid ' Clear buffer
-
   For x = 1 to dimension * (dimension+1)
-
     Array.SetValue("buff", x, 9)
-
   EndFor
-
 EndSub
-
-
 
 ' PRESETS
-
 Sub Random
-
   For x = 0 To dimension-1
-
     xd = x*dimension
-
     For y = 1 To dimension
-
       If (Math.GetRandomNumber(5) > 3) Then
-
         Array.SetValue("grid", xd+y, 1)
-
       Else
-
         Array.SetValue("grid", xd+y, 0)
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub Glider
-
   Array.SetValue("grid", 3*dimension+2, 1)
-
   Array.SetValue("grid", 3*dimension+3, 1)
-
   Array.SetValue("grid", 3*dimension+4, 1)
-
   Array.SetValue("grid", 2*dimension+4, 1)
-
   Array.SetValue("grid", 1*dimension+3, 1)
-
 EndSub
-
-
 
 Sub Glider2
-
   Array.SetValue("grid", 1*dimension+5, 1)
-
   Array.SetValue("grid", 2*dimension+5, 1)
-
   Array.SetValue("grid", 3*dimension+5, 1)
-
   Array.SetValue("grid", 4*dimension+5, 1)
-
   Array.SetValue("grid", 4*dimension+4, 1)
-
   Array.SetValue("grid", 4*dimension+3, 1)
-
   Array.SetValue("grid", 3*dimension+2, 1)
-
   Array.SetValue("grid", 0*dimension+4, 1)
-
   Array.SetValue("grid", 0*dimension+2, 1)
-
 EndSub
-
-
 
 Sub Gen
-
   x = math.Round((dimension+1)/2)
-
   Array.SetValue("grid", (x-4)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x-4)*dimension+x+0, 1)
-
   Array.SetValue("grid", (x-4)*dimension+x+1, 1)
-
   Array.SetValue("grid", (x-3)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x-3)*dimension+x+1, 1)
-
   Array.SetValue("grid", (x-2)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x-2)*dimension+x+1, 1)
-
   Array.SetValue("grid", x*dimension+x-1, 1)
-
   Array.SetValue("grid", x*dimension+x+1, 1)
-
   Array.SetValue("grid", (x+1)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+1)*dimension+x+1, 1)
-
   Array.SetValue("grid", (x+2)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+2)*dimension+x, 1)
-
   Array.SetValue("grid", (x+2)*dimension+x+1, 1)
-
 EndSub
-
-
 
 Sub fPentomino
-
   GraphicsWindow.ShowMessage("If the grid is large enough, the fPentomino can grow 1103 generations long.","")
-
   x = math.Round((dimension+1)/2)
-
   Array.SetValue("grid", (x-2)*dimension+x-2, 1)
-
   Array.SetValue("grid", (x-1)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x-1)*dimension+x-2, 1)
-
   Array.SetValue("grid", (x-1)*dimension+x-3, 1)
-
   Array.SetValue("grid", x*dimension+x-1, 1)
-
 EndSub
-
     
-
 Sub Exploder1
-
   x = math.Round((dimension+1)/2)
-
   Array.SetValue("grid", (x-3)*dimension+x-2, 1)
-
   Array.SetValue("grid", (x-3)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x-3)*dimension+x, 1)
-
   Array.SetValue("grid", (x-3)*dimension+x+1, 1)
-
   Array.SetValue("grid", (x-3)*dimension+x+2, 1)
-
   Array.SetValue("grid", (x+1)*dimension+x-2, 1)
-
   Array.SetValue("grid", (x+1)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+1)*dimension+x, 1)
-
   Array.SetValue("grid", (x+1)*dimension+x+1, 1)
-
   Array.SetValue("grid", (x+1)*dimension+x+2, 1)
-
   Array.SetValue("grid", (x-1)*dimension+x-2, 1)
-
   Array.SetValue("grid", (x-1)*dimension+x+2, 1)
-
 EndSub
-
-
 
 Sub Exploder2
-
   x = math.Round(dimension/2) + 1
-
   
-
   For y = x-6 To x+6
-
     Array.SetValue("grid", (y-2)*dimension+y, 1)
-
     Array.SetValue("grid", (y-1)*dimension+y-1, 1)
-
   EndFor
 
-
-
   Array.SetValue("grid", (x-8)*dimension+x-7, 1)
-
   Array.SetValue("grid", (x-9)*dimension+x-8, 1)
-
   Array.SetValue("grid", (x+5)*dimension+x+6, 1)
-
   Array.SetValue("grid", (x+6)*dimension+x+7, 1)
-
 EndSub
-
-
 
 Sub Butterfly
-
   x = math.Round((dimension+1)/2)
-
   Array.SetValue("grid", (x-2)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x-2)*dimension+x, 1)
-
   Array.SetValue("grid", (x-2)*dimension+x+1, 1)
-
   Array.SetValue("grid", (x-1)*dimension+x+2, 1)
-
   Array.SetValue("grid", (x)*dimension+x+2, 1)
-
   Array.SetValue("grid", (x+1)*dimension+x+2, 1)
-
   Array.SetValue("grid", (x-1)*dimension+x, 1)
-
   Array.SetValue("grid", (x)*dimension+x+1, 1)
-
 EndSub
-
-
 
 Sub Dart
-
   x = math.Round((dimension+1)/2)
-
   Array.SetValue("grid", (x-2)*dimension+dimension, 1)
-
   Array.SetValue("grid", (x-4)*dimension+dimension, 1)
-
   Array.SetValue("grid", (x-5)*dimension+dimension, 1)
-
   Array.SetValue("grid", (x-7)*dimension+dimension, 1)
-
   Array.SetValue("grid", (x)*dimension+dimension, 1)
-
   Array.SetValue("grid", (x+2)*dimension+dimension, 1)
-
   Array.SetValue("grid", (x+3)*dimension+dimension, 1)
-
   Array.SetValue("grid", (x+5)*dimension+dimension, 1)
-
   
-
   Array.SetValue("grid", (x-2)*dimension+dimension-1, 1)
-
   Array.SetValue("grid", (x-8)*dimension+dimension-1, 1)
-
   Array.SetValue("grid", (x)*dimension+dimension-1, 1)
-
   Array.SetValue("grid", (x+6)*dimension+dimension-1, 1)
 
-
-
   Array.SetValue("grid", (x-2)*dimension+dimension-2, 1)
-
   Array.SetValue("grid", (x-6)*dimension+dimension-2, 1)
-
   Array.SetValue("grid", (x-7)*dimension+dimension-2, 1)
-
   Array.SetValue("grid", (x-2)*dimension+dimension-3, 1)
-
   Array.SetValue("grid", (x-6)*dimension+dimension-3, 1)
-
   Array.SetValue("grid", (x)*dimension+dimension-2, 1)
-
   Array.SetValue("grid", (x+4)*dimension+dimension-2, 1)
-
   Array.SetValue("grid", (x+5)*dimension+dimension-2, 1)
-
   Array.SetValue("grid", (x)*dimension+dimension-3, 1)
-
   Array.SetValue("grid", (x+4)*dimension+dimension-3, 1)
 
-
-
   Array.SetValue("grid", (x-3)*dimension+dimension-4, 1)
-
   Array.SetValue("grid", (x-4)*dimension+dimension-4, 1)
-
   Array.SetValue("grid", (x+1)*dimension+dimension-4, 1)
-
   Array.SetValue("grid", (x+2)*dimension+dimension-4, 1)
 
-
-
   Array.SetValue("grid", (x-2)*dimension+dimension-6, 1)
-
   Array.SetValue("grid", (x-1)*dimension+dimension-6, 1)
-
   Array.SetValue("grid", (x)*dimension+dimension-6, 1)
-
   Array.SetValue("grid", (x-3)*dimension+dimension-7, 1)
-
   Array.SetValue("grid", (x+1)*dimension+dimension-7, 1)
-
   Array.SetValue("grid", (x-2)*dimension+dimension-8, 1)
-
   Array.SetValue("grid", (x)*dimension+dimension-8, 1)
-
   Array.SetValue("grid", (x-1)*dimension+dimension-9, 1)
-
 EndSub
-
-
 
 Sub Relay
-
   x = math.Round((dimension+1)/2)
-
   Array.SetValue("grid", (x-2)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x-1)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x-1)*dimension+x, 1)
-
   Array.SetValue("grid", (x)*dimension+x, 1)
-
   Array.SetValue("grid", (x-2)*dimension+x+1, 1)
-
   Array.SetValue("grid", (x-9)*dimension+x+3, 1)
-
   Array.SetValue("grid", (x-10)*dimension+x+3, 1)
-
   Array.SetValue("grid", (x-12)*dimension+x+3, 1)
-
   Array.SetValue("grid", (x-13)*dimension+x+3, 1)
-
   Array.SetValue("grid", (x-14)*dimension+x+3, 1)
-
   Array.SetValue("grid", (x-15)*dimension+x+3, 1)
-
   Array.SetValue("grid", (x-17)*dimension+x+3, 1)
-
   Array.SetValue("grid", (x-18)*dimension+x+3, 1)
-
   Array.SetValue("grid", (x-11)*dimension+x+2, 1)
-
   Array.SetValue("grid", (x-11)*dimension+x+4, 1)
-
   Array.SetValue("grid", (x-16)*dimension+x+2, 1)
-
   Array.SetValue("grid", (x-16)*dimension+x+4, 1)
-
   Array.SetValue("grid", (x+7)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+8)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+10)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+11)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+12)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+13)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+15)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+16)*dimension+x-1, 1)
-
   Array.SetValue("grid", (x+9)*dimension+x, 1)
-
   Array.SetValue("grid", (x+9)*dimension+x-2, 1)
-
   Array.SetValue("grid", (x+14)*dimension+x, 1)
-
   Array.SetValue("grid", (x+14)*dimension+x-2, 1)
-
 EndSub
-
-

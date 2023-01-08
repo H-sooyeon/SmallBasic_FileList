@@ -1,1133 +1,566 @@
 ' Game 2048 in Small Basic
-
 ' Small Basic version written by Nonki Takahashi.
-
 ' Version 0.1b
-
 '
-
 GraphicsWindow.Title = "2048 in Small Basic"
-
 debug = "False"
-
 Init()
-
 Form()
-
 exp = 1
-
 While "True"
-
   Board_Clear()
-
   movable = "True"
-
   num = 2
-
   random = "True"
-
   Tile_Add()
-
   Tile_Add()
-
   While movable
-
     KB_WaitKey()
-
     checkOnly = "False"
-
     If key = "Left" Then
-
       Tile_Left()
-
     ElseIf key = "Right" Then
-
       Tile_Right()
-
     ElseIf key = "Up" Then
-
       Tile_Up()
-
     ElseIf key = "Down" Then
-
       Tile_Down()
-
     EndIf
-
     Program.Delay(2 * msMove)
-
     If moved Then
-
       num = 2
-
       random = "True"
-
       Tile_Add()
-
     ElseIf boardFull Then
-
       Tile_CheckMovable()
-
     EndIf
-
     If debug Then
-
       TextWindow.WriteLine("board = " + board)
-
       TextWindow.WriteLine("space = " + space)
-
       TextWindow.WriteLine("guard = " + guard)
-
     EndIf
-
   EndWhile
-
   GameOver()
-
 EndWhile
-
 Sub Form
-
   gw = 598
-
   gh = 428
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BackgroundColor = "#FAF8EF"
-
   size = 80
-
   gap = 14
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.FontName = "Trebuchet MS"
-
   Board_Init()
-
   GraphicsWindow.BrushColor = "#776E65"
-
   GraphicsWindow.FontSize = 60
-
   GraphicsWindow.DrawText(ix, by, 2048)
-
   GraphicsWindow.BrushColor = "#BBADA0"
-
   GraphicsWindow.FillRectangle(ix, by + 100, 140, 60)
-
   GraphicsWindow.FillRectangle(ix, by + 180, 140, 60)
-
   GraphicsWindow.BrushColor = "#EEE4DA"
-
   fs = 16
-
   GraphicsWindow.FontSize = fs
-
   txt = "SCORE"
-
   Text_GetWidthInPx()
-
   dx = Math.Floor((140 - px) / 2)
-
   GraphicsWindow.DrawText(ix + dx, by + 104, "SCORE")
-
   txt = "BEST"
-
   Text_GetWidthInPx()
-
   dx = Math.Floor((140 - px) / 2)
-
   GraphicsWindow.DrawText(ix + dx, by + 184, "BEST")
-
   ShowScore()
-
   ShowBest()
-
 EndSub
-
 Sub GameOver
-
   fs = 60
-
   GraphicsWindow.FontSize = fs
-
   txt = "GAMEOVER"
-
   GraphicsWindow.BrushColor = "#FFFFFF"
-
   mask = Shapes.AddRectangle(bw, bh)
-
   Shapes.SetOpacity(mask, 50)
-
   Shapes.Move(mask, bx, by)
-
   GraphicsWindow.BrushColor = "#776E65"
-
   txtGameOver = Shapes.AddText(txt)
-
   Text_GetWidthInPx()
-
   dx = Math.Floor((bw - px) / 2)
-
   dy = Math.Floor((bh - fs * 2) / 2)
-
   Shapes.Move(txtGameOver, bx + dx, by + dy)
-
   KB_WaitKey()
-
   Shapes.Remove(txtGameOver)
-
   Shapes.Remove(mask)
-
   score = 0
-
   ShowScore()
-
 EndSub
-
 Sub Init
-
   Not = "True=False;False=True;"
-
   Tile_Init()
-
   score = 0
-
   best = 0
-
   KB_Init()
-
   ' width/height [%] of each character in Trebuchet MS font
-
   ratio = "32=30;48=58;49=58;50=58;51=58;52=58;53=58;54=58;55=58;56=58;"
-
   ratio = ratio + "57=58;65=63;66=59;67=61;68=64;69=57;70=58;71=67;"
-
   ratio = ratio + "72=68;73=28;74=53;75=62;76=55;77=74;78=67;79=70;"
-
   ratio = ratio + "80=59;81=71;82=61;83=51;84=61;85=68;86=62;87=88;"
-
   ratio = ratio + "88=60;89=61;90=56;97=53;98=58;99=51;100=58;101=57;"
-
   ratio = ratio + "102=37;103=50;104=59;105=30;106=37;107=55;108=29;"
-
   ratio = ratio + "109=86;110=59;111=56;112=58;113=58;114=43;115=43;"
-
   ratio = ratio + "116=39;117=59;118=53;119=78;120=55;121=53;122=53;"
-
 EndSub
-
 Sub ShowBest
-
   ' param best
-
   fs = 24
-
   GraphicsWindow.FontSize = fs
-
   GraphicsWindow.BrushColor = "#FFFFFF"
-
   If txtBest = "" Then
-
     txtBest = Shapes.AddText(best)
-
   Else
-
     Shapes.SetText(txtBest, best)
-
   EndIf
-
   txt = best
-
   Text_GetWidthInPx()
-
   dx = Math.Floor((140 - px) / 2)
-
   Shapes.Move(txtBest, ix + dx, by + 206)
-
 EndSub
-
 Sub ShowScore
-
   ' param score
-
   fs = 24
-
   GraphicsWindow.FontSize = fs
-
   GraphicsWindow.BrushColor = "#FFFFFF"
-
   If txtScore = "" Then
-
     txtScore = Shapes.AddText(score)
-
   Else
-
     Shapes.SetText(txtScore, score)
-
   EndIf
-
   txt = score
-
   Text_GetWidthInPx()
-
   dx = Math.Floor((140 - px) / 2)
-
   Shapes.Move(txtScore, ix + dx, by + 126)
-
 EndSub
-
 Sub Board_CellToIndex
-
   ' param col, row - cell position
-
   ' return i - index of board array
-
   i = (row - 1) * 4 + col
-
 EndSub
-
 Sub Board_CellToPos
-
   ' param col, row - cell position
-
   ' return x, y - x and y coordiate of the graphics window
-
   x = bx + gap + (col - 1) * (size + gap)
-
   y = by + gap + (row - 1) * (size + gap)
-
 EndSub
-
 Sub Board_Clear
-
   nTile = Array.GetItemCount(board)
-
   If 0 < nTile Then
-
     index = Array.GetAllIndices(board)
-
     While 0 < nTile
-
       i = index[nTile]
-
       Tile_Remove()
-
       nTile = nTile - 1
-
     EndWhile
-
   EndIf
-
   boardFull = "False"
-
 EndSUb
-
 Sub Board_GetDestCell
-
   ' Board | Get destination cell
-
   ' param key - "Left", "Right", "Up" or "Down"
-
   ' param col, row - base cell position
-
   ' return colDest, rowDest - destination cell position
-
   ' return iDest - index of the board array
-
   ' return tileDest - tile array
-
   Board_CellToIndex()
-
   iSrc = i
-
   tile = board[iSrc]
-
   rowDest = row
-
   colDest = col
-
   If key = "Down" Then
-
     Stack.PushValue("local", row)
-
     row = row + 1
-
     Board_CellToIndex()
-
     While (row <= 4) And (board[i] = "")
-
       row = row + 1 
-
       Board_CellToIndex()
-
     EndWhile
-
     iDest = i
-
     rowDest = row - 1
-
     If (row <= 4) And (board[iDest] <> "") And (guard[iDest] = "") Then
-
       tileDest = board[iDest]
-
       If tile["#"] = tileDest["#"] Then
-
         rowDest = row
-
       Else
-
         tileDest = ""
-
       EndIf
-
     Else
-
       tileDest = ""
-
     EndIf
-
     row = rowDest
-
     Board_CellToIndex()
-
     iDest = i
-
     row = Stack.PopValue("local")
-
   ElseIf key = "Up" Then
-
     Stack.PushValue("local", row)
-
     row = row - 1
-
     Board_CellToIndex()
-
     While (1 <= row) And (board[i] = "")
-
       row = row - 1 
-
       Board_CellToIndex()
-
     EndWhile
-
     iDest = i
-
     rowDest = row + 1
-
     If (1 <= row) And (board[iDest] <> "") And (guard[iDest] = "") Then
-
       tileDest = board[iDest]
-
       If tile["#"] = tileDest["#"] Then
-
         rowDest = row
-
       Else
-
         tileDest = ""
-
       EndIf
-
     Else
-
       tileDest = ""
-
     EndIf
-
     row = rowDest
-
     Board_CellToIndex()
-
     iDest = i
-
     row = Stack.PopValue("local")
-
   ElseIf key = "Right" Then
-
     Stack.PushValue("local", col)
-
     col = col + 1
-
     Board_CellToIndex()
-
     While (col <= 4) And (board[i] = "")
-
       col = col + 1 
-
       Board_CellToIndex()
-
     EndWhile
-
     iDest = i
-
     colDest = col - 1
-
     If (col <= 4) And (board[iDest] <> "") And (guard[iDest] = "") Then
-
       tileDest = board[iDest]
-
       If tile["#"] = tileDest["#"] Then
-
         colDest = col
-
       Else
-
         tileDest = ""
-
       EndIf
-
     Else
-
       tileDest = ""
-
     EndIf
-
     col = colDest
-
     Board_CellToIndex()
-
     iDest = i
-
     col = Stack.PopValue("local")
-
   ElseIf key = "Left" Then
-
     Stack.PushValue("local", col)
-
     col = col - 1
-
     Board_CellToIndex()
-
     While (1 <= col) And (board[i] = "")
-
       col = col - 1 
-
       Board_CellToIndex()
-
     EndWhile
-
     iDest = i
-
     colDest = col + 1
-
     If (1 <= col) And (board[iDest] <> "") And (guard[iDest] = "") Then
-
       tileDest = board[iDest]
-
       If tile["#"] = tileDest["#"] Then
-
         colDest = col
-
       Else
-
         tileDest = ""
-
       EndIf
-
     Else
-
       tileDest = ""
-
     EndIf
-
     col = colDest
-
     Board_CellToIndex()
-
     iDest = i
-
     col = Stack.PopValue("local")
-
   EndIf
-
 EndSub
-
 Sub Board_GetSpace
-
   ' return col, row - position of a space
-
   nTile = Array.GetItemCount(board)
-
   If nTile < 16 Then
-
     boardFull = "False"
-
     nSpace = Array.GetItemCount(space)
-
     index = Array.GetAllIndices(space)
-
     i = index[Math.GetRandomNumber(nSpace)]
-
     Board_IndexToCell()
-
   Else
-
     boardFull = "True"
-
   EndIf
-
 EndSub
-
 Sub Board_IndexToCell
-
   ' param i - index of board array
-
   ' return col, row - cell position
-
   col = Math.Remainder(i - 1, 4) + 1
-
   row = Math.Floor((i - 1) / 4) + 1
-
 EndSub
-
 Sub Board_Init
-
   bw = size * 4 + gap * 5
-
   bh = bw
-
   bx = Math.Floor((gw - bw - (gap + 140)) / 2)
-
   ix = bx + bw + gap  ' for information
-
   by = Math.Floor((gh - bh) / 2)
-
   GraphicsWindow.BrushColor = "#BBADA0"
-
   GraphicsWindow.FillRectangle(bx, by, bw, bh)
-
   GraphicsWindow.BrushColor = "#CCC0B3"
-
   For row = 1 To 4
-
     For col = 1 To 4
-
       Board_CellToPos()
-
       GraphicsWindow.FillRectangle(x, y, size size)
-
     EndFor
-
   EndFor
-
   board = ""
-
   space = "1=1;2=1;3=1;4=1;5=1;6=1;7=1;8=1;9=1;10=1;"
-
   space = space + "11=1;12=1;13=1;14=1;15=1;16=1;"
-
 EndSub
-
 Sub KB_Init
-
   GraphicsWindow.KeyDown = KB_OnKeyDown
-
   keyDown = "False"
-
 EndSub
-
 Sub KB_OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   keyDown = "True"
-
 EndSub
-
 Sub KB_WaitKey
-
   keyDown = "False"
-
   While Not[keyDown]
-
     Program.Delay(100)
-
   EndWhile
-
 EndSub
-
 Sub Text_GetWidthInPx
-
   ' param txt - text to get width in px
-
   ' param ratio - character width/height in a font
-
   ' param fs - font size (height)
-
   ' return px - width in px (pixels)
-
   len = Text.GetLength(txt)
-
   px = 0
-
   For p = 1 To len
-
     px = px + ratio[Text.GetCharacterCode(Text.GetSubText(txt, p, 1))]
-
   EndFor
-
   px = Math.Floor(px * fs / 100)
-
 EndSub
-
 Sub Tile_Add
-
   ' param num - number to add
-
   ' param random - "True" if to random position
-
   ' param col, row - cell position if not random
-
   If random Then
-
     Board_GetSpace()
-
   EndIf
-
   Board_CellToIndex()
-
   If space[i] = 1 Then
-
     GraphicsWindow.BrushColor = colorTile[num]
-
     tile["#"] = num
-
     tile["tile"] = Shapes.AddRectangle(size, size)
-
     Board_CellToPos()
-
     Shapes.Move(tile["tile"], x, y)
-
     Shapes.Zoom(tile["tile"], 0.1, 0.1)
-
     GraphicsWindow.BrushColor = colorNum[num]
-
     txt = num
-
     fs = fontSize[num]
-
     GraphicsWindow.FontSize = fs
-
     tile["num"] = Shapes.AddText(txt)
-
     Text_GetWidthInPx()
-
     dx = Math.Floor((size - px) / 2)
-
     tile["dx"] = dx
-
     dy = Math.Floor((size - fs * 1.1) / 2)
-
     tile["dy"] = dy
-
     Shapes.Move(tile["num"], x + dx, y + dy)
-
     Shapes.Zoom(tile["num"], 0.1, 0.1)
-
     Program.Delay(10)
-
     maxScale = 1.2
-
     For scale = 0.2 To maxScale Step 0.1
-
       Shapes.Zoom(tile["tile"], scale, scale)
-
       Shapes.Zoom(tile["num"], scale, scale)
-
       Program.Delay(10)
-
     EndFor
-
     For scale = maxScale To 1 Step -0.1
-
       Shapes.Zoom(tile["tile"], scale, scale)
-
       Shapes.Zoom(tile["num"], scale, scale)
-
       Program.Delay(10)
-
     EndFor
-
     board[i] = tile
-
     space[i] = ""
-
     If space = "" Then
-
       boardFull = "True"
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub Tile_CheckMovable
-
   ' return movable
-
   movable = "False"
-
   checkOnly = "True"
-
   key = "Down"
-
   Tile_Down()
-
   If Not[movable] Then
-
     key = "Up"
-
     Tile_Up()
-
   EndIf
-
   If Not[movable] Then
-
     key = "Right"
-
     Tile_Right()
-
   EndIf
-
   If Not[movable] Then
-
     key = "Left"
-
     Tile_Left()
-
   EndIf
-
 EndSub
-
 Sub Tile_Down
-
   ' param checkOnly
-
   ' return moved
-
   guard = ""
-
   moved = "False"
-
   For row = 3 To 1 Step -1
-
     For col = 1 To 4
-
       Board_CellToIndex()
-
       iSrc = i
-
       tile = board[iSrc]
-
       If tile <> "" Then
-
         Board_GetDestCell()
-
         If row < rowDest Then
-
           If checkOnly Then
-
             movable = "True"
-
             col = 4   ' break
-
             row = 1
-
           Else
-
             Tile_Move()
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub Tile_Init
-
   msMove = 100
-
   colorTile = "2=#EEE4DA;4=#EDE0C8;8=#F2B179;16=#F59563;"
-
   colorTile = colorTile + "32=#F67C5F;64=#F65E3B;128=#EDCF72;"
-
   colorTile = colorTile + "256=#EDCC61;512=#EDC85D;1024=#EDC53F;"
-
   colorTile = colorTile + "2048=#EDC12E;"
-
   colorNum = "2=#776E65;4=#776E65;8=#F9F6F2;16=#F9F6F2;"
-
   colorNum = colorNum + "32=#F9F6F2;64=#F9F6F2;128=#F9F6F2;"
-
   colorNum = colorNum + "256=#F9F6F2;512=#F9F6F2;1024=#F9F6F2;"
-
   colorNum = colorNum + "2048=#F9F6F2;"
-
   fontSize = "2=60;4=60;8=60;16=50;32=50;64=50;128=40;256=40;"
-
   fontSize = fontSize + "512=40;1024=30;2048=30;"
-
 EndSub
-
 Sub Tile_Left
-
   ' param checkOnly
-
   ' return moved
-
   guard = ""
-
   moved = "False"
-
   For col = 2 To 4
-
     For row = 1 To 4
-
       Board_CellToIndex()
-
       iSrc = i
-
       tile = board[iSrc]
-
       If tile <> "" Then
-
         Board_GetDestCell()
-
         If colDest < col Then
-
           If checkOnly Then
-
             movable = "True"
-
             col = 4   ' break
-
             row = 4
-
           Else
-
             Tile_Move()
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub Tile_Move
-
   Stack.PushValue("local", row)
-
   Stack.PushValue("local", col)
-
   row = rowDest
-
   col = colDest
-
   Board_CellToPos()
-
   Shapes.Animate(tile["tile"], x, y, msMove)
-
   Shapes.Animate(tile["num"], x + tile["dx"], y + tile["dy"], msMove)
-
   col = Stack.PopValue("local")
-
   row = Stack.PopValue("local")
-
   If tileDest <> "" Then
-
     i = iSrc
-
     Tile_Remove()
-
     i = iDest
-
     Tile_Remove()
-
     random = "False"
-
     num = tile["#"] * 2
-
     score = score + num
-
     ShowScore()
-
     If best < score Then
-
       best = score
-
       ShowBest()
-
     EndIf
-
     Stack.PushValue("local", row)
-
     Stack.PushValue("local", col)
-
     row = rowDest
-
     col = colDest
-
     Tile_Add()
-
     col = Stack.PopValue("local")
-
     row = Stack.PopValue("local")
-
     If num = 2048 Then
-
       movable = "False"
-
     EndIf
-
     guard[iDest] = 1
-
   Else
-
     board[iDest] = board[iSrc]
-
     space[iDest] = ""
-
   EndIf
-
   board[iSrc] = ""
-
   space[iSrc] = 1
-
   moved = "True"
-
 EndSub
-
 Sub Tile_Remove
-
   ' param i - index of the tile to remove
-
   tile = board[i]
-
   Shapes.Remove(tile["num"])
-
   Shapes.Remove(tile["tile"])
-
   board[i] = ""
-
   space[i] = 1  
-
 EndSub
-
 Sub Tile_Right
-
   ' param checkOnly
-
   ' return moved
-
   guard = ""
-
   moved = "False"
-
   For col = 3 To 1 Step -1
-
     For row = 1 To 4
-
       Board_CellToIndex()
-
       iSrc = i
-
       tile = board[iSrc]
-
       If tile <> "" Then
-
         Board_GetDestCell()
-
         If col < colDest Then
-
           If checkOnly Then
-
             movable = "True"
-
             col = 1   ' break
-
             row = 4
-
           Else
-
             Tile_Move()
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub Tile_Up
-
   ' param checkOnly
-
   ' return moved
-
   guard = ""
-
   moved = "False"
-
   For row = 2 To 4
-
     For col = 1 To 4
-
       Board_CellToIndex()
-
       iSrc = i
-
       tile = board[iSrc]
-
       If tile <> "" Then
-
         Board_GetDestCell()
-
         If rowDest < row Then
-
           If checkOnly Then
-
             movable = "True"
-
             col = 4   ' break
-
             row = 4
-
           Else
-
             Tile_Move()
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub  
-
-

@@ -1,401 +1,200 @@
 ' SmallBasic Version 1.0
-
 ' Funktion: MouseLogger, MouseTrail Recorder
-
 ' Autor: Pappa Lapub
-
 ' Herkunft: http://social.msdn.microsoft.com/Forums/en-US/f7370867-2508-4a48-8b37-07761bf60649/challenge-of-the-month-august-2014
-
 ' ImportURL: http://smallbasic.com/program/?
-
 ' Extension: LitDev (LDShapes.ResetTurtle)
-
 ' Kommentar:   https://de.wikipedia.org/wiki/Haus_vom_Nikolaus
-
 ' 
-
 ' Variablen: 
-
 ' 
-
 ' ToDo: + alternat. GW.DrawLine + GWFill() instead of Turtle.PenDown + GW.Clear  for trails    ' OK (w/o LitDev)
-
 '             + already draw during rec...         ' OK
-
 ' --------------------------------------------------------------------------------
-
 LF = Text.GetCharacter(10)
-
 recInfo = " points recorded"
-
 helpTxt = "Click to record, then play back with" +LF+ "1-Shape, 2-Shape+Trail, 3-Turtle, 4-Turtle+Trail" +LF+ "Esc-Exit, C-ClearGW"
-
 ballSize = 10
-
 ballR = ballSize/2
 
-
-
 GW = 800
-
 GH = 600
-
 GraphicsWindow.Top = 0
-
 GraphicsWindow.Width = GW
-
 GraphicsWindow.Height = GH
-
 GraphicsWindow.BackgroundColor = "Black"
-
 ResetVars()
-
 ShowHelp()
-
-
 
 lastTime = Clock.ElapsedMilliseconds
 
 
-
-
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 GraphicsWindow.MouseMove = OnMouseMove
 
-
-
 While "True"
-
   If playShape Or playTurtle And pntNo > 1 Then
-
     SetColor()
-
     If playShape Then
-
       ' Shapes.HideShape("_turtle")
-
       Shapes.Remove(ball)
-
       ShapePlay()
-
     ElseIf playTurtle Then
-
       TurtlePlay()
-
     EndIf
-
     ResetVars()
-
   EndIf
-
 EndWhile
 
 
-
-
-
 ' //////////  EVENTs  \\\\\\\\\\
-
 ' Recording
-
 Sub OnMouseDown
-
   pntNo = pntNo+1
-
   X[pntNo] = GraphicsWindow.MouseX
-
   Y[pntNo] = GraphicsWindow.MouseY
-
   now = Clock.ElapsedMilliseconds
-
   T[pntNo] = now - lastTime     ' duration
-
   lastTime = now
-
   GraphicsWindow.Title = pntNo + recInfo + " | X:" + X[pntNo] + " | Y:" + Y[pntNo]
-
   
-
   '' Already draw during recording (SetColor() before and also PenWidth to 1)
-
   'GraphicsWindow.DrawText(X[pntNo]+ballR,Y[pntNo]-ballR, pntNo)
-
   'If pntNo > 1 Then
-
   '  GraphicsWindow.DrawLine(X[pntNo-1],Y[pntNo-1], X[pntNo],Y[pntNo])
-
   ' EndIf
-
 EndSub
-
-
 
 ' Selection Playback / Clear
-
 Sub OnKeyDown
-
   lastKey = GraphicsWindow.LastKey
-
   If lastKey = "Escape" Then
-
     Program.End()
-
     
-
   ElseIf lastKey = "D1" Then  ' 1 .. Shape
-
     trails = ""
-
     playShape = "True"
-
   ElseIf lastKey = "D2" Then  ' 2 .. Shape + trails
-
     trails = "True"
-
     playShape = "True"
-
     
-
   ElseIf lastKey = "D3" Then  ' 3 .. Turtle
-
     trails = ""
-
     playTurtle = "True"
-
   ElseIf lastKey = "D4" Then  ' 4 .. Turtle + trails
-
     trails = "True"
-
     playTurtle = "True"
-
     
-
   ElseIf lastKey = "C" Then   ' Clear GW
-
     GWClear()   ' or GWFill()
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseMove
-
   MX = GraphicsWindow.MouseX
-
   MY = GraphicsWindow.MouseY
-
   GraphicsWindow.Title = pntNo + recInfo + " | X:" + MX + " | Y:" + MY
-
 EndSub
-
-
-
 
 
 '  //////////  SUBs  \\\\\\\\\\
-
 Sub SetColor
-
   brushCol = GraphicsWindow.GetRandomColor()
-
   While brushCol = GraphicsWindow.BackgroundColor
-
     brushCol = GraphicsWindow.GetRandomColor()
-
   EndWhile
-
   GraphicsWindow.BrushColor = brushCol      ' point labels, ball
-
   GraphicsWindow.PenColor = brushCol        ' trails
-
 EndSub
-
-
 
 ' Playback with Shape (+trails)
-
 Sub ShapePlay
-
   GraphicsWindow.PenWidth = 0
-
   ball = Shapes.AddEllipse(ballSize,ballSize)
-
   Shapes.Move(ball, X[1]-ballR,Y[1]-ballR)
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.DrawText(X[1]+ballR, Y[1]-ballR, 1)    ' 1st point label
-
   GraphicsWindow.Title = pntNo-1 + recInfo + " | X:" + X[1] + " | Y:" + Y[1]
-
   
-
   For N = 2 To pntNo
-
     Shapes.Animate(ball, X[N],Y[N], T[N])
-
     Program.Delay(T[N]+100)
-
     If trails Then
-
       GraphicsWindow.DrawLine(X[N-1],Y[N-1], X[N],Y[N])
-
     EndIf
-
     GraphicsWindow.DrawText(X[N]+ballR, Y[N]-ballR, N)
-
     GraphicsWindow.Title = pntNo-N + recInfo + " | X:" + X[N] + " | Y:" + Y[N]
-
   EndFor
-
   'Shapes.Remove(ball)
-
 EndSub
-
-
 
 ' Playback with Turtle (+trails)
-
 Sub TurtlePlay
-
   LDShapes.ResetTurtle()       ' with GWClear()
-
   'Shapes.ShowShape("_turtle")          ' with GWFill()
-
   GraphicsWindow.PenWidth = 1
-
   
-
   Turtle.X = X[1]
-
   Turtle.Y = Y[1]
-
   GraphicsWindow.DrawText(X[1]+ballR, Y[1]-ballR, 1)    ' 1st point label
-
   GraphicsWindow.Title = pntNo-1 + recInfo + " | X:" + X[1] + " | Y:" + Y[1]
-
   
-
   If trails = "" Then
-
     Turtle.PenUp()
-
   Else
-
     Turtle.PenDown()
-
   EndIf
-
   
-
   For N = 2 To pntNo
-
     RoundToNearestTurtleSpeed()
-
     Turtle.Speed = speed
-
     Turtle.MoveTo(X[N],Y[N])
-
     'If trails Then                                   ' with GWFill()
-
     '  GraphicsWindow.DrawLine(X[N-1],Y[N-1], X[N],Y[N])
-
     'EndIf
-
     GraphicsWindow.DrawText(X[N]+ballR, Y[N]-ballR, N)
-
     GraphicsWindow.Title = pntNo-N + recInfo + " | X:" + X[N] + " | Y:" + Y[N]
-
   EndFor
-
 EndSub
-
-
 
 ' duration = Math.Abs(320 * distance  / speed^2)
-
 Sub RoundToNearestTurtleSpeed
-
   dX = X[N] - X[N-1]
-
   dY = Y[N] - Y[N-1]
-
   distance = Math.SquareRoot(dX*dX + dY*dY)
-
   speed = Math.Round(Math.SquareRoot(320 * distance / T[N]) -0.1)    ' MPR.ToEven -> round lil down (-0.1)
-
   ' speed = Math.Floor(Math.SquareRoot(320 * distance / T[N]))
-
 EndSub
-
-
-
 
 
 Sub GWFill
-
   ResetVars()
-
   bgColor = GraphicsWindow.BrushColor
-
   GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
-
   GraphicsWindow.FillRectangle(0,0, GW,GH)
-
   GraphicsWindow.BrushColor = bgColor
-
   ShowHelp()
-
 EndSub
-
-
 
 Sub GWClear
-
   ResetVars()
-
   GraphicsWindow.Clear()      ' clears all Shapes and kills/destroys Turtle
-
   ShowHelp()
-
   'SetColor()                                             '' Already draw during rec...
-
 EndSub
-
-
 
 Sub ResetVars
-
   X = ""
-
   Y = ""
-
   T = ""
-
   pntNo = 0
-
   playShape = ""
-
   playTurtle = ""
-
   GraphicsWindow.Title = "Click on GW to record points ..."
-
 EndSub
-
-
 
 Sub ShowHelp
-
   GraphicsWindow.BrushColor = "Dimgray"
-
   GraphicsWindow.DrawText(0,0, helpTxt)
-
 EndSub
-
-

@@ -1,1133 +1,566 @@
 ' Connect Four 0.7
-
 ' Small Basic clone version written by Nonki Takahashi
-
 '
-
 ' History:
-
 '  0.7 2013-11-28 Added debug code and bug fixed. (LSM678-5)
-
 '  0.6 2013-11-28 Made AI little stronger. (LSM678-4)
-
 '  0.5b 2013-11-13 Added very weak AI. (LSM678-3)
-
 '  0.4b 2013-11-11 Added mouse handler for human player. (LSM678-2)
-
 '  0.3a 2013-11-11 Added checking for game end. (LSM678-1)
-
 '  0.2a 2013-11-10 Modified as demo version. (LSM678-0)
-
 '  0.1a 2013-11-07 Created as alpha version. (LSM678)
-
 '
-
 debug = "False"
-
 depth = 4
-
 If debug Then
-
   depth = 3
-
   WQ = Text.GetCharacter(34)
-
 EndIf
-
 gw = 640
-
 gh = 480
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.Title = "Connect Four 0.7"
-
 dx = 90
-
 dy = 80
-
 Not = "True=False;False=True;"
-
 InitDisks()
-
 InitBoard()
-
 InitRing()
-
 If debug Then
-
   InitNumbers()
-
 EndIf
-
 InitFour()
-
 InitSix()
-
 'DumpCheckList()
-
 While "True"
-
   If debug Then
-
     TextWindow.WriteLine("Game Start")
-
   EndIf
-
   rec = ""
-
   i = 0
-
   inGame = "True" ' game start
-
   clicked = "False"
-
   GraphicsWindow.MouseDown = OnMouseDown
-
   While inGame
-
     If debug Then
-
       TextWindow.WriteLine("Move " + (i + 1))
-
     EndIf
-
     AI()
-
     If inGame Then
-
       If debug Then
-
         TextWindow.WriteLine("Move " + (i + 1))
-
       EndIf
-
       Human()
-
     EndIf
-
     If inGame And (42 <= i) Then
-
       turn = 0
-
       inGame = "False"
-
     EndIf
-
   EndWhile
-
   ShowResult()
-
   ' game reset
-
   Shapes.HideShape(ring)
-
   For i = 1 To 42
-
     board[i] = 0
-
     Shapes.Move(disk[i], 0, -100)
-
   EndFor
-
 EndWhile
-
 Sub AI
-
   succeed = "False"
-
   While Not[succeed]
-
     i = i + 1
-
     level = depth
-
     MiniMax()
-
     If succeed Then
-
       DropDisk()
-
       AnimateDisk()
-
     Else
-
       i = i - 1
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub MiniMax
-
   ' return max
-
   max = -1
-
   For col = 1 To 7
-
     Stack.PushValue("stack", board)
-
     Stack.PushValue("stack", rec)
-
     DropDisk()
-
     'DumpBoard()
-
     If succeed And inGame Then
-
       level = level - 1             ' in game
-
       If level = 0 And max < 0 Then ' deepest level
-
         Evaluate()
-
         If max < score Then 
-
           max = score
-
           maxcol = col
-
           If debug Then
-
             case = 1
-
             DumpMax()
-
           EndIf
-
         EndIf
-
       ElseIf 0 < level Then         ' middle level
-
         Stack.PushValue("stack", col)
-
         Stack.PushValue("stack", max)
-
         Stack.PushValue("stack", maxcol)
-
         Stack.PushValue("stack", cell)
-
         i = i + 1
-
         MiniMax()
-
         i = i - 1
-
         child = -max
-
         cell = Stack.PopValue("stack")
-
         maxcol = Stack.PopValue("stack")
-
         max = Stack.PopValue("stack")
-
         col = Stack.PopValue("stack")
-
         If max < child Then
-
           max = child
-
           maxcol = col
-
           If debug Then
-
             case = 2
-
             DumpMax()
-
           EndIf
-
         EndIf
-
         Evaluate()
-
         If debug Then
-
           TextWindow.WriteLine("case=3 score=" + score)
-
         EndIf
-
         If max < score Then 
-
           max = score
-
           maxcol = col
-
           If debug Then
-
             case = 3
-
             DumpMax()
-
           EndIf
-
         EndIf
-
       EndIf
-
       level = level + 1
-
     ElseIf succeed Then             ' game end
-
       If turn = 0 And max < 0 Then  ' draw
-
         max = 0
-
         maxcol = col
-
         If debug Then
-
           case = 4
-
           DumpMax()
-
         EndIf
-
       ElseIf max < 1 Then           ' win
-
         max = 1
-
         maxcol = col
-
         If debug Then
-
           case = 5
-
           DumpMax()
-
         EndIf
-
       EndIf
-
     EndIf
-
     rec = Stack.PopValue("stack")
-
     board = Stack.PopValue("stack")
-
   EndFor
-
   col = maxcol
-
   If debug Then
-
     TextWindow.Write("i=" + i + " level=" + level)
-
     If 0 < max Then
-
       TextWindow.ForegroundColor = "Green"
-
     EndIf
-
     TextWindow.Write(" max=" + max)
-
     TextWindow.ForegroundColor = "Gray"
-
     TextWindow.Write(" maxcol=" + col)
-
     TextWindow.WriteLine(" rec=" + WQ + rec + WQ)
-
     DumpBoard()
-
   EndIf
-
 EndSub
-
 Sub DumpMax
-
   TextWindow.Write("case=" + case)
-
   If 0 < max Then
-
     TextWindow.ForegroundColor = "Green"
-
   EndIf
-
   TextWindow.Write(" max=" + max)
-
   TextWindow.ForegroundColor = "Gray"
-
   TextWindow.WriteLine(" maxcol=" + col)
-
 EndSub
-
 Sub Evaluate
-
   ' param board[] - board of connect four
-
   ' param cell - last move
-
   ' return score - (-1..1) for current player
-
   Stopped()
-
   score = 0.1 * stopped2 + stopped3
-
   If 1 < score Then
-
     score = 1
-
   EndIf
-
   If debug Then
-
     TextWindow.WriteLine("score=" + score)
-
   EndIf
-
 EndSub
-
 Sub Stopped
-
   ' param board[] - board of connect four
-
   ' param cell - last move
-
   ' return stopped2 - number of stopped two
-
   ' return stopped3 - number of stopped three
-
   stopped2 = 0
-
   stopped3 = 0
-
   turn = Math.Remainder(board[cell] - 1, 2) + 1
-
   enemy = 3 - turn
-
   empty = 0
-
   If debug Then
-
     TextWindow.WriteLine("StoppedTwo: cell=" + cell)
-
   EndIf
-
   For n = 1 To list[cell]["n"]
-
     c1 = four[list[cell][n]][1]
-
     c4 = four[list[cell][n]][4]
-
     If debug Then
-
       TextWindow.Write("board[" + c1 + "]=" + board[c1])
-
       TextWindow.Write(" board[" + c4 + "]=" + board[c4])
-
     EndIf
-
     If c1 = cell Then
-
       c2 = four[list[cell][n]][2]
-
       c3 = four[list[cell][n]][3]
-
       If debug Then
-
         TextWindow.Write(" board[" + c2 + "]=" + board[c2])
-
         TextWindow.Write(" board[" + c3 + "]=" + board[c3])
-
       EndIf
-
       If (board[c2] = enemy) And (board[c3] = enemy) And (board[c4] <> turn) Then
-
         If board[c4] = enemy Then
-
           stopped3 = stopped3 + 1
-
         ElseIf board[c4] = empty Then
-
           stopped2 = stopped2 + 1
-
         EndIf
-
       EndIf
-
     ElseIf c4 = cell Then
-
       c2 = four[list[cell][n]][2]
-
       c3 = four[list[cell][n]][3]
-
       If debug Then
-
         TextWindow.Write(" board[" + c2 + "]=" + board[c2])
-
         TextWindow.Write(" board[" + c3 + "]=" + board[c3])
-
       EndIf
-
       If (board[c2] = enemy) And (board[c3] = enemy) And (board[c1] <> turn) Then
-
         If board[c1] = enemy Then
-
           stopped3 = stopped3 + 1
-
         ElseIf board[c1] = empty Then
-
           stopped2 = stopped2 + 1
-
         EndIf
-
       EndIf
-
     EndIf
-
     If debug Then
-
       TextWindow.WriteLine("")
-
     EndIf
-
   EndFor
-
 EndSub
-
 Sub Human
-
   succeed = "False"
-
   While Not[succeed]
-
     clicked = "False"
-
     While Not[clicked]
-
       Program.Delay(100)
-
     EndWhile
-
     If (0 <= my) And (my <= gh) And (0 <= mx) Then
-
       For col = 1 To 7
-
         If mx <= cx[col] Then
-
           i = i + 1
-
           DropDisk()
-
           If succeed Then
-
             AnimateDisk()
-
           EndIf
-
           Goto break3
-
         EndIf
-
       EndFor
-
       break3:
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub OnMouseDown
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   clicked = "True"
-
 EndSub
-
 Sub InitDisks
-
   color = "1=Yellow;2=Red;"
-
   GraphicsWindow.PenWidth = 0
-
   For i = 1 To 42
-
     GraphicsWindow.BrushColor = color[Math.Remainder(i - 1, 2) + 1]
-
     disk[i] = Shapes.AddEllipse(dy, dy)
-
     Shapes.Move(disk[i], 0, -100)
-
   EndFor
-
 EndSub
-
 Sub InitBoard
-
   For i = 1 To 42
-
     board[i] = 0  ' empty
-
   EndFor
-
   For col = 1 To 7
-
     cx[col] = col * dx + 5
-
   EndFor
-
   url = "http://www.nonkit.com/smallbasic.files/Connect4Board.png"
-
   Shapes.AddImage(url)
-
 EndSub
-
 Sub InitRing
-
   GraphicsWindow.PenWidth = 10
-
   GraphicsWindow.PenColor = "LightGray"
-
   GraphicsWindow.BrushColor = "#00000000" ' transparent
-
   ring = Shapes.AddEllipse(dy, dy)  ' to show last move
-
   Shapes.SetOpacity(ring, 50)
-
   Shapes.HideShape(ring)
-
 EndSub
-
 Sub InitFour
-
   InitCheckList()
-
   nFour = 0
-
   For row = 1 To 6  ' horizontal
-
     For col = 1 To 4
-
       nFour = nFour + 1
-
       four[nFour][1] = (row - 1) * 7 + col
-
       four[nFour][2] = (row - 1) * 7 + col + 1
-
       four[nFour][3] = (row - 1) * 7 + col + 2
-
       four[nFour][4] = (row - 1) * 7 + col + 3
-
       AddCheckList()
-
     EndFor
-
   EndFor
-
   For row = 1 To 3  ' vertical
-
     For col = 1 To 7
-
       nFour = nFour + 1
-
       four[nFour][1] = (row - 1) * 7 + col
-
       four[nFour][2] = row * 7 + col
-
       four[nFour][3] = (row + 1) * 7 + col
-
       four[nFour][4] = (row + 2) * 7 + col
-
       AddCheckList()
-
     EndFor
-
   EndFor
-
   For row = 1 To 3  ' diagnostic \
-
     For col = 1 To 4
-
       nFour = nFour + 1
-
       four[nFour][1] = (row - 1) * 7 + col
-
       four[nFour][2] = row * 7 + col + 1
-
       four[nFour][3] = (row + 1) * 7 + col + 2
-
       four[nFour][4] = (row + 2) * 7 + col + 3
-
       AddCheckList()
-
     EndFor
-
   EndFor
-
   For row = 1 To 3  ' diagnostic /
-
     For col = 4 To 7
-
       nFour = nFour + 1
-
       four[nFour][1] = (row - 1) * 7 + col
-
       four[nFour][2] = row * 7 + col - 1
-
       four[nFour][3] = (row + 1) * 7 + col - 2
-
       four[nFour][4] = (row + 2) * 7 + col - 3
-
       AddCheckList()
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub InitSix
-
   InitCheckList6()
-
   nSix = 0
-
   For row = 1 To 6  ' horizontal
-
     For col = 1 To 2
-
       nSix = nSix + 1
-
       six[nSix][1] = (row - 1) * 7 + col
-
       six[nSix][2] = (row - 1) * 7 + col + 1
-
       six[nSix][3] = (row - 1) * 7 + col + 2
-
       six[nSix][4] = (row - 1) * 7 + col + 3
-
       six[nSix][5] = (row - 1) * 7 + col + 3
-
       six[nSix][6] = (row - 1) * 7 + col + 3
-
       AddCheckList6()
-
     EndFor
-
   EndFor
-
   For row = 1 To 2  ' diagnostic \
-
     For col = 1 To 2
-
       nSix = nSix + 1
-
       six[nSix][1] = (row - 1) * 7 + col
-
       six[nSix][2] = row * 7 + col + 1
-
       six[nSix][3] = (row + 1) * 7 + col + 2
-
       six[nSix][4] = (row + 2) * 7 + col + 3
-
       six[nSix][5] = (row + 3) * 7 + col + 4
-
       six[nSix][6] = (row + 4) * 7 + col + 5
-
       AddCheckList6()
-
     EndFor
-
   EndFor
-
   For row = 1 To 2  ' diagnostic /
-
     For col = 6 To 7
-
       nSix = nSix + 1
-
       six[nSix][1] = (row - 1) * 7 + col
-
       six[nSix][2] = row * 7 + col - 1
-
       six[nSix][3] = (row + 1) * 7 + col - 2
-
       six[nSix][4] = (row + 2) * 7 + col - 3
-
       six[nSix][5] = (row + 3) * 7 + col - 4
-
       six[nSix][6] = (row + 4) * 7 + col - 5
-
       AddCheckList6()
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub DumpCheckList
-
   For row = 1 To 6
-
     line = ""
-
     For col = 1 To 7
-
       cell = (row - 1) * 7 + col
-
       n = list[cell]["n"]
-
       If Text.GetLength(n) < 2 Then
-
         line = Text.Append(line, " ")
-
       EndIf
-
       line = Text.Append(line, n)
-
       If col < 7 Then
-
         line = line + " "
-
       EndIf
-
     EndFor
-
     TextWindow.WriteLine(line)
-
   EndFor
-
 EndSub
-
 Sub DumpBoard
-
   TextWindow.WriteLine("  A B C D E F G")
-
   For _i = 1 To 42
-
     If Math.Remainder(_i, 7) = 1 Then
-
       TextWindow.Write((Math.Floor((_i - 1) / 7) + 1) + " ")
-
     EndIf
-
     If board[_i] = 0 Then
-
       TextWindow.Write("  ")
-
     Else
-
       TextWindow.ForegroundColor = color[Math.Remainder(board[_i] - 1, 2) + 1]
-
-      TextWindow.Write("?—")
-
+      TextWindow.Write("â—")
     EndIf
-
     If Math.Remainder(_i, 7) = 0 Then
-
       TextWindow.WriteLine("")
-
     EndIf
-
     TextWindow.ForegroundColor = "Gray"
-
   EndFor
-
   TextWindow.WriteLine("")
-
 EndSub
-
 Sub InitCheckList
-
   For i = 1 To 42
-
     list[i]["n"] = 0
-
   EndFor
-
 EndSub
-
 Sub InitCheckList6
-
   For i = 1 To 42
-
     list6[i]["n"] = 0
-
   EndFor
-
 EndSub
-
 Sub AddCheckList
-
   ' param nFour - entry index of four
-
   For i = 1 To 4
-
     cell = four[nFour][i]
-
     n = list[cell]["n"] + 1
-
     list[cell][n] = nFour
-
     list[cell]["n"] = n
-
   EndFor 
-
 EndSub
-
 Sub AddCheckList6
-
   ' param nSix - entry index of six
-
   For i = 1 To 6
-
     cell = four[nSix][i]
-
     n = list6[cell]["n"] + 1
-
     list6[cell][n] = nSix
-
     list6[cell]["n"] = n
-
   EndFor 
-
 EndSub
-
 Sub DropDisk
-
   ' param i - disk index (number of moves)
-
   ' param col - column number 1..7
-
   ' return cell - cell number of move
-
   ' return succeed - "True" if succeed
-
   succeed = "False"
-
   For row = 6 To 1 Step -1
-
     cell = (row - 1) * 7 + col
-
     If board[cell] = 0 Then
-
       board[cell] = Math.Remainder(i - 1, 2) + 1
-
       succeed = "True"
-
       Rec_Rec()
-
       CheckFour()
-
       Goto break
-
     EndIf
-
   EndFor
-
   break:
-
 EndSub
-
 Sub Rec_Rec
-
   ' param i - disk index
-
   ' param col - column number 1..7
-
   rec[i] = col
-
 EndSub
-
 Sub AnimateDisk
-
   ' param i - disk index
-
   ' param col - column number 1..7
-
   ' param row - row number 1..6
-
   x = (col - 1) * dx + 10
-
   ms = 500
-
   Shapes.Move(disk[i], x, -100)
-
   y = (row - 1) * dy + 5
-
   Shapes.Animate(disk[i], x, y, ms)
-
   Program.Delay(ms)
-
   Shapes.HideShape(ring)
-
   Shapes.Move(ring, x, y - 5)
-
   Shapes.ShowShape(ring)
-
   Sound.PlayClickAndWait()
-
 EndSub
-
 Sub InitNumbers
-
   GraphicsWindow.BrushColor = "Blue"
-
   For i = 1 To 42
-
     col = Math.Remainder(i - 1, 7) + 1
-
     row = Math.Floor((i - 1) / 7) + 1
-
     x = (col - 1) * dx + 10
-
     y = (row - 1) * dy + 5
-
     num = Shapes.AddText(i)
-
     Shapes.Move(num, x, y)
-
   EndFor
-
 EndSub
-
 Sub CheckFour
-
   ' param cell - to check
-
   ' return inGame - "True" if not four
-
   ' return turn - winner (0 means draw)
-
   inGame = "True"
-
   n = list[cell]["n"]
-
   For f = 1 To n
-
     fi = list[cell][f]
-
     turn = board[four[fi][1]]
-
     For d = 2 To 4
-
       If turn <> board[four[fi][d]] Then
-
         Goto notFour
-
       EndIf
-
     EndFor
-
     inGame = "False"
-
     Goto break2
-
     notFour:
-
   EndFor
-
   break2:
-
 EndSub
-
 Sub ShowResult
-
   ' param turn - winner (0 means draw)
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "Black"
-
   pw = 300
-
   ph = 200
-
   popup = Shapes.AddRectangle(pw, ph)
-
   Shapes.SetOpacity(popup, 80)
-
   x = (gw - pw) / 2
-
   y = (gh - ph) / 2
-
   Shapes.Move(popup, x, y)
-
   fs = 40
-
   If turn <> 0 Then
-
     GraphicsWindow.PenWidth = 0
-
     GraphicsWindow.BrushColor = color[turn]
-
     winner = Shapes.AddEllipse(fs, fs)
-
     Shapes.Move(winner, x + 20, y + fs * 0.1 + 30)
-
     GraphicsWindow.FontSize = fs
-
     GraphicsWindow.BrushColor = "White"
-
     msg = Shapes.AddText("wins!")
-
     Shapes.Move(msg, x + fs * 1.2 + 20, y + 30)
-
     If debug Then
-
       TextWindow.WriteLine(color[turn] + "wins!")
-
     EndIf
-
   Else
-
     GraphicsWindow.FontSize = fs
-
     GraphicsWindow.BrushColor = "White"
-
     msg = Shapes.AddText("Draw")
-
     Shapes.Move(msg, x + 20, y + 30)
-
     If debug Then
-
       TextWindow.WriteLine(color[turn] + "Draw")
-
     EndIf
-
   EndIf
-
   GraphicsWindow.BrushColor = "Black"
-
   ok = Controls.AddButton("OK", x + 20, y + fs * 2 + 30)
-
   wait = "True"
-
   Sound.PlayChimeAndWait()
-
   Controls.ButtonClicked = OnButtonClicked
-
   While wait
-
     Program.Delay(200)
-
   EndWhile
-
   Controls.Remove(ok)
-
   Shapes.Remove(msg)
-
   Shapes.Remove(winner)
-
   Shapes.Remove(popup)
-
 EndSub
-
 Sub OnButtonClicked
-
   wait = "False"
-
 EndSub
-
-

@@ -1,253 +1,126 @@
 TextWindow.Write("Enter the Port to host on:")
-
 Port = TextWindow.Read()
-
 LDServer.Port = Port
-
 TextWindow.WriteLine(LDServer.Start())
 
 
 
-
-
-
-
 'Set all EVENTS
-
 LDServer.MaxTimeOut = 200
-
 LDServer.ClientDisconnected = OnClientDissconected
-
 LDServer.ClientConnected = OnClientConnect
-
 LDServer.ClientMessage = OnMessageRecieved
-
 Timer.Tick = OnSendClientNumbers
-
 Timer.Interval = 1000
-
-
 
 IsGameStarted = "N" '<--- Y or N
 
-
-
 '========================================
-
 'Main Game Loop - Handle Events
-
 '========================================
-
 While 1 =1 
-
   If IsGameStarted = "Y" And HasFiredCheck <> "True" Then
-
     HasFiredCheck = "True"
-
     GameStartTime = Clock.ElapsedMilliseconds
-
 EndIf
-
 If Clock.ElapsedMilliseconds - GameStartTime > 2000 And Clock.ElapsedMilliseconds - GameStartTime < 1000000 Then
-
   CanSendClientNums = "False"
-
   EndIf
-
   If (ClientConnectEvent) Then
-
     ClientConnectEvent = "False"
-
     ClientConnect()
-
   EndIf
-
   If (MessageRecievedEvent) Then
-
     If LDQueue.GetCount("Messages") = 0 Then
-
       MessageRecievedEvent = "False"
-
     Else
-
       LastMessageData = LDQueue.Dequeue("Messages")
-
       MessageRecieved()
-
     EndIf
-
   EndIf
-
   If (SendClientNumbersEvent) And CanSendClientNums <> "False" Then
-
     SendClientNumbersEvent = "False"
-
     SendClientNumbers()
-
   EndIf
-
  ' Don't mash cpu when nothing happening
-
 EndWhile
 
-
-
 '========================================
-
 'EVENT Subroutines - Flag the evnets to handle on UI thread (game loop)
-
 '========================================
-
 Sub OnClientConnect
-
   ClientConnectEvent = "True"
-
 EndSub
-
-
 
 Sub OnMessageRecieved
-
   LDQueue.Enqueue("Messages",LDServer.LastClientMessage)
-
   MessageRecievedEvent = "True"
-
 EndSub
-
-
 
 Sub OnSendClientnumbers
-
   SendClientnumbersEvent ="True"
-
 EndSub
 
-
-
 '======================================================================================================
-
 '=========================================SUBROUTINES==================================================
-
 '======================================================================================================
-
 '======================================================================================================
-
-
 
 Sub ClientConnect
-
   TextWindow.WriteLine("SERVER: ClientConnect")
-
 NumClients = Array.GetItemCount(LDServer.GetClients())
-
 EndSub
-
-
 
 Sub MessageRecieved
-
     TextWindow.WriteLine("SERVER: OnMessageRecieved")
-
     TextWindow.WriteLine("RECIEVED DATA: " + LDServer.LastClientMessage)
-
   For i = 1 To NumClients
-
     LDServer.SendMessage(Clients[i],LastMessageData)
-
   EndFor
-
   
-
   If LastMessageData["T"] = "CH" Then
-
       Info3["T"] = "PNG"
-
       Info3["N"] = LastMessageData["N"]
-
       Info3["TS"] = LastMessageData["TS"]
-
       Info3["SB"] ="Server"
-
       LDServer.SendMessage(Clients[Info3["N"]], Info3)
-
     EndIf
-
   
-
   If LastMessageData["T"] = "RB" Then
-
     If LastMessageData["R"] = "T" Then
-
       ClientsReady = ClientsReady + 1
-
     Else
-
       ClientsReady = ClientsReady - 1
-
       EndIf
-
     EndIf
-
     
-
     
-
     If ClientsReady >= NumClients Then
-
       IsGameStarted = "Y"
-
       SendClientNumbersEvent = "True"
-
       EndIf
-
     
-
 EndSub
-
-
 
 Sub SendClientNumbers
-
   For i2 = 1 To NumClients
-
     Clients = LDServer.GetClients()
-
     
-
     Info2["T"] = "N"
-
     Info2["C"] = Clients
-
     Info2["NC"] = NumClients
-
     Info2["UN"] = i2
-
     Info2["ST"] = IsGameStarted
-
     TextWindow.WriteLine("SERVER: SendClientnumbers")
-
     TextWindow.WriteLine(Info2)
-
     TextWindow.WriteLine("Sending to " + Clients[i2])
-
     LDServer.SendMessage(Clients[i2],Info2)
-
     
-
   EndFor
-
 EndSub
 
-
-
 Sub OnClientDissconected
-
   TextWindow.WriteLine("Client Disconnect")
-
   NumClients = Array.GetItemCount(LDServer.GetClients())
-
 TextWindow.WriteLine(NumClients)
-
   EndSub
-
-

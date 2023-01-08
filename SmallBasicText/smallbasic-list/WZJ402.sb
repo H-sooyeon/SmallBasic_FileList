@@ -1,439 +1,219 @@
 ' SmallBasic Version 1.1
-
 ' Program: Puzzle
-
 ' Changelog: 
-
 ' Author: Pappa Lapub
-
 ' Website: 
-
 ' ImportURL: http://smallbasic.com/program/?
-
 ' Extension: LitDev (LDImage.SplitImage)
-
 ' Comment: 
-
 '  
-
 ' Variables: 
-
 ' ToDo: 
-
 ' ================================================================================
-
 '' Definables:
 
-
-
 pic = Program.Directory +"\img\SmallBasicLogo.png"
-
 lines = 5 '3
-
 cols = 5  '3
-
 dMove = 5         ' delta [Pxls]  move on Left/Right, Up/Down
-
 icon = Program.Directory +"\Icons\Puzzle-V1.ico"
-
-
 
 ' ===============================================
 
-
-
 img = ImageList.LoadImage(pic)
-
 w = ImageList.GetWidthOfImage(img)
-
 h = ImageList.GetHeightOfImage(img)
-
 gw = GraphicsWindow.Width
-
 gh = GraphicsWindow.Height
-
 LDGraphicsWindow.TopMost = "True"
-
 LDGraphicsWindow.Icon = icon
 
-
-
 all = lines*cols  ' # of parts
-
 turns = 0
-
-
 
 LoadParts()
 
-
-
 Sub LoadParts
-
   partW = w / cols
-
   partH = h / lines
-
 ' The following line could be harmful and has been automatically commented.
-
 '   title = "Puzzle "+ cols +"x"+ lines +"  ["+ LDFile.GetFile(pic) +"]  "
-
   GraphicsWindow.Title = title + turns
-
   GraphicsWindow.BackgroundColor = "Tan"
-
   LDControls.AllowDrop("Background")
-
   
-
   parts = LDImage.SplitImage(img, cols,lines)
-
   'TextWindow.WriteLine(parts)
-
   
-
   GraphicsWindow.PenColor = "Wheat"  '"Tomato"
-
   GraphicsWindow.DrawRectangle((gw-h)/2, (gh-h)/2, w,h)
-
   
-
   For x = 1 To cols
-
     For y = 1 To lines
-
       n = n+1
-
       shp[n] = Shapes.AddImage(parts[x][y])  ' shp[n] = ...
-
       Shapes.Move(shp[n], Math.GetRandomNumber(gw-partW), Math.GetRandomNumber(gh-partH))
-
     EndFor
-
   EndFor
-
 EndSub
-
-
-
 
 
 GraphicsWindow.MouseMove = OnMouseMove
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.MouseUp = OnMouseUp
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 LDControls.FileDropped = OnFileDropped
 
 
-
-
-
 ' //////////  EVENTs  \\\\\\\\\\
-
 Sub OnMouseMove
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   If dragOn Then
-
     Shapes.Move(currShp, mx-xOffset, my-yOffset)
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   allUnderMouse = LDShapes.GetAllShapesAt(mx, my)
-
   If allUnderMouse <> "False" Then
-
     currShp = allUnderMouse[1]
-
     xOffset = mx - Shapes.GetLeft(currShp)
-
     yOffset = my - Shapes.GetTop(currShp)
-
     zIdx = zIdx+1
-
     LDShapes.ZIndex(currShp, zIdx)
-
     dragOn = "True"
-
     turns = turns + 1 + extra
-
     GraphicsWindow.Title = title + turns
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseUp
-
   dragOn = ""
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   lastKey = GraphicsWindow.LastKey
-
   If lastKey = "Escape" Then
-
     Program.End()
-
   ElseIf lastKey = "Up" Then
-
     AllUp()
-
   ElseIf lastKey = "Down" Then
-
     AllDown()
-
   ElseIf lastKey = "Left" Then
-
     AllLeft()
-
   ElseIf lastKey = "Right" Then
-
     AllRight()
-
   ElseIf lastKey = "S" Then
-
     Shuffle()
-
   ElseIf lastKey = "T" Then
-
     TemplateWin()
-
   EndIf
-
 EndSub
-
-
 
 Sub OnFileDropped
-
   n = 0
-
   turns = 0
-
   GraphicsWindow.BackgroundColor = "Tan"
-
   GraphicsWindow.Clear()
-
   files = LDControls.LastDropFiles
-
   pic = files[1]
-
   img = ImageList.LoadImage(pic)
-
   w = ImageList.GetWidthOfImage(img)
-
   h = ImageList.GetHeightOfImage(img)
-
   BestFitSize()
-
   LoadParts()
-
 EndSub
-
-
-
 
 
 ' //////////  SUB  \\\\\\\\\\
-
 Sub BestFitSize
-
   largestRatio = 1.2*Math.Max(w/gw, h/gh)   ' 1.2   ... NOT using full GW width or height, use ~ 80%
-
   w = w/largestRatio
-
   h = h/largestRatio
-
   LDImage.Resize(img, w,h)
-
 EndSub
-
-
 
 Sub SplittedImages
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontSize = 10
-
   For x = 1 To Array.GetItemCount(parts)        ' Spalten
-
     For y = 1 To Array.GetItemCount(parts[x])   ' Zeilen
-
       GraphicsWindow.DrawImage(parts[x][y], 10+ (10+partW)*(x-1), 10+ (10+partH)*(y-1))
-
       GraphicsWindow.DrawText(10+ (10+partW)*(x-1), 10+ (10+partH)*(y-1), parts[x][y])
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub AllUp
-
   For n = 1 To all
-
     posX[n] = Shapes.GetLeft(shp[n])
-
     posY[n] = Shapes.GetTop(shp[n]) - dMove
-
     Shapes.Move(shp[n], posX[n], posY[n])
-
   EndFor
-
 EndSub
-
 Sub AllDown
-
   For n = 1 To all
-
     posX[n] = Shapes.GetLeft(shp[n])
-
     posY[n] = Shapes.GetTop(shp[n]) + dMove
-
     Shapes.Move(shp[n], posX[n], posY[n])
-
   EndFor
-
 EndSub
-
 Sub AllLeft
-
   For n = 1 To all
-
     posX[n] = Shapes.GetLeft(shp[n]) - dMove
-
     posY[n] = Shapes.GetTop(shp[n])
-
     Shapes.Move(shp[n], posX[n], posY[n])
-
   EndFor
-
 EndSub
-
 Sub AllRight
-
   For n = 1 To all
-
     posX[n] = Shapes.GetLeft(shp[n]) + dMove
-
     posY[n] = Shapes.GetTop(shp[n])
-
     Shapes.Move(shp[n], posX[n], posY[n])
-
   EndFor
-
 EndSub
-
-
 
 Sub Shuffle
-
   For n = 1 To all
-
     Shapes.Move(shp[n], Math.GetRandomNumber(gw-partW), Math.GetRandomNumber(gh-partH))  
-
   EndFor
-
   turns = 0
-
   GraphicsWindow.Title = title + turns
-
 EndSub
-
-
-
 
 
 ' View complete Template for Help
-
 Sub Template      ' as Shape
-
   If viewOn Then
-
     Shapes.Remove(orig)           ' Shapes.HideShape(orig)
-
     viewOn = ""
-
   Else
-
     orig = Shapes.AddImage(img)   ' Shapes.ShowShape(orig)
-
     viewOn = "True"
-
   EndIf
-
 EndSub
-
-
 
 Sub TemplateWin     ' on separate 2nd LDWindow
-
   If viewOn Then
-
     LDWindows.CurrentID = tempWin
-
     GraphicsWindow.Hide()
-
     LDWindows.CurrentID = 0
-
     viewOn = ""
-
     extra = 0
-
   Else
-
     tempWin = LDWindows.Create()
-
 ' The following line could be harmful and has been automatically commented.
-
 '     GraphicsWindow.Title = "Template "+ LDFile.GetFile(pic)
-
     GraphicsWindow.BackgroundColor = "SlateGray"
-
     GraphicsWindow.Width = w
-
     GraphicsWindow.Height = h
-
     GraphicsWindow.DrawImage(img, 0,0)
-
     LDGraphicsWindow.ExitButtonMode(GraphicsWindow.Title, "Disabled")
-
     LDWindows.Active = 0
-
     LDWindows.CurrentID = 0
-
     viewOn = "True"
-
     extra = 1
-
   EndIf
-
 EndSub
-
     
-
-

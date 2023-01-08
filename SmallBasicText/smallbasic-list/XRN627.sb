@@ -1,475 +1,237 @@
 ' SmallBasic Version 1.1
-
 ' Program: SteganoImage EN (for all main colors, Referencepixel 0;0)
-
 ' Changelog: 15.03, 15.04
-
 ' Author: Pappa Lapub
-
 ' Website: https://social.msdn.microsoft.com/Forums/en-US/3b975ffc-cbfd-407c-ab95-74912e57c65d/challenge-of-the-month-april-2015
-
 ' ImportURL: http://smallbasic.com/program/?
-
 ' Extension: ---
-
 ' Comment: 
-
 ' https://social.msdn.microsoft.com/Forums/getfile/638634   Black
-
 ' https://social.msdn.microsoft.com/Forums/getfile/638636   White
-
 ' https://social.msdn.microsoft.com/Forums/getfile/644130   Black2  (Mr. Gonzales)
-
 ' Variables: defMode  .. default revealing mode (1 .. defColor, 2 .. MS flag, 3.. random colors, 4 .. bitonal stripes, 5 .. rainbow)
-
 ' ToDo: Replace defColor/stripeColX (by a randomColor) if equal refCol (image base color)
-
 ' ================================================================================
-
 defMode = 1           ' shows in default Color
-
 defColor = "Gold"     ' "#FFD700" (to compare with #FFD700 from .GetPixel)
-
 stripeCol1 = "White"  ' "#FFFFFF" (to compare with #FFFFFF from .GetPixel),  +43, candy @
-
 stripeCol2 = "Red"    ' "#FF0000" (to compare with #FF0000 from .GetPixel), +43, candy @
 
-
-
 GraphicsWindow.BackgroundColor = "RosyBrown"
-
 gw = GraphicsWindow.Width
-
 gh = GraphicsWindow.Height
-
 GraphicsWindow.Title = "Stegano Image  (Local/Web path + <Reveal>)"
 
-
-
 GraphicsWindow.BrushColor = "Black"
-
 GraphicsWindow.FontSize = 10
-
 tbFile = Controls.AddTextBox(5,gh-25)
-
 Controls.SetSize(tbFile, gw-135,20)
 
-
-
 btnGo = Controls.AddButton("Reveal", gw-125,gh-26)
-
 Controls.SetSize(btnGo, 45,22)
 
-
-
 tbMode = Controls.AddTextBox(gw-75,gh-25)
-
 Controls.SetSize(tbMode, 20,20)
-
 Controls.SetTextBoxText(tbMode, defMode)
 
-
-
 btnClr = Controls.AddButton("Clear", gw-50,gh-26)
-
 Controls.SetSize(btnClr, 45,22)
 
-
-
 lf = Text.GetCharacter(10)
-
 qu = Text.GetCharacter(34)
-
-iText = "Color mode:"+lf+ "1 Default '" +defColor+ "'" +lf+ "2 ? la MS flag" +lf+ "3 Random noise" +lf+ "4 Candy.@ '" +stripeCol1+"/"+stripeCol2+"'" +lf+ "5 Rainbow"
-
+iText = "Color mode:"+lf+ "1 Default '" +defColor+ "'" +lf+ "2 À la MS flag" +lf+ "3 Random noise" +lf+ "4 Candy.@ '" +stripeCol1+"/"+stripeCol2+"'" +lf+ "5 Rainbow"
 shpInfo = Shapes.AddText(iText)
-
 Shapes.HideShape(shpInfo)
-
 Shapes.Move(shpInfo, gw-115,gh-100)
-
 shpOn = ""
-
 done = "True"
 
-
-
 Controls.ButtonClicked = OnButtonClick
-
 GraphicsWindow.MouseMove = OnMouseMove
-
 GraphicsWindow.KeyDown = OnKeyDown
 
 
-
-
-
 While "True"
-
   If path <> "" Then
-
     RemoveQuotes()    ' leading and trailing quotes only
-
     
-
     img = ImageList.LoadImage(path)
-
     w = ImageList.GetWidthOfImage(img)
-
     h = ImageList.GetHeightOfImage(img)
-
     GraphicsWindow.Title = path +"  ["+ w +" x "+ h +"]"
-
     GraphicsWindow.DrawImage(img, 0,0)
-
     
-
     ' Get the very 1st pixel and suppose this is a reference for the whole pure image color if BlackOrWhite
-
     refCol = GraphicsWindow.GetPixel(0,0)
-
     refRed = Text.GetSubText(refCol, 2,2)   ' can be 00 - FF
-
     
-
     If mode = 1 Then
-
       RevealDefault()
-
     ElseIf mode = 2 Then
-
       RevealMS()
-
     ElseIf mode = 3 Then
-
       RevealRand()
-
     ElseIf mode = 4 Then
-
       RevealStripes()
-
     ElseIf mode = 5 Then
-
       RevealRainbow()
-
     EndIf
-
     
-
     GraphicsWindow.Title = "Done"
-
     path = ""
-
   Else
-
     Program.Delay(50)
-
   EndIf
-
 EndWhile
 
 
-
-
-
 ' //////////  EVENTs  \\\\\\\\\\
-
 Sub OnButtonClick
-
   lastBtn = Controls.LastClickedButton
-
   
-
   If lastBtn = btnGo And done Then
-
     If Controls.GetTextBoxText(tbFile) <> "" Then
-
       ClearGW()
-
       path = Controls.GetTextBoxText(tbFile)
-
       done = ""
-
       If Controls.GetTextBoxText(tbMode) > 0 And Controls.GetTextBoxText(tbMode) < 6 Then
-
         mode = Controls.GetTextBoxText(tbMode)
-
       Else
-
         mode = defMode
-
       EndIf
-
     EndIf
-
     
-
   ElseIf lastBtn = btnClr And done Then
-
     ClearGW()
-
     Controls.SetTextBoxText(tbFile, "")
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseMove
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   If (mx > gw-80) And (mx < gw-50) And (my > gh-26) Then
-
     If shpOn <> "True" Then
-
       Shapes.ShowShape(shpInfo)
-
       shpOn = "True"
-
     EndIf
-
   Else
-
     If shpOn Then
-
       Shapes.HideShape(shpInfo)
-
       shpOn = ""
-
     EndIf
-
     
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   If GraphicsWindow.LastKey = "Escape" And done Then
-
     Program.End()
-
   EndIf
-
 EndSub
-
-
-
 
 
 ' //////////  SUBs  \\\\\\\\\\
-
 Sub RemoveQuotes  ' Only leading and/or trailing quotes, not inside like "%programfiles%"\microsoft\etc
-
   If Text.StartsWith(path, qu) Then
-
     path = Text.GetSubTextToEnd(path, 2)
-
   EndIf
-
   If Text.EndsWith(path, qu) Then
-
     path = Text.GetSubText(path, 1,Text.GetLength(path)-1)
-
   EndIf
-
 EndSub
-
-
 
 Sub RevealDefault
-
   For y = 0 To h-1
-
     For x = 0 To w-1
-
       hex = GraphicsWindow.GetPixel(x,y)
-
       If Text.GetSubText(hex, 2,2) <> refRed Then
-
         GraphicsWindow.SetPixel(x,y, defColor)
-
       EndIf
-
     EndFor
-
   EndFor
-
   done = "True"
-
 EndSub
-
-
 
 Sub RevealMS
-
   For y = 0 To h-1
-
     For x = 0 To w-1
-
       hex = GraphicsWindow.GetPixel(x,y)
-
       If Text.GetSubText(hex, 2,2) <> refRed Then
-
         
-
         If x < w/2 And y < h/2 Then       ' II
-
           newCol = "Red"
-
         ElseIf x >= w/2 And y < h/2 Then  ' I
-
           newCol = "Lime" ' "Green"
-
         ElseIf x < w/2 And y >= h/2 Then  ' III
-
           newCol = "Blue"
-
         Else                              ' IV
-
           newCol = "Yellow"
-
         EndIf
-
         
-
         GraphicsWindow.SetPixel(x,y, newCol)
-
       EndIf
-
     EndFor
-
   EndFor
-
   done = "True"
-
 EndSub
-
-
 
 Sub RevealRand
-
   For y = 0 To h-1
-
     For x = 0 To w-1
-
       hex = GraphicsWindow.GetPixel(x,y)
-
       If Text.GetSubText(hex, 2,2) <> refRed Then
-
         GraphicsWindow.SetPixel(x,y, GraphicsWindow.GetRandomColor())
-
       EndIf
-
     EndFor
-
   EndFor
-
   done = "True"
-
 EndSub
-
-
 
 Sub RevealStripes
-
   For y = 0 To h-1
-
     If Math.Floor(y/10)/2 = Math.Floor(Math.Floor(y/10)/2) Then
-
       newCol = stripeCol1
-
     Else
-
       newCol = stripeCol2
-
     EndIf
-
     
-
     For x = 0 To w-1
-
       hex = GraphicsWindow.GetPixel(x,y)
-
       If Text.GetSubText(hex, 2,2) <> refRed Then
-
         GraphicsWindow.SetPixel(x,y, newCol)
-
       EndIf
-
     EndFor
-
     
-
   EndFor
-
   done = "True"
-
 EndSub
-
-
 
 ' https://simple.wikipedia.org/wiki/Rainbow
-
 ' Colors divided over full IMAGE height
-
 Sub RevealRainbow
-
   rainCol = "1=Red;2=Orange;3=Yellow;4=Lime;5=Blue;6=Indigo;7=DarkViolet;"  ' 7=DarkMagenta;"
-
   'rainCol = "1=#FF0000;2=#FF7F00;3=#FFFF00;4=#00FF00;5=#0000FF;6=#4B0082;7=#8B00FF;"
-
   
-
   For y = 0 To h-1
-
     num = Math.Floor(Array.GetItemCount(rainCol)*y/h) + 1
-
     
-
     For x = 0 To w-1
-
       hex = GraphicsWindow.GetPixel(x,y)
-
       If Text.GetSubText(hex, 2,2) <> refRed Then
-
         GraphicsWindow.SetPixel(x,y, rainCol[num])
-
       EndIf
-
     EndFor
-
     
-
   EndFor
-
   done = "True"
-
 EndSub
-
-
-
 
 
 Sub ClearGW
-
   brushCol = GraphicsWindow.BrushColor
-
   GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
-
   GraphicsWindow.FillRectangle(0,0, gw,gh) ' gh-26
-
   GraphicsWindow.BrushColor = brushCol
-
 EndSub
-
   
-
-

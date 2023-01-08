@@ -1,1611 +1,805 @@
 ' Aquarius / Eta Aquariids
-
 ' Version 0.12
-
-' ?Åø?Åö?Åå?ÇÅ / ?Åø?Åö?Åå?ÇÅÂ∫ßŒ∑ÊµÅ?òüÁæ?
-
+' „Åø„Åö„Åå„ÇÅ / „Åø„Åö„Åå„ÇÅÂ∫ßŒ∑ÊµÅÊòüÁæ§
 ' Copyright ¬© 2017 Nonki Takahashi.  The MIT License.
-
 ' Program ID JWG118-1
-
 ' Update 2017-04-19
-
 '
-
 ' Reference:
-
 '  http://en.wikipedia.org/wiki/List_of_stars_in_Aquarius
-
-
 
 SB_Workaround()
 
-
-
 title = "Eta Aquariids"
-
 Init()
-
 ' initialize shapes
-
 Shapes_Init()
-
 ' add shapes
-
 scale = 0.9
-
 angle = 0
-
 iMin = 1
-
 iMax = 44
-
 Shapes_Add()
-
 r = 500     ' [px]
-
 delay = 100 ' [ms]
-
 Cal_Init()
-
 InitStars()
-
 ra = radiant["ra"]
-
 dec = radiant["dec"]
-
 Mapping()
-
 rot = ra - 0.53
-
 tilt = dec - 5
-
 GraphicsWindow.Title = title + " | RA=" + (Math.Round(ra * 100) / 100) + "h Dec=" + dec + "¬∞"
-
 DrawRA()
-
 DrawDec()
-
 DrawStars()
-
 DrawCalendar()
-
 DrawMeteorShower()
-
 While "True"
-
   If keyDown Then
-
     If key = "Right" Then
-
       rot = rot + 0.25
-
       If 24 <= rot Then
-
         rot = rot - 24
-
       EndIf
-
     ElseIf key = "Left" Then
-
       rot = rot - 0.25
-
       If rot < 0 Then
-
         rot = rot + 24
-
       EndIf
-
     ElseIf key = "Up" Then
-
       If tilt <= 85 Then
-
         tilt = tilt + 5
-
       EndIf
-
     ElseIf key = "Down" Then
-
       If -85 <= tilt Then
-
         tilt = tilt - 5
-
       EndIf
-
     ElseIf key = "Add" Then
-
       r = r * 1.2
-
     ElseIf key = "Subtract" Then
-
       r = r / 1.2
-
     EndIf
-
     GraphicsWindow.Title = title + " RA=" + rot + "h Dec=" + tilt + "¬∞"
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.FillRectangle(0, 0, gw, gh)
-
     DrawRA()
-
     DrawDec()
-
     DrawStars()
-
     keyDown = "False"
-
   EndIf
-
   Program.Delay(delay)
-
 EndWhile
 
-
-
 Sub DrawDec
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "#666666"
-
   For dec = -80 To 80 Step 10
-
     For ra = 0 To 24 Step 0.2
-
       Mapping()
-
       If 0 < ra Then
-
         DrawLine()
-
       EndIf
-
       xLast = x
-
       yLast = y
-
       zLast = z
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub DrawRA
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "#666666"
-
   For ra = 0 To 23
-
     For dec = -90 To 90 Step 5
-
       Mapping()
-
       If -90 < dec Then
-
         DrawLine()
-
       EndIf
-
       xLast = x
-
       yLast = y
-
       zLast = z
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub DrawCalendar
-
   GraphicsWindow.BrushColor = "White"
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 30
-
   txt = Shapes.AddText(months[month])
-
   Shapes.Move(txt, monthX, monthY)
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 40
-
   txt = Shapes.AddText(year)
-
   Shapes.Move(txt, monthX, monthY + 30)
-
   sBuf = year + "," + month
-
   Command_GetArgs()
-
   iYear = sArg[1]
-
   if iYear = "" Then
-
     Goto lEnd
-
   Endif
-
   If Math.Remainder(iYear, 4) = 0 And Math.Remainder(iYear, 100) > 0 Or Math.Remainder(iYear, 400) = 0 Then
-
     iDoM[2] = iDoM[2] + 1
-
   Endif
-
   iNoL = Math.Floor((iYear - 1) / 4) - Math.Floor((iYear - 1) / 100) + Math.Floor((iYear - 1) / 400)  ' number of leap year
-
   iWoY = Math.Remainder((iYear + iNoL), 7)  ' week of year
-
   iMonth = sArg[2]
-
   If iMonth = "" Then
-
     iM0 = 1
-
     iM1 = 12
-
   Else
-
     iM0 = iMonth
-
     iM1 = iMonth
-
   Endif
-
   iDoY = 0  ' days of year
-
   iNoM = 1  ' number of month
-
   For iM = iM0 To iM1
-
     While iNoM < iM
-
       iDoY = iDoY + iDoM[iNoM]
-
       iNoM = iNoM + 1
-
     EndWhile
-
     Cal_DrawMonth()
-
   EndFor  
-
   lEnd:
-
 EndSub
-
-
 
 Sub DrawLine
-
   visible = "False"
-
   If 0 <= z And 0 <= zLast Then
-
     If 0 <= x And x < gw And 0 <= y And y < gh Then
-
       visible = "True"
-
     ElseIf 0 <= xLast And xLast < gw And 0 <= yLast And yLast < gh Then
-
       visible = "True"
-
     EndIf
-
   EndIf
-
   If visible Then
-
     GraphicsWindow.DrawLine(xLast, yLast, x, y)
-
   EndIf
-
 EndSub
-
-
 
 Sub DrawMeteorShower
-
   ra = radiant["RA"]
-
   dec = radiant["Dec"]
-
   Mapping()
-
   rx = x
-
   ry = y
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "White"
-
   While "True"
-
     Program.Delay(2000)
-
     angle = Math.GetRandomNumber(360)
-
     _a = Math.GetRadians(angle)
-
     r1 = Math.GetRandomNumber(100) + 50
-
     r2 = r1 * 2.5
-
     x1 = rx + r1 * Math.Sin(_a)
-
     y1 = ry - r1 * Math.Cos(_a)
-
     x2 = rx + r2 * Math.Sin(_a)
-
     y2 = ry - r2 * Math.Cos(_a)
-
     meteor = Shapes.AddLine(x1, y1, x2, y2)
-
     For op = 100 To 0 Step -5
-
       Shapes.SetOpacity(meteor, op)
-
       Program.Delay(50)
-
     EndFor
-
     Shapes.Remove(meteor)
-
   EndWhile
-
 EndSub
-
-
 
 Sub DrawStars
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "MidnightBlue"
-
   n = Array.GetItemCount(edge)
-
   index = Array.GetAllIndices(edge)
-
   For i = 1 To n
-
     e = edge[index[i]]
-
     m = Text.GetIndexOf(e, "-")
-
     ra = star[Text.GetSubText(e, 1, m - 1)]["RA"]
-
     dec = star[Text.GetSubText(e, 1, m - 1)]["Dec"]
-
     Mapping()
-
     x1 = x
-
     y1 = y
-
     z1 = z
-
     ra = star[Text.GetSubTextToEnd(e, m + 1)]["RA"]
-
     dec = star[Text.GetSubTextToEnd(e, m + 1)]["Dec"]
-
     Mapping()
-
     x2 = x
-
     y2 = y
-
     z2 = z
-
     If connect[index[i]] <> "" Then
-
       Shapes.Remove(connect[index[i]])
-
       connect[index[i]] = ""
-
     EndIf
-
     visible = "False"
-
     If 0 <= z1 And 0 <= z2 Then
-
       If 0 <= x1 And x1 <= gw And 0 <= y1 And y1 <= gh Then
-
         visible = "True"
-
       ElseIf 0 <= x2 And x2 <= gw And 0 <= y2 And y2 <= gh Then
-
         visible = "True"
-
       EndIf
-
       If visible Then
-
         connect[index[i]] = Shapes.AddLine(x1, y1, x2, y2)
-
       EndIf
-
     EndIf
-
   EndFor
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "White"
-
   n = Array.GetItemCount(star)
-
   index = Array.GetAllIndices(star)
-
   For i = 1 To n
-
     ra = star[index[i]]["ra"]
-
     dec = star[index[i]]["dec"]
-
     Mapping()
-
     If ell[index[i]] <> "" Then
-
       Shapes.Remove(ell[index[i]])
-
       ell[index[i]] = ""
-
     EndIf
-
     If 0 <= z Then
-
       mag = star[index[i]]["mag"]
-
       d = 16 / mag
-
       ell[index[i]] = Shapes.AddEllipse(d, d)
-
       Shapes.Move(ell[index[i]], x - d / 2, y - d / 2)
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub Init
-
   gw = 598
-
   gh = 428
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BackgroundColor = "Black"
-
   ox = gw / 2
-
   oy = gh * 0.4
-
   rot = 0     ' rotation
-
   tilt = 0
-
   monthX = 40
-
   monthY = gh - 114
-
   calendarX = gw - 270
-
   calendarY = gh - 150
-
   year = 2017
-
   month = 5
-
   GraphicsWindow.KeyDown = OnKeyDown
-
 EndSub
-
-
 
 Sub InitStars
-
   ' Initialize stars in Aquarius
-
   ' index: Flamsteed designation
-
   ' RA (Right ascension), Dec (Declination), Mag (Apparent magnitude)
-
   star[22] = "name=Œ≤ Aqr;ra=21 31 33.52;dec=-05 34 16.2;mag=2.90;"
-
   star[34] = "name=Œ± Aqr;ra=22 05 47.03;dec=-00 19 11.4;mag=2.95;"
-
   star[76] = "name=Œ¥ Aqr;ra=22 54 39.04;dec=-15 49 14.7;mag=3.27;"
-
   star[55] = "name=Œ∂1 Aqr;ra=22 28 49.80;dec=-00 01 12.2;mag=3.65;"
-
   star[88] = "name=88 Aqr;ra=23 09 26.76;dec=-21 10 20.9;mag=3.68;"
-
   star[73] = "name=Œª Aqr;ra=22 52 36.86;dec=-07 34 46.8;mag=3.73;"
-
   star[2] = "name=Œµ Aqr;ra=20 47 40.53;dec=-09 29 44.5;mag=3.78;"
-
   star[48] = "name=Œ≥ Aqr;ra=22 21 39.30;dec=-01 23 14.5;mag=3.86;"
-
   star[98] = "name=98 Aqr;ra=23 22 58.30;dec=-20 06 01.2;mag=3.96;"
-
   star[62] = "name=Œ∑ Aqr;ra=22 35 21.33;dec=-00 07 02.5;mag=4.04;"
-
-  star[71] = "name=??2 Aqr;ra=22 49 35.51;dec=-13 35 33.1;mag=4.05;"
-
+  star[71] = "name=œÑ2 Aqr;ra=22 49 35.51;dec=-13 35 33.1;mag=4.05;"
   star[43] = "name=Œ∏ Aqr;ra=22 16 49.97;dec=-07 46 59.7;mag=4.17;"
-
-  star[90] = "name=?? Aqr;ra=23 14 19.33;dec=-06 02 54.7;mag=4.22;"
-
-  star[91] = "name=??1 Aqr;ra=23 15 53.28;dec=-09 05 15.7;mag=4.24;"
-
+  star[90] = "name=œÜ Aqr;ra=23 14 19.33;dec=-06 02 54.7;mag=4.22;"
+  star[91] = "name=œà1 Aqr;ra=23 15 53.28;dec=-09 05 15.7;mag=4.24;"
   star[33] = "name=Œπ Aqr;ra=22 06 26.21;dec=-13 52 10.3;mag=4.29;"
-
   star[99] = "name=99 Aqr;ra=23 26 02.82;dec=-20 38 30.7;mag=4.38;"
-
-  star[93] = "name=??2 Aqr;ra=23 17 54.20;dec=-09 10 57.0;mag=4.41;"
-
+  star[93] = "name=œà2 Aqr;ra=23 17 54.20;dec=-09 10 57.0;mag=4.41;"
   star[55] = "name=Œ∂2 Aqr;ra=22 28 50.10;dec=-00 01 12.0;mag=4.42;"
-
   star[3] = "name=3 Aqr;ra=20 47 44.24;dec=-05 01 39.4;mag=4.43;"
-
   star[86] = "name=86 Aqr;ra=23 06 40.81;dec=-23 44 35.2;mag=4.48;"
-
-  star[105] = "name=??2 Aqr;ra=23 42 43.28;dec=-14 32 41.1;mag=4.49;"
-
+  star[105] = "name=œâ2 Aqr;ra=23 42 43.28;dec=-14 32 41.1;mag=4.49;"
   star[13] = "name=ŒΩ Aqr;ra=21 09 35.59;dec=-11 22 18.0;mag=4.50;"
-
   star[23] = "name=Œæ Aqr;ra=21 37 45.04;dec=-07 51 14.9;mag=4.68;"
-
   star[66] = "name=66 Aqr;ra=22 43 35.25;dec=-18 49 49.1;mag=4.68;"
-
   star[101] = "name=101 Aqr;ra=23 33 16.63;dec=-20 54 52.3;mag=4.70;"
-
   star[89] = "name=89 Aqr;ra=23 09 54.88;dec=-22 27 27.3;mag=4.71;"
-
   star[6] = "name=Œº Aqr;ra=20 52 39.21;dec=-08 58 59.7;mag=4.73;"
-
   star[31] = "name=Œø Aqr;ra=22 03 18.83;dec=-02 09 19.2;mag=4.74;"
-
-  star[52] = "name=? Aqr;ra=22 25 16.61;dec=+01 22 38.6;mag=4.80;"
-
-  star[57] = "name=?? Aqr;ra=22 30 38.82;dec=-10 40 40.4;mag=4.82;"
-
+  star[52] = "name=œÄ Aqr;ra=22 25 16.61;dec=+01 22 38.6;mag=4.80;"
+  star[57] = "name=œÉ Aqr;ra=22 30 38.82;dec=-10 40 40.4;mag=4.82;"
   star[104] = "name=104 Aqr A;ra=23 41 45.80;dec=-17 48 59.5;mag=4.82;"
-
-  star[92] = "name=?? Aqr;ra=23 16 50.95;dec=-07 43 35.3;mag=4.93;"
-
-  star[102] = "name=??1 Aqr;ra=23 39 47.04;dec=-14 13 19.4;mag=4.97;"
-
-  star[95] = "name=??3 Aqr;ra=23 18 57.65;dec=-09 36 38.6;mag=4.99;"
-
+  star[92] = "name=œá Aqr;ra=23 16 50.95;dec=-07 43 35.3;mag=4.93;"
+  star[102] = "name=œâ1 Aqr;ra=23 39 47.04;dec=-14 13 19.4;mag=4.97;"
+  star[95] = "name=œà3 Aqr;ra=23 18 57.65;dec=-09 36 38.6;mag=4.99;"
   star[63] = "name=Œ∫ Aqr;ra=22 37 45.42;dec=-04 13 39.9;mag=5.04;"
-
   star[25] = "name=25 Aqr;ra=21 39 33.28;dec=+02 14 37.5;mag=5.10;"
-
   star[47] = "name=47 Aqr;ra=22 21 35.58;dec=-21 35 52.9;mag=5.12;"
-
   star[1] = "name=1 Aqr;ra=20 39 24.83;dec=+00 29 11.4;mag=5.15;"
-
   star[108] = "name=108 Aqr;ra=23 51 21.32;dec=-18 54 33.0;mag=5.17;"
-
   star[94] = "name=94 Aqr B;ra=23 19 06.37;dec=-13 27 17.0;mag=5.19;"
-
   star[97] = "name=97 Aqr;ra=23 22 39.10;dec=-15 02 21.8;mag=5.19;"
-
   star[94] = "name=94 Aqr A;ra=23 19 06.51;dec=-13 27 30.4;mag=5.20;"
-
-  star[59] = "name=?? Aqr;ra=22 34 41.50;dec=-20 42 28.3;mag=5.21;"
-
+  star[59] = "name=œÖ Aqr;ra=22 34 41.50;dec=-20 42 28.3;mag=5.21;"
   star[68] = "name=68 Aqr;ra=22 47 33.19;dec=-19 36 46.3;mag=5.24;"
-
   star[106] = "name=106 Aqr;ra=23 44 12.06;dec=-18 16 36.9;mag=5.24;"
-
   star[107] = "name=107 Aqr;ra=23 46 00.84;dec=-18 40 42.1;mag=5.28;"
-
   star[32] = "name=32 Aqr;ra=22 04 47.43;dec=-00 54 22.5;mag=5.29;"
-
   star[41] = "name=41 Aqr;ra=22 14 18.02;dec=-21 04 28.9;mag=5.33;"
-
   star[42] = "name=42 Aqr;ra=22 16 48.04;dec=-12 49 53.2;mag=5.34;"
-
-  star[46] = "name=?? Aqr;ra=22 20 11.91;dec=-07 49 16.0;mag=5.35;"
-
+  star[46] = "name=œÅ Aqr;ra=22 20 11.91;dec=-07 49 16.0;mag=5.35;"
   star[103] = "name=103 Aqr;ra=23 41 34.51;dec=-18 01 36.8;mag=5.36;"
-
   star[38] = "name=38 Aqr;ra=22 10 37.46;dec=-11 33 53.9;mag=5.43;"
-
   star[83] = "name=83 Aqr;ra=23 05 09.71;dec=-07 41 37.7;mag=5.44;"
-
   star[18] = "name=18 Aqr;ra=21 24 11.44;dec=-12 52 41.3;mag=5.48;"
-
   star[21] = "name=21 Aqr;ra=21 25 16.96;dec=-03 33 23.7;mag=5.48;"
-
   star[7] = "name=7 Aqr;ra=20 56 54.03;dec=-09 41 51.1;mag=5.49;"
-
   star[12] = "name=12 Aqr B;ra=21 04 04.58;dec=-05 49 24.2;mag=7.31;"
-
   star[49] = "name=49 Aqr;ra=22 23 30.79;dec=-24 45 45.6;mag=5.53;"
-
   star[77] = "name=77 Aqr;ra=22 54 45.60;dec=-16 16 18.3;mag=5.53;"
-
   star[5] = "name=5 Aqr;ra=20 52 08.69;dec=-05 30 25.4;mag=5.55;"
-
   star[30] = "name=30 Aqr;ra=22 03 16.43;dec=-06 31 20.7;mag=5.55;"
-
   star[53] = "name=53 Aqr B;ra=22 26 34.15;dec=-16 44 31.7;mag=5.55;"
-
   star[96] = "name=96 Aqr;ra=23 19 23.86;dec=-05 07 27.5;mag=5.56;"
-
   star[28] = "name=28 Aqr;ra=22 01 05.01;dec=+00 36 17.1;mag=5.60;"
-
   star[26] = "name=26 Aqr;ra=21 42 10.12;dec=+01 17 07.0;mag=5.66;"
-
-  star[69] = "name=??1 Aqr;ra=22 47 42.75;dec=-14 03 23.1;mag=5.68;"
-
+  star[69] = "name=œÑ1 Aqr;ra=22 47 42.75;dec=-14 03 23.1;mag=5.68;"
   star[19] = "name=19 Aqr;ra=21 25 13.02;dec=-09 44 53.3;mag=5.71;"
-
   star[44] = "name=44 Aqr;ra=22 17 06.50;dec=-05 23 14.0;mag=5.75;"
-
   star[50] = "name=50 Aqr;ra=22 24 27.03;dec=-13 31 45.9;mag=5.76;"
-
   star[51] = "name=51 Aqr;ra=22 24 06.87;dec=-04 50 13.2;mag=5.79;"
-
   star[35] = "name=35 Aqr;ra=22 08 58.99;dec=-18 31 10.5;mag=5.80;"
-
   star[74] = "name=74 Aqr;ra=22 53 28.69;dec=-11 36 59.5;mag=5.80;"
-
   star[15] = "name=15 Aqr;ra=21 18 11.07;dec=-04 31 10.2;mag=5.83;"
-
   star[16] = "name=16 Aqr;ra=21 21 04.33;dec=-04 33 36.5;mag=5.87;"
-
   star[60] = "name=60 Aqr;ra=22 34 02.89;dec=-01 34 27.0;mag=5.88;"
-
   star[12] = "name=12 Aqr A;ra=21 04 04.74;dec=-05 49 23.0;mag=5.89;"
-
   star[45] = "name=45 Aqr;ra=22 19 00.70;dec=-13 18 17.9;mag=5.96;"
-
   star[4] = "name=4 Aqr;ra=20 51 25.69;dec=-05 37 35.9;mag=5.99;"
-
   star[17] = "name=17 Aqr;ra=21 22 56.27;dec=-09 19 09.4;mag=5.99;"
-
   star[39] = "name=39 Aqr;ra=22 12 25.74;dec=-14 11 37.8;mag=6.04;"
-
   star[82] = "name=82 Aqr;ra=23 02 32.56;dec=-06 34 26.1;mag=6.18;"
-
   star[70] = "name=70 Aqr;ra=22 48 30.19;dec=-10 33 19.8;mag=6.19;"
-
   star[78] = "name=78 Aqr;ra=22 54 34.13;dec=-07 12 16.3;mag=6.20;"
-
   star[11] = "name=11 Aqr;ra=21 00 33.81;dec=-04 43 47.7;mag=6.21;"
-
   star[81] = "name=81 Aqr;ra=23 01 23.65;dec=-07 03 40.1;mag=6.23;"
-
   star[100] = "name=100 Aqr;ra=23 31 42.04;dec=-21 22 10.0;mag=6.24;"
-
   star[53] = "name=53 Aqr A;ra=22 26 34.40;dec=-16 44 33.0;mag=6.35;"
-
   star[56] = "name=56 Aqr;ra=22 30 17.33;dec=-14 35 08.3;mag=6.36;"
-
   star[20] = "name=20 Aqr;ra=21 24 51.68;dec=-03 23 53.6;mag=6.38;"
-
   star[29] = "name=29 Aqr;ra=22 02 26.25;dec=-16 57 53.4;mag=6.39;"
-
   star[58] = "name=58 Aqr;ra=22 31 41.28;dec=-10 54 19.7;mag=6.39;"
-
   star[61] = "name=61 Aqr;ra=22 35 48.82;dec=-17 27 37.1;mag=6.39;"
-
   star[67] = "name=67 Aqr;ra=22 43 14.25;dec=-06 57 46.5;mag=6.40;"
-
   star[14] = "name=14 Aqr;ra=21 16 17.78;dec=-09 12 52.8;mag=6.45;"
-
   star[114] = "name=HD 210277;ra=22 09 29.87;dec=-07 32 55.2;mag=6.63;"
-
   star[37] = "name=37 Aqr;ra=22 10 31.74;dec=-10 49 13.7;mag=6.64;"
-
   star[24] = "name=24 Aqr;ra=21 39 31.39;dec=-00 03 04.1;mag=6.66;"
-
   star[104] = "name=104 Aqr B;ra=23 41 46.39;dec=-17 47 00.5;mag=8.52;"
-
   edge = "1=2-6;2=6-22;3=22-34;4=22-33;5=33-43;6=34-43;7=43-57;"
-
   edge = edge + "8=57-71;9=71-76;10=34-48;11=48-55;12=55-62;"
-
   edge = edge + "13=62-73;14=73-88;15=62-90;16=90-91;17=91-102;"
-
   edge = edge + "18=102-98;19=98-104;"
-
   radiant = "ra=22 32 00.00;dec=-01 00 00.0;"
-
 EndSub
-
-
 
 Sub Mapping
-
   ' param ra - right asension [h]
-
   ' param rot - rotation [h]
-
   ' param dec - declination [deg]
-
   ' param tilt - tilt [deg]
-
   ' param r - radius [px]
-
   ' return x, y - position in the graphics window [px]
-
   ' return z - visible if 0 <= z
-
   If Text.IsSubText(ra, " ") Then
-
     _ra = Text.GetSubText(ra, 1, 2)
-
     _ra = _ra + Text.GetSubText(ra, 4, 2) / 60
-
     _ra = _ra + Text.GetSubText(ra, 7, 5) / 3600
-
     ra = _ra
-
   EndIf
-
   If Text.IsSubText(dec, " ") Then
-
     _dec = Text.GetSubText(dec, 2, 2)
-
     _dec = _dec + Text.GetSubText(dec, 5, 2) / 60
-
     _dec = _dec + Text.GetSubText(dec, 8, 5) / 3600
-
     _dec = _dec * Text.Append(Text.GetSubText(dec, 1, 1), "1")
-
     dec = _dec
-
   EndIf
-
-  ?? = Math.GetRadians((ra - rot) * 15)
-
+  œÜ = Math.GetRadians((ra - rot) * 15)
   Œ∏ = Math.GetRadians(dec)
-
-  x = ox - r * Math.Sin(??) * Math.Cos(Œ∏)
-
+  x = ox - r * Math.Sin(œÜ) * Math.Cos(Œ∏)
   y = oy - r * Math.Sin(Œ∏)
-
-  z = r * Math.Cos(??) * Math.Cos(Œ∏)
-
+  z = r * Math.Cos(œÜ) * Math.Cos(Œ∏)
   If tilt <> 0 Then
-
     _z = z
-
     _y = y - oy
-
-    ?? = Math.GetRadians(tilt)
-
-    z = Math.Cos(??) * _z - Math.Sin(??) * _y
-
-    y = oy + Math.Sin(??) * _z + Math.Cos(??) * _y
-
+    œÑ = Math.GetRadians(tilt)
+    z = Math.Cos(œÑ) * _z - Math.Sin(œÑ) * _y
+    y = oy + Math.Sin(œÑ) * _z + Math.Cos(œÑ) * _y
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   keyDown = "True"
-
   key = GraphicsWindow.LastKey
-
 EndSub
-
-
 
 Sub Cal_Init
-
   ' Calendar | Initialize days of month
-
   WQ = Text.GetCharacter(34)
-
   CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
-
   iDoM = "1=31;2=28;3=31;4=30;5=31;6=30;7=31;8=31;9=30;10=31;11=30;12=31;"
-
   months = "1=January;2=February;3=March;4=April;5=May;6=June;7=July;"
-
   months = months + "8=August;9=September;10=October;11=November;12=December;"
-
-  symbols = "1=?ôë;2=?ôí;3=?ôì;4=?ôà;5=?ôâ;6=?ôä;7=?ôã;8=?ôå;9=?ôç;10=?ôé;11=?ôè;12=?ôê;"
-
+  symbols = "1=‚ôë;2=‚ôí;3=‚ôì;4=‚ôà;5=‚ôâ;6=‚ôä;7=‚ôã;8=‚ôå;9=‚ôç;10=‚ôé;11=‚ôè;12=‚ôê;"
 EndSub
-
-
 
 Sub Cal_DrawMonth
-
   ' Calendar | Print month
-
   ' param iM - month
-
   ' param iDoY - days of year
-
   ' param iWoY - week of year
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.FontName = "Consolas"
-
   iW = Math.Remainder((iDoY + iWoY), 7)
-
   line = "SUN MON TUE WED THU FRI SAT" + CRLF
-
   iWoM = 0
-
   While iWoM < iW
-
     line = line + "    "
-
     iWoM = iWoM + 1
-
   EndWhile
-
   For iD = 1 To iDoM[iM]
-
     If iD < 10 Then
-
       line = line + "  " + iD + " "
-
     Else
-
       line = line + " " + iD + " "
-
     EndIf
-
     If Math.Remainder(iWoM, 7) = 6 Then
-
       line = line + CRLF
-
     EndIf
-
     iWoM = iWoM + 1
-
   EndFor
-
   If Math.Remainder(iWoM, 7) > 0 Then
-
     line = line + CRLF
-
   EndIf
-
   cal = Shapes.AddText(line)
-
   Shapes.Move(cal, calendarX, calendarY)
-
 EndSub
-
-
 
 Sub Command_GetArgs
-
   ' Command line | Get arguments
-
   ' param sBuf - input buffer
-
   ' return sArg[] - arguments
-
   ' return iN - number of arguments
-
   iP = 1  ' buffer pointer
-
   iN = 1  ' number of args
-
   iC = Text.GetIndexOf(sBuf, ",")   ' index of comma
-
   While iC > iP
-
     sArg[iN] = Text.GetSubText(sBuf, iP, iC - iP)
-
     iP = iC + 1
-
     iN = iN + 1
-
     iC = Text.GetIndexOf(sBuf, ",")
-
   EndWhile
-
   iE = Text.GetLength(sBuf) + 1     ' end of buffer
-
   sArg[iN] = Text.GetSubText(sBuf, iP, iE - iP)  
-
 EndSub
-
-
 
 Sub Shapes_Init
-
   ' Shapes | Initialize shapes data
-
   ' return shX, shY - current position of shapes
-
   ' return shape - array of shapes
-
   shX = 110 ' x offset
-
   shY = 50  ' y offset
-
   shape = ""
-
   shape[1] = "func=ell;x=37;y=173;width=36;height=100;angle=10;bc=#387070;pw=0;"
-
   shape[2] = "func=ell;x=12;y=155;width=34;height=118;angle=17;bc=#387070;pw=0;"
-
   shape[3] = "func=ell;x=0;y=151;width=28;height=90;angle=24;bc=#387070;pw=0;"
-
   shape[4] = "func=ell;x=238;y=26;width=55;height=71;angle=28;bc=#D8A57E;pw=0;"
-
   shape[5] = "func=rect;x=234;y=78;width=22;height=34;angle=32;bc=#D8A57E;pw=0;"
-
   shape[6] = "func=rect;x=180;y=95;width=87;height=81;angle=31;bc=#D8A57E;pw=0;"
-
   shape[7] = "func=rect;x=257;y=144;width=67;height=22;angle=53;bc=#D8A57E;pw=0;"
-
   shape[8] = "func=rect;x=299;y=165;width=65;height=19;angle=348;bc=#D8A57E;pw=0;"
-
   shape[9] = "func=rect;x=144;y=94;width=74;height=22;angle=334;bc=#D8A57E;pw=0;"
-
   shape[10] = "func=rect;x=153;y=160;width=89;height=54;angle=19;bc=#D8A57E;pw=0;"
-
   shape[11] = "func=rect;x=99;y=186;width=75;height=30;angle=341;bc=#D8A57E;pw=0;"
-
   shape[12] = "func=rect;x=130;y=220;width=96;height=31;angle=328;bc=#D8A57E;pw=0;"
-
   shape[13] = "func=ell;x=80;y=199;width=35;height=34;bc=#D8A57E;pw=0;"
-
   shape[14] = "func=ell;x=117;y=247;width=35;height=39;bc=#D8A57E;pw=0;"
-
   shape[15] = "func=rect;x=128;y=274;width=28;height=56;angle=345;bc=#D8A57E;pw=0;"
-
   shape[16] = "func=rect;x=80;y=217;width=27;height=74;bc=#D8A57E;pw=0;"
-
   shape[17] = "func=ell;x=249;y=48;width=12;height=14;angle=40;bc=#387070;pw=0;"
-
   shape[18] = "func=ell;x=258;y=17;width=21;height=22;bc=#DCA028;pw=0;"
-
   shape[19] = "func=ell;x=274;y=19;width=21;height=22;bc=#DCA028;pw=0;"
-
   shape[20] = "func=ell;x=285;y=32;width=21;height=22;bc=#DCA028;pw=0;"
-
   shape[21] = "func=ell;x=289;y=49;width=21;height=22;bc=#DCA028;pw=0;"
-
   shape[22] = "func=ell;x=241;y=21;width=21;height=22;bc=#DCA028;pw=0;"
-
   shape[23] = "func=ell;x=280;y=65;width=21;height=22;bc=#DCA028;pw=0;"
-
   shape[24] = "func=ell;x=229;y=35;width=21;height=22;bc=#DCA028;pw=0;"
-
   shape[25] = "func=ell;x=359;y=148;width=32;height=31;bc=#D8A57E;pw=0;"
-
   shape[26] = "func=ell;x=357;y=155;width=13;height=73;angle=6;bc=#6A5ACD;pw=0;"
-
   shape[27] = "func=ell;x=387;y=165;width=14;height=78;angle=345;bc=#6A5ACD;pw=0;"
-
   shape[28] = "func=tri;x=60;y=270;x1=17;y1=0;x2=0;y2=62;x3=35;y3=62;angle=265;bc=#D8A57E;pw=0;"
-
   shape[29] = "func=tri;x=118;y=307;x1=14;y1=0;x2=0;y2=64;x3=29;y3=64;angle=261;bc=#D8A57E;pw=0;"
-
   shape[30] = "func=rect;x=137;y=62;width=18;height=69;angle=358;bc=#D8A57E;pw=0;"
-
   shape[31] = "func=ell;x=106;y=0;width=73;height=86;angle=32;bc=#387070;pw=0;"
-
   shape[32] = "func=ell;x=92;y=62;width=56;height=31;angle=30;bc=#387070;pw=0;"
-
   shape[33] = "func=ell;x=100;y=72;width=37;height=14;angle=28;bc=#102020;pw=0;"
-
   shape[34] = "func=tri;x=63;y=39;x1=31;y1=0;x2=0;y2=155;x3=63;y3=155;angle=38;bc=#387070;pw=0;"
-
   shape[35] = "func=tri;x=384;y=179;x1=15;y1=0;x2=0;y2=53;x3=31;y3=53;angle=341;bc=#6A5ACD;pw=0;"
-
   shape[36] = "func=tri;x=351;y=163;x1=11;y1=0;x2=0;y2=60;x3=23;y3=60;angle=10;bc=#6A5ACD;pw=0;"
-
   shape[37] = "func=ell;x=393;y=162;width=16;height=74;angle=328;bc=#6A5ACD;pw=0;"
-
   shape[38] = "func=ell;x=405;y=210;width=1;height=0;bc=#6A5ACD;pw=0;"
-
   shape[39] = "func=ell;x=268;y=59;width=12;height=14;angle=40;bc=#387070;pw=0;"
-
   shape[40] = "func=ell;x=150;y=149;width=27;height=46;angle=334;bc=#8A5B28;pw=0;"
-
   shape[41] = "func=ell;x=198;y=154;width=30;height=74;angle=93;bc=#8A5B28;pw=0;"
-
   shape[42] = "func=ell;x=137;y=164;width=27;height=46;angle=347;bc=#8A5B28;pw=0;"
-
   shape[43] = "func=rect;x=156;y=172;width=85;height=44;angle=21;bc=#8A5B28;pw=0;"
-
   shape[44] = "func=ell;x=154;y=198;width=79;height=36;angle=11;bc=#8A5B28;pw=0;"
-
 EndSub
-
-
 
 Sub Math_CartesianToPolar
-
   ' Math | convert cartesian coodinate to polar coordinate
-
   ' param x, y - cartesian coordinate
-
   ' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   ElseIf x = 0 Then
-
     a = 0
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
-
 
 Sub SB_RotateWorkaround
-
   ' Small Basic | Rotate workaround for Silverlight
-
   ' param shp - current shape
-
   ' param x, y - original coordinate
-
   ' param alpha - angle [radian]
-
   ' returns x, y - workaround coordinate
-
   If shp["func"] = "tri" Then
-
     x1 = -Math.Floor(shp["x3"] / 2)
-
     y1 = -Math.Floor(shp["y3"] / 2)
-
   ElseIf shp["func"] = "line" Then
-
     x1 = -Math.Floor(Math.Abs(shp["x1"] - shp["x2"]) / 2)
-
     y1 = -Math.Floor(Math.Abs(shp["y1"] - shp["y2"]) / 2)
-
   EndIf
-
   ox = x - x1
-
   oy = y - y1
-
   x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
   y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
 EndSub
-
-
 
 Sub SB_Workaround
-
   ' Small Basic | Workaround for Silverlight
-
   ' returns silverlight - "True" if in remote
-
   color = GraphicsWindow.GetPixel(0, 0)
-
   If Text.GetLength(color) > 7 Then
-
     silverlight = "True"
-
     msWait = 300
-
   Else
-
     silverlight = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub Shapes_Add
-
   ' Shapes | add shapes as shapes data
-
   ' param iMin, iMax - shape indices to add
-
   ' param shape - array of shapes
-
   ' param scale - 1 if same scale
-
   ' return shWidth, shHeight - total size of shapes
-
   ' return shAngle - current angle of shapes
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   Shapes_CalcWidthAndHeight()
-
   s = scale
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     GraphicsWindow.PenWidth = shp["pw"] * s
-
     If shp["pw"] > 0 Then
-
       GraphicsWindow.PenColor = shp["pc"]
-
     EndIf
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) Then
-
       GraphicsWindow.BrushColor = shp["bc"]
-
     EndIf
-
     If shp["func"] = "rect" Then
-
       shp["obj"] = Shapes.AddRectangle(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "ell" Then
-
       shp["obj"] = Shapes.AddEllipse(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "tri" Then
-
       shp["obj"] = Shapes.AddTriangle(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s, shp["x3"] * s, shp["y3"] * s)
-
     ElseIf shp["func"] = "line" Then
-
       shp["obj"] = Shapes.AddLine(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s)
-
     ElseIf shp["func"] = "text" Then
-
       If silverlight Then
-
         fs = Math.Floor(shp["fs"] * 0.9)
-
       Else
-
         fs = shp["fs"]
-
       EndIf
-
       GraphicsWindow.FontSize = fs * s
-
       GraphicsWindow.FontName = shp["fn"]
-
       shp["obj"] = Shapes.AddText(shp["text"])
-
     EndIf
-
     x = shp["x"]
-
     y = shp["y"]
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(shp["angle"])
-
       SB_RotateWorkaround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) And (shp["angle"] <> 0) And (shp["angle"] <> "") Then
-
       Shapes.Rotate(shp["obj"], shp["angle"])
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
   shAngle = 0
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Shapes_CalcRotatePos
-
   ' Shapes | Calculate position for rotated shape
-
   ' param["x"], param["y"] - position of a shape
-
   ' param["width"], param["height"] - size of a shape
-
   ' param ["cx"], param["cy"] - center of rotation
-
   ' param ["angle"] - rotate angle
-
   ' return x, y - rotated position of a shape
-
   _cx = param["x"] + param["width"] / 2
-
   _cy = param["y"] + param["height"] / 2
-
   x = _cx - param["cx"]
-
   y = _cy - param["cy"]
-
   Math_CartesianToPolar()
-
   a = a + param["angle"]
-
   x = r * Math.Cos(a * Math.Pi / 180)
-
   y = r * Math.Sin(a * Math.Pi / 180)
-
   _cx = x + param["cx"]
-
   _cy = y + param["cy"]
-
   x = _cx - param["width"] / 2
-
   y = _cy - param["height"] / 2
-
 EndSub
-
-
 
 Sub Shapes_CalcWidthAndHeight
-
   ' Shapes | Calculate total width and height of shapes
-
   ' param iMin, iMax - shape indices to add
-
   ' return shWidth, shHeight - total size of shapes
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If shp["func"] = "tri" Or shp["func"] = "line" Then
-
       xmin = shp["x1"]
-
       xmax = shp["x1"]
-
       ymin = shp["y1"]
-
       ymax = shp["y1"]
-
       If shp["x2"] < xmin Then
-
         xmin = shp["x2"]
-
       EndIf
-
       If xmax < shp["x2"] Then
-
         xmax = shp["x2"]
-
       EndIf
-
       If shp["y2"] < ymin Then
-
         ymin = shp["y2"]
-
       EndIf
-
       If ymax < shp["y2"] Then
-
         ymax = shp["y2"]
-
       EndIf
-
       If shp["func"] = "tri" Then
-
         If shp["x3"] < xmin Then
-
           xmin = shp["x3"]
-
         EndIf
-
         If xmax < shp["x3"] Then
-
           xmax = shp["x3"]
-
         EndIf
-
         If shp["y3"] < ymin Then
-
           ymin = shp["y3"]
-
         EndIf
-
         If ymax < shp["y3"] Then
-
           ymax = shp["y3"]
-
         EndIf
-
       EndIf
-
       shp["width"] = xmax - xmin
-
       shp["height"] = ymax - ymin
-
     EndIf
-
     If i = 1 Then
-
       shWidth = shp["x"] + shp["width"]
-
       shHeight = shp["y"] + shp["height"]
-
     Else
-
       If shWidth < shp["x"] + shp["width"] Then
-
         shWidth = shp["x"] + shp["width"]
-
       EndIf
-
       If shHeight < shp["y"] + shp["height"] Then
-
         shHeight = shp["y"] + shp["height"]
-
       EndIf
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
 EndSub
-
-
 
 Sub Shapes_Move
-
   ' Shapes | Move shapes
-
   ' param iMin, iMax - shape indices to add
-
   ' param shape - array of shapes
-
   ' param scale - to zoom
-
   ' param x, y - position to move
-
   ' return shX, shY - new position of shapes
-
   Stack.PushValue("local", i)
-
   s = scale
-
   shX = x
-
   shY = y
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       _x = shp["wx"]
-
       _y = shp["wy"]
-
     Else
-
       _x = shp["rx"]
-
       _y = shp["ry"]
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + _x * s, shY + _y * s)
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Shapes_Remove
-
   ' Shapes | Remove shapes
-
   ' param iMin, iMax - shapes indices to remove
-
   ' param shape - array of shapes
-
   Stack.PushValue("local", i)
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     Shapes.Remove(shp["obj"])
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Shapes_Rotate
-
   ' Shapes | Rotate shapes
-
   ' param iMin, iMax - shapes indices to rotate
-
   ' param shape - array of shapes
-
   ' param cx, cy - rotation center
-
   ' param scale - to zoom
-
   ' param angle - to rotate
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   s = scale
-
   param["angle"] = angle
-
   If cx <> "" Then
-
     param["cx"] = cx
-
   Else
-
     cx = ""   ' to avoid syntax error
-
     param["cx"] = shWidth / 2
-
   EndIf
-
   If cy <> "" Then
-
     param["cy"] = cy
-
   Else
-
     cy = ""   ' to avoid syntax error
-
     param["cy"] = shHeight / 2
-
   EndIf
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     param["x"] = shp["x"]
-
     param["y"] = shp["y"]
-
     param["width"] = shp["width"]
-
     param["height"] = shp["height"]
-
     Shapes_CalcRotatePos()
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(angle + shp["angle"])
-
       SB_RotateWorkAround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     Shapes.Rotate(shp["obj"], angle + shp["angle"])
-
     shape[i] = shp
-
   EndFor
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-

@@ -1,263 +1,131 @@
 GraphicsWindow.Show()
-
 IO_ini()
-
 Grafikfenster()
-
 Nprog=4  ''number of programs, max = 5
-
 Timer.Interval = 100 'Check for delayed actions every 1/10 sec
-
 Timer.Tick = OnTick
 
-
-
 '==========================================
-
 'Create Windows
-
 '==========================================
-
-
 
 Controls.ButtonClicked = OnButtonClicked
-
 StartAll= Controls.AddButton("Start All",30,100) 
-
 Win[1] = LDWindows.Create()
-
 GraphicsWindow.Title = "Fenster 1"
-
 Fenster()
-
 Win[2] = LDWindows.Create()
-
 GraphicsWindow.Title = "Fenster 2"
-
 Fenster()
 
-
-
 '==========================================
-
 'Initialisation
-
 '==========================================
-
-
 
 Sub IO_ini
-
   c = LDIOWarrior.Initialise()
-
   a = LDIOWarrior.GetSerialNumber(1)
-
   d = LDIOWarrior.GetSerialNumber(2)
-
   b = LDIOWarrior.GetName(1)
-
 EndSub
-
-
 
 Sub Grafikfenster
-
   GraphicsWindow.Title =  "1.Warriorprogramm"
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawBoundText(420,20,200,c + " Geräte angeschlossen")
-
   GraphicsWindow.DrawBoundText(10,20,200,"Seriennummer: " + a)
-
   GraphicsWindow.DrawBoundText(10,50,200,"Seriennummer: " + d)
-
   GraphicsWindow.DrawBoundText(220,20,200,"Gerätename: " + b)
-
 EndSub
 
-
-
 '==========================================
-
 'Additional Windows
-
 '==========================================
-
-
 
 Sub Fenster
-
   LDControls.CheckBoxChanged = OnCheckBoxChanged
-
   WinId = LDWindows.CurrentID
-
   LDScrollBars.Add(400,550)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawBoundText(530,60,50,"Zeit in s")
-
   For P = 1 To Nprog
-
     GraphicsWindow.DrawBoundText(20,50*P+25,50,"Prog " + P)
-
     Wert[WinId][P]=255
-
   EndFor
-
   For S = 1 To 8
-
     GraphicsWindow.DrawBoundText(50*S+65,60,250,"Rel " + S)
-
   EndFor
-
   
-
   For P = 1 To Nprog
-
     For N = 1 To 8
-
       pro[WinId][P][N] = LDControls.AddCheckBox("")
-
       Controls.Move(pro[WinId][P][N],50*N + 70,50*P+25)
-
     EndFor
-
     Zeitbox[WinId][P] = Controls.AddTextBox(530,50*P+25)
-
     Controls.SetSize(Zeitbox[WinId][P], 35,20) 
-
   EndFor 
-
 EndSub  
 
-
-
 '==========================================
-
 'Update Checkbox status
-
 '==========================================
-
-
 
 Sub OnCheckBoxChanged
-
   CBNam = LDControls.LastCheckBox
-
   For Id = 1 To Array.GetItemCount(Win)
-
     WinId = Win[Id]
-
     For P = 1 To Nprog
-
       For N = 1 To 8
-
         If pro[WinId][P][N] = CBNam Then   
-
           If LDControls.LastCheckBoxState = "True" Then
-
             Wert[WinId][P] = Wert[WinId][P] - Math.Power(2,N-1)   
-
           Else
-
             Wert[WinId][P] = Wert[WinId][P] + Math.Power(2,N-1)   
-
           EndIf
-
         EndIf
-
       EndFor
-
     EndFor
-
   EndFor
-
 EndSub
 
-
-
 '==========================================
-
 'Main Button Event
-
 '==========================================
-
-
 
 Sub OnButtonClicked
-
   For Id = 1 To Array.GetItemCount(Win) 'Id is the IO-Warrior number
-
     WinId = Win[Id] 'The corresponding Window Id used to label controls
-
     For P = 1 To Nprog
-
       'Check if we do this control
-
       ZeitSek = Controls.GetTextBoxText(Zeitbox[WinId][P])
-
       If ZeitSek > 0 Then
-
         'Delay this action to occur in ZeitSek seconds time
-
         Queue[WinId][P]["start"] = Clock.ElapsedMilliseconds 'start of delay     
-
         Queue[WinId][P]["delay"] = 1000 * ZeitSek 'ms   
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
 
-
-
 '==========================================
-
 'Check for delayed settings
-
 '==========================================
-
-
 
 Sub OnTick 'We use different local variable names here to not clash with other event subroutines
-
   For _Id = 1 To Array.GetItemCount(Win) 'Id is the IO-Warrior number
-
     _WinId = Win[_Id] 'The corresponding Window Id used to label controls
-
     For _P = 1 To Nprog
-
       If (Queue[_WinId][_P]["delay"] > 0) Then 'Delayed action exists
-
         If (Clock.ElapsedMilliseconds - Queue[_WinId][_P]["start"] > Queue[_WinId][_P]["delay"]) Then
-
           'Set Binary value for checkboxes
-
           N[1] = 0
-
           N[2] = Wert[_WinId][_P]
-
           N[3] = 255
-
           TextWindow.WriteLine("Id = "+_Id+" N = "+N)
-
           LDIOWarrior.Write(_Id,0,N)
-
           Queue[_Id][_P]["delay"] = 0 'Close queued action
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-

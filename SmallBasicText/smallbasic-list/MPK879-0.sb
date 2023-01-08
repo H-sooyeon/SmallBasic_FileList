@@ -1,521 +1,260 @@
 'Clone of "See Saw" exercise Curriculum 4.1.   Local v.1  Jibba Jabba - July 2013
-
 'http://smallbasic.com/program/?MPK879-0
-
 'Would be better to use Clock instead of Timer to write game time.
-
 '    keeps Timer free for other stuff.
-
-
 
 GraphicsWindow.Hide()
 
-
-
 Timer.Tick = Tick
-
 GraphicsWindow.KeyUp = KeyUp
-
 GraphicsWindow.KeyDown = KeyDown
 
-
-
 Timer.Interval = 1000 'update game time every second
-
 Timer.Pause()
 
-
-
 CreateUI()
-
 MessageTable() 'create all messages and store their parameters
-
 HideMessages() 'hides all except time display
-
 Stars()
 
-
-
 Shapes.ShowShape(mssg[1]) 'prompt to start game
-
 GraphicsWindow.Show()
-
 '===========================Event Loop=========================
-
 While Loop <> "Close Program" 'set in KeyDown "End"
-
   If flag = "Play" And PAUSE = "Off" And STOP = 0 Then
-
     PaddleMotion()    
-
     flag = 0
-
   ElseIf flag = "Start" Then
-
     StartGame()
-
     STOP = 0
-
     PAUSE = "Off"
-
     flag = 0
-
   ElseIf flag = "Restart" Then
-
     RestartGame()
-
     STOP = 0    
-
     PAUSE = "Off"
-
     flag = 0
-
   ElseIf flag = "Pause" Then
-
     TogglePause() 'switches PAUSE "On/Off"
-
     flag = 0    
-
   EndIf
-
   If PAUSE = "Off" And STOP = 0 Then
-
     BallMotion()
-
     StallChecker()
-
     GameOver() 'switches to  STOP = 1
-
   EndIf
-
   Program.Delay(20) 
-
 EndWhile
-
 Program.End()
-
 '============================Event Responses======================
-
 Sub Tick 
-
   UpdateTime()
-
 EndSub
-
-
 
 Sub KeyUp
-
   If GraphicsWindow.LastKey = "Return" Then
-
     If flag = "" Then
-
       flag = "Start"
-
     Else
-
       flag = "Restart"
-
     EndIf    
-
   EndIf
-
 EndSub
-
-
 
 Sub KeyDown
-
   If GraphicsWindow.LastKey = "Left" Then
-
     direction = -1
-
     flag = "Play"
-
   ElseIf GraphicsWindow.LastKey = "Right" Then 
-
     direction = 1
-
     flag = "Play"
-
   ElseIf GraphicsWindow.LastKey = "RightShift" And STOP = 0 Then 
-
     flag = "Pause"
-
   ElseIf GraphicsWindow.LastKey = "End" Then
-
     Loop = "Close Program"
-
   EndIf  
-
 EndSub
-
 '=============================Subroutines============================
-
 Sub StartGame
-
   HideMessages()
-
   DropBall()
-
   GamePlayMessages()
-
   Timer.Resume() 
-
 EndSub
-
-
 
 Sub RestartGame
-
   ballX = tx-30/2
-
   ballY = ty-40
-
   angle = 0
-
   vel = 0
-
   totalSeconds = 0 
-
   Shapes.Move(ball, ballX, ballY)    
-
   Shapes.Rotate(paddle, angle)  
-
   HideMessages()
-
   GamePlayMessages()
-
   Timer.Resume()
-
 EndSub
-
-
 
 Sub GamePlayMessages
-
   Shapes.ShowShape(mssg[2])
-
   Shapes.ShowShape(mssg[3])
-
   Shapes.ShowShape(mssg[4])
-
 EndSub
-
-
 
 Sub GameOver
-
   distTrav = Math.Abs(deltaX) / Math.Cos(rad) 'length of hypotenuse
-
   If distTrav > 210/2 Then
-
     Timer.Pause()
-
     HideMessages()
-
     Shapes.ShowShape(mssg[6])
-
     Shapes.ShowShape(mssg[2])
-
     STOP = 1
-
   EndIf    
-
 EndSub
-
-
 
 Sub TogglePause
-
   HideMessages()
-
   Shapes.ShowShape(mssg[2])
-
   If PAUSE = "Off" Then
-
     Timer.Pause()
-
     PAUSE = "On"
-
     Shapes.ShowShape(mssg[5])
-
   Else
-
     Timer.Resume()
-
     PAUSE = "Off"
-
     Shapes.ShowShape(mssg[4])
-
     Shapes.ShowShape(mssg[3])    
-
   EndIf
-
 EndSub
-
-
 
 Sub PaddleMotion
-
   If direction = -1 Then
-
     angle = Math.Max(-40, angle -4)
-
   ElseIf direction = 1 Then
-
     angle = Math.Min(40, angle + 4)
-
   EndIf 
-
   Shapes.Rotate(paddle, angle) 
-
 EndSub
-
-
 
 Sub BallMotion
-
   accel = (angle * 1.5) / 1000 'accel depends on angle
-
   vel = vel + accel
-
   ballX = ballX + vel
-
   rad = Math.GetRadians(angle) 'need to return as a variable to use in Math.Tan(rad)
-
   deltaX = ballX - (tx-30/2)
-
   ballY = deltaX * Math.Tan(rad) + (ty - 30-10) '***Note  Below
-
   Shapes.Move(ball, ballX, ballY)
-
 EndSub
-
-
 
 Sub StallChecker
-
   If angle = 0 And vel < 0.2 And vel > -0.2 Then
-
     stallCounter = stallCounter + 1
-
     If stallCounter > 150 Then '5 sec
-
       stallCounter = 0
-
       If ballX >= tx-30/2 Then
-
         angle = -4
-
       Else
-
         angle = 4
-
       EndIf
-
       Shapes.Rotate(paddle, angle)
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub UpdateTime
-
   totalSeconds = totalSeconds + 1
-
   seconds = Math.Remainder(totalSeconds, 60) 'WIP, how does this work?
-
   minutes = Math.Floor(totalSeconds / 60)  
-
   If seconds < 10 Then
-
     seconds = Text.Append("0", seconds)
-
   EndIf
-
   If minutes < 10 Then
-
     minutes = Text.Append("0" , minutes)
-
   EndIf 
-
   timeTxt =  "Time: " + minutes + ":" + seconds
-
   Shapes.SetText(mssg[7], timeTxt) 
-
 EndSub
-
-
 
 Sub DropBall
-
   i = 0.1
-
   While ballY < ty - 40
-
     ballY = ballY + (i * 1.1)
-
     Shapes.Move(ball, ballX, ballY)
-
     i = i + 0.01
-
     Program.Delay(5)
-
   EndWhile
-
   ballY = ty-40
-
   Shapes.Move(ball, ballX, ballY)
-
 EndSub
-
-
 
 Sub HideMessages
-
   For i = 1 To 6
-
     Shapes.HideShape(mssg[i])
-
   EndFor
-
 EndSub
-
-
 
 Sub MessageTable
-
   param[1] = "Txt=Press ENTER to start or END to quit;X=70;Y=150;FS=18;BC=Coral"  'START GAME
-
   param[2] = "Txt=Press ENTER to restart or END to quit;X=110;Y=180;FS=12;BC=Gray"  'RESTART GAME
-
   param[3] = "Txt=Press <-LEFT/RIGHT-> ARROW to move ball;X=85;Y=125;FS=12;BC=Gray"  'PLAY
-
   param[4] = "Txt=Press RIGHT SHIFT to pause game;X=80;Y=150;FS=16;BC=Brown"  'PAUSE ON
-
   param[5] = "Txt=Press RIGHT SHIFT to continue game;X=80;Y=150;FS=16;BC=Brown"  'PAUSE OFF
-
   param[6] = "Txt=Game Over;X=150;Y=145;FS=26;BC=Crimson"  'GAME OVER
-
   param[7] = "Txt=Time: 00:00;X=310;Y=16;FS=16;BC=DarkKhaki"  'TIME
-
   
-
   For i = 1 To Array.GetItemCount(param)
-
     GraphicsWindow.FontSize = param[i]["FS"]
-
     GraphicsWindow.BrushColor = param[i]["BC"]
-
     mssg[i] = Shapes.AddText(param[i]["Txt"])
-
     Shapes.Move(mssg[i], param[i]["X"], param[i]["Y"])
-
   EndFor
-
 EndSub
-
-
 
 Sub CreateUI
-
   gw = 450
-
   gh = 400
-
   tx = 225
-
   ty = 320
-
   ballX = tx-30/2
-
   ballY = -35
-
   angle = 0 
-
   
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Title = "See Saw - clone v1"
-
   GraphicsWindow.CanResize = 0
-
   GraphicsWindow.Left = (Desktop.Width - gw) / 2
-
   GraphicsWindow.Top = (Desktop.Height - gh) / 3
-
   
-
   GraphicsWindow.BackgroundColor = "Black"
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.DrawRectangle(10,10, gw-20, gh-20)
-
   
-
   GraphicsWindow.BrushColor = "SaddleBrown"  
-
   tri = Shapes.AddTriangle(tx, ty, tx - 50, ty + 50, tx + 50, ty + 50)
-
   
-
   GraphicsWindow.BrushColor = "DarkOliveGreen"
-
   paddle = Shapes.AddRectangle(210, 10)
-
   Shapes.Move(paddle, tx-210/2, ty-10)
-
   
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "darkRed"
-
   GraphicsWindow.BrushColor = "Gold"
-
   ball = Shapes.AddEllipse(30, 30)
-
   Shapes.Move(ball, ballX, ballY)
-
   Stars()
-
 EndSub
-
-
 
 Sub Stars
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "white"
-
   For i = 1 To 50
-
     xx = Math.GetRandomNumber(gw)
-
     yy = Math.GetRandomNumber(gh/3)
-
     width = Math.GetRandomNumber(300)/100
-
     GraphicsWindow.FillEllipse(xx, yy, width, width)
-
     GraphicsWindow.DrawEllipse(xx, yy, width, width)    
-
   EndFor
-
 EndSub
 
-
-
 '*** ty - (ball diameter - paddle thickness) results in larger posY error when Angle is larger
-
-

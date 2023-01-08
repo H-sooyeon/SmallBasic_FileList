@@ -1,221 +1,110 @@
 LDGraphicsWindow.State = 2
-
 LDPhysics.SetGravity(0,0)
-
 LDPhysics.LoadImagesAsCircles = "True"
 
-
-
 RayLength = 200
-
 NumBots = 30
-
 AITimestep = 300
-
 ShipImg = ImageList.LoadImage("http://www.mediafire.com/convkey/47f4/39rt7nybjzhft4kzg.jpg")
-
 For q = 1 To NumBots
-
   AIShip[q] = LDShapes.AddAnimatedImage(ShipImg,"True",2,1)
-
   Shapes.Move(AIShip[q],Math.GetRandomNumber(GraphicsWindow.Width-20),Math.GetRandomNumber(GraphicsWindow.Height-20))
-
   Shapes.Rotate(AIShip[q],-100+q*100)
-
   LDPhysics.AddMovingShape(AIShip[q],0,0.5,0.1596/2)
-
   LDPhysics.SetTire(AIShip[q])
-
   AIText[q] = Shapes.AddText(q)
-
   AIPosition[q] = LDPhysics.GetPosition(AIShip[q])
-
   AIAngle[1] = -45
-
   AIAction[1] = "Turn"
-
   AIValue[1] = 2000
-
   AIAngle[2] = 0
-
   AIAction[2] = "Move"
-
   AIValue[2] = -1500
-
   AIAngle[3] = 45
-
   AIAction[3] = "Turn"
-
   AIValue[3] = -2000
-
   AIAngle[4] = -80
-
   AIAction[4] = "Turn"
-
   AIValue[4] = 2000
-
   AIAngle[5] = 80
-
   AIAction[5] = "Turn"
-
   AIValue[5] = -2000
-
   For t = 1 to 3
-
     SensorPosition[q][t] = Zock77Math.GetCircle(RayLength,AIPosition[q][1],AIPosition[q][2],-100+q*100+AIAngle[t]-90)
-
  '   RayTraceLine[q][t] = Shapes.AddLine(AIPosition[q][1],AIPosition[q][2],SensorPosition[q][t]["x"],SensorPosition[q][t]["y"])
-
   EndFor
-
 EndFor
-
 CheckDisplacement()
-
 Timer.Tick = CheckAICollision
-
 Timer.Interval = 10
-
 While 1 = 1
-
   Program.Delay(10)
-
 '  Library.StartTimerElapsed("Test")
-
   LDPhysics.DoTimestep()
-
    AITimestep = AITimestep + 1
-
   If AITimestep >= 150 Then
-
     TextWindow.WriteLine("Timestep")
-
     For m = 1 To NumBots
-
       CheckDisplacement()
-
     EndFor
-
     AITimestep = 0
-
   EndIf
-
  'Library.PrintTimeElapse("Test")
-
 EndWhile
 
-
-
 '=========================Subroutines==========================
-
 Sub CheckSpeed
-
   GlobalVelocityArray = LDPhysics.GetVelocity(AIShip[q])
-
   GlobalVelocity[q] = Math.SquareRoot((GlobalVelocityArray[1]*GlobalVelocityArray[1]) + (GlobalVelocityArray[2]*GlobalVelocityArray[2]))
-
   If GlobalVelocity[q] > 50 Then
-
     LDPhysics.SetDamping(AIShip[q],3,0.4)
-
   Else
-
     LDPhysics.SetDamping(AIShip[q],0,0.4)
-
   EndIf
-
 EndSub
-
-
-
 
 
 Sub CheckDisplacement
-
   DispX = Math.Abs(OldAIPosition[m][1] - AIPosition[m][1])
-
   DispY = Math.Abs(OldAIPosition[m][2] - AIPosition[m][2])
-
   TotalDisp[m] = Math.SquareRoot((DispX*DispX)+(DispY*DispY))
-
   OldAIPosition[m][1] = AIPosition[m][1]
-
   OldAIPosition[m][2] = AIPosition[m][2]
-
 EndSub
 
-
-
 Sub CheckAICollision
-
   If IsRunningCollisionSub <> "True" Then
-
   IsRunningCollisionSub = "True"
-
  
-
   For q = 1 To NumBots
-
     InReverse[q] = "False
-
     AIPosition[q] = LDPhysics.GetPosition(AIShip[q])
-
     AIRotation[q] = LDPhysics.GetAngle(AIShip[q])
-
     Shapes.Move(AIText[q],AIPosition[q][1]+10,AIPosition[q][2]+50)
-
     CheckSpeed()
-
     For w = 1 to 3
-
       SensorPosition[q][w] = Zock77Math.GetCircle(RayLength,AIPosition[q][1],AIPosition[q][2],AIRotation[q]+AIAngle[w]-90)
-
     '  LDShapes.MoveLine(RayTraceLine[q][w],AIPosition[q][1],AIPosition[q][2],SensorPosition[q][w]["x"],SensorPosition[q][w]["y"])
-
       RayTrace[q][w] = LDPhysics.RayCast(AIShip[q],AIRotation[q]+AIAngle[w]-90,RayLength)
-
       RayIndices = Array.GetAllIndices(RayTrace[q][w])
-
       If RayTrace[q][w][RayIndices[1]] <> "" Then
-
         RayMinDist[w] = 1-(RayTrace[q][w][RayIndices[1]]/RayLength)
-
         If AIAction[w] = "Turn" Then
-
           LDPhysics.SetTorque(AIShip[q],AIValue[w]*RayMinDist[w])
-
         EndIf
-
         If AIAction[w] = "Move" Then
-
           InReverse[q] = "True"
-
           LDPhysics.MoveTire(AIShip[q],AIValue[w]*RayMinDist[w])
-
         EndIf
-
       EndIf
-
       If InReverse[q] = "False" Then
-
         LDPhysics.MoveTire(AIShip[q],200)
-
         EndIf
-
     EndFor
-
     If TotalDisp[q] < 1 Then
-
       LDPhysics.SetTorque(AIShip[q],4000)
-
     EndIf 
-
   EndFor
-
   IsRunningCollisionSub = "False"
-
   EndIf
-
   EndSub
-
-

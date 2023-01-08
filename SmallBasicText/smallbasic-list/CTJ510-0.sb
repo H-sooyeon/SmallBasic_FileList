@@ -1,363 +1,181 @@
 'build  - DUCK SHOOT   'Aug 2013.  by jibba jabba  Local & Browser. to do: plenty see below
-
 'http://smallbasic.com/program/?CTJ510-0
 
-
-
 scopeRadius = 20
-
 scopeLensOpacity = 20 'allows the target to be seen
-
 fire = 1
-
 loop = "on"
-
 collision = 0
-
 Timer.Interval = 0
-
 Timer.Pause()
 
-
-
 GraphicsWindow.MouseMove = OnMouseMove   'crossHairs
-
 GraphicsWindow.KeyDown = OnKeyDown       'fire
-
 Timer.Tick = OnTick                      'animate spear & check collision
 
-
-
 SetGW()
-
 Xorg = gw / 2 'centre of the GW
-
 Yorg = gh / 2 
 
-
-
 '==========================Main Program/Animate Duck================
-
 DuckShapeTable()
-
 AddDuck()
-
 Mouse.HideCursor()
-
 CreateScopeShapes() 'and hide
-
 GetMouseCentre()
-
 OnMouseMove() 'manually call On Mouse Move to update scope position
-
 ShowScope()
-
 CreateSpearAndMessages()
 
-
-
 While "True"    'animate duck
-
   For i = 1 To 4
-
     X[i] = X[i] + 1
-
     Shapes.Move(duckShape[i], X[i], Y[i])
-
   EndFor
-
   If X[1] > gw Then
-
     For i = 1 To 4
-
       X[i] = DS[i]["RX"] - 22-77 'moves duck off screen left (beak Width & RelX)
-
     EndFor
-
     Shapes.HideShape(ducksMessage)
-
     Shapes.HideShape(headShot)
-
   EndIf
-
   Program.Delay(5)
-
 EndWhile
 
-
-
 '-----------------------------------------------Event Response-----------------------------------------------
-
 Sub OnMouseMove  
-
   UpdateScopePosition()
-
   MoveScope() ' may combine these 2 subroutines
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   If GraphicsWindow.LastKey = "Space" And fire = 1 Then
-
     Shapes.SetText(headShot, "")
-
     Throw()
-
   EndIf
-
 EndSub
-
-
 
 Sub OnTick     'xS = SPEAR,  xT = TARGET                       TO DO : REVISE  OnTick
-
   Timer.Pause()
-
   If fire = 1 Then   'WIP single shot, multi shot rapid fire
-
     fire = 0
-
     xS = Xorg
-
     yS = Yorg + gh /2 'off screen bottom
-
     xT = scopeX + 8
-
     yT = scopeY
-
     rise = yS - yT
-
     run = xT - xS
-
     slope = run / rise 'inverted
-
     angle = slope * 45
-
     Shapes.Rotate(spear, angle)
-
     While loop = "on"      'animate Spear till Spear off screen
-
       If yS < 0 Or xS < 0 Or xS > gw Then
-
         loop = "off"
-
       EndIf
-
       yS = yS - 3      ' constant = spear speed
-
       xS = xS + 3*slope
-
       Shapes.Move(spear, xS, yS)
-
       TestCollision()
-
       Program.Delay(5)      
-
     EndWhile
-
     If collision = 0 Then
-
       Shapes.Move(ducksMessage, X[1], Y[1]-20)
-
       Shapes.SetText(ducksMessage, "Missed Me")
-
       Shapes.ShowShape(ducksMessage)
-
     EndIf
-
     collision = 0
-
     loop = "on"
-
     fire = 1    
-
   EndIf
-
 EndSub
-
-
 
 '------------------------------------------------Subroutines---------------------------------------------------
-
 Sub TestCollision  
-
   If xS < X[4] And xS > X[1] And yS < Y[1] + DS[1]["H"] And yS > Y[1] Then
-
     If xS > X[2] Then      
-
       Shapes.Move(headShot, Xorg-200, gh - 80)
-
       Shapes.SetText(headShot, "Head Shot - bonus 100")
-
       Shapes.ShowShape(headShot)
-
     EndIf
-
     Shapes.Move(ducksMessage, xS, yS-20)
-
     Shapes.SetText(ducksMessage, "Ouch, quack quack...")
-
     Shapes.ShowShape(ducksMessage)
-
     collision = 1
-
   EndIf
-
 EndSub
-
-
 
 Sub Throw
-
   Timer.Resume()
-
 EndSub
-
-
 
 Sub CreateSpearAndMessages
-
   spear = Shapes.AddRectangle(3, 25) 
-
   Shapes.Move(spear, Xorg, gh)
-
   ducksMessage = Shapes.AddText("")
-
   headShot = Shapes.AddText("")
-
   Shapes.Zoom(headShot, 3, 3)
-
   instructions = Shapes.AddText("Press SPACE to fire, 100 bonus for Head shot")
-
   Shapes.Move(instructions, 150, 40)
-
   Shapes.Zoom(instructions, 1.5, 1.5)
-
 EndSub
-
-
 
 Sub CreateScopeShapes
-
   GraphicsWindow.BrushColor = "black"  
-
   scopeLens = Shapes.AddEllipse(scopeRadius*2, scopeRadius*2)
-
   Shapes.HideShape(scopeLens)               'add then hide (on next line to minimise screen flash)
-
   scopeHorzLine = Shapes.AddRectangle(scopeRadius*2, 1) 
-
   Shapes.HideShape(scopeHorzLine)    'using rectangle so i don't need x & y coord yet
-
   scopeVertLine = Shapes.AddRectangle(1, scopeRadius*2)
-
   Shapes.HideShape(scopeVertLine)
-
   Shapes.SetOpacity(scopeLens, scopeLensOpacity)
-
 EndSub
-
-
 
 Sub GetMouseCentre
-
   Mouse.MouseX = GraphicsWindow.Left + GraphicsWindow.Width/2 
-
   Mouse.MouseY = GraphicsWindow.Top + GraphicsWindow.Height/2
-
 EndSub
-
-
 
 Sub ShowScope
-
   Shapes.ShowShape(scopeVertLine) 'pos 1st then show in centre of GW
-
   Shapes.ShowShape(scopeHorzLine)
-
   Shapes.ShowShape(scopeLens)
-
 EndSub
-
-
 
 Sub UpdateScopePosition
-
   scopeX = GraphicsWindow.MouseX
-
   scopeY = GraphicsWindow.MouseY
-
 EndSub
-
-
 
 Sub MoveScope
-
   Shapes.Move(scopeLens, scopeX - scopeRadius, scopeY - scopeRadius)
-
   Shapes.Move(scopeHorzLine, scopeX - scopeRadius, scopeY)
-
   Shapes.Move(scopeVertLine, scopeX, scopeY - scopeRadius)
-
 EndSub
-
-
 
 Sub DuckShapeTable
-
   ' Table key: W = width; H = height; RX = X relative to the body; RY = Y rel to body; R = rotate angle"
-
   DS[1] = "W=60;H=25;RX=0;RY=0;R=0"  'BODY
-
   DS[2] = "W=20;H=18;RX=70;RY=-5;R=0" 'HEAD
-
   DS[3] = "W=28;H=8;RX=50;RY=2;R=-10"  'NECK
-
   DS[4] = "W=22;H=5;RX=77;RY=0;R=-0"  'BEAK
-
 EndSub
-
-
 
 Sub AddDuck
-
   For i = 1 To 4
-
     X[i] = DS[i]["RX"] - 22-77  'moves duck off screen left (beak Width & RelX)
-
     Y[i] = Yorg + DS[i]["RY"] - 100
-
     duckShape[i] = Shapes.AddEllipse(DS[i]["W"], DS[i]["H"])
-
     Shapes.Move(duckShape[i], X[i], Y[i])
-
     Shapes.Rotate(duckShape[i], DS[i]["R"])
-
   EndFor
-
 EndSub
-
-
 
 Sub SetGW
-
   gw = 1100
-
   gh = 580
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Left = (Desktop.Width - gw) / 2
-
   GraphicsWindow.Top = (Desktop.Height - gh) / 3
-
   GraphicsWindow.PenWidth = 0
-
 EndSub
-
-

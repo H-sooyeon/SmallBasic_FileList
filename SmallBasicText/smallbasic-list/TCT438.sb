@@ -1,1525 +1,762 @@
 ' Paddle Game with blocks
-
 ' Based on the Paddle Game in the intro pdf.
-
 ' Written by Serdan
 
-
-
 ' Constants
-
 True = "True"
-
 False = "False"
-
-
 
 UseLocalResources = False
 
-
-
 WindowWidth = 800
-
 WindowHeight = 600
 
-
-
 Rows = 16
-
 Columns = 11
 
-
-
 PaddleWidthSmall = 64
-
 PaddleWidthNormal = 160
-
 PaddleWidthLarge = 250
-
 PaddleHeight = 20
 
-
-
 BallRadiusSmall = 5
-
 BallRadiusNormal = 9
-
 BallRadiusLarge = 20
 
-
-
 BallSpeed = 1
-
 BallMaxAngle = Math.GetRadians(80)
-
 BallMinAngle = Math.GetRadians(20)
 
-
-
 BlockWidth = 70
-
 BlockHeight = 30
 
-
-
 BlockNone = 0
-
 BlockBlue = 1
-
 BlockGreen = 2
-
 BlockOrange = 3
-
 BlockPurple = 4
-
 BlockBrown = 5
 
-
-
 BlockValues[BlockNone] = 0
-
 BlockValues[BlockBlue] = 4
-
 BlockValues[BlockGreen] = 8
-
 BlockValues[BlockPurple] = 12
-
 BlockValues[BlockBrown] = 16
-
 BlockValues[BlockOrange] = 20
-
-
 
 PaddlesInitial = 2
 
-
-
 ' Powerups
-
 PowerupSize = 30
-
 PowerupProbability = 20
-
 PowerupSpeed = 0.5
-
 PowerupValue = 100
 
-
-
 PowerupStasis = 0
-
 PowerupBallBigger = 1
-
 PowerupBallSmaller = 2
-
 PowerupPaddleExpand = 3
-
 PowerupPaddleShrink = 4
-
 PowerupBallFaster = 5
-
 PowerupBallSlower = 6
 
-
-
 ' Game speed
-
 SpeedMax = 9
-
 SpeedMin = 5
-
 SpeedInitial = 6
-
 SpeedStep = 0.2
 
-
-
 ' Game object properties
-
 X = 0
-
 Y = 1
-
 Width = 2
-
 Height = 3
-
 Left = 4
-
 Right = 5
-
 Top = 6
-
 Bottom = 7
-
 Radius = 8
 
-
-
 ' Resources
-
 If (UseLocalResources) Then
-
   LevelsFile = Program.Directory + "\levels.txt"
-
   ImageDirectory = Program.Directory + "\img\"
-
 Else
-
   LevelsFile = Network.DownloadFile("http://www.serdan.eu/downloads/smallbasic/paddlegame/levels.txt")
-
   ImageDirectory = "http://www.serdan.eu/downloads/smallbasic/paddlegame/"
-
 EndIf
 
-
-
 Sub InitVariables
-
   ' Info area
-
   infoArea[Width] = WindowWidth
-
   infoArea[Height] = 30
-
   infoArea[Left] = 0
-
   infoArea[Right] = infoArea[Left] + infoArea[Width]
-
   infoArea[Top] = 0
-
   infoArea[Bottom] = infoArea[Top] + infoArea[Height]
-
   
-
   ' Game area
-
   gameArea[Width] = Columns * BlockWidth
-
   gameArea[Height] = WindowHeight - infoArea[Height]
-
   gameArea[Left] = (WindowWidth - gameArea[Width]) / 2
-
   gameArea[Right] = gameArea[Left] + gameArea[Width]
-
   gameArea[Top] = infoArea[Height]
-
   gameArea[Bottom] = gameArea[Top] + gameArea[Height]
-
   
-
   ' Powerups
-
   powerupsCount = 0
-
   Powerups[PowerupStasis] = False
-
   
-
   ' Game speed
-
   '  Approximately 60 frames per second.
-
   Timer.Interval = 16
-
   hasTicked = False
-
   currentSpeed = 0
-
   
-
   ' Paddle properties
-
   paddle[Y] = gameArea[Bottom] - PaddleHeight / 2 - 10
-
   paddle[Top] = paddle[Y] - PaddleHeight / 2
-
   paddle[Bottom] = paddle[Y] + PaddleHeight / 2
-
   
-
   ' Ball properties
-
   ballIsLocked = True
-
   ballOffset = 0
-
   
-
   ' Info stuff
-
   currentScore = 0
-
   oldScore = 0
-
   currentPaddles = 0
-
   oldPaddles = 0
-
   
-
   ' Levels
-
   levelIsComplete = False
-
   levelCount = 0
-
   
-
   ' Stacks
-
   parameters = 0
-
   return = 0
-
 EndSub
-
-
 
 Sub LoadLevels
-
   For i = 1 To i + 1
-
 ' The following line could be harmful and has been automatically commented.
-
 '     line = File.ReadLine(LevelsFile, i)
-
     If (Text.GetLength(line) = Columns) Then
-
       levels[i] = line
-
     Else
-
       Goto done
-
     EndIf
-
   EndFor
-
   done:
-
 EndSub
-
-
 
 Sub LoadGraphics
-
   ' Ball
-
   BallShapeSmall = Shapes.AddImage(ImageDirectory + "ball10.png")
-
   BallShapeNormal = Shapes.AddImage(ImageDirectory + "ball18.png")
-
   BallShapeLarge = Shapes.AddImage(ImageDirectory + "ball40.png")
-
   Shapes.HideShape(BallShapeSmall)
-
   Shapes.HideShape(BallShapeNormal)
-
   Shapes.HideShape(BallShapeLarge)
-
   
-
   ' Paddle
-
   PaddleShapeSmall = Shapes.AddImage(ImageDirectory + "board64.png")
-
   PaddleShapeNormal = Shapes.AddImage(ImageDirectory + "board160.png")
-
   PaddleShapeLarge = Shapes.AddImage(ImageDirectory + "board250.png")
-
   Shapes.HideShape(PaddleShapeSmall)
-
   Shapes.HideShape(PaddleShapeNormal)
-
   Shapes.HideShape(PaddleShapeLarge)
-
   
-
   ' Blocks
-
   BlockImages[BlockBlue] = ImageList.LoadImage(ImageDirectory + "blue.png")
-
   BlockImages[BlockGreen] = ImageList.LoadImage(ImageDirectory + "green.png")
-
   BlockImages[BlockOrange] = ImageList.LoadImage(ImageDirectory + "orange.png")
-
   BlockImages[BlockPurple] = ImageList.LoadImage(ImageDirectory + "purple.png")
-
   BlockImages[BlockBrown] = ImageList.LoadImage(ImageDirectory + "brown.png")
-
   
-
   ' Powerups
-
   PowerupImageBallBigger = ImageList.LoadImage(ImageDirectory + "ballbigger.png")
-
   PowerupImageBallSmaller = ImageList.LoadImage(ImageDirectory + "ballsmaller.png")
-
   PowerupImagePaddleExpand = ImageList.LoadImage(ImageDirectory + "expand.png")
-
   PowerupImageBallFaster = ImageList.LoadImage(ImageDirectory + "fast.png")
-
   PowerupImagePaddleShrink = ImageList.LoadImage(ImageDirectory + "shrink.png")
-
   PowerupImageBallSlower = ImageList.LoadImage(ImageDirectory + "slow.png")
-
   PowerupImageStasis = ImageList.LoadImage(ImageDirectory + "stasis.png")
-
   
-
   ' Info bar
-
   InfoImageBackground = ImageList.LoadImage(ImageDirectory + "menubg.png")
-
   InfoImageScore = ImageList.LoadImage(ImageDirectory + "score.png")
-
   InfoImagePaddles = ImageList.LoadImage(ImageDirectory + "life.png")
-
   
-
   ' Game area
-
   GameAreaImageBackground = ImageList.LoadImage(ImageDirectory + "background.png")
-
   GameAreaImageLeftWall = ImageList.LoadImage(ImageDirectory + "side2.png")
-
   GameAreaImageRightWall = ImageList.LoadImage(ImageDirectory + "side1.png")
-
 EndSub
-
-
 
 Sub InitGraphicsWindow
-
   GraphicsWindow.Show()
-
   GraphicsWindow.Title = "Paddle Game"
-
   GraphicsWindow.CanResize = 0
-
   GraphicsWindow.Width = WindowWidth
-
   GraphicsWindow.Height = WindowHeight
-
   GraphicsWindow.Top = (Desktop.Height - WindowHeight) / 2
-
   GraphicsWindow.Left = (Desktop.Width - WindowWidth) / 2
-
   Mouse.HideCursor()
-
   GraphicsWindow.DrawResizedImage(GameAreaImageLeftWall, 0, infoArea[Bottom], (WindowWidth - BlockWidth * Columns) / 2, gameArea[Height])
-
   GraphicsWindow.DrawResizedImage(GameAreaImageRightWall, gameArea[Right], infoArea[Bottom], (WindowWidth - BlockWidth * Columns) / 2, gameArea[Height])
-
   GraphicsWindow.DrawResizedImage(GameAreaImageBackground, gameArea[Left], gameArea[Top], gameArea[Width], gameArea[Height])
-
   DrawInfoArea()
-
 EndSub
-
-
 
 Sub DrawInfoArea
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.DrawResizedImage(InfoImageBackground, infoArea[Left], infoArea[Top], infoArea[Width], infoArea[Height])
-
   GraphicsWindow.DrawImage(InfoImageScore, infoArea[Left], infoArea[Top])
-
   For i = 1 To currentPaddles
-
     GraphicsWindow.DrawImage(InfoImagePaddles, infoArea[Right] - 32 * i, infoArea[Top])
-
   EndFor
-
   GraphicsWindow.DrawText(infoArea[Left] + 16, infoArea[Top] + 8, currentScore)
-
 EndSub
-
-
 
 Sub AssignEvents
-
   ' Graphics window
-
   GraphicsWindow.MouseMove = OnMouseMove
-
   GraphicsWindow.MouseDown = OnMouseDown
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   ' Timer
-
   Timer.Tick = OnTick
-
 EndSub
-
-
 
 Sub Main
-
   GraphicsWindow.BackgroundColor = "Black"
-
   InitVariables()
-
   LoadGraphics()
-
   InitGraphicsWindow()
-
   AssignEvents()
-
   LoadLevels()
-
   ResetGame()
-
   DrawLevel()
-
   
-
   exitGame = False
-
   While (exitGame = False)
-
     If (hasTicked) Then
-
       hasTicked = False
-
       For n = 1 To currentSpeed
-
         Update()
-
       EndFor
-
       Draw()
-
     EndIF
-
   EndWhile
-
   
-
   Program.End()
-
 EndSub
-
-
 
 Sub Update
-
   UpdatePowerups()
-
   
-
   If (ballIsLocked = False) Then
-
     ball[X] = ball[X] + ballVelocity[X]
-
     ball[Y] = ball[Y] + ballVelocity[Y]
-
     UpdateBallRect()
-
     
-
     ' Bounce off walls and roof and kill player if the top of the ball is below the bottom of the game area
-
     If (ball[Right] >= gameArea[Right]) Then
-
       ballVelocity[X] = -Math.Abs(ballVelocity[X])
-
     ElseIf (ball[Left] <= gameArea[Left]) Then
-
       ballVelocity[X] = Math.Abs(ballVelocity[X])
-
     EndIF
-
     
-
     If (ball[Top] <= gameArea[Top]) Then 
-
       ballVelocity[Y] = Math.Abs(ballVelocity[Y])
-
     ElseIf (ball[Top] >= gameArea[Bottom]) Then
-
       OnDeath()
-
     EndIF
-
     
-
     ' Bounce off paddle
-
     If (ball[Bottom] >= paddle[Top] And ball[Bottom] < paddle[Y] And ball[Right] >= paddle[Left] And ball[Left] <= paddle[Right]) Then
-
       CalcBallOffset()
-
       CalcBallVelocity()
-
       If (currentSpeed < SpeedMax) Then
-
         currentSpeed = currentSpeed + SpeedStep
-
       EndIf
-
       blockBonus = 1
-
       
-
       If (Powerups[PowerupStasis] = True) Then
-
         ball[Y] = paddle[Top] - ball[Radius]
-
         ballIsLocked = True
-
       EndIf
-
     EndIf
-
     
-
     levelIsComplete = False
-
     UpdateBlocks()
-
     
-
     If (levelIsComplete) Then
-
       ClearPowerups()
-
       ResetBallAndPaddle()
-
       levelCount = levelCount + 1
-
       If (Text.GetLength(levels[levelCount * Rows]) <> Columns) Then
-
         levelCount = 0
-
       EndIf 
-
     EndIF
-
     
-
     If (currentPaddles < 0) Then
-
       ResetGame()
-
       levelIsComplete = True
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub Draw
-
   ' Redraw info area as necessary
-
   If (oldPaddles <> currentPaddles Or oldScore <> currentScore) Then
-
     oldScore = currentScore
-
     oldPaddles = currentPaddles
-
     DrawInfoArea()
-
   EndIf
-
   
-
   Shapes.Move(ballShape, ball[Left], ball[Top])
-
   Shapes.Move(paddleShape, paddle[Left], paddle[Top])
-
   
-
   For i = 1 To powerupsCount
-
     Shapes.Move(powerupShapes[i], powerupRects[i][Left], powerupRects[i][Top])
-
   EndFor
-
   
-
   If (levelIsComplete) Then
-
     DrawLevel()
-
   EndIF
-
 EndSub
-
-
 
 Sub ResetGame
-
   currentPaddles = PaddlesInitial
-
   currentScore = 0
-
   levelCount = 0
-
   currentSpeed = SpeedInitial
-
   blockBonus = 0
-
   ResetBallAndPaddle()
-
   ClearPowerups()
-
 EndSub
-
-
 
 Sub CalcBallVelocity
-
   angle = ballOffset * (BallMaxAngle - BallMinAngle)
-
   If (angle > 0) Then
-
     Stack.PushValue(parameters, BallMinAngle)
-
     Stack.PushValue(parameters, BallMaxAngle)
-
     Stack.PushValue(parameters, angle)
-
     Clamp()
-
     angle = Stack.PopValue(return)
-
   Else
-
     Stack.PushValue(parameters, -BallMaxAngle)
-
     Stack.PushValue(parameters, -BallMinAngle)
-
     Stack.PushValue(parameters, angle)
-
     Clamp()
-
     angle = Stack.PopValue(return)
-
   EndIf
-
   ballVelocity[X] = -Math.Sin(angle) * -BallSpeed
-
   ballVelocity[Y] = Math.Cos(angle) * -BallSpeed
-
 EndSub
-
-
 
 Sub CalcBallOffset
-
   ballOffset = (ball[X] - paddle[X]) * 2 / paddle[Width]
-
 EndSub
-
-
 
 Sub OnDeath
-
   currentPaddles = currentPaddles - 1
-
   ResetBallAndPaddle()
-
   ClearPowerups()
-
 EndSub
-
-
 
 Sub DrawLevel
-
   ClearLevel()
-
   levelIsComplete = False
-
   For r = 1 To Rows
-
     For c = 1 To Columns
-
       blockTypes[r][c] = Text.GetSubText(levels[levelCount * Rows + r], c, 1)
-
       
-
       If (blockTypes[r][c] <> BlockNone) Then
-
         blocks[r][c][Left] = (c - 1) * BlockWidth + gameArea[Left]
-
         blocks[r][c][Right] = blocks[r][c][Left] + BlockWidth
-
         blocks[r][c][Top] = (r - 1) * BlockHeight + gameArea[Top]
-
         blocks[r][c][Bottom] = blocks[r][c][Top] + BlockHeight
-
         
-
         blocks[r][c][X] = blocks[r][c][Left] + BlockWidth / 2
-
         blocks[r][c][Y] = blocks[r][c][Top] + BlockHeight / 2
-
         
-
         blockShapes[r][c] = Shapes.AddImage(BlockImages[blockTypes[r][c]])
-
         Shapes.Move(blockShapes[r][c], blocks[r][c][Left], blocks[r][c][Top])
-
       EndIF
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub ClearLevel
-
   For r = 1 To Rows
-
     For c = 1 To Columns
-
       blockTypes[r][c] = BlockNone
-
       Shapes.Remove(blockShapes[r][c])
-
     EndFor
-
   EndFor
-
   ClearPowerups()
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   ' Release the ball when the left mouse button is clicked
-
   If (Mouse.IsLeftButtonDown) Then
-
     If (ballIsLocked) Then
-
       ballIsLocked = False
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseMove
-
   ' Capture mouse
-
   If (GraphicsWindow.MouseX < paddle[Width] / 2 + gameArea[Left]) Then
-
     Mouse.MouseX = GraphicsWindow.Left + gameArea[Left] + paddle[Width] / 2
-
   ElseIf (GraphicsWindow.MouseX > gameArea[Right] - paddle[Width] / 2) Then
-
     Mouse.MouseX = GraphicsWindow.Left + gameArea[Right] - paddle[Width] / 2
-
   EndIf
-
   If (GraphicsWindow.MouseY < gameArea[Top] Or GraphicsWindow.MouseY > gameArea[Bottom]) Then
-
     Mouse.MouseY = GraphicsWindow.Top + WindowHeight / 2
-
   EndIf
-
   
-
   ' Move paddle according to the position of the mouse
-
   paddle[X] = GraphicsWindow.MouseX
-
   UpdatePaddleRect()
-
   
-
   ' Move ball with paddle if it has not yet been released
-
   If (ballIsLocked) Then
-
     CalcBallPositionOnPaddle()
-
     UpdateBallRect()
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   ' Exit the program when the escape key is pressed
-
   If (GraphicsWindow.LastKey = "Escape") Then
-
     exitGame = True
-
   EndIf
-
 EndSub
-
-
 
 Sub OnTick
-
   hasTicked = True
-
   loopCount = 0
-
 EndSub
-
-
 
 Sub SetPaddleSizeSmall
-
   paddleShape = PaddleShapeSmall
-
   paddle[Width] = PaddleWidthSmall
-
   Shapes.ShowShape(PaddleShapeSmall)
-
   Shapes.HideShape(PaddleShapeNormal)
-
   Shapes.HideShape(PaddleShapeLarge)
-
   UpdatePaddleRect()
-
   Shapes.Move(paddleShape, paddle[Left], paddle[Top])
-
   If (ballIsLocked) Then
-
     CalcBallPositionOnPaddle()
-
     UpdateBallRect()
-
   EndIF
-
 EndSub
-
-
 
 Sub SetPaddleSizeNormal
-
   paddleShape = PaddleShapeNormal
-
   paddle[Width] = PaddleWidthNormal
-
   Shapes.HideShape(PaddleShapeSmall)
-
   Shapes.ShowShape(PaddleShapeNormal)
-
   Shapes.HideShape(PaddleShapeLarge)
-
   UpdatePaddleRect()
-
   If (paddle[Left] < gameArea[Left]) Then
-
     paddle[X] = gameArea[Left] + paddle[Width] / 2
-
     UpdatePaddleRect()
-
   ElseIf (paddle[Right] > gameArea[Right]) Then
-
     paddle[X] = gameArea[Right] - paddle[Width] / 2
-
     UpdatePaddleRect()
-
   EndIf
-
   If (ballIsLocked) Then
-
     CalcBallPositionOnPaddle()
-
     UpdateBallRect()
-
   EndIF
-
 EndSub
-
-
 
 Sub SetPaddleSizeLarge
-
   paddleShape = PaddleShapeLarge
-
   paddle[Width] = PaddleWidthLarge
-
   Shapes.HideShape(PaddleShapeSmall)
-
   Shapes.HideShape(PaddleShapeNormal)
-
   Shapes.ShowShape(PaddleShapeLarge)
-
   UpdatePaddleRect()
-
   If (paddle[Left] < gameArea[Left]) Then
-
     paddle[X] = gameArea[Left] + paddle[Width] / 2
-
     UpdatePaddleRect()
-
   ElseIf (paddle[Right] > gameArea[Right]) Then
-
     paddle[X] = gameArea[Right] - paddle[Width] / 2
-
     UpdatePaddleRect()
-
   EndIf
-
   If (ballIsLocked) Then
-
     CalcBallPositionOnPaddle()
-
     UpdateBallRect()
-
   EndIF
-
 EndSub
-
-
 
 Sub SetBallSizeSmall
-
   ballShape = BallShapeSmall
-
   ball[Radius] = BallRadiusSmall
-
   Shapes.ShowShape(BallShapeSmall)
-
   Shapes.HideShape(BallShapeNormal)
-
   Shapes.HideShape(BallShapeLarge)
-
   If (ballIsLocked) Then
-
     ball[Y] = paddle[Top] - ball[Radius]
-
     CalcBallPositionOnPaddle()
-
     UpdateBallRect()
-
   EndIf
-
 EndSub
-
-
 
 Sub SetBallSizeNormal
-
   ballShape = BallShapeNormal
-
   ball[Radius] = BallRadiusNormal
-
   Shapes.HideShape(BallShapeSmall)
-
   Shapes.ShowShape(BallShapeNormal)
-
   Shapes.HideShape(BallShapeLarge)
-
   If (ballIsLocked) Then
-
     ball[Y] = paddle[Top] - ball[Radius]
-
     CalcBallPositionOnPaddle()
-
     UpdateBallRect()
-
   EndIf
-
 EndSub
-
-
 
 Sub SetBallSizeLarge
-
   ballShape = BallShapeLarge
-
   ball[Radius] = BallRadiusLarge
-
   Shapes.HideShape(BallShapeSmall)
-
   Shapes.HideShape(BallShapeNormal)
-
   Shapes.ShowShape(BallShapeLarge)
-
   If (ballIsLocked) Then
-
     ball[Y] = paddle[Top] - ball[Radius]
-
     CalcBallPositionOnPaddle()
-
     UpdateBallRect()
-
   EndIf
-
 EndSub
-
-
 
 Sub UpdatePaddleRect
-
   paddle[Left] = paddle[X] - paddle[Width] / 2
-
   paddle[Right] = paddle[X] + paddle[Width] / 2
-
 EndSub
-
-
 
 Sub UpdateBallRect
-
   ball[Left] = ball[X] - ball[Radius]
-
   ball[Right] = ball[X] + ball[Radius]
-
   ball[Top] = ball[Y] - ball[Radius]
-
   ball[Bottom] = ball[Y] + ball[Radius]
-
 EndSub
-
-
 
 Sub CalcBallPositionOnPaddle
-
   ball[X] = ballOffset * paddle[Width] * 0.5 + paddle[X]
-
 EndSub
-
-
 
 Sub ResetBallAndPaddle
-
   ' Capture ball
-
   ballIsLocked = True
-
   ' Reset game speed
-
   currentSpeed = SpeedInitial
-
   
-
   ' Set mouse position to centre of game area
-
   Mouse.MouseX = GraphicsWindow.Left + gameArea[Left] + gameArea[Width] / 2
-
   Mouse.MouseY = WindowHeight / 2 + GraphicsWindow.Top
-
   Program.Delay(10)
-
   
-
   ' Reset paddle
-
   SetPaddleSizeNormal()
-
   paddle[X] = GraphicsWindow.MouseX
-
   UpdatePaddleRect()
-
   
-
   ' Reset ball
-
   SetBallSizeNormal()
-
   ball[Y] = paddle[Top] - ball[Radius]
-
   ballOffset = 0.4
-
   CalcBallPositionOnPaddle()
-
   CalcBallVelocity()
-
   UpdateBallRect()
-
 EndSub
-
-
 
 Sub UpdateBlocks
-
   levelIsComplete = True
-
   For r = 1 To Rows
-
     For c = 1 To Columns
-
       If (blockTypes[r][c] <> BlockNone) Then
-
         hit = False
-
         If (blockTypes[r][c] <> BlockOrange) Then
-
           levelIsComplete = False
-
         EndIf
-
         If ((ball[Left] > blocks[r][c][Right] Or ball[Right] < blocks[r][c][Left] Or ball[Top] > blocks[r][c][Bottom] Or ball[Bottom] < blocks[r][c][Top]) = False) Then
-
           ' Check for collision with the block's sides.
-
           If (ball[X] >= blocks[r][c][Left] And ball[X] <= blocks[r][c][Right]) Then
-
             If (ball[Y] > blocks[r][c][Y]) Then
-
               ballVelocity[Y] = Math.Abs(ballVelocity[Y])
-
             Else
-
               ballVelocity[Y] = -Math.Abs(ballVelocity[Y])
-
             EndIF
-
             hit = True
-
           ElseIf (ball[Y] >= blocks[r][c][Top] And ball[Y] <= blocks[r][c][Bottom]) Then
-
             If (ball[X] > blocks[r][c][X]) Then
-
               ballVelocity[X] = Math.Abs(ballVelocity[X])
-
             Else
-
               ballVelocity[X] = -Math.Abs(ballVelocity[X])
-
             EndIF
-
             hit = True
-
           EndIF
-
           
-
           If (hit) Then
-
             If (blockTypes[r][c] <> BlockOrange) Then
-
               Shapes.Remove(blockShapes[r][c])
-
               blockTypes[r][c] = BlockNone
-
               currentScore = currentScore + BlockValues[blockTypes[r][c]] * blockBonus
-
               blockBonus = blockBonus + 1
-
               
-
               Stack.PushValue(parameters, blocks[r][c][X])
-
               Stack.PushValue(parameters, blocks[r][c][Y])
-
               DoPowerups()
-
             EndIF
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub DoPowerups
-
   ran = Math.GetRandomNumber(100)
-
   If (ran < PowerupProbability) Then
-
     powerupsCount = powerupsCount + 1
-
     ran = Math.GetRandomNumber(7)
-
     If (ran = 1) Then
-
       powerupShapes[powerupsCount] = Shapes.AddImage(PowerupImageBallBigger)
-
       powerupTypes[powerupsCount] = PowerupBallBigger
-
     ElseIf (ran = 2) Then
-
       powerupShapes[powerupsCount] = Shapes.AddImage(PowerupImageBallSmaller)
-
       powerupTypes[powerupsCount] = PowerupBallSmaller
-
     ElseIf (ran = 3) Then
-
       powerupShapes[powerupsCount] = Shapes.AddImage(PowerupImagePaddleExpand)
-
       powerupTypes[powerupsCount] = PowerupPaddleExpand
-
     ElseIf (ran = 4) Then
-
       powerupShapes[powerupsCount] = Shapes.AddImage(PowerupImagePaddleShrink)
-
       powerupTypes[powerupsCount] = PowerupPaddleShrink
-
     ElseIf (ran = 5) Then
-
       powerupShapes[powerupsCount] = Shapes.AddImage(PowerupImageBallFaster)
-
       powerupTypes[powerupsCount] = PowerupBallFaster
-
     ElseIf (ran = 6) Then
-
       powerupShapes[powerupsCount] = Shapes.AddImage(PowerupImageBallSlower)
-
       powerupTypes[powerupsCount] = PowerupBallSlower
-
     ElseIf (ran = 7) Then
-
       powerupShapes[powerupsCount] = Shapes.AddImage(PowerupImageStasis)
-
       powerupTypes[powerupsCount] = PowerupStasis
-
     EndIf
-
     
-
     powerupRects[powerupsCount][Top] = Stack.PopValue(parameters) - PowerupSize / 2
-
     powerupRects[powerupsCount][Left] = Stack.PopValue(parameters) - PowerupSize / 2
-
     powerupRects[powerupsCount][Right] = powerupRects[powerupsCount][Left] + PowerupSize
-
     powerupRects[powerupsCount][Bottom] = powerupRects[powerupsCount][Top] + PowerupSize
-
     Shapes.Move(powerupShapes[powerupsCount], powerupRects[powerupsCount][Left], powerupRects[powerupsCount][Top])
-
   EndIf
-
 EndSub
-
-
 
 Sub UpdatePowerups
-
   For i = 1 To powerupsCount
-
     powerupRects[i][Top] = powerupRects[i][Top] + PowerupSpeed
-
     powerupRects[i][Bottom] = powerupRects[i][Bottom] + PowerupSpeed
-
     If (powerupRects[i][Top] > gameArea[Bottom]) Then
-
       Shapes.Remove(powerupShapes[i])
-
       powerupShapes[i] = False
-
     ElseIf ((powerupRects[i][Left] > paddle[Right] Or powerupRects[i][Right] < paddle[Left] Or powerupRects[i][Top] > paddle[Bottom] Or powerupRects[i][Bottom] < paddle[Top]) = False) Then
-
       Shapes.Remove(powerupShapes[i])
-
       powerupShapes[i] = False
-
       currentScore = currentScore + PowerupValue
-
       If (powerupTypes[i] = PowerupBallBigger) Then
-
         If (ball[Radius] = BallRadiusSmall) Then
-
           SetBallSizeNormal()
-
         ElseIf (ball[Radius] = BallRadiusNormal) Then
-
           SetBallSizeLarge()
-
         EndIF
-
       ElseIf (powerupTypes[i] = PowerupBallSmaller) Then
-
         If (ball[Radius] = BallRadiusLarge) Then
-
           SetBallSizeNormal()
-
         ElseIf (ball[Radius] = BallRadiusNormal) Then
-
           SetBallSizeSmall()
-
         EndIF
-
       ElseIf (powerupTypes[i] = PowerupPaddleExpand) Then
-
         If (paddle[Width] = PaddleWidthSmall) Then
-
           SetPaddleSizeNormal()
-
         ElseIf (paddle[Width] = PaddleWidthNormal) Then
-
           SetPaddleSizeLarge()
-
         EndIf
-
       ElseIf (powerupTypes[i] = PowerupPaddleShrink) Then
-
         If (paddle[Width] = PaddleWidthLarge) Then
-
           SetPaddleSizeNormal()
-
         ElseIf (paddle[Width] = PaddleWidthNormal) Then
-
           SetPaddleSizeSmall()
-
         EndIf
-
       ElseIf (powerupTypes[i] = PowerupBallFaster) Then
-
         currentSpeed = SpeedMax
-
       ElseIF (powerupTypes[i] = PowerupBallSlower) Then
-
         currentSpeed = SpeedMin
-
       ElseIf (powerupTypes[i] = PowerupStasis) Then
-
         Powerups[PowerupStasis] = True
-
       EndIF
-
     EndIf
-
   EndFor
-
   CleanPowerupsArray()
-
 EndSub
-
-
 
 Sub CleanPowerupsArray
-
   count = 0
-
   For i = 1 To powerupsCount
-
     If (powerupShapes[i] = False) Then
-
       count = count + 1
-
     Else
-
       powerupShapes[i - count] = powerupShapes[i]
-
       powerupRects[i - count] = powerupRects[i]
-
       powerupTypes[i - count] = powerupTypes[i]
-
     EndIf
-
   EndFor
-
   powerupsCount = powerupsCount - count
-
 EndSub
-
-
 
 Sub ClearPowerups
-
   For i = 1 To powerupsCount
-
     Shapes.Remove(powerupShapes[i])
-
     powerupShapes[i] = False
-
   EndFor
-
   powerupsCount = 0
-
   Powerups[PowerupStasis] = False
-
 EndSub
-
-
 
 Sub RotationMatrix
-
   paramAngle = Stack.PopValue(parameters)
-
   paramY = Stack.PopValue(parameters)
-
   paramX = Stack.PopValue(parameters)
-
   m11 = Math.Cos(paramAngle)
-
   m12 = Math.Sin(paramAngle)
-
   Stack.PushValue(return, paramX * m12 + paramY * m11)
-
   Stack.PushValue(return, paramX * m11 + paramY * -m12)
-
 EndSub
-
-
 
 Sub NormalizeVector
-
   paramY = Stack.PopValue(parameters)
-
   paramX = Stack.PopValue(parameters)
-
   length = Math.SquareRoot(paramX * paramX + paramY * paramY)
-
   Stack.PushValue(return, paramY / length)
-
   Stack.PushValue(return, paramX / length)
-
 EndSub
-
-
 
 Sub Clamp ' min, max, value
-
   paramValue = Stack.PopValue(parameters)
-
   paramMax = Stack.PopValue(parameters)
-
   paramMin = Stack.PopValue(parameters)
-
   If (paramValue < paramMin) Then
-
     Stack.PushValue(return, paramMin)
-
   ElseIf (paramValue > paramMax) Then
-
     Stack.PushValue(return, paramMax)
-
   Else
-
     Stack.PushValue(return, paramValue)
-
   EndIf
-
 EndSub
 
-
-
 Main()
-
-
-
 

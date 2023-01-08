@@ -1,869 +1,434 @@
 ' Baseball Scoreboard 0.1
-
 ' Copyright (c) 2014 Nonki Takahashi.  All rights reserved.
-
 '
-
 ' History:
-
 '  0.1 2014-01-06 Created.
-
 '
-
 GraphicsWindow.Title = "Baseball Scoreboard 0.1 - Cmd:B|S|O|H|E|Arrow|Enter|BS|X|Esc|P"
-
 gw = 598
-
 gh = 300
-
 op = 20 ' off and cursor opacity
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 InitBoard()
-
 MainLoop()
-
 Sub MainLoop
-
   key = ""
-
   board["row"] = 1
-
   board["col"] = 1
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   While "True"
-
     If key <> "" Then
-
       If Text.IsSubText("B|S|O|H|E", key) Then
-
         ToggleLamps()
-
       ElseIf Text.IsSubText("Return|Back", key) Then
-
         UpdateScore()
-
       ElseIf Text.IsSubText("Up|Down|Left|Right", key) Then
-
         MoveCursor()
-
       ElseIf key = "Escape" Then
-
         param["message"] = "Are you sure to reset scoreborad?"
-
         param["buttons"] = "OK,Cancel"
-
         Popup()
-
         If clicked = "OK" Then
-
           ResetBoard()
-
         EndIf
-
       ElseIf key = "P" Then
-
         PrintBoard()
-
       ElseIf key = "X" Then
-
         WalkOff()
-
       EndIf
-
       key = ""
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub Popup
-
   local["fs"] = GraphicsWindow.FontSize
-
   local["bc"] = GraphicsWindow.BrushColor
-
   len = Text.GetLength(param["message"])
-
   GraphicsWindow.BrushColor = "White"
-
   fs = 14
-
   width = 40 + len * fs * 0.9
-
   height = fs * 6
-
   window = Shapes.AddRectangle(width, height)
-
   Shapes.SetOpacity(window, 90)
-
   Shapes.Move(window, (gw - width) / 2, (gh - height) / 2)
-
   GraphicsWindow.FontSize = fs
-
   GraphicsWindow.BrushColor = "Black"
-
   txt = Shapes.AddText(param["message"])
-
   Shapes.Move(txt, (gw - width) / 2 + 20, (gh - height) / 2 + fs)
-
   param["x"] = (gw - width) / 2 + 20
-
   param["y"] = (gh - height) / 2 + fs * 3
-
   AddButtons()
-
   clicked = ""
-
   While clicked = ""
-
     Program.Delay(20)
-
   EndWhile
-
   RemoveButtons()
-
   Shapes.Remove(txt)
-
   Shapes.Remove(window)
-
   GraphicsWindow.FontSize = local["fs"]
-
   GraphicsWindow.BrushColor = local["bc"]
-
 EndSub
-
 Sub AddButtons
-
   len = Text.GetLength(param["buttons"])
-
   bx = param["x"]
-
   by = param["y"]
-
   p = 1
-
   n = 0
-
   buttons = ""
-
   While p <= len
-
     c = Text.GetIndexOf(Text.GetSubTextToEnd(param["buttons"], p), ",")
-
     n = n + 1
-
     If c > 0 Then
-
       buttons[n] = Text.GetSubText(param["buttons"], p, c - 1)
-
       p = c + 1
-
     Else
-
       buttons[n] = Text.GetSubTextToEnd(param["buttons"], p)
-
       p = len + 1
-
     EndIf
-
   EndWhile
-
   n = Array.GetItemCount(buttons)
-
   index = Array.GetAllIndices(buttons)
-
   For i = 1 To n
-
     len = Text.GetLength(buttons[index[i]])
-
     buttons["obj" + i] = Controls.AddButton(buttons[index[i]], bx, by)
-
     bx = bx + len * fs + 20
-
   EndFor
-
   buttons["nButtons"] = n
-
   Controls.ButtonClicked = OnButtonClicked
-
 EndSub
-
 Sub RemoveButtons
-
   For i = 1 To buttons["nButtons"]
-
     Controls.Remove(buttons["obj" + i])
-
   EndFor
-
 EndSub
-
 Sub OnButtonClicked
-
   clicked = Controls.LastClickedButton
-
   clicked = Controls.GetButtonCaption(clicked)
-
 EndSub
-
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
 EndSub
-
 Sub InitBoard
-
   board["bc"] = "Black" ' background color
-
   board["fc"] = "White" ' foreground color
-
   board["fs"] = 16      ' font size
-
   board["fn"] = "Verdana"       ' font name
-
   board["cw"] = board["fs"] * 2 ' cell width
-
   board["ch"] = board["fs"] * 2 ' cell height
-
   board["ni"] = 12      ' number of innings
-
   board["t1"] = "GUEST" ' team name 1
-
   board["t2"] = "HOME"  ' team name 2
-
   team = "1=G;2=H;"     ' for score index
-
   GraphicsWindow.BackgroundColor = board["bc"]
-
   GraphicsWindow.BrushColor = board["fc"]
-
   GraphicsWindow.FontSize = board["fs"]
-
   GraphicsWindow.FontName = board["fn"]
-
   x = board["cw"] * 1.2
-
   y = board["ch"] * 1.2
-
   size = board["cw"] * 2.2
-
   InitClock()
-
   x = board["cw"] * 5
-
   y = board["ch"]
-
   GraphicsWindow.DrawText(x, y, "B")
-
   param["x"] = board["cw"] * 6
-
   param["y"] = y
-
   param["color"] = "Cyan"
-
   param["n"] = 3
-
   InitLamps()
-
   board["B"] = retval
-
   x2 = board["cw"] * 10
-
   GraphicsWindow.DrawText(x2, y, "H")
-
   param["x"] = board["cw"] * 11
-
   param["color"] = "Red"
-
   param["n"] = 1
-
   InitLamps()
-
   board["H"] = retval
-
   y = board["ch"] * 2
-
   GraphicsWindow.DrawText(x, y, "S")
-
   param["x"] = board["cw"] * 6
-
   param["y"] = y
-
   param["color"] = "Yellow"
-
   param["n"] = 2
-
   InitLamps()
-
   board["S"] = retval
-
   GraphicsWindow.DrawText(x2, y, "E")
-
   param["x"] = board["cw"] * 11
-
   param["color"] = "Red"
-
   param["n"] = 1
-
   InitLamps()
-
   board["E"] = retval
-
   y = board["ch"] * 3
-
   GraphicsWindow.DrawText(x, y, "O")
-
   param["x"] = board["cw"] * 6
-
   param["y"] = y
-
   param["color"] = "Red"
-
   param["n"] = 2
-
   InitLamps()
-
   board["O"] = retval
-
   x = board["cw"] * 4
-
   y = board["ch"] * 5
-
   board["x0"] = x
-
   board["y0"] = y + board["ch"]
-
   InitCursor()
-
   For i = 1 To board["ni"] + 1
-
     If i <= 9 Then
-
       txt = Text.Append(" ", i)
-
     ElseIf i <= board["ni"] Then
-
       txt = i
-
     Else
-
       txt = "RUN"
-
     EndIf
-
     GraphicsWindow.DrawText(x, y, txt)
-
     If 10 <= i And i <= board["ni"] Then
-
       score = ""
-
     Else
-
       score = " 0"
-
     EndIF
-
     For t = 1 To 2
-
       board[team[t] + i] = score
-
       board["obj" + team[t] + i] = Shapes.AddText(score)
-
       Shapes.Move(board["obj" + team[t] + i], x, y + board["ch"] * t)
-
     EndFor
-
     x = x + board["cw"]
-
   EndFor
-
   x = board["cw"]
-
   y = board["ch"] * 6
-
   GraphicsWindow.DrawText(x, y, board["t1"])
-
   y = board["ch"] * 7
-
   GraphicsWindow.DrawText(x, y, board["t2"])
-
 EndSub
-
 Sub WalkOff
-
   FindLastInning()
-
   score1 = board[team[1] + (board["ni"] + 1)]
-
   score2 = board[team[2] + (board["ni"] + 1)]
-
   score = board[team[board["row"]] + board["col"]]
-
   iX = Text.GetIndexOf(score, "X")
-
   update = "False"
-
   If 0 < iX Then
-
     score = Text.GetSubText(score, 1, iX - 1) * 1
-
     If score <= 9 Then
-
       score = Text.Append(" ", score)
-
     EndIf
-
     update = "True"
-
   ElseIf board["row"] = 2 And board["col"] = last And score1 < score2 Then
-
     score = (score * 1) + "X"
-
     update = "True"
-
   EndIf
-
   If update Then
-
     board[team[2] + last] = score
-
     Shapes.SetText(board["obj" + team[2] + last], score)
-
   EndIf
-
 EndSub
-
 Sub PrintBoard
-
   FindLastInning()
-
   TextWindow.Write("      ")
-
   For i = 1 To last
-
     If i <= 9 Then
-
       txt = Text.Append(" ", i)
-
     ElseIf i <= last Then
-
       txt = i
-
     EndIf
-
     TextWindow.Write(txt + " ")
-
   EndFor
-
   TextWindow.WriteLine("RUN")
-
   TextWindow.Write("GUEST ")
-
   For i = 1 To last
-
     score = board[team[1] + i] * 1
-
     len = Text.GetLength(score)
-
     txt = Text.Append(Text.GetSubText("  ", 1, len), score)
-
     TextWindow.Write(txt + " ")
-
   EndFor
-
   score = board[team[1] + (board["ni"] + 1)] * 1
-
   len = Text.GetLength(score)
-
   txt = Text.Append(Text.GetSubText("  ", 1, len), score)
-
   TextWindow.WriteLine(txt)
-
   TextWindow.Write("HOME  ")
-
   For i = 1 To last
-
     score = board[team[2] + i] * 1
-
     len = Text.GetLength(score)
-
     txt = Text.Append(Text.GetSubText("  ", 1, len), score)
-
     TextWindow.Write(txt + " ")
-
   EndFor
-
   score = board[team[2] + (board["ni"] + 1)] * 1
-
   len = Text.GetLength(score)
-
   txt = Text.Append(Text.GetSubText("  ", 1, len), score)
-
   TextWindow.WriteLine(txt)
-
 EndSub
-
 Sub FindLastInning
-
   For last = board["ni"] To 1 Step -1
-
     If board[team[1] + last] <> "" Or board[team[2] + last] <> "" Then
-
       Goto found
-
     EndIf
-
   EndFor
-
   found:
-
 EndSub
-
 Sub ResetBoard
-
   lampNames = "BSOHE"
-
   len = Text.GetLength(lampNames)
-
   For i = 1 To len
-
     iLamp = Text.GetSubText(lampNames, i, 1)
-
     n = Array.GetItemCount(board[iLamp]) - 1
-
     For j = 1 To n
-
       Shapes.SetOpacity(board[iLamp][j], op)
-
     EndFor
-
     board[iLamp]["state"] = 0
-
   EndFor
-
   For i = 1 To board["ni"] + 1
-
     If i = board["ni"] + 1 Then
-
       score = " 0"
-
     Else
-
       score = ""
-
     EndIf
-
     For t = 1 To 2
-
       board[team[t] + i] = score
-
       Shapes.SetText(board["obj" + team[t] + i], score)
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub InitLamps
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = param["color"]
-
   xl = param["x"]
-
   yl = param["y"]
-
   size = board["fs"]
-
   retval = ""
-
   For i = 1 To param["n"]
-
     retval[i] = Shapes.AddEllipse(size, size)
-
     Shapes.Move(retval[i], xl, yl)
-
     Shapes.SetOpacity(retval[i], op)
-
     xl = xl + size * 1.5
-
   EndFor
-
   retval["state"] = 0
-
   GraphicsWindow.BrushColor = board["fc"]
-
 EndSub
-
 Sub InitCursor
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = board["fc"]
-
   board["cursor"] = Shapes.AddRectangle(board["cw"], board["ch"])
-
   Shapes.SetOpacity(board["cursor"], op)
-
   Shapes.Move(board["cursor"], board["x0"], board["y0"])
-
 EndSub
-
 Sub UpdateScore
-
   update = "True"
-
   iScore = team[board["row"]] + board["col"]
-
   iObject = "obj" + iScore
-
   If key = "Return" Then
-
     If board[iScore] = "" Then
-
       board[iScore] = " 0"
-
       delta = 0
-
     ElseIf board[iScore] < 9 Then
-
       board[iScore] = Text.Append(" ", board[iScore] + 1)
-
       delta = 1
-
     Else
-
       board[iScore] = board[iScore] + 1
-
       delta = 1
-
     EndIf
-
   ElseIf key = "Back" Then
-
     If board[iScore] = "" Then
-
       update = "False"
-
     ElseIf board[iScore] = 0 Then
-
       board[iScore] = ""
-
       delta = 0
-
     ElseIf board[iScore] <= 10 Then
-
       board[iScore] = Text.Append(" ", board[iScore] - 1)
-
       delta = -1
-
     Else
-
       board[iScore] = board[iScore] - 1
-
       delta = -1
-
     EndIf
-
   EndIf
-
   If update Then
-
     Shapes.SetText(board[iObject], board[iScore])
-
     iScoreTotal = team[board["row"]] + (board["ni"] + 1)
-
     iObjectTotal = "obj" + iScoreTotal
-
     board[iScoreTotal] = board[iScoreTotal] + delta
-
     If board[iScoreTotal] <= 9 Then
-
       board[iScoreTotal] = Text.Append(" ", board[iScoreTotal])
-
     EndIf
-
     Shapes.SetText(board[iObjectTotal], board[iScoreTotal])
-
   EndIf
-
 EndSub
-
 Sub MoveCursor
-
   move = "False"
-
   If key = "Up" Then
-
     If board["row"] = 2 Then
-
       board["row"] = 1
-
       move = "True"
-
     EndIf
-
   ElseIf key = "Down" Then
-
     If board["row"] = 1 Then
-
       board["row"] = 2
-
       move = "True"
-
     EndIf
-
   ElseIf key = "Left" Then
-
     If 1 < board["col"] Then
-
       board["col"] = board["col"] - 1
-
       move = "True"
-
     EndIf
-
   ElseIf key = "Right" Then
-
     If board["col"] < board["ni"] Then
-
       board["col"] = board["col"] + 1
-
       move = "True"
-
     EndIf
-
   EndIf
-
   If move Then
-
     xc = board["x0"] + board["cw"] * (board["col"] - 1)
-
     yc = board["y0"] + board["ch"] * (board["row"] - 1)
-
     Shapes.Move(board["cursor"], xc, yc)
-
   EndIf
-
 EndSub
-
 Sub ToggleLamps
-
   lamps = board[key]
-
   num = Array.GetItemCount(lamps) - 1
-
   If lamps["state"] < num Then
-
     lamps["state"] = lamps["state"] + 1
-
     Shapes.SetOpacity(lamps[lamps["state"]], 100)
-
   Else
-
     lamps["state"] = 0
-
     For i = 1 To num
-
       Shapes.SetOpacity(lamps[i], op)
-
     EndFor
-
   EndIf
-
   board[key] = lamps
-
 EndSub
-
 Sub InitClock
-
   cx = x + size / 2
-
   cy = y + size / 2
-
   mw = size / 40
-
   ml = size / 2
-
   hw = size / 20
-
   hl = size / 3
-
   DrawMark()
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = board["fc"]
-
   minutehand = Shapes.AddRectangle(mw, ml)
-
   Shapes.Move(minutehand, cx - mw / 2, cy - ml + mw / 2)
-
   hourhand = Shapes.AddRectangle(hw, hl)
-
   Shapes.Move(minutehand, cx - hw / 2, cy - hl + hw / 2)
-
   Timer.Interval = 1000 / 2
-
   Timer.Tick = OnTick
-
 EndSub
-
 Sub OnTick
-
   a = (Clock.Minute + Clock.Second / 60) / 60 * 360
-
   Shapes.Rotate(minutehand, a)
-
   rad = Math.GetRadians(a)
-
   _x = cx + ((ml - mw) / 2) * Math.Sin(rad) - (mw / 2)
-
   _y = cy - ((ml - mw) / 2) * Math.Cos(rad) - (ml / 2)
-
   Shapes.Move(minutehand, _x, _y)
-
   a = (Clock.Hour + Clock.Minute / 60 + Clock.Second / 3600) / 12 * 360
-
   Shapes.Rotate(hourhand, a)
-
   rad = Math.GetRadians(a)
-
   _x = cx + ((hl - hw) / 2) * Math.Sin(rad) - (hw / 2)
-
   _y = cy - ((hl - hw) / 2) * Math.Cos(rad) - (hl / 2)
-
   Shapes.Move(hourhand, _x, _y)
-
 EndSub
-
 Sub DrawMark
-
   GraphicsWindow.BrushColor = board["fc"]
-
   For a = 0 To 11 / 12 * 360 Step 360 / 12
-
     rad = Math.GetRadians(a)
-
     _x = cx + (ml + hw) * Math.Sin(rad) - hw / 2
-
     _y = cy - (ml + hw) * Math.Cos(rad) - hw / 2
-
     GraphicsWindow.FillEllipse(_x, _y, hw, hw)
-
   EndFor
-
 EndSub
-
-

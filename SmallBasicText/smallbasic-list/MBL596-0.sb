@@ -1,487 +1,243 @@
 ' Cal - Calendar (MBL596-0)
 
-
-
 DateInit()
 
-
-
 If Program.ArgumentCount <> 2 Then
-
   Mo = Clock.Month
-
   Yr = Clock.Year
-
   Now()
-
   param = "1=ww;2=" + retval + ";3=" + vbMonday + ";4=" + vbFirstFullWeek + ";"
-
   DatePart()
-
   KW = Text.GetSubText(100 + retval, 2, 2)
-
   TextWindow.WriteLine(" MonthCalendar (Today is " + Clock.Date + ", CW " + KW + ")" + vbCrLf + " Syntax: Cal [MM YYYY]" + vbCrLf + " ------------------------")
-
 Else
-
   Mo = Program.GetArgument(1)
-
   Yr = Program.GetArgument(2)
-
 EndIf
-
-
 
 YS = "JanFebMarAprMayJunJulAugSepOctNovDec"
-
 MN = Text.GetSubText(YS, 3 * Mo - 2, 3)
-
 If MN="" Then
-
   MN = Mo   '' Month Name
-
 EndIf
-
 TextWindow.WriteLine("         " + MN + "  " + Yr)
-
 TextWindow.WriteLine(" CW  Mo Tu We Th Fr Sa Su")
-
 param = "year=" + Yr + ";month=" + Mo + ";day=1;"
-
 DateSerial()
-
 param = "ser=" + retval + ";mode=2;"
-
 Weekday()
-
 WD = retval '' Weekday Number from 1st (1st in Month)
-
 param = "year=" + Yr + ";month=" + (Mo + 1) + ";day=0;"
-
 DateSerial()
-
 param = "ser=" + retval + ";"
-
 Day()
-
 LD = retval '' Last Day Number in Month
-
 Wk = Text.GetSubText("                         ", 1, (WD - 1) * 3) '' Previous Month Spaces-String
 
-
-
 For D = 1 To LD
-
   Wk = Text.Append(Text.Append(Wk, " "), Text.GetSubText(100 + D, 2, 2))
-
   WD = WD + 1
-
   If (WD = 8) Or (D = LD) Then
-
     param["date"] = Yr + "/" + Mo + "/" + D
-
     DateValue()
-
     param = "1=ww;2=" + retval + ";3=" + vbMonday + ";4=" + vbFirstFullWeek + ";"
-
     DatePart()
-
     TextWindow.WriteLine(Text.Append(Text.Append(Text.Append(" ", Text.GetSubText(100 + retval, 2, 2)), " "), Wk))
-
     WD = WD - 7
-
     Wk = ""
-
   EndIf
-
 EndFor
 
-
-
 Sub DateInit
-
   vbCrLf = Text.GetCharacter(13) + Text.GetCharacter(10)
-
   vbSunday = 1
-
   vbMonday = 2
-
   vbTuesday = 3
-
   vbWednesday = 4
-
   vbThursday = 5
-
   vbFriday = 6
-
   vbSaturday = 7
-
   vbJan1 = 1
-
   vbFirstFourDays = 2
-
   vbFirstFullWeek = 3
-
   dom = "1=31;2=28;3=31;4=30;5=31;6=30;7=31;8=31;9=30;10=31;11=30;12=31;"
-
   weekmode[1] = "0=1;1=2;2=3;3=4;4=5;5=6;6=7;"
-
   weekmode[2] = "0=7;1=1;2=2;3=3;4=4;5=5;6=6;"
-
   weekmode[3] = "0=6;1=0;2=1;3=2;4=3;5=4;6=5;"
-
 EndSub
-
-
 
 Sub Now
-
   ' retval - serial date value eg. 1 for 1900/1/1
-
   param["date"] = Clock.Year + "/" + Clock.Month + "/" + Clock.Day
-
   DateValue()
-
 EndSub
-
-
 
 Sub Weekday
-
   ' param["ser"] - serial date value eg. 1 for 1900/1/1
-
   ' param["mode"] - 1:sun=1..sat=7, 2:mon=1..sun=7,3:mon=0..sun=6
-
   Stack.PushValue("local", local)
-
   If param["mode"] = "" Then
-
     local["mode"] = 1
-
   Else
-
     local["mode"] = param["mode"]
-
   EndIf
-
   retval = weekmode[local["mode"]][Math.Remainder(param["ser"], 7)]
-
   local = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Day
-
   ' param["ser"] - serial date value eg. 1 for 1900/1/1
-
   Stack.PushValue("param", param)
-
   param[1] = "d"
-
   param[2] = param["ser"]
-
   DatePart()
-
   param = Stack.PopValue("param")
-
 EndSub
-
-
 
 Sub DateSerial
-
   ' param["year"], param["month"], param["day"] - date
-
   ' retval - serial date value eg. 1 for 1900/1/1
-
   Stack.PushValue("local", local)
-
   Leap()
-
   local["leap"] = retval
-
   Stack.PushValue("param", param)
-
   param["year"] = 1900
-
   Leap()
-
   param = Stack.PopValue("param")
-
   local["leap"] = local["leap"] - retval
-
   IsLeap()
-
   If retval Then
-
     local["leap"] = local["leap"] - 1
-
     dom[2] = 29
-
   Else
-
     dom[2] = 28
-
   EndIf
-
   retval = (param["year"] - 1900) * 365 + local["leap"]
-
   For _m = 1 To param["month"] - 1
-
     retval = retval + dom[_m]
-
   EndFor
-
   retval = retval + param["day"]
-
   local = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub DatePart
-
   ' param[1] - "yyyy", "m", "d", or "ww"
-
   ' param[2] - serial date value eg. 1 for 1900/1/1
-
   ' param[3] - first day of week value (1=sun..7=sat)
-
   ' param[4] - first week of year (1=Jan 1, 2=first 4 days, 3= first full days)
-
   Stack.PushValue("local", local)
-
   If param[3] = "" Then
-
     local[3] = 1
-
   Else
-
     local[3] = param[3]
-
   EndIf
-
   If param[4] = "" Then
-
     local[4] = 1
-
   Else
-
     local[4] = param[4]
-
   EndIf
-
   local["day"] = param[2]
-
   local["year"] = Math.Floor(local["day"] / 365) + 1900
-
   local["day"] = Math.Remainder(local["day"], 365)
-
   Stack.PushValue("param", param)
-
   param["year"] = local["year"]
-
   Leap()
-
   local["day"] = local["day"] - retval
-
   IsLeap()
-
   If retval Then
-
     local["day"] = local["day"] + 1
-
   EndIf
-
   param["year"] = 1900
-
   Leap()
-
   local["day"] = local["day"] + retval
-
   If local["day"] <= 0 Then
-
     local["year"] = local["year"] - 1
-
     local["day"] = local["day"] + 365
-
   EndIf
-
   param["year"] = local["year"]
-
   IsLeap()
-
   If retval Then
-
     dom[2] = 29
-
   Else
-
     dom[2] = 28
-
   EndIf
-
   param["ser"] = param[2] - local["day"] + 1
-
   WeekDay()
-
   local["wd"] = retval  ' week of Jan 1 in the year (1=sun..7=sat)
-
   local["d1w"] = Math.Remainder(6 + local[3] - local["wd"], 7) + 1  ' days in first week in the year
-
   If local[4] = vbJan1 Then
-
     local["ww"] = Math.Ceiling((local["day"] - local["d1w"]) / 7) + 1
-
   ElseIf local[4] = vbFirstFourDays Then
-
     If local["d1w"] < 4 Then
-
       local["ww"] = Math.Ceiling((local["day"] - local["d1w"]) / 7)
-
     Else
-
       local["ww"] = Math.Ceiling((local["day"] - local["d1w"]) / 7) + 1
-
     EndIf
-
   ElseIf local[4] = vbFirstFullWeek Then
-
     If local["d1w"] < 7 Then
-
       local["ww"] = Math.Ceiling((local["day"] - local["d1w"]) / 7)
-
     Else
-
       local["ww"] = Math.Ceiling((local["day"] - local["d1w"]) / 7) + 1
-
     EndIf
-
   EndIf
-
   local["month"] = 1
-
   While dom[local["month"]] < local["day"]
-
     local["day"] = local["day"] - dom[local["month"]]
-
     local["month"] = local["month"] + 1
-
   EndWhile
-
   If param[1] = "yyyy" Then
-
     retval = param["year"]
-
   ElseIf param[1] = "m" Then
-
     retval = local["month"]
-
   ElseIf param[1] = "d" Then
-
     retval = local["day"]
-
   ElseIf param[1] = "ww" Then
-
     retval = local["ww"]
-
   Else
-
     TextWindow.WriteLine("Error: Invalid Interval")
-
   EndIf
-
   param = Stack.PopValue("param")
-
   local = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub DateValue
-
   ' param["date"] - "yyyy/mm/dd"
-
   ' retval - serial date value eg. 1 for 1900/1/1
-
   Stack.PushValue("local", local)
-
   local["date"] = param["date"]
-
   local["p"] = Text.GetIndexOf(local["date"], "/")
-
   Stack.PushValue("param", param)
-
   If local["p"] > 0 Then
-
     param["year"] = Text.GetSubText(local["date"], 1, local["p"] - 1)
-
     local["date"] = Text.GetSubTextToEnd(local["date"], local["p"] + 1)
-
     local["p"] = Text.GetIndexOf(local["date"], "/")
-
     If local["p"] > 0 Then
-
       param["month"] = Text.GetSubText(local["date"], 1, local["p"] - 1)
-
       param["day"] = Text.GetSubTextToEnd(local["date"], local["p"] + 1)
-
     Else
-
       param["month"] = local["date"]
-
       param["day"] = 1
-
     EndIf
-
   Else
-
     param["year"] = local["date"]
-
     param["monty"] = 1
-
     param["day"] = 1
-
   EndIf
-
   DateSerial()
-
   param = Stack.PopValue("param")
-
   local = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Leap
-
   retval = Math.Floor(param["year"] / 4)
-
   retval = retval - Math.Floor(param["year"] / 100)
-
   retval = retval + Math.Floor(param["year"] / 400)
-
 EndSub
-
-
 
 Sub IsLeap
-
   If ((Math.Remainder(param["year"], 4) = 0) And (Math.Remainder(param["year"], 100) <> 0)) Or (Math.Remainder(param["year"], 400) = 0) Then
-
     retval = "True"
-
   Else
-
     retval = "False"
-
   EndIf
-
 EndSub
-
-

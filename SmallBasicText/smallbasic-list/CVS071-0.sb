@@ -1,785 +1,392 @@
 ' Domino
-
 ' Version 0.2
-
 ' Copyright © 2017 Nonki Takahashi.  The MIT License.
-
 ' Challenge 2017-08
-
 ' Last update 2017-08-14
-
 ' Program ID CVS071-0
 
-
-
 GraphicsWindow.Title = "Domino"
-
 SB_Workaround()
-
 Init()
-
 size = 40
-
 x = 10
-
 y = 80
-
 For n1 = 0 To 6
-
   n[1] = n1
-
   For n2 = n1 To 6
-
     n[2] = n2
-
     AddDomino()
-
     i = nGroup
-
     Group_Move()
-
     Sound.PlayClick()
-
     angle = 90
-
     Group_Rotate()
-
     x = x + size * 1.38
-
     If gw < x + 2 * size Then
-
       x = 10
-
       y = y + size * 2.5
-
     EndIf
-
     Program.Delay(500)
-
   EndFor
-
 EndFor
 
-
-
 Sub Init
-
   WQ = Text.GetCharacter(34)
-
   LF = Text.GetCharacter(10)
-
   gw = 598
-
   gh = 428
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   shX = 0
-
   shY = 0
-
   iMin = 1
-
   pos[1] = "x1=1;y1=1;"
-
   pos[2] = "x1=0;y1=0;x2=2;y2=2;"
-
   pos[3] = "x1=0;y1=0;x2=1;y2=1;x3=2;y3=2;"
-
   pos[4] = "x1=0;y1=0;x2=0;y2=2;x3=2;y3=0;x4=2;y4=2;"
-
   pos[5] = "x1=0;y1=0;x2=0;y2=2;x3=1;y3=1;x4=2;y4=0;x5=2;y5=2;"
-
   pos[6] = "x1=0;y1=0;x2=0;y2=2;x3=1;y3=0;x4=1;y4=2;x5=2;y5=0;x6=2;y6=2;"
-
 EndSub
-
-
 
 Sub AddDomino
-
   ' param n[1], n[2] - numbers
-
   ' param size - short edge length
-
   shape = ""
-
   shp = "func=rect;x=0;y=0;width=" + (size * 2) + ";"
-
   shp = shp + "height=" + size + ";pw=0;bc=#442200;"
-
   shape[1] = shp
-
   shp = "func=line;x=" + size + ";y=2;x1=0;y1=0;x2=0;"
-
   shp = shp + "y2=" + (size - 4) + ";pw=2;pc=#FFFFFF;"
-
   shape[2] = shp
-
   iMax = 2
-
   sizeEye = size / 7
-
   For k = 1 To 2
-
     j = n[k]
-
     pj = pos[j]
-
     For i = 1 To j
-
       _x = (pj["x" + i] * 2 + 1) * sizeEye + size * (k - 1)
-
       _x = Math.Floor(_x * 100) / 100
-
       _y = (pj["y" + i] * 2 + 1) * sizeEye
-
       _y = Math.Floor(_y * 100) / 100
-
       shp = "func=ell;x=" + _x + ";y=" + _y + ";"
-
       shp = shp + "width=" + sizeEye + ";"
-
       shp = shp + "height=" + sizeEye + ";"
-
       shp = shp + "pw=0;bc=#FFFFFF;"
-
       iMax = iMax + 1
-
       shape[iMax] = shp
-
     EndFor
-
   EndFor
-
   name = ("domino" + n[1]) + n[2]
-
   Group_Add()
-
 EndSub
-
-
 
 Sub Group_Add
-
   ' Group | add shapes to a group
-
   ' param name - group name
-
   ' param shX, shY, origin of shape array
-
   ' param shape[] - shape array
-
   ' param nGroup - number of group
-
   ' return nGroup - updated number of group
-
   ' return group - group array
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   nGroup = nGroup + 1
-
   grp = ""
-
   grp["name"] = name
-
   grp["x"] = shX
-
   grp["y"] = shY
-
   grp["angle"] = 0
-
   grp["dir"] = 1
-
   Shapes_CalcWidthAndHeight()
-
   grp["width"] = shWidth
-
   grp["cx"] = shWidth / 2
-
   grp["height"] = shHeight
-
   s = 1
-
   grp["scale"] = s
-
   For i = 1 To Array.GetItemCount(shape)
-
     shp = shape[i]
-
     GraphicsWindow.PenWidth = shp["pw"] * s
-
     If shp["pw"] > 0 Then
-
       GraphicsWindow.PenColor = shp["pc"]
-
     EndIf
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) Then
-
       GraphicsWindow.BrushColor = shp["bc"]
-
     EndIf
-
     If shp["func"] = "rect" Then
-
       shp["obj"] = Shapes.AddRectangle(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "ell" Then
-
       shp["obj"] = Shapes.AddEllipse(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "tri" Then
-
       shp["obj"] = Shapes.AddTriangle(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s, shp["x3"] * s, shp["y3"] * s)
-
     ElseIf shp["func"] = "line" Then
-
       shp["obj"] = Shapes.AddLine(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s)
-
     ElseIf shp["func"] = "text" Then
-
       If silverlight Then
-
         fs = Math.Floor(shp["fs"] * 0.9)
-
       Else
-
         fs = shp["fs"]
-
       EndIf
-
       GraphicsWindow.FontSize = fs * s
-
       GraphicsWindow.FontName = shp["fn"]
-
       GraphicsWindow.FontBold = shp["fb"]
-
       GraphicsWindow.FontItalic = shp["fi"]
-
       shp["obj"] = Shapes.AddText(shp["text"])
-
     ElseIf shp["func"] = "img" Then
-
       shp["obj"] = Shapes.AddImage(shp["src"])
-
       Shapes.Move(shp["obj"], shp["x"], shp["y"])
-
     EndIf
-
     x = shp["x"]
-
     y = shp["y"]
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(shp["angle"])
-
       SB_RotateWorkaround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) And (shp["angle"] <> 0) And (shp["angle"] <> "") Then
-
       Shapes.Rotate(shp["obj"], shp["angle"])
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
   grp["shape"] = shape
-
   group[nGroup] = grp
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Group_Move
-
   ' Group | Move a group
-
   ' param group[i] - the group to move
-
   ' param x, y - the position to move
-
   ' return group[i] - the updated group
-
   Stack.PushValue("local", s)
-
   Stack.PushValue("local", n)
-
   Stack.PushValue("local", j)
-
   grp = group[i]
-
   s = grp["scale"]
-
   grp["x"] = x
-
   grp["y"] = y
-
   shape = grp["shape"]
-
   n = Array.GetItemCount(shape)
-
   For j = 1 To n
-
     shp = shape[j]
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       _x = shp["wx"]
-
       _y = shp["wy"]
-
     Else
-
       _x = shp["rx"]
-
       _y = shp["ry"]
-
     EndIf
-
     Shapes.Move(shp["obj"], grp["x"] + _x * s, grp["y"] + _y * s)
-
   EndFor
-
   group[i] = grp
-
   j = Stack.PopValue("local")
-
   n = Stack.PopValue("local")
-
   s = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Group_Rotate
-
   ' Group | Rotate a group
-
   ' param group[i] - group to move
-
   ' param cx, cy - rotation center (if given)
-
   ' param angle - to rotate
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   Stack.PushValue("local", s)
-
   Stack.PushValue("local", n)
-
   param["angle"] = angle
-
   If cx <> "" Then
-
     param["cx"] = cx
-
   Else
-
     cx = ""   ' to avoid syntax error
-
     param["cx"] = shWidth / 2
-
   EndIf
-
   If cy <> "" Then
-
     param["cy"] = cy
-
   Else
-
     cy = ""   ' to avoid syntax error
-
     param["cy"] = shHeight / 2
-
   EndIf
-
   grp = group[i]
-
   s = grp["scale"]
-
   shape = grp["shape"]
-
   shX = grp["x"]
-
   shY = grp["y"]
-
   n = Array.GetItemCount(shape)
-
   Stack.PushValue("local", i)
-
   For i = 1 To n
-
     shp = shape[i]
-
     param["x"] = shp["x"]
-
     param["y"] = shp["y"]
-
     param["width"] = shp["width"]
-
     param["height"] = shp["height"]
-
     Shapes_CalcRotatePos()
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(angle + shp["angle"])
-
       SB_RotateWorkAround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     Shapes.Rotate(shp["obj"], angle + shp["angle"])
-
     shape[i] = shp
-
   EndFor
-
   i = Stack.PopValue("local")
-
   grp["shape"] = shape
-
   group[i] = grp
-
   n = Stack.PopValue("local")
-
   s = Stack.PopValue("local")
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Math_CartesianToPolar
-
   ' Math | convert cartesian coodinate to polar coordinate
-
   ' param x, y - cartesian coordinate
-
   ' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   ElseIf x = 0 Then
-
     a = 0
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
-
 
 Sub SB_RotateWorkaround
-
   ' Small Basic | Rotate workaround for Silverlight
-
   ' param shp - current shape
-
   ' param x, y - original coordinate
-
   ' param alpha - angle [radian]
-
   ' returns x, y - workaround coordinate
-
   If shp["func"] = "tri" Then
-
     x1 = -Math.Floor(shp["x3"] / 2)
-
     y1 = -Math.Floor(shp["y3"] / 2)
-
   ElseIf shp["func"] = "line" Then
-
     x1 = -Math.Floor(Math.Abs(shp["x1"] - shp["x2"]) / 2)
-
     y1 = -Math.Floor(Math.Abs(shp["y1"] - shp["y2"]) / 2)
-
   EndIf
-
   ox = x - x1
-
   oy = y - y1
-
   x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
   y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
 EndSub
-
-
 
 Sub SB_Workaround
-
   ' Small Basic | Workaround for Silverlight
-
   ' returns silverlight - "True" if in remote
-
   color = GraphicsWindow.GetPixel(0, 0)
-
   If Text.GetLength(color) > 7 Then
-
     silverlight = "True"
-
     msWait = 300
-
   Else
-
     silverlight = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub Shapes_CalcRotatePos
-
   ' Shapes | Calculate position for rotated shape
-
   ' param["x"], param["y"] - position of a shape
-
   ' param["width"], param["height"] - size of a shape
-
   ' param ["cx"], param["cy"] - center of rotation
-
   ' param ["angle"] - rotate angle
-
   ' return x, y - rotated position of a shape
-
   _cx = param["x"] + param["width"] / 2
-
   _cy = param["y"] + param["height"] / 2
-
   x = _cx - param["cx"]
-
   y = _cy - param["cy"]
-
   Math_CartesianToPolar()
-
   a = a + param["angle"]
-
   x = r * Math.Cos(a * Math.Pi / 180)
-
   y = r * Math.Sin(a * Math.Pi / 180)
-
   _cx = x + param["cx"]
-
   _cy = y + param["cy"]
-
   x = _cx - param["width"] / 2
-
   y = _cy - param["height"] / 2
-
 EndSub
-
-
 
 Sub Shapes_CalcWidthAndHeight
-
   ' Shapes | Calculate total width and height of shapes
-
   ' param shape[] - shape array
-
   ' return shWidth, shHeight - total size of shapes
-
   For i = 1 To Array.GetItemCount(shape)
-
     shp = shape[i]
-
     If shp["func"] = "tri" Or shp["func"] = "line" Then
-
       xmin = shp["x1"]
-
       xmax = shp["x1"]
-
       ymin = shp["y1"]
-
       ymax = shp["y1"]
-
       If shp["x2"] < xmin Then
-
         xmin = shp["x2"]
-
       EndIf
-
       If xmax < shp["x2"] Then
-
         xmax = shp["x2"]
-
       EndIf
-
       If shp["y2"] < ymin Then
-
         ymin = shp["y2"]
-
       EndIf
-
       If ymax < shp["y2"] Then
-
         ymax = shp["y2"]
-
       EndIf
-
       If shp["func"] = "tri" Then
-
         If shp["x3"] < xmin Then
-
           xmin = shp["x3"]
-
         EndIf
-
         If xmax < shp["x3"] Then
-
           xmax = shp["x3"]
-
         EndIf
-
         If shp["y3"] < ymin Then
-
           ymin = shp["y3"]
-
         EndIf
-
         If ymax < shp["y3"] Then
-
           ymax = shp["y3"]
-
         EndIf
-
       EndIf
-
       shp["width"] = xmax - xmin
-
       shp["height"] = ymax - ymin
-
     EndIf
-
     If i = 1 Then
-
       shWidth = shp["x"] + shp["width"]
-
       shHeight = shp["y"] + shp["height"]
-
     Else
-
       If shWidth < shp["x"] + shp["width"] Then
-
         shWidth = shp["x"] + shp["width"]
-
       EndIf
-
       If shHeight < shp["y"] + shp["height"] Then
-
         shHeight = shp["y"] + shp["height"]
-
       EndIf
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
 EndSub
-
-
 
 Sub Shapes_DumpArray
-
   Stack.PushValue("local", buf)
-
   buf = ""
-
   If 0 < shX Then
-
     buf = buf + "  shX = " + shX + LF
-
   EndIf
-
   If 0 < shY Then
-
     buf = buf + "  shY = " + shY + LF
-
   EndIf
-
   For i = iMin To iMax
-
     buf = buf + "  shape[" + i + "] = " + WQ + shape[i] + WQ + LF
-
   EndFor
-
   TextWindow.WriteLine(buf)
-
   buf = Stack.PopValue("local")
-
 EndSub
-
-

@@ -1,959 +1,479 @@
 'Demonstration interactive game for Small Basic (no extensions)
-
 'If downloaded then some File commands require to be uncommented
-
 'If using SB-Prime File commands can be auto-uncommented with right click->Un-Comment File Commands
-
-
 
 Initialise()
 
-
-
 '==========================================================
-
 ' GAME LOOP (LOGIC FOR THE GAME UPDATED FOR EACH FRAME)
-
 '==========================================================
-
-
 
 While ("True")
-
   start = Clock.ElapsedMilliseconds
-
   
-
   If (gameActive) Then
-
     Shapes.HideShape(infoBox)
-
     GameLogic()
-
     UpdateGW()
-
   ElseIf (keysDown["Escape"]) Then
-
     Program.End()
-
   ElseIf (keysDown["Space"]) Then
-
     gameActive = "True"
-
     keysDown["Space"] = ""
-
   ElseIf (Array.GetItemCount(keysDown) > 0) Then
-
     Reset()
-
   EndIf
-
   
-
   'Steady 50 fps
-
   delay = 20 - (Clock.ElapsedMilliseconds-start)
-
   If (delay > 0) Then
-
     Program.Delay(delay)
-
   EndIf
-
 EndWhile
 
-
-
 '==========================================================
-
 ' INITIALISATION SUBROUTINES
-
 '==========================================================
-
-
 
 Sub Initialise
-
   'Initialise GraphicsWindow
-
   InitGW()
-
   
-
   'Load all resources (option to download to local)
-
   GetResources()
-
   
-
   'Create all shapes (actors)
-
   CreateActors()
-
   
-
   'User interaction events
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   GraphicsWindow.KeyUp = OnKeyUp
-
   GraphicsWindow.MouseDown = OnMouseDown
-
   GraphicsWindow.MouseUp = OnMouseUp
-
   
-
   Reset()
-
   Program.Delay(3000)
-
   
-
   'Background music
-
   Timer.Interval = 100
-
   Timer.Tick = OnTick
-
 EndSub
-
-
 
 Sub InitGW
-
   'Create the GraphicsWindow
-
   gw = Desktop.Width
-
   gh = Desktop.Height-100
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Left = -6
-
   GraphicsWindow.Top = 0
-
   GraphicsWindow.Title = "Starship Shooter"
-
   GraphicsWindow.BackgroundColor = "DarkBlue"
-
   GraphicsWindow.BrushColor = "Khaki"
-
   GraphicsWindow.FillRectangle(0,0.8*gh,gw,gh)
-
   GraphicsWindow.BrushColor = "DarkKhaki"
-
   For i = 1 To 25
-
     x = Math.GetRandomNumber(gw)
-
     GraphicsWindow.FillTriangle(x-30,0.8*gh,x,0.75*gh,x+30,0.8*gh)
-
   EndFor
-
   GraphicsWindow.BrushColor = "Gold"
-
   For i = 1 To 100
-
     x = Math.GetRandomNumber(gw)
-
     y = Math.GetRandomNumber(0.75*gh)
-
     GraphicsWindow.FontSize = 10+Math.GetRandomNumber(10)
-
     GraphicsWindow.DrawText(x,y,Text.GetCharacter(10037))
-
   EndFor
-
   Mouse.HideCursor()
-
   
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FontSize = 50
-
   GraphicsWindow.FontName = "Papyrus"
-
   EOL = Text.GetCharacter(10)
-
   infoBox = Shapes.AddText("Loading..."+EOL+"Space to pause"+EOL+"Escape to quit")
-
   Shapes.Move(infoBox,gw/3,gh/3)
-
   
-
   GraphicsWindow.BrushColor = "DarkOliveGreen"
-
   GraphicsWindow.FontSize = 30
-
   scoreBox = Shapes.AddText("")
-
   Shapes.Move(scoreBox,gw/3,0.84*gh)
-
 EndSub
-
-
 
 Sub GetResources
-
   webLocation = "http://litdev.co.uk/game_images/"
-
   localLocation = Program.Directory+"/"
-
   For i = 1 To 10
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.WriteLine(File.GetSettingsFilePath(),i,File.ReadLine(File.GetSettingsFilePath(),i))
-
   EndFor
-
 ' The following line could be harmful and has been automatically commented.
-
 '   resourcesDownloaded = File.ReadLine(File.GetSettingsFilePath(),1)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   highScore = File.ReadLine(File.GetSettingsFilePath(),2)
-
   
-
   'Set to False to always use web resources, True to download once then use locally stored resources
-
   useLocal = "True"
-
   
-
   If (useLocal) Then
-
     If (resourcesDownloaded = "") Then
-
       tempFile = Network.DownloadFile(webLocation+"backgroundMusic.mp3")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.CopyFile(tempFile,localLocation+"backgroundMusic.mp3")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.DeleteFile(tempFile)
-
       tempFile = Network.DownloadFile(webLocation+"flashbangSound.mp3")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.CopyFile(tempFile,localLocation+"flashbangSound.mp3")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.DeleteFile(tempFile)
-
       tempFile = Network.DownloadFile(webLocation+"bombSound.mp3")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.CopyFile(tempFile,localLocation+"bombSound.mp3")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.DeleteFile(tempFile)
-
       
-
       tempFile = Network.DownloadFile(webLocation+"enemy.png")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.CopyFile(tempFile,localLocation+"enemy.png")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.DeleteFile(tempFile)
-
       tempFile = Network.DownloadFile(webLocation+"bomb.png")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.CopyFile(tempFile,localLocation+"bomb.png")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.DeleteFile(tempFile)
-
       tempFile = Network.DownloadFile(webLocation+"missile.png")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.CopyFile(tempFile,localLocation+"missile.png")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.DeleteFile(tempFile)
-
       tempFile = Network.DownloadFile(webLocation+"player.png")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.CopyFile(tempFile,localLocation+"player.png")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.DeleteFile(tempFile)
-
       tempFile = Network.DownloadFile(webLocation+"fireball.png")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.CopyFile(tempFile,localLocation+"fireball.png")
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.DeleteFile(tempFile)
-
       
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.WriteLine(File.GetSettingsFilePath(),1,"Resources Downloaded")
-
     EndIf
-
     location = localLocation
-
   Else
-
     location = webLocation
-
   EndIf
-
   
-
   backgroundMusic = location+"backgroundMusic.mp3"
-
   flashbangSound = location+"flashbangSound.mp3"
-
   bombSound = location+"bombSound.mp3"
-
   
-
   enemyImage = ImageList.LoadImage(location+"enemy.png")
-
   bombImage = ImageList.LoadImage(location+"bomb.png")
-
   missileImage = ImageList.LoadImage(location+"missile.png")
-
   playerImage = ImageList.LoadImage(location+"player.png")
-
   fireballImage = ImageList.LoadImage(location+"fireball.png")
-
 EndSub
-
-
 
 Sub Reset
-
   For i = 1 To numEnemy
-
     enemyShow[i] = "True"
-
     enemyX[i] = enemyW+Math.GetRandomNumber(gw-2*enemyW)
-
     enemyY[i] = enemyH+Math.GetRandomNumber(0.8*gh-2*enemyH)
-
     enemyU[i] = (2*Math.GetRandomNumber(2)-3)*3
-
     enemyV[i] = (2*Math.GetRandomNumber(2)-3)*3
-
   EndFor
-
   For i = 1 To numMissile
-
     Shapes.HideShape(missile[i])
-
     missileX[i] = 0
-
     missileY[i] = gh+missileH
-
     missileU[i] = 0
-
     missileV[i] = -10
-
   EndFor
-
   For i = 1 To numBomb
-
     Shapes.HideShape(bomb[i])
-
     bombX[i] = 0
-
     bombY[i] = -bombH
-
     bombU[i] = 0
-
     bombV[i] = 5
-
   EndFor
-
   Shapes.HideShape(fireball)
-
   
-
   gameActive = "True"
-
   musicActive = "True"
-
   speedup = 1.1
-
   bombRate = 1
-
   score = 0
-
   lives = 5
-
   level = 1
-
 EndSub
-
-
 
 Sub CreateActors
-
   numEnemy= 10
-
   enemyW = ImageList.GetWidthOfImage(enemyImage)/2
-
   enemyH = ImageList.GetHeightOfImage(enemyImage)/2
-
   For i = 1 To numEnemy
-
     enemy[i] = Shapes.AddImage(enemyImage)
-
   EndFor
-
   
-
   numBomb= 10
-
   bombW = ImageList.GetWidthOfImage(bombImage)/2
-
   bombH = ImageList.GetHeightOfImage(bombImage)/2
-
   For i = 1 To numBomb
-
     bomb[i] = Shapes.AddImage(bombImage)
-
   EndFor
-
   
-
   numMissile= 5
-
   missileW = ImageList.GetWidthOfImage(missileImage)/2
-
   missileH = ImageList.GetHeightOfImage(missileImage)/2
-
   For i = 1 To numMissile
-
     missile[i] = Shapes.AddImage(missileImage)
-
   EndFor
-
   
-
   playerW = ImageList.GetWidthOfImage(playerImage)/2
-
   playerH = ImageList.GetHeightOfImage(playerImage)/2
-
   player = Shapes.AddImage(playerImage)
-
   playerX = 0
-
   playerY = gh-playerH
-
   
-
   fireballW = ImageList.GetWidthOfImage(fireballImage)/2
-
   fireballH = ImageList.GetHeightOfImage(fireballImage)/2
-
   fireball = Shapes.AddImage(fireballImage)
-
 EndSub
 
-
-
 '==========================================================
-
 ' GAME-PLAY SUBROUTINES
-
 '==========================================================
-
-
 
 Sub GameLogic
-
   If (keysDown["Escape"]) Then
-
     Program.End()
-
   ElseIf (keysDown["Space"]) Then
-
     gameActive = "False"
-
     keysDown["Space"] = ""
-
     Shapes.SetText(infoBox, "Paused"+EOL+"Space to continue")
-
     Shapes.ShowShape(infoBox)
-
   ElseIf (mouseDown) Then
-
     For i = 1 To numMissile
-
       If (missileY[i] > gh) Then
-
         missileX[i] = playerX
-
         missileY[i] = playerY-missileH
-
         Sound.PlayClick()
-
         i = numMissile
-
       EndIf
-
     EndFor
-
     score = score-1
-
     mouseDown = ""
-
   EndIf
-
   
-
   For i = 1 To numMissile
-
     If (missileY[i] < gh) Then
-
       Shapes.ShowShape(missile[i])
-
       missileX[i] = missileX[i]+missileU[i]
-
       missileY[i] = missileY[i]+missileV[i]
-
       If (missileY[i] < -missileH) Then
-
         missileY[i] = gh+missileH
-
       EndIf
-
     Else
-
       Shapes.HideShape(missile[i])
-
     EndIf
-
   EndFor
-
   
-
   For i = 1 To numBomb
-
     If (bombY[i] > 0) Then
-
       Shapes.ShowShape(bomb[i])
-
       bombX[i] = bombX[i]+bombU[i]
-
       bombY[i] = bombY[i]+bombV[i]
-
       If (bombY[i] > gh+bombH) Then
-
         bombY[i] = -bombH
-
       ElseIf (bombX[i] > playerX-playerW And bombX[i] < playerX+playerW And bombY[i] > playerY-playerH And bombY[i] < playerY+playerH) Then
-
         Shapes.Move(fireball,playerX-fireballW,playerY-fireballH)
-
         Shapes.ShowShape(fireball)
-
         fireballStart = Clock.ElapsedMilliseconds
-
         bombY[i] = -bombH
-
         lives = lives-1
-
         Sound.Stop(flashbangSound)
-
         Sound.Play(flashbangSound)
-
       EndIf
-
       For j = 1 To numMissile
-
         If (missileY[j] < gh) Then
-
           If (missileX[j] > bombX[i]-bombW And missileX[j] < bombX[i]+bombW And missileY[j] > bombY[i]-bombH And missileY[j] < bombY[i]+bombH) Then
-
             Shapes.Move(fireball,bombX[i]-fireballW,bombY[i]-fireballH)
-
             Shapes.ShowShape(fireball)
-
             fireballStart = Clock.ElapsedMilliseconds
-
             bombY[i] = -bombH
-
             missileY[j] = gh+missileH
-
             score = score+5
-
             Sound.Stop(bombSound)
-
             Sound.Play(bombSound)
-
           EndIf
-
         EndIf
-
       EndFor
-
     Else
-
       Shapes.HideShape(bomb[i])
-
       If (Math.GetRandomNumber(1000) < bombRate) Then
-
         unset = "True"
-
         try = 0
-
         While (unset And try < 100)
-
           try = try+1
-
           j = Math.GetRandomNumber(numEnemy)
-
           If (enemyShow[j]) Then
-
             bombX[i] = enemyX[j]
-
             bombY[i] = enemyY[j]+enemyH
-
             unset = "False"
-
           EndIf
-
         EndWhile
-
       EndIf
-
     EndIf
-
   EndFor
-
   
-
   enemyShot = 0
-
   For i = 1 To numEnemy
-
     If (enemyShow[i]) Then
-
       Shapes.ShowShape(enemy[i])
-
       
-
       enemyX[i] = enemyX[i]+enemyU[i]
-
       enemyY[i] = enemyY[i]+enemyV[i]
-
       If (enemyX[i] < enemyW) Then
-
         enemyU[i] = -enemyU[i]
-
         enemyX[i] = enemyW
-
       ElseIf (enemyX[i] > gw-enemyW) Then
-
         enemyU[i] = -enemyU[i]
-
         enemyX[i] = gw-enemyW
-
       EndIf
-
       If (enemyY[i] < enemyH) Then
-
         enemyV[i] = -enemyV[i]
-
         enemyY[i] = enemyH
-
       ElseIf (enemyY[i] > 0.8*gh-enemyH) Then
-
         enemyV[i] = -enemyV[i]
-
         enemyY[i] = 0.8*gh-enemyH
-
       EndIf
-
       
-
       If (enemyX[i] > playerX-playerW And enemyX[i] < playerX+playerW And enemyY[i] > playerY-playerH And enemyY[i] < playerY+playerH) Then
-
         Shapes.Move(fireball,playerX-fireballW,playerY-fireballH)
-
         Shapes.ShowShape(fireball)
-
         fireballStart = Clock.ElapsedMilliseconds
-
         enemyShow[i] = "False"
-
         lives = lives-1
-
         Sound.Stop(flashbangSound)
-
         Sound.Play(flashbangSound)
-
       EndIf
-
       
-
       For j = 1 To numMissile
-
         If (missileY[j] < gh) Then
-
           If (missileX[j] > enemyX[i]-enemyW And missileX[j] < enemyX[i]+enemyW And missileY[j] > enemyY[i]-enemyH And missileY[j] < enemyY[i]+enemyH) Then
-
             Shapes.Move(fireball,enemyX[i]-fireballW,enemyY[i]-fireballH)
-
             Shapes.ShowShape(fireball)
-
             fireballStart = Clock.ElapsedMilliseconds
-
             enemyShow[i] = "False"
-
             missileY[j] = gh+missileH
-
             score = score+10
-
             Sound.Stop(bombSound)
-
             Sound.Play(bombSound)
-
           EndIf
-
         EndIf
-
       EndFor
-
     Else
-
       Shapes.HideShape(enemy[i])
-
       enemyShot = enemyShot+1
-
     EndIf
-
   EndFor
-
   
-
   If (enemyShot = numEnemy) Then
-
     For i = 1 To numEnemy
-
       enemyShow[i] = "True"
-
       enemyU[i] = speedup*enemyU[i]
-
       enemyV[i] = speedup*enemyV[i]
-
     EndFor
-
     For i = 1 To numBomb
-
       bombU[i] = speedup*bombU[i]
-
       bombV[i] = speedup*bombV[i]
-
     EndFor
-
     For i = 1 To numMissile
-
       missileU[i] = speedup*missileU[i]
-
       missileV[i] = speedup*missileV[i]
-
     EndFor
-
     bombRate = bombRate+1
-
     Shapes.SetText(infoBox, "Level "+level+" completed")
-
     Shapes.ShowShape(infoBox)
-
     Program.Delay(3000)
-
     level = level+1
-
   EndIf
-
   
-
   If (Clock.ElapsedMilliseconds-fireballStart > 100) Then
-
     Shapes.HideShape(fireball)
-
   EndIf
-
   
-
   If (lives <= 0) Then
-
     lives = 0
-
     gameActive = "False"
-
     If (score > highScore) Then
-
       Shapes.SetText(infoBox, "Game Over"+EOL+"You made a high score")
-
       highScore = score
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.WriteLine(File.GetSettingsFilePath(),2,highScore)
-
     Else
-
       Shapes.SetText(infoBox, "Game Over"+EOL+"Any key to play again")
-
     EndIf
-
     Shapes.ShowShape(infoBox)
-
   EndIf
-
   
-
   playerX = GraphicsWindow.MouseX
-
   playerY = GraphicsWindow.MouseY
-
   
-
   Shapes.SetText(scoreBox,"Lives = "+lives+" Level = "+level+" Score = "+score+EOL+"FPS = "+Math.Round(1000/Math.Max(20,20-delay))+" High Score = "+highScore)
-
 EndSub
-
-
 
 Sub UpdateGW
-
   For i = 1 To numMissile
-
     If (missileY[i] < gh) Then
-
       Shapes.Move(missile[i],missileX[i]-missileW,missileY[i]-missileH)
-
     EndIf
-
   EndFor
-
   For i = 1 To numBomb
-
     If (bombY[i] > 0) Then
-
       Shapes.Move(bomb[i],bombX[i]-bombW,bombY[i]-bombH)
-
     EndIf
-
   EndFor
-
   For i = 1 To numEnemy
-
     If (enemyShow[i]) Then
-
       Shapes.Move(enemy[i],enemyX[i]-enemyW,enemyY[i]-enemyH)
-
     EndIf
-
   EndFor
-
   Shapes.Move(player,playerX-playerW,playerY-playerH)
-
 EndSub
 
-
-
 '==========================================================
-
 ' EVENT SUBROUTINES
-
 '==========================================================
-
-
 
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   keysDown[key] = "True"
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   keysDown[key] = ""
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   xMouseDown = GraphicsWindow.MouseX
-
   yMouseDown = GraphicsWindow.MouseY
-
   mouseDown = "True"
-
 EndSub
-
-
 
 Sub OnMouseUp
-
   xMouseUp = GraphicsWindow.MouseX
-
   yMouseUp = GraphicsWindow.MouseY
-
   mouseUp = "True"
-
 EndSub
-
-
 
 Sub OnTick
-
   Timer.Pause()
-
   While (musicActive)
-
     Sound.PlayAndWait(backgroundMusic)
-
   EndWhile
-
   Timer.Resume()
-
 EndSub
-
-

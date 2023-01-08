@@ -1,839 +1,419 @@
 ' Tic-tac-toe v1.2 - Copyright (c) 2011 Nonki Takahashi
-
 '
-
 ' History
-
 ' v1.0 2011/01/18 Created, can play HUMAN vs HUMAN only (419 lines LBW762)
-
 ' v1.1 2011/01/18 Added cross reference (505 lines LBW762-0)
-
 ' v1.2 2011/01/19 Shaws game tree (419 lines LBW762-1)
-
 '
-
 ' Reference
-
 ' [1] en.wikipedia.org/wiki/Tic-tac-toe
-
-' [2] Ê£??î∞, ?õΩ?ûù, Ê¥•Áî∞: "?ùË?É„Ç≤?Éº?É†?Éó?É≠?Ç∞?É©?Éü?É≥?Ç∞" 1986, ?Ç¢?Çπ?Ç≠?Éº
-
+' [2] Ê£ÆÁî∞, ÂõΩÊûù, Ê¥•Áî∞: "ÊÄùËÄÉ„Ç≤„Éº„É†„Éó„É≠„Ç∞„É©„Éü„É≥„Ç∞" 1986, „Ç¢„Çπ„Ç≠„Éº
 '      (Morita, Kunieda, Tsuda: "Shikou Game Programming" 1986, ASCII)
-
 '
-
 ' Naming convention
-
 '   class Xxx_
-
 '   label lXxx
-
 '   constant XXX
-
 '   variable type integer iXxx
-
 '   variable type real rXxx
-
 '   variable type string sXxx
-
 '   variable type char cXxx
-
 '   variable type boolean bXxx
-
 '
-
 ' Constant
-
 '
-
 SPACE = 0 ' for Board
-
 CROSS = 1 ' X for Board
-
 NOUGHT = 2 ' O for Board
-
 DRAW = 3 ' for Winner
-
 UPPERA = Text.GetCharacterCode("A") '  for Parse
-
 UPPERZ = Text.GetCharacterCode("Z") '  for Parse
-
 LETTER0 = Text.GetCharacterCode("0") ' for Parse
-
 LETTER9 = Text.GetCharacterCode("9") ' for Parse
-
 REPLAY = "4" ' Webdings replay mark
-
 SAVE = "=" ' Windings save mark  
-
 '
-
 ' Main
-
 '
-
 GraphicsWindow.BackgroundColor = "LightGray"
-
 GraphicsWindow.Title = "Tic-tac-toe v1.2"
-
 Board_Clear()
-
 Console_Init()
-
 Console_bShowResult = "False"
-
 Console_bSound = "False"
-
 Controls.HideControl(Console_oReplay)
-
 Controls.HideControl(Console_oSave)
-
 Player_Sequential()
-
 '
-
 Sub Player_Sequential
-
   Stack.PushValue("nextmove", iX)
-
   Stack.PushValue("nextmove", iY)
-
   For iY = 1 To Board_iRo
-
     For iX = 1 To Board_iRo
-
       Game_IsPossibleMove()
-
       If Game_bIsPossibleMove Then
-
         Board_Move()
-
         GameRecord_Move()
-
         Lamp_iOn = 3 - iTurn
-
         Lamp_Draw()
-
         GameRecord_Write()
-
         Game_Judge()
-
         If Game_iWinner = SPACE Then
-
           Player_Sequential()
-
         EndIf
-
         Board_Unmove()
-
         GameRecord_Unmove()
-
       EndIf
-
     EndFor
-
   EndFor
-
   iY = Stack.PopValue("nextmove")
-
   iX = Stack.PopValue("nextmove")
-
 EndSub
-
 '
-
 Sub Game_IsPossibleMove
-
   If Board_iCell[iX][iY] = SPACE Then
-
     Game_bIsPossibleMove = "True"
-
   Else
-
     Game_bIsPossibleMove = "False"
-
   EndIf  
-
 EndSub
-
 '
-
 Sub Game_Judge
-
   If Console_bShowResult Then
-
     GraphicsWindow.PenColor = "Magenta"
-
     GraphicsWindow.PenWidth = 5
-
   EndIf
-
   Game_iWinner = SPACE
-
   iTurn = Board_iCell[1][1] ' \
-
   If iTurn = SPACE Then
-
     Goto lLine2
-
   EndIf
-
   For i = 2 To Board_iRo
-
     If Board_iCell[i][i] <> iTurn Then
-
       Goto lLine2
-
     EndIf
-
   EndFor
-
   If Console_bShowResult Then
-
     GraphicsWindow.DrawLine(Board_iX0, Board_iY0, Board_iX1, Board_iY1)
-
   EndIf
-
   Game_iWinner = iTurn
-
 lLine2:
-
   iTurn = Board_iCell[Board_iRo][1] ' /
-
   If iTurn = SPACE Then
-
     Goto lLine3
-
   EndIf
-
   For i = 2 To Board_iRo
-
     If Board_iCell[Board_iRo + 1 - i][i] <> iTurn Then
-
       Goto lLine3
-
     EndIf
-
   EndFor
-
   If Console_bShowResult Then
-
     GraphicsWindow.DrawLine(Board_iX1, Board_iY0, Board_iX0, Board_iY1)
-
   EndIf
-
   Game_iWinner = iTurn
-
 lLine3:
-
   For iY = 1 To Board_iRo
-
     iTurn = Board_iCell[1][iY]
-
     If iTurn = SPACE Then
-
       Goto lLine4
-
     EndIf
-
     For iX = 2 To Board_iRo  
-
       If Board_iCell[iX][iY] <> iTurn Then
-
         Goto lLine4
-
       EndIf
-
     EndFor  
-
     If Console_bShowResult Then
-
       GraphicsWindow.DrawLine(Board_iX0, Board_iY0 + (iY - 1 / 2) * Board_idY, Board_iX1, Board_iY0 + (iY - 1 / 2) * Board_idY)
-
     EndIf
-
     Game_iWinner = iTurn
-
 lLine4:
-
   EndFor  
-
   For iX = 1 To Board_iRo
-
     iTurn = Board_iCell[iX][1]
-
     If iTurn = SPACE Then
-
       Goto lLine5
-
     EndIf
-
     For iY = 2 To Board_iRo  
-
       If Board_iCell[iX][iY] <> iTurn Then
-
         Goto lLine5
-
       EndIf
-
     EndFor
-
     If Console_bShowResult Then
-
       GraphicsWindow.DrawLine(Board_iX0 + (iX - 1 / 2) * Board_idX, Board_iY0, Board_iX0 + (iX - 1 / 2) * Board_idX, Board_iY1)
-
     EndIf
-
     Game_iWinner = iTurn
-
 lLine5:
-
   EndFor  
-
   If Board_iMove = 9 And Game_iWinner = SPACE Then
-
     Game_iWinner = DRAW
-
   EndIf
-
   If Console_bShowResult And Game_iWinner <> SPACE Then
-
     Console_ShowWinner()
-
   EndIf
-
 EndSub
-
 '
-
 Sub Console_OnButtonClicked
-
   If Controls.LastClickedButton = Console_oReplay Then
-
     Console_bReplay = "True"
-
   Else
-
     Console_bReplay = "False"
-
   EndIf
-
   If Controls.LastClickedButton = Console_oSave Then
-
     Console_bSave = "True"
-
   Else
-
     Console_bSave = "False"
-
   EndIf
-
   If Console_bReplay Or Console_bSave Then
-
     Console_bButtonClicked = "True"
-
   Else
-
     Console_bButtonClicked = "False"
-
   EndIf
-
 EndSub
-
 '
-
 Sub Board_Clear
-
   Board_iRo = 3
-
   Board_iMove = 0
-
   For iY = 1 To Board_iRo
-
     For iX = 1 To Board_iRo
-
       Board_iCell[iX][iY] = SPACE
-
     EndFor
-
   EndFor
-
   Board_idX = 90
-
   Board_idY = 90
-
   Board_isX = 20
-
   Board_isY = 20
-
   Board_iX0 = 65
-
   Board_iY0 = 60
-
   Board_iX1 = Board_iX0 + Board_idX * Board_iRo
-
   Board_iY1 = Board_iY0 + Board_idY * Board_iRo
-
   Board_cX[1] = "A"
-
   Board_cX[2] = "B"
-
   Board_cX[3] = "C"
-
   Board_cY[1] = "1"
-
   Board_cY[2] = "2"
-
   Board_cY[3] = "3"
-
   Board_Draw()
-
   If Console_bShowResult Then
-
     Console_HideWinner()
-
   EndIf
-
 EndSub
-
 '
-
 Sub Board_Draw
-
   GraphicsWindow.BrushColor = "DarkGreen"
-
   GraphicsWindow.FillRectangle(Board_iX0 - Board_isX, Board_iY0 - Board_isY, Board_iRo * Board_idX + 2 * Board_isX, Board_iRo * Board_idY + 2 * Board_isY)
-
   GraphicsWindow.PenColor = "Khaki"
-
   GraphicsWindow.PenWidth = 5
-
   For i = 1 To Board_iRo - 1
-
     iX = Board_iX0 + Board_idX * i
-
     iY = Board_iY0 + Board_idY * i
-
     GraphicsWindow.DrawLine(Board_iX0, iY, Board_iX1, iY)
-
     GraphicsWindow.DrawLine(iX, Board_iY0, iX, Board_iY1)
-
   EndFor
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontSize = 20
-
   For i = 1 To Board_iRo
-
     iX = Board_iX0 + Board_idX * (i - 1) + Board_idX / 2
-
     GraphicsWindow.DrawText(iX, Board_iY0 - 2.5 * Board_isY, Board_cX[i])
-
     iY = Board_iY0 + Board_idY * (i - 1) + Board_idY / 2
-
     GraphicsWindow.DrawText(Board_iX0 - 2.5 * Board_isX, iY, Board_cY[i])
-
   EndFor
-
 EndSub
-
 '
-
 Sub Board_Move
-
   Game_IsPossibleMove()
-
   If Game_bIsPossibleMove Then
-
     Board_iMove = Board_iMove + 1
-
     iTurn = Math.Remainder((Board_iMove - 1), 2) + 1
-
     Board_iCell[iX][iY] = iTurn
-
     GraphicsWindow.PenColor = "White"
-
     GraphicsWindow.PenWidth = 10
-
     If iTurn = CROSS Then
-
       GraphicsWindow.DrawLine(Board_iX0 + (iX - 1) * Board_idX + Board_isX, Board_iY0 + (iY - 1) * Board_idY + Board_isY, Board_iX0 + iX * Board_idX - Board_isX, Board_iY0 + iY * Board_idY - Board_isY)
-
       GraphicsWindow.DrawLine(Board_iX0 + iX * Board_idX - Board_isX, Board_iY0 + (iY - 1) * Board_idY + Board_isY, Board_iX0 + (iX - 1) * Board_idX + Board_isX, Board_iY0 + iY * Board_idY - Board_isY)
-
     ElseIf iTurn = NOUGHT Then
-
       GraphicsWindow.DrawEllipse(Board_iX0 + (iX - 1) * Board_idX + Board_isX, Board_iY0 + (iY - 1) * Board_idY + Board_isY, Board_idX - 2 * Board_isX, Board_idY - 2 * Board_isY)
-
     EndIf
-
     GraphicsWindow.BrushColor = "Khaki"
-
     GraphicsWindow.DrawText(Board_iX0 + (iX - 1) * Board_idX + Board_isX / 3, Board_iY0 + (iY - 1) * Board_idY + Board_isY / 3, Board_iMove)
-
     If Console_bSound Then
-
       Sound.PlayClickAndWait()
-
     EndIf
-
   EndIf
-
 EndSub
-
 '
-
 Sub Board_Unmove
-
   iX = GameRecord_iX[GameRecord_iMove]
-
   iY = GameRecord_iY[GameRecord_iMove]
-
   If Board_iCell[iX][iY] <> SPACE Then
-
     Board_iCell[iX][iY] = SPACE
-
     GraphicsWindow.BrushColor = "DarkGreen"
-
     GraphicsWindow.FillRectangle(Board_iX0 + (iX - 1) * Board_idX + 3, Board_iY0 + (iY - 1) * Board_idY + 3, Board_idX - 6, Board_idY - 6)
-
     Board_iMove = Board_iMove - 1
-
     iTurn = Math.Remainder(Board_iMove - 1, 2) + 1
-
   EndIf
-
 EndSub  
-
 '
-
 Sub Console_Init
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.DrawText(Board_iX1 + Board_isX * 2, Board_iY0, "X (CROSS)")
-
   GraphicsWindow.DrawText(Board_iX1 + Board_isX * 2, Board_iY0 + Board_iRo * Board_idY / 3, "O (NOUGHT)")
-
   Lamp_iCount = 2
-
   Lamp_iX[CROSS] = Board_iX1 + Board_idX * 2
-
   Lamp_iY[CROSS] = Board_iY0
-
   Lamp_iX[NOUGHT] = Board_iX1 + Board_idX * 2
-
   Lamp_iY[NOUGHT] = Board_iY0 + Board_iRo * Board_idY / 3 
-
   Lamp_iOn = CROSS
-
   Lamp_Draw()
-
   Console_oCross = Controls.AddTextBox(Board_iX1 + Board_isX * 2 + 70, Board_iY0 + 30)
-
   Controls.SetTextBoxText(Console_oCross, "SEQUENTIAL")
-
   Console_oNought = Controls.AddTextBox(Board_iX1 + Board_isX * 2 + 70, Board_iY0 + Board_iRo * Board_idY / 3 + 30)
-
   Controls.SetTextBoxText(Console_oNought, "SEQUENTIAL")
-
   GraphicsWindow.DrawText(Board_iX0 - Board_isX * 2.5, Board_iY1 + Board_isY * 3, "GAME RECORD")
-
   Console_oScore = Controls.AddTextBox(Board_iX0 - Board_isX * 2 + 150, Board_iY1 + Board_isY * 3)
-
   Controls.SetSize(Console_oScore, 12 * 27, 30)
-
   sFontName = GraphicsWindow.FontName
-
   GraphicsWindow.FontName = "Webdings"
-
   Console_oReplay = Controls.AddButton(REPLAY, Board_iX0 + 12 * 37, Board_iY1 + Board_isY * 3)
-
   Console_bReplay = "False"
-
   GraphicsWindow.BrushColor = "Red"
-
   Console_oSave = Controls.AddButton(SAVE, Board_iX0 + 12 * 40, Board_iY1 + Board_isY * 3)
-
   Console_bSave = "False"
-
   GraphicsWindow.FontName = sFontName
-
 EndSub
-
 '
-
 Sub Console_ShowWinner
-
   iX = Board_iX1 + Board_isX * 2
-
   iY = Board_iY0 + 30
-
   GraphicsWindow.BrushColor = "Black"
-
   If Game_iWinner = CROSS Then
-
     GraphicsWindow.DrawText(iX, iY, "WIN")
-
   ElseIf Game_iWinner = NOUGHT Then
-
     GraphicsWindow.DrawText(iX, iY, "LOSE")
-
   ElseIf Game_iWinner = DRAW Then
-
     GraphicsWindow.DrawText(iX, iY, "DRAW")
-
   EndIf
-
   iY = iY + Board_iRo * Board_idY / 3
-
   If Game_iWinner = NOUGHT Then
-
     GraphicsWindow.DrawText(iX, iY, "WIN")
-
   ElseIf Game_iWinner = CROSS Then
-
     GraphicsWindow.DrawText(iX, iY, "LOSE")
-
   ElseIf Game_iWinner = DRAW Then
-
     GraphicsWindow.DrawText(iX, iY, "DRAW")
-
   EndIf
-
 EndSub
-
 '
-
 Sub Console_HideWinner
-
   iX = Board_iX1 + Board_isX * 2
-
   iY = Board_iY0 + 30
-
   GraphicsWindow.BrushColor = "LightGray"
-
   GraphicsWindow.FillRectangle(iX, iY, 80, 30)
-
   iY = iY + Board_iRo * Board_idY / 3
-
   GraphicsWindow.FillRectangle(iX, iY, 80, 30)
-
 EndSub
-
 '
-
 Sub Lamp_Draw
-
   For Lamp_iIndex = 1 To Lamp_iCount
-
     GraphicsWindow.BrushColor = "White"
-
     GraphicsWindow.FillRectangle(Lamp_iX[Lamp_iIndex] + 1, Lamp_iY[Lamp_iIndex] + 1, 21, 7)
-
     GraphicsWindow.BrushColor = "DimGray"
-
     GraphicsWindow.FillRectangle(Lamp_iX[Lamp_iIndex] - 2, Lamp_iY[Lamp_iIndex] - 2, 21, 7)
-
     If Lamp_iIndex = Lamp_iOn Then
-
       GraphicsWindow.BrushColor = "Lime"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     GraphicsWindow.FillRectangle(Lamp_iX[Lamp_iIndex], Lamp_iY[Lamp_iIndex], 20, 6)
-
   EndFor
-
 EndSub
-
 '
-
 Sub GameRecord_Clear
-
   GameRecord_iMove = 0
-
   Controls.SetTextBoxText(Console_oScore, "")
-
 EndSub
-
 '
-
 Sub GameRecord_Replay
-
   For iMove = 1 To GameRecord_iMove
-
     iX = GameRecord_iX[iMove]
-
     iY = GameRecord_iY[iMove]
-
     iTurn = GameRecord_iTurn[iMove]
-
     Lamp_iOn = iTurn
-
     Lamp_Draw()
-
     Board_Move()
-
     Game_Judge()
-
   EndFor
-
 EndSub
-
 '
-
 Sub GameRecord_Read ' from textbox Console_oScore
-
   GameRecord_iMove = 0
-
   Parse_sBuf = Controls.GetTextBoxText(Console_oScore)
-
   Parse_iBufPtr = 1
-
   Parse_iBufLen = Text.GetLength(Parse_sBuf)
-
   While Parse_iBufPtr <= Parse_iBufLen
-
     Parse_Move()
-
     If Parse_bError Then
-
       Parse_iBufPtr = Parse_iBufPtr + 1
-
     EndIf
-
   EndWhile
-
 EndSub
-
 '
-
 Sub GameRecord_Write ' to textbox Console_oScore
-
   GameRecord_sBuf = ""
-
   For iMove = 1 To GameRecord_iMove
-
     GameRecord_sBuf = GameRecord_sBuf + Text.GetSubText("ABCD", GameRecord_iX[iMove], 1)
-
     GameRecord_sBuf = GameRecord_sBuf + Text.GetSubText("1234", GameRecord_iY[iMove], 1)
-
     If iMove < GameRecord_iMove Then
-
       GameRecord_sBuf = GameRecord_sBuf + " "
-
     EndIf
-
   EndFor
-
   Controls.SetTextBoxText(Console_oScore, GameRecord_sBuf)
-
 EndSub
-
 '
-
 Sub GameRecord_Move
-
   GameRecord_iMove = GameRecord_iMove + 1
-
   iTurn = Math.Remainder(GameRecord_iMove - 1, 2) + 1
-
   GameRecord_iTurn[GameRecord_iMove] = iTurn
-
   GameRecord_iX[GameRecord_iMove] = iX
-
   GameRecord_iY[GameRecord_iMove] = iY
-
 EndSub  
-
 '
-
 Sub GameRecord_Unmove
-
   If GameRecord_iMove > 0 Then
-
     GameRecord_iMove = GameRecord_iMove - 1
-
     iTurn = Math.Remainder(GameRecord_iMove - 1, 2) + 1
-
   EndIf
-
 EndSub  
-
 '
-
 Sub Parse_Move
-
   Parse_Upper()
-
   If Parse_bError = "False" Then
-
     iX = Text.GetIndexOf("ABCD", Parse_c)
-
     Parse_Digit()
-
     If Parse_bError = "False" Then
-
       iY = Text.GetIndexOf("1234", Parse_c)
-
       GameRecord_Move()
-
     EndIf    
-
   EndIf    
-
 EndSub
-
 '
-
 Sub Parse_Upper
-
   Parse_c = Text.GetSubText(Parse_sBuf,Parse_iBufPtr, 1)
-
   iCode = Text.GetCharacterCode(Parse_c)
-
   If iCode >= UPPERA And iCode <= UPPERZ Then
-
     Parse_bError = "False"
-
     Parse_iBufPtr = Parse_iBufPtr + 1
-
   Else
-
     Parse_bError = "True"
-
   EndIf
-
 EndSub
-
 '
-
 Sub Parse_Digit
-
   Parse_c = Text.GetSubText(Parse_sBuf,Parse_iBufPtr, 1)
-
   iCode = Text.GetCharacterCode(Parse_c)
-
   If iCode >= LETTER0 And iCode <= LETTER9 Then
-
     Parse_bError = "False"
-
     Parse_iBufPtr = Parse_iBufPtr + 1
-
   Else
-
     Parse_bError = "True"
-
   EndIf
-
 EndSub
-
-

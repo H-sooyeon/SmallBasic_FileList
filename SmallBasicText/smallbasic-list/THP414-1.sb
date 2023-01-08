@@ -1,355 +1,177 @@
 '**********************************************************************************'
-
 ' Hidden Password Input '
-
 '**********************************************************************************'
 
-
-
 GraphicsWindow.Title = "Hidden Password Input"
-
 GraphicsWindow.BackgroundColor = "Black"
-
 CreateGUILogin()
 
-
-
 Controls.ButtonClicked   = ButtonClicked
-
 Controls.TextTyped       = TextField
-
 GraphicsWindow.KeyDown   = InKey
-
 GraphicsWindow.MouseDown = MouseButton
-
-
 
 HidePass = "True"   ' "True" to hide password boxfield; any other value to display it
 
-
-
 '**********************************************************************************'
-
 ' Login/Pasword Request Init: '
-
 '**********************************************************************************'
-
-
 
 Init:
 
-
-
 PWStr    = ""   ' Stores printable chars typed within password txtboxfield
-
 Asterisk = ""   ' What is displayed instead of PWStr
-
 Asterisks= ""   ' From which Asterisk gets HideChar
-
 Button   = ""   ' Last button pressed
-
 TextBox  = ""   ' Last typed txtboxfield used
 
-
-
 'HideCharCode = 164
-
 HideCharCode = 9679   ' Character code which replaces password char display
-
 HideChar = Text.GetCharacter(HideCharCode)
-
 For num = 1 To 100
-
   Asterisks = Asterisks + HideChar
-
 EndFor
 
-
-
 Controls.SetTextBoxText(LoginBox "")  ' Clears txtboxfields
-
 Controls.SetTextBoxText(PassBox  "")
 
-
-
 While Stack.GetCount("PWChar") > 0    ' Empties typed chars buffer
-
   Stack.PopValue("PWChar")
-
 EndWhile
 
-
-
 '**********************************************************************************'
-
 ' Login/Pasword Request Loop: '
-
 '**********************************************************************************'
-
-
 
 While Button <> "Confirm"   ' Repeats till "Confirm" button is selected
-
   
-
   If Stack.GetCount("PWChar") > 0 And HidePass Then
-
     PassChar = Stack.PopValue("PWChar")   'Retrieves next char typed
-
     TrimPassChar()   ' Removes all HideChar present in PassChar
-
     ParsePassChar()  ' Saves all printable chars from PassChar into PWStr
-
     HidePassword()   ' Fill up password boxfield w/ as many HideChar as PWStr
-
   EndIf
-
   
-
   Program.Delay(5)   ' A quick delay to avoid heating up CPU
-
   
-
 EndWhile
-
-
 
 Button = ""
 
-
-
 '**********************************************************************************'
-
 ' Login/Pasword Request Result: '
-
 '**********************************************************************************'
-
-
 
 Login = Controls.GetTextBoxText(LoginBox)
 
-
-
 If HidePass Then
-
   PassWord = PWStr
-
 Else
-
   PassWord = Controls.GetTextBoxText(PassBox)
-
 EndIf
-
-
 
 RevealPassword()
 
-
-
 MouseClicked = "False"
-
 While MouseClicked = "False"   ' Waits for mousebutton to restart program
-
   Program.Delay(100)
-
 EndWhile
-
 Sound.PlayChimes()
-
-
 
 Goto Init
 
-
-
 '*********************************************************************************'
 
-
-
 '------------------------------------------------------------------------------------------------------'
-
 Sub ButtonClicked
-
   
-
   Button = Controls.GetButtonCaption(Controls.LastClickedButton)
-
   Sound.PlayClick()
-
   
-
 EndSub
-
 '------------------------------------------------------------------------------------------------------'
-
 Sub TextField
-
   
-
   TextBox  = Controls.LastTypedTextBox
-
   
-
   If TextBox = PassBox And HidePass Then
-
     Stack.PushValue("PWChar"  Controls.GetTextBoxText(PassBox))
-
   EndIf
-
   
-
 EndSub
-
 '------------------------------------------------------------------------------------------------------'
-
 Sub InKey
-
   
-
   Key = GraphicsWindow.LastKey
-
   
-
   If Key = "Escape" Then
-
     Sound.PlayChimeAndWait()
-
     Program.End()
-
   EndIf
-
   
-
   If TextBox = PassBox Then   ' Clears password boxfield
-
     If Key = "F1" Then
-
       PWStr = ""
-
       Controls.SetTextBoxText(PassBox  "")
-
     EndIf
-
   EndIf
-
   
-
 EndSub
-
 '------------------------------------------------------------------------------------------------------'
-
 Sub MouseButton
-
   
-
   MouseClicked = "True"
-
   
-
 EndSub
-
 '------------------------------------------------------------------------------------------------------'
-
 Sub CreateGUILogin
-
   
-
   GraphicsWindow.BrushColor = "SlateBlue"
-
   GraphicsWindow.DrawText(30,100  "Login:")
-
   GraphicsWindow.DrawText(30,130  "Password:")
-
   
-
   GraphicsWindow.BrushColor = "Green"
-
   LoginBox = Controls.AddTextBox(120,100)
-
   PassBox  = Controls.AddTextBox(120,130)
-
   
-
   GraphicsWindow.BrushColor = "Red"
-
   Controls.AddButton("Confirm"  170,170)
-
   
-
 EndSub
-
 '------------------------------------------------------------------------------------------------------'
-
 Sub TrimPassChar
-
   
-
   While Text.StartsWith(PassChar  HideChar)    ' Removes from left
-
     PassChar = Text.GetSubTextToEnd(PassChar  2)
-
   EndWhile
-
   
-
   While Text.EndsWith  (PassChar  HideChar)    ' Removes from right
-
     PassChar = Text.GetSubText(PassChar  1  Text.GetLength(PassChar)-1)
-
   EndWhile
-
   
-
 EndSub
-
 '------------------------------------------------------------------------------------------------------'
-
 Sub ParsePassChar
-
   
-
   Unicode  = Text.GetCharacterCode(PassChar)
-
   
-
   If Unicode >= 32 And Unicode <> HideCharCode Then   ' Test if printable
-
     PWStr = Text.Append(PWStr PassChar)    ' Creates typed password chars
-
   EndIf
-
   
-
 EndSub
-
 '------------------------------------------------------------------------------------------------------'
-
 Sub HidePassword
-
   
-
   Asterisk = Text.GetSubText(Asterisks  1  Text.GetLength(PWStr))
-
   Controls.SetTextBoxText(PassBox  Asterisk)
-
   
-
 EndSub
-
 '------------------------------------------------------------------------------------------------------'
-
 Sub RevealPassword
-
   
-
   Controls.SetTextBoxText(PassBox  PassWord)
-
   Sound.PlayBellRing()
-
   
-
 EndSub
-
 '------------------------------------------------------------------------------------------------------'
-
-

@@ -1,377 +1,188 @@
 '***************************************************************
-
 'Side-scrolling engine for Microsoft Small Basic.
-
 '
-
 'Software designed and coded by Anthony Yarrell
-
 'Autumn 2013.
-
 '
-
 'The tile images are 32 x 32 PNG images downloaded from:
-
 '**************************************************************
-
 '
-
 '**********************
-
 '* INITIALIZATION
-
 '**********************
-
 'TileWidth & TileHeight are important because
-
 'they set the size of the game world, which in turn,
-
 'influences the size of fame spirte and movement speed
-
 'Change the width and height if using your own, different sized bitmap files.
-
 tileWidth = 32        
-
 tileHeight = 32
-
 '
-
 'Starting location for draw operations:
-
 ScreenX = -32*2
-
 ScreenY = -32
-
 '
-
 GraphicsWindow.KeyDown = DoScroll
-
 '
-
 SetupGraphicsWindow()
-
 InitialzeGameMapData()
-
 LoadGameWorld()
-
 DrawGameWorld()
 
-
-
 '***************************
-
 'Game play routines
-
 '***************************
-
 '-->Start of Game Loop goes here
-
 DrawHeroSprite()  'stub routine
-
 DrawEnemySprites() 'Stub routine
-
 CollisionDetect() 'Stub routine
-
 '<--End of Game Loop goes here
 
 
-
-
-
 '**********************************************************************
-
 'Setup the graphics windows to function as a view port (i.e. just
-
 'tall enough and wide enough to show a small portion of the game world:
-
 '**********************************************************************
-
 Sub SetupGraphicsWindow
-
   GraphicsWindow.CanResize = "false"
-
   GraphicsWindow.Height = (tileHeight*10)
-
   Graphicswindow.Width = (tileWidth*20)
-
   GraphicsWindow.BackgroundColor = "purple"
-
   GraphicsWindow.Title="Side Scrolling Engine - Microsoft Small Basic"
 
-
-
 EndSub
-
 '***********************************************************
-
 'Game world:
-
 '--0 represents empty space.
-
 '-1 through 9 are tokes that represent the picture tiles that will 
-
 'be drawn to the screen. In this BETA test version 1, and 2 are 
-
 'gray and brown bricks respectively.
-
 '-Since these are strings so, A to Z can also be used as tokens.
-
 '***********************************************************
-
 Sub InitialzeGameMapData 
-
   WorldData[01]="1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
-
   WorldData[02]="1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002"
-
   WorldData[03]="1000000000000000000000000000000000000000000000000222222022222200000000000000000000000000000000000222"
-
   WorldData[04]="1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002222"
-
   WorldData[05]="1001111000000000000000000000000000000002222000000000000000000000000000000000000000000000000000022222"
-
   WorldData[06]="1000000000000000000000000000000000000220000000000000000000000000000222200000000000000000000000222222"
-
   WorldData[07]="1001111000000000000000000000000000022000000000000000000022222200000000000000000000000000000002222222"
-
   WorldData[08]="1000000000000000110000000000000000000000000000000000000000000000000000000000000000000000000022222222"
-
   WorldData[09]="1111111111111111111111111111111110001100001111111111111001100100011111111111111000110001111111111111"
-
   WorldData[10]="1111111111111111111111111111111110001100001111111111111001100100011111111111111000110001111111111111"
-
   WorldData[11]="1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001"
-
   
-
   'Limits for the For loops used when dealing with world data:
-
   firstRow = 1
-
   lastRow = 11
-
   firstCol = 1
-
   lastCol = 100
-
   '
-
   ScrollStartScreenX = 1 ' Starting location inside the game world where we start drawing
-
   viewportWidth = (GraphicsWindow.Width/tileWidth)+1    'Number of tiles we want to see at a time. Don't draw too many at a time because it slows things down.
-
   SpriteWalkingDistance = 8 'Works best when a multiple of width/height (2, 4, 8, etc). Higher number = faster speed. 
-
 EndSub
-
 '****************************************************************************************
-
 'Write the map data to an array.
-
 'Because Shape objects in Small Basic work differently than the Bitmap.Clone() object in VB,
-
 'which returns a new reference object on each call, we have to explicitly load a new file for
-
 'each element in the array instead of just cloning a copy that's already loaded:
-
 '****************************************************************************************
-
 Sub LoadGameWorld
-
   Graybrick = ImageList.LoadImage("http://farm4.staticflickr.com/3670/9906314274_ef02220dbe_t.jpg")
-
   BrownBrick = ImageList.LoadImage("http://farm4.staticflickr.com/3786/9906282176_04576f7ea9_t.jpg")
-
   ListIndex = 0
-
   For rows = firstRow To lastRow
-
     For cols = firstCol To lastCol    
-
       data = text.GetSubText(WorldData[rows],cols,1)
-
             
-
       If (data = "1") Then
-
         WorldMap[rows][cols] = Shapes.AddImage(Graybrick)
-
       ElseIf(data="2")then
-
         WorldMap[rows][cols] = Shapes.AddImage(BrownBrick)
-
       EndIf
-
       'More If/Else can go here for additional tiles here
-
       
-
       Shapes.Move(WorldMap[rows][cols],-100,-100) 'temporarily hide.
-
     EndFor
-
     WorldData[rows]="" 'We no longer need this array, so throw it away.
-
   EndFor
-
 EndSub
-
 '*******************************************************************************
-
 'Draws the game world to the screen.
-
 '
-
 'This routine will not draw the ENTIRE world but only a portion of it defined by
-
 'ScrollStartScreenX + ViewPortWidth. For example, if ViewPortWidth = 20 then
-
 'only ScrollStartScreenX + 20 columns will be drawn. The trick is to setup
-
 'the graphics window to be one or more columns thinner than the view port and then
-
 'draw one or two columns off screen to reduce flicker. :-)
-
 '
-
 'Changing ScrollStartScreenX facilitates scrolling left or right.
-
 '******************************************************************************
-
 Sub DrawGameWorld  
-
   For rows = firstRow To lastRow
-
     For cols = ScrollStartScreenX to (ScrollStartScreenX+viewportWidth) 
-
       Shapes.Move(WorldMap[rows][cols],ScreenX+(cols*tileWidth),ScreenY+(rows*tileHeight))     
-
     EndFor
-
   EndFor 
-
 EndSub
-
 '*************************************************************************************************************
-
 'Scroll the game world left or right based on arrow key press.
-
 '
-
 'This code assumes that the game hero (whoever he or she is) will move a small distance with each arrow key press. 
-
 'So, the movement distance set to a value that is smaller than one tile (in this test code it is set to 4).
-
 '
-
 'A new tile will be drawn off screen only when we have moved the distance of one tile (Math.Remainder()).
-
 'This helps reduce herky-jerky movement of the game world while scrolling.
-
 '
-
 'Test are done to insure that we done not index past the beginning and
-
 'ending of the game world array'
-
 '************************************************************************************************************
-
 Sub DoScroll    
-
   
-
   If (GraphicsWindow.LastKey = "Right") Then
-
     ScrollLeft() 
-
   ElseIf (GraphicsWindow.LastKey = "Left") Then
-
     ScrollRight()
-
   EndIf
-
   
-
 EndSub
-
 '***
-
 Sub ScrollLeft
-
   If (ScrollStartScreenX+viewportWidth<>lastCol) then
-
     
-
     ScreenX=ScreenX-SpriteWalkingDistance
-
     if(Math.Remainder(ScreenX,tileWidth)=0)Then
-
       ScrollStartScreenX = ScrollStartScreenX+1
-
     EndIf
-
   Else
-
     ScrollStartScreenX = (lastCol-viewportWidth)
-
   endif
-
   DrawGameWorld()   
-
 EndSub
-
 '***
-
 Sub ScrollRight
-
   If (ScrollStartScreenX <>1) then
-
     
-
     ScreenX=ScreenX+SpriteWalkingDistance
-
     if(Math.Remainder(ScreenX,tileHeight)=0)Then
-
       ScrollStartScreenX = ScrollStartScreenX-1
-
     EndIf
-
   Else   
-
     ScrollStartScreenX=1
-
   EndIf    
-
   DrawGameWorld()
-
 endsub  
-
 '
-
 '***************************************************
-
 'These are stubs for routines that would be called from
-
 'within the game loop
-
 '***************************************************
-
 Sub DrawHeroSprite
-
 EndSub
-
 '
-
 sub DrawEnemySprites
-
 EndSub
-
 '
-
 Sub CollisionDetect
-
 EndSub
-
-
-
 

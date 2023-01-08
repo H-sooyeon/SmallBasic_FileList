@@ -1,489 +1,244 @@
 ' Not Used Subroutines 0.1
-
 ' Copyright (c) 2014 Nonki Takahashi.  The MIT License.
-
 '
-
 ' Usage:
-
 '   Filename? input.sb
-
 '
-
 ' History:
-
 '  0.1 2014-08-29 Created from Comment In 0.2. ()
-
 '
-
 Not = "False=True;True=False;"
-
 WQ = Text.GetCharacter(34)
-
 FCHAR = "_abcdefghijklmnopqrstuvwxyz"
-
 TCHAR = FCHAR + "0123456789"
-
 error = "True"
-
 While error
-
   TextWindow.Write("Filename? ")
-
   buf = TextWindow.Read()
-
   ParseArgs()
-
   If args[1] <> "" Then
-
     args["stdin"] = args[1]
-
     error = "False"
-
   Else
-
     TextWindow.WriteLine("Usage: Filename? input.sb")
-
   EndIf
-
 EndWhile
-
 eof = "False"
-
 nLine = 0
-
 nChar = 0
-
 If args["stdin"] <> "" Then
-
   max = 0 ' dummy for remote
-
 ' The following line could be harmful and has been automatically commented.
-
 '   max = Text.GetLength(File.ReadContents(args["stdin"]))
-
 EndIf
-
 While Not[eof]
-
   ReadLine()
-
   If Not[eof] Then
-
     LineToBuf()
-
     GetSub()
-
     p = 1
-
     GetCaller()
-
   EndIf
-
 EndWhile
-
 ListNotUsedSubs()
-
 Sub GetSub
-
   ' param buf - command line
-
   ' return matched - "True" if matched
-
   ' return subs - array of subroutine names
-
   SkipSpace()
-
   kw = "Sub"
-
   GetKeyword()
-
   If matched And p <= l Then
-
     SkipSpace()
-
     GetName()
-
   EndIf
-
   If matched And p <= l Then
-
     SkipSpace()
-
     kw = "'"
-
     GetKeyword()
-
   EndIf
-
   If matched Then
-
     defs[name] = 1  ' reference count
-
   EndIf
-
 EndSub
-
 Sub GetCaller
-
   ' param buf - command line
-
   SkipSpace()
-
   GetName()
-
   If matched Then
-
     SkipSpace()
-
     kw = "("
-
     GetKeyword()
-
   EndIf
-
   If matched Then
-
     SkipSpace()
-
     kw = ")"
-
     GetKeyword()
-
   EndIf
-
   If matched And p <= l Then
-
     SkipSpace()
-
   EndIf
-
   If matched And p <= l Then
-
     kw = "'"
-
     GetKeyword()
-
   EndIf
-
   If matched Then
-
     subs[name] = subs[name] + 1  ' reference count
-
   EndIf
-
 EndSub
-
 Sub GetKeyword
-
   ' param buf - command line
-
   ' param kw - keyword
-
   ' param l - length of buf
-
   ' param p - pointer in buf
-
   ' return p - pointer to not space in buf
-
   ' return matched - "True" if matched
-
   matched = "False"
-
   lKW = Text.GetLength(kw)
-
   If p + lKW - 1 <= l Then
-
     subtxt = Text.GetSubText(buf, p, lKW)
-
     If Text.ConvertToLowerCase(kw) = Text.ConvertToLowerCase(subtxt) Then
-
       matched = "True"
-
       p = p + lKW
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub GetName
-
   ' param buf - command line
-
   ' param l - length of buf
-
   ' param p - pointer in buf
-
   ' return p - pointer to not space in buf
-
   ' return name - got name
-
   ' return matched - "True" if matched
-
   matched = "False"
-
   name = ""
-
   If p <= l Then
-
     c = Text.GetSubText(buf, p, 1)
-
     If Text.IsSubText(FCHAR, Text.ConvertToLowerCase(c)) Then
-
       name = Text.Append(name, c)
-
       matched = "True"
-
       p = p + 1
-
     EndIf
-
   EndIf
-
   While matched And p <= l
-
     c = Text.GetSubText(buf, p, 1)
-
     If Text.IsSubText(TCHAR, Text.ConvertToLowerCase(c)) Then
-
       name = Text.Append(name, c)
-
       p = p + 1
-
     Else
-
       matched = "False"
-
     EndIf
-
   EndWhile
-
   If name <> "" Then
-
     matched = "True"
-
   EndIf
-
 EndSub
-
 Sub ListNotUsedSubs
-
   index = Array.GetAllIndices(defs)
-
   nSubs = Array.GetItemCount(defs)
-
   For i = 1 To nSubs
-
     If subs[index[i]] < 1 Then
-
       TextWindow.WriteLine(index[i])
-
     EndIf
-
   EndFor
-
 EndSub
-
 Sub LineToBuf
-
   buf = line
-
   l = Text.GetLength(buf)
-
   p = 1
-
 EndSub
-
 Sub ReadLine
-
   ' return line - text of a line
-
   ' return eof - "True" if end of file
-
   If args["stdin"] = "" Then
-
     line = TextWindow.Read()
-
     If line = "" Then
-
       eof = "True"
-
     EndIf
-
   Else
-
     If nChar < max Then
-
       nLine = nLine + 1
-
 ' The following line could be harmful and has been automatically commented.
-
 '       line = File.ReadLine(args["stdin"], nLine)
-
       nChar = nChar + Text.GetLength(line) + 2  ' 2 for CR and LF
-
     Else
-
       eof = "True"
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub WriteLine
-
   ' param line - text of a line
-
   If args["stdout"] = "" Then
-
     TextWindow.WriteLine(line)
-
   Else
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.WriteLine(args["stdout"], nLine, line)
-
   EndIf
-
 EndSub
-
 Sub ParseArgs
-
   ' param buf - command line
-
   ' return args[] - array of arguments
-
   p = 1
-
   l = Text.GetLength(buf)
-
   n = 1
-
   While p <= l
-
     SkipSpace()
-
     GetToken()
-
   EndWhile
-
 EndSub
-
 Sub SkipSpace
-
   ' param buf - command line
-
   ' param l - length of buf
-
   ' param p - pointer in buf
-
   ' return p - pointer to not space in buf
-
   isSpace = "True"
-
   While p <= l And isSpace
-
     c = Text.GetSubText(buf, p, 1)
-
     If c = " " Then
-
       p = p + 1
-
     Else
-
       isSpace = "False"
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub GetToken
-
   ' param buf - command line
-
   ' param l - length of buf
-
   ' param p - pointer in buf
-
   ' return args[] - array of arguments
-
   ' return p - pointer to not space in buf
-
   isDelim = "False"
-
   s = p ' p at start
-
   n = Array.GetItemCount(args)
-
   While p <= l And Not[isDelim]
-
     c = Text.GetSubText(buf, p, 1)
-
     If c = " " Then
-
       isDelim = "True"
-
     ElseIf c = "<" Or c = ">" Then
-
       isDelim = "True"
-
       d = c ' save delimiter
-
       If p = s Then
-
         p = p + 1
-
         SkipSpace()
-
         GetToken()
-
         If d = "<" Then
-
           args["stdin"] = args[n + 1]
-
         ElseIf d = ">" Then
-
           args["stdout"] = args[n + 1]
-
         EndIf
-
         args[n + 1] = ""
-
       EndIf
-
     ElseIf c = WQ Then
-
       p2 = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p + 1), WQ)
-
       If 0 < p2 Then
-
         args[n + 1] = Text.Append(args[n + 1], Text.GetSubText(buf, p + 1, p2 - 1))
-
         p = p + p2 + 1
-
       Else
-
         TextWindow.WriteLine("Error: Missing quote")
-
       EndIf
-
     Else
-
       args[n + 1] = Text.Append(args[n + 1], c)
-
       p = p + 1
-
     EndIf
-
   EndWhile
-
 EndSub
-
-

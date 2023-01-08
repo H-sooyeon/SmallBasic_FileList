@@ -1,373 +1,186 @@
 'Set up the GraphicsWindow and load images
-
 GraphicsWindow.BackgroundColor = "Seashell"
-
 dir = "http://litdev.co.uk/game_images"
-
 'dir = Program.Directory
-
 buttonPngOff = dir+"/PushMeOff.png"
-
 buttonPngOn = dir+"/PushMeOn.png"
-
 buttonPngOverOff = dir+"/PushMeOverOff.png"
-
 buttonPngOverOn = dir+"/PushMeOverOn.png"
-
 buttonImgOff = ImageList.LoadImage(buttonPngOff)
-
 buttonImgOn = ImageList.LoadImage(buttonPngOn)
-
 buttonImgOverOff = ImageList.LoadImage(buttonPngOverOff)
-
 buttonImgOverOn = ImageList.LoadImage(buttonPngOverOn)
 
-
-
 numButton = 5 'Button count
-
 delay = 1 'Delay for fade in out for mouseover
 
-
-
 For i = 1 To numButton
-
   'Create the button images, size and position
-
   buttonOff[i] = Shapes.AddImage(buttonImgOff) 'Button Off
-
   buttonOn[i] = Shapes.AddImage(buttonImgOn) 'Button On
-
   buttonOverOff[i] = Shapes.AddImage(buttonImgOverOff) 'Button selected (highlighted) and will revert to Off if we leave it with no action
-
   buttonOverOn[i] = Shapes.AddImage(buttonImgOverOn) 'Button selected (highlighted) and will revert to On if we leave it with no action
-
   buttonW[i] = ImageList.GetWidthOfImage(buttonImgOff)
-
   buttonH[i] = ImageList.GetHeightOfImage(buttonImgOff)
-
   buttonX[i] = buttonW[i]/2
-
   buttonY[i] = (10+buttonW[i])*(i-0.5)
-
   Shapes.Move(buttonOff[i],buttonX[i],buttonY[i])
-
   Shapes.Move(buttonOn[i],buttonX[i],buttonY[i])
-
   Shapes.Move(buttonOverOff[i],buttonX[i],buttonY[i])
-
   Shapes.Move(buttonOverOn[i],buttonX[i],buttonY[i])
-
   Shapes.SetOpacity(buttonOn[i],0)
-
   Shapes.SetOpacity(buttonOverOff[i],0)
-
   Shapes.SetOpacity(buttonOverOn[i],0)
-
   buttonState[i] = "Off" 'Current button state
-
   buttonEntry[i] = "True" 'Flag for first mouse entry to button
-
   
-
   'TextBox for writing in
-
   GraphicsWindow.BrushColor = "Black"
-
   tb[i] = Controls.AddTextBox(buttonX[i]+buttonW[i]+20,buttonY[i]+22)
-
   Controls.SetSize(tb[i],200,22)
-
   Controls.HideControl(tb[i])
-
   
-
   'Readonly textbox outline
-
   GraphicsWindow.PenWidth = 0.5
-
   GraphicsWindow.PenColor = "Gray"
-
   GraphicsWindow.BrushColor = "#100000FF"
-
   tbOverlay[i] = Shapes.AddRectangle(200,22)
-
   Shapes.Move(tbOverlay[i],buttonX[i]+buttonW[i]+20,buttonY[i]+22)
-
   
-
   'Readonly textbox text
-
   GraphicsWindow.BrushColor = "Black"
-
   tbOverlayText[i] = Shapes.AddText("")
-
   Controls.SetSize(tbOverlayText[i],200,22)
-
   Shapes.Move(tbOverlayText[i],buttonX[i]+buttonW[i]+20+5,buttonY[i]+22+3)
-
 EndFor
 
-
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.MouseUp = OnMouseUp
 
-
-
 While ("True")
-
   CheckButton()
-
   Program.Delay(10)
-
   'TextWindow.WriteLine(buttonState[1])
-
 EndWhile
 
-
-
 Sub CheckButton
-
   noButton = "True" 'Use to check if we are not over any button - so we can reset mouseDown and mouseUp flags
-
   posX = GraphicsWindow.MouseX
-
   posY = GraphicsWindow.MouseY
-
   For i = 1 To numButton
-
     'Check the current state of each button
-
     If (buttonEntry[i]) Then
-
       buttonEntryState[i] = buttonState[i] 'This is the state that the button will revert to when we leave (unless it is clicked)
-
     EndIf 
-
     dx = posX-buttonX[i]-buttonW[i]/2
-
     dy = posY-buttonY[i]-buttonH[i]/2
-
     'If (posX > buttonX[i] And posX < buttonX[i]+buttonW[i] And posY > buttonY[i] And posY < buttonY[i]+buttonH[i]) Then 'Rectangular button
-
     If (Math.SquareRoot(dx*dx+dy*dy) < buttonW[i]/2) Then 'Circular button
-
       noButton = "False" 'We are over a button
-
       
-
       If (buttonState[i] = "Off") Then
-
         If (buttonEntry[i]) Then 'First entry to button
-
           For j = 1 To 100
-
             Shapes.SetOpacity(buttonOverOff[i],j)
-
             Program.Delay(delay)
-
           EndFor
-
           buttonState[i] = "OverOff"
-
         ElseIf (mouseDown) Then 'Repeat click over button
-
           Shapes.SetOpacity(buttonOverOn[i],100)
-
           buttonState[i] = "OverOn"
-
           mouseDown = "False"
-
         EndIf
-
         
-
       ElseIf (buttonState[i] = "On") Then
-
         If (buttonEntry[i]) Then 'First entry to button
-
           For j = 1 To 100
-
             Shapes.SetOpacity(buttonOverOn[i],j)
-
             Program.Delay(delay)
-
           EndFor
-
           buttonState[i] = "OverOn"
-
         ElseIf (mouseDown) Then 'Repeat click over button
-
           Shapes.SetOpacity(buttonOverOff[i],100)
-
           buttonState[i] = "OverOff"
-
           mouseDown = "False"
-
         EndIf
-
         
-
       ElseIf (buttonState[i] = "OverOff") Then
-
         If (mouseDown) Then 'Switch to OverOn (pending on) state when button down in OverOff state
-
           Shapes.SetOpacity(buttonOverOn[i],100)
-
           Shapes.SetOpacity(buttonOverOff[i],0)
-
           buttonState[i] = "OverOn"
-
           mouseDown = "False"
-
         ElseIf (mouseUp) Then 'Change to Off - Think of OverOff as pending off
-
           Shapes.SetOpacity(buttonOff[i],100)
-
           Shapes.SetOpacity(buttonOn[i],0)
-
           Shapes.SetOpacity(buttonOverOff[i],0)
-
           buttonState[i] = "Off"
-
           buttonEntryState[i] = buttonState[i] 'The state to revert to when we leave button
-
           mouseUp = "False"
-
         EndIf
-
         
-
       ElseIf (buttonState[i] = "OverOn") Then
-
         If (mouseDown) Then 'Switch to OverOff (pending off) state when button down in OverOn state
-
           Shapes.SetOpacity(buttonOverOff[i],100)
-
           Shapes.SetOpacity(buttonOverOn[i],0)
-
           buttonState[i] = "OverOff"
-
           mouseDown = "False"
-
         ElseIf (mouseUp) Then 'Change to On - Think of OverOn as pending on
-
           Shapes.SetOpacity(buttonOn[i],100)
-
           Shapes.SetOpacity(buttonOff[i],0)
-
           Shapes.SetOpacity(buttonOverOn[i],0)
-
           buttonState[i] = "On"
-
           buttonEntryState[i] = buttonState[i] 'The state to revert to when we leave button
-
           mouseUp = "False"
-
         EndIf
-
       EndIf
-
       
-
       buttonEntry[i] = "False"' We are inside this button - next call will not be entry
-
     Else
-
       
-
       If (buttonState[i] = "OverOff") Then 'We are leaving button and switch to Off
-
         For j = 1 To 100
-
           Shapes.SetOpacity(buttonOverOff[i],100-j)
-
           Program.Delay(delay)
-
         EndFor
-
         buttonState[i] = buttonEntryState[i]
-
         
-
       ElseIf (buttonState[i] = "OverOn") Then 'We are leaving button and switch to On
-
         For j = 1 To 100
-
           Shapes.SetOpacity(buttonOverOn[i],100-j)
-
           Program.Delay(delay)
-
         EndFor
-
         buttonState[i] = buttonEntryState[i]
-
       EndIf
-
       
-
       buttonEntry[i] = "True" 'We are outside button - next call over button will be entry
-
     EndIf
-
     
-
     'Update the read-write textboxes
-
     If (buttonState[i] = "On") Then
-
       Shapes.HideShape(tbOverlay[i])
-
       Shapes.HideShape(tbOverlayText[i])
-
       Shapes.SetText(tbOverlayText[i],"")
-
       Controls.ShowControl(tb[i])
-
     ElseIf (buttonState[i] = "Off") Then
-
       Shapes.ShowShape(tbOverlay[i])
-
       Shapes.ShowShape(tbOverlayText[i])
-
       Shapes.SetText(tbOverlayText[i],Controls.GetTextBoxText(tb[i]))
-
       Controls.HideControl(tb[i])
-
     EndIf
-
   EndFor
-
   
-
   If (noButton) Then 'Reset mouse flags if we are outside all buttons
-
     mouseDown = "False"
-
     mouseUp = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   mouseDown = "True"
-
 EndSub
-
-
 
 Sub OnMouseUp
-
   mouseUp = "True"
-
 EndSub
-
-
-
 

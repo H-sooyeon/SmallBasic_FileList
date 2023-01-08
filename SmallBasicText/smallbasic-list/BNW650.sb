@@ -1,1115 +1,557 @@
 '****************************************************************************
-
 'Main Code
-
 '****************************************************************************
-
 'Info Screen
-
 Info()
-
 'Initialise
-
 Init()
 
-
-
 'Play loop
-
 While ("True")
-
   'Set components
-
   Select()
-
   'Return any processed event flags
-
   ResetEvents()
-
   'Attach components
-
   Attach()
-
   'Move components
-
   Move()
-
   'Update screen
-
   Update()
-
   'Run 
-
   Run()
-
   'Load or Save
-
   LoadSave()
-
   Program.Delay(10)
-
 EndWhile
 
-
-
 '****************************************************************************
-
 'Info Screen
-
 '****************************************************************************
-
 Sub Info
-
   'Initialise Window
-
   InitWindow()
-
   'Set description
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawBoundText(100,100,gw-200,"Use the LEFT MOUSE button to grab components from the KEY PANE on the right and position in the main part of the screen.")
-
   GraphicsWindow.DrawBoundText(100,140,gw-200,"DELETE a component by dragging it back the the KEY PANE.")
-
   GraphicsWindow.DrawBoundText(100,180,gw-200,"CONNECT using the CONTROL key and mouse (click DOWN on the OUTPUT of one component and click UP on the INPUT to another component).")
-
   GraphicsWindow.DrawBoundText(100,220,gw-200,"To test a circuit use the RETURN key and MOUSE CLICK on an INPUT component to toggle its status and run the circuit, or just press the SPACE BAR to run the current circuit.")
-
   GraphicsWindow.DrawBoundText(100,260,gw-200,"ALL of the inputs to an AND component must be ON for it to activate.")
-
   GraphicsWindow.DrawBoundText(100,300,gw-200,"ANY of the inputs to an OR component must be ON for it to activate.")
-
   GraphicsWindow.DrawBoundText(100,340,gw-200,"The XOR component requires some inputs to be ON and some to be OFF to activate.")
-
   GraphicsWindow.DrawBoundText(100,380,gw-200,"The NOT component will reverse the signal of the last input (should only have one input).")
-
   GraphicsWindow.DrawBoundText(100,420,gw-200,"We can handle loops and any number of input/ouput connections.  Save with 'S', Load with 'L' and Clear with 'C'.")
-
   GraphicsWindow.DrawBoundText(100,460,gw-200,"TO DO : Images, Gameplay(some objective), More component devices.")
-
   GraphicsWindow.DrawBoundText(100,500,gw-200,"Hit a key to continue.")
-
   GraphicsWindow.TextInput = OnTextInput
-
   key = 0
-
   While (key = 0)
-
   EndWhile
-
   GraphicsWindow.Clear()
-
 EndSub
-
-
 
 Sub InitWindow
-
   'Window
-
   gw = 800
-
   gh = 600
-
   gk = 200
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Left = (Desktop.Width-gw)/2
-
   GraphicsWindow.Top = (Desktop.Height-gh)/2
-
   GraphicsWindow.Title = "Small Boots"
-
   GraphicsWindow.BackgroundColor = "LightBlue"
-
 EndSub
-
-
 
 Sub OnTextInput
-
   key = 1
-
 EndSub
 
-
-
 '****************************************************************************
-
 'Initialisation
-
 '****************************************************************************
-
-
 
 Sub Init
-
   'Variables
-
   InitVariables()
-
   'Key in Window
-
   InitKey()
-
   'Events
-
   InitEvents()
-
 EndSub
-
-
 
 Sub InitVariables
-
   'Global variables
-
   diameter = 30
-
   radius = diameter/2
-
   nComp = 0
-
   Components = ""
-
   activeComponent = 0
-
   connectComponent = 0
-
   nConnect = 0
-
   Connections = ""
-
   runComponent = 0
-
   pi = Math.Pi
-
   'Component types
-
   nType = 6
-
   color[1] = "Red"
-
   color[2] = "Blue"
-
   color[3] = "Green"
-
   color[4] = "Orange"
-
   color[5] = "Purple"
-
   color[6] = "Gray"
-
 EndSub
-
-
 
 Sub InitKey
-
   'Key
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.DrawLine(gw-gk,0,gw-gk,gh)
-
   For i = 1 To gh/nType-1
-
     GraphicsWindow.DrawLine(gw-gk,i*gh/nType,gw,i*gh/nType)
-
   EndFor
-
   For i = 1 To nType
-
     GraphicsWindow.BrushColor = color[i]
-
     GraphicsWindow.FillEllipse(gw-gk*3/4-radius,(i-0.5)*gh/nType-radius,diameter,diameter)
-
     GraphicsWindow.DrawEllipse(gw-gk*3/4-radius,(i-0.5)*gh/nType-radius,diameter,diameter)
-
   EndFor
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(gw-gk/2,(1-0.5)*gh/nType-10,"INPUT")
-
   GraphicsWindow.DrawText(gw-gk/2,(2-0.5)*gh/nType-10,"AND")
-
   GraphicsWindow.DrawText(gw-gk/2,(3-0.5)*gh/nType-10,"OR")
-
   GraphicsWindow.DrawText(gw-gk/2,(4-0.5)*gh/nType-10,"XOR")
-
   GraphicsWindow.DrawText(gw-gk/2,(5-0.5)*gh/nType-10,"NOT")
-
   GraphicsWindow.DrawText(gw-gk/2,(6-0.5)*gh/nType-10,"OUTPUT")
-
 EndSub
 
-
-
 '****************************************************************************
-
 'Event subroutines
-
 '****************************************************************************
-
 Sub InitEvents
-
   'Event variables
-
   MouseDown = 0
-
   MouseClickDown = 0
-
   MouseClickUp = 0
-
   MouseMove = 0
-
   KeyDown = 0
-
   SpaceDown = 0
-
   ReturnDown = 0
-
   ControlDown = 0
-
   SDown = 0
-
   LDown = 0
-
   CDown = 0
-
   Moving = 0
-
   GraphicsWindow.MouseDown = OnMouseDown
-
   GraphicsWindow.MouseUp = OnMouseUp
-
   GraphicsWindow.MouseMove = OnMouseMove
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   GraphicsWindow.KeyUp = OnKeyUp
-
 EndSub
-
 Sub OnMouseDown
-
   MouseDown = 1
-
   MouseClickDown = 1
-
 EndSub
-
 Sub OnMouseUp
-
   MouseDown = 0
-
   MouseClickUp = 1
-
 EndSub
-
 Sub OnMouseMove
-
   MouseMove = 1
-
   xM = GraphicsWindow.MouseX
-
   yM = GraphicsWindow.MouseY
-
 EndSub
-
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   KeyDown = 1
-
   If (key = "Space") Then
-
     SpaceDown = 1
-
   ElseIf (key = "Return") Then
-
     ReturnDown = 1
-
   ElseIf (key = "LeftCtrl" Or key = "RightCtrl") Then
-
     ControlDown = 1
-
   ElseIf (key = "S") Then
-
     SDown = 1
-
   ElseIf (key = "L") Then
-
     LDown = 1
-
   ElseIf (key = "C") Then
-
     CDown = 1
-
   EndIf
-
 EndSub
-
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   KeyDown = 0
-
   If (key = "Space") Then
-
     SpaceDown = 0
-
   ElseIf (key = "Return") Then
-
     ReturnDown = 0
-
   ElseIf (key = "LeftCtrl" Or key = "RightCtrl") Then
-
     ControlDown = 0
-
   ElseIf (key = "S") Then
-
     SDown = 0
-
   ElseIf (key = "L") Then
-
     LDown = 0
-
   ElseIf (key = "C") Then
-
     CDown = 0
-
   EndIf
-
 EndSub
-
 Sub ResetEvents
-
   MouseClickDown = 0
-
   MouseClickUp = 0
-
   MouseMove = 0
-
 EndSub
 
-
-
 '****************************************************************************
-
 'Game Subroutines
-
 '****************************************************************************
-
-
 
 Sub Select
-
   'Mouse Clicked
-
   If (MouseClickDown = 1) Then
-
     'Is Mouse in game or key area
-
     If (xM < gw-gk) Then
-
       'Game area
-
       'Select a componet to move or connect
-
       OverComponent()
-
       activeComponent = selected
-
     ElseIf (KeyDown = 0) Then
-
       'Key area
-
       'Add Something
-
       nComp = nComp+1
-
       activeComponent = nComp
-
       Components[activeComponent]["Type"] = Math.Ceiling(yM/100)
-
       Components[activeComponent]["X"] = xM
-
       Components[activeComponent]["Y"] = yM
-
       Components[activeComponent]["W"] = diameter
-
       Components[activeComponent]["H"] = diameter
-
       Components[activeComponent]["Status"] = 0
-
       GraphicsWindow.BrushColor = color[Components[activeComponent]["Type"]]
-
       Components[activeComponent]["S"] = Shapes.AddEllipse(diameter,diameter)
-
     EndIf
-
   ElseIf (MouseClickUp = 1) Then
-
     If (ControlDown = 1 And activeComponent > 0) Then
-
       'Select component to connect
-
       OverComponent()
-
       connectComponent = selected
-
     ElseIf (ReturnDown = 1 And activeComponent > 0) Then
-
       'Select component to run
-
       runComponent = activeComponent
-
     Else
-
       'Delete selected component released in Key area - also delete any connections
-
       If (activeComponent > 0 And xM > gw-gk) Then
-
         Connect = Array.GetAllIndices(Connections)
-
         For i = 1 To Array.GetItemCount(Connect)
-
           comp1 = Connections[Connect[i]][1]
-
           comp2 = Connections[Connect[i]][2]
-
           If (comp1 = activeComponent Or comp2 = activeComponent) Then
-
             Connections[Connect[i]] = ""
-
             Moving = 1 'To ensure a clear before redraw
-
           EndIf
-
         EndFor
-
         Shapes.Remove(Components[activeComponent]["S"])
-
         Components[activeComponent] = ""
-
       EndIf
-
       'Release selected components
-
       activeComponent = 0
-
       connectComponent = 0
-
       runComponent = 0
-
     EndIf
-
   ElseIf (MouseDown = 0) Then
-
     'Release selected components - sometimes MouseClickUp isn't registered
-
     activeComponent = 0
-
     connectComponent = 0
-
     runComponent = 0
-
   EndIf
-
 EndSub
-
-
 
 Sub OverComponent
-
   'Is mouse over a component
-
   selected = 0
-
   Comp = Array.GetAllIndices(Components)
-
   For i = 1 To Array.GetItemCount(Comp)
-
     iComp = Comp[i]
-
     x = Components[iComp]["X"]
-
     y = Components[iComp]["Y"]
-
     w = Components[iComp]["W"]
-
     h = Components[iComp]["H"]
-
     If (xM > x-w/2 And xM < x+w/2 And yM > y-h/2 And yM < y+h/2) Then
-
       selected = iComp
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub Move
-
   If (activeComponent > 0 And KeyDown = 0) Then
-
     Components[activeComponent]["X"] = xM
-
     Components[activeComponent]["Y"] = yM
-
     Moving = 1
-
   EndIf
-
 EndSub
-
-
 
 Sub Update
-
   'Draw components
-
   Comp = Array.GetAllIndices(Components)
-
   For i = 1 To Array.GetItemCount(Comp)
-
     x = Components[Comp[i]]["X"]
-
     y = Components[Comp[i]]["Y"]
-
     w = Components[Comp[i]]["W"]
-
     h = Components[Comp[i]]["H"]
-
     s = Components[Comp[i]]["S"]
-
     status = Components[Comp[i]]["Status"]
-
     Shapes.Move(s,x-w/2,y-h/2)
-
     If (activeComponent = Comp[i]) Then
-
       Shapes.SetOpacity(s,30)
-
     Else
-
       If (status = 0) Then
-
         Shapes.SetOpacity(s,50)
-
       Else
-
         Shapes.SetOpacity(s,100)
-
       EndIf
-
     EndIf
-
   EndFor
-
   'Clear screen if needed (component moved)
-
   If (Moving = 1) Then
-
     GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
-
     GraphicsWindow.FillRectangle(0,0,gw-gk,gh)
-
     Moving = 0
-
   EndIf
-
   'Draw connections
-
   Connect = Array.GetAllIndices(Connections)
-
   For i = 1 To Array.GetItemCount(Connect)
-
     comp1 = Connections[Connect[i]][1]
-
     comp2 = Connections[Connect[i]][2]
-
     x1 = Math.Min(Components[comp1]["X"],gw-gk) 'Don't draw into Key area
-
     y1 = Components[comp1]["Y"]
-
     x2 = Math.Min(Components[comp2]["X"],gw-gk)
-
     y2 = Components[comp2]["Y"]
-
     If (Connections[Connect[i]]["Status"] = 0) Then
-
       GraphicsWindow.PenColor = "Black"
-
       GraphicsWindow.BrushColor = "Black"
-
     Else
-
       GraphicsWindow.PenColor = "Red"
-
       GraphicsWindow.BrushColor = "Red"
-
     EndIf
-
     GraphicsWindow.DrawLine(x1,y1,x2,y2)
-
     'Add direction indicator
-
     If (x1 = x2) Then
-
       theta = pi/2
-
     Else
-
       theta = Math.ArcTan((y2-y1)/(x2-x1))
-
     EndIf
-
     If (x2 < x1) Then
-
       theta = theta+pi
-
     EndIf
-
     x3 = (x1+x2)/2
-
     y3 = (y1+y2)/2
-
     x3 = x3+15*Math.Cos(theta)
-
     y3 = y3+15*Math.Sin(theta)
-
     x4 = x3-30*Math.Cos(theta)+8*Math.Sin(theta)
-
     y4 = y3-30*Math.Sin(theta)-8*Math.Cos(theta)
-
     x5 = x3-30*Math.Cos(theta)-8*Math.Sin(theta)
-
     y5 = y3-30*Math.Sin(theta)+8*Math.Cos(theta)
-
     GraphicsWindow.FillTriangle(x3,y3,x4,y4,x5,y5)
-
     GraphicsWindow.PenColor = "Black"
-
     GraphicsWindow.BrushColor = "Black"
-
   EndFor
-
 EndSub
-
-
 
 Sub Attach
-
   If (activeComponent > 0 And connectComponent > 0 And activeComponent <> connectComponent) Then
-
     'Check for connection existing to delete
-
     connected = 0
-
     Connect = Array.GetAllIndices(Connections)
-
     For i = 1 To Array.GetItemCount(Connect)
-
       comp1 = Connections[Connect[i]][1]
-
       comp2 = Connections[Connect[i]][2]
-
       If ((comp1 = activeComponent And comp2 = connectComponent) Or (comp2 = activeComponent And comp1 = connectComponent)) Then
-
         connected = 1
-
         Connections[Connect[i]] = ""
-
         Moving = 1 'To ensure a clear before redraw
-
       EndIf
-
     EndFor
-
     'Connect if we didn't delete the connection
-
     If (connected = 0) Then
-
       nConnect = nConnect+1
-
       Connections[nConnect][1] = activeComponent
-
       Connections[nConnect][2] = connectComponent
-
       Connections[nConnect]["Status"] = 0
-
       Moving = 1 'To ensure a clear before redraw
-
     EndIf
-
     activeComponent = 0
-
     connectComponent = 0
-
   EndIf
-
 EndSub
-
-
 
 Sub Run
-
   If (runComponent > 0 And Components[runComponent]["Type"] = 1) Then
-
     Components[runComponent]["Status"] = 1-Components[runComponent]["Status"] ' Switch status
-
     RunUpdate()
-
   ElseIf (SpaceDown = 1) Then
-
     RunUpdate()
-
   EndIf
-
   runComponent = 0
-
 EndSub
-
-
 
 Sub RunUpdate
-
   Connect = Array.GetAllIndices(Connections)
-
   'Recursively feed the signal down components from all inputs
-
   CompList = Array.GetAllIndices(Components)
-
   nCompleted = 0
-
   For i = 1 To Array.GetItemCount(CompList)
-
     Completed[CompList[i]] = 0
-
   EndFor
-
   While (nCompleted < Array.GetItemCount(Completed))
-
     'Only consider a component when all input components have been completed
-
     For i = 1 To Array.GetItemCount(CompList)
-
       If (Completed[CompList[i]] = 0) Then 'Check uncompleted components
-
         'Check if ALL inputs are completed (i.e check if any are not)
-
         comp = CompList[i]
-
         For j = 1 To Array.GetItemCount(Connect)
-
           comp1 = Connections[Connect[j]][1]
-
           comp2 = Connections[Connect[j]][2]
-
           If (comp2 = comp And Completed[comp1] = 0) Then
-
             comp = 0
-
           EndIf
-
         EndFor
-
         If (comp > 0) Then
-
           Goto ComponentFound
-
         EndIf
-
       EndIf
-
     EndFor
-
     ' We must have a loop if we haven't found a component with all upstream components already set
-
     For i = 1 To Array.GetItemCount(CompList)
-
       If (Completed[CompList[i]] = 0) Then 'Check uncompleted components
-
         'Check if ANY inputs are completed
-
         comp = CompList[i]
-
         For j = 1 To Array.GetItemCount(Connect)
-
           comp1 = Connections[Connect[j]][1]
-
           comp2 = Connections[Connect[j]][2]
-
           If (comp2 = comp And Completed[comp1] = 1) Then
-
             Goto ComponentFound
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndFor
-
     ComponentFound: 'We have found a component that hasn't been set, but all upstream components have
-
     type = Components[comp]["Type"]
-
     'Set status by checking inputs and component type
-
     If (type = 1) Then 'Input
-
       status = Components[comp]["Status"]
-
     ElseIf (type = 2) Then 'And
-
       status = 1
-
       For i = 1 To Array.GetItemCount(Connect)
-
         comp1 = Connections[Connect[i]][1]
-
         comp2 = Connections[Connect[i]][2]
-
         If (comp2 = comp And Components[comp1]["Status"] = 0) Then
-
           status = 0
-
         EndIf
-
       EndFor
-
     ElseIf (type = 3 Or type = 6) Then 'Or Output
-
       status = 0
-
       For i = 1 To Array.GetItemCount(Connect)
-
         comp1 = Connections[Connect[i]][1]
-
         comp2 = Connections[Connect[i]][2]
-
         If (comp2 = comp And Components[comp1]["Status"] = 1) Then
-
           status = 1
-
         EndIf
-
       EndFor
-
     ElseIf (type = 4) Then 'XOR
-
       on = 0
-
       off = 0
-
       For i = 1 To Array.GetItemCount(Connect)
-
         comp1 = Connections[Connect[i]][1]
-
         comp2 = Connections[Connect[i]][2]
-
         If (comp2 = comp) Then
-
           If (Components[comp1]["Status"] = 1) Then
-
             on = 1
-
           EndIf
-
           If (Components[comp1]["Status"] = 0) Then
-
             off = 1
-
           EndIf
-
         EndIf
-
       EndFor
-
       If (on + off = 2) Then
-
         status = 1
-
       Else
-
         status = 0
-
       EndIf
-
     ElseIf (type = 5) Then 'Not
-
       For i = 1 To Array.GetItemCount(Connect)
-
         comp1 = Connections[Connect[i]][1]
-
         comp2 = Connections[Connect[i]][2]
-
         If (comp2 = comp) Then
-
           status = 1-Components[comp1]["Status"]
-
         EndIf
-
       EndFor
-
     EndIf
-
     Components[comp]["Status"] = status
-
     Completed[comp] = 1
-
     nCompleted = nCompleted+1
-
     'Downstream connectors status
-
     For i = 1 To Array.GetItemCount(Connect)
-
       comp1 = Connections[Connect[i]][1]
-
       comp2 = Connections[Connect[i]][2]
-
       If (comp1 = comp) Then
-
         Connections[Connect[i]]["Status"] = status
-
       EndIf
-
     EndFor
-
   EndWhile
-
 EndSub
 
-
-
 '****************************************************************************
-
 'Load and Save
-
 '****************************************************************************
-
-
 
 Sub LoadSave
-
   If (LDown = 1) Then
-
     Load()
-
   EndIf
-
   If (SDown = 1) Then
-
     Save()
-
   EndIf
-
   If (CDown = 1) Then
-
     Clear()
-
   EndIf
-
 EndSub
-
-
 
 Sub Save
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteLine(Program.Directory+"\boots.txt",1,Components)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteLine(Program.Directory+"\boots.txt",2,Connections)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteLine(Program.Directory+"\boots.txt",3,nComp)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteLine(Program.Directory+"\boots.txt",4,nConnect)
-
 EndSub
-
-
 
 Sub Load
-
   CompList = Array.GetAllIndices(Components)
-
   For i = 1 To Array.GetItemCount(CompList)
-
     Shapes.Remove(Components[CompList[i]]["S"])
-
   EndFor
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Components = File.ReadLine(Program.Directory+"\boots.txt",1)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Connections = File.ReadLine(Program.Directory+"\boots.txt",2)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   nComp = File.ReadLine(Program.Directory+"\boots.txt",3)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   nConnect = File.ReadLine(Program.Directory+"\boots.txt",4)
-
   For i = 1 To Array.GetItemCount(Components)
-
     GraphicsWindow.BrushColor = color[Components[i]["Type"]]
-
     Components[i]["S"] = Shapes.AddEllipse(diameter,diameter)
-
   EndFor
-
   Moving = 1
-
 EndSub
-
-
 
 Sub Clear
-
   CompList = Array.GetAllIndices(Components)
-
   For i = 1 To Array.GetItemCount(CompList)
-
     Shapes.Remove(Components[CompList[i]]["S"])
-
   EndFor
-
   Components = ""
-
   Connections = ""
-
   nComp = 0
-
   nConnect = 0
-
   Moving = 1
-
 EndSub
-
-

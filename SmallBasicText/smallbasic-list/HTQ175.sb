@@ -1,3063 +1,1531 @@
 'Load a set of Pattern Parameters and Create an SS pattern file
-
 'this file is then read by gw.sb to articulate the SARCON
-
 'instructions
 
-
-
 ' Create a .pattern file whose name is the name of the pattern
-
 ' read that just-created file of parameters back into the program
-
 'now create the pattern's legs saved with the name of the pattern and suffix
-
 ' of .txt
 
 
-
-
-
 'Read array of file names in datapath
-
 'Create new array with only .sarcon files
 
-
-
 'GraphicsWindow.DrawText(0,0,"(V)iew or (E)dit Pattern?")
-
 'While "True"
 
-
-
 GraphicsWindow.MouseDown = OnMouseDown
-
   
-
 Setup()
 
 
-
-
-
 While "True"
-
   SetupDataInputValues()
-
   
-
   GraphicsWindow.TextInput = OnTextInput 'Start a character text event
-
   GraphicsWindow.KeyDown   = OnNavKeyDown
-
   
-
   SelectPatternFromList()
-
   
-
   'TextWindow.WriteLine("LOOP:"+navkey)
-
   
-
   If navkey="F6" then
-
     CanContinue="False"
-
     GraphicsWindow.Clear()
-
     UpdateSelectedPattern()
-
     LoadSelectedPatternParameters()
-
     if Pattern["PatternType"]="SS" then
-
         CreateSquare() 
-
       endif
-
     if Pattern["PatternType"]="PS" then
-
         CreateSquare() 
-
         endif
-
     if Pattern["PatternType"]="VS" then
-
         CreateSquare() 
-
         endif
-
     'TextWindow.WriteLine("LEGS FILE IS: "+LegDataFile)   
-
     LoadPatternLegsArray()
-
     SARCONRUN()
-
   endif
-
   If navkey="F3" or navkey="Escape" then
-
     'Post changes and Loop
-
     UpdateSelectedPattern()
-
     endif 
-
   
-
 Endwhile
 
-
-
 Sub UpdateSelectedPattern
-
   'TextWindow.WriteLine("READ:"+stringin)
-
   ftw=datapath+Pattern["PatternName"]+patternfilesuffix
-
   'TextWindow.WriteLine("SAVE patternfile:"+ftw)
-
   ListOfFields=Array.GetAllIndices(Pattern)
-
   'TextWindow.WriteLine("SAVE Updated ARRAY"+ListOfFields)
-
   stringout=""
-
   For WhichField = 1 to Array.GetItemCount(ListOfFields)
-
     'ArrayIndex=ListOfFields[WhichField]
-
     FieldName=ListOfFields[WhichField]
-
     FieldValue=Pattern[FieldName] 
-
     stringout=Text.Append(stringout,FieldValue+",")
-
   EndFor  
-
     'TextWindow.WriteLine("FIELD:"+FieldName+" Value: "+FieldValue)
-
   stringout=stringout+",End"
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteContents(ftw,stringout)
-
   'TextWindow.WriteLine("WRITE:"+ftw)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   stringin=File.ReadLine(ftw,1)
-
   'TextWindow.WriteLine("READ:"+stringin)
-
   
-
 EndSub
-
-
 
 Sub nl
-
   liney=liney+linespace
-
   hl=(PBox["HT"]+75) '-tw
-
   'tlinex=tlinex+150
-
 Endsub
-
-
 
 Sub vnl
-
   'TextWindow.WriteLine("VNL: "+VerticalLine+" liney: "+liney)
-
   liney=liney+linespace
-
   hl=(PBox["HT"]+75) '-tw
-
   VerticalLine=VerticalLine+linespace
-
   
-
 Endsub
 
-
-
 Sub DisplayPatternParameters
-
   verticalline=0
-
   ListOfFields=Array.GetAllIndices(Pattern)
-
   'TextWindow.WriteLine("NOW DRAW ARRAY"+ListOfFields)
-
   For WhichField = 1 to Array.GetItemCount(ListOfFields)
-
     'ArrayIndex=ListOfFields[WhichField]
-
     FieldName=ListOfFields[WhichField]
-
     FieldValue=Pattern[FieldName] ' ListOfFields[WhichField]]
-
     'vnl()
-
     PostName()
-
     TPL[FieldName]=VerticalLine
-
     GraphicsWindow.Drawline(PBox["ulx"],VerticalLine+1,PBox["width"],VerticalLine+1)
 
-
-
     vnl()
-
     'TextWindow.WriteLine("FIELD:"+FieldName+" Value: "+FieldValue)
-
   endfor 
-
   WhichField=1
-
   FieldName=ListOfFields[1]
-
   FieldValue=Pattern[FieldName]
-
   VerticalLine=TPL[FieldName]
-
   'TextWindow.WriteLine("LOADED:"+FieldName+" Value: "+FieldValue+" LINE:"+TPL[FieldName])
-
   
-
 EndSub
-
-
 
 Sub PostName
-
   
-
   'TextWindow.WriteLine("POST field "+WhichField+" Name: "+FieldName+" value "+FieldValue+" LINE: "+VerticalLine)
-
   GraphicsWindow.PenWidth=1
-
   GraphicsWindow.FontName="Arial"
-
   GraphicsWindow.BrushColor="White"
-
   GraphicsWindow.FillRectangle(0,VerticalLine,TXT["width"],30) ' TXT["height"])
-
   GraphicsWindow.BrushColor="Red"
-
   'TextWindow.WriteLine("POST:"+name+" length "+TXT["pl"])
-
   GraphicsWindow.DrawText(PBox["ulx"],VerticalLine,FieldName) ' ListOfFields[WhichOne])
-
   'TextWindow.WriteLine("POST:"+TXT["prompt"])
-
   GraphicsWindow.BrushColor="Cyan"
-
   GraphicsWindow.DrawText(PBox["VBAR"]+5,VerticalLine,FieldValue)
-
   'GraphicsWindow.DrawText(PBox["VBAR"]+5,TPL[FieldName],FieldValue)
-
   
-
 EndSub
-
-
 
 Sub OnTextInput
-
   
-
   char = GraphicsWindow.LastText ' get the character entered
-
   TextWindow.WriteLine("CHARIN:"+Text.GetCharacterCode(char))
-
   'TextWindow.Write("WHICH Field:"+WhichField)
-
   addit="True"
-
   GraphicsWindow.BrushColor="White"
-
   If FieldName="PatternType" then
-
     If Text.ConvertToLowerCase(char)="v" then 
-
       FieldValue="VS"
-
       addit="False" 
-
       endif
-
     If Text.ConvertToLowerCase(char)="s" Then 
-
       FieldValue="SS"
-
       addit="False" 
-
       endIf
-
     If Text.ConvertToLowerCase(char)="p" then 
-
       FieldValue="PS"
-
       addit="False" 
-
       endif
-
     Pattern[FieldName]=FieldValue
-
     PostName()
-
   endif
-
   If (Text.GetCharacterCode(char) = 8) Then
-
     addit="False"
-
     'TextWindow.WriteLine("TXT before:"+FieldValue)
-
     justbefore=FieldValue
-
     justafter=Text.GetSubText(justbefore,1,Text.GetLength(justbefore)-1)
-
     'TextWindow.WriteLine("TXT after:"+justafter)
-
     FieldValue=justafter
-
     PostName()
-
   endif
-
   if (Text.GetCharacterCode(char) = 13) Then
-
     'vin = "" CLOSE LOOP with [ENTER] Key
-
     'TextWindow.WriteLine("NAME ..")
-
     'TXT["field"]="PatternName"  
-
     'FieldValue=vin
-
     Pattern[FieldName]=FieldValue
-
     addit="False"
-
     EditSelected="False"
-
     'DisplayPatternParameters() 
-
   endif
-
   if (Text.GetCharacterCode(char) = 27) Then
-
      addit="False"
-
   endif
-
   If addit="True" then
-
     FieldValue = Text.Append(FieldValue,char) ' GraphicsWindow.LastText ' Append key input to data being read
-
     Pattern[FieldName]=FieldValue
-
     PostName()
-
  endif
-
 EndSub 
-
-
 
 Sub OnNavKeyDown
-
   
-
  navkey = GraphicsWindow.LastKey ' get the character entered
-
  TextWindow.WriteLine("NAVKEYDOWN:"+navkey)
-
  'IsBack="False"
-
  If navkey="Delete" then
-
       ftd=datapath+Pattern["PatternName"]+patternfilesuffix
-
       'TextWindow.WriteLine("DELETE:"+ftd)
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.DeleteFile(ftd)
-
       CanContinue="True"
-
   endif
-
   
-
   If navkey="LeftCtrl" Then
-
     FieldValue="" ' TXT["Prompt"]
-
     PostName()
-
   endif
-
   If navkey="F6" Then
-
       CanContinue="True"
-
     endif
-
   If navkey="Escape" Then
-
       CanContinue="True"
-
     endif
-
   If navkey="F3" Then
-
       CanContinue="True"
-
     endif
-
   if navkey="Up" Then
-
       WhichField=WhichField-1
-
     
-
       If WhichField<1 then
-
         WhichField=NumberOfPatternEntryValues
-
       endif
-
       
-
       FieldName=ListOfFields[WhichField]
-
       FieldValue=Pattern[FieldName]
-
       VerticalLine=TPL[FieldName] ' =VerticalLine
-
       Shapes.Move(Pointer,x,VerticalLine+8)
-
     'PostName()
-
   endif
-
   if navkey="Down" Then
-
     
-
     WhichField=WhichField+1
-
     
-
      If WhichField>NumberOfPatternEntryValues then
-
         WhichField=1
-
      endif
-
     FieldName=ListOfFields[WhichField]
-
     FieldValue=Pattern[FieldName]
-
     VerticalLine=TPL[FieldName]
-
     Shapes.Move(Pointer,x,VerticalLine+8)
-
    
-
   endif
-
   if navkey="Left" Then
-
       x=x-1
-
       Shapes.Move(Pointer,x,y)
-
   endif
-
   if navkey="Right" Then
-
       x=x+1
-
       Shapes.Move(Pointer,x,y)
-
   endif 
-
   
-
 EndSub 
-
-
 
 Sub WaitToGoon
-
   CanContinue="False"
-
   CanExit="False"
-
   While CanContinue="False
-
     Program.Delay(25)
-
     'charin=GraphicsWindow.LastKey  
-
   EndWhile
-
 EndSub 
-
-
 
 Sub OnMouseDown
-
   'TextWindow.WriteLine("ONMOUSEDOWN="+charin)
-
   ' TextWindow.Pause()
-
   If CanContinue="False" Then
-
     CanContinue="True"
-
   Else
-
     CanExit="True"
-
   Endif
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   charin=GraphicsWindow.LastKey
-
   TextWindow.WriteLine("ONKEYUP="+charin)
-
   'TextWindow.Pause()
-
   If CanContinue="False" Then
-
     CanContinue="True"
-
   Else
-
     CanExit="True"
-
   Endif
-
 EndSub
-
 Sub WaitForTextInput
-
   CanContinue="False"
-
   CanExit="False"
-
   While CanContinue="False
-
     Program.Delay(25)
-
   EndWhile
-
 EndSub 
 
-
-
 Sub XXDrawTextInputBox
-
   
-
   GraphicsWindow.Left=TXT["ulx"]
-
   GraphicsWindow.Top=TXT["uly"]
-
   GraphicsWindow.Width=TXT["width"]
-
   GraphicsWindow.Height=TXT["height"]
-
   GraphicsWindow.Title=TXT["title"]
-
   GraphicsWindow.BackgroundColor=TXT["background"]
-
   'GraphicsWindow.BrushColor=TXT["textcolor"]
-
   GraphicsWindow.FontSize=TXT["fontsize"]
-
   
-
   'GraphicsWindow.FillRectangle(TXT["ul"],TXT["uly"],100,30)
-
   
-
   GraphicsWindow.FillRectangle(TXT["ulx"],TXT["uly"],TXT["width"],50) ' TXT["height"])
-
   GraphicsWindow.Show()
-
   
-
   'Pointer=Shapes.AddRectangle(20,20)
-
   'Shapes.Move(Pointer,0,0)
 
-
-
 EndSub
-
-
 
 Sub SetupDataInputValues
-
   
-
   lathigh=0 
-
   latlow=90 
-
   lonlow=180 
-
   lonhigh=0
-
   
-
   TXT["ulx"]=Desktop.Width/2
-
   TXT["uly"]=Desktop.Width/2
-
   TXT["width"]=400
-
   TXT["height"]=200
-
   
-
   TXT["ulx"]=(Desktop.Width-TXT["width"])/2
-
   TXT["uly"]=(Desktop.Height-TXT["height"])/2
-
   
-
   TXT["txtboxx"]=20
-
   TXT["txtboxy"]=20 ' TXT["uly"]+(TXT["height"]/2)
-
   TXT["txtboxwide"]=TXT["width"]-20
-
   
-
   TXT["background"]="Gray"
-
   TXT["textcolor"]="Red"
-
   TXT["fontsize"]=24
-
   TXT["title"]="Input"
-
   TXT["prompt"]="prompt: "
-
     TXT["pl"]=Text.GetLength(TXT["prompt"])
-
   TXT["default"]="Masonboro"
-
     
-
   tl=10
-
   
-
   'DrawTextInputBox()
-
   
-
   vin=TXT["default"] ' Value IN
-
   'PostName()
-
   'GraphicsWindow.DrawText(TXT["txtboxx"],TXT["txtboxy"],TXT["prompt"]+":"+name) 'Ask fro name
-
 EndSub
-
-
 
 Sub GetLLExtents
-
   'lathigh=0  latlow=90 lonlow=180  lonhigh=0
-
   'TextWindow.WriteLine("IN LAT="+LAT+" LatLow: "+latlow+" lathigh "+lathigh+" lon low "+lonlow+" lon high "+lonhigh)
-
   If lat>lathigh then 
-
     lathigh=lat
-
     'TextWindow.WriteLine("SET NEW HIGH "+lathigh) 
-
    endif
-
    If lat<latlow Then 
-
       latlow=lat
-
       'TextWindow.WriteLine("SET NEW LOW"+" "+latlow) 
-
    endif
-
    If lon>lonhigh then 
-
     lonhigh=lon
-
     'TextWindow.WriteLine("latlow"+" "+latlow) 
-
    endif
-
    If lon<lonlow Then 
-
       lonlow=lon
-
      'TextWindow.WriteLine("lathigh"+" "+lathigh) 
-
    endif
-
    'TextWindow.WriteLine("OUT LAT="+LAT+" LatLow: "+latlow+" lathigh "+lathigh+" lon low "+lonlow+" lon high "+lonhigh)
-
 EndSub
 
-
-
 Sub SARCONRUN
-
   
-
 'TextWindow.WriteLine("SARCONRUN")
-
 GraphicsWindow.Clear()
-
 MaxLeg=Array.GetItemCount(Array)-1
-
 TextWindow.WriteLine("RUN for "+MaxLeg)
 
-
-
 GraphicsWindow.KeyDown = OnNavKeyDownInRun
-
 GraphicsWindow.TextInput = OnTextInputInRun
-
-
 
 QuitRun="False"
 
 
-
-
-
 'TextWindow.WriteLine("LatLow: "+latlow+" lathigh "+lathigh+" lon low "+lonlow+" lon high "+lonhigh)
-
 for LegArrayIndex = 0 to MaxLeg Step 1
-
   'TextWindow.WriteLine("LOOP: "+LegArrayIndex+" control "+QuitRun)
-
   If QuitRun="False" then
-
       'TextWindow.WriteLine("Leg: "+LegArrayIndex+" control "+QuitRun)
-
       ThisLeg=Array[LegArrayIndex]["ThisLeg"]
-
       If ThisLeg=0 then
-
          GiveFirstInstruction()
-
          SetSARCONWindowParameters()
-
          GraphicsWindow.DrawResizedImage(imin,0,0,ww,wh)
-
          GraphicsWindow.DrawRectangle(PWindow["ulx"],PWindow["ulr"],PWindow["wide"],PWindow["high"])
-
   
-
          SetWindowLayout()
-
   
-
       endif
-
-
 
     'TextWindow.WriteLine("THISLEG:"+ThisLeg+" MAXLEG:"+MaxLeg)
-
     TurnTo=Array[ThisLeg]["TurnTo"]
-
     Course=Array[ThisLeg]["Course"]
-
     RunTime=Array[ThisLeg]["RunTime"]
-
     LegMin=Array[ThisLeg]["LegMin"]
-
     LegSec=Array[ThisLeg]["LegSec"]
-
     SecondsPerBlock=Array[ThisLeg]["SecondsPerBlock"]
-
     NextLeg=Array[ThisLeg]["NextLeg"]
-
     NextCourse=Array[ThisLeg]["NextCourse"]
-
     NextRunTime=Array[ThisLeg]["NextRunTime"]
-
     Lat=Array[ThisLeg]["Lat"]
-
     Lon=Array[ThisLeg]["Lon"]
-
     TurnPoint=Array[ThisLeg]["TurnPoint"]
-
     TextWindow.WriteLine("THISLEG:"+ThisLeg+" turnpoint:"+TurnPoint)
-
     LegInSecTotal=Math.Floor(Array[ThisLeg]["LegInSecTotal"])
-
       
-
       'CLEAR UPPER MESSAGE WINDOW
-
       GraphicsWindow.BrushColor = "SlateGray"
-
       GraphicsWindow.FillRectangle(UpperMessage["ulx"],UpperMessage["ulr"],UpperMessage["wide"],UpperMessage["high"])
-
       'CLEAR TURN MESSAGE WINDOW
-
       GraphicsWindow.BrushColor = "SlateGray"
-
       GraphicsWindow.FillRectangle(TurnMessage["ulx"],TurnMessage["ulr"],TurnMessage["wide"],TurnMessage["high"])
-
       
-
       SetSARCONWindowParameters()
-
       LegMessage()
-
   endif
-
 EndFor 
-
   
-
 EndSub
-
     
-
 Sub CountdownTime
-
   'GraphicsWindow.ShowMessage("COUNT","SUB ")
-
   ClearBox=0
-
   'TextWindow.WriteLine("Countdown")
-
   
-
   ElapsedSeconds=0
-
   NextBlockSeconds=0
-
   GraphicsWindow.BrushColor = "Gray"
-
   GraphicsWindow.FillRectangle(CWindow["ulx"],CWindow["ulr"],CWindow["wide"],CWindow["high"])
-
   GraphicsWindow.PenColor = "Cyan"
-
   'GraphicsWindow.FontSize=200
-
   IsAtTurn=0
-
   'TextWindow.WriteLine("LEG: "+ThisLeg+" sec "+Array[ThisLeg]["LegInSecTotal"])
-
   Turtle.Angle=Array[ThisLeg]["Course"]
-
   Turtle.PenDown()
-
   Turtle.Move(Array[ThisLeg]["LegInSecTotal"]) ' LegInSecTotal)
-
   tx=Turtle.X
-
   ty=Turtle.y
-
   GraphicsWindow.BrushColor = "Cyan"
-
   GraphicsWindow.FontSize=12
-
   
-
   showwpt=ThisLeg
-
     If ThisLeg=0 then 
-
         showwpt="IP"
-
     EndIf
-
     
-
     If ThisLeg=1 then
-
         showwpt="CSP"
-
       endif
-
   
-
   GraphicsWindow.DrawText(tx,ty,showwpt)
-
   
-
   Turtle.Hide()
-
   'While QuitRun="False"
-
     For LegMin = LegMin To 0 Step -1 
-
      For LegSec = LegSec To 0 Step -1
-
   
-
        Program.Delay(500)
-
     
-
        TimeText=LegMin + ":" + LegSec
-
         GraphicsWindow.BrushColor = "Gray" ' clears last message
-
         GraphicsWindow.FillRectangle(CWindow["ulx"],CWindow["ulr"]-10,CWindow["wide"],CWindow["high"])
-
         If IsAtTurn=1 then 
-
             GraphicsWindow.BrushColor = "Red"
-
          else 
-
             GraphicsWindow.BrushColor = "Cyan"
-
           endif ' writes this count
-
     
-
       GraphicsWindow.FontSize=TimerTextsize
-
       GraphicsWindow.DrawText(CWindow["ulx"],CWindow["ulr"]-10,TimeText)
-
       ElapsedSeconds=Math.Floor(ElapsedSeconds+1)
-
       NextBlockSeconds=NextBlockSeconds+1
-
       'TextWindow.WriteLine("NBS:"+NextBlockSeconds+" SPB:"+SecondsPerBlock)
-
       SecToGo=Math.Floor(LegInSecTotal-ElapsedSeconds)
-
       'TextWindow.WriteLine("LIS:"+LegInSecTotal+" elapsed:"+ElapsedSeconds)
-
       'Turtle.Move(3)
-
       ' TextWindow.WriteLine("HeadStart:"+AudioHeadStart+" "+SecToGo + " of " +LegInSecTotal + " elapsed " + ElapsedSeconds )
-
       'TextWindow.WriteLine("SECTOGO:" +SecToGo + " of " +LegInSecTotal + " TurnTo " + TurnPoint)
-
    
-
    If SecToGo=AudioHeadStart then
-
         OnTheFives=(math.floor(NextCourse/5))*5
-
         
-
         If TurnTo="E" then 
-
          thissoundpath="c:\auxsar\captain\"+"finalleg.wma"
-
         endif
-
         If TurnTo="C" then 
-
          thissoundpath="c:\auxsar\captain\"+"continue.wma"
-
         endif
-
         If TurnTo="R" then
-
           thissoundpath="c:\auxsar\captain\"+TurnTo+OnTheFives+".wma"
-
         endif
-
         
-
         'TextWindow.WriteLine(thissoundpath)
-
         Sound.Stop(thissoundpath)
-
         Sound.Play(thissoundpath)
-
         
-
       
-
     endif
-
       'TextWindow.WriteLine("STG:"+SecToGo+" TP:"+TurnPoint)
-
       If SecToGo=TurnPoint then
-
         lml=LeftWindowMargin
-
         lmh=wh-45
-
         GraphicsWindow.BrushColor = "Blue"
-
         GraphicsWindow.FontSize=35
-
         If TurnTo="C" then 
-
           DirText="CONTINUE" 
-
           DirTextWidth=200 
-
           TurnText=" on LEG " 
-
           TurnTextWidth=150
-
         endif
-
         If TurnTo="E" then 
-
           DirText="FINAL LEG"
-
           DirTextWidth=220
-
           TurnText = " "
-
           TurnTextWidth=100
-
         endif
-
         if TurnTo = "L" then
-
           DirText="Turn"
-
           DirTextWidth=110 
-
           TurnText = "Left Leg "
-
           TurnTextWidth=175 
-
           endif
-
          if TurnTo = "R" then 
-
            DirText="Turn"
-
            DirTextWidth=110
-
            TurnText = "Right Leg "
-
            TurnTextWidth=175
-
           endif
-
         'lml=lml+DirTextWidth
-
         GraphicsWindow.BrushColor = "Cyan"
-
         GraphicsWindow.DrawText(lml,lmh,DirText)
-
   
-
         lml=lml+DirTextWidth
-
         GraphicsWindow.BrushColor = "Red"
-
         GraphicsWindow.DrawText(lml,lmh,TurnText)
-
         
-
         lml=lml+TurnTextWidth
-
         GraphicsWindow.BrushColor = "Cyan"
-
         GraphicsWindow.DrawText(lml,lmh,NextLeg) 
-
         
-
   
-
         lml=lml+40
-
         GraphicsWindow.BrushColor = "Red"
-
         GraphicsWindow.DrawText(lml,lmh," CRS ") 
-
         
-
         lml=lml+100
-
         GraphicsWindow.BrushColor = "Cyan"
-
         GraphicsWindow.DrawText(lml,lmh,NextCourse + "°") 
-
         
-
         ' GraphicsWindow.DrawText(LeftWindowMargin,wh-45,DirText+" "+TurnText+" LEG " + NextLeg + " CRS "+NextCourse)
-
         
-
         IsAtTurn=1
-
        
-
       endif
-
     'endif
-
       
-
     'TextWindow.WriteLine("NBS:"+NextBlockSeconds+" SPB:"+SecondsPerBlock)
-
     If NextBlockSeconds=SecondsPerBlock Then
-
       NextBlockSeconds=0
-
       ClearBox=ClearBox+1
-
       GraphicsWindow.BrushColor = "blue" 
-
       GraphicsWindow.FillRectangle((((ClearBox )*(ProgBlockWidth))+progblockspacer),CountDownBoxAtY,ProgBlockWidth,ProgBlockHeight)
-
     Endif
-
 Endfor
-
   'Sound.PlayChime()
-
 LegSec=59
 
-
-
 Endfor
-
 EndSub
-
-
 
 Sub OnTextInputInRun
-
 EndSub
 
-
-
 Sub OnNavKeyDownInRun
-
   
-
  navkey = GraphicsWindow.LastKey ' get the character entered
-
  'TextWindow.WriteLine("NAVKEYDOWNINRUN:"+navkey)
 
-
-
   If navkey="Escape" Then
-
     QuitRun="True"
-
     'TextWindow.WriteLine("NAVKEYDOWNINRUN:"+QuitRun)
-
   endif
-
 EndSub 
-
-
-
 
 
 Sub Setup
-
   ' Set Default paths
-
   ww=800
-
   wh=600
-
   
-
   NumberOfPatternEntryValues=11
-
   
-
   LeftWindowMargin=25
-
   TA=LeftWindowMargin
-
   MGY=20
-
   
-
   progblockspacer=2  
-
   progblockincrements=10
-
   
-
   progblockwidth=(ww-75)/progblockincrements
-
   If ProgBlockWidth>50 then
-
     progblockwidth=50
-
     endif
-
   'TextWindow.WriteLine("blockwidth:"+progblockwidth)
-
   progblockheight=progblockwidth
-
   CountDownBoxAtY=WH-(progblockheight*2)
-
   
-
   Pattern["PatternName"]="default"
-
   
-
   datapath="c:\auxsar\captain\"
-
   TimerTextSize=100
-
   
-
   patternfilesuffix=".pattern"
-
   legdatasuffix=".txt"
-
   legdatafile=datapath+"sarcon"+legdatasuffix
-
   imin=ImageList.LoadImage("c:\auxsar\captain\background.gif")
-
   iw=ImageList.GetWidthOfImage(imin)
-
   ih=ImageList.GetHeightOfImage(imin)
 
 
-
-
-
   ain=Program.ArgumentCount
-
   If ain>0 then
-
     TextWindow.WriteLine("ain:"+ain)
-
     TextWindow.Pause()
-
     ww=Program.GetArgument(1)
-
     wh=Program.GetArgument(2)
-
     TextWindow.WriteLine("ww:"+ww+"wh:"+wh)
-
     TextWindow.Pause()
-
   endif
-
   
-
 EndSub
-
-
 
 Sub SelectPatternFromList
-
   
-
   patternfile=datapath+Pattern["PatternName"]+patternfilesuffix 
-
   
-
 ' The following line could be harmful and has been automatically commented.
-
 '   lof=File.GetFiles(datapath)
-
   'TextWindow.WriteLine("FILE: "+lof)
-
   lofitems=Array.GetItemCount(lof)
-
   'TextWindow.WriteLine("Patterns: "+lofitems)
-
   'Read array of file names in datapath
-
   'Create new array with only .sarcon files
-
   GraphicsWindow.Clear()
-
   NumberOfPatternFiles=0
-
   'TextWindow.WriteLine("SELECT: "+lofitems)
-
 For items = 1 to lofitems
-
   thisfile=Text.ConvertToLowerCase(lof[items])
-
   'TextWindow.WriteLine("thisfile: "+thisfile)
-
   If Text.EndsWith(thisfile,patternfilesuffix)="True" then
-
     NumberOfPatternFiles=NumberOfPatternFiles+1
-
           ldf=lof[items]
-
           stlen=Text.GetLength(ldf)
-
           suffixlen=Text.GetLength(patternfilesuffix)
-
           ldfn=Text.GetSubText(ldf,1,stlen-suffixlen)  
-
           jtfn=Text.GetSubTextToEnd(ldfn,Text.GetLength(datapath)+1)
-
          
-
           PatternList[NumberOfPatternFiles]=jtfn
-
         
-
           'TextWindow.WriteLine("Pattern: "+PatternList[n])
-
           'TextWindow.Pause()
-
     endif
-
     'TextWindow.WriteLine("FILE: "+lof[items])
-
     
-
   Endfor
-
   tlinex=50
-
   liney=5
-
   LineSpace=30
-
   For pap = 1 to NumberOfPatternFiles ' pick a pattern
-
     liney=liney+(LineSpace-8)
-
     
-
     Option[pap] = Controls.AddCheckBox(PatternList[pap])
-
     
-
     Controls.SetBorderColor(Option[pap],"Red")
-
     Controls.SetBackground(Option[pap],"Cyan")
-
     Controls.SetHeight(Option[pap],100)
-
     Controls.Move(Option[pap],tlinex,liney) ' +(LineSpace/4))  
-
   Endfor
-
   
-
   'GraphicsWindow.MouseDown = OnMouseDown
-
   'WaitToGoon()
-
   WaitForTextInput()
-
   
-
   TextWindow.WriteLine("WAIT navkeyin: "+Text.GetCharacterCode(char)) 
-
   If Text.GetCharacterCode(char)=27 then
-
     GraphicsWindow.Clear()
-
     Program.End()
-
   endif
-
   For whichone = 1 to NumberOfPatternFiles
-
       'TextWindow.WriteLine("GET Which One: "+whichone)   
-
       'TextWindow.Pause()
-
       If Controls.GetChecked(Option[whichone]) = "True" Then
-
           'TextWindow.WriteLine("CONTROL: "+Option[whichone]+" line "+PatternList[whichone])
-
           ldf=PatternList[whichone]
-
           Pattern["PatternName"]=ldf
-
       endif
-
   endfor
-
   
-
   'TextWindow.WriteLine("LEGS FILE IS: "+LegDataFile)   
-
   'TextWindow.Pause()
-
   GraphicsWindow.Clear()
-
   'TextWindow.WriteLine("Load Selected Pattern"+Pattern["PatternName"])
-
   LoadSelectedPatternParameters()
-
   WhichField=0
-
   DrawPatternDataBox()
-
   DisplayPatternParameters()
-
   
-
   WaitForTextInput()
-
   
-
-
 
 EndSub
-
-
 
 Sub LoadSelectedPatternParameters
-
   'TextWindow.WriteLine("Load Selected Parameters")
 
-
-
   
-
   ftread=datapath+Pattern["PatternName"]+patternfilesuffix ' datasuffix
-
   'TextWindow.WriteLine("LOAD: "+ftread)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   stin = File.ReadLine(ftread, 1) ' *60
-
   'TextWindow.WriteLine(recordin)
-
   stinlength=Text.GetLength(stin)
-
   thisfield=0
-
   'GraphicsWindow.ShowMessage(recordin,"PARSE "+patternleg)
-
   Goon="True"
-
   While Text.GetLength(stin)>0 And goon
-
     
-
     FieldAt = Text.GetIndexOf(stin,",")
-
     'TextWindow.WriteLine("Field At: "+fieldat+" stin "+stin)
-
     'TextWindow.Pause() 
-
     If FieldAt>0 then
-
       thisfield=thisfield+1
-
       fields[thisfield]=Text.GetSubText(stin,1,FieldAt-1)
-
       stin=Text.GetSubTextToEnd(stin,FieldAt+1)
-
       stinlength=Text.GetLength(stin)
-
     else
-
       goon="False"  
-
     endif
-
     ' TextWindow.WriteLine("Length: "+stinlength+" contents "+fields[thisfield]+":"+thisfield+":"+" comma at "+fieldat+" stin "+stin)
-
     'TextWindow.Pause() 
-
     
-
   EndWhile  
-
   
-
   'TextWindow.WriteLine("THIS LEG="+fields[1])
-
   
-
   PatternName=fields[1]
-
   Speed=fields[2]
-
   PatternType=fields[3]
-
   CSPLat=fields[4]
-
   CSPLon=fields[5]
-
   MajorAxis=fields[6]
-
   TurnTo=fields[7]
-
   TrackLength=fields[8]
-
   TrackSpace=fields[9]
-
   
-
   Pattern["PatternName"]=fields[1]
-
   Pattern["Speed"]=fields[2]
-
   Pattern["PatternType"]=fields[3]
-
   Pattern["CSPLat"]=fields[4]
-
   Pattern["CSPLon"]=fields[5]
-
   Pattern["MajorAxis"]=fields[6]
-
   Pattern["TurnTo"]=fields[7]
-
   Pattern["TrackLength"]=fields[8]
-
   Pattern["TrackSpace"]=fields[9]
-
   Pattern["Radius"]=fields[10]
-
   Pattern["Legs"]=fields[11]
-
   ListOfFields=Array.GetAllIndices(Pattern)
-
   'TextWindow.WriteLine("LOADED="+ListOfFields)
-
   
-
 EndSub
 
-
-
 Sub DrawPatternDataBox
-
 'TextWindow.WriteLine("DRAW BOX")
-
-
 
 GraphicsWindow.Clear()
 
-
-
 SRT=3
-
 DegreesToTurn=90
-
 linespace=26
-
 'NumberOfPatternEntryValues=10
 
-
-
 PBox["ulx"]=10
-
 PBox["uly"]=0
-
 PBox["Height"]=(NumberOfPatternEntryValues+2)*(linespace+4) ' 300
-
 PBox["Width"]=400
-
 PBox["PBAR"]=160
-
 PBox["VBAR"]=170
-
 PBox["HT"]=150
 
-
-
 linex=PBox["ulx"]+10
-
 liney=PBox["uly"]+20
 
-
-
 'Pointer=Shapes.AddTriangle((tx+0),(ty+12),(tx+12),(ty+12),(tx+6),(ty+0))
-
 'GraphicsWindow.BackgroundColor="Red"
-
 GraphicsWindow.PenColor="Red"
-
 GraphicsWindow.BrushColor="Red"
-
 Pointer=Shapes.AddTriangle(0,0,0,12,12,6)
-
    
-
 Shapes.Move(Pointer,PBox["PBAR"],Pattern[WhichField]["VL"]+8)
-
 x=Shapes.GetLeft(Pointer)
-
 y=Shapes.GetTop(Pointer)
 
-
-
 GraphicsWindow.Width=(PBox["Width"])
-
 GraphicsWindow.Height=(PBox["Height"])
-
 GraphicsWindow.FontName="Times New Roman"
-
 GraphicsWindow.PenWidth=1
-
 GraphicsWindow.FontSize=24
-
 GraphicsWindow.PenColor="Gray"
-
 'GraphicsWindow.Show()
 
-
-
 'liney=PBox["uly"]
-
 'For NumberOfValues = 1 to NumberOfPatternEntryValues
-
 '  liney=liney+30
-
  ' GraphicsWindow.Drawline(PBox["ulx"],liney,PBox["width"],liney)
-
 'Endfor
 
-
-
 'GraphicsWindow.DrawRectangle(PBox["ulx"],PBox["uly"],PBox["Width"],PBox["Height"])
-
 'GraphicsWindow.DrawLine(PBox["VBAR"],PBox["uly"],PBox["VBAR"],PBox["Height"])
-
 GraphicsWindow.Show()
-
-
 
 'TextWindow.WriteLine("DRAW BOX")
 
-
-
 linespace=30
-
 liney=PBox["uly"]-linespace
-
 tlinex=linex+150
-
 tx=0
-
 ty=0
-
 'TextWindow.WriteLine("TTR:"+tlinex+" Y: "+liney)
-
 'TextWindow.WriteLine("END BOX")
 
 
-
-
-
 EndSub
-
-
 
     
-
 Sub DefineImageObjects
-
   'TextWindow.WriteLine("define image objects: ")  
-
   GraphicsWindow.BrushColor="Red"
-
   RedTriangle=Shapes.AddTriangle(0,24,24,24,12,0)
-
   TextWindow.WriteLine("ADD Red Triangle")
-
   
-
   GraphicsWindow.BrushColor="Green"
-
   GreenSquare=Shapes.AddRectangle(24,24)
-
   
-
 Endsub
 
-
-
 Sub LegMessage
-
   'TextWindow.WriteLine("LEG MESSAGE: ")
-
   
-
   TA=LeftWindowMargin
-
   MGY=20
-
   
-
   GraphicsWindow.BrushColor = "RED"
-
   GraphicsWindow.PenColor = "cyan"
-
   For xxx = 1 to progblockincrements step 1
-
     GraphicsWindow.DrawRectangle(((xxx)*(ProgBlockWidth))+progblockspacer,CountDownBoxAtY,ProgBlockWidth,ProgBlockHeight)
-
     GraphicsWindow.FillRectangle(((xxx)*(ProgBlockWidth))+progblockspacer,CountDownBoxAtY,ProgBlockWidth,ProgBlockHeight)
-
   Endfor
-
   'TextWindow.WriteLine("Create: ")  
-
   TL=100
-
   'TA=TA ' +TL
-
   GraphicsWindow.BrushColor = "Cyan"
-
   If thisleg=0 then
-
       'GraphicsWindow.ShowMessage("DO IP","LEG: "+ thislegis + " MGY " + MGY)
-
       GraphicsWindow.DrawText(TA,MGY,"IP-CSP Leg ")
-
       TA=TA+45
-
   endif
-
   If thisleg>0 then
-
      GraphicsWindow.DrawText(TA,MGY,"ON LEG ")
-
   endif
-
   
-
   TA=TA+TL+20
-
   GraphicsWindow.BrushColor = "Red"
-
   GraphicsWindow.DrawText(TA,MGY,thisleg)
-
   
-
   TA=TA+20
-
   GraphicsWindow.BrushColor = "Cyan" 
-
   GraphicsWindow.DrawText(TA,MGY,"CRS ")
-
  
-
   TA=TA+60
-
   GraphicsWindow.BrushColor = "Red" 
-
   GraphicsWindow.DrawText(TA,MGY,Course + "°")
-
   
-
   TA=TA+50
-
   GraphicsWindow.BrushColor = "Cyan"
-
   GraphicsWindow.DrawText(TA,MGY,"for ")
-
   
-
   TA=TA+40
-
   GraphicsWindow.BrushColor = "Red"
-
   ft=RunTime
-
   FormatTime()
-
   GraphicsWindow.DrawText(TA,MGY,minandsec) ' ThisLegRunTime)
-
   
-
   TA=TA+60
-
   GraphicsWindow.BrushColor = "Cyan"
-
   GraphicsWindow.DrawText(TA,MGY,"m:s")
-
   
-
   TA=TA+20
-
   TA=LeftWindowMargin
-
   MGY=50
-
   GraphicsWindow.BrushColor = "Cyan"
-
   GraphicsWindow.DrawText(TA,MGY,"Then ")
-
   
-
   TA=TA+TL-30
-
   GraphicsWindow.BrushColor = "Red"
-
   GraphicsWindow.DrawText(TA,MGY,TurnTo)
-
   
-
   TA=TA+20
-
   GraphicsWindow.BrushColor = "Cyan"
-
   GraphicsWindow.DrawText(TA,MGY," on LEG ")
-
   
-
   TA=TA+TL
-
   GraphicsWindow.BrushColor = "Red"
-
   GraphicsWindow.DrawText(TA,MGY,NextLeg)
-
   
-
   TA=TA+40
-
   GraphicsWindow.BrushColor = "Cyan"
-
   GraphicsWindow.DrawText(TA,MGY,"CRS")
-
   
-
   TA=TA+60
-
   GraphicsWindow.BrushColor = "Red"
-
   GraphicsWindow.DrawText(TA,MGY,NextCourse + "°")
-
   
-
   TA=TA+60
-
   GraphicsWindow.BrushColor = "Cyan"
-
   GraphicsWindow.DrawText(TA,MGY,"for")
-
   
-
   TA=TA+40
-
   GraphicsWindow.BrushColor = "Red"
-
   ft=NextRunTime
-
   FormatTime()
-
   GraphicsWindow.DrawText(TA,MGY,minandsec) 'NextLegRunTime)
-
   
-
   TA=TA+60
-
   GraphicsWindow.BrushColor = "Cyan"
-
   GraphicsWindow.DrawText(TA,MGY,"m:s")
-
   
-
   CountdownTime()
-
   
-
 EndSub
-
-
-
 
 
 Sub LoadPatternLegsArray
-
   TextWindow.WriteLine("LOAD LEGS: "+LegDataFile)
-
   'TextWindow.Pause()
-
   
-
   Goon="True"
-
   for patternleg = 1 to 100 
-
 ' The following line could be harmful and has been automatically commented.
-
 '     recordin = File.ReadLine(LegDataFile, patternleg) ' *60
-
     'TextWindow.WriteLine("IN:"+recordin)
-
     
-
   If recordin = "End" then 
-
     patternleg=100
-
     goon="False"
-
   '   MaxLeg=patternleg
-
   '    GraphicsWindow.ShowMessage("END Complete", "LEG")
-
   '    'Program.End()
-
   endif
-
     'TextWindow.WriteLine(recordin)
-
     'ParseInput
-
     stin = recordin
-
     stinlength=Text.GetLength(stin)
-
     thisfield=0
-
   'GraphicsWindow.ShowMessage(recordin,"PARSE "+patternleg)
-
   
-
   While Text.GetLength(stin)>0 And goon="True"
-
     
-
     FieldAt = Text.GetIndexOf(stin,",")
-
       'TextWindow.WriteLine("Field At: "+fieldat)
-
       'TextWindow.Pause() 
-
       If FieldAt>0 then
-
         thisfield=thisfield+1
-
         fields[thisfield]=Text.GetSubText(stin,1,FieldAt-1)
-
         stin=Text.GetSubTextToEnd(stin,FieldAt+1)
-
         'TextWindow.WriteLine("FIELD: "+thisfield+" IS: "+fields[thisfield])
-
         'TextWindow.Pause()
-
         stinlength=Text.GetLength(stin)
-
       else
-
         goon="False"  
-
       endif
-
         ' TextWindow.WriteLine("Length: "+stinlength+" contents "+fields[thisfield]+":"+thisfield+":"+" comma at "+fieldat+" stin "+stin)
-
         
-
   EndWhile  
 
-
-
   'TextWindow.WriteLine("1:"+fields[1])
-
   'TextWindow.Pause() 
-
   'MaxLeg=fields[1]
-
   
-
   ThisLeg=fields[1]
-
   Array[ThisLeg]["ThisLeg"]=ThisLeg
-
   
-
   llin=fields[3]
-
   'TextWindow.WriteLine("3:"+fields[3])
-
   
-
     Array[ThisLeg]["LatInDegrees"]=llin
-
     'GetLatRange()
-
     FormatLL()
-
     Array[ThisLeg]["Lat"]=llout
-
       
-
   llin=fields[4]
-
   Array[ThisLeg]["LonInDegrees"]=llin
-
     'GetLonRange()
-
     FormatLL()
-
     Array[ThisLeg]["Lon"]=llout
-
     'TextWindow.WriteLine("LEG: "+Array[ThisLeg]["ThisLeg"]+" LAT: "+Array[ThisLeg]["Lat"]+" LON: "+Array[ThisLeg]["Lon"])
-
     
-
     Array[ThisLeg]["Course"]=fields[5]
-
     Array[ThisLeg]["leglength"]=fields[6]
-
   
-
   Array[ThisLeg]["RunTime"]=fields[7]
-
   
-
   'Array[ThisLeg]["RunTime"]=.50
-
   
-
     Array[ThisLeg]["LegInSecTotal"]=Array[ThisLeg]["RunTime"]*60
-
     'TextWindow.WriteLine("TotalSeconds:"+Array[ThisLeg]["LegInSecTotal"])
-
     LegMin=Math.Floor(Array[ThisLeg]["LegInSecTotal"]/60)
-
     Array[ThisLeg]["LegMin"]=LegMin
-
     'TextWindow.WriteLine("LegMin:"+Array[ThisLeg]["LegMin"])
-
     
-
     LegSec=Math.Floor(Array[ThisLeg]["LegInSecTotal"]-(LegMin*60))
-
     Array[ThisLeg]["LegSec"]=LegSec
-
     'TextWindow.WriteLine("LegSEC:"+Array[ThisLeg]["LegSec"])
-
     
-
     Array[ThisLeg]["SecondsPerBlock"]=Math.Floor(Array[ThisLeg]["LegInSecTotal"]/progblockincrements)
-
     'TextWindow.WriteLine("Seconds per block:"+Array[ThisLeg]["SecondsPerBlock"])
-
     
-
    Array[ThisLeg]["TurnTo"]=fields[8]
-
    Array[ThisLeg]["TurnPoint"]=fields[9]
-
    Array[ThisLeg]["NextLeg"]=fields[10]
-
    Array[ThisLeg]["NextCourse"]=fields[11] 
-
    Array[ThisLeg]["NextRunTime"]=fields[12] 
-
    AudioHeadStart=Array[ThisLeg]["TurnPoint"]+3
-
    
-
   'GraphicsWindow.ShowMessage("Turn at ",ThisLegTurnPoint + " of " + LegInSeconds )
-
 EndFor
-
   
-
   'TextWindow.WriteLine("RANGES:"+Lat["low"]+" "+Lat["high"]+" "+Lon["low"]+" "+Lon["high"])
-
   'PatWW=((Lat["high"]-Lat["low"])*60)
-
   'TextWindow.WriteLine("LAT miles:"+PatWW) ' +" perpixel "+patwwperpixel)
-
   
-
   ' PATTERN PIXELS PER MILE
-
   
-
   'PatPPM=PWindow["high"]/PatWW
-
   'TextWindow.WriteLine("LAT MIles:"+PatWW+" pixelspermile "+patppm) ' +" LON/Pixel:"+PatWH)
-
 EndSub
-
-
 
 Sub SetSARCONWindowParameters
-
   'GraphicsWindow.FontItalic
-
   
-
   'LeftWindowMargin=25
-
   TA=LeftWindowMargin
-
   MGY=20
-
   
-
   GraphicsWindow.BackgroundColor = "Gray"
-
   
-
   GraphicsWindow.Title="SARCON at " + Clock.Date + Pattern["PatternName"]
-
   GraphicsWindow.Width=ww
-
   GraphicsWindow.Height=wh
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "Green"
-
   GraphicsWindow.PenColor = "Gold"
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.FontName="Arial"
-
   GraphicsWindow.FontSize=24
-
   'TextWindow.WriteLine("graphic window parameters")
-
   'TextWindow.Pause()
-
 EndSub
 
-
-
 Sub SetWindowLayout
-
   UpperMessage["ulx"]=LeftWindowMargin-5
-
   UpperMessage["ulr"]=MGY-5
-
   UpperMessage["wide"]=ww-50
-
   UpperMessage["high"]=75
-
   
-
   TurnMessage["ulx"]=LeftWindowMargin-5
-
   TurnMessage["ulr"]=WH-50
-
   TurnMessage["wide"]=ww-50
-
   TurnMessage["high"]=50
-
   
-
   'PATTERN WINDOW BOUNDARIES
-
   
-
   TimeBlockWindow["ulx"]=LeftWindowMargin-20
-
   TimeBlockWindow["uly"]=wh-75
-
   TimeBlockWindow["wide"]=ww-75
-
   TimeBlockWindow["high"]=50
-
   
-
   PWindow["ulx"]=ww/2
-
   PWindow["ulr"]=UpperMessage["ulr"]+75 ' (wh/2)
-
   PWindow["wide"]=(ww/2)-75
-
   PWindow["high"]=(ww/2)-75 '(wh/2)-50
-
   PWindow["MidX"]=PWindow["ulx"]+(PWindow["wide"]/2)
-
   PWindow["MidY"]=PWindow["ulr"]+(PWindow["high"]/2)
-
   
-
   GraphicsWindow.PenWidth=1
-
   GraphicsWindow.PenColor="Red"
-
   GraphicsWindow.DrawRectangle(PWindow["ulx"],PWindow["ulr"],PWindow["wide"],PWindow["high"])
-
   Turtle.PenUp()
-
   'Turtle.MoveTo(Array[0]["Lat"],Array[0]["Lon"]) ' PWindow["MidX"],PWindow["MidY"])
-
   
-
   Turtle.MoveTo(PWindow["MidX"],PWindow["MidY"])
-
   'Turtle.PenDown()
-
   
-
   CWindow["ulx"]=50
-
   CWindow["ulr"]=WH/4
-
   CWindow["wide"]=200
-
   CWindow["high"]=110
-
   
-
   ' PATTERN WINDOW DIMENSIONS
-
   
-
   
-
   'TextWindow.WriteLine("Lat/Pixel:"+PatWW) ' +" LON/Pixel:"+PatWH)
-
 EndSub 
 
 
-
-
-
 Sub GiveFirstInstruction
-
   
-
   GraphicsWindow.CanResize="True"
-
   GraphicsWindow.Title="Instructions"
-
   GraphicsWindow.Height=200
-
   GraphicsWindow.Width=400
-
   gfiww=400
-
   GraphicsWindow.BackgroundColor="Gray"
-
   GraphicsWindow.BrushColor="Cyan"
-
   GraphicsWindow.PenWidth=1
-
   GraphicsWindow.FontName="Arial"
-
   GraphicsWindow.FontSize=14
-
   
-
   GraphicsWindow.Show()
-
   
-
   intext="Poll for current SRU position and provide a heading and distance to the IP and Report their arrival."
-
   intext1="IP Lat="+Array[0]["Lat"]+" Lon="+Array[0]["Lon"]
-
   intext2="Mouse click inside this window to BEGIN SARCON."
-
   
-
   GraphicsWindow.DrawBoundText(15,1,gfiww-50,intext)
-
   GraphicsWindow.FontSize=36
-
   GraphicsWindow.BrushColor="Red"
-
   GraphicsWindow.DrawBoundText(30,45,gfiww-50,intext1)
-
   GraphicsWindow.BrushColor="Cyan"
-
   GraphicsWindow.FontSize=14
-
   GraphicsWindow.DrawBoundText(15,150,gfiww-50,intext2)
-
   
-
   
-
   'GraphicsWindow.MouseDown = OnMouseDown
-
   WaitToGoon()
-
   GraphicsWindow.Clear()
-
   thissoundpath="c:\auxsar\captain\iptocsp.wma"
-
   Sound.Stop(thissoundpath)
-
   Sound.Play(thissoundpath)
-
   'Shapes.AddImage(imin)
-
   'Shapes.Zoom(imin,10,10)
-
   
-
   'GraphicsWindow.DrawResizedImage(imin,0,0,ww,wh)
-
   'GraphicsWindow.DrawRectangle(PWindow["ulx"],PWindow["ulr"],PWindow["wide"],PWindow["high"])
-
   Turtle.PenUp()
-
   Turtle.Speed=10
-
   CurrentCourse=Array[ThisLeg]["Course"]
-
   Reciprocal()
-
   Turtle.MoveTo(PWindow["MidX"],PWindow["MidY"])
-
   Turtle.Hide()
-
   Turtle.PenUp()
-
   Turtle.Angle=CurrentCourse
-
   Turtle.Move(Array[ThisLeg]["LegInSecTotal"])
-
   CurrentCourse=Array[ThisLeg]["Course"]
-
   Turtle.Angle=CurrentCourse
-
   GraphicsWindow.DrawRectangle(PWindow["ulx"],PWindow["ulr"],PWindow["wide"],PWindow["high"])
-
   
-
 EndSub
-
-
 
 Sub FormatLLtoDegrees
-
   'Given LL in Degrees and Decimal Minutes
-
   ' Calculate Decimal Degrees
-
   
-
   'INPUT Value is in Variable lldam (lat/lon in degrees and minutes)
-
   
-
   DecimalDegrees=0
-
   IsFirstDelimiter="False"
-
   splitat=0
-
   For xyx = 1 To Text.GetLength(lldam)
-
     tc=Text.GetSubText(lldam,xyx,1)
-
     If tc = "°" Or tc = "-" Or tc = " " Or tc = "d" Or tc = "D" or tc="'" then
-
         If IsFirstDelimiter="False" then
-
           splitat=xyx
-
           IsFirstDelimiter="True"
-
           endif
-
     endif
-
    endfor
-
  
-
   If splitat=0 then
-
        lp=lldam
-
        rp=0
-
    else    
-
       lp=Text.GetSubText(lldam,1,splitat-1)
-
       rp=Text.GetSubTextToEnd(lldam,Splitat+1)
-
   endif
-
   decimalminutes=rp/60
-
   dd=lp+decimalminutes
-
   DecimalDegrees=Text.GetSubText(dd,1,7)
-
   
-
   'TextWindow.WriteLine("IN:"+lldam+" OUT="+decimaldegrees)
-
   
-
 Endsub
-
-
 
 Sub CreateSquare
-
   TextWindow.WriteLine("CREATE SQUARE: track= "+tracklength)
-
   
-
   legdatasuffix=".txt"
-
   ClearOutputFile()
-
   'TextWindow.WriteLine("SQUARE: track= "+tracklength)
-
   SRT=3
-
   DegreesToTurn=90
-
   CalculateTurnPoint()
-
   'turnadvanceinseconds is returned
-
   
-
   currentcourse=Pattern["MajorAxis"]
-
   tracklength=Pattern["TrackLength"]
-
   'leglat=Pattern["CSPLat"]
-
   'leglon=Pattern["CSP:on"]
-
   
-
   'Pattern["Legs"]=20 
-
   
-
   If Pattern["TurnTo"]="R" then
-
       coursechange=90
-
       TurnTo="R"
-
       endif
-
   If Pattern["TurnTo"]="L" then
-
       coursechange=-90
-
       TurnTo="L"
-
       endif
-
   
-
   thisleg=0
-
   CreateInitialPoint()
-
   
-
   currentcourse=Pattern["MajorAxis"]
-
   tracklength=Pattern["TrackLength"]
-
   lldam=Pattern["CSPLat"]
-
   FormatLLtoDegrees()
-
   LAT=DecimalDegrees ' Pattern["CSPLat"]
-
   LegLAT=LAT ' Pattern["CSPLat"]
-
   lldam=Pattern["CSPLon"]
-
   FormatLLtoDegrees()
-
   LON=DecimalDegrees ' Pattern["CSPLon"]
-
   LegLON=LON ' Pattern["CSPLon"] 
-
   
-
   For ThisLeg = 1 to Pattern["Legs"]
-
   'TextWindow.WriteLine("THIS LEG:"+ThisLeg)
-
   
-
   If thisleg=1 Or thisleg=2 Then 
-
     leglength=tracklength
-
     endif
-
   If thisleg=3 Or thisleg=4 Then 
-
       leglength=tracklength*2 
-
   endif
-
   If thisleg=5 Or thisleg=6 Then 
-
         leglength=tracklength*3
-
      endif
-
   If thisleg=7 Or thisleg=8 Then 
-
     leglength=tracklength*4
-
   endif
-
   If thisleg=9 Or thisleg=10 Then 
-
     leglength=tracklength*5
-
   endif
-
   If thisleg=11 Or thisleg=12 Then 
-
     leglength=tracklength*6
-
   endif
-
   If thisleg=13 Or thisleg=14 Then 
-
     leglength=tracklength*7
-
   endif
-
   If thisleg=15 Or thisleg=16 Then 
-
     leglength=tracklength*8
-
   endif
-
   If thisleg=17 Or thisleg=18 Then 
-
     leglength=tracklength*9
-
   endif
-
   If thisleg=19 Or thisleg=20 Then 
-
     leglength=tracklength*10
-
   endif
-
   If thisleg=21 Or thisleg=22 Then 
-
     leglength=tracklength*11
-
   endif
-
   If thisleg=23 Or thisleg=24 Then 
-
     leglength=tracklength*12
-
   endif
-
   ' NOW BUILD ARRAY OF PARAMETERS FOR EACH LEG
-
   'SS[thisleg]["Heading"]=CurrentCourse
-
   
-
   CalcLegRunTime()
-
   
-
   SS[thisleg]["leg"]=thisleg
-
   SS[thisleg]["LAT"]=LAT
-
   SS[thisleg]["LON"]=LON
-
   SS[thisleg]["thiscourse"]=currentcourse
-
   SS[thisleg]["leglength"]=leglength
-
   SS[thisleg]["runtime"]=legrunminutes
-
   SS[thisleg]["TurnTo"]=TurnTo
-
   SS[thisleg]["secondsbefore"]=turnadvanceinseconds
-
   SS[thisleg]["NextLeg"]=thisleg+1
-
   
-
   If ThisLeg>0 Then
-
      NewCourse()
-
    endif
-
    
-
   SS[thisleg]["nextcourse"]=currentcourse
-
   SS[thisleg]["nextruntime"]=34
-
      
-
   'leglat, leglon,leglength,currentcourse
-
   QuadrantAdjustment()
-
   leglat=LAT
-
   leglon=LON 
 
-
-
   GetLLExtents()
-
   
-
   SS[thisleg]["End"]="End"
-
   
-
   WriteSSFile()
-
    
-
   'TextWindow.WriteLine("LEG:"+ThisLeg+" Length:"+leglength+" @ "+SS[ThisLeg]["Heading"]+"° LAT "+SS[ThisLeg]["LAT"]+" LON: "+SS[ThisLeg]["LON"]) 
 
-
-
 EndFor
-
   CloseOutputFile()
-
 EndSub
-
-
 
 Sub ClearOutputFile
-
   TextWindow.WriteLine("CLEAR OUTPUT "+legdatafile)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.DeleteFile(legdatafile)
-
   patternfilestring=""
-
 EndSub
-
 Sub CloseOutputFile
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.AppendContents(legdatafile,"End")
-
 EndSub
-
-
 
 Sub WriteSSFile
-
   SSIndexes=Array.GetAllIndices(SS[thisleg])
-
   'TextWindow.WriteLine("INDEXES:"+SSIndexes)
-
   'Array.GetItemCount(SS)
-
   'TextWindow.WriteLine(Array.GetItemCount(SS[thisleg]))
-
   patternfilestring=thisleg+","
-
   For xyx = 1 to Array.GetItemCount(SS[thisleg])
-
     patternfilestring=patternfilestring+SS[thisleg][SSIndexes[xyx]]+","
-
     'TextWindow.WriteLine("ITEM: "+xyx+" "+SS[thisleg][SSIndexes[xyx]])   
-
   Endfor
-
   
-
   'TextWindow.WriteLine(patternfile)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.AppendContents(legdatafile,patternfilestring)
-
   'TextWindow.WriteLine("LEGS:"+patternfilestring)
-
   
-
 Endsub
-
-
 
 Sub CreateInitialPoint
-
   
-
   ' thisleg =0 for IP and CSP
-
   'Create IP from Reciprocal and label as leg 0
-
   
-
   currentcourse=Pattern["MajorAxis"]
-
   Reciprocal()
-
   lldam=Pattern["CSPLat"]
-
   FormatLLtoDegrees()
-
   LegLAT=DecimalDegrees ' Pattern["CSPLat"]
-
   lldam=Pattern["CSPLon"]
-
   FormatLLtoDegrees()
-
   LegLon=DecimalDegrees ' Pattern["CSPLon"]
-
   'LegLat=Pattern["CSPLat"]
-
   'LegLon=Pattern["CSPLon"]
-
   CalcIPLegLength()
-
   leglength=IpLegLength
-
   'IPLegLength
-
   CalcLegRunTime()
-
   'TextWindow.WriteLine("IP before: "+LegLAT+" lon: "+leglon)
-
   QuadrantAdjustment()
-
   'TextWindow.WriteLine("IP after: "+LegLAT+" lon: "+leglon)
-
   
-
   'SOG=Pattern["Speed"]
-
   'CalcIPLegLength()
-
   
-
   
-
   SS[0]["leg"]=0
-
   SS[0]["LAT"]=LAT
-
   SS[0]["LON"]=LON
-
   SS[0]["thiscourse"]=Pattern["MajorAxis"]
-
   SS[0]["leglength"]=IPLegLength
-
   SS[0]["runtime"]=legrunminutes
-
   SS[0]["turnto"]="C"
-
   SS[0]["secondsbefore"]=turnadvanceinseconds
-
   SS[0]["NextLeg"]=thisleg+1
-
   SS[0]["nextcourse"]=Pattern["MajorAxis"]
-
   SS[0]["nextruntime"]=34
-
   SS[0]["End"]="End"
-
   'SS[thisleg]["Heading"]=Pattern["MajorAxis"]
-
   
-
   currentcourse=Pattern["MajorAxis"]
-
   LegLat=Pattern["CSPLat"]
-
   LegLon=Pattern["CSPLon"]
-
   TextWindow.WriteLine("LEG:"+ThisLeg+" Length:"+SS[thisleg]["leglength"]+" @ "+SS[ThisLeg]["Heading"]+"° LAT "+SS[ThisLeg]["LAT"]+" LON: "+SS[ThisLeg]["LON"]) 
-
   WriteSSFile()
-
   
-
 Endsub
-
-
 
 Sub NewCourse
-
   currentcourse=currentcourse+coursechange
-
   If currentcourse>=360 then 
-
     currentcourse=currentcourse-360 
-
     endif
-
     If currentcourse<0 Then 
-
     currentcourse=currentcourse+360 
-
   endif
-
 EndSub
-
-
 
 Sub CalcLegRunTime
-
   legrunminutes=(60*leglength)/Pattern["Speed"]
-
   legrunminutes=Text.GetSubText(legrunminutes,1,6)
-
 EndSub
-
-
 
 Sub DistanceInTime
-
   'SOG is speed
-
   'ttis is Travel Time in Seconds
-
   'Calculates DIT in nm
-
   'IPLegLength
-
   '_____________________
-
   ttis=60
-
   DIT=(Pattern["Speed"]*(TTIS/60))/60
-
 EndSub
-
 Sub SecondsInDistance
-
   
-
 EndSub
 
-
-
   
-
 Sub CalcIPLegLength
-
   SOG=Pattern["Speed"]
-
   If SOG<=12 then
-
     IPLegLength=(SOG*(60/60))/60
-
     endif
-
    If SOG>12 and SOG <= 35 then
-
     IPLegLength=(SOG*(120/60))/60
-
     endif
-
    If SOG>35 then
-
     IPLegLength=(SOG*(180/60))/60
-
   endif
-
   
-
   IPLegLength=Text.GetSubText(IPLegLength,1,6)
-
   
-
 Endsub
-
   
-
 Sub CalculateTurnPoint
-
   timetofullcircle=(360/SRT)/60 ' in Minutes
-
   flyingdistance=(Pattern["Speed"]/60)*timetofullcircle ' in NM
-
   radius=flyingdistance/(2*Math.Pi)
-
   diameter=2*radius
-
   arclength=degreestoturn*(Math.Pi/180)*radius
-
   Pattern["Radius"]=radius
-
   turnadvanceinseconds=Math.Round(((60*radius)/Pattern["Speed"])*60)
-
   
-
 EndSub
-
-
 
 Sub Reciprocal
-
   currentcourse=currentcourse+180
-
   If currentcourse>360 then
-
     currentcourse=currentcourse-360
-
   endif
-
 EndSub
-
-
 
 Sub QuadrantAdjustment
-
   'leglat
-
   'leglon
-
   'legLength: Distance Moved
-
   'currentcourse: Direction in Degrees
-
   
-
   Lat1=LegLat*(Math.Pi/180)
-
   Lon1=LegLon*(Math.Pi/180)
-
   d=LegLength*Math.Pi/(180*60)
-
   tc=(Math.Pi/180)*currentcourse
-
   
-
   NewLatinRadians=Math.ArcSin(Math.Sin(Lat1)*Math.Cos(d)+Math.Cos(lat1)*Math.Sin(d)*Math.Cos(tc))
-
   NewLoninRadians=Math.Remainder(Lon1-Math.ArcSin(Math.Sin(tc)*Math.Sin(d)/Math.Cos(newlatinradians))+Math.Pi,2*Math.Pi-Math.Pi)
-
   LAT=NewLatInRadians/(Math.Pi/180)
-
   LON=NewLonInRadians/(Math.Pi/180)
-
   'TextWindow.WriteLine("LAT: "+LAT+" LON: "+LON)
-
   LATDegrees=Math.Floor(LAT)
-
   LATMinutes=LAT-LATDegrees
-
   LONDegrees=Math.Floor(LON)
-
   LONMinutes=LON-LONDegrees
-
   'TextWindow.WriteLine("LAT Degrees: "+LATDegrees+"LAT Minutes: "+LATMinutes)
-
   LATMinutesDecimal=Text.GetSubText((LATMinutes*60),1,6)
-
   LONMinutesDecimal=Text.GetSubText((LONMinutes*60),1,6)
-
  
-
   'TextWindow.WriteLine("DEG: "+LATDegrees+" LAT MIN Decimal:"+LATMinutesDecimal)
-
   'LATMinutesDecimal=LATMinutes*60
-
   'TextWindow.WriteLine("DEG: "+LATDegrees+" JUST LAT MIN :"+LATMinutesDecimal)
-
   LATDDMMM=LATDegrees+"°"+" "+LATMinutesDecimal
-
   LONDDMMM=LONDegrees+"°"+" "+LONMinutesDecimal
-
   LAT=Text.GetSubText(LAT,1,7)
-
   LON=Text.GetSubText(LON,1,7)
-
   'TextWindow.WriteLine("LAT: "+LATDDMMM+" LON: "+LONDDMMM)
-
   'TextWindow.WriteLine("WAS:"+Text.GetSubText((FromLat),1,6)+" for: "+TrackLength+" nm Bearing: "+Bearing+" IS: "+LATDDMMM)
-
 EndSub
-
-
-
-
 
 
 
 Sub GetLonRange
-
   If llin<lonlow then 
-
     lonlow=llin
-
    'TextWindow.WriteLine("lonlow"+" "+lonlow) 
-
     endif
-
     If llin>lonhigh Then 
-
       lonhigh=llin
-
      'TextWindow.WriteLine("lonhigh"+" "+lonhigh) 
-
   endif
-
 Endsub
-
 Sub FormatTime
-
   ' takes FT as time in seconds and returns an Min:Seconds string
-
   toseconds=ft*60
-
   inminutes=Math.Floor(toseconds/60)
-
   inseconds=Math.Floor(toseconds-(inminutes*60))
-
   minandsec=inminutes + ":" + inseconds
-
   'GraphicsWindow.ShowMessage("Show",inminutes + ":" + inseconds )
-
 Endsub
-
 Sub FormatLL
-
   degreepart=Math.floor(llin)
-
   minutespart=Text.GetSubText(((llin-degreepart)*60),1,5)+"'"
-
   llout=degreepart+"°"+minutespart
-
   'TextWindow.WriteLine("Degree Part: "+degreepart+" MIN "+minutespart+" IS "+llout)
-
 EndSub
-
-
-
-
-
 
 
 

@@ -1,305 +1,152 @@
 'bouncing balls to illustrate a binomial distribution
-
 'Craig Hlady (Zeven Provincien) April 2010
 
-
-
 GraphicsWindow.Title = "Binomial distribution illustration"
-
 GraphicsWindow.Top = 10
-
 GraphicsWindow.Height = 900
-
 GraphicsWindow.Width = 800
-
 GraphicsWindow.BackgroundColor = "green"
 
-
-
 'set up pegs for balls to bounce off
-
 'this is somewhat modifiable - can try more or less rows of pegs
-
 'but need to manually adjust rowdist and window width to compensate
-
 '(for example rowdist = 100 and numrows = 5 works well
-
 xoffset = GraphicsWindow.Width/2 - 5
-
 rowdist = 80
-
 numrows = 6
 
-
-
 For j = 1 to numrows
-
   For i = 0 To (j-1)
-
     GraphicsWindow.DrawEllipse((xoffset+5)+i*100-((j-1)*50),j*rowdist+50,10,10)
-
   EndFor
-
   peg[j] = j*rowdist+30
-
 Endfor
-
-
 
 peg[numrows+1] = 640  'top of bin
-
 peg[numrows+2] = 839  'bottom of bin
 
-
-
 'draw bins and set them up for filling
-
 For i = 0 to numrows
-
   bin[i]["center"] = (xoffset+5)+i*100-((numrows-1)*50) - 45
-
   bin[i]["full"] = 0
-
   GraphicsWindow.DrawLine(bin[i]["center"]-30,630,bin[i]["center"]-10,650)
-
   GraphicsWindow.DrawLine(bin[i]["center"]-10,650,bin[i]["center"]-10,860)
-
   GraphicsWindow.DrawLine(bin[i]["center"]+10,650,bin[i]["center"]+10,860)
-
   GraphicsWindow.DrawLine(bin[i]["center"]-10,860,bin[i]["center"]+10,860)
-
   GraphicsWindow.DrawLine(bin[i]["center"]+10,650,bin[i]["center"]+30,630)
-
   
-
   'set up holding spot in each bin for up to 50 balls
-
   For j = 0 to 50 
-
     ballpos[i][j] = 839-((j-1)*10)
-
   Endfor
-
   
-
 Endfor
-
-
 
 totalballs = 60 'can add more but then bins could overflow, adjust ballpos math to compensate
-
 numballs = 1
-
 lowball = 1
-
 balltimerinterval = 25 'can play with this but too low a value makes things interesting
 
-
-
 'set up balls, properties, initial conditions
-
 For i = 1 to totalballs
-
   
-
   'adding some colour for fun -- obviously optional
-
   If Math.Remainder(i,3) = 0 Then
-
     GraphicsWindow.BrushColor = "Blue"
-
   ElseIf Math.Remainder(i,3)=1 then
-
     GraphicsWindow.BrushColor = "Red"
-
   Else
-
     GraphicsWindow.BrushColor = "Yellow"
-
   EndIf
-
   
-
   ball[i]["ball"] = Shapes.AddEllipse(20,20)
-
   Shapes.HideShape(ball[i]["ball"])
-
   ball[i]["binflag"] = "false"
-
   ball[i]["bin"] = 0
-
   vely0[i] = 0
-
   y[i] = 65
-
   velx0[i] = 0
-
   bounce[i] = 1
-
   Shapes.Move(ball[i]["ball"],xoffset,y[i])
-
   
-
 Endfor
-
-
 
 Shapes.ShowShape(ball[1]["ball"])
 
-
-
 Timer.Tick=OnTimer
-
 Timer.Interval=20
 
-
-
 a = 1200 'system gravity, try reducing by 10x for a more dreamy feel
-
 elasticity = 0.65 'need to lose some kinetic energy on each impact
-
 deltat = Timer.Interval / 1000
-
 ttime = 0
-
 'y = 1/2* at^2
-
 'v = v0 + at
 
-
-
 Sub OnTimer
-
   For i = lowball To numballs
-
     
-
     'calc velocity of ball i
-
     vely1[i] = vely0[i] + a * deltat
-
     y[i] = y[i] + 0.5 * (vely0[i] + vely1[i]) * deltat
-
     x[i] = x[i] + velx0[i] * deltat
-
     vely0[i] = vely1[i]
-
     
-
     If y[i] > peg[bounce[i]] Then 'ball bounces off a peg
-
       If bounce[i] < numrows+1 then
-
         vely0[i] = -vely0[i] * elasticity
-
         y[i] = peg[bounce[i]]
-
         
-
         'random bounce direction, left or right
-
         dir = Math.GetRandomNumber(2)
-
         
-
         'x-velocity calculated so ball will fall exactly on top of next peg
-
         If dir = 1 then
-
           velx0[i]=50/((-vely0[i]/a)+Math.SquareRoot((2*rowdist+(vely0[i]*vely0[i]/a))/a))
-
         Else
-
           velx0[i]=-50/((-vely0[i]/a)+Math.SquareRoot((2*rowdist+(vely0[i]*vely0[i]/a))/a))
-
         EndIf
-
         
-
         bounce[i]=bounce[i] + 1
-
         
-
       ElseIf bounce[i] = numrows+1 then 'ball enters bin
-
         
-
         velx0[i] = 0
-
         For j = 0 To numrows
-
           If ((x[i]+xoffset) > bin[j]["center"]-40) And ((x[i]+xoffset) < bin[j]["center"]+40) Then
-
             x[i]=bin[j]["center"]-(xoffset+10)
-
             ball[i]["bin"] = j
-
             bin[j]["full"]=bin[j]["full"]+1
-
           EndIf
-
         EndFor
-
         bounce[i]=bounce[i] + 1
-
         peg[bounce[i]]=ballpos[ball[i]["bin"]][bin[ball[i]["bin"]]["full"]]
-
         
-
       Else 'ball reaches bottom of bin
-
         vely0[i] = 0
-
         'y[i] = 839
-
         y[i]=ballpos[ball[i]["bin"]][bin[ball[i]["bin"]]["full"]]
-
         lowball = lowball + 1
-
         
-
       EndIf
-
       
-
     EndIf
-
     
-
     Shapes.Move(ball[i]["ball"],xoffset+x[i],y[i])
-
     
-
   EndFor
-
   
-
   ttime = ttime + deltat
-
   
-
   'add a ball at certain intervals
-
   If ttime > balltimerinterval*deltat Then
-
     numballs = numballs + 1
-
     Shapes.ShowShape(ball[numballs]["ball"])
-
     ttime = 0
-
     If numballs > totalballs Then
-
       numballs = totalballs
-
     EndIf
-
   EndIf
-
   
-
 EndSub
-
-
-
 

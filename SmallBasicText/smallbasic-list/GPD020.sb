@@ -1,3509 +1,1754 @@
 'Open ComPort 
-
 if ComPort.OpenPort("com5",115200) = "true" then
-
 While ("true")
 
-
-
 'Building the screen with layout image
-
 cycle = 0
-
 GraphicsWindow.Title = "Bankquay Railway"
-
 GraphicsWindow.Height = 700
-
 GraphicsWindow.Width = 900
-
 Controls.ButtonClicked = OnClick
 
-
-
 'Determine filepath
-
 ' The following line could be harmful and has been automatically commented.
-
 ' Path = File.GetSettingsFilePath()
-
 For i = Text.GetLength(Path) To 1 Step -1
-
   If Text.GetSubText(Path,i,1) = "\" Then
-
     Goto BuildPath
-
   EndIf
-
 EndFor
-
 BuildPath:
-
 For j = 1 to i
-
   ModelPath = Text.Append(ModelPath,Text.GetSubText(Path,j,1))
-
 Endfor
-
-
 
 'Load track image and write filepath     
-
 LayoutImage = ImageList.LoadImage (ModelPath + "tracklayout2.bmp")
-
 GraphicsWindow.DrawImage (LayoutImage, 0 , 0 )
-
 GraphicsWindow.DrawText (3,681,ModelPath)
 
-
-
 'Button: End program and store rundata
-
 bExit = Controls.AddButton("Stop en gegevens opslaan", 700,618)
 
-
-
 'Read unique blocks of origen, if not unique then 0 
-
 'Textformat in that file is "nn,nn vrije tekst"
-
 For i = 1 To 63
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Read = File.ReadLine(ModelPath+"BlokVanHerkomst.txt",i)
-
   Hb[i] = Text.GetSubText(Read,4,2)
-
 EndFor
-
-
 
 'Defining signal control positions on the screen
-
 For i = 0 To 63
-
   S[i] = 0 'Danger=0  Safe=1
-
   NS[i] = 1
-
   SK[i] = 0 'Not manual set=0  Manual set=1
-
   'Open block keys are set to 1 as default
-
   If (i>0 And i<5) Or i=28 Or i=29 Or i=34 Or i=40 Or i=42 Or i=45 Or i=47 Or (i>54 And i<59) Then
-
     SK[i]=1
-
   EndIf
-
   SL[i] = 0 'Red=0  Yellow=1  Green=2
-
   WS[i] = 0
-
   DIV[i] = 0
-
   NDIV[i] = 1
-
   RV[i] = 0
-
   NRV[i] = 1
-
   B[i] = 1
-
   SB[i]=1
-
   WB[i]=1
-
 EndFor
-
-
 
 'Signal Key Positions on screen read from SignalKey.txt
-
 Sn=0
-
 For i = 1 To 64
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Read = File.ReadLine(ModelPath+"SignalKey.txt",i)
-
   k=0
-
   For n = 1 To Text.GetLength (Read)
-
     If Text.GetSubText (Read,n,1) = "," Then
-
       k=k+1
-
       Kpos[k] = n
-
     EndIf
-
   EndFor
-
   Sn = Text.GetSubText (Read,1,Kpos[1]-1)
-
   XposSK[Sn] = Text.GetSubText (Read,Kpos[1]+1,Kpos[2]-Kpos[1]-1)
-
   YposSK[Sn] = Text.GetSubText (Read,Kpos[2]+1,Text.GetLength(Read)-Kpos[2]) 
-
 EndFor
-
-
 
 'Point Key Positions on screen read from PointKey.txt
-
 Wn=0
-
 For i = 1 To 43
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Read = File.ReadLine(ModelPath+"PointKey.txt",i)
-
   k=0
-
   For n = 1 To Text.GetLength (Read)
-
     If Text.GetSubText (Read,n,1) = "," Then
-
       k=k+1
-
       Kpos[k] = n
-
     EndIf
-
   EndFor
-
   Wn = Text.GetSubText (Read,1,Kpos[1]-1)
-
   XposW[Wn] = Text.GetSubText (Read,Kpos[1]+1,Kpos[2]-Kpos[1]-1)
-
   YposW[Wn] = Text.GetSubText (Read,Kpos[2]+1,Text.GetLength(Read)-Kpos[2]) 
-
 EndFor
-
-
 
 For i = 1 To 43
-
   WK[i]=0
-
 EndFor
-
-
 
 'Define block-engaged indicator lines read from BlockLines.txt
-
 GraphicsWindow.PenColor = "Red"
-
 Bn = 0
-
 For i = 0 To 63
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Read = File.ReadLine(ModelPath+"BlockLines.txt",i+1)
-
   k=0
-
   For n = 1 To Text.GetLength (Read)
-
     If Text.GetSubText (Read,n,1) = "," Then
-
       k=k+1
-
       Kpos[k] = n
-
     EndIf
-
   EndFor
-
   Bn = Text.GetSubText (Read,1,Kpos[1]-1)
-
   x1 = Text.GetSubText (Read,Kpos[1]+1,Kpos[2]-Kpos[1]-1)
-
   y1 = Text.GetSubText (Read,Kpos[2]+1,Kpos[3]-Kpos[2]-1)
-
   x2 = Text.GetSubText (Read,Kpos[3]+1,Kpos[4]-Kpos[3]-1)
-
   y2 = Text.GetSubText (Read,Kpos[4]+1,Text.GetLength(Read)-Kpos[4]) 
-
   Bind[Bn] = Shapes.AddLine (x1,y1,x2,y2)
-
 Endfor
-
-
 
 'Define Point Indicators, positions read from PointLines.txt
-
 GraphicsWindow.PenColor = "Yellow"
-
 Wn = 0
-
 For i = 1 To 86 Step 2
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Read = File.ReadLine(ModelPath+"PointLines.txt",i)
-
   k=0
-
   For n = 1 To Text.GetLength (Read)
-
     If Text.GetSubText (Read,n,1) = "," Then
-
       k=k+1
-
       Kpos[k] = n
-
     EndIf
-
   EndFor
-
   Wn = Text.GetSubText (Read,1,Kpos[1]-1)
-
   x1 = Text.GetSubText (Read,Kpos[1]+1,Kpos[2]-Kpos[1]-1)
-
   y1 = Text.GetSubText (Read,Kpos[2]+1,Kpos[3]-Kpos[2]-1)
-
   x2 = Text.GetSubText (Read,Kpos[3]+1,Kpos[4]-Kpos[3]-1)
-
   y2 = Text.GetSubText (Read,Kpos[4]+1,Text.GetLength(Read)-Kpos[4]) 
-
   Wind0[Wn] = Shapes.AddLine (x1,y1,x2,y2)
-
   
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Read = File.ReadLine(ModelPath+"PointLines.txt",i+1)
-
   k=0
-
   For n = 1 To Text.GetLength (Read)
-
     If Text.GetSubText (Read,n,1) = "," Then
-
       k=k+1
-
       Kpos[k] = n
-
     EndIf
-
   EndFor
-
   Wn = Text.GetSubText (Read,1,Kpos[1]-1)
-
   x1 = Text.GetSubText (Read,Kpos[1]+1,Kpos[2]-Kpos[1]-1)
-
   y1 = Text.GetSubText (Read,Kpos[2]+1,Kpos[3]-Kpos[2]-1)
-
   x2 = Text.GetSubText (Read,Kpos[3]+1,Kpos[4]-Kpos[3]-1)
-
   y2 = Text.GetSubText (Read,Kpos[4]+1,Text.GetLength(Read)-Kpos[4]) 
-
   Wind1[Wn] = Shapes.AddLine (x1,y1,x2,y2)
-
 EndFor
-
-
 
 'Indicator numbering
-
 GraphicsWindow.BrushColor = "White"
-
 For i = 0 To 63 Step 5
-
   GraphicsWindow.FillRectangle (22+8*(i-1), 550,2,6)
-
   GraphicsWindow.DrawText (20+8*(i-1), 535,i)
-
 EndFor
-
-
 
 'Order tables for data read from track 8x8 SB, 8x8 B, 8x8 WB
-
 xa = 0
-
 For i = 0 To 23
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Read = File.ReadLine(ModelPath+"ReadOrder.txt",i+1)
-
   k=0
-
   For n = 1 To Text.GetLength (Read)
-
     If Text.GetSubText (Read,n,1) = "," Then
-
       k=k+1
-
       Kpos[k] = n
-
     EndIf
-
   EndFor
-
   xa = Text.GetSubText (Read,1,Kpos[1]-1)
-
   pos[i][7] = Text.GetSubText (Read,Kpos[1]+1,Kpos[2]-Kpos[1]-1)
-
   pos[i][6] = Text.GetSubText (Read,Kpos[2]+1,Kpos[3]-Kpos[2]-1)
-
   pos[i][5] = Text.GetSubText (Read,Kpos[3]+1,Kpos[4]-Kpos[3]-1)
-
   pos[i][4] = Text.GetSubText (Read,Kpos[4]+1,Kpos[5]-Kpos[4]-1)
-
   pos[i][3] = Text.GetSubText (Read,Kpos[5]+1,Kpos[6]-Kpos[5]-1)
-
   pos[i][2] = Text.GetSubText (Read,Kpos[6]+1,Kpos[7]-Kpos[6]-1)
-
   pos[i][1] = Text.GetSubText (Read,Kpos[7]+1,Kpos[8]-Kpos[7]-1)
-
   pos[i][0] = Text.GetSubText (Read,Kpos[8]+1,Text.GetLength(Read)-Kpos[8]) 
-
 Endfor
-
-
 
 '32 Treinregelaars 
-
 'Lok-data : Nr, type, Vmin,Vmed,Vmax
-
 Ln = 0
-
 For i = 0 To 31
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Read = File.ReadLine(ModelPath+"LokData.txt",i+1)
-
   k=0
-
   For n = 1 To Text.GetLength (Read)
-
     If Text.GetSubText (Read,n,1) = "," Then
-
       k=k+1
-
       Kpos[k] = n
-
     EndIf
-
   EndFor
-
   Ln = Text.GetSubText (Read,1,Kpos[1]-1)
-
   Mt[Ln] = Text.GetSubText (Read,Kpos[1]+1,Kpos[2]-Kpos[1]-1)
-
   Vmin[Ln] = Text.GetSubText (Read,Kpos[2]+1,Kpos[3]-Kpos[2]-1)
-
   Vmed[Ln] = Text.GetSubText (Read,Kpos[3]+1,Kpos[4]-Kpos[3]-1)
-
   Vmax[Ln] = Text.GetSubText (Read,Kpos[4]+1,Text.GetLength(Read)-Kpos[4]) 
-
 Endfor
-
 GraphicsWindow.PenColor = "White"
-
 For i = 0 To 31
-
   f1[i]=0
-
   f2[i]=0
-
   f3[i]=0
-
   f4[i]=0
-
   V[i] =0
-
   GraphicsWindow.BrushColor = "White"
-
   SpeedDial[i] = Shapes.AddRectangle(8,5)
-
   GraphicsWindow.BrushColor = "Gray"
-
   GraphicsWindow.FillRectangle(28+20*(i-1), 380,8,128)
-
   GraphicsWindow.BrushColor = "Red"
-
   GraphicsWindow.FillRectangle(28+20*(i-1), 380+128-8*Vmax[i],8,8*Vmax[i])
-
   GraphicsWindow.BrushColor = "Orange"
-
   GraphicsWindow.FillRectangle(28+20*(i-1), 380+128-8*Vmed[i],8,8*Vmed[i])
-
   GraphicsWindow.BrushColor = "Green"
-
   GraphicsWindow.FillRectangle(28+20*(i-1), 380+128-8*Vmin[i],8,8*Vmin[i])  
-
 EndFor
-
-
 
 'Gegevens vorige run
-
 Ln = 0
-
 For i = 0 To 63
-
 ' The following line could be harmful and has been automatically commented.
-
 '   Read = File.ReadLine(ModelPath+"Rundata.txt",i+1)
-
   k=0
-
   For n = 1 To Text.GetLength (Read)
-
     If Text.GetSubText (Read,n,1) = "," Then
-
       k=k+1
-
       Kpos[k] = n
-
     EndIf
-
   EndFor
-
   Ln = Text.GetSubText (Read,1,Kpos[1]-1)
-
   Park[Ln] = Text.GetSubText (Read,Kpos[1]+1,Kpos[2]-Kpos[1]-1)
-
   TB[Ln] = Text.GetSubText (Read,Kpos[2]+1,Kpos[3]-Kpos[2]-1)
-
   ha[ln] = Text.GetSubText (Read,Kpos[3]+1,Kpos[4]-Kpos[3]-1)
-
   fu[ln] = Text.GetSubText (Read,Kpos[4]+1,Kpos[5]-Kpos[4]-1)
-
   dir[Ln] = Text.GetSubText (Read,Kpos[5]+1,Text.GetLength(Read)-Kpos[5]) 
-
 Endfor
-
-
 
 'Reverse buttons
-
 For i = 0 To 31
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FillRectangle(28+20*(i-1), 514,8,8)
-
 Endfor
-
-
 
 'Parking Buttons
-
 For i = 0 To 31
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FillRectangle(28+20*(i-1), 524,8,8)
-
 Endfor
 
-
-
 'Labels for statusindicators
-
 GraphicsWindow.BrushColor = "White"
-
 GraphicsWindow.DrawText(534,555,"B")
-
 GraphicsWindow.DrawText(534,565,"SB")
-
 GraphicsWindow.DrawText(534,575,"WB")
-
 GraphicsWindow.DrawText(534,585,"SL")
-
 GraphicsWindow.DrawText(534,595,"S")
-
 GraphicsWindow.DrawText(534,605,"SK")
-
 GraphicsWindow.DrawText(404,615,"W")
-
 GraphicsWindow.DrawText(404,625,"WK")
-
 GraphicsWindow.DrawText(404,635,"Wfree")
-
 GraphicsWindow.DrawText(404,645,"R")
-
 GraphicsWindow.DrawText(404,655,"Rfree")
-
 GraphicsWindow.DrawText(270,665,"Misc")
-
 'Train indicator numbering
-
 GraphicsWindow.BrushColor = "White"
-
 For i = 0 To 31
-
   GraphicsWindow.DrawText (26+20*(i-1),307,i)
-
 EndFor
-
-
 
 Sound.PlayChimeAndWait()
 
-
-
 'Start Program Loop ===========================================================
 
-
-
 While ("True")
-
   
-
   'Check op beëindigen programma
-
   If clicked = 1 Then 'belangrijke data opslaan voor de volgende keer, dan de bel luiden en stoppen
-
     For i = 0 to 31
-
       Rundat = i + "," + Park[i] + "," + TB[i] + "," + ha[i] +"," + fu[i] +"," + dir[i]
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.WriteLine(ModelPath + "Rundata.txt" , i+1 , Rundat)
-
     EndFor
-
     Sound.PlayBellRingAndWait()
-
     Program.End()
-
   EndIf
-
   
-
   'Niet gestopt dus subiet verder met het programma dat hier start of weer start met een volgende lus.
-
   
-
   'Screen update, Adjust signal colours and point positions.
-
   
-
   'Hand / automatic indicators
-
   For i = 0 To 31
-
     If ha[i] = 1 Then
-
       GraphicsWindow.BrushColor = "Red"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     GraphicsWindow.FillRectangle (28+20*(i-1), 320,8,8)
-
   EndFor
-
   
-
   'Function indicators
-
   For i = 0 To 31
-
     If fu[i] = 1 Then
-
       GraphicsWindow.BrushColor = "White"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     GraphicsWindow.FillRectangle (28+20*(i-1), 330,8,8)
-
   EndFor
-
   
-
   'Extra function indicators
-
   For i = 0 To 31
-
     If f1[i] = 1 Then
-
       GraphicsWindow.BrushColor = "White"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     If Mt[i] = 1 then
-
       GraphicsWindow.FillRectangle (28+20*(i-1), 340,8,8)
-
     EndIf
-
   EndFor
-
   For i = 0 To 31
-
     If f2[i] = 1 Then
-
       GraphicsWindow.BrushColor = "White"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     If Mt[i] = 1 then
-
       GraphicsWindow.FillRectangle (28+20*(i-1), 350,8,8)
-
     EndIf
-
   EndFor
-
   For i = 0 To 31
-
     If f3[i] = 1 Then
-
       GraphicsWindow.BrushColor = "White"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     If Mt[i] = 1 then
-
       GraphicsWindow.FillRectangle (28+20*(i-1), 360,8,8)
-
     EndIf
-
   EndFor
-
   For i = 0 To 31
-
     If f4[i] = 1 Then
-
       GraphicsWindow.BrushColor = "White"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     If Mt[i] = 1 then
-
       GraphicsWindow.FillRectangle (28+20*(i-1), 370,8,8)
-
     EndIf
-
   EndFor
-
   
-
   'Actual speed indicators
-
   For i = 0 To 31
-
     Shapes.Move(SpeedDial[i],28+20*(i-1),503-8*V[i])
-
   EndFor
-
   
-
   'Travel direction indicators
-
   For i = 0 To 31
-
     If Dir[i] = 0 Then
-
       GraphicsWindow.BrushColor = "Green"
-
     Else
-
       GraphicsWindow.BrushColor = "Red"
-
     EndIf
-
     GraphicsWindow.FillRectangle (28+20*(i-1), 514,8,8)
-
   EndFor
-
   
-
   'Parking indicators
-
   For i = 0 To 31
-
     If Park[i] = 1 Then
-
       GraphicsWindow.BrushColor = "LightGreen"
-
     Else
-
       GraphicsWindow.BrushColor = "Red"
-
     EndIf
-
     GraphicsWindow.FillRectangle (28+20*(i-1), 524,8,8)
-
   EndFor
-
   
-
   'Block indicators B, SB and WB
-
   For i = 0 To 63
-
     If B[i] = 1 Then
-
       GraphicsWindow.BrushColor = "White"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 560,6,6)
-
   EndFor
-
   For i = 0 To 63
-
     If SB[i] = 1 Then
-
       GraphicsWindow.BrushColor = "White"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 570,6,6)
-
   EndFor
-
   For i = 0 To 63
-
     If WB[i] = 1 Then
-
       GraphicsWindow.BrushColor = "White"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 580,6,6)
-
   EndFor
-
   
-
   'Signal light indicatots
-
   For i = 0 To 63
-
     If SL[i] = 0 Then
-
       GraphicsWindow.BrushColor = "Red"
-
     EndIf
-
     If SL[i] = 1 Then
-
       GraphicsWindow.BrushColor = "Yellow"
-
     EndIf
-
     If SL[i] = 2 Then
-
       GraphicsWindow.BrushColor ="LightGreen"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 590,6,6)
-
   EndFor
-
   
-
   'Signal Status indicators
-
   For i = 0 To 63
-
     If S[i] = 1 Then
-
       GraphicsWindow.BrushColor = "WHite"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 600,6,6)
-
   EndFor
-
   
-
   'Signal Key indicators  
-
   For i = 0 To 63
-
     If SK[i] = 1 Then
-
       GraphicsWindow.BrushColor = "WHite"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 610,6,6)
-
   EndFor
-
   
-
   'Point indicatots
-
   For i = 0 To 43
-
     If W[i] = 1 Then
-
       GraphicsWindow.BrushColor = "Yellow"
-
     Else
-
       GraphicsWindow.BrushColor = "blue"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 620,6,6)
-
   EndFor
-
   
-
   'Point Key indicatots
-
   For i = 0 To 43
-
     If WK[i] = 1 Then
-
       GraphicsWindow.BrushColor = "Yellow"
-
     Else
-
       GraphicsWindow.BrushColor = "blue"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 630,6,6)
-
   EndFor
-
   
-
   'Free Point Key indicatots
-
   For i = 0 To 43
-
     If WV[i] = 1 Then
-
       GraphicsWindow.BrushColor = "Yellow"
-
     Else
-
       GraphicsWindow.BrushColor = "blue"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 640,6,6)
-
   EndFor
-
   
-
   'Route indicatots
-
   For i = 0 To 46
-
     If R[i] = 1 Then
-
       GraphicsWindow.BrushColor = "Yellow"
-
     Else
-
       GraphicsWindow.BrushColor = "blue"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 650,6,6)
-
   EndFor
-
   
-
   'Free-Route indicatots
-
   For i = 0 To 46
-
     If RV[i] = 1 Then
-
       GraphicsWindow.BrushColor = "Yellow"
-
     Else
-
       GraphicsWindow.BrushColor = "blue"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 660,6,6)
-
   EndFor
-
   
-
   'Miscelanouw function indicators
-
   For i = 0 To 31
-
     If DIV[i] = 1 Then
-
       GraphicsWindow.BrushColor = "WHite"
-
     Else
-
       GraphicsWindow.BrushColor = "Black"
-
     EndIf
-
     GraphicsWindow.FillRectangle (20+8*(i-1), 670,6,6)
-
   EndFor
-
   
-
   'Signal lights on screen
-
   For i = 0 To 63
-
     If SL[i] = 0 Then
-
       GraphicsWindow.BrushColor = "Red"
-
       GraphicsWindow.FillRectangle (XposSK[i],YposSK[i],7,7)
-
     EndIf
-
     If SL[i] = 1 Then
-
       GraphicsWindow.BrushColor = "Yellow"
-
       GraphicsWindow.FillRectangle (XposSK[i],YposSK[i],7,7)
-
     EndIf
-
     If SL[i] = 2 Then
-
       GraphicsWindow.BrushColor = "MediumSpringGreen"
-
       GraphicsWindow.FillRectangle (XposSK[i],YposSK[i],7,7)
-
     EndIf
-
   EndFor
-
   
-
   'Block-engaged lines on screen
-
   For i = 0 To 63
-
     If B[i] = 0 Then
-
       Shapes.ShowShape(Bind[i])
-
     Else
-
       Shapes.HideShape(Bind[i])
-
     EndIf
-
   EndFor
-
   
-
   'Point positions on screen 
-
   For i =1 To 43
-
     If W[i] = 0 Then
-
       Shapes.HideShape(Wind1[i])
-
       Shapes.ShowShape(Wind0[i])
-
     Else
-
       Shapes.HideShape(Wind0[i])
-
       Shapes.ShowShape(Wind1[i])
-
     EndIf
-
   EndFor
-
   
-
   'Block-positions of trains TB[lok]
-
   GraphicsWindow.BrushColor = "Yellow"
-
   For i = 0 To 31
-
     GraphicsWindow.DrawText (26+20*(i-1),295,TB[i])
-
   EndFor  
-
   
-
   'Manual Input Sugnal key SK[i], Point key WK[j]
-
   'Sound.PlayClickAndWait()   
-
   If Mouse.IsLeftButtonDown Then
-
     
-
     'Find signal to be set
-
     For i = 0 To 63
-
       If GraphicsWindow.MouseX > XposSK[i] And GraphicsWindow.MouseX < XposSK[i] + 8 Then
-
         If GraphicsWindow.MouseY > YposSK[i] And GraphicsWindow.MouseY < YposSK[i] + 8 Then
-
           'Signal key will be Toggled. Reset when sinal goes from danger to safe
-
           If SK[i] = 0 Then
-
             SK[i] = 1
-
           Else
-
             SK[i] = 0
-
           EndIf 
-
           Goto SKHit
-
         EndIf
-
       EndIf
-
     EndFor
-
     SKHit:
-
     If i < 64  Then
-
       Sound.PlayClickAndWait()
-
       GraphicsWindow.BrushColor = "White"
-
       GraphicsWindow.FillRectangle (700,654,180,22)
-
       GraphicsWindow.BrushColor = "Blue"
-
       GraphicsWindow.DrawText (707, 658,"Signal "+i)
-
     EndIf
-
     
-
     'Find points to be set
-
     For i = 1 To 43
-
       If GraphicsWindow.MouseX > XposW[i] And GraphicsWindow.MouseX < XposW[i] + 9 Then
-
         If GraphicsWindow.MouseY > YposW[i] And GraphicsWindow.MouseY < YposW[i] + 9 Then
-
           'Sound.PlayChimesAndWait()
-
           If WK[i] = 0 Then
-
             WK[i] = 1
-
           Else
-
             WK[i] = 0
-
           EndIf 
-
           Goto WKHit
-
         EndIf
-
       EndIf
-
     EndFor
-
     WKHit:
-
     If i < 44 Then
-
       Sound.PlayClickAndWait()
-
       GraphicsWindow.BrushColor = "White"
-
       GraphicsWindow.FillRectangle (700,654,180,22)
-
       GraphicsWindow.BrushColor = "Blue"
-
       GraphicsWindow.DrawText (707, 658,"Points "+i)
-
     EndIf
-
     
-
     'Find miscellaneuos functions DIV[i] to be set
-
     For i = 0 To 31
-
       If GraphicsWindow.MouseX > 20+(i-1)*8 And GraphicsWindow.MouseX < 28+(i-1)*8 Then
-
         If GraphicsWindow.MouseY > 670 And GraphicsWindow.MouseY < 678 Then
-
           If DIV[i] = 0 Then
-
             DIV[i] = 1
-
             NDIV[i] = 0
-
           Else
-
             DIV[i] = 0
-
             NDIV[i] = 1
-
           EndIf
-
           Sound.PlayClick()
-
           Goto DIVHit
-
         EndIf
-
       EndIf 
-
     EndFor
-
     DIVHit:
-
     
-
     'Find Hand / Automatic to be (re)set
-
     For i = 0 To 31
-
       If GraphicsWindow.MouseX > 28+(i-1)*20 And GraphicsWindow.MouseX < 36+(i-1)*20 Then
-
         If GraphicsWindow.MouseY > 320 And GraphicsWindow.MouseY < 328 Then
-
           If ha[i] = 0 Then
-
             ha[i] = 1
-
           Else
-
             ha[i] = 0
-
           EndIf
-
           Sound.PlayClick()
-
           Goto haHit
-
         EndIf
-
       EndIf 
-
     EndFor
-
     haHit:
-
     
-
     'Find Function to be (re)set
-
     For i = 0 To 31
-
       If GraphicsWindow.MouseX > 28+(i-1)*20 And GraphicsWindow.MouseX < 36+(i-1)*20 Then
-
         If GraphicsWindow.MouseY > 330 And GraphicsWindow.MouseY < 338 Then
-
           If fu[i] = 0 Then
-
             fu[i] = 1
-
           Else
-
             fu[i] = 0
-
           EndIf
-
           Sound.PlayClick()
-
           Goto fuHit
-
         EndIf
-
       EndIf 
-
     EndFor
-
     fuHit:
-
     
-
     'Find f1 to be (re)set
-
     For i = 0 To 31
-
       If Mt[i] = 1 Then
-
         If GraphicsWindow.MouseX > 28+(i-1)*20 And GraphicsWindow.MouseX < 36+(i-1)*20 Then
-
           If GraphicsWindow.MouseY > 340 And GraphicsWindow.MouseY < 348 Then
-
             If f1[i] = 0 Then
-
               f1[i] = 1
-
             Else
-
               f1[i] = 0
-
             EndIf
-
             Sound.PlayClick()
-
             Goto f1Hit
-
           EndIf
-
         EndIf
-
       EndIf 
-
     EndFor
-
     f1Hit:
-
     
-
     'Find f2 to be (re)set
-
     For i = 0 To 31
-
       If Mt[i] = 1 Then
-
         If GraphicsWindow.MouseX > 28+(i-1)*20 And GraphicsWindow.MouseX < 36+(i-1)*20 Then
-
           If GraphicsWindow.MouseY > 350 And GraphicsWindow.MouseY < 358 Then
-
             If f2[i] = 0 Then
-
               f2[i] = 1
-
             Else
-
               f2[i] = 0
-
             EndIf
-
             Sound.PlayClick()
-
             Goto f2Hit
-
           EndIf
-
         EndIf
-
       EndIf 
-
     EndFor
-
     f2Hit:
-
     
-
     'Find f3 to be (re)set
-
     For i = 0 To 31
-
       If Mt[i] = 1 Then
-
         If GraphicsWindow.MouseX > 28+(i-1)*20 And GraphicsWindow.MouseX < 36+(i-1)*20 Then
-
           If GraphicsWindow.MouseY > 360 And GraphicsWindow.MouseY < 368 Then
-
             If f3[i] = 0 Then
-
               f3[i] = 1
-
             Else
-
               f3[i] = 0
-
             EndIf
-
             Sound.PlayClick()
-
             Goto f3Hit
-
           EndIf
-
         EndIf
-
       EndIf 
-
     EndFor
-
     f3Hit:
-
     
-
     'Find f4 to be (re)set
-
     For i = 0 To 31
-
       If Mt[i] = 1 Then
-
         If GraphicsWindow.MouseX > 28+(i-1)*20 And GraphicsWindow.MouseX < 36+(i-1)*20 Then
-
           If GraphicsWindow.MouseY > 370 And GraphicsWindow.MouseY < 378 Then
-
             If f4[i] = 0 Then
-
               f4[i] = 1
-
             Else
-
               f4[i] = 0
-
             EndIf
-
             Sound.PlayClick()
-
             Goto f4Hit
-
           EndIf
-
         EndIf
-
       EndIf 
-
     EndFor
-
     f4Hit:
-
     
-
     'Find speed to be (re)set
-
     For i = 0 To 31
-
       If ha[i] = 0 Then
-
         If GraphicsWindow.MouseX > 28+(i-1)*20 And GraphicsWindow.MouseX < 36+(i-1)*20 Then
-
           Position = GraphicsWindow.MouseY
-
           If Position > 380 And Position < 508 then
-
             V[i] = Math.Floor((508-Position)/8)
-
             If V[i] > 15 Then
-
               V[i] = 15
-
             EndIf
-
             If V[i] = 1 then
-
               V[i] = 2
-
             EndIf  
-
             Sound.PlayClickAndWait()
-
           EndIf
-
         EndIf  
-
       EndIf      
-
     EndFor
-
     SpeedHit:
-
     
-
     'Find reverse travel direction
-
     For i = 0 To 31
-
       If ha[i] = 0 Then
-
         If GraphicsWindow.MouseX > 28+(i-1)*20 And GraphicsWindow.MouseX < 36+(i-1)*20 Then
-
           If GraphicsWindow.MouseY > 514 And GraphicsWindow.MouseY < 522 Then
-
             Sound.PlayClickAndWait()
-
             If Mt[i] = 0 Then
-
               If V[i] = 0 Then
-
                 V[i] = 1
-
                 Dir[i] = 1
-
               Else
-
                 V[i] = 0
-
                 Dir[i] = 0
-
               EndIf
-
               Goto RevHit
-
             EndIf
-
             If Mt[i] = 1 Then
-
               If Dir[i] = 0 Then
-
                 Dir[i] = 1
-
               Else
-
                 Dir[i] = 0
-
               EndIf
-
               Goto RevHit
-
             EndIf
-
           EndIf
-
         Endif
-
       EndIf    
-
     EndFor
-
     RevHit:
-
     
-
     'Find Parking to be (re)set
-
     For i = 0 To 31
-
       If GraphicsWindow.MouseX > 28+(i-1)*20 And GraphicsWindow.MouseX < 36+(i-1)*20 Then
-
         If GraphicsWindow.MouseY > 524 And GraphicsWindow.MouseY < 534 Then
-
           If Park[i] = 0 Then
-
             Park[i] = 1
-
           Else
-
             Park[i] = 0
-
           EndIf
-
           Sound.PlayClick()
-
           Goto ParkHit
-
         EndIf
-
       EndIf 
-
     EndFor
-
     ParkHit:
-
     
-
     
-
     'Temporary block-status manual toggle for testpurposes 
-
     'For i = 0 To 63
-
     '  If GraphicsWindow.MouseX > 20+(i-1)*8 And GraphicsWindow.MouseX < 28+(i-1)*8 Then
-
     '    If GraphicsWindow.MouseY > 560 And GraphicsWindow.MouseY < 570 Then
-
     '      If B[i] = 0 Then
-
     '        B[i] = 1
-
     '      Else
-
     '        B[i] = 0
-
     '      EndIf
-
     '      Goto BHit
-
     '    EndIf
-
     '  EndIf 
-
     'EndFor
-
     'BHit:  
-
     
-
     WaitForMouseUpAgain:
-
     If Mouse.IsLeftButtonDown Then
-
       Goto WaitForMouseUpAgain
-
     EndIf
-
   EndIf 'End of mouse-is left button down
-
   'Sound.PlayClickAndWait()
-
   'Reading Block B[i] ,Stop-Block SB[i] and point-block WB[i] data from the track
-
   
-
   If cycle = 1 Then
-
     Sound.PlayClickAndWait()
-
     ComPort.TXByte(82) 'Vertel Piccolino dat blok-bezet gegevens moeten komen
-
     Program.Delay(5)
-
     reply = ComPort.RXByte()
-
     'reply = 83
-
     If reply = 83 Then 'Piccolino heeft het begrepen en stuurt meteen alle 24 bytes door
-
       For i = 0 To 23
-
         DR[i] = ComPort.RXByte()
-
         'DR[i] = 255
-
       EndFor
-
     EndIf
-
     If reply <>83 then
-
       Sound.PlayBellRingAndWait()
-
     EndIf
-
-
 
     'Haal block gegevens uit DR[i]
-
     DR[5]=255
-
     For i = 0 To 23
-
       bit[i][7] = Math.Floor(DR[i]/128)
-
       rest = DR[i] - bit[i][7]*128
-
       bit[i][6] = Math.Floor(rest/64) 
-
       rest = rest - bit[i][6]*64
-
       bit[i][5] = Math.Floor(rest/32) 
-
       rest = rest - bit[i][5]*32
-
       bit[i][4] = Math.Floor(rest/16) 
-
       rest = rest - bit[i][4]*16
-
       bit[i][3] = Math.Floor(rest/8) 
-
       rest = rest - bit[i][3]*8
-
       bit[i][2] = Math.Floor(rest/4) 
-
       rest = rest - bit[i][2]*4
-
       bit[i][1] = Math.Floor(rest/2) 
-
       rest = rest - bit[i][1]*2
-
       bit[i][0] = Math.Floor(rest) 
-
     EndFor
-
     For i = 0 To 7
-
       For j = 0 To 7
-
         SB[pos[i][j]]= 1  'bit[i][j]
-
       EndFor
-
     EndFor
-
     For i = 8 To 15
-
       For j = 0 To 7
-
         B[pos[i][j]]=  1  'bit[i][j]
-
       EndFor
-
     EndFor
-
     For i = 16 To 23
-
       For j = 0 To 7
-
         WB[pos[i][j]]= 1  'bit[i][j]
-
       EndFor
-
     EndFor      
-
   EndIf
-
   
-
   'Calculate railroad crossings from block status changes OVW[n]
-
   
-
   
-
   'Synchronise Block / Stop Block / Double Direction Blocks
-
   For i = 0 To 63
-
     If SB[i]=0 Then
-
       B[i]=0
-
     EndIf
-
   EndFor    
-
   B[22]=B[13]
-
   B[24]=B[15]
-
   B[26]=B[9]
-
   B[54]=B[35]
-
   B[52]=B[39]
-
   B[50]=B[37]
-
   B[48]=B[41]
-
   B[46]=B[43]
-
   B[47]=B[42]
-
   B[45]=B[44]
-
   B[49]=B[40]
-
   B[59]=B[56]
-
   B[58]=B[57]
-
   B[60]=B[55]
-
   B[21]=B[8]
-
   B[23]=B[10]
-
   B[25]=B[12]
-
   B[27]=B[14]
-
   B[53]=B[38]
-
   B[51]=B[36]
-
   
-
   'Traintracking from block status changes TB[t]
-
   'Find the block(s) that became occuopied during this program cycle
-
   For i = 1 To 63
-
     If Bprev[i] - B[i] = 1 Then 'Block[i] got occupied
-
       'Determine where the train entering this block came from
-
       Bvh = Hb[i]
-
       If Bvh = 0 Then 'No unique origin 
-
         'Procedure WhereFrom uses i and returns BvH
-
         WhereFrom()
-
       EndIf
-
       'Now find the train-nr. and and allocate the new block i to it TB[#train]
-
       For j = 0 to 32 'Check all trains
-
         If TB[j] = Bvh Then
-
           TB[j] = i
-
         EndIf
-
       EndFor
-
     EndIf
-
     Bprev[i] = B[i]
-
   EndFor
-
   
-
   
-
   'Calculate new signal and point position values from manual input and track-data
-
   '1) Set Points according to manual input and do Route calculations R[j]
-
   For i = 1 To 43
-
     If WV[i] = 1 Then
-
       W[i] = WK[i]
-
     EndIf
-
     x=W[i]
-
     NOT()
-
     NW[i]=x
-
     R[i] = 0
-
   EndFor
-
   R[0] = NW[16]*NW[17]
-
   R[1] = NW[3]
-
   R[2] = W[3] * W[4]
-
   R[3] = W[3] * NW[4]
-
   R[4] = NW[5]
-
   R[5] = W[5]
-
   R[6] = NW[7]*W[9]*W[38]
-
   R[7] = NW[7]*NW[9]*NW[38]
-
   R[8] = W[7]*W[8]*NW[38]*NW[39]
-
   R[9] = W[7]*NW[8]*w[39]*nw[38]
-
   R[10] = NW[12]*NW[14]*W[13]*W[11]
-
   R[11] = NW[12]*NW[14]*W[13]*NW[11]
-
   R[12] = NW[12]*W[14]*NW[13]*NW[10]
-
   R[13] = NW[12]*NW[14]*W[10]
-
   R[14] = W[14]*NW[10]*W[13]*W[11]
-
   R[15] = W[14]*NW[10]*W[13]*NW[11]
-
   R[16] = W[14]*NW[10]*NW[13]
-
   R[17] = W[14]*W[10]
-
   R[18] = NW[14]*NW[10]
-
   R[19] = NW[2]*NW[1]
-
   R[20] = NW[2]*W[1]*NW[26]*NW[25]*NDIV[6]
-
   R[21] = NW[24]*W[25]*NDIV[6]
-
   R[22] = W[24]*NW[28]*NDIV[6]
-
   R[23] = NW[23]*NDIV[6]
-
   R[24] = W[23]*NDIV[6]
-
   R[25] = NW[25]*NW[26]*W[1]*W[2]*NDIV[6]
-
   R[26] = NW[25]*NW[26]*W[1]*NW[2]*NDIV[6]
-
   R[27] = W[25]*NW[24]*NDIV[6]
-
   R[28] = NW[34]
-
   R[29] = W[34]
-
   R[30] = NW[33]
-
   R[31] = W[33]
-
   R[32] = NW[3]*NW[4]
-
   R[33] = NW[3]*W[4]
-
   R[34] = W[10]*NW[14]*W[12]
-
   R[35] = NW[10]*NW[14]*W[12]
-
   R[36] = NW[11]*NW[13]*NW[12]
-
   R[37] = W[11]*NW[13]*NW[12]
-
   R[38] = NW[10]*NW[14]
-
   R[39] = NW[13]*NW[10]*W[14]
-
   R[40] = NW[11]*W[13]*NW[10]*W[14]
-
   R[41] = W[11]*W[13]*NW[10]*W[14]
-
   R[42] = W[10]*W[14]
-
   R[43] = 1
-
   R[44] = NW[42]
-
   R[45] = W[42]*NW[43]
-
   R[46] = W[42]*W[43]
-
   
-
   '2) Calculate safety conditions C[i] per signal S[i]
-
   c[0] = NRV[20]*NRV[21]*NRV[23]*NRV[24]*NRV[25]*NRV[26]*NRV[27]
-
   C[1] = B[3]
-
   C[10] = NW[8]*NW[39]*B[16]*NS[12]*NS[14]
-
   C[11] = B[17]*NS[13]*NS[15]
-
   C[12] = NW[38]*W[9]*B[16]*NS[10]*NS[8]
-
   C[13] = B[17]*W[5]*NRV[5]
-
   C[14] = W[38]*NW[9]*B[16]*NS[10]*NS[8]
-
   C[15] = B[17]*NW[5]*NRV[4]
-
   C[16] = NS[33]*B[18]*NW[6]
-
   C[17] = NW[6]*B[19]+W[6]*B[2]*NS[16]*WB[44]
-
   C[18] = (R[4]*B[22]*NRV[2]*NRV[32]+R[5]*B[24]*NRV[3]*NRV[33])*NS[20]
-
   C[19] = R[6]*B[27]*(NRV[10]+NRV[14])+R[7]*B[25]*(NRV[11]+NRV[15])+R[8]*B[23]*(NRV[12]+NRV[16])+R[9]*B[21]*(NRV[13]+NRV[17])
-
   C[2] = B[4]
-
   C[20] = (R[4]*B[22]*NRV[2]*NRV[32]+R[5]*B[24]*NRV[3]*NRV[33])*NS[18]*NS[13]*NS[15]
-
   C[21] = R[34]*B[29]+(R[38]+R[42])*B[35]*NRV[43]
-
   C[22] = B[26]*NW[3]*NW[4]
-
   C[23] = R[35]*B[29]+R[39]*B[35]*NRV[43]
-
   C[24] = B[26]*NW[3]*W[4]
-
   C[25] = R[36]*B[29]+R[40]*B[35]*NRV[43]
-
   C[26] = R[19]*B[28]+R[20]*B[36]*NRV[26]*NRV[23]
-
   C[27] = R[37]*B[29]+R[41]*B[35]*NRV[43]
-
   C[28] = B[30]
-
   C[29] = B[31]
-
   C[3] = B[5]
-
   C[30] = R[44]*B[32]+R[45]*B[62]+R[46]*B[63]
-
   C[31] = NW[15]*B[33]+w[15]*B[20]
-
   C[32] = NS[62]*NS[63]*B[34]
-
   C[33] = NS[16]*B[18]
-
   C[34] = B[1]
-
   C[35] = R[28]*B[37]*NRV[30]+R[29]*B[39]*NRV[31]
-
   C[36] = B[40]*RR1*NW[23]
-
   C[37] = NW[33]*B[41]*NS[46]*NS[59]
-
   C[38] = B[40]*RR1*W[23]
-
   C[39] = W[33]*B[41]*NS[46]*NS[59]
-
   C[4] = B[6]
-
   C[40] = B[42]*RR1
-
   C[41] = WB[32]*B[56]*RR3+NW[32]*B[43]*NS[44]
-
   C[42] = B[44]*RR1
-
   C[43] = NW[31]*B[45]*RR2
-
   C[44] = NW[31]*B[46]
-
   C[45] = B[47]*RR2
-
   C[46] = B[48]*NW[32]*NS[37]*NS[39]
-
   C[47] = B[47]*RR2
-
   C[48] = R[30]*B[50]*NRV[28]+R[31]*B[52]*NRV[29]
-
   C[49] = NDIV[6]*(R[23]*B[51]*NRV[21]+R[24]*B[53]*NRV[22])
-
   C[5] = B[7]*NW[2]
-
   C[50] = NW[34]*B[54]*NRV[38]*NRV[39]*NRV[40]*NRV[41]*NRV[42]
-
   C[51] = NDIV[6]*(B[55]*R[27]+(B[7]*R[25]+B[9]*R[26])*NRV[20])
-
   C[52] = W[34]*B[54]*NRV[38]*NRV[39]*NRV[40]*NRV[41]*NRV[42]
-
   C[53] = NDIV[6]*W[24]*B[55]
-
   C[54] = R[14]*B[14]*NRV[6]+R[15]*B[12]*NRV[7]+R[16]*B[10]*NRV[8]+(R[17]+R[18])*B[8]*NRV[9]
-
   C[55] = B[57]*RR4
-
   C[56] = B[58]*RR3
-
   C[57] = NW[29]*B[59]*RR4
-
   C[58] = B[60]*RR3
-
   C[59] = B[48]*W[32]*NS[37]*NS[39]
-
   C[6] = R[10]*B[14]*NRV[6]+R[11]*B[12]*NRV[7]+R[12]*B[10]*NRV[8]+R[13]*B[8]*NRV[9]
-
   C[60] = NDIV[6]*(R[22]*B[38]*NRV[24]+R[21]*B[36]*NRV[23])
-
   C[61] = NW[17]*NW[16]
-
   C[62] = NS[32]*NS[63]*B[34]
-
   C[63] = NS[62]*NS[32]*B[34]
-
   C[7] = R[1]*B[11]+(R[2]*B[13]+R[3]*B[15])*(NRV[4]+NRV[5])
-
   C[8] = W[8]*W[39]*B[16]*NS[12]*NS[14]
-
   C[9] = (R[32]*B[13]*NRV[4]+R[33]*B[15]*NRV[5])
-
   VT1 = B[45]*B[47]*B[49]
-
   If VT1*NS[36]*NS[38]*NS[43] = 1 Then
-
     RR1 = 1
-
     RR2 = 1
-
   EndIf
-
   VT2 = B[56]*B[58]*B[60]
-
   If VT2*(NS[41]+S[41]*NW[32])*NRV[27]*NS[53] = 1 Then
-
     RR3 = 1
-
     RR4 = 1
-
   EndIf
-
   
-
   '3) Calculate (new) signal status
-
   For i = 1 To 63
-
     Snow = S[i]
-
     S[i] = C[i] * (SK[i] + S[i])
-
     If S[i] > 1 Then
-
       S[i] = 1
-
     EndIf
-
     NS[i] = 1-S[i]
-
     'Reset SK[i] when S[i] changed from danger to safe.
-
     'but not for open blocks  0,1,2,3,4,28,29,34,40,42,43,44,45,47
-
     If (i>=0 And i<5) Or i=28 Or i=29 Or i=34 Or i=40 Or i=42 Or i=45 Or i=47 Or (i>54 And i<59) Then
-
       Goto SignalEnd
-
     EndIf
-
     If S[i] > Snow Then
-
       SK[i] = 0
-
     EndIf
-
     SignalEnd:
-
   EndFor
-
   S[0]= C[0]*SK[0]
-
   DIV[6]=S[0]
-
   NDIV[6]=1-DIV[6]
-
   'Block travel directions for singel track lines when given free in opposite direction
-
   If S[41]*W[32]=1 Then
-
     RR4 = 0
-
   EndIf
-
   If S[51]*R[27]=1 Then
-
     RR3 = 0
-
   EndIf
-
   If S[53] = 1 Then
-
     RR3 = 0
-
   EndIf
-
   If S[36]+S[38]=1 Then
-
     RR2 = 0
-
   EndIf
-
   If S[43] = 1 Then
-
     RR1 = 0
-
   EndIf
-
   
-
   'Determine Free Routes (open for travel)
-
   RV[1]=S[7]*R[1]
-
   RV[2]=S[7]*R[2]
-
   RV[3]=S[7]*R[3]
-
   RV[4]=R[4]*(S[18]+S[20])
-
   RV[5]=R[5]*(S[18]+S[20])
-
   RV[6]=R[6]*S[19]
-
   RV[7]=R[7]*S[19]
-
   RV[8]=R[8]*S[19]
-
   RV[9]=R[9]*S[19]
-
   RV[10]=R[10]*S[6]
-
   RV[11]=R[11]*S[6]
-
   RV[12]=R[12]*S[6]
-
   RV[13]=R[13]*S[6]
-
   RV[14]=R[14]*S[54]
-
   RV[15]=R[15]*S[54]
-
   RV[16]=R[16]*S[54]
-
   RV[17]=R[17]*S[54]
-
   RV[18]=R[18]*S[54]
-
   RV[19]=R[19]*S[26]
-
   RV[20]=R[20]*S[26]
-
   RV[21]=R[21]*S[60]
-
   RV[22]=R[22]*S[60]
-
   RV[23]=R[23]*S[49]
-
   RV[24]=R[24]*S[49]
-
   RV[25]=R[25]*S[51]
-
   RV[26]=R[26]*S[51]
-
   RV[27]=R[27]*S[51]
-
   RV[28]=R[28]*S[35]
-
   RV[29]=R[29]*S[35]
-
   RV[30]=R[30]*S[48]
-
   RV[31]=R[31]*S[48]
-
   RV[32]=R[32]*S[9]
-
   RV[33]=R[33]*S[9]
-
   RV[34]=R[34]*S[21]
-
   RV[35]=R[35]*S[23]
-
   RV[36]=R[36]*S[25]
-
   RV[37]=R[37]*S[27]
-
   RV[38]=R[38]*S[21]
-
   RV[39]=R[39]*S[23]
-
   RV[40]=R[40]*S[25]
-
   RV[41]=R[41]*S[27]
-
   RV[42]=R[42]*S[21]
-
   RV[43]=S[50]+S[52]
-
   RV[44]=R[44]*S[30]
-
   RV[45]=R[45]*S[30]
-
   RV[46]=R[46]*S[30]
-
   For i = 1 To 46
-
     NRV[i] = 1-RV[i]
-
   EndFor
-
   
-
   '4) Calculate Free Points WV[i]
-
   'At first make all points free to be set (WV[i]=1)
-
   'unless a train is on it (WB[i]=0 in that case)
-
   For i = 1 To 43
-
     WV[i] = WB[i]
-
   EndFor
-
   'Then determine which ones need to be blocked
-
   'Points [1] and [2]
-
   If S[26]*R[20] = 1 Then
-
     WV[2] = 0
-
     WV[1] = 0
-
     WV[26] = 0
-
     WV[25] = 0
-
   EndIf
-
   If S[26] = 1 Then
-
     WV[2] = 0
-
     WV[1] = 0
-
   Else
-
     If S[51]*(R[25]+R[26]) = 1 Then
-
       WV[1] = 0
-
       WV[2] = 0
-
       WV[25] = 0
-
       WV[26] = 0
-
     EndIf
-
   EndIf
-
   If S[5] = 1 Then
-
     WV[2] = 0
-
   EndIf
-
   If S[7] = 1 Then
-
     WV[3] = 0
-
     If (R[2]+R[3]) = 1 Then
-
       WV[4] = 0
-
     EndIf
-
   Else
-
     If S[22]+S[24] = 1 Then
-
       WV[3] = 0
-
       WV[4] = 0
-
     EndIf
-
   EndIf
-
   If S[9] = 1 Then
-
     WV[4] = 0
-
     WV[3] = 0
-
   EndIf
-
   If S[30] = 1 Then
-
     WV[42] = 0
-
     WV[43] = 0
-
   EndIf
-
   
-
   '5) Calculate special functions
-
   
-
   '6) Calculate signal light values
-
   For i = 0 To 63
-
     SL[i] = 0
-
   EndFor
-
   SL[0]=S[0]
-
   SL[1]=S[1]*(S[1]+S[3])
-
   SL[10]=S[10]*(S[10]+S[16])
-
   SL[11]=S[11]*(S[11]+S[17])
-
   SL[18]=S[18]*(S[18]+R[4]*S[22]+R[5]*S[24])
-
   SL[12]=S[12]*(S[12]+S[16])
-
   SL[13]=S[13]*(S[13]+S[17])
-
   SL[14]=S[12]*(S[12]+S[16])
-
   SL[15]=S[15]*(S[15]+S[17])
-
   SL[16]=S[16]*(S[16]+S[18])
-
   SL[17]=S[17]*(S[17]+NW[6]*S[19]+W[6]*S[2])
-
   SL[18]=S[18]*(S[18]+R[4]*S[22]+R[5]*S[24])
-
   SL[19]=S[19]*(S[19]+R[6]*S[27]+R[7]*S[25]+R[8]*S[23]+R[9]*S[21])
-
   SL[2]=S[2]*(S[2]+S[4])
-
   SL[20]=S[20]*(S[20]+R[4]*S[22]+R[5]*S[24])
-
   SL[21]=S[21]*(S[21]+R[34]*S[29]+R[38]*S[35]+R[42]*S[35])
-
   SL[22]=S[22]*(S[22]+S[26])
-
   SL[23]=S[23]*(S[23]+R[35]*S[29]+R[39]*S[35])
-
   SL[24]=S[24]*(S[24]+S[26])
-
   SL[25]=S[25]*(S[25]+R[36]*S[29]+R[40]*S[35])
-
   SL[26]=S[26]*(S[26]+R[19]*S[28]+R[20]*S[36])
-
   SL[27]=S[27]*(S[27]+R[37]*S[29]+R[41]*S[35])
-
   SL[28]=S[28]*(S[28]+S[30])
-
   SL[29]=S[29]*(S[29]+S[31])
-
   SL[3]=S[3]*(S[3]+S[5])
-
   SL[30]=S[30]*(S[30]+R[44]*S[32]+R[45]*S[62]+R[46]*S[63])
-
   SL[31]=S[31]*(S[31]+W[15]*S[20]+NW[15]*S[33])
-
   SL[32]=S[32]*(S[32]+S[34])
-
   SL[33]=S[33]*(S[33]+S[18])
-
   SL[34]=S[34]*(S[34]+S[1])
-
   SL[35]=S[35]*(S[35]+R[28]*S[37]+R[29]*S[39])
-
   SL[36]=S[36]*(S[36]+S[40])
-
   SL[37]=S[37]*(S[37]+S[41])
-
   SL[38]=S[38]*(S[38]+S[40])
-
   SL[39]=S[39]*(S[39]+S[41])
-
   SL[4]=S[4]*(S[4]+S[6])
-
   SL[40]=S[40]*(S[40]+S[42])
-
   SL[41]=S[41]*(S[41]+W[32]*S[56]+NW[32]*S[43])
-
   SL[42]=S[42]*(S[42]+S[44])
-
   SL[43]=S[43]*(S[43]+S[45])
-
   SL[44]=S[44]*(S[44]+S[46])
-
   SL[45]=S[45]*(S[45]+S[47])
-
   SL[46]=S[46]*(S[46]+S[48])
-
   SL[47]=S[47]*(S[47]+S[49])
-
   SL[48]=S[48]*(S[48]+W[33]*S[52]+NW[33]*S[50])
-
   SL[49]=S[49]*(S[49]+R[23]*S[51]+R[24]*S[53])  
-
   SL[5]=S[5]*(S[5]+S[7])
-
   SL[50]=S[50]*(S[50]+S[54])
-
   SL[51]=S[51]*(S[51]+R[27]*B[55]+R[26]*S[9])
-
   SL[52]=S[52]*(S[52]+S[54])
-
   SL[53]=S[53]*(S[53]+S[55])
-
   SL[54]=S[54]*(S[54]+R[14]*S[14]+R[15]*S[12]+R[16]*S[10]+R[17]*S[8]+R[18]*S[8])
-
   SL[55]=S[55]*(S[55]+S[57])
-
   SL[56]=S[56]*(S[56]+S[58])
-
   SL[57]=S[57]*(S[57]+S[59])
-
   SL[58]=S[58]*(S[58]+S[60])
-
   SL[59]=S[59]*(S[59]+S[48])
-
   SL[6]=S[6]*(S[6]+R[10]*S[14]+R[11]*S[12]+R[12]*S[10]+R[13]*S[8])
-
   SL[60]=S[60]*(S[60]+R[21]*S[36]+R[22]*S[38])
-
   SL[61]=S[61]
-
   SL[62]=S[62]*(S[62]+S[34])
-
   SL[63]=S[63]*(S[63]+S[34])
-
   SL[7]=S[7]*(S[7]+R[1]*S[11]+R[2]*S[13]+R[3]*S[15])
-
   SL[8]=S[8]*(S[8]+S[16])
-
   SL[9]=S[9]*(S[9]+R[32]*S[13]+R[33]*S[15])
-
   For i = 0 To 63
-
     NSL[i] = 3 - SL[i]
-
   EndFor
-
   
-
   'Calculate train traction (speeds) V[t]
-
   
-
   'Write signal lights, point and function data to the track
-
   'Compiled data per adres is DA[TA]
-
   '1) Signal lights SL - track addresses TA 0-10 (decimal, 11-15 spare)
-
   'Interface I
-
   DA[0] = NSL[20] + 4*NSL[11] + 16*NSL[18] + 64*NSL[13]
-
   DA[1] = NSL[17] + 4*NSL[16] + 16*NSL[16] + 64*NSL[48]
-
   DA[2] = NSL[37] + 4*NSL[39] + 16*NSL[50] + 64*NSL[32]
-
   DA[3] = NSL[2] + 4*NSL[19] + 16*NSL[33] + 64*NSL[56]
-
   'Interface VI 
-
   DA[4] = NSL[10] + 4*NSL[8] + 16*NSL[12] + 64*NSL[14]
-
   DA[5] = NSL[29] + 4*NSL[27] + 16*NSL[23] + 64*NSL[21]
-
   DA[6] = NSL[41] + 4*NSL[44] + 16*NSL[31] + 64*NSL[57]
-
   DA[7] = NSL[61] + 4*NSL[61] + 16*NSL[59] + 64*NSL[46]
-
   'Interface VII
-
   DA[8] = NSL[58] + 4*NSL[55] + 16*NSL[24] + 64*NSL[22]
-
   DA[9] = NSL[3] + 4*NSL[28] + 16*NSL[45] + 64*NSL[5]
-
   DA[10] = NSL[60] + 4*NSL[45] + 16*NSL[51] + 64*NSL[53]
-
   'Not implemented
-
   For j = 11 To 15
-
     DA[j]=0
-
   EndFor
-
   
-
   '2) Point Selenoids WS -  track addresses TA 16-31 (decimal
-
   'Interface II
-
   DA[16] = WS[3] + 4*WS[4] + 16*WS[21] + 64*WS[22]
-
   DA[17] = WS[24] + 4*WS[5] + 16*WS[2] + 64*WS[1]
-
   DA[18] = WS[26] + 4*WS[27] + 16*WS[28] + 64*WS[25]
-
   'Interface IV
-
   DA[19] = WS[36] + 4*WS[38] + 16*WS[37] + 64*WS[35]
-
   DA[20] = WS[10] + 4*WS[9] + 16*WS[8] + 64*WS[7]
-
   DA[21] = WS[12] + 4*WS[14] + 16*WS[33] + 64*WS[41]
-
   DA[22] = WS[11] + 4*WS[13] + 16*WS[40] + 64*WS[34]
-
   'Interface V
-
   DA[23] = WS[23] + 4*WS[6] + 16*WS[15] + 64*WS[16]
-
   DA[24] = WS[17] + 4*WS[18] + 16*WS[19] + 64*WS[20]
-
   DA[25] = WS[30] + 4*WS[32] + 16*WS[31] + 64*WS[29]
-
   'Interface VII
-
   DA[26] = WS[5] + 4*WS[43] + 16*WS[42] + 64*WS[23]
-
   'Not implemented
-
   For j = 27 To 31
-
     DA[j]=0
-
   EndFor
-
   
-
   '3) Other functions DIV - track addresses 32-39 (decimal)
-
   'Interface II
-
   DA[32] = DIV[1] + 2*DIV[2] + 4*DIV[3] + 8*DIV[4] + 16*DIV[5] + 32*DIV[6] + 64*DIV[8] + 128*DIV[7]
-
   'Interface VII
-
   DA[33] = DIV[24] + 2*DIV[28] + 4*DIV[27] + 8*DIV[26] + 16*DIV[25] + 32*DIV[31] + 64*DIV[3] + 128*DIV[29]
-
   DA[34] = DIV[23] + 2*DIV[22] + 4*DIV[21] + 8*DIV[20] + 16*DIV[19] + 32*DIV[17] + 64*DIV[18] + 128*DIV[16]
-
   DA[35] = DIV[14] + 2*DIV[12] + 4*DIV[11] + 8*DIV[10] + 16*DIV[9] + 32*DIV[3] + 64*DIV[2] + 128*DIV[1]
-
   'Not implemented
-
   For j = 36 To 39
-
     DA[j]=0
-
   EndFor
-
   'Speed data for 32 trains, 8 bits snelheids data, inclusief rijrichting en f1, f2, f3, f4
-
   'Trein 5 voorlopig vast op handregelaar
-
   V[7] = 16
-
   For j = 0 To 31
-
     DA[j+40] = V[j] 'Speed van loks 0 t/m 31 in DA[40 t/m 71]
-
   EndFor
-
   For j = 0 To 31
-
     DA[j+72] = Mt[j]*128 + Park[j]*64 +Dir[j]*32 + fu[j]*16 + f4[j]*8 +f3[j]*4 + f2[j]*2 +f1[j]
-
   EndFor
-
   
-
   'Transfer data to track every second cycle
-
   If cycle = 0 Then 
-
     Sound.PlayClickAndWait() 'eerste klik verwittig Piccolino
-
     ComPort.TXByte(87) 'Vertel Piccolino dat er baan-data klaar staan
-
      reply = ComPort.RXByte()
-
     If reply = 88 Then 'Piccolino heeft het begrepen
-
      Sound.PlayClickAndWait() 'tweede klik als verzenden begint
-
      For j = 0 To 75   '76 bytes
-
         ComPort.TXByte(DA[j]) 'send a byte
-
         reply2 = ComPort.RXByte() 'wacht op een antwoord voor de volgende byte verzonden kan worden.
-
       EndFor
-
       Sound.PlayClickAndWait() 'derde klik als alle 76 weg zijn
-
     EndIf
-
   EndIf
-
   
-
   'Repeat Program Loop and blink in upper corner
-
   
-
   If cycle = 0 Then
-
     cycle = 1
-
     GraphicsWindow.BrushColor ="white"
-
   Else
-
     cycle =0
-
     GraphicsWindow.BrushColor = "red"
-
   EndIf
-
   GraphicsWindow.FillRectangle (1,1,10,10)
-
   'Program.Delay(500)
-
 EndWhile
-
 EndWhile
-
 Else
-
 GraphicsWindow.ShowMessage("ComPort not available", "Warning")
-
     Sound.PlayBellRingAndWait()
-
     Program.End()
-
 Endif
 
 
-
-
-
 Sub NOT
-
   If x =1 Then 
-
     x=0
-
   Else
-
     x=1
-
   EndIf
-
 EndSub
-
-
 
 Sub OnClick
-
   If (Controls.LastClickedButton=bExit) Then
-
     clicked=1
-
   EndIf
-
 EndSub  
 
-
-
 Sub WhereFrom
-
   If i = 7 Then
-
     If RV[25] = 1 Then
-
       Bvh = 51
-
     EndIf
-
     If S[5] = 1 Then
-
       Bvh = 5
-
     EndIf
-
   EndIf
-
   
-
   If i = 13 Then
-
     If RV[2] = 1 Then
-
       Bvh = 7
-
     EndIf    
-
     If RV[32] = 1 Then
-
       Bvh = 9
-
     EndIf
-
   EndIf
-
   
-
   If i = 15 Then
-
     If RV[3] = 1 Then
-
       Bvh = 7
-
     EndIf    
-
     If RV[33] = 1 Then
-
       Bvh = 9
-
     EndIf
-
   EndIf
-
   
-
   If i = 8 Then
-
     If RV[13] = 1 Then
-
       Bvh = 6
-
     EndIf    
-
     If RV[18] = 1 Then
-
       Bvh = 54
-
     EndIf    
-
     If RV[3] = 1 Then
-
       Bvh = 7
-
     EndIf    
-
     
-
   EndIf
-
   If i = 10 Then
-
     If RV[12] = 1 Then
-
       Bvh = 6
-
     EndIf    
-
     If RV[16] = 1 Then
-
       Bvh = 54
-
     EndIf    
-
     If RV[3] = 1 Then
-
       Bvh = 7
-
     EndIf    
-
     
-
   EndIf
-
   If i = 12 Then
-
     If RV[11] = 1 Then
-
       Bvh = 6
-
     EndIf    
-
     If RV[15] = 1 Then
-
       Bvh = 54
-
     EndIf    
-
     If RV[3] = 1 Then
-
       Bvh = 7
-
     EndIf    
-
     
-
   EndIf
-
   If i = 14 Then
-
     If RV[10] = 1 Then
-
       Bvh = 6
-
     EndIf    
-
     If RV[14] = 1 Then
-
       Bvh = 54
-
     EndIf    
-
     If RV[3] = 1 Then
-
       Bvh = 7
-
     EndIf    
-
     
-
   EndIf
-
   If i = 18 Then
-
     If S[16] = 1 Then      
-
       Bvh = 16
-
     Else
-
       Bvh = 33
-
     EndIf
-
   EndIf
-
   
-
   If i = 22 Then
-
     If RV[4] = 1 Then
-
       If S[18] = 1 Then
-
         Bvh = 18
-
       Else
-
         Bvh = 20
-
       EndIf
-
     EndIf    
-
   EndIf
-
   
-
   If i = 24 Then
-
     If RV[5] = 1 Then
-
       If S[18] = 1 Then
-
         Bvh = 18
-
       Else
-
         Bvh = 20
-
       EndIf
-
     EndIf    
-
   EndIf
-
   
-
   If i = 36 Then
-
     If RV[20] = 1 Then      
-
       Bvh = 26
-
     EndIf
-
     If RV[21] = 1 Then
-
       Bvh = 60
-
     EndIf
-
   EndIf
-
   
-
   If i = 38 Then
-
     If RV[22] = 1 Then
-
       Bvh = 60
-
     EndIf
-
   EndIf
-
   
-
   If i = 51 Then
-
     If RV[23] = 1 Then      
-
       Bvh = 49
-
     EndIf
-
   EndIf
-
   
-
   If i = 53 Then
-
     If RV[24] = 1 Then      
-
       Bvh = 49
-
     EndIf
-
   EndIf
-
   
-
   If i = 16 Then
-
     If S[8] = 1 Then
-
       Bhv = 8
-
     EndIf
-
     If S[10] = 1 Then
-
       Bhv = 10
-
     EndIf
-
     If S[12] = 1 Then
-
       Bhv = 12
-
     EndIf
-
     If S[14] = 1 Then
-
       Bhv = 14
-
     EndIf
-
   EndIf
-
   
-
   If i = 17 Then
-
     If S[11] = 1 Then
-
       Bhv = 11
-
     EndIf
-
     If S[13] = 1 Then
-
       Bhv = 13
-
     EndIf
-
     If S[15] = 1 Then
-
       Bhv = 15
-
     EndIf
-
   EndIf
-
   
-
   If i = 34 Then
-
     If S[32] = 1 Then
-
       Bhv = 32
-
     EndIf
-
     If S[62] = 1 Then
-
       Bhv = 62
-
     EndIf
-
     If S[63] = 1 Then
-
       Bhv = 63
-
     EndIf
-
   EndIf
-
   
-
   If i = 29 Then
-
     If RV[34] = 1 Then
-
       Bvh = 21
-
     EndIf
-
     If RV[35] = 1 Then
-
       Bvh = 23
-
     EndIf
-
     If RV[36] = 1 Then
-
       Bvh = 25
-
     EndIf
-
     If RV[37] = 1 Then
-
       Bvh = 27
-
     EndIf
-
   EndIf  
-
   
-
   If i = 35 Then
-
     If RV[38] = 1 Then
-
       Bvh = 21
-
     EndIf
-
     If RV[39] = 1 Then
-
       Bvh = 23
-
     EndIf
-
     If RV[40] = 1 Then
-
       Bvh = 25
-
     EndIf
-
     If RV[41] = 1 Then
-
       Bvh = 27
-
     EndIf
-
   EndIf  
-
   
-
   If i = 9 Then
-
     If RV[26] = 1 Then
-
       Bhv = 51
-
     EndIf
-
   EndIf
-
   
-
   If i = 26 Then
-
     If S[22] = 1 Then
-
       Bvh = 22
-
     EndIf
-
     If S[24] = 1 Then
-
       Bvh = 24
-
     EndIf
-
   EndIf
-
   
-
   If i = 21 Then
-
     If RV[9] = 1 Then
-
       Bvh = 19
-
     EndIf
-
   EndIf
-
   
-
   If i = 23 Then
-
     If RV[8] = 1 Then
-
       Bvh = 19
-
     EndIf
-
   EndIf
-
   
-
   If i = 25 Then
-
     If RV[7] = 1 Then
-
       Bvh = 19
-
     EndIf
-
   EndIf
-
   
-
   If i = 27 Then
-
     If RV[6] = 1 Then
-
       Bvh = 19
-
     EndIf
-
   EndIf
-
   
-
   If i = 41 Then
-
     If S[37] = 1 Then
-
       Bvh = 37
-
     EndIf
-
     If S[39] = 1 Then
-
       Bvh = 39
-
     EndIf
-
   EndIf    
-
   
-
   If i = 48 Then
-
     If S[46] = 1 Then
-
       Bvh = 46
-
     EndIf
-
     If S[59] = 1 Then
-
       Bvh = 59
-
     EndIf
-
   EndIf    
-
   
-
   If i = 40 Then
-
     If S[36] = 1 Then
-
       Bvh = 36
-
     EndIf
-
     If S[38] = 1 Then
-
       Bvh = 38
-
     EndIf
-
   EndIf    
-
   
-
   If i = 54 Then
-
     If S[50] = 1 Then
-
       Bvh = 50
-
     EndIf
-
     If S[52] = 1 Then
-
       Bvh = 52
-
     EndIf
-
   EndIf    
-
   
-
   If i = 37 Then
-
     If RV[28] = 1 Then
-
       Bvh = 35
-
     EndIf
-
   EndIf
-
   
-
   If i = 39 Then      
-
     If RV[29] = 1 Then
-
       Bvh = 35
-
     EndIf
-
   EndIf    
-
   
-
   If i = 50 Then
-
     If RV[31] = 1 Then
-
       Bvh = 48
-
     EndIf
-
   EndIf
-
   If i = 52 Then 
-
     If RV[32] = 1 Then
-
       Bvh = 48
-
     EndIf
-
   EndIf    
-
   
-
   If i = 55 Then
-
     If RV[27] = 1 Then
-
       Bvh = 51
-
     EndIf
-
   EndIf
-
   
-
   If i = 60 Then
-
     If S[58] = 1 Then
-
       Bvh = 58
-
     EndIf
-
   EndIf
-
   
-
   If i = 57 Then
-
     If S[55] = 1 Then
-
       Bvh = 55
-
     EndIf
-
   EndIf
-
   
-
   If i = 58 Then
-
     If S[56] = 1 Then
-
       Bvh = 56
-
     EndIf
-
   EndIf
-
   
-
   If i = 56 Then
-
     If S[41] = 1 Then
-
       If W[32] = 1 Then
-
         Bvh = 41
-
       EndIf
-
     EndIf
-
   EndIf
-
   
-
   If i = 59 Then
-
     If S[57] = 1 Then
-
       Bvh = 57
-
     EndIf
-
   EndIf
-
   
-
   If i = 43 Then
-
     If S[41] = 1 Then
-
       If W[32] = 0 Then
-
         Bvh = 41
-
       EndIf
-
     EndIf
-
   EndIf
-
   
-
   If i = 42 Then
-
     If S[40] = 1 Then
-
       Bvh = 540
-
     EndIf
-
   EndIf
-
   
-
   If i = 44 Then
-
     If S[42] = 1 Then
-
       Bvh = 42
-
     EndIf
-
   EndIf
-
   
-
   If i = 46 Then
-
     If S[44] = 1 Then
-
       Bvh = 44
-
     EndIf
-
   EndIf
-
   
-
   If i = 45 Then
-
     If S[43] = 1 Then
-
       Bvh = 43
-
     EndIf
-
   EndIf
-
   
-
   If i = 47 Then
-
     If S[45] = 1 Then
-
       Bvh = 45
-
     EndIf
-
   EndIf
-
   
-
   If i = 49 Then
-
     If S[47] = 1 Then
-
       Bvh = 47
-
     EndIf
-
   EndIf
-
   
-
 EndSub
-
-

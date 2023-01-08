@@ -1,295 +1,147 @@
 'Setup
-
 gw = Desktop.Width-20
-
 gh = Desktop.Height-120
-
 GraphicsWindow.Left = 4
-
 GraphicsWindow.Top = 4
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.BackgroundColor = "White"
-
 GraphicsWindow.Title = "Electric Field Lines : Left Click - , Right Cick +"
-
 numCharge = 0 'Current number of charges
-
 numAng = 64 'Number of field lines originating around each charge
-
 stepLen = 5 'The step length in pixels for each step of field line
-
 col[-1] = "Blue" 'Negative colour
-
 col[1] = "Red" 'Positive colour
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.KeyDown = OnKeyDown
 
-
-
 'Main Loop
-
 While ("True")
-
   If (added) Then
-
     added = ""
-
     NewCharge() 'Add a charge
-
     Update() 'Update drawing
-
   EndIf
-
   If (keys["Space"]) Then 'Reset everything
-
     keys = ""
-
     GraphicsWindow.Clear()
-
     numCharge = 0
-
   EndIf
-
   Program.Delay(20)
-
 EndWhile
 
-
-
 Sub OnMouseDown
-
   MainContinue = "False" 'Stop current drawing
-
   added = "True" 'Flag to add a new charge
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   keys[key] = "True"
-
   MainContinue = "False"
-
 EndSub
-
-
 
 Sub NewCharge 'Add a charge
-
   If (Mouse.IsLeftButtonDown) Then
-
     sign = -1
-
   Else
-
     sign = 1
-
   EndIf
-
   GraphicsWindow.BrushColor = col[sign]
-
   GraphicsWindow.PenWidth = 0
-
   numCharge = numCharge+1
-
   chargeSign[numCharge] = sign
-
   chargeX[numCharge] = GraphicsWindow.MouseX
-
   chargeY[numCharge] = GraphicsWindow.MouseY
-
   charge[numCharge] = Shapes.AddEllipse(4*stepLen,4*stepLen)
-
   Shapes.Move(charge[numCharge],chargeX[numCharge]-2*stepLen,chargeY[numCharge]-2*stepLen)
-
 EndSub
-
-
 
 Sub Update
-
   'Clear background
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
-
   GraphicsWindow.FillRectangle(0,0,gw,gh)
-
   GraphicsWindow.PenWidth = 1
-
   MainContinue = "True" 'Allow drawing to restart
-
   For i = 1 To numCharge
-
     GraphicsWindow.PenColor = "White" 'col[chargeSign[i]]
-
     For j = 1 To numAng 'Field lines eminating from each charge
-
       angle = 2*Math.Pi*j/numAng ' Radians equally spaced on 0 to 2pi (360 deg)
-
       posX = chargeX[i]+2*stepLen*Math.Cos(angle)
-
       posY = chargeY[i]+2*stepLen*Math.Sin(angle)
-
       continue = MainContinue
-
       count = 0 'A hard limit to segments drawn in case somehow it doesn't terminate
-
       While (count < 1000 And continue And posX > 0 And posX < gw And posY > 0 And posY < gh)
-
         'While field line is not ended get its direction and draw a new segment
-
         GetFieldDirection()
-
         PosXNew = posX-chargeSign[i]*stepLen*dirX
-
         PosYNew = posY-chargeSign[i]*stepLen*dirY
-
         GraphicsWindow.DrawLine(PosX,PosY,PosXNew,PosYNew)
-
         If (count > 0 And dirX*dirXLast+dirY*dirYLast <= 0) Then 'Direction reversal or zero direction is a trapped field line
-
           continue = "False"
-
         EndIf
-
         PosX = PosXNew
-
         PosY = PosYNew
-
         dirXLast = dirX
-
         dirYLast = dirY
-
         count = count+1
-
       EndWhile
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub GetFieldDirection
-
   'To get the field line direction we want the direction where the field is changing fastest
-
   'To get this just use the difference (or gradient) in field strength in the x and y directions
-
   X = posX+stepLen/2
-
   Y = posY
-
   GetField()
-
   dirX = field
-
   
-
   X = posX-stepLen/2
-
   Y = posY
-
   GetField()
-
   dirX = dirX-field
-
   
-
   X = posX
-
   Y = posY+stepLen/2
-
   GetField()
-
   dirY = field
-
   
-
   X = posX
-
   Y = posY-stepLen/2
-
   GetField()
-
   dirY = dirY-field
-
   
-
   'Normalise the direction to unit length vector
-
   len = Math.SquareRoot(dirX*dirX+dirY*dirY)
-
   If (len > 0) Then
-
     dirX = dirX/len
-
     dirY = dirY/len
-
   EndIf
-
   
-
   'Optionally get a colour from field
-
   If (field > 0) Then
-
     red = (6+Math.Log(field))*255/6
-
     GraphicsWindow.PenColor = GraphicsWindow.GetColorFromRGB(red,50,50)
-
   ElseIf (field < 0) Then
-
     blue = (6+Math.Log(-field))*255/6
-
     GraphicsWindow.PenColor = GraphicsWindow.GetColorFromRGB(50,50,blue)
-
   EndIf
-
 EndSub
-
-
 
 'The field strength at a point is just the sum over all charges with an inverse square of distance to charge
-
 Sub GetField
-
   field = 0 
-
   For ii = 1 To numCharge
-
     dx = chargeX[ii]-X
-
     dy = chargeY[ii]-Y
-
     dist2 = dx*dx+dy*dy
-
     If (dist2 < stepLen*stepLen) Then
-
       continue = "False" 'Terminate field line when it reaches a charge, also prevents a possible division by zero error
-
     Else
-
       field = field+chargeSign[ii]/dist2
-
     EndIf
-
   EndFor
-
 EndSub
-
-

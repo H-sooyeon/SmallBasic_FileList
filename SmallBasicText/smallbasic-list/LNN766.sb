@@ -1,1121 +1,560 @@
 PublicScoreData = "" 
-
 GeneratorBusy = 0 
-
 Local_Busy = 0
-
 BoxSizeChanged = 0
-
 replaylvl = 0            ' Tells the game generator whether or not to generate a new map or just restart the current map. 1= Restart ; 0 = New Map
-
 DrawUI_MinBoxes = 30     'Square this Number to get number to tiles on screen. Represents X & Y max values
-
 DrawUI_BoxSize = 25      'Default Width and Height of a Square
-
 DrawUI_BoxMinSize = 20    'Minimum allowable Width and Height of a Square 
 
-
-
 GenerateMinIllegals = 150 
-
 GenerateMinPoints = 40 'Min Amount of Points Needed
-
 GenerateMinTeleport = 5
 
-
-
 AccessFunction = "Calculate_Access"
-
 BrodCastFunction = "ServerBrodcast"
-
 SendMessageFunction = "ServerMessage"
-
 DebugFunction = "Debug" 
-
 args = ""
-
 return = ""
 
-
-
 DesktopHeight = Desktop.Height - 30 
-
 DesktopWidth= Desktop.Width - 30 
 
-
-
 GraphicsWindow.Width = DesktopWidth 
-
 GraphicsWindow.Height = DesktopHeight
-
 GraphicsWindow.Left = 0 
-
 GraphicsWindow.Top = 0 
-
 GraphicsWindow.Show()
-
 XArray = LDArray.Create(500)
-
 YArray = LDArray.Create(500) 
-
-
 
 GenerateLevel()
 
-
-
 '4 neighbour blocks to check
-
 TextWindow.Hide()
-
 GraphicsWindow.PenColor = "Gray"
-
 GraphicsWindow.PenWidth = 1
-
 StepX = "1=-1;2=1;3=0;4=0"
-
 StepY = "1=0;2=0;3=-1;4=1"
 
-
-
 'Initial target from turtle start point
-
 Closest_X = Math.Floor(Turtle.X/DrawUI_BoxSize)  
-
 Closest_Y = Math.Floor(Turtle.Y/DrawUI_BoxSize) 
-
 AI_Path()
-
 running = "True"
-
 While (running)
-
   CurrentX = Closest_X 
-
   CurrentY = Closest_Y
-
   'Search for next closest not already passed through
-
   MinValue = 1000
-
   Closest_X = 0
-
   'Next nearest Yellow cell
-
   For TryX = 0 To DrawUI_MinBoxes
-
     For TryY = 0 To DrawUI_MinBoxes
-
       If (GameBoard[TryX][TryY] = 3 And Value[TryX][TryY] < MinValue) Then
-
         Closest_X = TryX
-
         Closest_Y = TryY
-
         MinValue = Value[TryX][TryY]
-
       EndIf
-
     EndFor
-
   EndFor
-
   'Final Red cell
-
   If (Closest_X = 0) Then
-
     For TryX = 0 To DrawUI_MinBoxes
-
       For TryY = 0 To DrawUI_MinBoxes
-
         If (GameBoard[TryX][TryY] = 4 And Value[TryX][TryY] < MinValue) Then
-
           Closest_X = TryX
-
           Closest_Y = TryY
-
           MinValue = Value[TryX][TryY]
-
         EndIf
-
       EndFor
-
     EndFor
-
     running = "False"
-
   EndIf
-
   'TextWindow.WriteLine("Closest "+Closest_X+","+Closest_Y+" : "+GameBoard[Closest_X][Closest_Y])
-
   AI_Path()
-
   SendTurtle()
-
   GameBoard[Closest_X][Closest_Y] = "" 'Finished with this cell - it is the new start cell
-
 EndWhile
-
 '_________________________________________________________________________________________________________________________________
-
 '                                                                                                                          Generates Map
-
 '_________________________________________________________________________________________________________________________________  
 
-
-
 Sub GenerateLevel
-
   TextWindow.WriteLine("Gen Level")
-
   If GeneratorBusy = 0 Then 
-
     TextWindow.WriteLine("Generator Free")
-
     'Server Side 
-
     GameOver = 0 
-
     GeneratorBusy = 1 
-
     Games = Games + 1 
-
     
-
     Score = 0 
-
     endsquare = 0 
-
     FindEnclosedAttempted = 0 
-
     
-
     GeneratedIllegalsVar = 1
-
     GeneratedPointsVar   = 1
-
     
-
     If replaylvl = 0 Then 'Game needs a new map
-
       TextWindow.WriteLine("New Map Requsted")
-
       GameBoard = "" 
-
       GameBoard[2][2] = 0 
-
       GameBoard[2][3] = 0 
-
       GenerateBorders()
-
       TextWindow.WriteLine("Borders Finished")
-
       GenerateIllegals()
-
       TextWindow.WriteLine("Barriers Finished")
-
       GeneratePoints()
-
       TextWindow.WriteLine("Target Squares Finished")
-
       Generate_Teleport() 
-
       TextWindow.WriteLine("Teleport Squares Finished ")
-
       
-
       TextWindow.WriteLine("New Map Complete")
-
     Else 
-
       TextWindow.WriteLine("Old Map Requested")
-
     EndIf
-
     
-
     GameBoard["TeleportX"] = TeleportXLink 
-
     GameBoard["TeleportY"] = TeleportYLink 
-
     GameBoard["Pairs"][1] = 2  
-
     GameBoard["Pairs"][2] = 1 
-
     GameBoard["BoxestoGo"] = GenerateMinPoints
-
     BoxesToGo = GenerateMinPoints
-
     StoreGameBoard = GameBoard 
-
     Hash =   LDEncryption.MD5Hash(StoreGameBoard) 
-
     LDCall.Function2(BrodCastFunction, StoreGameBoard,"GameBoard" ) 
-
     'Brodcast Game to All Clients 
-
     
-
     'Start Client Side 
-
     'Clients Read the Game Like this 
-
     'TeleportXLink = GameBoard["TeleportX"]
-
     'TeleportYLink = GameBoard["TeleportY"] 
-
     
-
     DrawNumbers()
-
     DrawKey()
-
     ScoreData()
-
     DrawUI() 
-
     DebugPanelUI()
-
     SanityCheck()  
-
     
-
     FindEnclosed() 
-
     If Games = 1 Then 
-
       'ShowHelp()
-
     EndIf
-
     Sound.PlayChimes()
-
     SpawnPlayer() 
-
     'GameOverCheck()
-
     replaylvl = 0 
-
     GeneratorBusy = 0 
-
   EndIf 
-
 EndSub
-
-
 
 Sub DebugPanelUI
-
 EndSub
-
-
 
 Sub ScoreData
-
   GraphicsWindow.BrushColor = "BLACK"
-
   ScoreDataBox =   LDControls.AddListBox(PublicScoreData,200,170)
-
   Controls.Move(ScoreDataBox, UIx , UIy + 200) 
-
   GraphicsWindow.BrushColor = "WHITE"
-
 EndSub
-
-
 
 Sub GenerateBorders
-
   For GenerateBordersXVar = 0 To DrawUI_MinBoxes
-
     For GenerateBordersYVar = 0 To DrawUI_MinBoxes
-
       If GenerateBordersXVar = 1 Or GenerateBordersXVar = DrawUI_MinBoxes Then
-
         GameBoard[GenerateBordersXVar][GenerateBordersYVar] = 1 
-
       ElseIf GenerateBordersYVar = 1 or GenerateBordersYVar = DrawUI_MinBoxes Then 
-
         GameBoard[GenerateBordersXVar][GenerateBordersYVar] = 1 
-
       EndIf 
-
     EndFor
-
   EndFor
-
   
-
 EndSub 
-
-
 
 Sub GeneratePoints 
-
   GeneratedPointsVar = 0 
-
   While GeneratedPointsVar <= GenerateMinPoints 
-
     RandomX = Math.GetRandomNumber(DrawUI_MinBoxes)
-
     RandomY = Math.GetRandomNumber(DrawUI_MinBoxes)
-
     CurrentCell = GameBoard[RandomX][RandomY] 
-
     If CurrentCell = "" Or CurrentCell = 0 And CurrentCell <> 0 And CurrentCell <> 2 And CurrentCell <> 3 And CurrentCell <> 4 And CurrentCell <> 1  Then 
-
       
-
       If  LDCall.Function2(AccessFunction,RandomX,RandomY) > 1 then 
-
         GameBoard[RandomX][RandomY] = 3
-
         GeneratedPointsVar = GeneratedPointsVar + 1
-
       EndiF 
-
       If LDCall.Function2(AccessFunction,RandomX,RandomY) > 1 And endsquare = 0 Then 'Always have one end square
-
         endsquare = 1 
-
         GameBoard[RandomX][RandomY] = 4
-
         GeneratedPointsVar = GeneratedPointsVar + 1 
-
       EndIf 
-
     EndIf  
-
   EndWhile
-
 EndSub
-
-
 
 Sub GenerateIllegals
-
   While GeneratedIllegalsVar <= GenerateMinIllegals 
-
     RandomX = Math.GetRandomNumber(DrawUI_MinBoxes)
-
     RandomY = Math.GetRandomNumber(DrawUI_MinBoxes)
-
     CurrentCell = GameBoard[RandomX][RandomY] 
-
     If CurrentCell = "" Or CurrentCell = 0 And CurrentCell <> 0 Then 
-
       If  LDCall.Function2(AccessFunction,RandomX,RandomY) >= 1 And CurrentCell <> 1 And CurrentCell <> 2 And CurrentCell <> 3 And CurrentCell <> 4 then 
-
         GameBoard[RandomX][RandomY] = 1 
-
         GeneratedIllegalsVar = GeneratedIllegalsVar + 1 
-
       EndIf  
-
     EndIf
-
   EndWhile 
-
 EndSub
-
-
 
 Sub Generate_Teleport
-
   GeneratedTeleportVar = 0 
-
   TeleportXLink = ""
-
   TeleportYLink = "" 
-
   While GeneratedTeleportVar < GenerateMinTeleport 
-
     RandomX = Math.GetRandomNumber(DrawUI_MinBoxes)
-
     RandomY = Math.GetRandomNumber(DrawUI_MinBoxes)
-
     CurrentCell = GameBoard[RandomX][RandomY] 
-
     XDistance = Math.Abs(TeleportXLink[1] - RandomX)
-
     YDistance = Math.Abs(TeleportYLink[1] - RandomY)
-
     CDistance =Math.SquareRoot( (Math.Power(XDistance,2) + Math.Power(YDistance,2)) ) 
-
     CDistance = Math.Floor(CDistance) 
-
     
-
     If CurrentCell = "" Or CurrentCell = 0 And CurrentCell <> 0 And CurrentCell <> 1 And CurrentCell <> 2 And CurrentCell <> 3 And CurrentCell <> 4 Then 
-
       If  LDCall.Function2(AccessFunction,RandomX,RandomY) >= 1 Then 
-
         If CDistance = 0 OR CDistance >= 5 Then 
-
           GameBoard[RandomX][RandomY] = 5 
-
           TeleportXLink[Array.GetItemCount(TeleportXLink) + 1] = RandomX
-
           TeleportYLink[Array.GetItemCount(TeleportYLink) + 1 ] = RandomY 
-
           GeneratedTeleportVar = GeneratedTeleportVar + 1 
-
           
-
           ' LDCall.Function(DebugFunction,"Distance:" + XDistance +","+ YDistance+";"+ CDistance)  ' Debug 
-
         EndIf 
-
       EndIf 
-
     EndIf 
-
     
-
   EndWhile
-
   
-
   'TextWindow.WriteLine( Array.GetItemCount(TeleportXLink) ) 'debug 
-
 EndSub
-
-
 
 Sub SanityCheck
-
   GraphicsWindow.Title = "Sanity Check"
-
   Sanity = 1
-
   
-
   Sanity_Numbers() 
-
   
-
   If SIllegals < GenerateMinIllegals  Then 
-
     LDCall.Function(DebugFunction,"ILLEGALS: (" + SIllegals + "<" + GenerateMinIllegals +")")
-
   EndIf  
-
   
-
   If SPoints < GenerateMinPoints Then 
-
     LDCall.Function(DebugFunction,"POINTS: (" + SPoints + "<" + GenerateMinPoints +")")
-
   EndIf
-
   
-
 EndSub 
-
-
 
 Sub Sanity_Numbers
-
   SPoints = 0 
-
   SIllegals = 0 
-
   For Sx = 1 To DrawUI_MinBoxes 
-
     For Sy = 1 To DrawUI_MinBoxes 
-
       CurrentCell = GameBoard[Sx][Sy] 
-
       If CurrentCell = 1 Then 
-
         SIllegals = SIllegals + 1 
-
       ElseIf CurrentCell = 3 or CurrentCell = 4 Then 
-
         SPoints = SPoints + 1 
-
       EndIf 
-
       
-
     EndFor  
-
   EndFor 
-
 EndSub
-
-
 
 Sub FindEnclosed 
-
   FindEnclosedRunning = 1
-
   GraphicsWindow.Title = "Find Enclosed" 
-
   LDArray.Delete(RootX)
-
   LDArray.Delete(RootY)
-
   PointCellsFound = 0 
-
   RootX =  LDArray.Create(Math.Power(DrawUI_MinBoxes,2) + 100 ) ' More than enough Room for a map with 30x30 Dimmensions 
-
   RootY =  LDArray.Create(Math.Power(DrawUI_MinBoxes,2) + 100)
-
   
-
   LDArray.SetValue(RootX,1,2)
-
   LDArray.SetValue(RootY,1,2) 
-
   FGameBoard = GameBoard 
-
   MaxRoot = LDArray.Count( RootX) + 1 
-
   
-
   For PathI = 1 To MaxRoot
-
     FEx = LDArray.GetValue(RootX,PathI) 
-
     FEy = LDArray.GetValue(RootY,PathI)  
-
     CurrentCell = GameBoard[FEx][FEy] 
-
     ' LDCall.Function(DebugFunction, "Visiting" +"(" + FEx +"," + FEy +")") 'Debug
-
     If FGameBoard[FEx][FEy] <> 6 Then 'Visited 
-
       If CurrentCell = 3 or CurrentCell = 4 then 
-
         PointCellsFound = PointCellsFound + 1 
-
       EndIf 
-
       'Find Adj 
-
       'Up
-
       Cell[1]["X"] = FEx
-
       Cell[1]["Y"] = FEy + 1 
-
       Cell[1]["Value"] = GameBoard[(Cell[1]["X"])][ (Cell[1]["Y"])] 
-
       'Down
-
       Cell[2]["X"] = FEx
-
       Cell[2]["Y"] = FEy - 1 
-
       Cell[2]["Value"] = GameBoard[(Cell[2]["X"])][(Cell[2]["Y"])] 
-
       'Left 
-
       Cell[3]["X"] = FEx - 1
-
       Cell[3]["Y"] = FEy  
-
       Cell[3]["Value"] = GameBoard[(Cell[3]["X"])][Cell[3]["Y"]] 
-
       'Right 
-
       Cell[4]["X"] = FEx + 1 
-
       Cell[4]["Y"] = FEy 
-
       Cell[4]["Value"] = GameBoard[(Cell[4]["X"])][(Cell[4]["Y"])] 
-
       
-
       For TempI = 1 To 4 
-
         TempX = Cell[TempI]["X"]
-
         TempY = Cell[TempI]["Y"]
-
         If (FGameBoard[TempX][TempY] <> 6) And ( TempX = Math.Abs(TempX) And TempY = Math.Abs(TempY) ) And (TempX >= 2 And TempX <= 30 And TempY >= 2 And TempY <= 30) Then  
-
           If Cell[TempI]["Value"] = 1   Then 'Barrier 
-
             FGameBoard[TempX][TempY] = 6 
-
           ElseIf Cell[TempI]["Value"] = 5 Then 'Teleport
-
             CurrentCell5x = 1 
-
             While CurrentCell5x <= Array.GetItemCount(TeleportXLink) 
-
               If TeleportXLink[ CurrentCell5x ] = TempX And TeleportYLink[CurrentCell5x] = TempY Then 
-
                 If (LDCall.Function2(AccessFunction,TeleportXLink[ GameBoard["Pairs"][CurrentCell5x] ],TeleportYLink[ GameBoard["Pairs"][CurrentCell5x] ]) <> 0) AND FGameBoard[TeleportXLink[GameBoard["Pairs"][CurrentCell5x]]][TeleportYLink[ GameBoard["Pairs"][CurrentCell5x]]] <> 6 Then
-
                   LDArray.SetValue(RootX, LDArray.Count(RootX) + 1, TeleportXLink[ GameBoard["Pairs"][CurrentCell5x] ] ) 
-
                   LDArray.SetValue(RootY, LDArray.Count(RootY) + 1, TeleportYLink[ GameBoard["Pairs"][CurrentCell5x] ]  ) 
-
                   ' TextWindow.WriteLine("Teleport from ("+TempX+","+TempY+") to ("+ LDArray.GetValue(RootX, LDArray.Count(RootX) ) +","+ LDArray.GetValue(RootY LDArray.Count(RootY) ) +")" )  ' Debug 
-
                 EndIf 
-
               EndIf
-
               CurrentCell5x = Array.GetItemCount( TeleportXLink)  + 1 
-
             EndWhile
-
           Else
-
             ' TextWindow.WriteLine( PathI + "." + "(" + Cell[TempI]["X"] +"," + Cell[TempI]["Y"] +") ~ " + Cell[PathI]["Value"] + " // " + TempI ) 'Debug 
-
             LDArray.SetValue(RootX, LDArray.Count(RootX) + 1, TempX ) 
-
             LDArray.SetValue(RootY, LDArray.Count(RootY) + 1, TempY ) 
-
           EndIf  
-
         EndIf 
-
       EndFor 
-
       MaxRoot = LDArray.Count(RootX) 
-
       FGameBoard[FEx][FEy] = 6 
-
     EndIf 
-
     
-
   EndFor 
-
   
-
   If PointCellsFound <> GenerateMinPoints Then 
-
     If LDArray.Count(RootX) = 1 And FindEnclosedAttempted = 0 Then 
-
       LDCall.Function(DebugFunction,"Find Enclosed Array Error")
-
       FindEnclosedAttempted = 1 
-
       FindEnclosed()
-
     ElseIf PointCellsFound <> SPoints And LDArray.Count(RootX) <> 1  Then 'If they Equal no Alarms Should Ring 
-
       GraphicsWindow.ShowMessage("Warning : This level may be unplayable . " + PointCellsFound + " out of " + GenerateMinPoints +" point tiles are reachable" , "Find Enclosed ") 
-
       
-
       LDCall.Function(DebugFunction,"Warning : This level may be unplayable . " + PointCellsFound + " out of " + GenerateMinPoints +" point tiles are reachable")
-
     ElseIf LDArray.Count(RootX) = 1 And FindEnclosedAttempted = 1 Then 
-
       GraphicsWindow.ShowMessage("Error Code :FEA2 " , "Find Enclosed Array Error") 
-
       LDCall.Function(DebugFunction,"Error Code :FEA2 (" + LDArray.Count(RootX) +")")
-
     EndIf 
-
   EndIf 
-
   ' TextWindow.WriteLine ( LDArray.Count(RootX) )'Debug 
-
   
-
   FindEnclosedRunning = 0
-
   LDCall.Function(DebugFunction,"")
-
 EndSub  
 
-
-
 '_________________________________________________________________________________________________________________________________
-
 '                                                                                                                                          Draws Map
-
 '_________________________________________________________________________________________________________________________________
-
-
 
 Sub DrawUI ' Draws Basic UI 
-
   PointsSquaresDrawn = 0 
-
   For UIx = 1 To DrawUI_MinBoxes 
-
     For UIy = 1 To DrawUI_MinBoxes 
-
       CurrentCell =  GameBoard[UIx][UIy]
-
       If CurrentCell = 1 Then 
-
         GraphicsWindow.BrushColor = "Black" 
-
       ElseIf CurrentCell = 2 then 
-
         
-
       ElseIf CurrentCell = 3 Then 
-
         
-
         GraphicsWindow.BrushColor = "Yellow" 
-
         PointsSquaresDrawn = PointsSquaresDrawn + 1 
-
         LDArray.SetValue(XArray,PointsSquaresDrawn,UIX)'THE UIX & UIY MIX UP IS INTENTIONAL!
-
         LDArray.SetValue(YArray,PointsSquaresDrawn,UIY)
-
       Elseif CurrentCell = 4 Then 
-
         GraphicsWindow.BrushColor = "Red" 
-
         PointsSquaresDrawn = PointsSquaresDrawn + 1 
-
         LDArray.SetValue(XArray,PointsSquaresDrawn,UIX)
-
         LDArray.SetValue(YArray,PointsSquaresDrawn,UIY)
-
       ElseIf CurrentCell = 5 Then 
-
         GraphicsWindow.BrushColor = "White" 
-
         CurrentCell5x = 0
-
         While CurrentCell5x <= Array.GetItemCount(TeleportXLink) 
-
           If TeleportXLink[ CurrentCell5x ] = UIx Then 
-
             CurrentCell5x = Array.GetItemCount(TeleportXLink) 
-
             GraphicsWindow.BrushColor = "Orange"
-
           EndIf
-
           CurrentCell5x = CurrentCell5x + 1 
-
         EndWhile  
-
       Else 
-
         GraphicsWindow.BrushColor = "White" 
-
       EndIf 
-
       
-
       GraphicsWindow.DrawRectangle( UIx * DrawUI_BoxSize , UIy * DrawUI_BoxSize , DrawUI_BoxSize , DrawUI_BoxSize )
-
       GraphicsWindow.FillRectangle( UIx * DrawUI_BoxSize , UIy * DrawUI_BoxSize , DrawUI_BoxSize , DrawUI_BoxSize )
-
     EndFor 
-
   EndFor
-
   BoxesToGo = PointsSquaresDrawn
-
 EndSub
-
-
 
 Sub DrawNumbers
-
   For UIx = 1 To DrawUI_BoxSize * DrawUI_MinBoxes Step DrawUI_BoxSize
-
     GraphicsWindow.DrawText(UIx , 5, Math.Round( UIx/ DrawUI_BoxSize) ) 
-
   EndFor 
-
   For UIy = 1 To DrawUI_BoxSize * DrawUI_MinBoxes Step DrawUI_BoxSize
-
     GraphicsWindow.DrawText(5 , UIy, Math.Round( UIy/ DrawUI_BoxSize) ) 
-
   EndFor
-
 EndSub 
-
-
 
 Sub DrawKey
-
   UIx = (1 * DrawUI_BoxSize * 32)
-
   UIy = (DrawUI_BoxSize * 32 * 0.40 ) 
-
   GraphicsWindow.DrawText(UIx + 90 , UIy - 20 , "Key" )
-
   GraphicsWindow.DrawRectangle( UIx , UIy , 200 ,170 ) 
-
   GraphicsWindow.DrawText(UIx + 10 + 40 , UIy + 15 , "Point Square") 
-
   GraphicsWindow.DrawText(UIx + 10 + 40 , UIy + 50 + 5 , "End Square") 
-
   GraphicsWindow.DrawText(UIx + 10 + 40 , UIy + 90 + 5, "Teleport Square") 
-
   GraphicsWindow.DrawText(UIx + 10 + 40 , UIy + 130 + 5, "Turtle") 
-
   
-
   
-
   GraphicsWindow.BrushColor = "Yellow"
-
   YRectangle =   Shapes.AddRectangle(30,30)
-
   
-
   GraphicsWindow.BrushColor = "Red"
-
   RRectangle =   Shapes.AddRectangle(30,30)
-
   
-
   GraphicsWindow.BrushColor = "Orange"
-
   ORectangle =   Shapes.AddRectangle(30,30)
-
   
-
   
-
   Shapes.Move( YRectangle,UIx + 10, UIy + 10) 
-
   Shapes.Move( RRectangle, UIx + 10, UIy + 50)
-
   Shapes.Move( ORectangle,UIx + 10,UIy+  90 )
-
   
-
   
-
   LDDialogs.ToolTip(YRectangle,"This is a Point Square. Land on this square and gain 100 points.")
-
   LDDialogs.ToolTip(RRectangle,"This is an End Square. A square that the game has detected to have only one enterance. Be warned this is not perfect.")
-
   LDDialogs.ToolTip(ORectangle,"This is a teleport square. It teleports you to another teleport sqaure. Teleport Squares are special in that they can be walked on more than once")
-
 EndSub
 
-
-
 '_________________________________________________________________________________________________________________________________
-
 '                                                                                                                                          Misc
-
 '_________________________________________________________________________________________________________________________________
-
 Sub Calculate_Access
-
   CAx =  args[1] 
-
   CAy =  args[2] 
-
   Access = 4 
-
   If GameBoard[CAx][CAy+1] = 1 Or GameBoard[CAx][CAy+1] = 2  Then 'Up
-
     Access = Access - 1 
-
   EndIf
-
   
-
   If GameBoard[CAx][CAy-1] = 1 Or GameBoard[CAx][CAy-1] = 2 Then 'Down
-
     Access = Access - 1 
-
   EndIf
-
   
-
   If GameBoard[CAx-1][CAy] = 1 Or GameBoard[CAx-1][CAy] = 2   Then 'Left
-
     Access = Access - 1 
-
   EndIf
-
   
-
   If GameBoard[CAx+1][CAy] = 1 Or GameBoard[CAx+1][CAy] = 2 Then 'Righ
-
     Access = Access - 1 
-
   EndIf
-
   return = Access 
-
 EndSub 
 
-
-
 Sub SpawnPlayer
-
   Turtle.Show() 
-
   Turtle.X = (3 * DrawUI_BoxSize) - (DrawUI_BoxSize/2) 
-
   Turtle.Y = (3 * DrawUI_BoxSize) - (DrawUI_BoxSize/2)
-
   Turtle.Speed = 10 
-
   'Turtle.PenUp() 
-
   RandomBrush = GraphicsWindow.GetRandomColor()
-
   
-
   TurtleFx = Math.Round( Turtle.X / DrawUI_BoxSize ) 
-
   TurtleFY = Math.Round( Turtle.Y / DrawUI_BoxSize )
-
   CurrentCell = GameBoard[TurtleFx][TurtleFY] 
-
   
-
   StartTime = Clock.ElapsedMilliseconds 
-
 EndSub
-
 '_________________________________________________________________________________________________________________________________
-
 '                                                                                                                                          AI Pathing
-
 '_________________________________________________________________________________________________________________________________
-
-
 
 Sub SendTurtle
-
   CurrentValue = Value[CurrentX][CurrentY]
-
   While (CurrentValue > 0)
-
     'TextWindow.Pause()
-
     For i = 1 To 4
-
       TryX = CurrentX+StepX[i]
-
       TryY = CurrentY+StepY[i]
-
       If (Value[TryX][TryY]<> "" And Value[TryX][TryY] < CurrentValue) Then
-
         'TextWindow.WriteLine(TryX+","+TryY)
-
         Turtle.MoveTo((TryX+0.5)*DrawUI_BoxSize,(TryY+0.5)*DrawUI_BoxSize)
-
         If (GameBoard[TryX][TryY] = 5) Then 'Teleport
-
           TryX = Math.GetRandomNumber(DrawUI_MinBoxes)-1
-
           TryY = Math.GetRandomNumber(DrawUI_MinBoxes)-1
-
           While (GameBoard[TryX][TryY] <> "" Or Value[TryX][TryY] = "")
-
             TryX = Math.GetRandomNumber(DrawUI_MinBoxes)-1
-
             TryY = Math.GetRandomNumber(DrawUI_MinBoxes)-1
-
           EndWhile
-
           'TextWindow.WriteLine(TryX+","+TryY)
-
           Turtle.X = (TryX+0.5)*DrawUI_BoxSize
-
           Turtle.Y = (TryY+0.5)*DrawUI_BoxSize
-
           'We have teleported so abandon this path and look for the next nearest at our new location so end this sub
-
           'CurrentX = TryX
-
           'CurrentY = TryY
-
           'Goto Finished
-
         EndIf
-
         CurrentX = TryX
-
         CurrentY = TryY
-
         CurrentValue = Value[CurrentX][CurrentY]
-
         i = 4 'End Loop
-
       EndIf
-
     EndFor
-
   EndWhile
-
   'Finished:
-
 EndSub
-
-
 
 Sub AI_Path
-
   Value = "" 'Array of stes from taget to start
-
   'A queue is like a stack except it is first in first out
-
   'Use this since we want to check next values in order they were added
-
   LDQueue.Enqueue("StateX",Closest_X) 
-
   LDQueue.Enqueue("StateY",Closest_Y)
-
   'Start at the target position and work back over the grid
-
   Value[Closest_X][Closest_Y] = 0
-
   'GraphicsWindow.DrawText(Closest_X*30,Closest_Y*30,0)  
-
   While (LDQueue.GetCount("StateX") > 0)
-
     TestX = LDQueue.Dequeue("StateX")
-
     TestY = LDQueue.Dequeue("StateY")
-
     NextValue = Value[TestX][TestY]+1
-
     'Check neighbours
-
     For i = 1 To 4
-
       TryX = TestX+StepX[i]
-
       TryY = TestY+StepY[i]
-
       'Check if try is a new valid square (depends on what GameBoard is) and we have not aleady set it
-
       'TextWindow.WriteLine(TryX+","+TryY+": "+GameBoard[TryX][TryY]) 'DEBUG
-
       If (Value[TryX][TryY] = "" And GameBoard[TryX][TryY] <> 1) Then
-
         'Add new square to queue to check next and mark its current value
-
         LDQueue.Enqueue("StateX",TryX)
-
         LDQueue.Enqueue("StateY",TryY)
-
         Value[TryX][TryY] = NextValue
-
         'GraphicsWindow.DrawText(TryX*30,TryY*30,NextValue)
-
       EndIf
-
     EndFor
-
     'TextWindow.Pause() 'DEBUG
-
   EndWhile
-
 EndSub
-
     
-
-

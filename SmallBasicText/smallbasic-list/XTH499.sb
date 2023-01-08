@@ -1,293 +1,146 @@
 'Main control parameters
-
 nball = 3 'Number of balls
-
 grav = 10 'Vertical gravity
-
 dt = 0.05 'A short timestep with a short Program.Delay in the main loop gives a smoother motion as long as the update is completed
-
 gradient = Math.ArcTan(0.3) ' The 0.3 is Y/X for the slope i.e. 3 in 10 gradient (Try 0.01 to 100 for this)
-
 'In reality friction would depend on gravity and the slope - friction is greater on a horizontal slope
-
 'Frictional force is usually proportional to velocity
-
 friction = 0.0001 'Friction while rolling
-
 fricCollision = 0.05 'Friction for collisions
 
-
-
 'ISSUES - TODO
-
 'stationary touching balls stacked up at the bottom should be still 
-
 'would have to check for very small velocity and touching a ball below it- then don't move (velocity = 0)
 
-
-
 'Set screen and images
-
 'ballImage = ImageList.LoadImage(Program.Directory+"\football2.png")
-
 ballImage = ImageList.LoadImage("http://7w7sng.bay.livefilestore.com/y1poWHL4LwqfopDrEL0ojbThwMz0IcO7mpnl5CcTiQCYQ8nQEnU1P1-2uqhaqGwtxrE2sIL5l91tBncLsdR1ObfODg5mihqfuoO/football2.png?psid=1")
-
 radius = ImageList.GetHeightOfImage(ballImage)/2
-
 pi = Math.Pi
-
 gw = Desktop.Width-12
-
 gh = Desktop.Height-100
-
 GraphicsWindow.Top = 0
-
 GraphicsWindow.Left = 0
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.BackgroundColor = "LightBlue"
-
 GraphicsWindow.BrushColor = "LightGreen"
-
 GraphicsWindow.FillTriangle(0,100,0,10*gh,10*gw*Math.Cos(gradient),100+10*gw*Math.Sin(gradient)) ' A big triangle off the screen
-
 GraphicsWindow.BrushColor = "Black"
-
 GraphicsWindow.DrawLine(0,100,gw,100+gw*Math.Tan(gradient))
 
-
-
 'Create and initialise balls and reflections
-
 For i = 1 To nball
-
   ball[i] = Shapes.AddImage(ballImage)
-
   ballReflection[i] = Shapes.AddImage(ballImage)
-
   Shapes.SetOpacity(ballReflection[i],20)
-
   accX[i] = grav*Math.Sin(gradient)*Math.Cos(gradient)
-
   accY[i] = grav*Math.Sin(gradient)*Math.Sin(gradient)
-
   'Equal spacing on visible slope
-
   If (100+gw*Math.Tan(gradient) > gh) Then
-
     posX[i] = radius + (i-1)/nball*(gh-100)/Math.Tan(gradient)
-
   Else
-
     posX[i] = radius + (i-1)/nball*gw
-
   EndIf
-
   posY[i] = 100+posX[i]*Math.Tan(gradient)-radius/Math.Cos(gradient) ' Pedantic starting position just touching left wall
-
   velX[i] = 0
-
   velY[i] = 0
-
   rotate[i] = 0
-
 EndFor
 
-
-
 While("True")
-
   start = Clock.ElapsedMilliseconds
-
   
-
   'Update each ball velocity and position and rotation + reflections
-
   For i = 1 To nball
-
     velX[i] = velX[i]+accX[i]*dt/2
-
     velY[i] = velY[i]+accY[i]*dt/2
-
     velX[i] = velX[i]*(1-friction*dt) 'Very simple friction
-
     velY[i] = velY[i]*(1-friction*dt)
-
     posX[i] = posX[i]+velX[i]*dt
-
     posY[i] = posY[i]+velY[i]*dt
-
     If (posX[i] < radius Or posX[i] > gw-radius Or posY[i] > gh-radius Or posY[i] < radius) Then ' Bounce on anY[i] boundaY[i]
-
       velX[i] = -velX[i]
-
       velY[i] = -velY[i]
-
       'Update position to make sure we don't draw past the boundarY[i] - This is a second dummY[i] timestep - but looks ok since a collision does take a little time
-
       posX[i] = posX[i]+velX[i]*dt
-
       posY[i] = posY[i]+velY[i]*dt
-
       velX[i] = velX[i]*(1-fricCollision)
-
       velY[i] = velY[i]*(1-fricCollision)
-
     EndIf
-
     speed = Math.SquareRoot(velX[i]*velX[i]+velY[i]*velY[i])*velX[i]/Math.Abs(velX[i]) 'speed signed bY[i] direction to reverse spin when we go backwards
-
     rotate[i] = rotate[i] + speed*dt/radius*180/pi
-
     Shapes.Move(ball[i],posX[i]-radius,posY[i]-radius)
-
     Shapes.Rotate(ball[i],rotate[i])
-
     Shapes.Move(ballReflection[i],posX[i]-radius-2*radius*Math.Sin(gradient),posY[i]-radius+2*radius*Math.Cos(gradient))
-
     Shapes.Rotate(ballReflection[i],-rotate[i])
-
   EndFor
-
   'Do any collisions
-
   Collision()
-
   
-
   'Keep the motion smooth using available cpu
-
   delay = 100*dt-(Clock.ElapsedMilliseconds-start) ' delay is 100*dt - cpu used to do the work
-
   If (delay > 0) Then
-
     Program.Delay(delay) ' Delay based on timestep
-
   Else
-
     dt = dt*1.1 'Longer timestep if cpu can't code
-
   EndIf
-
 EndWhile
 
-
-
 'Interesting that conserving momentum is conserving Kinetic + Pototential energy!
-
 Sub Collision ' Consider each ball pair once - check for collision by ball centre distance less than 2 radii
-
   For i = 1 To nball
-
     For j = i+1 To nball
-
       dx = posX[j]-posX[i]
-
       dy = posY[j]-posY[i]
-
       dist = Math.SquareRoot(dx*dx + dy*dy)
-
       If (dist < 2*radius) Then
-
         'Unit vector on centre line between balls - small rounding errors here cause problems, so get it directly from slope
-
         'We would need to be cleverer if the slope wasn't constant - e.g. a curve
-
         'nX = dx/dist
-
         'nY = dy/dist
-
         nX = Math.Cos(gradient)
-
         nY = Math.Sin(gradient)
-
         
-
         'Centre of momentum frame velocity - assume equal mass balls
-
         cX = (velX[i]+velX[j])/2
-
         cY = (velY[i]+velY[j])/2
-
         
-
         'Ball velocities in centre of momentum frame
-
         velX[i] = velX[i]-cX
-
         velY[i] = velY[i]-cY
-
         velX[j] = velX[j]-cX
-
         velY[j] = velY[j]-cY
-
         
-
         'Ball 1 collision
-
         L = nX*velX[i] + nY*velY[i]
-
         velX[i] = velX[i]-2*L*nX
-
         velY[i] = velY[i]-2*L*nY
-
         
-
         'Ball 2 collision
-
         L = nX*velX[j] + nY*velY[j]
-
         velX[j] = velX[j]-2*L*nX
-
         velY[j] = velY[j]-2*L*nY
-
         
-
         'Velocities in original frame
-
         velX[i] = velX[i]+cX
-
         velY[i] = velY[i]+cY
-
         velX[j] = velX[j]+cX
-
         velY[j] = velY[j]+cY
-
         
-
         'We add collision friction by scaling these velocities
-
         velX[i] = velX[i]*(1-fricCollision)
-
         velY[i] = velY[i]*(1-fricCollision)
-
         velX[j] = velX[j]*(1-fricCollision)
-
         velY[j] = velY[j]*(1-fricCollision)
-
         
-
         'Move balls away from each other to ensure no second collision of the same balls - helps if balls come to rest against each other
-
         posX[i] = posX[i]+velX[i]*dt
-
         posY[i] = posY[i]+velY[i]*dt
-
         posX[j] = posX[j]+velX[j]*dt
-
         posY[j] = posY[j]+velY[j]*dt
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
         
-
-

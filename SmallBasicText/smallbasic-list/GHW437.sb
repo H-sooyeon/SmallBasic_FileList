@@ -1,1195 +1,597 @@
 MAG = 15
-
 OFSX = 15
-
 OFSY = 55
 
-
-
 GraphicsWindow.Width = 500
-
 GraphicsWindow.Height = 500
-
-
 
 initControl()
 
-
-
 Sub initControl
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(19, 7, "vertical size")
-
   textboxNY = Controls.AddTextBox(95, 5)
-
   Controls.SetSize(textboxNY, 30, 20)
-
   Controls.SetTextBoxText(textboxNY, 10)
-
   GraphicsWindow.DrawText(3, 28, "horizontal size")
-
   textboxNX = Controls.AddTextBox(95, 27)
-
   Controls.SetSize(textboxNX, 30, 20)
-
   Controls.SetTextBoxText(textboxNX, 10)
-
   buttonMake = Controls.AddButton("create", 128, 14)
-
   buttonSolve1 = Controls.AddButton("smart turtle", 190, 1)
-
   buttonSolve2 = Controls.AddButton("ordinary turtle", 190, 30)
-
   Controls.ButtonClicked = buttonProcedure
-
   Controls.HideControl(buttonSolve1)
-
   Controls.HideControl(buttonSolve2)
-
 EndSub
-
-
 
 Sub buttonProcedure
-
   button = Controls.LastClickedButton
-
   Controls.HideControl(buttonMake)
-
   Controls.HideControl(buttonSolve1)
-
   Controls.HideControl(buttonSolve2)
-
   If button = buttonMake Then
-
     solved = 0
-
     If Controls.GetTextBoxText(textboxNX) <= 0 Then
-
       Controls.SetTextBoxText(textboxNX, 1)
-
     EndIf 
-
     NX = Math.Floor(Controls.GetTextBoxText(textboxNX)) + 1
-
     If Controls.GetTextBoxText(textboxNY) <= 0 Then
-
       Controls.SetTextBoxText(textboxNY, 1)
-
     EndIf 
-
     NY = Math.Floor(Controls.GetTextBoxText(textboxNY)) + 1
-
     makeMaze()
-
     turtleStandby()
-
     Controls.ShowControl(buttonMake)
-
     Controls.ShowControl(buttonSolve1)
-
     Controls.ShowControl(buttonSolve2)
-
   ElseIf button = buttonSolve1 Then
-
     If solved = 0 Then
-
       solveMaze()
-
       solved = 1
-
       turtleWalk1()
-
     Else
-
       Turtle.Turn(360)
-
     EndIf
-
     Controls.ShowControl(buttonMake)
-
     Controls.ShowControl(buttonSolve1)
-
     Controls.ShowControl(buttonSolve2)
-
   ElseIf button = buttonSolve2 Then
-
     turtleWalk2()
-
     Controls.ShowControl(buttonMake)
-
     Controls.ShowControl(buttonSolve1)
-
     Controls.ShowControl(buttonSolve2)
-
   EndIf
-
 EndSub
-
-
 
 Sub clearWindow
-
   GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
-
   GraphicsWindow.FillRectangle(OFSX, OFSY, GraphicsWindow.Width - OFSX, GraphicsWindow.Height - OFSY)
-
 EndSub
-
-
 
 Sub initMaze
-
   clearWindow()
-
   
-
   For x = 0 To NX
-
     For y = 0 To NY
-
       Node[x][y][0] = 0
-
       Node[x][y][1] = 0
-
       Node[x][y][2] = 0
-
     EndFor
-
   EndFor
-
-
 
   For x = 1 To NX - 1
-
     setWall_x = x
-
     setWall_y = 1
-
     setWall_direction = "E"
-
     setWall()
-
   EndFor
-
   For y = 1 To NY - 2
-
     setWall_x = NX
-
     setWall_y = y
-
     setWall_direction = "S"
-
     setWall()
-
   EndFor
-
   For x = NX To 2 Step -1
-
     setWall_x = x
-
     setWall_y = NY
-
     setWall_direction = "W"
-
     setWall()
-
   EndFor
-
   For y = NY To 3 Step -1
-
     setWall_x = 1
-
     setWall_y = y
-
     setWall_direction = "N"
-
     setWall()
-
   EndFor
-
 EndSub
-
-
 
 Sub makeMaze
-
   initMaze()
-
   
-
   continue1 = 1
-
   While continue1 = 1
-
     selectAvailableNode()
-
     makeMaze_x = selectAvailableNode_x
-
     makeMaze_y = selectAvailableNode_y
-
     If RET_selectAvailableNode = 0 Then
-
         continue1 = 0
-
     Else
-
       continue2 = 1
-
       While continue2 = 1
-
         addALine_x = makeMaze_x
-
         addALine_y = makeMaze_y
-
         addALine()
-
         makeMaze_x = addALine_x
-
         makeMaze_y = addALine_y
-
         If RET_addALine = 0 Then
-
           continue2 = 0
-
         EndIf
-
       EndWhile
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 Sub setOrCheckWall
-
   If setOrCheckWall_direction = "N" Then
-
     xp = setOrCheckWall_x
-
     yp = setOrCheckWall_y - 1
-
     valp = 1
-
   ElseIf setOrCheckWall_direction = "E" Then
-
     xp = setOrCheckWall_x
-
     yp = setOrCheckWall_y
-
     valp = 0
-
   ElseIf setOrCheckWall_direction = "S" Then
-
     xp = setOrCheckWall_x
-
     yp = setOrCheckWall_y
-
     valp = 1
-
   ElseIf setOrCheckWall_direction = "W" Then
-
     xp = setOrCheckWall_x - 1
-
     yp = setOrCheckWall_y
-
     valp = 0
-
   Else
-
     RET_setOrCheckWall = 0
-
     Goto ExitSub
-
   EndIf
-
-
 
   If Node[xp][yp][valp] = 0 Then
-
     If setOrCheckWall_mode = 1 Then
-
       Node[xp][yp][valp] = 1
-
       drawWall_x = xp
-
       drawWall_y = yp
-
       drawWall_d = valp
-
       drawWall()
-
     EndIf
-
     RET_setOrCheckWall = 1
-
   Else
-
     RET_setOrCheckWall = 0
-
   EndIf
-
-
 
 ExitSub:
-
 EndSub 
 
-
-
 Sub checkWall
-
   setOrCheckWall_x = checkWall_x
-
   setOrCheckWall_y = checkWall_y
-
   setOrCheckWall_direction = checkWall_direction
-
   setOrCheckWall_mode = 0
-
   setOrCheckWall()
-
   RET_checkWall = RET_setOrCheckWall
-
 EndSub
-
-
 
 Sub setWall
-
   setOrCheckWall_x = setWall_x
-
   setOrCheckWall_y = setWall_y
-
   setOrCheckWall_direction = setWall_direction
-
   setOrCheckWall_mode = 1
-
   setOrCheckWall()
-
 EndSub
-
-
 
 Sub drawWall
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "Black"
-
   If drawWall_d = 0 Then
-
     GraphicsWindow.DrawLine(drawWall_x * MAG + OFSX, drawWall_y * MAG + OFSY, (drawWall_x + 1) * MAG + OFSX, drawWall_y * MAG + OFSY)
-
   ElseIf drawWall_d = 1 Then
-
     GraphicsWindow.DrawLine(drawWall_x * MAG + OFSX, drawWall_y * MAG + OFSY, drawWall_x * MAG + OFSX, (drawWall_y + 1) * MAG + OFSY)
-
   EndIf
-
 EndSub
-
-
 
 Sub selectAvailableNode
-
   numAvailableNode()
-
   nAvailable = RET_numAvailableNode
-
   If nAvailable = 0 Then
-
     RET_selectAvailableNode = 0
-
   Else
-
     iAvailable = Math.Floor((Math.GetRandomNumber(10000) - 1) / 10000 * nAvailable)
-
     
-
     For selectAvailableNode_x = 1 To NX
-
       For selectAvailableNode_y = 1 To NY
-
         isAvailableNode_x = selectAvailableNode_x
-
         isAvailableNode_y = selectAvailableNode_y
-
 	isAvailableNode()
-
         If RET_isAvailableNode = 1 Then
-
           If iAvailable = 0 Then
-
             GoTo ExitLoop
-
           EndIf
-
           iAvailable = iAvailable - 1
-
         EndIf
-
       EndFor
-
     EndFor
-
 ExitLoop:
-
     RET_selectAvailableNode = 1
-
   EndIf
-
 EndSub
-
-
 
 Sub numAvailableNode
-
   RET_numAvailableNode = 0
-
   For x = 1 To NX
-
     For y = 1 To NY
-
       isAvailableNode_x = x
-
       isAvailableNode_y = y
-
       isAvailableNode()
-
       If RET_isAvailableNode = 1 Then
-
         RET_numAvailableNode = RET_numAvailableNode + 1
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub isAvailableNode
-
   If isAvailableNode_x >= 1 And isAvailableNode_x <= NX And isAvailableNode_y >= 1 And isAvailableNode_y <= NY Then
-
     isFreeNode_x = isAvailableNode_x
-
     isFreeNode_y = isAvailableNode_y
-
     isFreeNode()
-
     If RET_isFreeNode = 1 Then
-
       RET_isAvailableNode = 0
-
     Else
-
       RET_isAvailableNode = 1
 
-
-
       isFreeNode_x = isAvailableNode_x + 1
-
       isFreeNode_y = isAvailableNode_y
-
       isFreeNode()
-
       If RET_isFreeNode = 0 Then
-
         isFreeNode_x = isAvailableNode_x
-
         isFreeNode_y = isAvailableNode_y + 1
-
         isFreeNode()
-
         If RET_isFreeNode = 0 Then
-
           isFreeNode_x = isAvailableNode_x - 1
-
           isFreeNode_y = isAvailableNode_y
-
           isFreeNode()
-
           If RET_isFreeNode = 0 Then
-
             isFreeNode_x = isAvailableNode_x
-
             isFreeNode_y = isAvailableNode_y - 1
-
             isFreeNode()
-
             If RET_isFreeNode = 0 Then
-
               RET_isAvailableNode = 0
-
             EndIf
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndIf
-
   Else
-
     RET_isAvailableNode = 0
-
   EndIf
-
 EndSub
-
-
 
 Sub isFreeNode
-
   If isFreeNode_x > 1 And isFreeNode_x < NX And isFreeNode_y > 1 And isFreeNode_y < NY Then
-
     If Node[isFreeNode_x][isFreeNode_y][0] = 0 And Node[isFreeNode_x][isFreeNode_y][1] = 0 And Node[isFreeNode_x - 1][isFreeNode_y][0] = 0 And Node[isFreeNode_x][isFreeNode_y - 1][1] = 0 Then
-
       RET_isFreeNode = 1
-
     Else
-
       RET_isFreeNode = 0
-
     EndIf
-
   Else
-
     RET_isFreeNode = 0
-
   EndIf
-
 EndSub
-
-
 
 Sub addALine
-
   direct[0] = "N"
-
   direct[1] = "E"
-
   direct[2] = "S"
-
   direct[3] = "W"
-
   
-
   maxD = 0
-
   For i = 0 To 3
-
     checkWall_x = addALine_x
-
     checkWall_y = addALine_y
-
     checkWall_direction = direct[i]
-
     checkWall()
-
     If RET_checkWall = 1 Then
-
       maxD = maxD + 1
-
     EndIf
-
   EndFor
-
-
 
   iD = Math.Floor((Math.GetRandomNumber(10000) - 1) / 10000 * maxD)
-
   For i = 0 To 3
-
     checkWall_x = addALine_x
-
     checkWall_y = addALine_y
-
     checkWall_direction = direct[i]
-
     checkWall()
-
     If RET_checkWall = 1 Then
-
       If iD = 0 Then
-
         nD = i
-
         Goto ExitFor
-
       EndIf
-
       iD = iD - 1
-
     EndIf
-
   EndFor
-
 ExitFor:
 
-
-
   If direct[nD] = "N" Then
-
     xn = addALine_x
-
     yn = addALine_y - 1
-
   ElseIf direct[nD] = "E" Then
-
     xn = addALine_x + 1
-
     yn = addALine_y
-
   ElseIf direct[nD] = "S" Then
-
     xn = addALine_x
-
     yn = addALine_y + 1
-
   ElseIf direct[nD] = "W" Then
-
     xn = addALine_x - 1
-
     yn = addALine_y
-
   EndIf
-
     
-
   isFreeNode_x = xn
-
   isFreeNode_y = yn
-
   isFreeNode()
-
   If RET_isFreeNode = 1 Then
-
     setWall_x = addALine_x
-
     setWall_y = addALine_y
-
     setWall_direction = direct[nD]
-
     setWall()
-
     addALine_x = xn
-
     addALine_y = yn
-
     RET_addALine = 1
-
   Else
-
     RET_addALine = 0
-
   EndIf
-
 EndSub
-
-
 
 Sub solveMaze
-
   changed = 1
-
   While changed = 1
-
     changed = 0
-
     For x = 1 To NX - 1
-
       For y = 1 To NY - 1
-
         numWalls_x = x
-
         numWalls_y = y
-
         numWalls()
-
         If RET_numWalls = 3 Then
-
           If Node[x][y][0] = 0 Then
-
             Node[x][y][0] = 1
-
             changed = 1
-
           EndIf
-
           If Node[x][y][1] = 0 Then
-
             Node[x][y][1] = 1
-
             changed = 1
-
           EndIf
-
           If Node[x][y + 1][0] = 0 Then
-
             Node[x][y + 1][0] = 1
-
             changed = 1
-
           EndIf
-
           If Node[x + 1][y][1] = 0 Then
-
             Node[x + 1][y][1] = 1
-
             changed = 1
-
           EndIf
-
         EndIf
-
       EndFor
-
     EndFor
-
   EndWhile
 
-
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "Green"
-
   For x = 0 To NX
-
     For y = 0 To NY
-
       wallsInfo_x = x
-
       wallsInfo_y = y
-
       wallsInfo()
-
       
-
       Goto SkipDrawRoute
-
       gx = (x + 0.5) * MAG + OFSX
-
       gy = (y + 0.5) * MAG + OFSY
-
       len = MAG / 2
-
       If Math.Remainder(Node[x][y][2], 2) = 0 Then ' "N"
-
         GraphicsWindow.DrawLine(gx, gy, gx, gy - len)
-
       EndIf
-
       If Math.Remainder(Math.Floor(Node[x][y][2] / 2), 2) = 0 Then ' "W"
-
         GraphicsWindow.DrawLine(gx, gy, gx - len, gy)
-
       EndIf
-
       If Math.Remainder(Math.Floor(Node[x][y][2] / 4), 2) = 0 Then ' "S"
-
         GraphicsWindow.DrawLine(gx, gy, gx, gy + len)
-
       EndIf
-
       If Math.Remainder(Math.Floor(Node[x][y][2] / 8), 2) = 0 Then ' "E"
-
         GraphicsWindow.DrawLine(gx, gy, gx + len, gy)
-
       EndIf
-
 SkipDrawRoute:
 
-
-
     EndFor
-
   EndFor
 
-
-
 EndSub
-
-
 
 Sub numWalls
-
   If numWalls_x > 0 And numWalls_x < NX And numWalls_y > 0 And numWalls_y < NY Then
-
     RET_numWalls = 0
-
     If Node[numWalls_x][numWalls_y][0] > 0 Then ' "N"
-
       RET_numWalls = RET_numWalls + 1
-
     EndIf
-
     If Node[numWalls_x][numWalls_y][1] > 0 Then ' "W"
-
       RET_numWalls = RET_numWalls + 1
-
     EndIf
-
     If Node[numWalls_x][numWalls_y + 1][0] > 0 Then ' "S"
-
       RET_numWalls = RET_numWalls + 1
-
     EndIf
-
     If Node[numWalls_x + 1][numWalls_y][1] > 0 Then ' "E"
-
       RET_numWalls = RET_numWalls + 1
-
     EndIf
-
   Else
-
     RET_numWalls = 4
-
   EndIf
-
 EndSub
-
   
-
 Sub wallsInfo
-
   If wallsInfo_x > 0 And wallsInfo_x < NX And wallsInfo_y > 0 And wallsInfo_y < NY Then
-
     If Node[wallsInfo_x][wallsInfo_y][0] > 0 Then ' "N"
-
       Node[wallsInfo_x][wallsInfo_y][2] = Node[wallsInfo_x][wallsInfo_y][2] + 1
-
     EndIf
-
     If Node[wallsInfo_x][wallsInfo_y][1] > 0 Then ' "W"
-
       Node[wallsInfo_x][wallsInfo_y][2] = Node[wallsInfo_x][wallsInfo_y][2] + 2
-
     EndIf
-
     If Node[wallsInfo_x][wallsInfo_y + 1][0] > 0 Then ' "S"
-
       Node[wallsInfo_x][wallsInfo_y][2] = Node[wallsInfo_x][wallsInfo_y][2] + 4
-
     EndIf
-
     If Node[wallsInfo_x + 1][wallsInfo_y][1] > 0 Then ' "E"
-
       Node[wallsInfo_x][wallsInfo_y][2] = Node[wallsInfo_x][wallsInfo_y][2] + 8
-
     EndIf
-
   Else
-
     Node[wallsInfo_x][wallsInfo_y][2] = Node[wallsInfo_x][wallsInfo_y][2] + 15
-
   EndIf
-
 EndSub
-
-
 
 Sub turtleStandby
-
   Turtle.PenUp()
-
   Turtle.X = (0 + 0.5) * MAG + OFSX
-
   Turtle.Y = (1 + 0.5) * MAG + OFSY
-
   Turtle.Angle = 0
-
   Turtle.Speed = 8
-
   Turtle.Turn(90)
-
 EndSub
-
-
 
 Sub turtleWalk1
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "Green"
-
   gx0 = Turtle.X
-
   gy0 = Turtle.Y
-
   x = 1
-
   y = 1
-
   gx1 = (x + 0.5) * MAG + OFSX
-
   gy1 = (y + 0.5) * MAG + OFSY
-
   Turtle.MoveTo(gx1, gy1)
-
   GraphicsWindow.DrawLine(gx0, gy0, gx1, gy1)
-
   gx0 = Turtle.X
-
   gy0 = Turtle.Y
-
   from = "W"
-
   While x <> NX - 1 Or y <> NY - 1
-
     If from <> "S" And Math.Remainder(Node[x][y + 1][2], 2) = 0 Then ' "N"
-
       y = y + 1
-
       from = "N"
-
     ElseIf from <> "E" And Math.Remainder(Math.Floor(Node[x + 1][y][2] / 2), 2) = 0 Then ' "W"
-
       x = x + 1
-
       from = "W"
-
     ElseIf from <> "N" And Math.Remainder(Math.Floor(Node[x][y - 1][2] / 4), 2) = 0 Then ' "S"
-
       y = y - 1
-
       from = "S"
-
     ElseIf from <> "W" And Math.Remainder(Math.Floor(Node[x - 1][y][2] / 8), 2) = 0 Then ' "E"
-
       x = x - 1
-
       from = "E"
-
     EndIf
-
     gx1 = (x + 0.5) * MAG + OFSX
-
     gy1 = (y + 0.5) * MAG + OFSY
-
     Turtle.MoveTo(gx1, gy1)
-
     GraphicsWindow.DrawLine(gx0, gy0, gx1, gy1)
-
     gx0 = Turtle.X
-
     gy0 = Turtle.Y
-
   EndWhile
 
-
-
   x = x + 1
-
   gx1 = (x + 0.5) * MAG + OFSX
-
   gy1 = (y + 0.5) * MAG + OFSY
-
   Turtle.MoveTo(gx1, gy1)
-
   GraphicsWindow.DrawLine(gx0, gy0, gx1, gy1)
-
   gy1 = (0 + 0.5) * MAG + OFSY
-
   Turtle.MoveTo(gx1, gy1)
-
   gx1 = (0 + 0.5) * MAG + OFSX
-
   Turtle.MoveTo(gx1, gy1)
-
   gy1 = (1 + 0.5) * MAG + OFSY
-
   Turtle.MoveTo(gx1, gy1)
-
   Turtle.Turn(-90)
-
 EndSub
-
  
-
 Sub turtleWalk2
-
   x = 1
-
   y = 1
-
   gx1 = (x + 0.5) * MAG + OFSX
-
   gy1 = (y + 0.5) * MAG + OFSY
-
   Turtle.MoveTo(gx1, gy1)
-
   gx0 = Turtle.X
-
   gy0 = Turtle.Y
-
   from = "W"
-
   While x <> NX - 1 Or y <> NY - 1
-
     If from = "S" Then
-
       If Node[x + 1][y][1] = 0 Then '  "E"
-
         x = x + 1
-
         from = "W"
-
       ElseIf Node[x][y][0] = 0 Then ' "N"
-
         y = y - 1
-
         from = "S"
-
       ElseIf Node[x][y][1] = 0 Then ' "W"
-
         x = x - 1
-
         from = "E"
-
       ElseIf Node[x][y + 1][0] = 0 Then ' "S"
-
         y = y + 1
-
         from = "N"
-
       EndIf
-
     ElseIf from = "E" Then
-
       If Node[x][y][0] = 0 Then ' "N"
-
         y = y - 1
-
         from = "S"
-
       ElseIf Node[x][y][1] = 0 Then ' "W"
-
         x = x - 1
-
         from = "E"
-
       ElseIf Node[x][y + 1][0] = 0 Then ' "S"
-
         y = y + 1
-
         from = "N"
-
       ElseIf Node[x + 1][y][1] = 0 Then '  "E"
-
         x = x + 1
-
         from = "W"
-
       EndIf
-
     ElseIf from = "N" Then
-
       If Node[x][y][1] = 0 Then ' "W"
-
         x = x - 1
-
         from = "E"
-
       ElseIf Node[x][y + 1][0] = 0 Then ' "S"
-
         y = y + 1
-
         from = "N"
-
       ElseIf Node[x + 1][y][1] = 0 Then '  "E"
-
         x = x + 1
-
         from = "W"
-
       ElseIf Node[x][y][0] = 0 Then ' "N"
-
         y = y - 1
-
         from = "S"
-
       EndIf
-
     ElseIf from = "W" Then
-
       If Node[x][y + 1][0] = 0 Then ' "S"
-
         y = y + 1
-
         from = "N"
-
       ElseIf Node[x + 1][y][1] = 0 Then '  "E"
-
         x = x + 1
-
         from = "W"
-
       ElseIf Node[x][y][0] = 0 Then ' "N"
-
         y = y - 1
-
         from = "S"
-
       ElseIf Node[x][y][1] = 0 Then ' "W"
-
         x = x - 1
-
         from = "E"
-
       EndIf
-
     EndIf
-
     gx1 = (x + 0.5) * MAG + OFSX
-
     gy1 = (y + 0.5) * MAG + OFSY
-
     Turtle.MoveTo(gx1, gy1)
-
     gx0 = Turtle.X
-
     gy0 = Turtle.Y
-
   EndWhile
-
   
-
   x = x + 1
-
   gx1 = (x + 0.5) * MAG + OFSX
-
   gy1 = (y + 0.5) * MAG + OFSY
-
   Turtle.MoveTo(gx1, gy1)
-
   gy1 = (0 + 0.5) * MAG + OFSY
-
   Turtle.MoveTo(gx1, gy1)
-
   gx1 = (0 + 0.5) * MAG + OFSX
-
   Turtle.MoveTo(gx1, gy1)
-
   gy1 = (1 + 0.5) * MAG + OFSY
-
   Turtle.MoveTo(gx1, gy1)
-
   Turtle.Turn(-90)
-
 EndSub
-
-

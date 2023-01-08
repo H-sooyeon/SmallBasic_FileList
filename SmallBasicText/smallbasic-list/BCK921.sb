@@ -1,753 +1,376 @@
 'Initialise
-
 TextWindow.WriteLine("Loading...")
-
 TextWindow.WriteLine("Use arrow keys to turn, accelerate and brake.")
-
 TextWindow.WriteLine("Use mouse right click or <escape> to exit.")
-
 TextWindow.WriteLine("Designed for screen resolution 1280 x 800.")
-
 Init()
-
 TextWindow.Hide()
 
-
-
 'Main program
-
 While ("true")
-
   If (Left) Then
-
     steer = steer-0.01
-
     steer = Math.Max(-pi/2,steer)
-
   ElseIf (Right) Then
-
     steer = steer+0.01
-
     steer = Math.Min(pi/2,steer)
-
   EndIf
-
   engine()
-
   showDial()
-
   turnWheel()
-
   showRoad()
-
   checkCrash()
-
   Program.Delay(1)
-
 EndWhile
 
-
-
 'Initialise graphics window
-
 Sub Init
-
   GraphicsWindow.Hide()
-
   InitGW()
-
   InitVar()
-
   
-
   'Speed Dial
-
   cx = xSpeed
-
   cy = ySpeed
-
   ct = "MPH"
-
   cm = speedMax
-
   Dial()
-
   'Rev Dial
-
   cx = xRev
-
   cy = yRev
-
   ct = "RPM (1000)"
-
   cm = revMax
-
   Dial()
-
   
-
   'Dashboard
-
   Dash()
-
   
-
   'Road
-
   Road()
-
   
-
   GraphicsWindow.Show()
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.PenWidth = 1
-
-
 
   InitEvents()
-
   turnWheel()
-
   showDial()
-
 EndSub
-
-
 
 'Initialise graphics window
-
 Sub InitGW
-
   gw = Desktop.Width-20
-
   gh = Desktop.Height-100
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Top = 8
-
   GraphicsWindow.Left = 8
-
   GraphicsWindow.Title = "Driving game"
-
   GraphicsWindow.CanResize = "false"
-
   GraphicsWindow.BackgroundColor = "lightGray"
-
 EndSub
-
-
 
 'Initialise Variables
-
 Sub InitVar
-
   pi = 3.14159
-
   needleLen = 80
-
   'Timings and distance
-
   scale = 10
-
   distance = 0
-
   miles = 0
-
   milesLast = -1
-
   timeLast = 0
-
   timingLast = ""
-
   'Speed
-
   speed = 0
-
   speedMax = 200
-
   xSpeed = 200
-
   ySpeed = gh-100
-
   'Revs
-
   rev = 1
-
   revMax = 12
-
   xRev = gw-200
-
   yRev = gh-100
-
   'Gears
-
   gear = 1
-
   'keyboard controls
-
   Left = "false"
-
   Right = "false"
-
   Up = "false"
-
   Down = "false"
-
 EndSub
-
-
 
 'Setup Events - using timer is very CPU intensive and severely affects performance hence I use while loop with delay
-
 Sub InitEvents
-
   Timer.Interval = 10
-
   Timer.Tick = OnTick
-
   Timer.Pause()
-
   GraphicsWindow.MouseDown = OnMouseDown
-
   'Use keyUp and Down since the keboard repeat frequency is too slow to be reactive
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   GraphicsWindow.KeyUp = OnKeyUp
-
 EndSub
-
-
 
 'Timer event - not used - too slow
-
 Sub OnTick
-
   Timer.Pause()
-
   showDial()
-
   turnWheel()
-
   Timer.Resume()
-
 EndSub
-
-
 
 'Mouse click event
-
 Sub OnMouseDown
-
   If (Mouse.IsRightButtonDown) Then
-
     Program.End()
-
   EndIf
-
 EndSub
-
-
 
 'Key down events
-
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   If (key = "Left") Then
-
     Left = "true"
-
   ElseIf (key = "Right") Then
-
     Right = "true"
-
   ElseIf (key = "Up") Then
-
     Up = "true"
-
   ElseIf (key = "Down") Then
-
     Down = "true"
-
   ElseIf (key = "Escape") Then
-
     Program.End()
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   If (key = "Left") Then
-
     Left = "false"
-
   ElseIf (key = "Right") Then
-
     Right = "false"
-
   ElseIf (key = "Up") Then
-
     Up = "false"
-
   ElseIf (key = "Down") Then
-
     Down = "false"
-
   EndIf
-
 EndSub
-
-
 
 Sub Dial
-
   GraphicsWindow.BrushColor = "#556655"
-
   len = 30+needleLen
-
   GraphicsWindow.FillEllipse(cx-len,cy-len,2*len,2*len)
-
   GraphicsWindow.BrushColor = "#ddffff"
-
   len = needleLen-10
-
   GraphicsWindow.FillEllipse(cx-len,cy-len,2*len,2*len)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(cx-4*Text.GetLength(ct),cy+10,ct)
-
   GraphicsWindow.BrushColor = "#88bbff"
-
   len = 10+needleLen
-
   For i = 0 To 10
-
     ang = pi*i/10
-
     x = cx-len*Math.Cos(ang)-4*Text.GetLength(cm)
-
     y = cy-len*Math.Sin(ang)-12
-
     GraphicsWindow.DrawText(x,y,Math.Floor(i/10*cm))
-
   EndFor
-
 EndSub
-
-
 
 Sub Dash
-
   'Dash
-
   GraphicsWindow.BrushColor = "LightGray"
-
   GraphicsWindow.FillRectangle(0,ySpeed+30,gw,gh)
-
   GraphicsWindow.BrushColor = "#555566"
-
   GraphicsWindow.FillRectangle(20,ySpeed+30,gw-40,50)
 
-
-
   'Steering Wheel
-
   SWrad = gw/3.5
-
   SWx = gw/2
-
   SWy = gw-SWrad
-
   steer = 0
-
   GraphicsWindow.PenColor = "#556655"
-
   GraphicsWindow.PenWidth = 50
-
   GraphicsWindow.DrawEllipse(SWx-SWrad,SWy-SWrad,2*SWrad,2*SWrad)
-
   For i = 0 To 24
-
     If (i = 6) Then
-
       GraphicsWindow.PenColor = "#883333"
-
     Else
-
       GraphicsWindow.PenColor = "#333388"
-
     EndIf
-
     dot = Shapes.AddRectangle(10,10)
-
     Array.SetValue("dots",i,dot)
-
   EndFor
-
   
-
   'Viewing Window
-
   xv = 80
-
   yv = 20
-
   dxv = gw-160
-
   dyv = gh-260
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FillRectangle(xv,yv,dxv,dyv)
-
   'pic = Flickr.GetRandomPicture("car race")  
-
   'pic = ImageList.LoadImage("http://revandy.files.wordpress.com/2009/01/desert1_opt.jpg")
-
   'pic = ImageList.LoadImage("http://static.howstuffworks.com/gif/desert-survival-1.jpg")
-
   pic = ImageList.LoadImage("http://imagecache.allposters.com/images/pic/EUR/1700-9951%7EPoppy-Meadow-c-1907-Posters.jpg")
-
   GraphicsWindow.DrawResizedImage(pic,xv,yv,dxv,dyv)
-
   'GraphicsWindow.BrushColor = "#88000000"
-
   'GraphicsWindow.FillRectangle(xv,yv,dxv,dyv)
-
   GraphicsWindow.BrushColor = "#aaff00ff"
-
   GraphicsWindow.FillRectangle(xv+0.45*dxv,yv+0.95*dyv,dxv*0.1,dyv*0.05)
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.PenWidth = 5
-
   GraphicsWindow.DrawRectangle(xv,yv,dxv,dyv)
-
   
-
   'Dial needles
-
   GraphicsWindow.PenColor = "#ddee5500"
-
   needleSpeed = Shapes.AddRectangle(needleLen,3)
-
   needleRev = Shapes.AddRectangle(needleLen,3)
-
   
-
   'Gear Indicator
-
   xG = gw-255
-
   yG = gh-50
-
   GraphicsWindow.BrushColor="White"
-
   For i = 1 To 5
-
     GraphicsWindow.FillRectangle(xG+i*17,yG,15,15)
-
   EndFor
-
   GraphicsWindow.BrushColor = "Red"
-
   GraphicsWindow.PenColor = "Red"
-
   GraphicsWindow.PenWidth = 1
-
   gearshift = Shapes.AddRectangle(13,13)
 
-
-
 EndSub
-
-
 
 Sub Road
-
   nside = 10
-
   Xcenter = 0.5
-
   tree = ImageList.LoadImage("http://www.iconarchive.com/icons/fasticon/nature/Tree-48x48.png")
-
   Xtree = ImageList.GetWidthOfImage(tree)/2
-
   Ytree = ImageList.GetHeightOfImage(tree)/2
-
   For i = 1 To nside
-
     'GraphicsWindow.PenColor = "#99555555"
-
     'GraphicsWindow.BrushColor = "#bbff00ff"
-
     side = Shapes.AddImage(tree)
-
     Array.SetValue("Lsides",i,side)
-
     'GraphicsWindow.PenColor = "#99555555"
-
     'GraphicsWindow.BrushColor = "#bbff00ff"
-
     side = Shapes.AddImage(tree)
-
     Array.SetValue("Rsides",i,side)
-
     Array.SetValue("Ysides",i,(i-0.5)/nside)
-
     GraphicsWindow.PenColor = "#dd000000"
-
     GraphicsWindow.BrushColor = "#ddffff00"
-
     side = Shapes.AddEllipse(12,12)
-
     Array.SetValue("Csides",i,side)
-
   EndFor
-
 EndSub
 
-
-
 '
-
 ' Active event updating - Don't share variables or set GW colours using timer in more than 1 sub etc as they are event driven and can clash since all vairables are static
-
 '
-
-
 
 Sub turnWheel
-
   For i = 0 To 24
-
     angW = 2*pi*i/24+steer
-
     xW = SWx-SWrad*Math.Cos(angW)
-
     yW = SWy-SWrad*Math.Sin(angW)
-
     dot = Array.GetValue("dots",i)
-
     Shapes.Move(dot,xW-5,yW-5)
-
   EndFor
-
 EndSub
-
-
 
 Sub showDial
-
   angS = pi*speed/speedMax
-
   xS = xSpeed-needleLen/2*(1+Math.Cos(angS))
-
   yS = ySpeed-needleLen/2*Math.Sin(angS)-6
-
   Shapes.Move(needleSpeed,xS,yS)
-
   Shapes.Rotate(needleSpeed,180/pi*angS)
-
   
-
   angR = pi*rev/revMax
-
   xR = xRev-needleLen/2*(1+Math.Cos(angR))
-
   yR = yRev-needleLen/2*Math.Sin(angR)-6
-
   Shapes.Move(needleRev,xR,yR)
-
   Shapes.Rotate(needleRev,180/pi*angR)
-
   
-
   Shapes.Move(gearshift,xG+1+gear*17,yG+1)
-
   
-
   If (miles > milesLast) Then
-
     GraphicsWindow.BrushColor = "#ddffff"
-
     GraphicsWindow.FillRectangle(xSpeed-50,ySpeed-40,100,20)
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.DrawText(xSpeed-3.3*Text.GetLength(miles+" miles"),ySpeed-40,miles+" miles")
-
     milesLast = miles
-
   EndIf
-
   timing = Clock.Time
-
   If (timing <> timingLast) Then
-
     timingLast = timing
-
     GraphicsWindow.BrushColor = "#ddffff"
-
     GraphicsWindow.FillRectangle(xRev-50,yRev-40,100,20)
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.DrawText(xRev-3.5*Text.GetLength(timing),yRev-40,timing)
-
   EndIf
-
 EndSub
-
-
 
 Sub engine
-
   If (Up) Then
-
     rev = rev+0.7/rev/gear
-
     rev = Math.Min(revMax,rev)
-
   ElseIf (Down) Then
-
     rev = rev-0.1
-
     rev = Math.Max(1,rev)
-
   EndIf
-
   If (rev > 0.9*revMax And gear < 5) Then
-
     gear = gear+1
-
     rev = rev*0.7
-
   EndIf
-
   If (rev < 0.5*revMax And gear > 1) Then
-
     gear = gear-1
-
     rev = rev/0.7
-
   EndIf
-
   speed = speedMax/(revMax-1)*(rev-1)*Math.Power(0.7,5-gear)
-
 EndSub
-
-
 
 Sub showRoad
-
   time = Clock.Millisecond/1000
-
   If (time < timeLast) Then
-
     timeLast = timeLast-1
-
   EndIf
-
   dt = (time-timeLast)/60/60*scale
-
   distance = distance+speed*dt
-
   miles = Math.Floor(distance/scale*10)/10
-
   timeLast = time
-
   Xcenter = Xcenter-dt*steer*speed
-
   Xcenter = Math.Min(0.9,Math.Max(0.1,Xcenter))
-
   For i = 1 To nside
-
     Lside = Array.GetValue("Lsides",i)
-
     Rside = Array.GetValue("Rsides",i)
-
     Yside = Array.GetValue("Ysides",i)
-
     Cside = Array.GetValue("Csides",i)
-
     dist = Yside + dt*speed
-
     dist = dist-Math.Floor(dist)
-
     Array.SetValue("Ysides",i,dist)
-
     Yside = dist*dist
-
     y = yv+Yside*dyv
-
     position = distance+(1-dist)
-
     track()
-
     xc = Xcenter+0.3*ctrack
-
     x = xv+(xc-0.1-0.1*Yside)*dxv
-
     Shapes.Move(Lside,x-Xtree,y-Ytree)
-
     x = xv+(xc+0.1+0.1*Yside)*dxv
-
     Shapes.Move(Rside,x-Xtree,y-Ytree)
-
     x = xv+(xc)*dxv
-
     Shapes.Move(Cside,x-6,y-6)
-
   EndFor
-
   position = distance
-
   track()
-
   centre = Xcenter+0.3*ctrack
-
 EndSub
-
-
 
 'ctrack is normalised [-1,1] centre position of track at position
-
 Sub track
-
   ctrack = Math.Sin(position)*Math.Sin(position/7)*Math.Sin(pi*position)
-
 EndSub
-
-
 
 Sub checkCrash
-
   If (centre < 0.35 Or centre > 0.65) Then
-
     rev = rev-0.1
-
     rev = Math.Max(1,rev)
-
   EndIf
-
 EndSub
-
-

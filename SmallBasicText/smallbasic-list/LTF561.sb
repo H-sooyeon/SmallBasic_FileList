@@ -1,585 +1,292 @@
 ' SmallBasic Version 1.2
-
 ' Program: KaterMukke (TomcatMusic) EN
-
 ' Changelog: 16.6
-
 ' Author: Pappa Lapub
-
 ' Website: https://social.msdn.microsoft.com/Forums/en-US/b9187717-da69-4b67-95cf-5c4ee5c56037/a-suggestion-for-a-new-challange
-
 ' ImportURL: http://smallbasic.com/program/?
-
 ' Extension: LitDev v1.2.10
-
 ' Comment: https://soundcloud.com/katermukke  (Orig image source)
-
 ' 
-
 ' KEYS:       Esc .. Exit; B .. Black background; C .. colorChange On/Off;  F .. colorFlash On/Off
-
 ' MOUSE:  L-Mouse .. show/hide tongue; MouseWheel .. -/+ speed for shown tongue
-
 '                    R-Mouse .. Creoles flap On/Off (at thread end)
-
 ' Variables: 
-
 ' ToDo: 
-
 ' ================================================================================
-
 picDir = Program.Directory +"\img\"       ' 4 images (5 with Hal url)
 
-
-
 picIco = picDir +"KaterMukke.png" ' 32x32
-
 '' picIco = Program.Directory +"\Icons\KaterMukke.ico"
 
-
-
 picBG = picDir +"KaterMukke_480.png"  '' https://i1.sndcdn.com/artworks-000156784007-scysel-t500x500.jpg  (orig)
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '' picBG = LDFile.MusicFolder +"\DouglasGreed-2016-RoadkillEP\KaterMukke_480.png"	' 480x480
-
-
 
 picCreol = picDir +"KaterHoop.png"    ' 62x72
 
-
-
 picOrb = picDir +"W7Orb.png"  ' 106x318 (triple)
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '' picOrb = LDFile.PicturesFolder +"\StartButtons\ExplorerOrb\ExplorerOrb.png"  ' 106x318 (triple)
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '' picOrb = LDFile.PicturesFolder +"\StartButtons\Blu3_BiOhAzArD_StArT_ORB_WiN_7_by_FalconJus.jpg"  ' 106x318 (triple)
 
-
-
 picHal = "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/HAL9000.svg/240px-HAL9000.svg.png"   ' 240x240
-
 'picHal = picDir +"HAL9000_240x240.png"  ' 240x240 (single)
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '' picHal = LDFile.PicturesFolder +"\StartButtons\Start Orb HAL6000 MariuszJ.bmp"  ' 54x162 (triple)
 
-
-
 ' --------------------------------------------------------------------------------
-
 arrCols = "1=#751AFA;2=#FF9C11;3=#EA181F;4=#15D663;5=#CADD1F;6=#5DFF27;7=#FE0470;8=#0E5EFB;"
-
 arrCols = arrCols +"9=#BA09FC;10=#F4FF2B;11=#FF661D;12=#2600FA;13=#FE0470;14=#3DC7ED;15=#FD565D;"
-
 nCols = Array.GetItemCount(arrCols)
 
-
-
 colTongue = "Crimson" ' tongue color
-
 colOut_L = "Black"    ' left pupil outer color
-
 colIn_L = "Yellow"    ' left pupil inner color
-
 colOut_R = "Black"    ' right pupil outer color
-
 colIn_R = "Red"       ' right pupil inner color
 
-
-
 intv = 1000           ' Start interval for tongue
-
 bChange = "True"      ' Randomly change BG colors every 2 sec , "True"/"False"
-
 bFlash = "True"       ' Randomly flash BG colors every  15-25 sec, "True"/"False"
-
 bComplete = "True"    ' Async thread 'RotateCreol' is completed and ready to go (again)
-
 args = ""
 
-
-
 ImageListWorks()
-
 BuildGUI()
 
 
-
-
-
 Timer.Interval = 10000
-
 Timer.Tick = OnTimerTick                '' Randomly change BG color
-
 GraphicsWindow.KeyDown = OnKeyDown      '' Toggle ChangeBGCol and/or FlashBGCol
-
 GraphicsWindow.MouseDown = OnMouseDown  '' Show/Hide tongue
-
 LDEvents.MouseWheel = OnMouseWheel      '' Lick speed when tongue showing
-
 Controls.ButtonClicked = OnButtonClick  '' Flash White / Pulse Red
-
 LDCall.CallComplete = OnCallComplete    '' Flapping creoles
 
-
-
 While "True"
-
   If bChange Then
-
     'n = Math.Remainder(n, nCols) + 1   '' continuous: 1 - nCols
-
     n = Math.GetRandomNumber(nCols) '' randomly
-
     GraphicsWindow.BackgroundColor = arrCols[n]
-
     LDShapes.BrushColour(shpPierc, arrCols[n])
-
     Program.Delay(2000)
-
   EndIf
-
   Program.Delay(20)
-
 EndWhile
 
 
-
-
-
 ' //////////  SUBs  \\\\\\\\\\
-
 Sub ImageListWorks    '' all the preparatory work, that can be done in ImageList before a GUI is needed
-
   imgW = ImageList.GetWidthOfImage(picBG)   ' 480
-
   imgH = ImageList.GetHeightOfImage(picBG)  ' 480
-
   
-
   imgCreol = ImageList.LoadImage(picCreol)
-
   LDImage.Resize(imgCreol, 62*0.6, 72*0.6)
-
   
-
   brushHal = LDShapes.BrushImage(picHal)
-
   
-
   imgOrb = ImageList.LoadImage(picOrb)
-
   LDImage.Crop(imgOrb, 22,24, 62,62)    ' for 106x318 Triple-Orbs 1./3
-
   'LDImage.Crop(imgOrb, 7,7, 39,39)      ' for 54x162 Triple-Orbs 1./3
-
   brushOrb = LDShapes.BrushImage(imgOrb)
-
   LDImage.Remove(imgOrb)
-
   
-
   imgTong = LDCall.Function("CreateTongueImg", colTongue)                 ' (colTongue) -> ImageList# (40x80)
-
   brushPupil_L = LDCall.Function2("CreatePupilBrush", colOut_L, colIn_L)  ' (colOut, colIn) -> Brush# (79x79)
-
   brushPupil_R = LDCall.Function2("CreatePupilBrush", colOut_R, colIn_R)  ' (colOut, colIn) -> Brush# (79x79)
-
 EndSub
-
-
 
 Sub BuildGUI
-
   GraphicsWindow.CanResize = ""
-
   GraphicsWindow.Top = 0
-
   GraphicsWindow.Width = imgW
-
   GraphicsWindow.Height = imgH
-
   GraphicsWindow.Title = "Tomcat Mucce" ' "Kater Mukke"
-
   LDGraphicsWindow.Icon = picIco
-
   
-
   LDGraphicsWindow.PauseUpdates()
-
   shpBG = Shapes.AddImage(picBG)
-
   
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "#80FFA07A"     '' semitransparent LightSalmon
-
   shpFlash = Shapes.AddRectangle(imgW,imgH)
-
   Shapes.SetOpacity(shpFlash, 0)
-
   
-
   GraphicsWindow.BrushColor = "#80FF0000"     '' semitransparent Red
-
   shpPuls = Shapes.AddRectangle(imgW+40,imgH+40)
-
   Shapes.Move(shpPuls, -20,-20)
-
   Shapes.HideShape(shpPuls)
-
   
-
   '' Right + left halfhoop creoles
-
   shpCreolR = Shapes.AddImage(imgCreol)
-
   Shapes.Move(shpCreolR, 359,170)
-
   LDImage.EffectReflect(imgCreol, "")
-
   shpCreolL = Shapes.AddImage(imgCreol)
-
   Shapes.Move(shpCreolL, 74,163)
-
   LDImage.Remove(imgCreol)
-
   
-
   '' Nose piercing
-
   GraphicsWindow.BrushColor = "Gold"
-
   shpPierc = Shapes.AddEllipse(7,8)
-
   Shapes.Move(shpPierc, 258,280)
-
   
-
   '' Tongue
-
   shpTong = Shapes.AddImage(imgTong)
-
   Shapes.HideShape(shpTong)
-
   Shapes.Move(shpTong, 220,300)
-
   LDImage.Remove(imgTong)
-
   
-
   '' 2 Buttons
-
   GraphicsWindow.FontSize = 30
-
   btnHal = Controls.AddButton("MIAOW", 115,178)
-
   LDShapes.SetSize(btnHal, 120,120)   'Controls.SetSize(btnHal, 120,120) -> would lead to PROBLEM
-
   LDControls.SetButtonStyle(btnHal, brushHal, "Transparent",brushPupil_L, "Transparent","Transparent","DeepPink", 110,"")
-
   GraphicsWindow.FontSize = 28
-
   btnOrb = Controls.AddButton("GRRRR", 253,188) ' "HISSS"
-
   LDShapes.SetSize(btnOrb, 100,100)   'Controls.SetSize(btnOrb, 100,100) -> would lead to PROBLEM
-
   LDControls.SetButtonStyle(btnOrb, brushOrb,"Transparent",brushPupil_R, "Transparent","Transparent","Yellow", 100,"")
-
   
-
   LDGraphicsWindow.ResumeUpdates()
-
   LDGraphicsWindow.TopMost = "True"
-
 EndSub
-
-
-
 
 
 ' //////////  EVENTs  \\\\\\\\\\
-
 Sub OnTimerTick
-
   If bFlash Then
-
     bFlash = ""
-
     nFlash = 3 + Math.GetRandomNumber(5)    ' 3 - 8 Flashes
-
     For f = 1 To nFlash
-
       GraphicsWindow.BackgroundColor = "Black"
-
       Program.Delay(200)
-
       GraphicsWindow.BackgroundColor = arrCols[n] '"White"
-
       Program.Delay(200)
-
     EndFor
-
     
-
     Timer.Interval = 1000 * (15 + Math.GetRandomNumber(10))   ' 15 - 25 sec between Flashes
-
     Program.Delay(200)
-
     bFlash = "True"
-
   EndIf
-
 EndSub
-
-
 
 Sub OnButtonClick
-
   lastBtn = Controls.LastClickedButton
-
   
-
   If lastBtn = btnHal Then
-
     LDShapes.AnimateOpacity(shpFlash, 1000, 3.5)
-
   Else  'If lastBtn = btnOrb Then
-
     Shapes.ShowShape(shpPuls)
-
     LDShapes.AnimateZoom(shpPuls, 1200, 2.25, -1,-1)
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   lastKey = GraphicsWindow.LastKey
-
   
-
   If lastKey = "Escape" Then
-
     Program.End()
-
     
-
   ElseIf lastKey = "B" Then       '' Black BG, no colorFlash, no colorChange
-
     bChange = ""
-
     bFlash = ""
-
     GraphicsWindow.BackgroundColor = "Black"
-
     LDShapes.BrushColour(shpPierc, "Black") ' "Gold")
-
     
-
   ElseIf lastKey = "C" Then   ' "Space" Then   '' Toggle colorChange On/Off
-
     bChange = LDLogic.Not(bChange)
-
     
-
   ElseIf lastKey = "F" Then   ' "Return" Then  '' Toggle colorFlash On/Off
-
     bFlash = LDLogic.Not(bFlash)
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   If Mouse.IsRightButtonDown Then
-
     rClick = Math.Remainder(rClick+1,2)
-
     If rClick = 1 And bComplete Then
-
       LDCall.CallAsync("","","", "RotateCreol","")
-
     EndIf
-
     
-
   Else  'If Mouse.IsLeftButtonDown Then
-
     lClick = Math.Remainder(lClick+1, 2)
-
     If lClick = 1 Then   ' lick
-
       Shapes.ShowShape(shpTong)
-
       LDShapes.AnimateZoom(shpTong, intv, 0, 1,0)
-
     Else
-
       LDShapes.AnimateZoom(shpTong, 0, 0, 1,0)
-
       Shapes.HideShape(shpTong)
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseWheel
-
   If lClick = 1 Then
-
     'intv = Math.Min(Math.Max(0, intv - 100*LDEvents.LastMouseWheelDelta), 10000)
-
     intv = Math.Max(0, intv - 100*LDEvents.LastMouseWheelDelta)
-
     If intv > 10000 Then
-
       'LDShapes.AnimateZoom(shpTong, 0, 0, 1,0)   ' intv = 0
-
       LDShapes.AnimateZoom(shpTong, intv, 0.5, 1,0)
-
       'EndIf
-
     Else
-
       LDShapes.AnimateZoom(shpTong, intv, 0, 1,0)    ' 0 <= intv <= 10000
-
     EndIf
-
   EndIf
-
 EndSub
-
-
-
 
 
 ' //////////  FUNCTIONs  \\\\\\\\\\
-
 Sub CreateTongueImg   ' lower half-ellipse, Crimson on Transparent, 40x80
-
   For x = -19 To 20     ' 1 - 40
-
     For y = -39 To 40   ' 1 - 80
-
       If y > 0 And x*x + y*y/4 <= 400 Then
-
         pxl[x+20][y+40] = args[1]
-
       Else
-
         pxl[x+20][y+40] = "Transparent"
-
       EndIf
-
     EndFor
-
   EndFor
-
   return = LDImage.SetImagePixels(pxl)
-
   pxl = ""    '' WORKS, even after return, clear pxl Array
-
 EndSub
-
-
 
 Sub CreatePupilBrush  ' 79x79
-
   For x = -39 To 0  ' 1 - 40
-
     For y = -39 To 0 ' 1 - 40
-
       'If (x-30)*(x-30) + y*y <= 2500 Then ' r = 50
-
       If (x-50)*(x-50) + y*y <= 3600 Then  ' r= 60
-
         pxl[40+x][40+y] = args[1] ' inside ...
-
         pxl[40-x][40+y] = args[1] ' mirror about y-axis
-
         pxl[40+x][40-y] = args[1] ' mirror about x-axis
-
         pxl[40-x][40-y] = args[1] ' mirror diagonal
-
       Else
-
         pxl[40+x][40+y] = args[2] ' outside ...
-
         pxl[40-x][40+y] = args[2] ' mirror about y-axis
-
         pxl[40+x][40-y] = args[2] ' mirror about x-axis
-
         pxl[40-x][40-y] = args[2] ' mirror diagonal
-
       EndIf
-
     EndFor
-
   EndFor
-
   imgTemp = LDImage.SetImagePixels(pxl)
-
   pxl = ""
-
   return = LDShapes.BrushImage(imgTemp)
-
   LDImage.Remove(imgTemp)     '' WORKS, even after return, removes temporary ImageList image
-
 EndSub
-
-
-
 
 
 Sub RotateCreol
-
   For ang = -140 To 140
-
     LDShapes.RotateAbout(shpCreolL, 110,178, 140-Math.Abs(ang))
-
     LDShapes.RotateAbout(shpCreolR, 361,185, Math.Abs(ang)-140)
-
     Program.Delay(5)
-
   EndFor
-
   bComplete = "True"
-
 EndSub
-
-
 
 Sub OnCallComplete
-
   If LDCall.LastCall = "RotateCreol()" And rClick = 1 Then
-
     bComplete = ""
-
     LDCall.CallAsync("","","", "RotateCreol", "")
-
   EndIf
-
 EndSub
-
     
-
-

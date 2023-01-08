@@ -1,1177 +1,588 @@
 'Learnt: 1: can't share/set anything at the same time, including GW properties, subroutines and variables.
-
 '      2:  next time try timer to Fire the Event loop
-
 '      3:  next time do event loop properly
 
-
-
 'to log record for total time the program has been run. Try GetArgument.
-
 firstPlayed = Clock.ElapsedMilliseconds 
-
-
 
 DEBUG()
 
-
-
 gw = 624  
-
 gh = 442 
-
 boxSize = 3
-
 ribbonHeight = 25
-
 textOffset = 5            'X & Y
-
 gameDuration_s = 20       'in seconds
-
 timeUpdateRate_ms = 1000
 
-
-
 'Program State
-
 waitForTick = "True"
-
 pause = 0
-
 gameover = 1
-
 exit = 0
-
 continue = 1 
-
 howTo = 0
-
 menuEnabled = 1
-
 back = 0
-
-
 
 GraphicsWindow.Hide()
 
-
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.MouseMove = OnMouseMove
 
-
-
 Timer.Interval = 10
-
 Timer.Tick = TimeKeepingThread
 
-
-
 While waitForTick
-
 EndWhile
 
-
-
 Timer.Interval = 1000
-
 Timer.Tick = FlagShowBox
 
-
-
 CreateUI()
-
 CreateBox()
-
 CreateMenu()
-
 HelpData()
-
-
 
 GraphicsWindow.Show()
 
-
-
 Shapes.Zoom(box, 1, 1)   'initialise the Zoom to GW before Hiding. Workaround Zoom Bug
-
 Shapes.HideShape(box)
 
-
-
 'Dodgy Main Loop
-
 While "True"
-
   If writeBackgroundThread = "true" Then
-
     For n = 1 To 2
-
       DisplayTimes()
-
     EndFor
-
     writeBackgroundThread = 0
-
   ElseIf start = 1 Then
-
     startTime = Clock.ElapsedMilliseconds
-
     showRunTime = 1  'stays on
-
     pauseInterval = 0
-
     gameover = 0
-
     Timer.Resume()    
-
     start = 0
-
   ElseIf flag = "Box Clicked On" Then
-
     responseTime = Clock.ElapsedMilliseconds - timeShown
-
     writeMe[0] = responseTime
-
     n = 0
-
     DisplayTimes()
-
     Sound.PlayChime()
-
     If writeBackgroundThread = "true" Then
-
       For n = 1 To 2
-
         DisplayTimes()
-
       EndFor
-
       writeBackgroundThread = 0
-
     EndIf
-
     Program.Delay(300)
-
     HideBox()
-
     flag = ""
-
   ElseIf flag = "Show Box" Then    
-
     ShowBox()
-
     timeShown = Clock.ElapsedMilliseconds
-
     Timer.Interval = Math.GetRandomNumber(2500) + 500  'next tick 
-
     flag = ""
-
   ElseIf gameover = 1 Then
-
     Timer.Pause()  'pause  Timer.Tick = FlagShowBox.  WIP flag off gameover ??
-
     Shapes.HideShape(box)    
-
   ElseIf pause = 1 And continue = 1 Then    
-
     Timer.Pause()
-
     pausedAt = Clock.ElapsedMilliseconds
-
     continue = 0
-
   ElseIf pause = 0 And continue = 0 Then
-
     Timer.Resume()
-
     pauseInterval = pauseInterval + Clock.ElapsedMilliseconds - pausedAt
-
     continue = 1
-
   EndIf
-
   
-
   If howTo = 1 Then
-
     howTo = 0
-
     menuEnabled = 0
-
     CloseSubMenu()
-
     Shapes.HideShape(box)
-
     DrawHelpScreen()
-
     helpScreenOpen = 1
-
   EndIf 
-
   If back = 1 Then
-
     EraseHelpScreen()
-
     Shapes.ShowShape(box)
-
     menuEnabled = 1
-
     pause = 0
-
     back = 0
-
     helpScreenOpen = 0
-
   EndIf
-
   
-
   If exit = 1 Then
-
     exit = 0
-
     Program.End()
-
   EndIf
-
   If menuEnabled = 1 Then
-
     OperateMenu()
-
   EndIf
-
 EndWhile
 
-
-
 '********************************************************************************************
-
 ' Event Handlers
-
 '********************************************************************************************
-
 Sub TimeKeepingThread         'runs & writes uninterupted in the background
-
   Timer.Pause()
-
   waitForTick = "False"
-
   UpdateTime()  
-
 EndSub
-
-
 
 Sub FlagShowBox               'ticking timer.  TODO stop tick and use tick to fire main loop
-
   If gameover = 0 Then 
-
     flag = "Show Box"
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   If mouseX >= boxX And mouseX <= boxX + boxTrueSize And gameover = 0 Then
-
     If mouseY >= boxY And mouseY <= boxY + boxTrueSize Then      
-
       flag = "Box Clicked On"  'can't run animation in event thread
-
     EndIf
-
   EndIf
-
   SelectMenuItem()
-
   OnButtonClicked()
-
 EndSub
-
-
 
 Sub OnMouseMove
-
   mouseX = GraphicsWindow.MouseX
-
   mouseY = GraphicsWindow.MouseY  
-
   MenuFocus()
-
 EndSub
-
 '----------------------------------------------------------------------------------------------------------
-
 Sub SelectMenuItem
-
   For i = 1 To Array.GetItemCount(subMenu[j])
-
     If mouseX > menuWidth * (j-1) And mouseX < menuWidth * j Then 
-
       If mouseY > ribbonHeight * i And mouseY < ribbonHeight * (i+1) Then
-
         menuFlag = subMenu[j][i]
-
       EndIf
-
     EndIf 
-
   EndFor
-
   ProcessSelectedMenuItem()
-
 EndSub
-
-
 
 Sub ProcessSelectedMenuItem
-
   If menuFlag = "Play" And gameover = 1 And gameMenuOpen = 1 Then
-
     start = 1
-
   ElseIf menuFlag = "Pause" And gameover = 0 And pause = 0 And gameMenuOpen = 1 Then   
-
     pause = 1    
-
   ElseIf menuFlag = "Pause" And gameover = 0 And pause = 1 And gameMenuOpen = 1 Then
-
     pause = 0
-
   ElseIf menuFlag = "How To" And helpMenuOpen = 1 Then  'WIP
-
     pause = 1  'reset to 0 when howTo is = 0
-
     howTo = 1
-
   ElseIf menuFlag = "Exit" And gameMenuOpen = 1 Then
-
     exit = 1
-
   EndIf
-
 EndSub
-
-
 
 Sub OnButtonClicked
-
   If helpScreenOpen = 1 Then  'optimises and easier to read
-
     If mouseX > btnX1 And mouseX < btnX2 And mouseY > btnY1 And mouseY < btnY2 Then
-
       back = 1
-
     EndIf
-
   EndIf
-
 EndSub
 
-
-
 '***************************************************************************************
-
 'Show and Hide the Box
-
 '***************************************************************************************
-
 Sub ShowBox
-
   boxZoom = Math.GetRandomNumber(15) + 5    '5'20  
-
   
-
   boxTrueSize = boxSize * boxZoom
-
   boxZoomOffset = ((boxSize * boxZoom) - boxSize) / 2   
-
   
-
   boxX = Math.GetRandomNumber(gw - (boxSize * boxZoom))  
-
   boxY = Math.GetRandomNumber(gh - (boxSize * boxZoom) - ribbonHeight * 2) + ribbonHeight
-
   
-
   Shapes.Zoom(box, boxZoom, boxZoom)
-
   Shapes.Move(box, boxX + boxZoomOffset, boxY + boxZoomOffset)
-
   Shapes.ShowShape(box)
-
 EndSub
-
-
 
 Sub HideBox
-
   While boxZoom > 0.5
-
     boxZoom = boxZoom - 0.2
-
     Shapes.Zoom(box, boxZoom, boxZoom)
-
     Program.Delay(5)
-
   EndWhile
-
   Shapes.HideShape(box)
-
 EndSub
 
-
-
 '**********************************************************************************
-
 'Help Screen, Draw and Erase
-
 '**********************************************************************************
-
 Sub DrawHelpScreen  
-
   helpBoxOffset = 10
-
   helpBoxWidth = gw - helpBoxOffset * 2
-
   helpBoxHeight = gh - ribbonHeight * 2 - helpBoxOffset * 2
-
   X1 = helpBoxOffset
-
   X2 = X1 + helpBoxWidth
-
   Y1 = helpBoxOffset + ribbonHeight
-
   Y2 = Y1 + helpBoxHeight
-
   
-
   btnWidth = 60
-
   btnHeight = 30
-
   btnRightOffset = 10
-
   btnTopOffset = 10
-
   btnX1 = X2 - btnWidth - btnRightOffset
-
   btnX2 = btnX1 + btnWidth
-
   btnY1 = Y1 + btnTopOffset
-
   btnY2 = btnY1 + btnHeight
-
   
-
   GraphicsWindow.BrushColor = "Olive"
-
   GraphicsWindow.FillRectangle(helpBoxOffset, helpBoxOffset + ribbonHeight, helpBoxWidth, helpBoxHeight)
-
   
-
   GraphicsWindow.PenColor = "Goldenrod"
-
   
-
   GraphicsWindow.DrawLine(btnX1, btnY1, btnX2, btnY1)
-
   GraphicsWindow.DrawLine(btnX1, btnY1, btnX1, btnY2)
-
   GraphicsWindow.DrawLine(btnX2, btnY1, btnX2, btnY2)
-
   GraphicsWindow.DrawLine(btnX1, btnY2, btnX2, btnY2)
-
   
-
   GraphicsWindow.DrawLine(X1, Y1, X2, Y1)
-
   GraphicsWindow.DrawLine(X1, Y1, X1, Y2)
-
   GraphicsWindow.DrawLine(X2, Y1, X2, Y2)
-
   GraphicsWindow.DrawLine(X1, Y2, X2, Y2)
-
   
-
   GraphicsWindow.BrushColor = "Peru"
-
   GraphicsWindow.FillRectangle(btnX1, btnY1, btnWidth, btnHeight)
-
   
-
   GraphicsWindow.FontSize = 18
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.DrawText(btnX1 + 7, btnY1 + 4, "Back")  
-
   
-
   Y = Y2
-
   GraphicsWindow.BrushColor = "white"
-
   For i = Array.GetItemCount(line) To 1 Step -1
-
     GraphicsWindow.FontSize = line[i]["fs"]
-
     GraphicsWindow.BrushColor = line[i]["fc"]
-
     X = X1 + textOffset + 10 + line[i]["X"]
-
     Y = Y - line[i]["fs"] * 1.6 - line[i]["Y"]
-
     GraphicsWindow.DrawText(X, Y, line[i]["txt"])
-
   EndFor
-
 EndSub
-
-
 
 Sub EraseHelpScreen
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.PenColor = "black"
-
   GraphicsWindow.FillRectangle(helpBoxOffset, helpBoxOffset + ribbonHeight, helpBoxWidth, helpBoxHeight)
-
   GraphicsWindow.DrawLine(X1, Y1, X2, Y1)
-
   GraphicsWindow.DrawLine(X1, Y1, X1, Y2)
-
   GraphicsWindow.DrawLine(X2, Y1, X2, Y2)
-
   GraphicsWindow.DrawLine(X1, Y2, X2, Y2)
-
 EndSub
 
-
-
 '*********************************************************************************
-
 'Help Screen Data
-
 '*********************************************************************************
-
 Sub HelpData
-
   line[1] = "Y=0;X=0;fc=DarkSlateGray;fs=9;txt=Help > How To"
-
   line[2] = "Y=0;X=0;fc=black;fs=14;txt=Welcome to" 
-
   line[3] = "Y=-5;X=0;fc=Salmon;fs=24;txt=Click Me Quickly  v 0.1"
-
   line[4] = "Y=5;X=10;fc=black;fs=9;txt=by Jibba Jabba, November 2013"
-
   line[5] = "Y=0;X=0;fc=black;fs=12;txt=The aim is to click on as many boxes as you can as quickly as you can."
-
   line[6] = "Y=0;X=0;fc=black;fs=12;txt=You have 30 seconds each game. Your response time will be displayed
-
   line[7] = "Y=0;X=0;fc=black;fs=12;txt=(bottom left of screen) for each box clicked on."
-
   line[8] = "Y=0;X=0;fc=black;fs=12;txt=Score is displayed top right."
-
   line[9] = "Y=0;X=0;fc=DarkKhaki;fs=16;txt=Game menu:"
-
   line[10] = "Y=0;X=10;fc=black;fs=12;txt=Click 'Play' to start a new game."
-
   line[11] = "Y=0;X=10;fc=black;fs=12;txt=Click 'Pause' to pause or continue a game in play."
-
   line[12] = "Y=0;X=10;fc=black;fs=12;txt=Click 'Exit' to close the program."
-
   line[13] = "Y=0;X=0;fc=DarkKhaki;fs=16;txt=Help Menu:"
-
   line[14] = "Y=0;X=10;fc=black;fs=12;txt=Click 'How To' to see this screen. Always available and will pause current play."
-
   line[15] = "Y=0;X=0;fc=black;fs=4;txt="
-
   line[16] = "Y=0;X=0;fc=DarkSlateGray;fs=11;txt=November 2013 Monthly Challenge."
-
   line[17] = "Y=0;X=10;fc=DarkSlateGray;fs=11;txt=uses only 1 shape, multi-threading (time calculations run in the b/ground), "
-
   line[18] = "Y=0;X=10;fc=DarkSlateGray;fs=11;txt=a reverse loop, custom menu and practice s/ware build."
-
   line[19] = "Y=0;X=10;fc=DarkSlateGray;fs=4;txt="
-
 EndSub
 
-
-
 '****************************************************************************
-
 'Time Keeping Thread
-
 '****************************************************************************
-
 Sub UpdateTime  
-
   TextWindow.WriteLine("tick2")  
-
   
-
   While "true"                'WIP  use a write subroutine to write the whole bottom display
-
     If showRunTime = 1 Then
-
       now = Clock.ElapsedMilliseconds      
-
       elapsedSeconds = (now - firstPlayed) / 1000
-
       
-
       seconds = Math.Floor(Math.Remainder(elapsedSeconds, 60))
-
       minutes = Math.Floor(Math.Remainder(elapsedSeconds / 60, 60))
-
       hours = Math.Floor(Math.Remainder(elapsedSeconds / 3600, 24))  '/60/60
-
       days = Math.Floor(elapsedSeconds / 86400)  '/60/60/24 
-
       
-
       If seconds < 10 Then
-
         seconds = Text.Append("0", seconds)
-
       EndIf
-
       If minutes < 10 Then
-
         minutes = Text.Append("0", minutes)
-
       EndIf
-
       If hours < 10 Then
-
         hours = Text.Append("0", hours)
-
       EndIf      
-
       runtime = "Run Time: " + days + ":" + hours + ":" + minutes + ":" + seconds
-
       
-
       writeMe[1] = runtime      
-
       'm = 1
-
       'DisplayTimes2()
-
       
-
       If pause = 0 And gameover = 0 Then
-
         'totalPause = totalPause + pauseInterval
-
         secondsRemaining =  gameDuration_s - (now - startTime - pauseInterval) / 1000        
-
         TextWindow.WriteLine("secondsRemaining " + secondsRemaining)
-
         
-
         seconds = Math.Ceiling(Math.Remainder(secondsRemaining, 60))
-
         minutes = Math.Floor(Math.Remainder(secondsRemaining / 60, 60))
-
         
-
         If seconds = 0 And minutes = -1 Or minutes <= -1 Then
-
           minutes = "00"
-
           gameover = 1
-
         EndIf        
-
         If seconds < 10 Then
-
           seconds = Text.Append("0", seconds)
-
         EndIf
-
         If seconds = 60 Then
-
           seconds = "00"
-
           minutes = Math.Ceiling(Math.Remainder(secondsRemaining / 60, 60))
-
         EndIf         
-
         timeRemaining = "Time Remaining: " + minutes + ":" + seconds
-
         
-
         writeMe[2] = timeRemaining         
-
       EndIf 
-
       
-
       writeBackgroundThread = "true"
-
       
-
       Program.Delay(timeUpdateRate_ms)
-
     EndIf
-
   EndWhile  
-
 EndSub
 
-
-
 '******************************************************************************************
-
 '1 & 2 Prevent Same Subroutine being Called at the Same Time (should've used game loop)
-
 '******************************************************************************************
-
 Sub DisplayTimes
-
   GraphicsWindow.BrushColor = "lightgray"
-
   GraphicsWindow.FillRectangle(gw/3 * n, gh - ribbonHeight, gw/3, ribbonHeight)
-
   
-
   GraphicsWindow.FontSize = 17
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(gw/3 * n + textOffset, gh - ribbonHeight, writeMe[n])  
-
 EndSub
-
-
 
 '______________________________________________________________
-
 '*************************************************************************************
-
 'MENU 
-
 '*************************************************************************************
-
 Sub OperateMenu
-
   If menuFlag = "Open Sub Menu" Then
-
     OpenSubMenu()
-
     CloseOtherSubMenu()    
-
     menuFlag = 0
-
   ElseIf menuFlag = "Close Sub Menu" Then
-
     CloseSubMenu()
-
     menuFlag = 0
-
   ElseIf menuFlag = "Highlight Play" Then
-
     OpenSubMenu()
-
     HighlightPlay()
-
     menuFlag = 0
-
   ElseIf menuFlag = "Highlight Pause" Then
-
     OpenSubMenu()
-
     HighlightPause()
-
     menuFlag = 0
-
   ElseIf menuFlag = "Highlight Exit" Then
-
     OpenSubMenu()
-
     HighlightExit()
-
     menuFlag = 0
-
   ElseIf menuFlag = "Highlight How To" Then
-
     OpenSubMenu()
-
     HighlightHowTo()
-
     menuFlag = 0
-
   EndIf
-
 EndSub
-
-
 
 Sub HighlightHowTo
-
   TextWindow.WriteLine("Highlight on HighlightHowTo")
-
   GraphicsWindow.BrushColor = "yellow"
-
   
-
   GraphicsWindow.FillRectangle(menuX[2], subMenuY[1], menuWidth, ribbonHeight)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(menuX[2] + textOffset, subMenuY[1] + textOffset, subMenu[2][1])
-
 EndSub
-
-
-
 
 
 Sub HighlightExit
-
   TextWindow.WriteLine("Highlight on Exit")
-
   GraphicsWindow.BrushColor = "yellow"
-
   
-
   GraphicsWindow.FillRectangle(menuX[1], subMenuY[3], menuWidth, ribbonHeight)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(menuX[1] + textOffset, subMenuY[3] + textOffset, subMenu[1][3])
-
 EndSub
-
-
 
 Sub HighlightPause
-
   TextWindow.WriteLine("Highlight on Pause")
-
   GraphicsWindow.BrushColor = "yellow"
-
   
-
   GraphicsWindow.FillRectangle(menuX[1], subMenuY[2], menuWidth, ribbonHeight)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(menuX[1] + textOffset, subMenuY[2] + textOffset, subMenu[1][2])
-
 EndSub
-
-
 
 Sub HighlightPlay
-
   TextWindow.WriteLine("Highlight on Play")
-
   GraphicsWindow.BrushColor = "yellow"
-
   
-
   GraphicsWindow.FillRectangle(menuX[1], subMenuY[1], menuWidth, ribbonHeight)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(menuX[1] + textOffset, subMenuY[1] + textOffset, subMenu[1][1])
-
 EndSub
-
-
 
 Sub OpenSubMenu
-
   'If menuSelected = 1  'game menu selected
-
   subMenu[1] = "1=Play;2=Pause;3=Exit"
-
   subMenu[2] = "1=How To"
-
   
-
   If j = 1 Then
-
     For i =1 To 3
-
       gameMenuOpen = 1
-
       DrawSubMenu()
-
     EndFor
-
   ElseIf j = 2 Then
-
     helpMenuOpen = 1
-
     i = 1
-
     DrawSubMenu()
-
   EndIf  
-
 EndSub
-
-
 
 Sub DrawSubMenu
-
   subMenuY[i] = ribbonHeight * i
-
   GraphicsWindow.BrushColor = "lightgray"
-
   GraphicsWindow.FillRectangle(menuX[j], subMenuY[i], menuWidth, ribbonHeight)
-
   
-
   GraphicsWindow.FontSize = 12
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(menuX[j] + textOffset, subMenuY[i] + textOffset, subMenu[j][i])
-
 EndSub
-
-
 
 Sub CreateMenu
-
   GraphicsWindow.FontSize = 12
-
   menu = "1=Game;2=Help"
-
   For i = 1 To 2
-
     menuX[i] = gw/8 * (i-1)
-
     menuWidth = gw/8
-
     
-
     GraphicsWindow.BrushColor = "lightgray"
-
     GraphicsWindow.FillRectangle(menuX[i], 0, menuWidth, ribbonHeight)
-
     
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.DrawText(menuX[i] + textOffset, textOffset, menu[i])
-
   EndFor
-
 EndSub
-
-
 
 Sub CloseSubMenu
-
   If j = 1 Then
-
     For i =1 To 3
-
       gameMenuOpen = 0
-
       DrawOverSubMenu()
-
     EndFor
-
   ElseIf j = 2 Then
-
     i = 1
-
     helpMenuOpen = 0
-
     DrawOverSubMenu()
-
   EndIf
-
 EndSub
-
-
 
 Sub CloseOtherSubMenu
-
   If j = 2 Then     'Convaluted logic, makes sure the other subMenu is closed when the other is opened
-
     j = 1
-
     CloseSubMenu()
-
     j = 2
-
   ElseIf j = 1 Then
-
     j = 2
-
     CloseSubMenu()
-
     j = 1
-
   EndIf
-
 EndSub
-
-
 
 Sub DrawOverSubMenu  
-
   subMenuY[i] = ribbonHeight * i
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.FillRectangle(menuX[j], subMenuY[i], menuWidth, ribbonHeight)    
-
 EndSub
-
-
 
 Sub MenuFocus
-
   If mouseX > 0 And mouseX < menuWidth And mouseY < ribbonHeight Then
-
     j = 1 'menu[j] = Game
-
     subMenuOpen = 1
-
     menuFlag = "Open Sub Menu"      
-
   EndIf
-
   If j = 1 Then
-
     If mouseX < 0 Or mouseX > menuWidth Or mouseY > ribbonHeight * 4 Then    
-
       subMenuOpen = 0
-
       menuFlag = "Close Sub Menu"
-
     EndIf 
-
   EndIf  
-
   
-
   If mouseX > menuWidth And mouseX < menuWidth * 2 And mouseY < ribbonHeight Then
-
     j = 2
-
     subMenuOpen = 1
-
     menuFlag = "Open Sub Menu" 
-
   EndIf
-
   If j = 2 Then
-
     If mouseX < menuWidth Or mouseX > menuWidth * 2 Or mouseY > ribbonHeight * 2 Then
-
       subMenuOpen = 0
-
       menuFlag = "Close Sub Menu"
-
     EndIf 
-
   EndIf  
-
   
-
   If subMenuOpen = 1 And mouseX > 0 And mouseX < menuWidth And j = 1 Then 
-
     If mouseY > ribbonHeight And mouseY < ribbonHeight * 2 Then
-
       menuFlag = "Highlight Play"
-
     ElseIf mouseY > ribbonHeight * 2 And mouseY < ribbonHeight * 3 Then
-
       menuFlag = "Highlight Pause"
-
     ElseIf mouseY > ribbonHeight * 3 And mouseY < ribbonHeight * 4 Then
-
       menuFlag = "Highlight Exit"
-
     EndIf
-
   EndIf
-
   
-
   If subMenuOpen = 1 And mouseX > menuWidth And mouseX < menuWidth * 2 And j = 2 Then
-
     If mouseY > ribbonHeight And mouseY < ribbonHeight * 2 Then
-
       menuFlag = "Highlight How To"
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 '*************************************************************************************
-
 ' Set up
-
 '************************************************************************************
-
 Sub CreateUI  
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh  
-
   GraphicsWindow.Left = (Desktop.Width - gw) / 2
-
   GraphicsWindow.Top = 10
-
   GraphicsWindow.BackgroundColor = "black"
-
   
-
   writeMe = "0=Response Time;1=Total Run Time;2=Time Remaining"
-
   For n = 0 To 2
-
     DisplayTimes()
-
   EndFor
-
 EndSub
-
-
 
 Sub CreateBox
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "yellow"
-
   box = Shapes.AddRectangle(boxSize, boxSize)
-
 EndSub
-
-
 
 Sub DEBUG
-
   TextWindow.Title = "DEBUGGING"
-
   TextWindow.Left = 5
-
   TextWindow.Top = 80
-
 EndSub
-
-

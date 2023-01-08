@@ -1,403 +1,201 @@
 '  Missile Turret
-
 '  by Zock77 And Gotoloop
-
 '  TLB346-1
-
 '  http://Social.MSDN.Microsoft.com/Forums/en-US/smallbasic/thread/1f6bce18-6021-443c-97e2-6ad181f8bd3e
-
 '_______________________________________________________________________________'
-
 xRes     = 800
-
 yRes     = 600
 
-
-
 Numoftanks = 5
-
 Tankspeed = 1
 
-
-
 StartX   = 55     '  X  starting point for missiles
-
 StartY   = yRes/2 '  Y  starting point for missiles and also turret's Y position
-
 TrackMin = Math.Round( xRes*12/640 ) ' Minimum moving missiles necessary to keep track on the screen + 1
 
-
-
 Radius   = 200
-
 Gravity  = 0
-
 Elapsed  = 0
 
-
-
 GraphicsWindow.Width  = xRes
-
 GraphicsWindow.Height = yRes
-
 GraphicsWindow.Left   = (Desktop.Width  - GraphicsWindow.Width ) / 2
-
 GraphicsWindow.Top    = (Desktop.Height - GraphicsWindow.Height) / 2
 
-
-
 GraphicsWindow.CanResize       = "False"
-
 GraphicsWindow.BrushColor      = "White"
-
 GraphicsWindow.PenColor        = "Red"
-
 GraphicsWindow.BackgroundColor = "Khaki"
 
-
-
 LoadShapes()
-
 CreateShapes()
-
 AddTanks()
 
-
-
 GraphicsWindow.MouseDown = MouseDown
-
 GraphicsWindow.MouseMove = MouseMove
-
 GraphicsWindow.KeyDown   = Quit
 
-
-
 Timer.Tick     = GarbageCleanup
-
 Timer.Interval = 1000
-
 i  = 0
-
 ii = 0
-
 '_______________________________________________________________________________'
-
 Loop:
 
-
-
 MouseY   = MouseYY - StartY
-
 Angle    = Math.ArcTan( MouseY/MouseXX )
-
 Degrees  = Math.GetDegrees(Angle)
 
-
-
 AngleCos = Math.Cos(Angle)
-
 AngleSin = Math.Sin(Angle)
 
-
-
 x = Radius*AngleCos
-
 y = Radius*AngleSin + StartY
 
-
-
 If Angle > 360 Then
-
   Angle = 0
-
 EndIf
 
-
-
 Shapes.Rotate( Turret,Degrees )
-
 Shapes.Move  ( Aim   x,y )
-
-
 
 Tankoffset = Tankoffset + Tankspeed
 
-
-
 Movetanks()
-
 MoveMissile()
-
 Checkhit()
-
-
 
 GraphicsWindow.Title = "Fired: " + i + "  Erased: " + ii + "  Elapsed: " + Elapsed + "s"
 
-
-
 Program.Delay(10)
 
-
-
 Goto Loop
-
 '_______________________________________________________________________________'
-
 Sub GarbageCleanup
-
   
-
   Elapsed = Elapsed + 1
-
   
-
   While ii < i-TrackMin
-
     Shapes.Remove( Missile[ii] )
-
     
-
     Missile   [ii] = ""
-
     MissileX  [ii] = ""
-
     MissileY  [ii] = ""
-
     
-
     Timestart [ii] = ""
-
     TimeNow   [ii] = ""
-
     
-
     vCos      [ii] = ""
-
     vSin      [ii] = ""
-
     
-
     ii = ii + 1
-
   EndWhile
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub Quit
-
   
-
   Sound.PlayChimeAndWait()
-
   Program.End()
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub MouseMove
-
   
-
   MouseXX = GraphicsWindow.MouseX
-
   MouseYY = GraphicsWindow.MouseY
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub MouseDown
-
   
-
   i = i + 1
-
   
-
   Missile[i] = Shapes.AddRectangle(10,5)
-
   Shapes.Rotate( Missile[i]  Degrees )
-
   
-
   vCos[i] = Math.GetDegrees(AngleCos) * 10
-
   vSin[i] = Math.GetDegrees(AngleSin) * 10
-
   
-
   Timestart[i] = Clock.ElapsedMilliseconds / 1000
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub MoveMissile
-
   
-
   For p = i To i-TrackMin Step -1 '  <---   From newest to the older past TrackMin missiles + 1
-
     TimeNow [p] = Clock.ElapsedMilliseconds / 1000 - Timestart[p]
-
     MissileX[p] = vCos[p]*TimeNow[p] + StartX
-
     MissileY[p] = vSin[p]*TimeNow[p] + TimeNow[p]*TimeNow[p] * Gravity/2 + StartY
-
     Shapes.Move( Missile[p]  MissileX[p],MissileY[p] )
-
   EndFor
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub LoadShapes
-
   
-
   path = Program.Directory + "\"
-
   path = "http://Sean.Alyrica.net/"
-
   
-
   AimImg    = ImageList.LoadImage(path + "crosshair.png")
-
   TurretImg = ImageList.LoadImage(path + "Turrit.png")
-
   
-
   TurSz = ImageList.GetHeightOfImage(Turret) / 2  '  <--- Half size of turret shape 
-
   If TurSz < 5 Then  '  <---  If it fails to determine its size, consider it to be 17
-
     TurSz = 17
-
   EndIf
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub CreateShapes
-
   
-
   Aim    = Shapes.AddImage(AimImg)
-
   Turret = Shapes.AddImage(TurretImg)
-
   Shapes.Move(Turret 10,StartY-TurSz)
-
   
-
 EndSub
-
 '_______________________________________________________________________________'
-
 Sub AddTanks
-
   For iii = 1 To Numoftanks
-
     
-
     Tank[iii] = Shapes.AddRectangle(40,15)
-
     Tankx[iii] = Math.GetRandomNumber(200) + GraphicsWindow.Width '<----- Add tanks to a random position
-
     
-
     Reposition:
-
     
-
     Tanky[iii] = Math.GetRandomNumber(GraphicsWindow.Height)
-
     
-
     If iii > 1 Then 
-
     For Tankpos = 1 To iii ' <-------- Make sure the tanks are not on top of each other
-
    If Tanky[iii]- 50 > Tanky[Tankpos] And Tanky[Tankpos] < Tanky[iii] + 50 Then
-
       Goto Reposition
-
    EndIf
-
    EndFor
-
    EndIf
-
     
-
     Shapes.Move(Tank[iii], Tankx[iii], Tanky[iii])
-
     
-
   EndFor
-
   
-
   
-
   EndSub
-
   '_______________________________________________________________________________'
-
   Sub Movetanks
-
     For Move = 1 To Numoftanks
-
       Shapes.Move(Tank[Move], Tankx[Move] - Tankoffset, Tanky[Move])
-
     EndFor
-
   EndSub
-
   '_____________________________________________________________________________
-
   Sub Checkhit
-
     For iiii = 1 To Numoftanks
-
       For pppp = 1 To TrackMin
-
         If MissileX[pppp] > Tankx[iiii] And MissileX[pppp] < Tankx[iiii] + 40 And MissileY[pppp] > Tanky[iiii] And MissileY < Tanky[iiii] + 15 Then
-
           Shapes.Remove(Tank[iiii])
-
         EndIf
-
       EndFor
-
     EndFor
-
     EndSub
-
       '_______________________________________________________________________
-
     Sub Hit
-
     Program.End()
-
     EndSub
-
-

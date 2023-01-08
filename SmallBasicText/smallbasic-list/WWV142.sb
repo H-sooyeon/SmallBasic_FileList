@@ -1,647 +1,323 @@
 ' B-Spline Curve 0.1
-
 ' Small Basic version ported by Nonki Takahashi.
-
 '
-
 ' History:
-
 '  0.1 2014-02-21 Created.
-
 '
-
 ' Reference:
-
 '  [1] Steven Harrington, COMPUTER GRAPHICS A Programming Approach, McGraw-Hill, 1983
-
 '      * Numbers such as (8.1) in comment mean algorithm numbers in this book.
-
 '
-
 GraphicsWindow.Title = "B-Spline Curve 0.1 - Click 10 sample points."
-
 Not = "True=False;False=True;"
-
 MAX_NUMBER_OF_LINES = 20
-
 MAX_SAMPLE_POINTS = 20
-
 DFSIZE = MAX_NUMBER_OF_LINES * MAX_SAMPLE_POINTS * 4
-
 free = 1
-
 numberOfLines = 10
-
 While "True"
-
   InitSample()
-
   SetBSpline()
-
   For i = 1 To 5
-
     ax[i] = sx[i]
-
     ay[i] = sy[i]
-
     az[i] = 0
-
   EndFor
-
   StartBSpline()
-
   For i = 6 To ns - 2
-
     x = sx[i]
-
     y = sy[i]
-
     z = 0
-
     CurveAbs3()
-
   EndFor
-
   x1 = sx[ns - 1]
-
   y1 = sy[ns - 1]
-
   z1 = 0
-
   x2 = sx[ns]
-
   y2 = sy[ns]
-
   z2 = 0
-
   EndBSpline()
-
   WaitClick()
-
 EndWhile
-
 Sub Error
-
   TextWindow.WriteLine(msg)
-
   TextWindow.Pause()
-
   Program.End()
-
 EndSub
-
 Sub InitSample
-
   GraphicsWindow.Clear()
-
   ns = 10 ' number of sample points (7 <= ns)
-
   sx = "1=100;2=110;3=220;4=230;5=340;6=350;7=460;8=470;9=580;10=590;"
-
   sy = "1=50;2=100;3=100;4=150;5=150;6=200;7=200;8=150;9=150;10=100;"
-
   GraphicsWindow.PenColor = "DarkOrange"
-
   GraphicsWindow.MouseDown = OnMouseDown
-
   For i = 1 To ns
-
     WaitClick()
-
     GraphicsWindow.DrawLine(sx[i] - 3, sy[i] - 3, sx[i] + 3, sy[i] + 3)
-
     GraphicsWindow.DrawLine(sx[i] - 3, sy[i] + 3, sx[i] + 3, sy[i] - 3)
-
   EndFor
-
 EndSub
-
 Sub WaitClick
-
   clicked = "False"
-
   While Not[clicked]
-
     Program.Delay(100)
-
   EndWhile
-
 EndSub
-
 Sub OnMouseDown
-
   sx[i] = GraphicsWindow.MouseX
-
   sy[i] = GraphicsWindow.MouseY
-
   clicked = "True"
-
 EndSub
-
 Sub Pause
-
   TextWindow.Write(msg)
-
   TextWindow.Read()
-
 EndSub
-
 Sub Dump
-
   b = firstBlend
-
   name = "firstBlend"
-
   DumpB()
-
   b = secondBlend
-
   name = "secondBlend"
-
   DumpB()
-
   b = blend
-
   name = "blend"
-
   DumpB()
-
   b = nextToLastBlend
-
   name = "nextToLastBlend"
-
   DumpB()
-
   b = lastBlend
-
   name = "lastBlend"
-
   DumpB()
-
 EndSub
-
 Sub DumpB
-
   sum = ""
-
   For j = 1 To 4
-
     For i = 1 To numberOfLines
-
       sum[i] = sum[i] + b[j][i]
-
       r[i] = Math.Round(b[j][i] * 100) / 100
-
     EndFor
-
     TextWindow.WriteLine(name+"["+j+"]="+r)
-
   EndFor
-
   For i = 1 To numberOfLines
-
     sum[i] = Math.Round(sum[i] * 100) / 100
-
   EndFor
-
   TextWindow.WriteLine("sum="+sum)
-
 EndSub
-
 Sub PutPoint
-
   ' (2.1) wirte a complete command to display file
-
   ' param op, x, y - command to be written
-
   ' global dfOp, dfX, dfY - display file
-
   ' global free - position to next null cell
-
   ' constant DFSIZE - length of display file array
-
   If DFSIZE < free Then
-
     msg = "Error: Display file full"
-
     Error()
-
   Else
-
     dfOp[free] = op
-
     dfX[free] = x
-
     dfY[free] = y
-
     If op = 2 Then
-
       GraphicsWindow.PenColor = "Black"
-
       ix1 = Math.Floor(dfX[free - 1])
-
       iy1 = Math.Floor(dfY[free - 1])
-
       ix2 = Math.Floor(dfX[free])
-
       iy2 = Math.Floor(dfY[free])
-
       GraphicsWindow.DrawLine(ix1, iy1, ix2, iy2)
-
     EndIf
-
     free = free + 1
-
   EndIf
-
 EndSub
-
 Sub DisplayFileEnter
-
   ' (2.3) create a command combined with operation and pen position and save it to display file
-
   ' param op - operation to be filed
-
   ' global dfPenX, dfPenY - current position of pen
-
   x = dfPenX
-
   y = dfPenY
-
   PutPoint()
-
 EndSub
-
 Sub MoveAbs3
-
   ' (8.1) 3-dimensional absolute move
-
   ' param x, y, z - target co-ordinate for pen move
-
   ' global dfPenX, dfPenY, dfPenZ - current pen position
-
   dfPenX = x
-
   dfPenY = y
-
   dfPenZ = z
-
   op = 1
-
   DisplayFileEnter()
-
 EndSub
-
 Sub LineAbs3
-
   ' (8.3) 3-dimensional absolute line draw
-
   ' param x, y ,z - target co-ordinate draw line
-
   ' global dfPenX, dfPenY, dfPenZ - current pen position
-
   dfPenX = x
-
   dfPenY = y
-
   dfPenZ = z
-
   op = 2
-
   DisplayFileEnter()
-
 EndSub
-
 Sub MakeCurve
-
   ' (12.3) fill section of curve
-
   ' param b - array of blend function value
-
   ' global linesPerSection - number of lines per 1 curve section
-
   ' global xsm, ysm, zsm - 4-element array including sample points
-
   ' local i - stepping for 4 sample points
-
   ' local j - stepping for lines in curve section
-
   ' local x, y, z - co-ordinate of point on fitted curve
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", j)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   Stack.PushValue("local", z)
-
   For j = 1 To linesPerSection
-
     x = 0
-
     y = 0
-
     z = 0
-
     ' add contribution from each sample point
-
     For i = 1 To 4
-
       x = x + xsm[i] * b[i][j]
-
       y = y + ysm[i] * b[i][j]
-
       z = z + zsm[i] * b[i][j]
-
     EndFor
-
     ' draw fitted curve
-
     LineAbs3()
-
   EndFor
-
   z = Stack.PopValue("local")
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   j = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub NextSection
-
   ' (12.4) shift the sample points to prepare for the next curve section
-
   ' global xsm, ysm, zsm - 4-element array for sample points
-
   ' local i - stepping for sample points
-
   Stack.PushValue("local", i)
-
   For i = 1 To 3
-
     xsm[i] = xsm[i + 1]
-
     ysm[i] = ysm[i + 1]
-
     zsm[i] = zsm[i + 1]
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub PutInSM
-
   ' (12.6) put new sample point in xsm, ysm, zsm arrays
-
   ' param x, y, z - new sample point
-
   ' global xsm, ysm, zsm - 4-element arrays to keep sample points
-
   xsm[4] = x
-
   ysm[4] = y
-
   zsm[4] = z
-
 EndSub
-
 Sub CurveAbs3
-
   ' (12.7) extend curve
-
   ' param x, y, z - new sample point for the curve
-
   ' global blend - array[4][linePerSection] for blend function value
-
   PutInSM()
-
   b = blend
-
   MakeCurve()
-
   NextSection()
-
 EndSub
-
 Sub SetBSpline
-
   ' (12.10) set number of lines in a section of B-spline interpolation
-
   ' param numberOfLines
-
   ' global linesPerSection - memory for numberOfLines
-
   ' global blend[][]
-
   ' global firstBlend[][]
-
   ' global nextToLastBlend[][]
-
   ' global lastBlend[][] - array[4][MAX_NUMBER_OF_LINES] to keep blending function value
-
   ' local i, j - stepping for points needed on the curve
-
   ' local u - temporary memory
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", j)
-
   Stack.PushValue("local", u)
-
   If numberOfLines < 1 Or MAX_NUMBER_OF_LINES < numberOfLines Then
-
     msg = "Error: Invalid number of line segments"
-
     Error()
-
   EndIf
-
   linesPerSection = numberOfLines
-
   For i = 1 To numberOfLines
-
     u = i / numberOfLines
-
     firstBlend[1][i] = Math.Power(1 - u, 3)
-
     firstBlend[4][i] = Math.Power(u, 3) / 6
-
     firstBlend[3][i] = (3 / 2 - 11 * u / 12) * Math.Power(u, 2)
-
     firstBlend[2][i] = 1 - firstBlend[1][i] - firstBlend[3][i] - firstBlend[4][i]
-
     secondBlend[1][i] = firstBlend[1][i] / 4
-
     secondBlend[4][i] = firstBlend[4][i]
-
     secondBlend[3][i] = (((1 - u) * u + 1) * u + 1 / 3) / 2
-
     secondBlend[2][i] = 1 - secondBlend[1][i] - secondBlend[3][i] - secondBlend[4][i]
-
     blend[1][i] = firstBlend[1][i] / 6
-
     blend[4][i] = firstBlend[4][i]
-
     blend[3][i] = secondBlend[3][i]
-
     blend[2][i] = 1 - blend[1][i] - blend[3][i] - blend[4][i]
-
     j = numberOfLines - i
-
     If 0 < j Then
-
       nextToLastBlend[1][j] = secondBlend[4][i]
-
       nextToLastBlend[2][j] = secondBlend[3][i]
-
       nextToLastBlend[3][j] = secondBlend[2][i]
-
       nextToLastBlend[4][j] = secondBlend[1][i]
-
       lastBlend[1][j] = firstBlend[4][i]
-
       lastBlend[2][j] = firstBlend[3][i]
-
       lastBlend[3][j] = firstBlend[2][i]
-
       lastBlend[4][j] = firstBlend[1][i]
-
     EndIf
-
   EndFor
-
   nextToLastBlend[1][numberOfLines] = 0
-
   nextToLastBlend[2][numberOfLines] = 1 / 6
-
   nextToLastBlend[3][numberOfLines] = 7 / 12
-
   nextToLastBlend[4][numberOfLines] = 1 / 4
-
   lastBlend[1][numberOfLines] = 0
-
   lastBlend[2][numberOfLines] = 0
-
   lastBlend[3][numberOfLines] = 0
-
   lastBlend[4][numberOfLines] = 1
-
   u = Stack.PopValue("local")
-
   j = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub StartBSpline
-
   ' (12.11) start B-spline interpolation curve
-
   ' param ax[], ay[], az[] - 5-element array to keep first 5 points
-
   ' global xsm, ysm, zsm - 4-element array for sample points
-
   ' global firstBlend
-
   ' global secondBlend -  array[4][linesPerSection] to keep blending function value
-
   ' local i - stepping for sample points
-
   Stack.PushValue("local", i)
-
   For i = 1 To 4
-
     xsm[i] = ax[i]
-
     ysm[i] = ay[i]
-
     zsm[i] = az[i]
-
   EndFor
-
   x = ax[1]
-
   y = ay[1]
-
   z = az[1]
-
   MoveAbs3()
-
   b = firstBlend
-
   MakeCurve()
-
   NextSection()
-
   x = ax[5]
-
   y = ay[5]
-
   z = az[5]
-
   PutInSM()
-
   b = secondBlend
-
   MakeCurve()
-
   NextSection()
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub EndBSpline
-
   ' (12.12) stop B-spline curve
-
   ' param x1, y1, z1 - previous sample point from the last
-
   ' param x2, y2, z2 - the last sample point
-
   ' global nextToLastBlend, lastBlend - array[4][linePerSection] of blend function value
-
   x = x1
-
   y = y1
-
   z = z1
-
   PutInSM()
-
   b = nextToLastBlend
-
   MakeCurve()
-
   NextSection()
-
   x = x2
-
   y = y2
-
   z = z2
-
   PutInSM()
-
   b = lastBlend
-
   MakeCurve()
-
 EndSub
-
   
-
-

@@ -1,249 +1,124 @@
 'Proto Tetris - By codingCat aka Matthew L. Parets
-
 'This represents a very basic outline for the game of tetris. 
-
 'The challenge to you is to develop your very own Tetris variant. 
-
 'Good Luck - And enjoy!
-
-
 
 GraphicsWindow.Show()
 
-
-
 brdWid = 3    'Dimensions of the playing area
-
 brdHei = 7
-
 sqrSiz = 50   'Size of the blocks
 
-
-
 'Windows size and location is based on the board size
-
 GraphicsWindow.Width = (brdWid+2) * sqrSiz
-
 GraphicsWindow.Height = (brdHei+2) * sqrSiz
-
 GraphicsWindow.Top = (Desktop.Height/2) - GraphicsWindow.Height / 2
-
 GraphicsWindow.Left = (Desktop.Width/2) - GraphicsWindow.Width / 2
 
-
-
 'Initialize the array that is used to track to condition of the board
-
 For i = 1 To brdHei
-
   For j = 1 To brdWid
-
     'Draw the board while we are at it.
-
     GraphicsWindow.fillRectangle(sqrSiz*j, sqrSiz*i, sqrSiz-6,sqrSiz-6)
-
     board[i][j] = "Empty"   'every position is marked as empty.
-
   EndFor
-
 EndFor
 
-
-
 'Add the initial player shape and set up for input
-
 GraphicsWindow.BrushColor = "black"
-
 player = Shapes.AddRectangle(sqrSiz-12,sqrSiz-12)
-
 GraphicsWindow.KeyDown = OnKeyDown 'Let winows know our key event is waiting for presses. 
 
 
-
-
-
 row = 0   'Initial starting place for the player - above the board
-
 col = Math.GetRandomNumber(brdWid)      'at a random column
-
 frameRate = 10    'Number of milliseonds each frame (trip through the game loop) should take
-
 frameStart = Clock.ElapsedMilliseconds 'note the time to allow for frame pauses
-
 playerRate = 1000                      'How often is a new player block added.
-
 playerRateReduction = (playerRate - 100) / (brdHei * brdWid)  'Speed up the add process with each success
-
 playerStart = Clock.ElapsedMilliseconds
 
-
-
 'Main game loop. Each subroutine that is called from the game loop
-
 'is set as one step to take one step in that loop and advance for the next step
-
 key = "" 
-
 While key <> "Escape" 'Keep going until the escape key is pressed
-
   GetKeyPress()       'Check if a key has been pressed
-
   MoveThePlayer()     'Update the position of the player bolock
-
   FrameWait()         'Pause and wait for just a tick
-
 endwhile
 
-
-
 'Move the player to the next position on the board
-
 Sub MoveThePlayer
-
   'Only do this at timed intervals.
-
   If Clock.ElapsedMilliseconds - playerStart > playerRate then
-
     If row = brdHei Then  'Are we at the bottom of the baord?
-
       Landed()
-
     ElseIf board[row+1][col] <> "Empty" then 'Are we at the top of a stack?
-
       Landed()
-
     EndIf
-
     row = row + 1
-
     playerStart = Clock.ElapsedMilliseconds 'Setup for next block
-
   EndIf
-
   Shapes.Move(player,col*sqrSiz+3,row*sqrSiz+3) 'Move the current block
-
 EndSub  
 
-
-
 'The bottom of the board, or the top of the stack has been reached
-
 'Leave the block in place. Check for win or lose
-
 Sub Landed
-
   If row = 0 Then   'Still at the top? Lose condition
-
     GraphicsWindow.ShowMessage("You Lose","Game OVer")
-
     key = "Escape"
-
   ElseIf landCount+1 = brdHei * brdWid Then 'Board full? Win condition
-
     GraphicsWindow.ShowMessage("You Win!","Game Over")
-
     key = "Escape"
-
   Else  'Set up a new block
-
     board[row][col] = "Full"        'Mark the current postion as occupied
-
     landCount = landCount + 1       'Keep track of how many times this has happend
-
     row = -1                        'reset to the top
-
     col = Math.GetRandomNumber(brdWid)                'random position at the top
-
     playerRate = playerRate - playerRateReduction     'speed the game up
-
     player = Shapes.AddRectangle(sqrSiz-12,sqrSiz-12) 'add the new block
-
   endif
-
 EndSub
-
-
 
 Sub GetKeyPress
-
   'Get key press, processes all user interaction.
-
   'Key presses are ignored unless the event tells us that a new key has been pressed
-
   If pressed = "True" Then 'ignore unless the event tells us there was a press       
-
     key = GraphicsWindow.LastKey  'Movement keys
-
     'Has the left key been press? And is the place we are heading on the board? And is place we heading not full? 
-
     If key = "Left"  And col > 1 and board[row][col-1] <> "Full" Then 
-
       col = col - 1         'move Left
-
     'Has the right key been pressed? And is the place we are heading on the board? And is place we are heading not full?
-
     ElseIf key = "Right" and col < brdWid and board[row][col+1] <> "Full" then
-
       col = col + 1         'move Right
-
     EndIf
-
     pressed = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub FrameWait
-
   While Clock.ElapsedMilliseconds - frameStart < frameRate
-
     'Sit here and do nothing until the frame clock has run out.
-
     'This wait keeps the automatic operations, like moving the block
-
     'from running too fast. 
-
     'This technique is better then using Program.Delay() for two reasons:
-
     '   1)  The wait time is based on when we started the frame, not
-
     '        when we ended it. In other words, when one of our trips through
-
     '        the for loop above takes longer than normal, the delay will be 
-
     '        reduced, so each frame will be exactly the same length.
-
     '  2) We have the option (even though we are not using it here) of  
-
     '        doing some extra processing, such as checking the keyboard. 
-
     '        With Program.Delay() we are stuck, unable to do anything,
-
     '       until the  delay is complete.
-
   EndWhile
-
   frameStart = Clock.ElapsedMilliseconds 'Start  a new frame.
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   'Take note of the fact that a key has been pressed. This event is 
-
   'needed because the GraphicsWindow.lastkey property never
-
   'clears. Making otherwise impossible to distinguish between
-
   'multiple presses of the same key
-
   pressed = "True"
-
 EndSub
-
-

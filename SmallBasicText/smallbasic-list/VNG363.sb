@@ -1,473 +1,236 @@
 Initialise()
 
-
-
 'Main Loop
-
 While("True")
-
   start = Clock.ElapsedMilliseconds
-
   
-
   movePlayers()
-
   updateScoring()
-
   
-
   delay = 25 - (Clock.ElapsedMilliseconds-start) 'Max delay of 25ms is 40 fps
-
   If (delay > 0) Then
-
     Program.Delay(delay)
-
   EndIf
-
 EndWhile
 
-
-
 '===============================================
-
 'SUBROUTINES
-
 '===============================================
-
-
 
 Sub Initialise
-
   gw = 800
-
   gh = 400
-
   GraphicsWindow.Title = "Float like a butterfly Sting like a bee"
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Left = (Desktop.Width-gw)/2
-
   GraphicsWindow.Top = (Desktop.Height-gh)/2
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   GraphicsWindow.KeyUp = OnKeyUp
-
   
-
   'Images - speed up start by downloading the images to local folder or better create some good images!
-
   dir = "http://litdev.hostoi.com/game_images/"
-
   'dir = Program.Directory+"\"
-
   GraphicsWindow.DrawResizedImage(dir+"field.jpg",0,0,gw,gh)
-
   standL = ImageList.LoadImage(dir+"StandL.png")
-
   standR = ImageList.LoadImage(dir+"StandR.png")
-
   punchL = ImageList.LoadImage(dir+"PunchL.png")
-
   punchR = ImageList.LoadImage(dir+"PunchR.png")
-
   blockL = ImageList.LoadImage(dir+"BlockL.png")
-
   blockR = ImageList.LoadImage(dir+"BlockR.png")
-
   For i = 1 To 3
-
     walkL[i] = ImageList.LoadImage(dir+"WalkL"+i+".png")
-
     walkR[i] = ImageList.LoadImage(dir+"WalkR"+i+".png")
-
   EndFor
-
   imageWidth = ImageList.GetWidthOfImage(standL) ' assume all the same size
-
   imageHeight = ImageList.GetHeightOfImage(standL)
-
   
-
   'Image shapes for each player
-
   playerStand[1] = Shapes.AddImage(standR)
-
   playerStand[2] = Shapes.AddImage(standL)
-
   Shapes.HideShape(playerStand[1])
-
   Shapes.HideShape(playerStand[2])  
-
   playerPunch[1] = Shapes.AddImage(punchR)
-
   playerPunch[2] = Shapes.AddImage(punchL)
-
   Shapes.HideShape(playerPunch[1])  
-
   Shapes.HideShape(playerPunch[2])  
-
   playerBlock[1] = Shapes.AddImage(blockR)
-
   playerBlock[2] = Shapes.AddImage(blockL)
-
   Shapes.HideShape(playerBlock[1])  
-
   Shapes.HideShape(playerBlock[2])  
-
   For j = 1 To 3
-
     playerWalk[1][j] = Shapes.AddImage(walkR[j])
-
     playerWalk[2][j] = Shapes.AddImage(walkL[j])
-
     Shapes.HideShape(playerWalk[1][j])
-
     Shapes.HideShape(playerWalk[2][j])  
-
   EndFor
-
   
-
   'Positioning and control
-
   playerX[1] = (gw-imageWidth)/2-100 'Initial X (Left of player)
-
   playerY[1] = gh - imageHeight 'Initial Y (Top of player)
-
   playerX[2] = (gw-imageWidth)/2+100 'Initial X (Left of player)
-
   playerY[2] = gh - imageHeight 'Initial Y (Top of player)
-
   proximity = 80 'How close players can get - they must be at this distance to score a punch
-
   actionDelay = 10 'Number of frames to hold an action
-
   For i = 1 To 2 ' These are per player since they could change with game play e.g. getting tired or being hit too much
-
     actionRepeat[i] = 10 'Number of frames before a new action can be performed
-
   EndFor
-
   
-
   'Show initial players
-
   player[1] = playerStand[1]
-
   player[2] = playerStand[2]
-
   For i = 1 To 2
-
     playerFrame[i] = 1 'First frame
-
     Shapes.Move(player[i],playerX[i],playerY[i])
-
     Shapes.ShowShape(player[i])
-
   EndFor
-
   
-
   'Scoring
-
   GraphicsWindow.BrushColor = "Black"
-
   For i = 1 To 2
-
     scoreBox[i] = Shapes.AddText("")
-
     score[i] = 0
-
   EndFor
-
   Shapes.Move(scoreBox[1],10,10)
-
   Shapes.Move(scoreBox[2],gw-200,10)
-
   
-
   'Instructions
-
   GraphicsWindow.DrawText(10,40,"Back (Z) Forward (X) Punch (Q) Block (A)")
-
   GraphicsWindow.DrawText(gw-300,40,"Back (Right) Forward (Left) Punch (P) Block (L)")
-
 EndSub
-
-
 
 'Move players
-
 'player[i] is the current active shown image for each player (there is only ever one not hidden at a time)
-
 Sub movePlayers
-
   i = 1 'Player 1
-
   j = 2 'Player 2
-
   actionFrame[i] = actionFrame[i]+1
-
   If (keyDown["Z"]) Then
-
     If (playerX[i] > 0) Then
-
       playerX[i] = playerX[i]-2 'Move player position left
-
       move()
-
     EndIf
-
   ElseIf (keyDown["X"]) Then
-
     If (playerX[i] < playerX[j]-proximity) Then
-
       playerX[i] = playerX[i]+2 'Move player position right
-
       move()
-
     EndIf
-
   ElseIf (keyDown["Q"] And actionFrame[i] > actionRepeat[i]) Then
-
     punch()
-
     keyDown["Q"] = "False" 'Setting to "False" means punch will not be restarted untill Q is pressed again (after it is released, no autorepeat)
-
   ElseIf (keyDown["A"] And actionFrame[i] > actionRepeat[i]) Then
-
     block()
-
     keyDown["A"] = "False"
-
   ElseIf (actionFrame[i] = actionDelay) Then 'Check for hit at end of action - time for defender to do a block if they are quick enough
-
     hitCheck()
-
   ElseIf (actionFrame[i] > actionDelay) Then
-
     stand()
-
     iFrame[i] = 0 'Reset frame count for next movement
-
     playerFrame[i] = 1 'Reset first frame for next movement
-
   EndIf
-
   
-
   i = 2 'Player 2
-
   j = 1 'Player 1
-
   actionFrame[i] = actionFrame[i]+1
-
   If (keyDown["Left"]) Then
-
     If (playerX[i] > playerX[j]+proximity) Then
-
       playerX[i] = playerX[i]-2
-
       move()
-
     EndIf
-
   ElseIf (keyDown["Right"]) Then
-
     If (playerX[i] < gw-imageWidth) Then
-
       playerX[i] = playerX[i]+2
-
       move()
-
     EndIf
-
   ElseIf (keyDown["P"] And actionFrame[i] > actionRepeat[i]) Then
-
     punch()
-
     keyDown["P"] = "False"
-
   ElseIf (keyDown["L"] And actionFrame[i] > actionRepeat[i]) Then
-
     block()
-
     keyDown["L"] = "False"
-
   ElseIf (actionFrame[i] = actionDelay) Then
-
     hitCheck()
-
   ElseIf (actionFrame[i] > actionDelay) Then
-
     stand()
-
     iFrame[i] = 0
-
     playerFrame[i] = 1
-
   EndIf
-
 EndSub
-
-
 
 Sub move
-
   If (Math.Remainder(iFrame[i],8) = 0) Then 'Update player every 8 frames of movement
-
     Shapes.HideShape(player[i]) 'Hide current player image (will be last player image)
-
     playerFrame[i] = 1+Math.Remainder(playerFrame[i],3) 'Cycle player image in group (these for walking left)
-
     player[i] = playerWalk[i][playerFrame[i]] 'The next player image in group is now the current player image
-
     Shapes.Move(player[i],playerX[i],playerY[i]) 'Move the image before we show it
-
     Shapes.ShowShape(player[i]) 'Show current player image
-
   Else
-
     Shapes.Move(player[i],playerX[i],playerY[i]) 'Just move player
-
   EndIf
-
   If (actionRepeat[i] > 10) Then
-
     actionRepeat[i] = actionRepeat[i]-1 'Get your energy back
-
   EndIf
-
   iFrame[i] = iFrame[i]+1
-
 EndSub
-
-
 
 Sub stand
-
   If (player[i] <> playerStand[i]) Then
-
     Shapes.HideShape(player[i])
-
     player[i] = playerStand[i]
-
     Shapes.Move(player[i],playerX[i],playerY[i])
-
     Shapes.ShowShape(player[i])
-
   EndIf
-
 EndSub
-
-
 
 Sub punch
-
   If (player[i] <> playerPunch[i]) Then 'Only update if changed
-
     actionFrame[i] = 0
-
     Shapes.HideShape(player[i])
-
     player[i] = playerPunch[i]
-
     Shapes.Move(player[i],playerX[i],playerY[i])
-
     Shapes.ShowShape(player[i])
-
     actionRepeat[i] = actionRepeat[i]+2 'starting to tire
-
   EndIf
-
 EndSub
-
-
 
 Sub block
-
   If (player[i] <> playerBlock[i]) Then 'Only update if changed
-
     actionFrame[i] = 0
-
     Shapes.HideShape(player[i])
-
     player[i] = playerBlock[i]
-
     Shapes.Move(player[i],playerX[i],playerY[i])
-
     Shapes.ShowShape(player[i])
-
   EndIf
-
 EndSub
-
-
 
 Sub hitCheck
-
   If (Math.Abs(playerX[1]-playerX[2]) = proximity) Then
-
     If (player[i] = playerPunch[i] And player[j] <> playerBlock[j]) Then
-
       score[i] = score[i]+1
-
       Sound.PlayClick()
-
       actionRepeat[j] = actionRepeat[j]+5 'getting hit zaps your energy
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub updateScoring
-
   For i = 1 To 2
-
     Shapes.SetText(scoreBox[i],"Player "+i+" Tiredness: "+(actionRepeat[i]-10)+" Hits: "+score[i])
-
   EndFor
-
 EndSub
 
-
-
 '===============================================
-
 'EVENT SUBROUTINES
-
 '===============================================
-
-
 
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   If (keyDown[key] = "") Then 'Prevent autorepeat of action keys i.e. we need a key up before registering a new key down
-
     keyDown[key] = "True"
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   keyDown[key] = ""
-
 EndSub
-
-

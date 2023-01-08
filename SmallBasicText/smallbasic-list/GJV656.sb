@@ -1,545 +1,272 @@
 '========================================
-
 'Simple structured example using a grid of textboxes for a simple database
-
 '========================================
-
-
 
 Initialise()
 
-
-
 '========================================
-
 'Register Events
-
 '========================================
-
-
 
 Controls.TextTyped = OnTextTyped
-
 Controls.ButtonClicked = OnButtonClicked
 
-
-
 '========================================
-
 'Main program event handling loop
-
 '========================================
-
-
 
 While ("True")
-
   If (lastTB <> "") Then
-
     GetText()
-
     lastTB = "" 'Event handled
-
   EndIf
-
   If (lastButton <> "") Then
-
     ButtonPressed()
-
     lastButton = "" 'Event handled
-
   EndIf
-
   Program.Delay(20) 'Don't mash CPU but update faster than you can type
-
 EndWhile
 
-
-
 '========================================
-
 'SUBROUTINES
-
 '========================================
-
-
 
 Sub Initialise
-
   'Basic data for columns and grid sizing
-
   header = "1=First Name;2=Surname;3=Telephone;4=Mobile;5=Email;"
-
   nCol = Array.GetItemCount(header)
-
   nRow = 10
-
   tbWidth = 150
-
   tbHeight = 26
-
   space = 6
-
   
-
   'Setup GrapicsWindow
-
   GraphicsWindow.BackgroundColor = "PowderBlue"
-
   GraphicsWindow.Width = space+(space+tbWidth)*Math.Max(5,nCol) 'We  need at leaset 5 columns width Window to fit all the buttons at the bottom
-
   GraphicsWindow.Height = space+(space+tbHeight)*(nRow+2)
-
   GraphicsWindow.FontName = "Consolas" 'Fixed width font
-
   GraphicsWindow.FontSize = 14
-
   
-
   'Create grid of textboxes for data
-
   For j = 1 To nCol
-
     nChar = Text.GetLength(header[j]) 'Try to center title (using fixed width font)
-
     GraphicsWindow.BrushColor = "MidnightBlue" 'Title Colour
-
     GraphicsWindow.DrawText(space-nChar*4.5+(space+tbWidth)*(j-0.5),space+tbHeight/4,header[j])
-
     GraphicsWindow.BrushColor = "SteelBlue" 'TextBox Colour
-
     For i = 1 To nRow
-
       tb[i][j] = Controls.AddTextBox(space+(space+tbWidth)*(j-1),space+(space+tbHeight)*(i))
-
       Controls.SetSize(tb[i][j],tbWidth,tbHeight)
-
       'Make it easy to get row,col [i][j] from textbox name
-
       tbRow[tb[i][j]] = i
-
       tbCol[tb[i][j]] = j
-
     EndFor
-
   EndFor
-
   
-
   'Create buttons at the bottom
-
   GraphicsWindow.BrushColor = "MidnightBlue" 'Button Colour
-
   buttons = "1=Clear;2=Load;3=Save;4=First;5=Last;6=Previous;7=Next;8=About;10=Exit;"
-
   numButton = Array.GetItemCount(buttons)
-
   indices = Array.GetAllIndices(buttons)
-
   For i = 1 To numButton
-
     index = indices[i] 'used to set position
-
     btn = Controls.AddButton(buttons[index],space+(space+tbWidth)/2*(index-1),space+(space+tbHeight)*(nRow+1))
-
     Controls.SetSize(btn,(tbWidth-space)/2,tbHeight)
-
     'Add index with button name to identify button easily
-
     buttons[btn] = index
-
   EndFor
-
   
-
   'Create sort (ascending and descending) at the top of each colum
-
   downArrow = Text.GetCharacter(8595)
-
   upArrow = Text.GetCharacter(8593)
-
   For i = 1 To nCol
-
     btn = Controls.AddButton(downArrow,space+(space+tbWidth)*(i-1),space+tbHeight-24)
-
     Controls.SetSize(btn,20,24)
-
     buttons[btn] = -i 'Use negative index to specify sort buttons for each column
-
     descend[btn] = "True"
-
     btn = Controls.AddButton(upArrow,space+tbWidth-20+(space+tbWidth)*(i-1),space+tbHeight-24)
-
     Controls.SetSize(btn,20,24)
-
     buttons[btn] = -i
-
     descend[btn] = "False"
-
   EndFor
-
   
-
   'Read the data and populate grid with initial data
-
 ' The following line could be harmful and has been automatically commented.
-
 '   data = File.ReadContents(File.GetSettingsFilePath())
-
   page = 0 'First page
-
   Update()
-
 EndSub
-
-
 
 Sub Update
-
   'Put data in cboxes for current page
-
   For i = 1 To nRow
-
     For j = 1 To nCol
-
       Controls.SetTextBoxText(tb[i][j],data[page*nRow+i][j])
-
     EndFor
-
   EndFor
-
   'Set title
-
   indices = Array.GetAllIndices(data)
-
   numPage = Math.Floor((indices[Array.GetItemCount(data)]-1)/nRow)
-
   GraphicsWindow.Title = "Page "+(page+1)+" of "+Math.Max(1,numPage+1)
-
 EndSub
-
-
 
 Sub GetText
-
   'Get data from current changing textbox
-
   i = tbRow[lastTB]
-
   j = tbCol[lastTB]
-
   data[page*nRow+i][j] = Controls.GetTextBoxText(lastTB)
-
 EndSub
-
-
 
 Sub ButtonPressed
-
   'Handle all button events
-
   If (buttons[lastButton] = 1) Then 'Clear
-
     data = ""
-
     page = 0
-
     Update()
-
   ElseIf (buttons[lastButton] = 2) Then 'Load
-
 ' The following line could be harmful and has been automatically commented.
-
 '     data = File.ReadContents(File.GetSettingsFilePath())
-
     page = 0
-
     Update()
-
   ElseIf (buttons[lastButton] = 3) Then 'Save
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.WriteContents(File.GetSettingsFilePath(),data)
-
   ElseIf (buttons[lastButton] = 4) Then 'First
-
     page = 0
-
     Update()
-
   ElseIf (buttons[lastButton] = 5) Then 'Last
-
     indices = Array.GetAllIndices(data)
-
     page = Math.Floor((indices[Array.GetItemCount(data)]-1)/nRow)
-
     Update()
-
   ElseIf (buttons[lastButton] = 6) Then 'Previous
-
     page = Math.Max(0,page-1)
-
     Update()
-
   ElseIf (buttons[lastButton] = 7) Then 'Next
-
     page = page+1
-
     Update()
-
   ElseIf (buttons[lastButton] = 8) Then 'About
-
     GraphicsWindow.ShowMessage("This is a demonstration of writing a simple database with sorting in Small Basic without using any extensions.  Modify the code and enjoy!","Small Basic Database")
-
   ElseIf (buttons[lastButton] = 10) Then 'Exit
-
     Program.End()
-
   ElseIf (buttons[lastButton] < 0) Then 'Sort
-
     col = Math.Abs(buttons[lastButton])
-
     descending = descend[lastButton]
-
     If (descending) Then 'Opposite of descending for use with ensuring blank lines are always at the end of a sort
-
       ascending = "False"
-
     Else
-
       ascending = "True"
-
     EndIf
-
     Sort()
-
     page = 0
-
     Update()
-
   EndIf
-
 EndSub
-
-
 
 'ShellSort is fast (faster than BubbleSort) and easy to implement (easier than QuickSort), but not so easy to see how or why it works so Google for it to understand what it does
 
-
-
 Sub Unify 'Remove blank rows and order data so it is in row order, first shellsort data into row order
-
   indices = Array.GetAllIndices(data)
-
   count = Array.GetItemCount(indices)
-
   inc = Math.Round(count/2)
-
   While (inc > 0)
-
     For i = inc To count
-
       temp = indices[i]
-
       j = i
-
       while (j > inc And indices[j-inc] > temp)
-
         indices[j] = indices[j-inc]
-
         j = j - inc
-
       EndWhile
-
       indices[j] = temp
-
     EndFor
-
     inc = Math.Round(inc/2.2)
-
   EndWhile
-
   tempData = ""
-
   For i = 1 To count
-
     tempData[i] = data[indices[i]]
-
   EndFor
-
   data = tempData
-
   tempData = ""
-
 EndSub
-
-
 
 Sub Sort 'Shell sort by column (this is the trickiest bit since we sort on column values by re-ordering an array (order) that we use to index the data rows
-
   Unify()
-
   count = Array.GetItemCount(data)
-
   values = ""
-
   order = ""
-
   For i = 1 To count
-
     values[i] = data[i][col]+" " ' Variable can't be blank in Small Basic so we add a space
-
     order[i] = i
-
   EndFor
-
   inc = Math.Round(count/2)
-
   While (inc > 0)
-
     For i = inc To count
-
       temp = order[i]
-
       j = i
-
       value1 = Text.ConvertToLowerCase(values[temp])
-
       value2 = Text.ConvertToLowerCase(values[order[j-inc]])
-
       Compare()
-
       While (j > inc And compareResult <> descending)
-
         order[j] = order[j-inc]
-
         j = j - inc
-
         value2 = Text.ConvertToLowerCase(values[order[j-inc]])
-
         Compare()
-
       EndWhile
-
       order[j] = temp
-
     EndFor
-
     inc = Math.Round(inc/2.2)
-
   EndWhile
-
   tempData = ""
-
   For i = 1 To count
-
     tempData[i] = data[order[i]]
-
   EndFor
-
   data = tempData
-
   tempData = ""
-
 EndSub
-
-
 
 Sub Compare 'Number or lexical compare compareResult = value2 < value1
-
   If (value1 = " ") Then 'Special case (a blank value1 is not less than an existing value2)
-
     compareResult = descending
-
   ElseIf (value2 = " ") Then 'Special case (a blank value2 is not less than an existing value1)
-
     compareResult = ascending
-
   ElseIf (value1*1 = value1 And value2*1 = value2) Then 'Both numbers - this works even with the added " "
-
     If (value2 < value1) Then
-
       compareResult = "True"
-
     Else
-
       compareResult = "False"
-
     EndIf
-
   Else 'Lexical comparison
-
     nChar1 = Text.GetLength(value1)
-
     nChar2 = Text.GetLength(value2)
-
     If (nChar2 < nChar1) Then 'If equal (up to shortest word) then shorter will be considered less
-
       compareResult = "True"
-
     Else
-
       compareResult = "False"
-
     EndIf
-
     nChar = Math.Min(nChar1,nChar2) 'Numer of characters to check (up to shortest word)
-
     'Compare character by character until we find a difference - if none then the initial result above will be used
-
     For iChar = 1 To Math.Min(nChar1,nChar2) ' Note - we can't use variable i since it is being used in Sort which calls this subroutine
-
       char1 = Text.GetSubText(value1,iChar,1)
-
       char2 = Text.GetSubText(value2,iChar,1)
-
       val1 = Text.GetCharacterCode(char1)
-
       val2 = Text.GetCharacterCode(char2)
-
       If (val2 < val1) Then
-
         compareResult = "True"
-
         iChar = nChar ' End check
-
       ElseIf (val2 > val1) Then
-
         compareResult = "False"
-
         iChar = nChar ' End check
-
       EndIF
-
     EndFor   
-
   EndIf
-
 EndSub
 
-
-
 '========================================
-
 'EVENT SUBROUTINES
-
 '========================================
-
-
 
 Sub OnTextTyped
-
   lastTB = Controls.LastTypedTextBox
-
 EndSub
-
-
 
 Sub OnButtonClicked
-
   lastButton = Controls.LastClickedButton
-
 EndSub
-
-

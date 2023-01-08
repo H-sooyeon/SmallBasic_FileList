@@ -1,487 +1,243 @@
 ' SmallBasic Version 1.2
-
 ' Program: TheodorusSpiral
-
 ' Changelog: 
-
 ' Author: Pappa Lapub
-
 ' Website: 
-
 ' ImportURL: http://smallbasic.com/program/?
-
 ' Extension: LitDev
-
 ' Comment: https://de.wikipedia.org/wiki/Wurzelschnecke
-
 '  https://en.wikipedia.org/wiki/Spiral_of_Theodorus
-
 '  http://csharphelper.com/blog/2018/06/draw-the-spiral-of-theodorus-in-c/
-
 '  
-
 ' Variables: a*a + 1 = c*c = n,  tan(rad) = 1/a
-
 ' ToDo: 
-
 '===============================================================================
-
 max = 53  ' 32  180
-
 l = 40    ' init. radius
-
 styl = 1  ' 0, 1, 2     (0 .. alternating,  1.. with, 2 .. w/o  zIndex)
 
-
-
 gwh = 600
-
 x0 = gwh / 2
-
 y0 = x0
-
 dh = 360 / max    ' hue diff
-
 dl = 1/(max-1)    ' light diff
-
 nCyc = 5
 
-
-
 a = 1
-
 x1 = x0 + l*a     ' * Math.Cos(rad)
-
 y1 = y0           ' - l*a * Math.Sin(rad)
-
 gamma = 2.2
 
-
-
 'LDGraphicsWindow.TransparentGW()
-
 GraphicsWindow.Top = 0
-
 GraphicsWindow.CanResize = ""
-
 GraphicsWindow.Width = gwh
-
 GraphicsWindow.Height = gwh
-
 'GraphicsWindow.BackgroundColor = "#202020"
-
 'LDGraphicsWindow.BackgroundBrush(LDShapes.BrushGradient("1=Yellow;2=Red;","V"))
-
 LDGraphicsWindow.BackgroundBrush(LDShapes.BrushGradient("1=Black;2=#D2D3D4;","V"))
 
-
-
 GraphicsWindow.Title = "Theo's Spiral ["+ max +"]"
-
 ' The following line could be harmful and has been automatically commented.
-
 ' LDGraphicsWindow.Icon = SBFile.Expand("%SBICONS%\Spiral.ico")
 
-
-
 GraphicsWindow.PenWidth = 0 ' 1
-
 'GraphicsWindow.PenColor = "Transparent"
-
 'GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor  ' "Transparent"
 
-
-
 For n = 1 To max
-
   c = Math.SquareRoot(n+1)  
-
   rad = rad + Math.ArcTan(1/a)
-
   x2 = x0 + l*c * Math.Cos(rad)
-
   y2 = y0 - l*c * Math.Sin(rad)
-
   
-
   'hue = dh * (n-1)    ' starting "Red" = 0
-
   hue = Math.Remainder(dh*n, 360)    ' ending "Red" = 0
-
   cols[n] = LDColours.HSLtoRGB(hue, 1 ,0.5) ' rainbow
-
   bw[n] = LDColours.HSLtoRGB(0, 0, (n-1)*dl)  ' grayscale
-
   'carn[n] = LDColours.HSLtoRGB(34, 0.93, 0.25+(n-1)*dl/2)  ' carnation
-
   
-
   'cr = 255 * Math.Power(LDColours.GetRed(bw[n]) / 255, gamma)
-
   'cg = 255 * Math.Power(LDColours.GetGreen(bw[n]) / 255, gamma)
-
   'cb = 255 * Math.Power(LDColours.GetBlue(bw[n]) / 255, gamma)
-
   'bw[n] = GraphicsWindow.GetColorFromRGB(cr,cg,cb)   ' grayscale gamma corrected
-
   
-
   'rnd[n] = GraphicsWindow.GetRandomColor()  ' random
-
   GraphicsWindow.BrushColor = cols[n] ' carn[n], rnd[n]
-
   tri = Shapes.AddTriangle(x0,y0, x1,y1, x2,y2)
-
   If styl = 1 Or styl = Math.Remainder(n,2) Then	' 1 Or     alt. zIndex
-
     LDShapes.ZIndex(tri, -n)
-
   EndIf
-
   Program.Delay(100)
-
   
-
   a = c
-
   x1 = x2
-
   y1 = y2
-
 EndFor
-
 cc = cols
 
 
-
-
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 GraphicsWindow.MouseDown = OnMouseDown
 
 
-
-
-
 ' //////////////////  EVENTs  ///////////////////
-
 Sub OnKeyDown
-
   lastKey = GraphicsWindow.LastKey
-
   
-
   If lastKey = "Escape" Then
-
     Program.End()
-
   ElseIf lastKey = "B" Or lastKey = "G" Then   '  Cols <-> Grayscale
-
     BlackWhite()
-
   ElseIf lastKey = "R" Then   ' Reverse CurCols
-
     Reverse()
-
   ElseIf lastKey = "O" Or lastKey = "W" Then   ' Outline/Wireframe
-
     Outline()
-
     
-
   ElseIf lastKey = "Left" Then  ' Rotate CCW
-
     sgn = -1
-
     Rotate()
-
   ElseIf lastKey = "Right" Then ' Rotate CW
-
     sgn = 1
-
     Rotate()
-
     
-
   ElseIf lastKey = "S" Then
-
     ff = ff + 1
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.WriteContents(Program.Directory +"\TheosSpiral_"+ ff +".txt", cols)
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   If Mouse.IsLeftButtonDown Then      ' In -> Out
-
     ScrollOut()
-
   ElseIf Mouse.IsRightButtonDown Then ' Out -> In
-
     ScrollIn()
-
   Else      ' If Mouse.IsMiddleButtonDown
-
     Zoom()
-
   EndIf
-
 EndSub
-
-
-
 
 
 ' ////////////////////  SUBs  ////////////////////
-
 Sub Reverse
-
   rev = cc
-
   For n = 1 To max
-
     rev[n] = cc[max-n+1]
-
     LDShapes.BrushColour("Triangle"+n, rev[n])
-
   EndFor
-
   cc = rev
-
   rev = ""
-
 EndSub
-
-
 
 Sub BlackWhite   ' Grayscale
-
   If isBW Then
-
     cc = cols
-
   Else
-
     cc = bw
-
   EndIf
-
   SetCurCols()
-
   isBW = LDLogic.Not(isBW)
-
 EndSub
-
-
 
 Sub SetCurCols
-
   For n = 1 To max
-
     LDShapes.BrushColour("Triangle"+n, cc[n])
-
   EndFor
-
 EndSub
-
-
 
 Sub Rotate
-
   ang = ang + sgn * nCyc * 360
-
   LDGraphicsWindow.Animate(1,1, 0,0, ang,(nCyc*1500))
-
   
-
   'For deg = sgn To (sgn*nCyc*360) Step sgn
-
   '  LDGraphicsWindow.Reposition(1,1, 0,0, deg)
-
   '  Program.Delay(5)
-
   'EndFor
-
 EndSub
-
-
 
 Sub Outline
-
   If wire Then
-
     pw = 0
-
     pc = "Transparent"
-
   Else
-
     pw = 1
-
     pc = "Black"
-
   EndIf
-
   wire = LDLogic.Not(wire)
-
   
-
   For n = 1 To max
-
     LDShapes.PenWidth("Triangle"+n, pw)
-
     LDShapes.PenColour("Triangle"+n, pc)
-
   EndFor
-
 EndSub
-
-
 
 Sub ScrollOut
-
   For j = 1 To nCyc
-
     For i = 1 To max
-
       'bg = Math.Remainder(max+max-1-i,max)+1
-
       For n = max To 1 Step -1
-
         nn = Math.Remainder(max+n-1-i, max) + 1
-
         LDShapes.BrushColour("Triangle"+n, cc[nn])
-
       EndFor
-
       'GraphicsWindow.BackgroundColor = cc[bg] ' cc[Math.Remainder(max+max-1-i,max)+1]
-
       Program.Delay(20)
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub ScrollIn
-
   For j = 1 To nCyc
-
     For i = 1 To max
-
       For n = 1 To max
-
         nn = Math.Remainder(n-1+i, max) + 1
-
         LDShapes.BrushColour("Triangle"+n, cc[nn])
-
       EndFor
-
       'GraphicsWindow.BackgroundColor = cc[nn]
-
       Program.Delay(20)
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub Zoom
-
   'For n = 1 To 2.5 Step 0.015
-
   For n = 1 To 5 Step 0.015 ' 1.5/100
-
     LDGraphicsWindow.Reposition(n,n, 0,0, 0)
-
     Program.Delay(20)
-
   EndFor
-
   Program.Delay(2000)
-
   'For n = 2.5 To 1 Step -0.015
-
   For n = 5 To 1 Step -0.015  ' -1.5/100
-
     LDGraphicsWindow.Reposition(n,n, 0,0, 0)
-
     Program.Delay(20)
-
   EndFor
-
 EndSub
-
-
 
 Sub Zoom_Anim
-
   'For n = 1 To 
-
   LDGraphicsWindow.Animate(2.5,2.5, 0,0, 0,3000)
-
   'LDGraphicsWindow.Animate(-2.5,-2.5, 0,0, 0,3000)
-
   'LDGraphicsWindow.Animate(-5,-5, 0,0, 0,6000)
-
   'Program.Delay(3000)
-
   LDGraphicsWindow.Animate(-2.5,-2.5, 0,0, 0,6000)  
-
 EndSub
-
-
-
 
 
 Sub Rotate_0
-
   r = gwh '* Math.SquareRoot(2)
-
   img = LDGraphicsWindow.Capture("","")
-
   'LDImage.Resize(img, r,r)
-
   GraphicsWindow.Clear()
-
   
-
   s = Math.SquareRoot(2)
-
   GraphicsWindow.Width = gwh / s
-
   GraphicsWindow.Height = GraphicsWindow.Width
-
   shp = Shapes.AddImage(img)
-
   d = (r-gwh) / 2
-
   Shapes.Move(shp, -d,-d)
-
   
-
   'Shapes.Zoom(shp, s,s)
-
   
-
   LDShapes.AnimateRotation(shp, 1000,"")
-
 EndSub
-
-
-
 

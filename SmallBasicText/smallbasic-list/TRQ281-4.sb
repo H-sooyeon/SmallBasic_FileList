@@ -1,397 +1,198 @@
 '  Click the Box Game
-
 '  by EthanNetz
-
 '  remixer GoToLoop
-
 '  TRQ281-4
-
-
 
 Start:
 
-
-
 '  Constants:
-
 '************
-
 GW = 1100               '  Window Width
-
 GH = 700                '  Window Height
-
 Delay = 100             '  Box Display Delay
-
 Time  = 20              '  Game Duration
-
 Size  = 50              '  Clickable Box Dimension
-
 Quantity = 50           '  # of Clickable Box
-
 Zapped   = 0            '  # of Them Clicked
-
 NoClusterZap = "False"  '  "True" = 1 click for each zap ; "False" = 1 click for a cluster zap
 
-
-
 '  Box Display Limit Range:
-
 '**************************
-
 x = 0
-
 y = 0
-
 PosWMin = Size/2
-
 PosHMin = Size
-
 PosWMax = GW - Size
-
 PosHMax = GH - Size*2
-
 PosWRange = PosWMax - PosWMin
-
 PosHRange = PosHMax - PosHMin
 
-
-
 '  Window Init:
-
 '***************
-
 GraphicsWindow.BackgroundColor = "Yellow"
-
 GraphicsWindow.PenColor = "Red"
-
 GraphicsWindow.FontSize = 15
-
 GraphicsWindow.Width  = GW
-
 GraphicsWindow.Height = GH
-
 GraphicsWindow.Left = (Desktop.Width -  GW) / 2
-
 GraphicsWindow.Top  = (Desktop.Height - GH) / 2
-
 GraphicsWindow.Clear()
 
-
-
 ZappedTxt = Shapes.AddText("Zapped: " + Zapped)
-
 Shapes.Move(ZappedTxt  100,10)
 
-
-
 TimerTxt  = Shapes.AddText("Timer: "  + Time)
-
 Shapes.Move(TimerTxt   GW-200,10)
 
-
-
 Program.Delay(1500)
-
 Sound.PlayChimesAndWait()    '  Plays a sound to alert game has started
-
 EmptyBuffer()                '  Certifies there's no previous mouse clicks left
 
-
-
 '  Event Init:
-
 '************
-
 GraphicsWindow.MouseDown = MouseClick
-
 GraphicsWindow.KeyDown   = Keyboard
-
 Controls.ButtonClicked   = ButtonSelect
 
-
-
 Timer.Interval = 1000        '  1 second = 1000 miliseconds
-
 Timer.Tick = Duration
-
 Timer.Resume()               ' Resumes Timer
 
-
-
 '  Clickable Box Creation Loop:
-
 '******************************
-
 For i = 1 To Quantity
-
   x[i] = Math.GetRandomNumber(PosWRange) + PosWMin
-
   y[i] = Math.GetRandomNumber(PosHRange) + PosHMin
-
   
-
   Box[i] = Shapes.AddRectangle(Size,Size)
-
   Shapes.Move(Box[i]  x[i],y[i])
-
   
-
   HitScan()             ' Checks if any mouse clicks hit a box
-
   Program.Delay(Delay)
-
 EndFor
 
-
-
 '  Wait Loops:
-
 '*************
-
 While Time > 0          '  Waits for Time to reach ZERO
-
   HitScan()             '  Keeps on processing mouse clicks till then
-
   Program.Delay(Delay)  '  Anti-SilverLight-Choking Delay
-
 EndWhile
-
-
 
 Timer.Pause()           '  Stops Timer
-
 HiScore()               '  Registers HiScore
-
 CreateButtons()         '  Creates Restart & Quit buttons
 
-
-
 Button = ""             '  Last button selected
-
 While Button = ""       '  Waits player to select a button
-
   Program.Delay(Delay)
-
 EndWhile
 
-
-
 If Button = "Quit" Then
-
   Quit()                '  Closes program!
-
 EndIf
-
-
 
 Goto Start              '  Restarts game!
 
-
-
 '  General Subs:
-
 '***************
-
 '--------------------------------------------------------------------------------------------------------------'
-
 Sub HitScan
-
   
-
   While Stack.GetCount("Buffer") > 0 '  Checks weather exists a coordinate to process
-
     
-
     MX = Stack.PopValue("Buffer")    '  Retrieves mouse click coordinates
-
     MY = Stack.PopValue("Buffer")
-
     
-
     For l = 1 To i     '  Scans all boxes
-
       If MX > x[l] And MX < x[l]+Size And MY > y[l] And MY < y[l]+Size Then
-
         
-
         Shapes.Remove(Box[l])
-
         Zapped = Zapped + 1
-
         Sound.PlayClick()
-
         
-
         x[l] = ""      '  Doesn't detect boxes at the same place anymore!
-
         y[l] = ""
-
         
-
         If NoClusterZap Then
-
           l = i       '  Doesn't zap more than 1 box w/ a single click only!
-
         EndIf
-
         
-
       EndIf
-
     EndFor
-
     
-
   EndWhile
-
   
-
   Shapes.SetText(ZappedTxt,  "Zapped: " + Zapped)
-
   
-
 EndSub
-
 '--------------------------------------------------------------------------------------------------------------'
-
 Sub EmptyBuffer
-
   
-
   While Stack.GetCount("Buffer") > 0
-
     Stack.PopValue("Buffer")
-
   EndWhile
-
   
-
 EndSub
-
 '--------------------------------------------------------------------------------------------------------------'
-
 Sub CreateButtons
-
   
-
   Controls.AddButton("Restart"  GW/2 - 100 , GH - 35)
-
   Controls.AddButton("Quit"     GW/2 + 100 , GH - 35)
-
   
-
 EndSub
-
 '--------------------------------------------------------------------------------------------------------------'
-
 Sub HiScore
-
   
-
   Record = Math.Max(Record  Zapped)
-
   GraphicsWindow.Title = "HiScore: " + Record
-
   
-
 EndSub
-
 '--------------------------------------------------------------------------------------------------------------'
-
 Sub Quit
-
   
-
   Sound.PlayChimeAndWait()
-
   Program.End()
-
   
-
 EndSub
-
 '--------------------------------------------------------------------------------------------------------------'
-
-
 
 '  Triggered Event Subs:
-
 '***********************
-
 '--------------------------------------------------------------------------------------------------------------'
-
 Sub MouseClick
-
   
-
   Stack.PushValue("Buffer"  GraphicsWindow.MouseY)  '  Stores coordinates
-
   Stack.PushValue("Buffer"  GraphicsWindow.MouseX)
-
   
-
   If Time < 1 Then   '  Rings it's no use to click anymore! Time's up!!!
-
     Sound.PlayBellRing()
-
   EndIf
-
   
-
 EndSub
-
 '--------------------------------------------------------------------------------------------------------------'
-
 Sub Duration
-
   
-
   If Time > 0 Then
-
     Time = Time - 1
-
   EndIf
-
   
-
   Shapes.SetText(TimerTxt,  "Timer: " + Time)
-
   
-
 EndSub
-
 '--------------------------------------------------------------------------------------------------------------'
-
 Sub Keyboard
-
   
-
   Key = GraphicsWindow.LastKey
-
   
-
   If Key = "Escape" Then
-
     Quit()
-
   EndIf
-
   
-
 EndSub
-
 '--------------------------------------------------------------------------------------------------------------'
-
 Sub ButtonSelect
-
   
-
   Button = Controls.GetButtonCaption( Controls.LastClickedButton )
-
   
-
 EndSub
-
 '--------------------------------------------------------------------------------------------------------------'
-
-

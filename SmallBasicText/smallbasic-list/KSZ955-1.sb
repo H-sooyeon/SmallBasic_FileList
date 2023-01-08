@@ -1,911 +1,455 @@
 ' Idea 2 to generate Sudoku puzzle
-
 ' Version 0.21
-
 ' Copyright © 2019 Nonki Takahashi.  The MIT License.
-
 ' Last update 2019-08-17
-
 ' Program ID KSZ955-1
 
-
-
 WQ = Text.GetCharacter(34)
-
 Not = "False=True;True=False;"
-
 complete = "False"
-
 nTrial = 0
-
 iMax = 0
-
 While Not[complete]
-
   board = ""
-
   ' initialize candidate array
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       can[row][col] = "123456789"
-
     EndFor
-
   EndFor
-
   continue = "True"
-
   filled = 0
-
   size = 81
-
   While continue
-
     row = Math.Floor(filled / 9) + 1
-
     col = Math.Remainder(filled, 9) + 1
-
     ' get candidate
-
     len = Text.GetLength(can[row][col])
-
     If len = 0 Then
-
       continue = "False"
-
     Else
-
       n = Text.GetSubText(can[row][col], Math.GetRandomNumber(len), 1)
-
       TextWindow.WriteLine("n = " + n)
-
       filled = filled + 1
-
       TextWindow.WriteLine("i = " + filled)
-
       TextWindow.WriteLine("row = " + row)
-
       TextWindow.WriteLine("col = " + col)
-
       board[row][col] = n
-
       UpdateCellCandidate()
-
       DumpBoard()
-
       If 67 <= filled Then
-
         filledL = filled
-
         boardL = board
-
         canL = can
-
         Solve()
-
         filled = filledL
-
         If solved Then
-
           TextWindow.WriteLine("solved")
-
           TextWindow.WriteLine("")
-
           continue = "False"
-
           complete = "True"
-
         Else
-
           board = boardL
-
           can = canL
-
           TextWindow.WriteLine("not solved")
-
           TextWindow.WriteLine("")
-
         EndIf
-
       EndIf
-
     EndIf
-
   EndWhile
-
   If iMax < filled Then
-
     iMax = filled
-
   EndIf
-
   nTrial = nTrial + 1
-
   TextWindow.Title = "nTrial = " + nTrial + ", filled = " + filled + ", iMax = " + iMax
-
 EndWhile
-
 DumpBoard()
-
 DumpAnswer()
 
-
-
 Sub BlockUnique
-
   ' Block Unique solution to the board
-
   For b = 1 To 9
-
     rowB = Math.Floor((b - 1) / 3) * 3 + 1
-
     colB = Math.Remainder(b - 1, 3) * 3 + 1
-
     For n = 1 To 9
-
       found = 0
-
       For row = rowB To rowB + 2
-
         For col = colB To colB +2
-
           If Text.IsSubText(can[row][col], n) Then
-
             found = found + 1
-
             rowU = row
-
             colU = col
-
             If 1 < found Then
-
               row = rowB + 2
-
               col = colB + 2
-
             EndIf
-
           EndIf
-
         EndFor
-
       EndFor
-
       If (found = 1) And (board[rowU][colU] = "") Then
-
         board[rowU][colU] = n
-
         filled = filled + 1
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub CellUnique
-
   ' Cell Unique solution to the board
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       If (Text.GetLength(can[row][col]) = 1) And (board[row][col] = "") Then
-
         board[row][col] = can[row][col]
-
         filled = filled + 1
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub DumpAnswer
-
   TextWindow.Write("sudoku = " + WQ)
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       TextWindow.Write(board[row][col])
-
     EndFor
-
   EndFor
-
   TextWindow.WriteLine(WQ)
-
 EndSub
-
-
 
 Sub DumpBoard
-
   For r = 1 To 9
-
     For c = 1 To 9
-
       If board[r][c] = "" Then
-
         TextWindow.Write("  ")
-
       Else
-
         TextWindow.Write(board[r][c] + " ")
-
       EndIf
-
     EndFor
-
     TextWindow.Write(" ")
-
     For c = 1 To 9
-
       DumpCandidate()
-
       TextWindow.Write(hex + " ")
-
     EndFor
-
     TextWindow.WriteLine("")
-
   EndFor
-
   TextWindow.WriteLine("")
-
 EndSub
-
-
 
 Sub DumpCandidate
-
   ' param r, c - position
-
   ' return hex
-
   dec = 0
-
   For _i = 1 To 9
-
     If Text.IsSubText(can[r][c], _i) Then
-
       dec = dec * 2 + 1
-
     Else
-
       dec = dec * 2
-
     EndIf
-
   EndFor
-
   Math_Dec2Hex()
-
   hex = Text.Append(Text.GetSubTextToEnd("00", Text.GetLength(hex)), hex)
-
 EndSub
-
-
 
 Sub LineUnique
-
   ' Line Unique solution to the board
-
   For row = 1 To 9
-
     For n = 1 To 9
-
       found = 0
-
       For col = 1 To 9
-
         If Text.IsSubText(can[row][col], n) Then
-
           found = found + 1
-
           colU = col
-
           If 1 < found Then
-
             col = 9
-
           EndIf
-
         EndIf
-
       EndFor
-
       If (found = 1) And (board[row][colU] = "") Then
-
         board[row][colU] = n
-
         filled = filled + 1
-
       EndIf
-
     EndFor
-
   EndFor
-
   For col = 1 To 9
-
     For n = 1 To 9
-
       found = 0
-
       For row = 1 To 9
-
         If Text.IsSubText(can[row][col], n) Then
-
           found = found + 1
-
           rowU = row
-
           If 1 < found Then
-
             row = 9
-
           EndIf
-
         EndIf
-
       EndFor
-
       If (found = 1) And (board[rowU][col] = "") Then
-
         board[rowU][col] = n
-
         filled = filled + 1
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub ReservedPair
-
   ' Reserved Pair (Naked Pair or Hidden Pair) solution to the candidate
-
   ' check each row line
-
   For r = 1 To 9
-
     pair = ""
-
     For c = 1 To 9
-
       len = Text.GetLength(can[r][c])
-
       pair[len] = Text.Append(pair[len], c)
-
     EndFor
-
     pair[1] = ""
-
     pair[9] = ""
-
     maxSize = Array.GetItemCount(pair)
-
     index = Array.GetAllIndices(pair)
-
     For iSize = 1 To maxSize
-
       nPair = index[iSize]
-
       cols = pair[index[iSize]]
-
       c = Text.GetSubText(cols, 1, 1)
-
       _pair = can[r][c]
-
       found = "True"
-
       For iPair = 2 To nPair
-
         c = Text.GetSubText(cols, iPair, 1)
-
         If can[r][c] <> _pair Then
-
           found = "False"
-
           iPair = nPair
-
         EndIf
-
       EndFor
-
       If found Then
-
         For c = 1 To 9
-
           If Not[Text.IsSubText(cols, c)] Then
-
             For iPair = 1 To nPair
-
               n = Text.GetSubText(_pair, iPair, 1)
-
               RemoveCandidate()
-
             EndFor
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndFor
-
   EndFor
-
   ' check each column line
-
   For c = 1 To 9
-
     pair = ""
-
     For r = 1 To 9
-
       len = Text.GetLength(can[r][c])
-
       pair[len] = Text.Append(pair[len], r)
-
     EndFor
-
     pair[1] = ""
-
     pair[9] = ""
-
     maxSize = Array.GetItemCount(pair)
-
     index = Array.GetAllIndices(pair)
-
     For iSize = 1 To maxSize
-
       nPair = index[iSize]
-
       rows = pair[index[iSize]]
-
       r = Text.GetSubText(rows, 1, 1)
-
       _pair = can[r][c]
-
       found = "True"
-
       For iPair = 2 To nPair
-
         r = Text.GetSubText(rows, iPair, 1)
-
         If can[r][c] <> _pair Then
-
           found = "False"
-
           iPair = nPair
-
         EndIf
-
       EndFor
-
       If found Then
-
         For r = 1 To 9
-
           If Not[Text.IsSubText(rows, r)] Then
-
             For iPair = 1 To nPair
-
               n = Text.GetSubText(_pair, iPair, 1)
-
               RemoveCandidate()
-
             EndFor
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndFor
-
   EndFor
-
   ' check each block
-
   For b = 1 To 9
-
     rowB = Math.Floor((b - 1) / 3) * 3 + 1
-
     colB = Math.Remainder(b - 1, 3) * 3 + 1
-
     pair = ""
-
     i = 0
-
     For r = rowB To rowB + 2
-
       For c = colB To colB + 2
-
         i = i + 1
-
         len = Text.GetLength(can[r][c])
-
         pair[len] = Text.Append(pair[len], i)
-
       EndFor
-
     EndFor
-
     pair[1] = ""
-
     pair[9] = ""
-
     maxSize = Array.GetItemCount(pair)
-
     index = Array.GetAllIndices(pair)
-
     For iSize = 1 To maxSize
-
       nPair = index[iSize]
-
       cells = pair[index[iSize]]
-
       i = Text.GetSubText(cells, 1, 1)
-
       r = rowB + Math.Floor((i - 1) / 3)
-
       c = colB + Math.Remainder(i - 1, 3)
-
       _pair = can[r][c]
-
       found = "True"
-
       For iPair = 2 To nPair
-
         i = Text.GetSubText(cells, iPair, 1)
-
         r = rowB + Math.Floor((i - 1) / 3)
-
         c = colB + Math.Remainder(i - 1, 3)
-
         If can[r][c] <> _pair Then
-
           found = "False"
-
           iPair = nPair
-
         EndIf
-
       EndFor
-
       If found Then
-
         For i = 1 To 9
-
           If Not[Text.IsSubText(cells, i)] Then
-
             For iPair = 1 To nPair
-
               r = rowB + Math.Floor((i - 1) / 3)
-
               c = colB + Math.Remainder(i - 1, 3)
-
               n = Text.GetSubText(_pair, iPair, 1)
-
               RemoveCandidate()
-
             EndFor
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub Solve
-
   ' param board
-
   ' param candidate - candidate numbers table
-
   ' return solved - if solved
-
   solved = "False"
-
   odd = "False"
-
   While Not[solved] And Not[odd]
-
     _can = can
-
     _board = board
-
     odd = "False"
-
     ' X-Wing solution to the candidate
-
     XWing()
-
     ' Reserved Pair solutions to the candidate
-
     ReservedPair()
-
     ' Line Unique solution to the board
-
     LineUnique()
-
     '  Block Unique solution to the board
-
     BlockUnique()
-
     ' Cell Unique solution to the board
-
     CellUnique()
-
     ' update candidate numbers table
-
     UpdateCandidate()
-
     If (board = _board) And (can = _can) Then
-
       ' board and candidate don't changed from loop top
-
       odd = "True"
-
     EndIf
-
     If filled = 81 Then
-
       solved = "True"
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 Sub RemoveCandidate
-
   ' param r, c - position
-
   ' param n - number to remove
-
   p = Text.GetIndexOf(can[r][c], n)
-
   If 0 < p Then
-
     left = Text.GetSubText(can[r][c], 1, p - 1)
-
     right = Text.GetSubTextToEnd(can[r][c], p + 1)
-
     can[r][c] = Text.Append(left, right)
-
   EndIf
-
 EndSub
-
-
 
 Sub UpdateCandidate
-
   ' update the candidate numbers table
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       n = board[row][col]
-
       If n <> " " Then
-
         can[row][col] = ""
-
         UpdateCellCandidate()
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub UpdateCellCandidate
-
   ' update a cell of candidate numbers table
-
   ' param row, col - set position
-
   ' param n - set number
-
   rowB = Math.Floor((row - 1) / 3) * 3 + 1
-
   colB = Math.Floor((col - 1) / 3) * 3 + 1
-
   For r = rowB To rowB + 2
-
     For c = colB To colB + 2
-
       RemoveCandidate()
-
     EndFor
-
   EndFor
-
   c = col
-
   For r = 1 To 9
-
     RemoveCandidate()
-
   EndFor
-
   r = row
-
   For c = 1 To 9
-
     RemoveCandidate()
-
   EndFor
-
 EndSub
-
-
 
 Sub XWing
-
   ' X-Wing solution to the candidate
-
   For row = 1 To 9
-
     For col = 1 To 9
-
       _pair = can[row][col]
-
       len = Text.GetLength(_pair)
-
       cols = col
-
       For c = col + 1 To 9
-
         If can[row][c] = _pair Then
-
           cols = Text.Append(cols, c)
-
         EndIf
-
       EndFor
-
       If Text.GetLength(cols) = len Then
-
         rows = ""
-
         For r = row + 1 To 9
-
           match = "True"
-
           For i = 1 To len
-
             c = Text.GetSubText(cols, i, 1)
-
             If can[r][c] <> _pair Then
-
               match = "False"
-
               i = len
-
             EndIf
-
           EndFor
-
           If match Then
-
             rows = Text.Append(rows, r)
-
           EndIf
-
         EndFor
-
         If Text.GetLength(rows) = len Then
-
           For r = 1 To 9
-
             If Not[Text.IsSubText(rows, r)] Then
-
               For c = 1 To 9
-
                 If Not[Text.IsSubText(cols, c)] Then
-
                   For i = 1 To len
-
                     n = Text.GetSubText(_pair, i, 1)
-
                     RemoveCandidate()
-
                   EndFor
-
                 EndIf
-
               EndFor
-
             EndIf
-
           EndFor
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub Math_Dec2Hex
-
   ' Math | convert decimal to hexadecimal
-
   ' param dec - decimal number
-
   ' returns hex - hexadecimal text
-
   Stack.PushValue("local", dec)
-
   hex = ""
-
   While 0 < dec
-
     digit = Math.Remainder(dec, 16)
-
     dec = Math.Floor(dec / 16)
-
     hex = Text.Append(Text.GetSubText("0123456789ABCDEF", digit + 1, 1), hex)
-
   EndWhile
-
   If hex = "" Then
-
     hex = "0"
-
   EndIf
-
   dec = Stack.PopValue("local")  
-
 EndSub
-
-

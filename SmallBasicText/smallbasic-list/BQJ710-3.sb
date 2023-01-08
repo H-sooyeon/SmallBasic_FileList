@@ -1,1025 +1,512 @@
 ' Calc 04B
-
 ' Copyright (c) 2011-2014 Nonki Takahashi. 
-
 ' 
-
 ' Lisence:
-
 '  The MIT Lisence (MIT)
-
 '  http://en.wikipedia.org/wiki/MIT_License
-
 '
-
 ' History:
-
 '  04B 2014-05-15 Added workaround for the known issue 21694 (512 lines BQJ710-3)
-
 '  0.3b 2010-10-12 Twice scale version (521 lines BQJ710-2)
-
 '  0.2b 2010-03-09 Created syntax analysis (519 lines BQJ710-0)
-
 '  0.1 2010-03-06 Graphic design completed (191 lines BQJ710)
-
 '
-
 ' Naming convention:
-
 '  class Xxx_
-
 '  label lXxx
-
 '  constant XXX
-
 '  variable type integer iXxx
-
 '  variable type real rXxx
-
 '  variable type string sXxx
-
 '  variable type url uXxx
-
 '  variable type char cXxx
-
 '  variable type boolean bXxx
-
 '  variable type object oXxx
-
 '
-
 ' Main
-
 SB_Workaround()
-
 Body_Init()
-
 Lex_Init()
-
 Body_Draw()
-
 While "True"
-
   Button_InputKey()
-
   Calc_EvalExp()
-
 EndWhile
-
 Sub Body_Init
-
   ' Body | Initialization
-
   VERSION = "04"
-
   TYPE = "B"      ' beta version
-
   Calc_sExp = ""
-
   Calc_iAns = 0
-
   Body_iWidth = 300
-
   Body_iHeight = 400
-
   Body_sFontName = "Arial"
-
   Body_iFontSize = 14
-
   LCD_iWX0 = 35   ' LCD window size
-
   LCD_iWX1 = 265
-
   LCD_iWY0 = 80
-
   LCD_iWY1 = 130
-
   LCD_sFontName = "Consolas"
-
   LCD_iFontSize = 30
-
   LCD_iEX0 = LCD_iWX0 + 15
-
   LCD_iEY0 = LCD_iWY0 + 15
-
   Button_iX0 = LCD_iWX0 - 20
-
   Button_iY0 = LCD_iWY1 + 50
-
   Button_iX1 = LCD_iWX1 + 20
-
   Button_iY1 = LCD_iWY1 + 400
-
   Button_iWidth = 60
-
   Button_iHeight = 30
-
   Button_iGX = Math.Floor(((Button_iX1 - Button_iX0) - Button_iWidth * 4) / 3)
-
   Button_iGY = Math.Floor(((Button_iY1 - Button_iY0) - Button_iWidth * 5) / 4)
-
   Button_idX = Button_iWidth + Button_iGX
-
   Button_idY = Button_iHeight + Button_iGY
-
   Button_sKey[1] = "1=AC;2=7;3=4;4=1;5=0;"
-
   Button_sKey[2] = "1=BS;2=8;3=5;4=2;5=.;"
-
   Button_sKey[3] = "1=ANS;2=9;3=6;4=3;5=EXE;"
-
   Button_sKey[4] = "1=/;2=*;3=-;4=+;"
-
   Button_iX[1] = "1=14;2=18;3=18;4=18;5=18;"
-
   Button_iX[2] = "1=14;2=18;3=18;4=18;5=20;"
-
   Button_iX[3] = "1=8;2=18;3=18;4=18;5=40;"
-
   Button_iX[4] = "1=22;2=20;3=21;4=18;"
-
 EndSub
-
 Sub Body_Draw
-
   ' Body | Draw
-
   GraphicsWindow.Width = Body_iWidth
-
   GraphicsWindow.Height = Body_iHeight
-
   GraphicsWindow.BrushColor = "Gainsboro" ' body color
-
   GraphicsWindow.FillRectangle(0, 0, Body_iWidth, Body_iHeight)
-
   GraphicsWindow.FontName = "Arial Black"
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.BrushColor = "DimGray"
-
   GraphicsWindow.DrawText(15, 10, "NONKI")
-
   GraphicsWindow.FontName = Body_sFontName
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = Body_iFontSize
-
   GraphicsWindow.DrawText(15, 34, "CA-" + VERSION + TYPE)
-
   GraphicsWindow.DrawText(220, 10, "12 DIGITS")
-
   LCD_Draw()
-
   Button_DrawNumKeys()
-
 EndSub
-
 Sub Button_DrawNumKeys
-
   ' Button | Draw num keys
-
   GraphicsWindow.FontName = Body_sFontName
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = Body_iFontSize
-
   For iRow = 1 To 5
-
     iY = Button_iY0 + (iRow - 1) * Button_idY
-
     For iCol = 1 To 4
-
       iX = Button_iX0 + (iCol - 1) * Button_idX
-
       bPushed = "False"
-
       If iCol = 4 And iRow = 5 Then
-
       ElseIf iCol = 3 And iRow = 5 Then
-
         bLong = "True"
-
         Button_DrawNumKey()
-
       Else
-
         bLong = "False"
-
         Button_DrawNumKey()
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub Button_DrawNumKey
-
   ' Button | Draw num key
-
   ' param iX, iY - key possition
-
   ' param iCol, iRow - key index
-
   ' param bPushed - flag key pushed
-
   ' param bLong - flag key size is long
-
   If bLong Then
-
     iWidth = Button_iWidth * 2 + Button_iGX
-
   Else
-
     iWidth = Button_iWidth
-
   EndIf
-
   GraphicsWindow.BrushColor = "DimGray" ' button frame color
-
   GraphicsWindow.FillRectangle(iX, iY, iWidth, Button_iHeight)
-
   If iCol = 1 And iRow = 1 Then
-
     GraphicsWindow.BrushColor = "Chocolate" ' button shadow color 2
-
   Else
-
     GraphicsWindow.BrushColor = "Black" ' button shadow color 1
-
   EndIf  
-
   iDX0 = iX + 6
-
   iDY0 = iY + 6
-
   iDX1 = iDX0 + iWidth - 10
-
   iDY1 = iDY0 + Button_iHeight - 10
-
   GraphicsWindow.FillRectangle(iDX0, iDY0, iDX1 - iDX0, iDY1 - iDY0)
-
   If bPushed Then
-
     iPX = 8
-
     iPY = 8
-
   Else
-
     iPX = 4
-
     iPY = 4
-
   EndIf
-
   iUX0 = iX + iPX - 4
-
   iUX1 = iUX0 + iWidth - 10
-
   iUY0 = iY + iPY - 4
-
   iUY1 = iUY0 + Button_iHeight - 10
-
   GraphicsWindow.FillTriangle(iUX1, iUY0, iUX1, iDY0, iDX1, iDY0)
-
   GraphicsWindow.FillTriangle(iUX0, iUY1, iDX0, iUY1, iDX0, iDY1)
-
   If iCol = 1 And iRow = 1 Then
-
     GraphicsWindow.BrushColor = "DarkOrange" ' button surface color 2
-
   Else
-
     GraphicsWindow.BrushColor = "DimGray" ' button surface color 1
-
   EndIf  
-
   GraphicsWindow.FillRectangle(iUX0, iUY0, iUX1 - iUX0, iUY1 - iUY0)
-
   GraphicsWindow.BrushColor = "White" ' button digit color
-
   GraphicsWindow.DrawText(iX + iPX + Button_iX[iCol][iRow], iY + iPY, Button_sKey[iCol][iRow])
-
 EndSub
-
 Sub Button_InputKey
-
   ' Button | Input key
-
   ' return Calc_sExp - expression input
-
   bExe = "False"
-
   bFirst = "True"
-
   While bExe = "False"
-
     Button_bOutOfBoard = "True"
-
     While Button_bOutOfBoard
-
       GraphicsWindow.MouseDown = Button_OnMouseDown
-
       Button_bNotClicked = "True"
-
       While Button_bNotClicked
-
         Program.Delay(200)
-
       EndWhile
-
       GraphicsWindow.MouseDown = Button_DoNothing
-
       Button_GetPosition()
-
     EndWhile
-
     sKey = Button_sKey[iCol][iRow]
-
     GraphicsWindow.FontName = Body_sFontName
-
     If silverlight Then
-
       Program.Delay(msWait)
-
     EndIf
-
     GraphicsWindow.FontSize = Body_iFontSize
-
     iX = Button_iX0 + (iCol - 1) * Button_idX
-
     iY = Button_iY0 + (iRow - 1) * Button_idY
-
     bPushed = "True"
-
     If iCol = 4 And iRow = 5 Then
-
     ElseIf iCol = 3 And iRow = 5 Then
-
       bLong = "True"
-
       Button_DrawNumKey()
-
     Else
-
       bLong = "False"
-
       Button_DrawNumKey()
-
     EndIf
-
     If sKey = "AC" Then
-
       Calc_sExp = ""
-
     ElseIf sKey = "ANS" Then
-
       Calc_sExp = Text.Append(Calc_sExp, Calc_iAns)
-
     ElseIf sKey = "EXE" Then
-
       bExe = "True"
-
     ElseIf sKey = "BS" Then
-
       iLen = Text.GetLength(Calc_sExp)
-
       If iLen > 0 Then
-
         Calc_sExp = Text.GetSubText(Calc_sExp, 1, iLen - 1)
-
       EndIf
-
     Else
-
       If bFirst Then
-
         bFirst = "False"
-
         iCode = Text.GetCharacterCode(sKey)
-
         If iCode >= DIGIT0 And iCode <= DIGIT9 Or sKey = "." Then
-
           Calc_sExp = ""
-
         EndIf
-
       EndIf
-
       Calc_sExp = Text.Append(Calc_sExp, sKey)
-
     EndIf
-
     Program.Delay(100)
-
     bPushed = "False"
-
     Button_DrawNumKey()
-
     LCD_Draw()
-
   EndWhile
-
 EndSub
-
 Sub Button_GetPosition
-
   ' Button | Get board position from mouse position
-
   ' return iCol, iRow - next move position
-
   ' return Button_bOutOfBoard - mouse clicked out of board / captured slot
-
   iCol = Math.Floor((Button_iMX - Button_iX0) / Button_idX) + 1
-
   iRow = Math.Floor((Button_iMY - Button_iY0) / Button_idY) + 1
-
   iColOffset = Math.Remainder((Button_iMX - Button_iX0), Button_idX)
-
   iRowOffset = Math.Remainder((Button_iMY - Button_iY0), Button_idY)
-
   Button_bOutOfBoard = "False"
-
   If iCol = 3 And iRow = 5 Then
-
     iColOffset = 0
-
   ElseIf iCol = 4 And iRow = 5 Then
-
     iCol = 3
-
   EndIf
-
   If iCol < 1 Or iCol > 4 Or iRow < 1 Or iRow > 5 Or iColOffset > Button_iWidth Or iRowOffset > Button_iHeight Then
-
     Button_bOutOfBoard = "True"
-
   EndIf
-
 EndSub
-
 Sub Button_OnMouseDown
-
   ' Button | Get mouse position
-
   ' return Button_iMX, Button_iMY - clicked mouse position
-
   ' return Button_bNotClicked - flag
-
   Button_iMX = GraphicsWindow.MouseX
-
   Button_iMY = GraphicsWindow.MouseY
-
   Button_bNotClicked = "False"  
-
 EndSub
-
 Sub Button_DoNothing
-
   ' Button | Do nothing
-
 EndSub
-
 Sub Calc_EvalExp
-
   ' Calc | Evaluate expression
-
   TextWindow.WriteLine(Calc_sExp)
-
   sBuf = Calc_sExp
-
   iBufPtr = 1
-
   Parse_GetExpression()
-
   Calc_sExp = rNum
-
   Calc_iAns = Calc_sExp
-
   LCD_Draw()
-
   TextWindow.WriteLine(Calc_sExp)
-
 EndSub
-
 Sub LCD_Draw
-
   ' LCD | Draw
-
   iWidth = LCD_iWX1 - LCD_iWX0
-
   iHeight = LCD_iWY1 - LCD_iWY0
-
   GraphicsWindow.BrushColor = "DimGray" ' LCD frame color
-
   GraphicsWindow.FillRectangle(LCD_iWX0 - 20, LCD_iWY0 - 15, iWidth + 40, iHeight + 30)
-
   GraphicsWindow.FontName = LCD_sFontName
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = LCD_iFontSize
-
   iEnd = Text.GetLength(Calc_sExp) - 11
-
   If iEnd < 1 Then
-
     iEnd = 1
-
   EndIf
-
   For i = 1 To iEnd
-
     GraphicsWindow.BrushColor = "DarkKhaki" ' LCD color
-
     GraphicsWindow.FillRectangle(LCD_iWX0, LCD_iWY0, iWidth, iHeight)
-
     GraphicsWindow.BrushColor = "Black" ' LCD digits color
-
     GraphicsWindow.DrawText(LCD_iEX0, LCD_iEY0, Text.GetSubText(Calc_sExp, i, 12))
-
     Program.Delay(100)
-
   EndFor
-
 EndSub
-
 Sub Lex_Init
-
   ' Lex | Initialization
-
   ' return DIGIT0, DIGIT9 - char code for "0", "9"
-
   DIGIT0 = Text.GetCharacterCode("0")
-
   DIGIT9 = Text.GetCharacterCode("9")
-
 EndSub
-
 Sub Lex_GetDigit
-
   ' Lex | Get digit
-
   ' param sBuf - buffer
-
   ' param iBufPtr - buffer pointer
-
   ' return iBufPtr - updated buffer pointer
-
   ' return cDigit - digit
-
   ' return bMatched - is digit
-
   cDigit = Text.GetSubText(sBuf, iBufPtr, 1)
-
   iCode = Text.GetCharacterCode(cDigit)
-
   If iCode >= DIGIT0 And iCode <= DIGIT9 Then
-
     bMatched = "True"
-
     iBufPtr = iBufPtr + 1
-
   Else
-
     bMatched = "False"
-
   EndIf
-
 EndSub
-
 Sub Lex_GetDecimalPoint
-
   ' Lex | Get decimal point
-
   ' param sBuf - buffer
-
   ' param iBufPtr - buffer pointer
-
   ' work c - decimal point 
-
   ' return iBufPtr - updated buffer pointer
-
   ' return bMatched - is add operator
-
   c = Text.GetSubText(sBuf, iBufPtr, 1)
-
   If c = "." Then
-
     bMatched = "True"
-
     iBufPtr = iBufPtr + 1
-
   Else
-
     bMatched = "False"
-
   EndIf
-
 EndSub
-
 Sub Lex_GetAddOperator
-
   ' Lex | Get add operator
-
   ' param sBuf - buffer
-
   ' param iBufPtr - buffer pointer
-
   ' return iBufPtr - updated buffer pointer
-
   ' return cOp - operator "+" or "-"
-
   ' return bMatched - is add operator
-
   cOp = Text.GetSubText(sBuf, iBufPtr, 1)
-
   If cOp = "+" Or cOp = "-" Then
-
     bMatched = "True"
-
     iBufPtr = iBufPtr + 1
-
   Else
-
     bMatched = "False"
-
   EndIf
-
 EndSub
-
 Sub Lex_GetMultiplyOperator
-
   ' Lex | Get multiply operator
-
   ' param sBuf - buffer
-
   ' param iBufPtr - buffer pointer
-
   ' return iBufPtr - updated buffer pointer
-
   ' return cOp - operator "*" or "/"
-
   ' return bMatched - is multiply operator
-
   cOp = Text.GetSubText(sBuf, iBufPtr, 1)
-
   If cOp = "*" Or cOp = "/" Then
-
     bMatched = "True"
-
     iBufPtr = iBufPtr + 1
-
   Else
-
     bMatched = "False"
-
   EndIf
-
 EndSub
-
 Sub Parse_GetNumber
-
   ' Parse | Get number
-
   ' param sBuf - buffer
-
   ' param iBufPtr - buffer pointer
-
   ' return iBufPtr - updated buffer pointer
-
   ' return rNum - value of real or integer
-
   ' return bMatched - is number
-
   Parse_GetReal()
-
   If bMatched = "False" Then
-
     Parse_GetInteger()
-
   EndIf
-
 EndSub
-
 Sub Parse_GetInteger
-
   ' Parse | Get integer
-
   ' param sBuf - buffer
-
   ' param iBufPtr - buffer pointer
-
   ' return iBufPtr - updated buffer pointer
-
   ' return rNum - value of integer
-
   ' return bMatched - is integer
-
   iSign = 1
-
   bReturn = "False"
-
   Lex_GetAddOperator()
-
   While bMatched
-
     If cOp = "-" Then
-
       iSign = iSign * -1
-
     EndIf
-
     Lex_GetAddOperator()
-
   EndWhile
-
   rNum = 0
-
   Lex_GetDigit()
-
   If bMatched Then
-
     bReturn = "True"
-
   EndIf
-
   While bMatched
-
     rNum = rNum * 10 + cDigit
-
     Lex_GetDigit()
-
   EndWhile
-
   rNum = iSign * rNum
-
   bMatched = bReturn
-
 EndSub
-
 Sub Parse_GetReal
-
   ' Parse | Get real
-
   ' param sBuf - buffer
-
   ' param iBufPtr - buffer pointer
-
   ' return iBufPtr - updated buffer pointer
-
   ' return rNum - value of real
-
   ' return bMatched - is real
-
   iSavedPtr = iBufPtr
-
   bDig1 = "False"
-
   bDP = "False"
-
   bDig2 = "False"
-
   iSign = 1
-
   Lex_GetAddOperator()
-
   While bMatched
-
     If cOp = "-" Then
-
       iSign = iSign * -1
-
     EndIf
-
     Lex_GetAddOperator()
-
   EndWhile
-
   rNum = 0
-
   Lex_GetDigit()
-
   If bMatched Then
-
     bDig1 = "True"
-
   EndIf
-
   While bMatched
-
     rNum = rNum * 10 + cDigit
-
     Lex_GetDigit()
-
   EndWhile
-
   Lex_GetDecimalPoint()
-
   If bMatched Then
-
     bDP = "True"
-
   EndIf
-
   If bMatched Then
-
     rFrac = 0.1
-
     Lex_GetDigit()
-
     If bMatched Then
-
       bDig2 = "True"
-
     EndIf
-
     While bMatched
-
       rNum = rNum + rFrac * cDigit
-
       rFrac = rFrac * 0.1 
-
       Lex_GetDigit()
-
     EndWhile
-
   Else  ' decimal point not found
-
     iBufPtr = iSavedPtr
-
   EndIf
-
   rNum = iSign * rNum
-
   If (bDig1 And bDP) Or (bDP And bDig2) Then
-
     bMatched = "True"
-
   EndIf
-
 EndSub
-
 Sub Parse_GetTerm
-
   ' Parse | Get term
-
   ' param sBuf - buffer
-
   ' param iBufPtr - buffer pointer
-
   ' return iBufPtr - updated buffer pointer
-
   ' return rNum - value of term
-
   ' return bMatched - is term
-
   bReturn = "False"
-
   Parse_GetNumber()
-
   If bMatched Then
-
     bReturn = "True"
-
   EndIf
-
   rNum1 = rNum
-
   While bMatched
-
     Lex_GetMultiplyOperator()
-
     cOp1 = cOp
-
     If bMatched Then
-
       Parse_GetNumber()
-
       If bMatched And (cOp1 = "*") Then
-
         rNum = rNum1 * rNum
-
         rNum1 = rNum
-
       ElseIf bMatched And (cOp1 = "/") Then
-
         rNum = rNum1 / rNum
-
         rNum1 = rNum
-
       EndIf
-
     EndIf
-
   EndWhile
-
   bMatched = bReturn
-
 EndSub
-
 Sub Parse_GetExpression
-
   ' Parse | Get expression
-
   ' param sBuf - buffer
-
   ' param iBufPtr - buffer pointer
-
   ' return iBufPtr - updated buffer pointer
-
   ' return rNum - value of expression
-
   ' return bMatched - is expression
-
   bReturn = "False"
-
   Parse_GetTerm()
-
   If bMatched Then
-
     bReturn = "True"
-
   EndIf
-
   rNum2 = rNum
-
   While bMatched
-
     Lex_GetAddOperator()
-
     cOp2 = cOp
-
     If bMatched Then
-
       Parse_GetTerm()
-
       If bMatched And (cOp2 = "+") Then
-
         rNum = rNum2 + rNum
-
         rNum2 = rNum
-
       ElseIf bMatched And (cOp2 = "-") Then
-
         rNum = rNum2 - rNum
-
         rNum2 = rNum
-
       EndIf
-
     EndIf
-
   EndWhile
-
   bMatched = bReturn
-
 EndSub
-
 Sub SB_Workaround
-
   ' Small Basic | Workaround for Silverlight
-
   ' returns silverlight - "True" if in remote
-
   color = GraphicsWindow.GetPixel(0, 0)
-
   If Text.GetLength(color) > 7 Then
-
     silverlight = "True"
-
     msWait = 300
-
   Else
-
     silverlight = "False"
-
   EndIf
-
 EndSub
-
-

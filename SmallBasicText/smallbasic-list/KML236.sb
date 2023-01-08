@@ -1,2029 +1,1014 @@
 GraphicsWindow.title = "SB Graphics Interpreter 
-
 args=0
 
-
-
 GraphicsWindow.Width=1000
-
 GraphicsWindow.Height=1000
-
 GraphicsWindow.BackgroundColor="teal
-
 GraphicsWindow.Left = 0
-
 GraphicsWindow.top=10
-
 GraphicsWindow.BrushColor="black
-
 rbb=LDControls.AddRichTextBox(1000 200)
-
 Lex_Init()
-
 LDCall.Function ("WrLine" "Enter statements (Graphics operations) / ? Help")
-
 GraphicsWindow.KeyDown =kdd
 
-
-
 Controls.Move (rbb 0 GraphicsWindow.Height-200)
-
 Controls.AddButton ("Exec" 10 10)
-
 tbb=Controls.AddTextBox (50 10)
-
 Controls.ButtonClicked=bcc 
-
 Controls.SetSize (tbb 800 25)
-
 cc=text.GetCharacter (34)+"/<
-
 clist      ="DrwEl/Draws_ellipse_<x,y,w,h> DrwLine/Draws_line_<x1,y1,x2,y2> DrwRect/Draws_rectangle_<x,y,w,h> DrwImg/Draws_image_<im,x,y,w,h> DrwResImg/Draws_Resized_image_<im,x,y,w,h> DrwTxt/Draws_text_<x,y,txt> DrwBndTxt/Draws_bounded_text_<x,y,w,txt> DrwTri/Draws_triangle_<x1,y1,x2,y2,x3,y3> FilEl/Fills_ellipse_<x,y,w,h> FilRct/Fills_rectangle_<x,y,w,h> FilTri_<x1,y1,x2,y2,x3,y3> 
-
 clist=clist+"CGetRGB/Color_from_RGB_<r,g,b> GetRndClr/Random_Color BgClr="+cc+"backgrnd_col> PenClr="+cc+"pen_clr> PenWd="+cc+"px> BrushClr="+cc+"clr> FontB="+cc+"tr/fl> FontI="+cc+"tr/fl> FontNm="+cc+"fnam> FontSz="+cc+"px> GetPix/get_pixel_clr_<x,y> SetPix/Set_pixel_clr_<x,y,cl> ShowMsg/Shows_messagebox_<mm,tt> GwTitle=<tt> GwLeft=<x> gwTop=<y> gwWidth=<px> gwHeight=<px> cls
-
 cmds=LDText.Split (clist " ")
-
 cbb=LDControls.AddComboBox (cmds 400 400)
-
 Controls.Move(cbb 1 50) 
-
 LDControls.ComboBoxItemChanged=cbb
 
-
-
 Sub kdd
-
   if GraphicsWindow.LastKey="Return" Then
-
     bcc()
-
   EndIf 
-
 EndSub 
-
-
 
 Sub cbb
-
   tt=ldtext.Split (cmds[LDControls.ComboBoxGetSelected(cbb)] "/")
-
   If Text.EndsWith (tt[1] wq) then
-
     Controls.SetTextBoxText (tbb tt[1]) 
-
   Else
-
     Controls.SetTextBoxText (tbb tt[1]+":") 
-
   EndIf 
-
   
-
 EndSub 
 
-
-
 Sub wrline
-
   LDControls.RichTextBoxSetText (rbb args[1] "true")
-
 endsub
-
-
-
 
 
 Sub bcc
-
   buf = Controls.GetTextBoxText(tbb)
-
   buf=LDText.Replace (buf " " ",")
-
   buf=LDText.Replace (buf ":" " ")
-
   qq=0
-
   For zz=1 To Text.GetLength (buf)
-
     If Text.GetSubText (buf zz 1)=wq Then
-
       qq=qq+1
-
     EndIf
-
   endfor 
-
   
-
   If Text.IsSubText (buf wq) And qq=2 Then
-
     'all ok 
-
   Else
-
     If qq=1 And Text.EndsWith (buf wq) Then
-
       buf=buf+"0"+wq
-
     else
-
       buf=buf+wq
-
     endif
-
   EndIf 
-
   If buf="?" Then
-
     LDCall.Function ("WrLine" "Cmds: "+ldtext.replace(ldtext.replace(clist " " Text.GetCharacter(13)) "_" " "))
-
   else
-
     len = Text.GetLength(buf)
-
     ptr = 1
-
     Parse_State()
-
     If ptr <= len Then
-
       LDCall.Function ("WrLine" "Syntax Error")
-
     Else
-
       LDCall.Function ("WrLine" "Ok.")
-
     EndIf
-
   endif  
-
 Endsub
 
-
-
 Sub Lex_Init
-
   UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ
-
   LOWER = "abcdefghijklmnopqrstuvwxyz
-
   DIGIT = "0123456789"
-
   FCHAR = UPPER + LOWER         ' first charcters for label/variable/sub
-
   TCHAR = FCHAR + DIGIT + "_"   ' trailing characters for label/variable/sub
-
   WQ = Text.GetCharacter(34)                            ' double quote
-
   SQ = "'"                                              ' single quote
-
   CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)  ' carriage return + line feed
-
 EndSub
-
-
 
 Sub Lex_Label  ' param buf - buffer   ' param ptr - pointer
-
   ' return match - "True" if match        ' return ptr - next pointer
-
   ' return label[] - label name array   ' return val - label name
-
   
-
   Lex_Name()
-
   If match And (Array.ContainsValue(label, val) = "False") Then
-
     nLabel = nLabel + 1
-
     label[nLabel] = val
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub Lex_Name    ' param buf - buffer    ' param ptr - pointer
-
   ' return match - "True" if match  ' return ptr - next pointer   ' return name - name
-
   
-
   ch = Text.GetSubText(buf, ptr, 1)
-
   If Text.GetIndexOf(FCHAR, ch) > 0 Then
-
     name = ch
-
     ptr = ptr + 1
-
     match = "True"
-
     While match
-
       ch = Text.GetSubText(buf, ptr, 1)
-
       If Text.GetIndexOf(TCHAR, ch) > 0 Then
-
         ptr = ptr + 1
-
         name = name + ch
-
       Else
-
         match = "False"
-
       EndIf
-
     EndWhile
-
     match = "True"
-
   Else
-
     name = ""
-
     match = "False"
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub Lex_Num   ' param buf - buffer   ' param ptr - pointer
-
   ' return match - "True"   ' return ptr - next pointer   ' return val - number
-
   ch = Text.GetSubText(buf, ptr, 1)
-
   If Text.GetIndexOf(DIGIT, ch) > 0 Then
-
     val = ch
-
     ptr = ptr + 1
-
     match = "True"
-
     While match
-
       ch = Text.GetSubText(buf, ptr, 1)
-
       If Text.GetIndexOf(DIGIT, ch) > 0 Then
-
         ptr = ptr + 1
-
         val = Text.Append(val, ch)
-
       Else
-
         match = "False"
-
       EndIf
-
     EndWhile
-
     match = "True"
-
   Else
-
     val = ""
-
     match = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub Lex_Space0   ' param buf - buffer   ' param ptr - pointer
-
   ' return match - "True"  ' return ptr - next pointer
-
   txt = " "
-
   match = "True"
-
   While match
-
     Lex_Text()
-
   EndWhile
-
   match = "True"
-
 EndSub
-
-
 
 Sub Lex_Space1  ' param buf - buffer   ' param ptr - pointer
-
   ' return match - "True"  ' return ptr - next pointer
-
   txt = " "
-
   Lex_Text()
-
   If match Then
-
     While match
-
       Lex_Text()
-
     EndWhile
-
     match = "True"
-
   Else
-
     LDCall.Function ("WrLine" "Syntax Error: space not found")
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub Lex_Str   ' param buf - buffer   ' param ptr - pointer
-
   ' return match - "True"  ' return ptr - next pointer   ' return val - string
-
   val = ""
-
   Stack.PushValue("local", ptr)
-
   txt = WQ
-
   Lex_Text()
-
   If match Then
-
     ch = Text.GetSubText(buf, ptr, 1)
-
     While ch <> WQ
-
       val = val + ch
-
       ptr = ptr + 1
-
       ch = Text.GetSubText(buf, ptr, 1)
-
     EndWhile
-
   EndIf
-
   If match Then
-
     txt = WQ
-
     Lex_Text()
-
   EndIf
-
   _ptr = Stack.PopValue("local")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
 EndSub
-
-
 
 Sub Lex_Text   ' param buf - buffer   ' param ptr - pointer
-
   ' param txt - text to lexical analysis   ' return match - "True" if match   ' return ptr - next pointer
-
   txtlen = Text.GetLength(txt)
-
   lotxt = Text.ConvertToLowerCase(txt)
-
   lobuf = Text.ConvertToLowerCase(Text.GetSubText(buf, ptr, txtlen))
-
   If lobuf = lotxt Then
-
     match = "True"
-
     ptr = ptr + txtlen
-
   Else
-
     match = "False"
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub Lex_Var  ' param buf - buffer   ' param ptr - pointer
-
   ' return match - "True" if match   ' return ptr - next pointer
-
   ' return var[] - variable name array   ' return name - variable name   ' return val - variable
-
   Lex_Name()
-
   If match Then
-
     If Array.ContainsIndex(var, name) Then
-
       val = var[name]
-
       If val = "N/A" Then
-
         val = ""
-
       EndIf
-
     Else
-
       var[name] = "N/A"
-
       val = ""
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Real  ' [-]<_num>[.<_num>]   ' return val - real
-
   Stack.PushValue("ptr",ptr)
-
   txt = "-"
-
   Lex_Text()
-
   If match Then
-
     sign = "-"
-
   Else
-
     sign = ""
-
   EndIf
-
   match = "True"
-
   If match Then
-
     Lex_Num()
-
     int = val
-
   EndIf
-
   If match Then
-
     Stack.PushValue("ptr",ptr)
-
     txt = "."
-
     Lex_Text()
-
     If match Then
-
       Lex_Num()
-
     EndIf
-
     _ptr = Stack.PopValue("ptr")
-
     If match = "False" Then
-
       ptr = _ptr
-
     EndIf
-
     If match Then
-
       frac = "." + val
-
     Else
-
       frac = ""
-
     EndIf
-
     match = "True"
-
   EndIf
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     val = sign + Text.Append(int, frac)
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_State  ' []{<ope>|<let>|[]}[][_SQ*] 
-
   Stack.PushValue("ptr",ptr)
-
   Lex_Space0()
-
   If match Then
-
     Parse_Ope()
-
     If match = "False" Then
-
       Parse_Let()
-
     EndIf
-
     If match = "False" Then
-
       Lex_Space0()
-
     EndIf
-
   EndIf
-
   If match Then
-
     Lex_Space0()
-
   EndIf
-
   If match Then
-
     Stack.PushValue("ptr",ptr)
-
     txt = SQ
-
     Lex_Text()
-
     If match Then
-
       _ptr = Text.GetIndexOf(buf, CRLF)
-
       If _ptr = 0 Then
-
         _ptr = len + 1
-
       EndIf
-
       ptr = _ptr
-
       match = "True"
-
     EndIf
-
     _ptr = Stack.PopValue("ptr")
-
     If match = "False" Then
-
       ptr = _ptr
-
     EndIf
-
     match = "True"
-
   EndIf
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf  
-
 EndSub
-
-
 
 Sub Parse_Let  ' {<prop>|<_var>}[]=[]<expr>
-
   Stack.PushValue("ptr",ptr)
-
   Parse_Prop()
-
   If match Then
-
     left = "prop"
-
   EndIf
-
   If match = "False" Then
-
     Lex_Var()
-
     If match Then
-
       left = "var"
-
       varname = name
-
     EndIf
-
   EndIf
-
   If match Then
-
     Lex_Space0()
-
   EndIf
-
   If match Then
-
     txt = "="
-
     Lex_Text()
-
   EndIf
-
   If match Then
-
     Lex_Space0()
-
   EndIf
-
   If match Then
-
     Parse_Expr()
-
   EndIf
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     If left = "prop" Then
-
       If prop = "bg" Then
-
         GraphicsWindow.BackgroundColor = val
-
         
-
       ElseIf prop = "bc" Then
-
         GraphicsWindow.BrushColor = val
-
         
-
       ElseIf prop = "fb" Then
-
         GraphicsWindow.FontBold = val
-
         
-
       ElseIf prop = "fi" Then
-
         GraphicsWindow.FontItalic = val
-
         
-
       ElseIf prop = "fn" Then
-
         GraphicsWindow.FontName = val
-
         
-
       ElseIf prop = "fs" Then
-
         GraphicsWindow.Fontsize = val
-
         
-
       ElseIf prop = "hi" Then
-
         GraphicsWindow.Height = val
-
         
-
       ElseIf prop = "le" Then
-
         GraphicsWindow.Left = val
-
         
-
       ElseIf prop = "pc" Then
-
         GraphicsWindow.PenColor = val
-
         
-
       ElseIf prop = "pw" Then
-
         GraphicsWindow.PenWidth = val
-
         
-
       ElseIf prop = "ti" Then
-
         GraphicsWindow.Title = val
-
         
-
       ElseIf prop = "to" Then
-
         GraphicsWindow.Top = val
-
         
-
       ElseIf prop = "wi" Then
-
         GraphicsWindow.Width = val
-
         
-
       EndIf
-
     ElseIf left = "var" Then
-
       var[varname] = val
-
     EndIf 
-
   EndIf 
-
 EndSub
-
-
 
 Sub Parse_Expr  ' <term>[[]{+|-}[]<term>]
-
   ' return val - value of expression
-
   Stack.PushValue("ptr",ptr)
-
   Parse_Term()
-
   term = val
-
   If match Then
-
     Stack.PushValue("ptr",ptr)
-
     Lex_Space0()
-
     If match Then
-
       txt = "+"
-
       Lex_Text()
-
       If match Then
-
         op = "+"
-
       EndIf
-
       If match = "False" Then
-
         txt = "-"
-
         Lex_Text()
-
         If match Then
-
           op = "-"
-
         EndIf
-
       EndIf
-
     EndIf
-
     If match Then
-
       Lex_Space0()
-
     EndIf
-
     If match Then
-
       Stack.PushValue("local", term)
-
       Parse_Term()
-
       term = Stack.PopValue("local")
-
     EndIf
-
     _ptr = Stack.PopValue("ptr")
-
     If match = "False" Then
-
       ptr = _ptr
-
     EndIf
-
     If match Then
-
       If op = "+" Then
-
         term = term + val
-
       ElseIf op = "-" Then
-
         term = term - val
-
       EndIf
-
     EndIf
-
     match = "True"
-
   EndIf
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     val = term
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Term  ' <factor>[[]{'*'|/}[]<factor>]
-
   Stack.PushValue("ptr",ptr)
-
   Parse_Factor()
-
   factor = val
-
   If match Then
-
     Stack.PushValue("ptr",ptr)
-
     Lex_Space0()
-
     If match Then
-
       txt = "*"
-
       Lex_Text()
-
       If match Then
-
         op = "*"
-
       EndIf
-
       If match = "False" Then
-
         txt = "/"
-
         Lex_Text()
-
         If match Then
-
           op = "/"
-
         EndIf
-
       EndIf
-
     EndIf
-
     If match Then
-
       Lex_Space0()
-
     EndIf
-
     If match Then
-
       Stack.PushValue("local", factor)
-
       Parse_Factor()
-
       factor = Stack.PopValue("local")
-
     EndIf
-
     _ptr = Stack.PopValue("ptr")
-
     If match = "False" Then
-
       ptr = _ptr
-
     EndIf
-
     If match Then
-
       If op = "*" Then
-
         factor = factor * val
-
       ElseIf op = "/" Then
-
         factor = factor / val
-
       EndIf
-
     EndIf
-
     match = "True"
-
   EndIf
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     val = factor
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub Parse_Factor  ' {<val>|([]<term>[])}
-
   Parse_Val()
-
   val1 = val
-
   If match = "False" Then
-
     Stack.PushValue("ptr",ptr)
-
     txt = "("
-
     Lex_Text()
-
     If match Then
-
       Lex_Space0()
-
     EndIf
-
     If match Then
-
       Parse_Term()
-
       val2 = val
-
     EndIf
-
     If match Then
-
       Lex_Space0()
-
     EndIf
-
     If match Then
-
       txt = ")"
-
       Lex_Text()
-
     EndIf
-
     _ptr = Stack.PopValue("ptr")
-
     If match = "False" Then
-
       ptr = _ptr
-
     EndIf
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub Parse_Val  ' {<literal>|<prop>|<ope>|<_var>}
-
   Parse_Literal()
-
   If match = "False" Then
-
     Parse_Prop()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Ope()
-
   EndIf
-
   If match = "False" Then
-
     Lex_Var()
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Literal  ' {<real>|<_str>}
-
   Parse_Real()
-
   If match = "False" Then
-
     Lex_Str()
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Ope  ' {<voidOpe>|<valOpe>}
-
   Parse_VoidOpe()
-
   If match = "False" Then
-
     Parse_ValOpe()
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_VoidOpe  ' {<clear>|<dBText>|<dEll>|<dIma>|<dLine>|<dRect>|<dRIma>|<dText>|<dTri>|<fEll>|<fRect>|<fTri>|<sPix>|<show>|<sMsg>}
-
   Parse_Clear()
-
   If match = "False" Then
-
     Parse_DBText()
-
   EndIf
-
   If match = "False" Then
-
     Parse_DEll()
-
   EndIf
-
   If match = "False" Then
-
     Parse_DIma()
-
   EndIf
-
   If match = "False" Then
-
     Parse_DLine()
-
   EndIf
-
   If match = "False" Then
-
     Parse_DRect()
-
   EndIf
-
   If match = "False" Then
-
     Parse_DRIma()
-
   EndIf
-
   If match = "False" Then
-
     Parse_DText()
-
   EndIf
-
   If match = "False" Then
-
     Parse_DTri()
-
   EndIf
-
   If match = "False" Then
-
     Parse_FEll()
-
   EndIf
-
   If match = "False" Then
-
     Parse_FRect()
-
   EndIf
-
   If match = "False" Then
-
     Parse_FTri()
-
   EndIf
-
   If match = "False" Then
-
     Parse_SPix()
-
   EndIf
-
   If match = "False" Then
-
     Parse_SMsg()
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Clear  ' GraphicsWindow.Clear[]([])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "cls"
-
   Lex_Text()
-
   If match Then
-
     GraphicsWindow.FillRectangle (0 0 GraphicsWindow.Width GraphicsWindow.Height)
-
   endif
-
   _ptr = Stack.PopValue("ptr")
-
   ptr=4
-
 EndSub
-
-
 
 Sub Parse_DBText  ' GraphicsWindow.DrawBoundText[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "DrwBndTxt
-
   rt=LDCall.Function2 ("arget" txt 4)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.DrawBoundText  (rt[1], rt[2], rt[3], rt[4])
-
   EndIf
-
 endSub
 
-
-
 Sub Parse_DEll ' GraphicsWindow.DrawEllipse[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])
-
   
-
   Stack.PushValue("ptr",ptr)
-
   txt = "DrwEl"
-
   rt=LDCall.Function2 ("arget" txt 4)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.DrawEllipse     (rt[1], rt[2], rt[3], rt[4])
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_DIma  ' GraphicsWindow.DrawImage[]([]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "DrwImg"
-
   rt=LDCall.Function2 ("arget" txt 3)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.DrawImage    (rt[1], rt[2], rt[3])
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_DLine  ' GraphicsWindow.DrawLine[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   rt=LDCall.Function2 ("arget" "drwline" 4)
-
   
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   
-
   If match Then
-
     GraphicsWindow.DrawLine(rt[1], rt[2], rt[3], rt[4])
-
   EndIf
-
 EndSub
-
-
-
 
 
 Sub arget
-
   txt = args[1]
-
   Lex_Text()
-
   If match Then
-
     Lex_Space0()
-
   EndIf
-
   ret=""
-
   For f=1 To args[2]
-
     
-
     If match Then
-
       Parse_Val()
-
       ret[f] = val
-
     EndIf
-
     If f<args[2] then
-
       If match Then
-
         Lex_Space0()
-
       EndIf
-
       
-
       If match Then
-
         txt = ","
-
         Lex_Text()
-
       EndIf
-
       If match Then
-
         Lex_Space0()
-
       EndIf
-
     endif
-
   endfor
-
   
-
   return=ret
-
 endsub
 
-
-
 Sub Parse_DRect  ' GraphicsWindow.DrawRectangle[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = ""
-
   rt=LDCall.Function2 ("arget" "DrwRect" 4)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.DrawRectangle(rt[1], rt[2], rt[3], rt[4])
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_DRIma  ' GraphicsWindow.DrawResizedImage[]([]<val>[],[]<val>[],[]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "DrwResImg"
-
   rt=LDCall.Function2 ("arget" txt 5)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.DrawResizedImage    (rt[1], rt[2], rt[3], rt[4], rt[5])
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_DText  ' GraphicsWindow.DrawText[]([]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "DrwTxt"
-
   rt=LDCall.Function2 ("arget" txt 3)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.DrawText (rt[1], rt[2], rt[3])
-
   EndIf
-
 endSub
-
-
 
 Sub Parse_DTri  ' GraphicsWindow.DrawTriangle[]([]<val>[],[]<val>[],[]<val>[],[]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "DrwTri"
-
   rt=LDCall.Function2 ("arget" txt 4)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.DrawTriangle  (rt[1], rt[2], rt[3], rt[4], rt[5], rt[6])
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_FEll  ' GraphicsWindow.FillEllipse[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "FilEl"
-
   rt=LDCall.Function2 ("arget" txt 4)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.FillEllipse (rt[1], rt[2], rt[3], rt[4])
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_FRect  ' GraphicsWindow.FillRectangle[]([]<val>[],[]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "FilRct"
-
   rt=LDCall.Function2 ("arget" txt 4)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.FillRectangle  (rt[1], rt[2], rt[3], rt[4])
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_FTri  ' GraphicsWindow.FillTriangle[]([]<val>[],[]<val>[],[]<val>[],[]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "FilTri"
-
   rt=LDCall.Function2 ("arget" txt 6)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.FillTriangle  (rt[1], rt[2], rt[3], rt[4], rt[5], rt[6])
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub Parse_SPix ' GraphicsWindow.SetPixel[]([]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "SetPix"
-
   rt=LDCall.Function2 ("arget" txt 3)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.SetPixel   (rt[1], rt[2], rt[3])
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_SMsg  ' GraphicsWindow.ShowMessage[]([]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "ShowMsg"
-
   rt=LDCall.Function2 ("arget" txt 2)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     GraphicsWindow.ShowMessage    (rt[1], rt[2])
-
   EndIf
-
 endSub
-
-
 
 Sub Parse_ValOpe  ' {<gRGB>|<gPix>|<gCol>}
-
   Parse_GRGB()
-
   If match = "False" Then
-
     Parse_GPix()
-
   EndIf
-
   If match = "False" Then
-
     Parse_GCol()
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_GRGB ' GraphicsWindow.GetColorFromRGB[]([]<val>[],[]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "CGetRGB"
-
   rt=LDCall.Function2 ("arget" txt 3)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     val=GraphicsWindow.GetColorFromRGB    (rt[1], rt[2], rt[3])
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_GPix  ' GraphicsWindow.GetPixel[]([]<val>[],[]<val>[])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "GetPix"
-
   rt=LDCall.Function2 ("arget" txt 2)
-
   _ptr = Stack.PopValue("ptr")
-
   If match = "False" Then
-
     ptr = _ptr
-
   EndIf
-
   If match Then
-
     val=GraphicsWindow.GetPixel  (rt[1], rt[2])
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_GCol  ' GraphicsWindow.GetRandomColor[]([])
-
   Stack.PushValue("ptr",ptr)
-
   txt = "GetRndClr"
-
   Lex_Text()
-
   If match Then
-
     val = GraphicsWindow.GetRandomColor()
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Prop  ' {<bg>|<bc>|<fb>|<fi>|<fn>|<fs>|<hi>|<le>|<pc>|<pw>|<ti>|<to>|<wi>}
-
   Parse_Bg()
-
   If match = "False" Then
-
     Parse_Bc()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Fb()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Fi()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Fn()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Fs()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Hi()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Le()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Pc()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Pw()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Ti()
-
   EndIf
-
   If match = "False" Then
-
     Parse_To()
-
   EndIf
-
   If match = "False" Then
-
     Parse_Wi()
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Bg  ' GraphicsWindow.BackgroundColor
-
   
-
   txt = "BgClr"
-
   Lex_Text()
-
   If match Then
-
     prop = "bg"
-
     val = GraphicsWindow.BackgroundColor
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub Parse_Bc  ' GraphicsWindow.BrushColor
-
   txt = "BrushClr"
-
   Lex_Text()
-
   If match Then
-
     prop = "bc"
-
     val = GraphicsWindow.BrushColor
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub Parse_Fb  ' GraphicsWindow.FontBold
-
   txt = "FontB"
-
   Lex_Text()
-
   If match Then
-
     prop = "fb"
-
     val = GraphicsWindow.FontBold
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Fi  ' GraphicsWindow.FontItalic
-
   txt = "FontI"
-
   Lex_Text()
-
   If match Then
-
     prop = "fi"
-
     val = GraphicsWindow.FontItalic
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Fn  ' GraphicsWindow.FontName
-
   txt = "FontNm"
-
   Lex_Text()
-
   If match Then
-
     prop = "fn"
-
     val = GraphicsWindow.FontName
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Fs  ' GraphicsWindow.FontSize
-
   txt = "FontSz"
-
   Lex_Text()
-
   If match Then
-
     prop = "fs"
-
     val = GraphicsWindow.FontSize
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Hi   ' GraphicsWindow.Height
-
   txt = "GwHeight"
-
   Lex_Text()
-
   If match Then
-
     prop = "hi"
-
     val = GraphicsWindow.Height
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Le  ' GraphicsWindow.Left
-
   
-
   txt = "GwLeft"
-
   Lex_Text()
-
   If match Then
-
     prop = "le"
-
     val = GraphicsWindow.Left
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Pc  ' GraphicsWindow.PenColor
-
   txt = "PenClr"
-
   Lex_Text()
-
   If match Then
-
     prop = "pc"
-
     val = GraphicsWindow.PenColor
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Pw ' GraphicsWindow.PenWidth
-
   txt = "PenWd"
-
   Lex_Text()
-
   If match Then
-
     prop = "pw"
-
     val = GraphicsWindow.PenWidth
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Ti ' GraphicsWindow.Title
-
   txt = "GwTitle"
-
   Lex_Text()
-
   If match Then
-
     prop = "ti"
-
     val = GraphicsWindow.Title
-
   EndIf
-
 EndSub
 
-
-
 Sub Parse_To  ' GraphicsWindow.Top
-
   txt = "gwTop"
-
   Lex_Text()
-
   If match Then
-
     prop = "to"
-
     val = GraphicsWindow.Top
-
   EndIf
-
 endSub
 
-
-
 Sub Parse_Wi ' GraphicsWindow.Width
-
   txt = "gwWidth"
-
   Lex_Text()
-
   If match Then
-
     prop = "wi"
-
     val = GraphicsWindow.Width
-
   EndIf
-
 EndSub 
-
-

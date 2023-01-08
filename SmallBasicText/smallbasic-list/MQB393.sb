@@ -1,321 +1,160 @@
 ' Small Paint
-
 ' Copyright (c) 2014 Nonki Takahashi.  The MIT License.
-
 ' Last update 2014-10-03
-
 '
-
 GraphicsWindow.Title = "Small Paint"
-
 Form()
-
 GraphicsWindow.MouseMove = OnMouseMove
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 Sub Form
-
   GraphicsWindow.BackgroundColor = "DimGray"
-
   gw = 598
-
   gh = 340
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   param = "x=20;y=20;r=60;light=True;"
-
   DrawColorWheel()
-
   GraphicsWindow.BrushColor = "Black"
-
   canvasL = 2 * (param["x"] + param["r"])
-
   canvasT = param["y"]
-
   canvasW = 400
-
   canvasH = 300
-
   canvasR = canvasL + canvasW
-
   canvasB = canvasT + canvasH
-
   Erase()
-
   Controls.AddButton("Erase", param["x"], canvasB - 32)
-
   Controls.ButtonClicked = OnButtonClicked
-
   GraphicsWindow.PenColor = "White"
-
 EndSub
-
 Sub OnButtonClicked
-
   Erase()
-
 EndSub
-
 Sub Erase
-
   GraphicsWindow.FillRectangle(canvasL, canvasT, canvasW, canvasH)
-
 EndSub
-
 Sub OnMouseDown
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   If canvasL < mx And mx < canvasR And canvasT < my And my < canvasB Then
-
     prevX = mx
-
     prevY = my
-
   ElseIf Math.Power(mx - cx, 2) + Math.Power(my - cy, 2) <= Math.Power(param["r"], 2) Then
-
     GraphicsWindow.PenColor = GraphicsWindow.GetPixel(mx, my)
-
   EndIf
-
 EndSub
-
 Sub OnMouseMove
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   If canvasL < mx And mx < canvasR And canvasT < my And my < canvasB Then
-
     x = mx
-
     y = my
-
     If (Mouse.IsLeftButtonDown) Then
-
       GraphicsWindow.DrawLine(prevX, prevY, x, y)
-
     EndIf
-
     prevX = x
-
     prevY = y
-
   EndIf
-
 EndSub
-
 Sub DrawColorWheel
-
   ' param["x"] - left x co-ordinate
-
   ' param["y"] - top y co-ordinate
-
   ' param["r"] - radius
-
   ' param["light"] - "True" if light color
-
   cx = param["x"] + param["r"]
-
   cy = param["y"] + param["r"]
-
   For py = param["y"] To param["y"] + 2 * param["r"]
-
     absX = Math.Round(Math.SquareRoot(param["r"] * param["r"] - Math.Power(py - (param["y"] + param["r"]), 2)))
-
     xs = cx - absX
-
     xe = cx + absX
-
     For px = xs To xe
-
       GetColor()
-
       GraphicsWindow.SetPixel(px, py, color)
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub GetColor
-
   ' param px, py - current point
-
   ' param cx, cy - center
-
   ' param["r"] - radius
-
   ' param["light"] - "True" if light color
-
   x = px - cx
-
   y = py - cy
-
   Math_CartesianToPolar()
-
   hue = 360 - a
-
   saturation = 1
-
   If param["light"] Then
-
     lightness = 1 - 0.5 * r / param["r"]
-
   Else
-
     lightness = 0.5 * r / param["r"]
-
   EndIf
-
   Color_HSLtoRGB()
-
 EndSub
-
 Sub Math_CartesianToPolar
-
   ' Math | convert cartesian coodinate to polar coordinate
-
   ' param x, y - cartesian coordinate
-
   ' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
 Sub Color_HSLtoRGB
-
   ' Color | Convert HSL to RGB
-
   ' param hue - [0, 360) or UNDEFINED
-
   ' param lightness - [0, 1]
-
   ' param saturation - [0, 1]
-
   ' return color - "#rrggbb"
-
   If lightness <= 0.5 Then
-
     rN2 = lightness * (1 + saturation)
-
   Else
-
     rN2 = lightness + saturation - lightness * saturation
-
   EndIf
-
   rN1 = 2 * lightness - rN2
-
   If saturation = 0 Then
-
     iR = Math.Round(lightness * 255)
-
     iG = Math.Round(lightness * 255)
-
     iB = Math.Round(lightness * 255)
-
   Else
-
     rH = hue + 120
-
     Color_Value()
-
     iR = iValue
-
     rH = hue
-
     Color_Value()
-
     iG = iValue
-
     rH = hue - 120
-
     Color_Value()
-
     iB = iValue
-
   EndIf
-
   color = GraphicsWindow.GetColorFromRGB(iR, iG, iB)
-
 EndSub
-
 Sub Color_Value
-
   ' Color | Function value
-
   ' param rN1, rN2
-
   ' param rH - [-120, 480)
-
   ' return iValue - 0..255
-
   If rH >= 360 Then
-
     rH = rH - 360
-
   EndIF
-
   If rH < 0 Then
-
     rH = rH + 360
-
   EndIF 
-
   If rH < 60 Then
-
     rV = rN1 + (rN2 - rN1) * rH / 60
-
   ElseIf rH < 180 Then
-
     rV = rN2
-
   ElseIf rH < 240 Then
-
     rV = rN1 + (rN2 - rN1) * (240 - rH) / 60
-
   Else
-
     rV = rN1
-
   EndIf
-
   iValue = Math.Round(rV * 255)
-
 EndSub
-
-

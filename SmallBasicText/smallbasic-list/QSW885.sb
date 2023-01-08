@@ -1,621 +1,310 @@
 ' A 3-D game starting point
-
 ' Uses mouse left-right to roll, up-down to pitch, and left-right buttons for heading (similar to airplane controls)
 
-
-
 ' References
-
 ' http://en.wikipedia.org/wiki/3D_projection
-
 ' http://social.msdn.microsoft.com/Forums/en-US/smallbasic/thread/2bfaa80d-91db-4df7-aa2f-413e1e6a9f30
-
 '  Ver 1    4/8/2010    Daddyo
 
-
-
 false = 0
-
 true = 1
-
 dText = ""  ' Debugging output
 
-
-
 windowWidth = 800
-
 windowHeight = 500
 
-
-
 ' Desired approximate frames per second (but will be lower on slower computers)
-
 fpsTarget = 20
 
-
-
 ' Determine speed of computer
-
 CalibrateDelay()
 
-
-
 ' Set up graphics window
-
 GraphicsWindow.BackgroundColor = "DarkGreen"
-
 GraphicsWindow.Title = ""
-
 GraphicsWindow.Show()
-
 GraphicsWindow.Width = windowWidth
-
 GraphicsWindow.Height = windowHeight
 
-
-
 ' Center it on desktop
-
 GraphicsWindow.Left = Desktop.Width / 2 - GraphicsWindow.Width / 2
-
 GraphicsWindow.Top = Desktop.Height / 2 - GraphicsWindow.Height / 2
 
-
-
 ' Show a dot in center of display for mouse reference when 'steering' camera
-
 GraphicsWindow.PenColor = "Yellow"
-
 centerShape = Shapes.AddEllipse(4, 4)
-
 Shapes.Move(centerShape, windowWidth * 0.5 - 2,  windowHeight * 0.5 - 2)
 
-
-
 InitViewer()
-
 InitScenery()
 
-
-
 ' The game loop
-
 MainLoop() 
 
-
-
 ' Exit game
-
 Program.End()
 
-
-
 ' Main game routine
-
 Sub MainLoop
-
   
-
   ' Game control variables (not set in this example)
-
   play = true
-
   pause = false 
-
   
-
   ' Initialize filter for frame rate estimation
-
   dTLossy = 1000 / fpsTarget
-
   tLast = Clock.Millisecond
-
   
-
   ' Loop forever while playing
-
   While(play = true)
-
     ' Do work if not paused
-
     If (pause = false) Then 
-
       Move()
-
       UpdateScreen()
-
       
-
       ' Smooth estimate of time elapsed between frames
-
       tNow = Clock.Millisecond
-
       dT = tNow - tLast
-
       tLast = tNow    
-
       
-
       ' Handle millisecond rollover at 1 second marks
-
       If (dT < 0) Then 
-
         dT = dT + 1000
-
       EndIf 
-
       
-
       k = 0.1 '  1 = no smoothing, values less than 1 smooths.  0.1 default
-
       dTLossy = dTLossy * (1 - k) + dT * k 
-
       
-
       ' Figure out how long we need to wait to achieve desired average frame rate
-
       waitLoops = 1000 / fpsTarget - dTLossy  ' Milliseconds of time to kill
-
       waitLoops = waitLoops * loopsPerMilliSec
-
       For i = 1 to waitLoops
-
         i = i
-
       EndFor
-
       
-
       ' Show FPS
-
       'dText = 1000/dTLossy
-
       'Debug()
 
-
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 ' Determine how many For loops we can do in a millisecond, used for calibrated delays
-
 Sub CalibrateDelay
-
   Program.Delay(200) ' Let software 'settle' on load
-
   
-
   ' Figure out dummy wait loops per millisecond
-
   ' Used instead of Program.Delay()'s coarse resolution of 16 ms
-
   tLast = Clock.Millisecond
-
   waitLoops = 20000
-
   For i = 1 to waitLoops
-
     i = i
-
   EndFor
-
   tNow = Clock.Millisecond
-
   dT = tNow - tLast
-
   If (dT < 0) Then 
-
     dT = dT + 1000
-
   EndIf 
-
   loopsPerMilliSec = 20000 / dT 
-
   
-
 EndSub 
-
-
 
 ' Do the motion of the camera/plane/tank/person etc.
-
 Sub Move
-
   ' Determine view attitude  from mouse
-
   pitch = Math.Pi * (GraphicsWindow.MouseY - windowHeight * 0.5) / windowHeight 
-
   roll = 2 * Math.Pi * (GraphicsWindow.MouseX - windowWidth * 0.5) / windowWidth 
-
   
-
   ' Heading, if both mouse buttons pressed, reset heading to zero (north)
-
   If Mouse.IsLeftButtonDown Then
-
     If Mouse.IsRightButtonDown Then
-
       heading = 0
-
     Else
-
       heading = heading - 0.04
-
     EndIf 
-
   ElseIf Mouse.IsRightButtonDown Then
-
     heading = heading + 0.04
-
   EndIf 
-
-
 
   If heading > 2 * Math.Pi Then 
-
     heading = 0
-
   ElseIf heading < 0 Then 
-
     heading = 2 * Math.Pi
-
   EndIf 
-
   
-
   ' Move slowly north
-
   pY = pY + 0.3
-
   
-
   'r2d = 57.29
-
   'TextWindow.WriteLine("H: " + heading * r2d + ", P: " + pitch * r2d + ", R:" + roll * r2d)
 
-
-
 EndSub
-
-
 
 ' Update all graphics resulting from motion/view updates
-
 Sub UpdateScreen
-
   ' Do this once per frame
-
   SetCamera()
-
   
-
   ' Translate all objects to graphics window
-
   For i = 1 to objects  
-
     ' Copy point for input to TransformPoint subroutine
-
     x = objX[i]
-
     y = objY[i] 
-
     z = objZ[i] 
-
     
-
     ' Position/rotate point to display surface
-
     TransformPoint()
-
     
-
     ' Note: shouldn't really plot anything outside the graphics window area (<0 or >width or height)
-
     ' but not checked here
-
     
-
     ' Erase old point, only plot if in front of camera (not behind!)
-
     If (objZold[i] > 0) Then
-
       GraphicsWindow.BrushColor = "DarkGreen"
-
       GraphicsWindow.FillEllipse(objXold[i]-3, objYold[i]-3, 6, 6)
-
     EndIf 
-
     
-
     ' Draw new point
-
     If (z > 0) Then
-
       ' Draw special colors for north/east points so we can make sure all's well
-
       If i = 27 Then ' north point
-
         GraphicsWindow.BrushColor = "White"
-
       ElseIf i = 41 Then ' east point
-
         GraphicsWindow.BrushColor = "Blue"
-
       Else
-
         GraphicsWindow.BrushColor = "Red"
-
       EndIf 
-
       
-
       GraphicsWindow.FillEllipse(x-2, y-2, 4, 4)
-
     EndIf
-
     
-
     ' Save point for erasure next frame
-
     objXold[i] = x
-
     objYold[i] = y 
-
     objZold[i] = z 
-
   EndFor
 
-
-
 EndSub 
-
-
 
 ' Initialize our variables
-
 Sub InitViewer
-
   ' Viewer attitude, Euler order is heading-pitch-roll
-
   heading = 0
-
   pitch = 0
-
   roll = 0
-
   
-
   ' Viewer position - any linear units you want (meters, feet, angstroms), just keep everything in same units!
-
   pX = 0     ' +East
-
   pY = -300  ' +North
-
   pZ = 60   ' +up
-
   
-
 EndSub
-
-
 
 ' Initialize the scenery
-
 Sub InitScenery
-
   method = 2  ' 1 or 2 for demo
-
   
-
   If method = 1 Then 
-
     ' Individually create points on display
-
     objects = 4
-
     objX[1] = 30
-
     objY[1] = 150
-
     objZ[1] = 0
-
     
-
     objX[2] = 30
-
     objY[2] = -150
-
     objZ[2] = 0
-
     
-
     objX[3] = -30
-
     objY[3] = -150
-
     objZ[3] = 0
-
     
-
     objX[4] = -30
-
     objY[4] = 150
-
     objZ[4] = 0
-
   ElseIf method = 2 Then 
-
     ' Draw rectangular grid, ground level, long side runs north-south
-
     objects = 0
-
     z = 0
-
     For x = -200 To 200 Step 100
-
       For y = -400 To 400 Step 100 
-
         objX[objects+1] = x 
-
         objY[objects+1] = y 
-
         objZ[objects+1] = z
-
         objects = objects + 1
-
         'TextWindow.WriteLine(objects + ": " + x + ", " + y + ", " + z)
-
       EndFor
-
     EndFor
-
   EndIf 
-
   
-
 EndSub 
-
-
 
 ' Set camera view (done once/frame)
-
 ' This would normally speed up processing a group TransformPoint calls,
-
 ' but wasn't really measureable in Small Basic
-
 Sub SetCamera
-
   cosHeading = Math.Cos(heading)
-
   sinHeading = Math.Sin(heading)
-
   cosPitch = Math.Cos(pitch)
-
   sinPitch = Math.Sin(pitch)
-
   cosRoll = Math.Cos(roll)
-
   sinRoll = Math.Sin(roll)
-
   
-
 EndSub
 
-
-
 ' Transform point in space x,y,z to screen coordinates x,y
-
 ' Input uses a right-handed coordinate system (+x east, +y north, +z up).
-
 ' Positive heading is viewer rotating clockwise when looking down to ground, relative from North.  Range: 0 to 2PI (0-360 degrees)
-
 ' Positive pitch is viewer 'nose' up.  Range: +/- PI/2 (+/- 90 degrees)
-
 ' Positive roll is viewer rolled clockwise from vertical as observed from rear cockpit view.  Range: +/- PI (-180 to +180 degrees)
-
 ' 
-
 ' modified from http://gamecode.tripod.com/tut/tut03.htm (note bug: z=twice on yaw rotation)
-
 Sub TransformPoint
-
   ' Shift point in space to point relative to camera position
-
   x2 = x - Px
-
   y2 = y - Py
-
   z2 = z - Pz
-
   
-
   ' Now do rotations about camera point, Euler order is heading - pitch - roll
-
   ' Heading rotation
-
   x = -y2 * sinHeading + x2 * cosHeading
-
   y =  y2 * cosHeading + x2 * sinHeading
-
   z =  z2
-
   
-
   ' Pitch
-
   x2 =  x
-
   y2 =  z * sinPitch + y * cosPitch
-
   z2 =  z * cosPitch - y * sinPitch
-
   
-
   ' Roll
-
   x = -z2 * sinRoll + x2 * cosRoll
-
   y =  z2 * cosRoll + x2 * sinRoll
-
   z =  y2
-
   
-
   ' Check to see if point is very close to camera, 
-
   ' if so put it behind the camera (so not shown and doesn't cause divide by zero below)
-
   If Math.Abs(z) < .01 Then
-
     z = -0.01
-
   EndIf
-
   
-
   ' Perspective project onto screen & center it in graphics window
-
   fov = windowWidth * 0.25 ' relative field of view - adjust 0.25 to what you like
-
   x = x * fov / z + windowWidth * 0.5
-
   y = -y * fov / z + windowHeight * 0.5 ' Negate Y since opposite that of the graphics window sense
-
   
-
 EndSub 
-
-
 
 ' Fill in dText variable and call this to print it on display for debugging code
-
 sub Debug
-
   ' Erase old printout
-
   GraphicsWindow.PenColor = "black"
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.FillRectangle (0, 30, 500, 30)
-
   
-
   ' Draw new printout
-
   GraphicsWindow.BrushColor = "LightCyan"
-
   GraphicsWindow.FontSize=20
-
   GraphicsWindow.DrawText(0, 30, dText)
-
   
-
 EndSub 
-
-

@@ -1,495 +1,247 @@
 '==========================================
-
 ' MAIN GAME LOOP
-
 '==========================================
-
-
 
 Initialise()
 
-
-
 While (running)
-
   start = Clock.ElapsedMilliseconds
-
   
-
   'Update game logic based on any events
-
   UpdateEvents()
-
   
-
   'Update the position of all game shapes
-
   UpdateShapes()
-
   
-
   'Detect any collisons and update game
-
   UpdateCollisions()
-
   
-
   'Delay the game To try To maintain even 50 frame per second (fps)
-
   delay = 20-(Clock.ElapsedMilliseconds-start)
-
   GraphicsWindow.Title = delay 'To check For performance issues While testing
-
   If (delay > 0) Then
-
     Program.Delay(delay)
-
   EndIf
-
 EndWhile
-
-
 
 Finished()
 
-
-
 '==========================================
-
 ' SUBROUTINES
-
 '==========================================
-
-
 
 'Set up all properties For the gane
-
 Sub Initialise
-
   'Create the GraphicsWindow
-
   gw = 600
-
   gh = 600
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Top = 50
-
   GraphicsWindow.Left = (Desktop.Width-gw)/2
-
   
-
   'Create game sprites
-
   
-
   'player is at the bottom of screen
-
   playerW = 10
-
   playerH = 10
-
   player = Shapes.AddRectangle(2*playerW,2*playerH)
-
   playerX = gw/2
-
   playerY = gh-playerH
-
   playerVelX = 5
-
   
-
   'Sprite enemies
-
   'Moving horizontally
-
   numSprite = 10
-
   spriteW = 10
-
   spriteH = 10
-
   For i = 1 To numSprite
-
     sprite[i] = Shapes.AddEllipse(2*spriteW,2*spriteH)
-
     spriteX[i] = 50+Math.GetRandomNumber(gw-100)
-
     spriteY[i] = 50+Math.GetRandomNumber(gh-200)
-
     spriteVelX[i] = Math.GetRandomNumber(10)*(2*Math.GetRandomNumber(2)-3) 'Positive and negative values, but not 0
-
     spriteVelY[i] = 0
-
     spriteActive[i] = "True"
-
   EndFor
-
   
-
   'Bullets (also used for bombs)
-
   'Initially hidden and inactive
-
   numBullet = 100
-
   bulletW = 4
-
   bulletH = 10
-
   bulletSpeed = 10
-
   For i = 1 To numBullet
-
     bullet[i] = Shapes.AddEllipse(2*bulletW,2*bulletH)
-
     Shapes.HideShape(bullet[i])
-
     bulletX[i] = 0
-
     bulletY[i] = 0
-
     bulletVelX[i] = 0
-
     bulletVelY[i] = 0
-
     bulletActive[i] = ""
-
   EndFor  
-
   
-
   'Create Events
-
   GraphicsWindow.MouseDown = OnMouseDown
-
   GraphicsWindow.MouseMove = OnMouseMove
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   GraphicsWindow.KeyUp = OnKeyUp
-
   
-
   'Game state is running
-
   running = "True"
-
 EndSub
-
-
 
 'When the game is finished
-
 Sub Finished
-
 EndSub
-
-
 
 Sub UpdateEvents
-
   If (mouseClick) Then
-
     Fire() 
-
     mouseClick = "" 'Event handled
-
   EndIf 
-
   If (keyPressed["Space"]) Then
-
     Fire() 
-
     keyPressed["Space"] = "" 'Event handled
-
   EndIf
-
   
-
   If (keyDown["Left"]) Then
-
     playerX = playerX-playerVelX
-
   EndIf
-
   If (keyDown["Right"]) Then
-
     playerX = playerX+playerVelX
-
   EndIf
-
   
-
   If (mouseMove) Then
-
     playerX = GraphicsWindow.MouseX
-
     mouseMove = "" 'Event handled
-
   EndIf
-
   
-
   playerX = Math.Max(playerW,playerX)
-
   playerX = Math.Min(gw-playerW,playerX)
-
 EndSub
-
-
 
 Sub UpdateShapes
-
   Shapes.Move(player,playerX-playerW,playerY-playerH)
-
   
-
   For i = 1 To numSprite
-
     If (SpriteActive[i]) Then
-
       spriteX[i] = spriteX[i]+spriteVelX[i]
-
       spriteY[i] = spriteY[i]+spriteVelY[i]
-
       If (spriteX[i] < spriteW Or spriteX[i] > gw-spriteW) Then 'Bounce sprites on side walls
-
         spriteVelX[i] = -spriteVelX[i]
-
       EndIf
-
       If (spriteY[i] < spriteH Or spriteY[i] > gh-100-spriteH) Then 'Souldn't happen unless we have spriteVelY <> 0
-
         spriteVelY[i] = -spriteVelY[i]
-
       EndIf
-
       
-
       Shapes.Move(sprite[i],spriteX[i]-spriteW,spriteY[i]-spriteH)
-
       
-
       'Randomly drop a bomb
-
       If (Math.GetRandomNumber(100) = 1) Then
-
         For k = 1 To numBullet
-
           If (bulletActive[k] <> "True") Then 'Find a bullet not already being used
-
             bulletActive[k] = "True"
-
             Shapes.ShowShape(bullet[k])
-
             bulletX[k] = spriteX[i]
-
             bulletY[k] = spriteY[i]
-
             bulletVelX[k] = 0
-
             bulletVelY[k] = bulletSpeed
-
             k = numBullet 'End check For available bullet
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndIf
-
   EndFor
-
   
-
   For i = 1 To numBullet
-
     If (bulletActive[i]) Then
-
       bulletX[i] = bulletX[i]+bulletVelX[i]
-
       bulletY[i] = bulletY[i]+bulletVelY[i]
-
       If (bulletX[i] < -bulletW Or bulletX[i] > gw+bulletW) Then 'Souldn't happen unless we have bulletVelX <> 0
-
         bulletActive[i] = ""
-
         Shapes.HideShape(bullet[i])
-
       EndIf
-
       If (bulletY[i] < -bulletH Or bulletY[i] > gh+bulletH) Then
-
         bulletActive[i] = ""
-
         Shapes.HideShape(bullet[i])
-
       EndIf
-
       
-
       Shapes.Move(bullet[i],bulletX[i]-bulletW,bulletY[i]-bulletH)
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub Fire
-
   For k = 1 To numBullet
-
     If (bulletActive[k] <> "True") Then 'Find a bullet not already being used
-
       bulletActive[k] = "True"
-
       Shapes.ShowShape(bullet[k])
-
       bulletX[k] = playerX
-
       bulletY[k] = gh-bulletH
-
       bulletVelX[k] = 0
-
       bulletVelY[k] = -bulletSpeed
-
       k = numBullet 'End check For available bullet
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub UpdateCollisions
-
   'Simple overlap of bullet and sprite regions
-
   For i = 1 To numBullet
-
     If (bulletActive[i]) Then
-
       If (bulletVelY[i] > 0) Then 'A bomb being dropped down
-
         If (bulletX[i] > playerX-playerW And bulletX[i] < playerX+playerW) Then
-
           If (bulletY[i] > playerY-playerH And bulletY[i] < playerY+playerH) Then
-
             'Collision detected - just remove bullet and do a short delay so we can see it happened
-
             bulletActive[i] = ""
-
             Shapes.HideShape(bullet[i])   
-
             Program.Delay(500)           
-
           EndIf
-
         EndIf
-
       Else 'A bullet being fired up
-
         For j = 1 To numSprite
-
           If (spriteActive[j]) Then
-
             If (bulletX[i] > spriteX[j]-spriteW And bulletX[i] < spriteX[j]+spriteW) Then
-
               If (bulletY[i] > spriteY[j]-spriteH And bulletY[i] < spriteY[j]+spriteH) Then
-
                 'Collision detected - just remove bullet and sprite
-
                 bulletActive[i] = ""
-
                 Shapes.HideShape(bullet[i])              
-
                 spriteActive[j] = ""
-
                 Shapes.HideShape(sprite[j])
-
               EndIf
-
             EndIf
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndSub
 
-
-
 '==========================================
-
 ' EVENT SUBROUTNINES
-
 'mouseClick = "True" when any mouse button is clicked - should be reset To "" after this event is handled
-
 'Use Mouse.IsLeftButtonDown and Mouse.IsLeftButtonDown To check mouse state
-
 'keyPressed = "True" when key is pressed - should be reset To "" after this event is handled
-
 'keyDown[key] = "True" While 'key' is pressed down
-
 '==========================================
-
-
 
 Sub OnMouseDown
-
   mouseClick = "True"
-
 EndSub
-
-
 
 Sub OnMouseMove
-
   MouseMove = "True"
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   If (keyDown[key] <> "True") Then 'Prevent this event on auto key repeat (requires key To be released first)
-
     keyPressed[key] = "True"
-
   EndIf
-
   keyDown[key] = "True"
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   keyDown[key] = ""
-
 EndSub
-
-

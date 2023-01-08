@@ -1,771 +1,385 @@
 Initialise()
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 GraphicsWindow.KeyUp = OnKeyUp
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.MouseUp = OnMouseUp
 
-
-
 While "True"
-
   start = Clock.ElapsedMilliseconds
-
   
-
   MovePlayer()
-
   MoveObjects()
-
   If (mouseDown <> "True") Then
-
     RandomDelete()
-
     RandomGold()
-
   EndIf
-
   GraphicsWindow.Title = "Score = "+score
-
   
-
   delay = 20 - (Clock.ElapsedMilliseconds-start)
-
   If (delay > 0) Then
-
     Program.Delay(delay)
-
   EndIf
-
 EndWhile
 
-
-
 '========================================================
-
 'SUBROUTINES
-
 '========================================================
-
-
 
 Sub Initialise
-
   gw = Desktop.Width
-
   gh = Desktop.Height
-
   GraphicsWindow.Width = gw-14
-
   GraphicsWindow.Height = gh-28
-
   GraphicsWindow.Top = 0
-
   GraphicsWindow.Left = 0
-
   
-
   speed = 3
-
   gravity = 0.5
-
   jumpPower = 10
-
   playerSize = 20
-
   rateDisappear = 500
-
   rateGold = 250
-
   objectColor = "DarkBlue"
-
   score = 0
-
   
-
   GraphicsWindow.BackgroundColor = "LightBlue"  
-
   GraphicsWindow.PenWidth = 0.2
-
   GraphicsWindow.BrushColor = "Red"
-
   GraphicsWindow.FontSize = 25
-
   GraphicsWindow.DrawText(50,50,"Left, Right and Space to Jump")
-
   GraphicsWindow.DrawText(50,100,"Draw your own platforms with the mouse")
-
   GraphicsWindow.DrawText(50,150,"Delete a platform with right click")
-
   GraphicsWindow.DrawText(50,200,"Platforms will randomly disappear")
-
   GraphicsWindow.DrawText(50,250,"Collect Gold coins")
-
   
-
   GraphicsWindow.BrushColor = "Red"
-
   player = Shapes.AddEllipse(2*playerSize,2*playerSize)
-
   ResetPlayer()
-
   
-
   GraphicsWindow.BrushColor = objectColor
-
   numObject = 1
-
   objectW[numObject] = 100
-
   objectH[numObject] = 20
-
   objectPosX[numObject] = playerPosX
-
   objectPosY[numObject] = gh-100
-
   object[numObject] = Shapes.AddRectangle(2*objectW[numObject],2*objectH[numObject])
-
   objectType[numObject] = "Wall"
-
 EndSub
 
-
-
 '========================================================
-
-
 
 Sub MovePlayer
-
   If (Clock.ElapsedMilliseconds-onGround < 100) Then 'Not in the air    
-
     playerVelX = 0
-
     'Jump
-
     If (keyState["Space"]) Then
-
       keyState["Space"] = "False"
-
       playerVelY = -jumpPower
-
     EndIf
-
   EndIf
-
   
-
   'Forwards-backwards
-
   If (keyState["Left"] And collisionData["Left"] <> "True") Then
-
     playerVelX = -speed
-
   EndIf
-
   If (keyState["Right"] And collisionData["Right"] <> "True") Then
-
     playerVelX = speed
-
   EndIf
-
   
-
   'Update position (move player or objects depending on player position)
-
   If ((playerPosX < gw/5 And playerVelX < 0) Or (playerPosX > gw/2 And playerVelX > 0))Then
-
     For i = 1 To numObject
-
       objectPosX[i] = objectPosX[i]-playerVelX
-
     EndFor
-
   Else
-
     playerPosX = playerPosX+playerVelX
-
   EndIf
-
   playerPosY = playerPosY+playerVelY
-
   
-
   'Check for collision overlap
-
   Collisions()
-
   If (collisionData<> "") Then
-
     'TextWindow.WriteLine(collisionData)
-
   EndIf
-
   
-
   If (collisionData = "" Or collisionData["Wall"]) Then
-
     'Left obstacle
-
     If (collisionData["Left"]) Then
-
       playerVelX = 0
-
       playerPosX = playerPosX+speed
-
     Endif
-
     
-
     'Right obstacle
-
     If (collisionData["Right"]) Then
-
       playerVelX = 0
-
       playerPosX = playerPosX-speed
-
     EndIf
-
     
-
     'Top obstacle
-
     If (collisionData["Top"]) Then
-
       playerVelY = 0
-
       playerPosY = playerPosY+speed
-
     EndIf
-
     
-
     ''Gravity and Bottom obstacle
-
     If (collisionData["Bottom"]) Then
-
       playerVelY = 0
-
       onGround = Clock.ElapsedMilliseconds
-
       playerPosY = playerPosY-1
-
       Collisions()
-
       While (collisionData["Bottom"])
-
         playerPosY = playerPosY-1
-
         Collisions()
-
       EndWhile
-
       playerPosY = playerPosY+1
-
     Else
-
       playerVelY = playerVelY+gravity
-
       If (playerPosY >= gh+playerSize) Then
-
         score = score-1
-
         ResetPlayer()
-
       EndIf
-
     EndIf
-
   ElseIf (collisionData["Gold"]) Then
-
     i = collisionData["Index"]
-
     DeleteObject()
-
     score = score+1
-
   EndIf
-
   
-
   Shapes.Move(player,playerPosX-playerSize,playerPosY-playerSize)
-
 EndSub
 
-
-
 '========================================================
-
-
 
 Sub ResetPlayer
-
   playerPosX = gw/4
-
   playerPosY = playerSize
-
   playerVelX = 0
-
   playerVelY = 0
-
 EndSub
 
-
-
 '========================================================
-
-
 
 Sub Collisions
-
   collisionData= ""
-
   edgeScale = 0.5
-
   For i = 1 To numObject
-
     testX = playerPosX
-
     testY = playerPosY+playerSize
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Bottom"] = "True"
-
     EndIf
-
     testX = playerPosX-playerSize*edgeScale
-
     testY = playerPosY+playerSize
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Bottom"] = "True"
-
     EndIf
-
     testX = playerPosX+playerSize*edgeScale
-
     testY = playerPosY+playerSize
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Bottom"] = "True"
-
     EndIf
-
     
-
     testX = playerPosX
-
     testY = playerPosY-playerSize
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Top"] = "True"
-
     EndIf
-
     testX = playerPosX-playerSize*edgeScale
-
     testY = playerPosY-playerSize
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Top"] = "True"
-
     EndIf
-
     testX = playerPosX+playerSize*edgeScale
-
     testY = playerPosY-playerSize
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Top"] = "True"
-
     EndIf
-
     
-
     testX = playerPosX-playerSize
-
     testY = playerPosY
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Left"] = "True"
-
     EndIf
-
     testX = playerPosX-playerSize
-
     testY = playerPosY-playerSize*edgeScale
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Left"] = "True"
-
     EndIf
-
     testX = playerPosX-playerSize
-
     testY = playerPosY+playerSize*edgeScale
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Left"] = "True"
-
     EndIf
-
     
-
     testX = playerPosX+playerSize
-
     testY = playerPosY
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Right"] = "True"
-
     EndIf
-
     testX = playerPosX+playerSize
-
     testY = playerPosY-playerSize*edgeScale
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Right"] = "True"
-
     EndIf
-
     testX = playerPosX+playerSize
-
     testY = playerPosY+playerSize*edgeScale
-
     CheckOverlap()
-
     If (overlap) Then
-
       collisionData["Right"] = "True"
-
     EndIf
-
     
-
     If (collisionData<> "") Then
-
       collisionData[objectType[i]] = "True"
-
       collisionData["Index"] = i
-
       i = numObject
-
     EndIf
-
   EndFor
-
 EndSub
 
-
-
 '========================================================
-
-
 
 Sub CheckOverlap
-
   If (testX < objectPosX[i]+objectW[i] And testX > objectPosX[i]-objectW[i] And testY < objectPosY[i]+objectH[i] And testY > objectPosY[i]-objectH[i]) Then
-
     overlap = "True"
-
   Else
-
     overlap = "false"
-
   EndIf
-
 EndSub
 
-
-
 '========================================================
-
-
 
 Sub MoveObjects
-
   For i = 1 To numObject
-
     If (objectPosX[i] < -gw) Then
-
       objectPosX[i] = objectPosX[i]+3*gw
-
     EndIf
-
     If (objectPosX[i] > 2*gw) Then
-
       objectPosX[i] = objectPosX[i]-3*gw
-
     EndIf
-
     Shapes.Move(object[i],objectPosX[i]-objectW[i],objectPosY[i]-objectH[i])
-
   EndFor
-
   
-
   If (mouseDown) Then
-
     x = GraphicsWindow.MouseX
-
     y = GraphicsWindow.MouseY
-
     objectW[numObject+1] = Math.Abs(x-startX)/2
-
     objectH[numObject+1] = Math.Abs(y-startY)/2
-
     objectPosX[numObject+1] = Math.Min(x,startX)+objectW[numObject+1]
-
     objectPosY[numObject+1] = Math.Min(y,startY)+objectH[numObject+1]
-
     GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
-
     GraphicsWindow.FillRectangle(0,0,gw,gh)
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.DrawRectangle(objectPosX[numObject+1]-objectW[numObject+1],objectPosY[numObject+1]-objectH[numObject+1],2*objectW[numObject+1],2*objectH[numObject+1])
-
   EndIf
-
   
-
   If (delete) Then
-
     delete = "False"
-
     For i = 1 To numObject
-
       testX = startX
-
       testY = startY
-
       CheckOverlap()
-
       If (overlap) Then
-
         DeleteObject()
-
         i = numObject
-
       EndIf
-
     EndFor
-
   EndIf
-
 EndSub
 
-
-
 '========================================================
-
-
 
 Sub DeleteObject
-
   Shapes.Remove(object[i])
-
   For j = i+1 To numObject
-
     object[j-1] = object[j]
-
     objectW[j-1] = objectW[j]
-
     objectH[j-1] = objectH[j]
-
     objectPosX[j-1] = objectPosX[j]
-
     objectPosY[j-1] = objectPosY[j]
-
     objectType[j-1] = objectType[j]
-
   EndFor
-
   numObject = numObject-1
-
 EndSub
 
-
-
 '========================================================
-
-
 
 Sub RandomDelete
-
   If (numObject > 0 And Math.GetRandomNumber(rateDisappear) = 1) Then
-
     i = Math.GetRandomNumber(numObject)
-
     DeleteObject()
-
   EndIf
-
 EndSub
 
-
-
 '========================================================
-
-
 
 Sub AddGold
-
   GraphicsWindow.BrushColor = "Gold"
-
   numObject = numObject+1
-
   objectW[numObject] = playerSize
-
   objectH[numObject] = playerSize
-
   objectPosX[numObject] = Math.GetRandomNumber(3*gw) - gw
-
   objectPosY[numObject] = gh/8+Math.GetRandomNumber(gh/2)
-
   object[numObject] = Shapes.AddEllipse(2*objectW[numObject],2*objectH[numObject])
-
   objectType[numObject] = "Gold"
-
 EndSub
 
-
-
 '========================================================
-
-
 
 Sub RandomGold
-
   If (Math.GetRandomNumber(rateGold) = 1) Then
-
     AddGold()
-
   EndIf
-
 EndSub
 
-
-
 '========================================================
-
 'EVENT SUBROUTINES
-
 '========================================================
-
-
 
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   keyState[key] = "True"
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   keyState[key] = "False"
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   startX = GraphicsWindow.MouseX
-
   startY = GraphicsWindow.MouseY
-
   If (Mouse.IsRightButtonDown) Then
-
     delete = "True"
-
   Else
-
     mouseDown = "True"
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseUp
-
   If (mouseDown) Then
-
     GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
-
     GraphicsWindow.FillRectangle(0,0,gw,gh)
-
     GraphicsWindow.BrushColor = objectColor
-
     If (objectW[numObject+1] < 5) Then
-
       objectW[numObject+1] = 5
-
     EndIf
-
     If (objectH[numObject+1] < 20) Then
-
       objectH[numObject+1] = 20
-
     EndIf
-
     object[numObject+1] = Shapes.AddRectangle(2*objectW[numObject+1],2*objectH[numObject+1])
-
     objectType[numObject+1] = "Wall"
-
     numObject = numObject+1
-
     mouseDown = "False"
-
   EndIf
-
 EndSub
-
-

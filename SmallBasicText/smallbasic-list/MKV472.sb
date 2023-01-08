@@ -1,151 +1,75 @@
 ' http://stackoverflow.com/questions/1410334/filesystemobject-reading-unicode-files
-
 ' auto-detect and read unicode files with FSO (assuming they are little-endian and contain the BOM)
 
-
-
 Option Explicit
-
 If WScript.Arguments.Count < 1 Then
-
 	Hilfe()
-
 	WScript.Quit
-
 ElseIf InStr(WScript.Arguments(0), "?") Then
-
 	Hilfe()
-
 	WScript.Quit
-
 End If
-
-
 
 Dim FSO, strTxtFile, Stream, intAsc1Chr, intAsc2Chr, intAsc3Chr, RetVal
-
 Set FSO = CreateObject("Scripting.FileSystemObject")
-
 strTxtFile = fso.GetAbsolutePathName(WScript.Arguments(0))
 
-
-
 If Not FSO.FileExists(strTxtFile) Then
-
 	WScript.Echo "Angegebene Datei NICHT gefunden!"
-
 	Set FSO = Nothing
-
 	WScript.Quit
-
 End If
-
-
 
 ' Set Stream = FSO.OpenTextFile(ScriptFolderObject.Path & "\" & FileName, 1, False)
-
 Set Stream = FSO.OpenTextFile(strTxtFile, 1, False)
-
 intAsc1Chr = Asc(Stream.Read(1))
-
 intAsc2Chr = Asc(Stream.Read(1))
-
 intAsc3Chr = Asc(Stream.Read(1))
-
 Stream.Close
-
 Set Stream = Nothing
-
 Set FSO = Nothing
 
-
-
 If intAsc1Chr = 255 And intAsc2Chr = 254 Then	' FF FE .., UTF-16, Unicode BOM
-
     'OpenAsUnicode = True
-
 	'RetVal = "True"
-
 	RetVal = "UTF-16, Unicode BOM"
-
     'WScript.Echo "Ist UNICODE Datei."
-
     'WScript.Echo intAsc1Chr & "," & intAsc2Chr
-
 ElseIf intAsc1Chr = 254 And intAsc2Chr = 255 Then	' FE FF .., UFT16BE, Unicode BE BOM
-
 	RetVal = "UTF-16 BE, Unicode BE BOM"
-
 ElseIf intAsc1Chr = 239 And intAsc2Chr = 187 And intAsc3Chr = 191 Then	' EF BB BF .., UTF8
-
 	RetVal = "UTF-8"
-
 Else
-
 	'OpenAsUnicode = False
-
 	Retval = "False"
-
 	'WScript.Echo "KEINE Unicode Datei."
-
 End If
-
 'Get script content
-
 'Set Stream = FSO.OpenTextFile(ScriptFolderObject.Path & "\" & FileName, 1, 0, OpenAsUnicode)
-
 'TextContent = Stream.ReadAll()
-
 'Stream.Close
 
-
-
 WScript.Echo RetVal
-
 'WriteFile()
 
 
-
-
-
 ' ///// SUBs \\\\\
-
 Sub WriteFile
-
    Const ForWriting = 2
-
    Dim fso, f
-
    'Set WshShell = WScript.CreateObject("WScript.Shell")
-
    'CurrDir = WshShell.CurrentDirectory
-
    Set fso = CreateObject("Scripting.FileSystemObject")
-
    Set f = fso.OpenTextFile(Replace(WScript.ScriptFullName, WScript.ScriptName, "IsUnicode.txt"), ForWriting, True)
-
    f.Write RetVal
-
    f.Close
-
    Set fso = Nothing
-
 End Sub
-
-
 
 Sub Hilfe
-
 Dim strHilfe
-
 strHilfe = "�berpr�fung ob die angegebene Datei auf UTF-8 Sig, UTF-16 (BE) oder 'False'." & VbCrLf &_
-
            "Aufruf: " & WScript.ScriptName & " [Pfad\]Textdatei.ext  [-?]" & vBCrLf &_
-
            "-------"
-
 WScript.Echo strHilfe
-
 End Sub
-
-

@@ -1,487 +1,243 @@
 'Meteor Shower - An orginal game concept by codingCat aka Matthew L. Parets -- Originally created for ExtendedBasic on the TI/99-4A -- Recreate for SmallBasic
-
 'importCode: RJP883-0
-
 GraphicsWindow.Show()
-
 GraphicsWindow.BackgroundColor = "black"
 
-
-
 meteorStart = 30
-
 meteorCount = meteorStart
-
 frameRate = 13 'Minimum Milliseconds per fram
 
 
-
-
-
 Ship = Shapes.AddText(Text.GetCharacter(65))
-
 Shapes.Rotate(ship,90)
 
-
-
 GraphicsWindow.FontSize = 20
-
 For i = 1 to meteorCount
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(Math.GetRandomNumber(175) + 75,0,0)
-
   meteor[i] = Shapes.AddText(Text.GetCharacter(9732))
-
   Shapes.Rotate(meteor[i], 26)
-
   meteorY[i] = Math.GetRandomNumber(GraphicsWindow.Height)
-
   meteorX[i] = GraphicsWindow.Width
-
   Shapes.Move(meteor[i], meteorX[i], meteorY[i])
-
   meteorSpeed[i] = Math.GetRandomNumber(50) / 10 
-
 endfor
 
-
-
 GraphicsWindow.BrushColor = "orange"
-
 GraphicsWindow.PenColor = "orange"
-
 home = Shapes.AddRectangle(20,15)
-
 base = Shapes.AddRectangle(20,15)
-
 homex = 2
-
 basex = GraphicsWindow.Width - 22
-
 basey = GraphicsWindow.Height / 2
-
 RelocateBase()
-
-
 
 Shapes.Move(base, basex , basey)
 
-
-
 GraphicsWindow.PenColor = "green"
-
 'GraphicsWindow.DrawRectangle(0,2,10,10)  ' Determine the size and offset of hit box for ship
-
 'GraphicsWindow.DrawRectangle(0,6,18,15)   'Determine the size and offset of hit box for meteor
-
 'GraphicsWindow.DrawRectangle(meteorX[i],meteorY[i]+6, 18,15)
-
 'GraphicsWindow.DrawRectangle(0,0,20,15)  'Determine the size and office of hit box for base
 
-
-
 shipx = 7
-
 shipy = homey
-
 shipmovex = 0
-
 shipmovey = 0
-
 homeBase = "True"
-
 score = 0
-
 damage = 0
-
 GraphicsWindow.KeyDown = moveShip
-
 Shapes.Move(ship, shipx, shipy)
-
 ShowStatus()
-
 FlashHome()
 
-
-
 While damage < 100
-
   frameStart = Clock.ElapsedMilliseconds
-
   'Move the ship
-
   shipx = shipx + shipmovex
-
   shipy = shipy + shipmovey
-
   'Handle the edges of the screen
-
   If shipx > GraphicsWindow.Width - 10 Then 
-
     shipx = GraphicsWindow.Width - 10
-
     shipmovex = 0
-
   ElseIf shipx < 1 then 
-
     shipx = 1
-
     shipmovex = 0
-
   endif
-
   If shipy > GraphicsWindow.Height - 12 Then 
-
     shipy = GraphicsWindow.Height - 12 
-
     shipmovey = 0
-
   ElseIf shipy < -2 then 
-
     shipy = -2
-
     shipmovey = 0
-
   EndIf
-
   Shapes.Move(Ship,shipx, shipy)
-
   
-
   'Detect Base
-
   '          Top left of ship inside of base                                                                                                                                                                      bottom right inside of base?                                                                                                                                                                                               bottom left                                                                                                                                                                                                            top right
-
   If ((shipx > basex And shipx < basex + 20) And (shipy + 2 > basey And shipy + 2 < basey + 15)) or ((shipx + 10 > basex And shipx + 10 < basex + 20) And (shipy + 12 > basey And shipy + 12 < basey + 15))  or ((shipx > basex And shipx < basex + 20) And (shipy + 12 > basey And shipy + 12 < basey + 15)) or ((shipx + 10 > basex And shipx + 10 < basex + 20) And (shipy + 2 > basey And shipy + 2 < basey + 15)) Then
-
     Shapes.HideShape(Ship)
-
     If Clock.ElapsedMilliseconds - shotClock > 20000 then
-
       score = score + ( (meteorCount - (meteorStart - 1)) * 100)
-
     Else
-
       score = score + (  (meteorCount - (meteorStart - 1)) * (20000 - (clock.ElapsedMilliseconds - shotClock))  )
-
     endif
-
     score = Math.Round(score)
-
     ShowStatus()
-
     homeBase = "True"
-
     shipmovex = 0
-
     shipmovey = 0
-
     FlashBase()
-
     RelocateBase()
-
     shipx = 7
-
     shipy = homey
-
     Shapes.Move(Ship,shipx, shipy)
-
     Shapes.ShowShape(ship)
-
     FlashHome()
-
   EndIf
-
   
-
   'Detect colision with meteor
-
   If homeBase = "False" then
-
     For i = 1 To meteorCount
-
       If ((shipx > meteorX[i] And shipx < meteorX[i]+18) And (shipy + 2 > meteorY[i]+6 And shipy + 2 < meteorY[i]+21)) or ((shipx + 10 > meteorX[i] And shipx + 10 < meteorX[i]+18) And (shipy + 12 > meteorY[i]+6 And shipy + 12 < meteorY[i]+21))  or ((shipx > meteorX[i] And shipx <meteorX[i]+18) And (shipy + 12 > meteorY[i]+6 And shipy + 12 < meteorY[i]+21)) or ((shipx + 10 > meteorX[i] And shipx + 10 < meteorX[i]+18) And (shipy + 2 > meteorY[i]+6 And shipy + 2 < meteorY[i]+21)) Then
-
         homeBase = "True"
-
         damage = damage + (5 * meteorSpeed[i])
-
         ShowStatus()
-
         SpinHome()        
-
         FlashHome()
-
       endif
-
     EndFor
-
   endif
-
   
-
   'Move meteors
-
   UpdateMeteors()
-
 endWhile
 
-
-
 'Game over Man - GAME OVER!!
-
 damage = 100
-
 ShowStatus()
-
-
-
 
 
 Sub moveShip
-
   If homeBase = "True" Then
-
     shotClock = Clock.ElapsedMilliseconds
-
   EndIf
-
   homeBase = "False"
-
   Shapes.HideShape(home)
-
   key = GraphicsWindow.LastKey
-
   If key = "Left" Then
-
     if shipmovex = 1 Then
-
       shipmovex = 0 
-
     ElseIf shipmovex = 0 then
-
       shipmovex = -1
-
     EndIf
-
   ElseIf key = "Right" then
-
     timetest = Clock.ElapsedMilliseconds
-
     if shipmovex = -1 Then
-
       shipmovex = 0 
-
     ElseIf shipmovex = 0 then
-
       shipmovex = 1
-
     EndIf
-
   ElseIf key = "Up" then
-
     if shipmovey = 1 Then
-
       shipmovey = 0 
-
     ElseIf shipmovey = 0 then
-
       shipmovey = -1
-
     EndIf
-
   ElseIf key = "Down" then
-
     if shipmovey = -1 Then
-
       shipmovey = 0 
-
     ElseIf shipmovey = 0 then
-
       shipmovey = 1
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub ShowStatus
-
   title = "Meteor Shower -- Score: "
-
   title = title + score 
-
   title = title + " - Damage: "
-
   title = title + damage
-
   title = title + "%"
-
   GraphicsWindow.Title = title
-
 EndSub
-
-
 
 Sub FlashHome
-
   holdb = base
-
   base = home
-
   holdbx = basex
-
   basex= homex
-
   holdby = basey
-
   basey = homey
-
   FlashBase()
-
   base = holdb
-
   basex = holdbx
-
   basey = holdby
-
   homeBase = "True"
-
 endsub
-
-
 
 Sub FlashBase
-
   Shapes.HideShape(base)
-
   fbnow = Clock.ElapsedMilliseconds
-
   While Clock.ElapsedMilliseconds - fbnow < 1000
-
     frameStart = Clock.ElapsedMilliseconds
-
     color = GraphicsWindow.GetRandomColor()
-
     GraphicsWindow.BrushColor = color
-
     GraphicsWindow.FillRectangle(basex, basey, 20, 15)
-
     UpdateMeteors()
-
   EndWhile
-
   GraphicsWindow.BrushColor = "green"
-
   GraphicsWindow.fillRectangle(basex,basey, 20,15)
-
   
-
   Shapes.ShowShape(base)
-
 EndSub
-
-
 
 sub UpdateMeteors
-
   For ium = 1 to meteorCount
-
     meteorX[ium] = meteorX[ium] - meteorSpeed[ium]
-
     'respawn if the screen edge is reached
-
     If meteorX[ium] < 0 Then
-
       meteorX[ium] = GraphicsWindow.Width
-
       meteorY[ium] = Math.GetRandomNumber(GraphicsWindow.Height)
-
       meteorSpeed[ium] = Math.GetRandomNumber(50) / 10
-
     EndIf
-
     Shapes.Move(meteor[ium], meteorX[ium], meteorY[ium])
-
   EndFor
-
   'Spin in place to pace the game
-
   While Clock.ElapsedMilliseconds - frameStart < frameRate
-
   endwhile
-
 endsub
 
-
-
 Sub RelocateBase
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.FillRectangle(basex,basey, 20,15)
-
   GraphicsWindow.FillRectangle(homex,homey, 20,15)
-
   homey = basey
-
   Shapes.Move(home, homex, homey)
-
   
-
   basey = Math.GetRandomNumber(GraphicsWindow.Height - 19) + 2
-
   Shapes.Move(base, basex, basey)
-
 EndSub
-
-
 
 Sub SpinHome
-
   Shapes.Animate(ship, homex, homey, 1000)
-
   starthome = Clock.ElapsedMilliseconds
-
   rotateAngle = 90
-
   rotatehome = Clock.ElapsedMilliseconds
-
   While Clock.ElapsedMilliseconds - starthome < 1000
-
     frameStart = Clock.ElapsedMilliseconds    
-
     If Clock.ElapsedMilliseconds - rotatehome < 50 then
-
       rotateAngle = rotateAngle + 5
-
       Shapes.Rotate(Ship,rotateAngle)
-
       rotatehome = Clock.ElapsedMilliseconds
-
     EndIf
-
     UpdateMeteors()
-
   EndWhile
-
   shipx = 7
-
   shipy = homey
-
   shipmovex = 0
-
   shipmovey = 0
-
   Shapes.Move(Ship,shipx, shipy)
-
   Shapes.Rotate(Ship,90)
-
 EndSub
-
   
-
-

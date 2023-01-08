@@ -1,2139 +1,1069 @@
 ' Perseus / Perseids
-
 ' Version 0.2
-
-' ?��?��?��?��?���? / ?��?��?��?��?��座流?���?
-
+' ペルセウス座 / ペルセウス座流星群
 ' Copyright © 2017 Nonki Takahashi.  The MIT License.
-
 ' Update 2017-07-30
-
 ' Program ID DRQ806-0
-
 '
-
 ' Reference:
-
 '  http://en.wikipedia.org/wiki/List_of_stars_in_Perseus
-
-
 
 SB_Workaround()
 
-
-
 title = "Perseid Meteor Shower 0.2"
-
 Init()
-
 ' initialize shapes
-
 Shapes_Init()
-
 ' add shapes
-
 scale = 1
-
 angle = 0
-
 iMin = 1
-
 iMax = 323
-
 Shapes_Add()
-
 r = 700     ' [px]
-
 delay = 100 ' [ms]
-
 Cal_Init()
-
 InitStars()
-
 ra = radiant["ra"]
-
 dec = radiant["dec"]
-
 Mapping()
-
 rot = ra + 0.75
-
 tilt = dec - 7.5
-
 GraphicsWindow.Title = title + " | RA=" + (Math.Round(ra * 100) / 100) + "h Dec=" + dec + "°"
-
 DrawRA()
-
 DrawDec()
-
 DrawStars()
-
 DrawCalendar()
-
 DrawMeteorShower()
-
 While "True"
-
   If keyDown Then
-
     If key = "Right" Then
-
       rot = rot + 0.25
-
       If 24 <= rot Then
-
         rot = rot - 24
-
       EndIf
-
     ElseIf key = "Left" Then
-
       rot = rot - 0.25
-
       If rot < 0 Then
-
         rot = rot + 24
-
       EndIf
-
     ElseIf key = "Up" Then
-
       If tilt <= 85 Then
-
         tilt = tilt + 5
-
       EndIf
-
     ElseIf key = "Down" Then
-
       If -85 <= tilt Then
-
         tilt = tilt - 5
-
       EndIf
-
     ElseIf key = "Add" Then
-
       r = r * 1.2
-
     ElseIf key = "Subtract" Then
-
       r = r / 1.2
-
     EndIf
-
     GraphicsWindow.Title = title + " RA=" + rot + "h Dec=" + tilt + "°"
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.FillRectangle(0, 0, gw, gh)
-
     DrawRA()
-
     DrawDec()
-
     DrawStars()
-
     keyDown = "False"
-
   EndIf
-
   Program.Delay(delay)
-
 EndWhile
 
-
-
 Sub DrawDec
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "#666666"
-
   For dec = -80 To 80 Step 10
-
     For ra = 0 To 24 Step 0.2
-
       Mapping()
-
       If 0 < ra Then
-
         DrawLine()
-
       EndIf
-
       xLast = x
-
       yLast = y
-
       zLast = z
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub DrawRA
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "#666666"
-
   For ra = 0 To 23
-
     For dec = -90 To 90 Step 5
-
       Mapping()
-
       If -90 < dec Then
-
         DrawLine()
-
       EndIf
-
       xLast = x
-
       yLast = y
-
       zLast = z
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub DrawCalendar
-
   GraphicsWindow.BrushColor = "White"
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 30
-
   txt = Shapes.AddText(months[month])
-
   Shapes.Move(txt, monthX, monthY)
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 40
-
   txt = Shapes.AddText(year)
-
   Shapes.Move(txt, monthX, monthY + 30)
-
   sBuf = year + "," + month
-
   Command_GetArgs()
-
   iYear = sArg[1]
-
   if iYear = "" Then
-
     Goto lEnd
-
   Endif
-
   If Math.Remainder(iYear, 4) = 0 And Math.Remainder(iYear, 100) > 0 Or Math.Remainder(iYear, 400) = 0 Then
-
     iDoM[2] = iDoM[2] + 1
-
   Endif
-
   iNoL = Math.Floor((iYear - 1) / 4) - Math.Floor((iYear - 1) / 100) + Math.Floor((iYear - 1) / 400)  ' number of leap year
-
   iWoY = Math.Remainder((iYear + iNoL), 7)  ' week of year
-
   iMonth = sArg[2]
-
   If iMonth = "" Then
-
     iM0 = 1
-
     iM1 = 12
-
   Else
-
     iM0 = iMonth
-
     iM1 = iMonth
-
   Endif
-
   iDoY = 0  ' days of year
-
   iNoM = 1  ' number of month
-
   For iM = iM0 To iM1
-
     While iNoM < iM
-
       iDoY = iDoY + iDoM[iNoM]
-
       iNoM = iNoM + 1
-
     EndWhile
-
     Cal_DrawMonth()
-
   EndFor  
-
   lEnd:
-
 EndSub
-
-
 
 Sub DrawLine
-
   visible = "False"
-
   If 0 <= z And 0 <= zLast Then
-
     If 0 <= x And x < gw And 0 <= y And y < gh Then
-
       visible = "True"
-
     ElseIf 0 <= xLast And xLast < gw And 0 <= yLast And yLast < gh Then
-
       visible = "True"
-
     EndIf
-
   EndIf
-
   If visible Then
-
     GraphicsWindow.DrawLine(xLast, yLast, x, y)
-
   EndIf
-
 EndSub
-
-
 
 Sub DrawMeteorShower
-
   ra = radiant["RA"]
-
   dec = radiant["Dec"]
-
   Mapping()
-
   rx = x
-
   ry = y
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "White"
-
   While "True"
-
     Program.Delay(2000)
-
     angle = Math.GetRandomNumber(360)
-
     _a = Math.GetRadians(angle)
-
     r1 = Math.GetRandomNumber(100) + 50
-
     r2 = r1 * 2.5
-
     x1 = rx + r1 * Math.Sin(_a)
-
     y1 = ry - r1 * Math.Cos(_a)
-
     x2 = rx + r2 * Math.Sin(_a)
-
     y2 = ry - r2 * Math.Cos(_a)
-
     meteor = Shapes.AddLine(x1, y1, x2, y2)
-
     For op = 100 To 0 Step -5
-
       Shapes.SetOpacity(meteor, op)
-
       Program.Delay(50)
-
     EndFor
-
     Shapes.Remove(meteor)
-
   EndWhile
-
 EndSub
-
-
 
 Sub DrawStars
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "MidnightBlue"
-
   n = Array.GetItemCount(edge)
-
   index = Array.GetAllIndices(edge)
-
   For i = 1 To n
-
     e = edge[index[i]]
-
     m = Text.GetIndexOf(e, "-")
-
     ra = star[Text.GetSubText(e, 1, m - 1)]["RA"]
-
     dec = star[Text.GetSubText(e, 1, m - 1)]["Dec"]
-
     Mapping()
-
     x1 = x
-
     y1 = y
-
     z1 = z
-
     ra = star[Text.GetSubTextToEnd(e, m + 1)]["RA"]
-
     dec = star[Text.GetSubTextToEnd(e, m + 1)]["Dec"]
-
     Mapping()
-
     x2 = x
-
     y2 = y
-
     z2 = z
-
     If connect[index[i]] <> "" Then
-
       Shapes.Remove(connect[index[i]])
-
       connect[index[i]] = ""
-
     EndIf
-
     visible = "False"
-
     If 0 <= z1 And 0 <= z2 Then
-
       If 0 <= x1 And x1 <= gw And 0 <= y1 And y1 <= gh Then
-
         visible = "True"
-
       ElseIf 0 <= x2 And x2 <= gw And 0 <= y2 And y2 <= gh Then
-
         visible = "True"
-
       EndIf
-
       If visible Then
-
         connect[index[i]] = Shapes.AddLine(x1, y1, x2, y2)
-
       EndIf
-
     EndIf
-
   EndFor
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "White"
-
   n = Array.GetItemCount(star)
-
   index = Array.GetAllIndices(star)
-
   For i = 1 To n
-
     ra = star[index[i]]["ra"]
-
     dec = star[index[i]]["dec"]
-
     Mapping()
-
     If ell[index[i]] <> "" Then
-
       Shapes.Remove(ell[index[i]])
-
       ell[index[i]] = ""
-
     EndIf
-
     If 0 <= z Then
-
       mag = star[index[i]]["mag"]
-
       d = 16 / mag
-
       ell[index[i]] = Shapes.AddEllipse(d, d)
-
       Shapes.Move(ell[index[i]], x - d / 2, y - d / 2)
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub Init
-
   gw = 598
-
   gh = 428
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BackgroundColor = "Black"
-
   ox = gw / 2
-
   oy = gh * 0.4
-
   rot = 0     ' rotation
-
   tilt = 0
-
   monthX = 40
-
   monthY = gh - 114
-
   calendarX = 30
-
   calendarY = 40
-
   year = 2017
-
   month = 8
-
   GraphicsWindow.KeyDown = OnKeyDown
-
 EndSub
-
-
 
 Sub InitStars
-
   ' Initialize stars in Perseus
-
   ' index: Flamsteed designation
-
   ' RA (Right ascension), Dec (Declination), Mag (Apparent magnitude)
-
   star["α Per"] = "ra=03 24 19.35;dec=+49 51 40.5;mag=1.79;fd=33;"
-
   star["Algol"] = "ra=03 08 10.13;dec=+40 57 20.3;mag=2.09;fd=26;"
-
   star["ζ Per"] = "ra=03 54 07.92;dec=+31 53 01.2;mag=2.84;fd=44;"
-
   star["ε Per"] = "ra=03 57 51.22;dec=+40 00 37.0;mag=2.90;fd=45;"
-
   star["γ Per A"] = "ra=03 04 47.79;dec=+53 30 23.2;mag=2.91;fd=23;"
-
   star["γ Per B"] = "ra=03 04 44.10;dec=+53 31 10.0;mag=3.00;fd=23;"
-
   star["δ Per"] = "ra=03 42 55.48;dec=+47 47 15.6;mag=3.01;fd=39;"
-
-  star["?? Per"] = "ra=03 05 10.50;dec=+38 50 25.9;mag=3.32;fd=25;"
-
+  star["ρ Per"] = "ra=03 05 10.50;dec=+38 50 25.9;mag=3.32;fd=25;"
   star["η Per"] = "ra=02 50 41.79;dec=+55 53 43.9;mag=3.77;fd=15;"
-
   star["ν Per"] = "ra=03 45 11.64;dec=+42 34 42.8;mag=3.77;fd=41;"
-
   star["κ Per"] = "ra=03 09 29.63;dec=+44 51 28.4;mag=3.79;fd=27;"
-
   star["ο Per"] = "ra=03 44 19.13;dec=+32 17 17.8;mag=3.84;fd=38;"
-
-  star["?? Per A"] = "ra=02 54 15.46;dec=+52 45 45.0;mag=3.93;fd=18;"
-
+  star["τ Per A"] = "ra=02 54 15.46;dec=+52 45 45.0;mag=3.93;fd=18;"
   star["48 Per"] = "ra=04 08 39.67;dec=+47 42 45.3;mag=3.96;fd=48;"
-
   star["ξ Per"] = "ra=03 58 57.90;dec=+35 47 27.7;mag=3.98;fd=46;"
-
-  star["?? Per B"] = "ra=02 54 20.80;dec=+52 45 30.0;mag=4.00;fd=18;"
-
-  star["?? Per"] = "ra=01 43 39.62;dec=+50 41 19.6;mag=4.01;"
-
+  star["τ Per B"] = "ra=02 54 20.80;dec=+52 45 30.0;mag=4.00;fd=18;"
+  star["φ Per"] = "ra=01 43 39.62;dec=+50 41 19.6;mag=4.01;"
   star["ι Per"] = "ra=03 09 02.88;dec=+49 36 48.6;mag=4.05;"
-
   star["θ Per"] = "ra=02 44 11.69;dec=+49 13 43.2;mag=4.10;fd=13;"
-
   star["μ Per"] = "ra=04 14 53.86;dec=+48 24 33.7;mag=4.12;fd=51;"
-
   star["16 Per"] = "ra=02 50 34.91;dec=+38 19 08.1;mag=4.22;fd=16;"
-
   star["λ Per"] = "ra=04 06 35.06;dec=+50 21 04.9;mag=4.25;fd=47;"
-
   star["58 Per"] = "ra=04 36 41.43;dec=+41 15 53.5;mag=4.25;fd=58;"
-
-  star["?? Per"] = "ra=03 36 29.36;dec=+48 11 33.7;mag=4.32;fd=37;"
-
-  star["?? Per"] = "ra=03 30 34.48;dec=+47 59 42.6;mag=4.36;fd=35;"
-
+  star["ψ Per"] = "ra=03 36 29.36;dec=+48 11 33.7;mag=4.32;fd=37;"
+  star["σ Per"] = "ra=03 30 34.48;dec=+47 59 42.6;mag=4.36;fd=35;"
   star["17 Per"] = "ra=02 51 30.83;dec=+35 03 35.6;mag=4.56;fd=17;"
-
   star["HD 26961"] = "ra=04 18 14.58;dec=+50 17 44.3;mag=4.60;"
-
-  star["?? Per"] = "ra=03 11 17.40;dec=+39 36 41.7;mag=4.61;fd=28;"
-
+  star["ω Per"] = "ra=03 11 17.40;dec=+39 36 41.7;mag=4.61;fd=28;"
   star["34 Per"] = "ra=03 29 22.03;dec=+49 30 32.5;mag=4.67;fd=34;"
-
   star["52 Per"] = "ra=04 14 53.31;dec=+40 29 01.4;mag=4.67;fd=52;"
-
-  star["? Per"] = "ra=02 58 45.65;dec=+39 39 46.2;mag=4.68;fd=22;"
-
+  star["π Per"] = "ra=02 58 45.65;dec=+39 39 46.2;mag=4.68;fd=22;"
   star["HD 18970"] = "ra=03 05 32.43;dec=+56 42 20.0;mag=4.77;"
-
   star["53 Per"] = "ra=04 21 33.15;dec=+46 29 56.3;mag=4.80;fd=53;"
-
   star["HD 20468"] = "ra=03 18 43.82;dec=+34 13 21.6;mag=4.85;"
-
   star["1 Aur"] = "ra=04 49 54.67;dec=+37 29 17.5;mag=4.89;fd=(1);"
-
   star["12 Per"] = "ra=02 42 14.93;dec=+40 11 39.8;mag=4.91;fd=12;"
-
   star["54 Per"] = "ra=04 20 24.66;dec=+34 34 00.3;mag=4.93;fd=54;"
-
   star["24 Per"] = "ra=02 59 03.71;dec=+35 10 59.2;mag=4.94;fd=24;"
-
   star["32 Per"] = "ra=03 21 26.61;dec=+43 19 46.7;mag=4.96;fd=32;"
-
   star["40 Per"] = "ra=03 42 22.64;dec=+33 57 54.1;mag=4.97;fd=40;"
-
   star["4 Per"] = "ra=02 02 18.07;dec=+54 29 15.2;mag=4.99;fd=4;"
-
   star["HD 21278"] = "ra=03 28 03.05;dec=+49 03 46.6;mag=4.99;"
-
   star["31 Per"] = "ra=03 19 07.62;dec=+50 05 42.1;mag=5.05;fd=31;"
-
   star["21 Per"] = "ra=02 57 17.28;dec=+31 56 03.5;mag=5.10;fd=21;"
-
   star["42 Per"] = "ra=03 49 32.70;dec=+33 05 29.0;mag=5.14;fd=42;"
-
   star["9 Per"] = "ra=02 22 21.43;dec=+55 50 44.4;mag=5.16;fd=9;"
-
   star["29 Per"] = "ra=03 18 37.72;dec=+50 13 20.0;mag=5.16;fd=29;"
-
   star["43 Per"] = "ra=03 56 36.44;dec=+50 41 44.5;mag=5.28;fd=43;"
-
   star["36 Per"] = "ra=03 32 26.30;dec=+46 03 25.4;mag=5.30;fd=36;"
-
   star["59 Per"] = "ra=04 42 54.30;dec=+43 21 55.0;mag=5.30;fd=59;"
-
   star["V575 Per"] = "ra=03 23 13.18;dec=+49 12 48.0;mag=5.32;"
-
   star["20 Per"] = "ra=02 53 42.58;dec=+38 20 15.6;mag=5.34;fd=20;"
-
   star["14 Per"] = "ra=02 44 05.16;dec=+44 17 49.4;mag=5.43;fd=14;"
-
   star["V396 Per"] = "ra=03 32 08.58;dec=+48 01 24.7;mag=5.47;"
-
   star["30 Per"] = "ra=03 17 47.33;dec=+44 01 30.3;mag=5.49;fd=30;"
-
   star["50 Per"] = "ra=04 08 36.49;dec=+38 02 24.8;mag=5.52;fd=50;"
-
   star["1 Per"] = "ra=01 51 59.31;dec=+55 08 50.7;mag=5.53;fd=1;"
-
   star["HD 27192"] = "ra=04 20 11.51;dec=+50 55 15.4;mag=5.55;"
-
   star["V472 Per"] = "ra=02 08 40.58;dec=+58 25 25.0;mag=5.66;"
-
   star["2 Per"] = "ra=01 52 09.35;dec=+50 47 34.3;mag=5.70;fd=2;"
-
   star["3 Per"] = "ra=01 58 33.50;dec=+49 12 15.3;mag=5.70;fd=3;"
-
   star["55 Per"] = "ra=04 24 29.14;dec=+34 07 51.0;mag=5.73;fd=55;"
-
   star["8 Per"] = "ra=02 17 59.82;dec=+57 53 59.3;mag=5.75;fd=8;"
-
   star["11 Per"] = "ra=02 43 02.80;dec=+55 06 21.9;mag=5.76;fd=11;"
-
   star["56 Per"] = "ra=04 24 37.42;dec=+33 57 35.6;mag=5.77;fd=56;"
-
   star["IW Per"] = "ra=03 33 35.02;dec=+39 53 58.5;mag=5.79;"
-
   star["V376 Per"] = "ra=03 49 08.12;dec=+43 57 46.9;mag=5.95;"
-
   star["V573 Per"] = "ra=03 16 35.19;dec=+32 11 03.2;mag=5.98;"
-
   star["7 Per"] = "ra=02 18 04.60;dec=+57 30 58.8;mag=5.99;fd=7;"
-
   star["49 Per"] = "ra=04 08 15.46;dec=+37 43 40.7;mag=6.07;fd=49;"
-
   star["V576 Per"] = "ra=03 25 57.36;dec=+49 07 15.0;mag=6.09;"
-
   star["57 Per"] = "ra=04 33 24.90;dec=+43 03 50.0;mag=6.09;fd=57;"
-
   star["V545 Per"] = "ra=04 18 08.09;dec=+42 08 28.5;mag=6.22;"
-
   star["10 Per"] = "ra=02 25 16.03;dec=+56 36 35.4;mag=6.25;fd=10;"
-
   star["V480 Per"] = "ra=02 49 30.74;dec=+57 05 03.6;mag=6.25;"
-
   star["V440 Per"] = "ra=02 23 51.75;dec=+55 21 53.5;mag=6.29;"
-
   star["5 Per"] = "ra=02 11 29.19;dec=+57 38 44.0;mag=6.38;fd=5;"
-
   star["V521 Per"] = "ra=03 07 47.34;dec=+47 18 31.3;mag=6.38;"
-
   star["KP Per"] = "ra=03 32 38.98;dec=+44 51 20.8;mag=6.42;"
-
   star["V572 Per"] = "ra=03 15 48.65;dec=+50 57 21.5;mag=6.46;"
-
   star["V509 Per"] = "ra=03 03 56.75;dec=+47 50 54.6;mag=6.48;"
-
   star["V520 Per"] = "ra=02 19 04.45;dec=+57 08 07.8;mag=6.55;fd=(61);"
-
   star["X Per"] = "ra=03 55 23.08;dec=+31 02 45.1;mag=6.79;"
-
   edge = "1=η Per-γ Per A;2=γ Per A-α Per;3=α Per-κ Per;4=κ Per-Algol;"
-
-  edge = edge + "5=Algol-?? Per;6=?? Per-16 Per;7=α Per-?? Per;8=?? Per-δ Per;"
-
+  edge = edge + "5=Algol-ρ Per;6=ρ Per-16 Per;7=α Per-ψ Per;8=ψ Per-δ Per;"
   edge = edge + "9=δ Per-48 Per;10=48 Per-μ Per;11=μ Per-λ Per;12=δ Per-ν Per;"
-
   edge = edge + "13=ν Per-ε Per;14=ε Per-ξ Per;15=ξ Per-ζ Per;"
-
   radiant = "ra=03 10 00.00;dec=+58 00 00.0;"
-
 EndSub
-
-
 
 Sub Mapping
-
   ' param ra - right asension [h]
-
   ' param rot - rotation [h]
-
   ' param dec - declination [deg]
-
   ' param tilt - tilt [deg]
-
   ' param r - radius [px]
-
   ' return x, y - position in the graphics window [px]
-
   ' return z - visible if 0 <= z
-
   If Text.IsSubText(ra, " ") Then
-
     _ra = Text.GetSubText(ra, 1, 2)
-
     _ra = _ra + Text.GetSubText(ra, 4, 2) / 60
-
     _ra = _ra + Text.GetSubText(ra, 7, 5) / 3600
-
     ra = _ra
-
   EndIf
-
   If Text.IsSubText(dec, " ") Then
-
     _dec = Text.GetSubText(dec, 2, 2)
-
     _dec = _dec + Text.GetSubText(dec, 5, 2) / 60
-
     _dec = _dec + Text.GetSubText(dec, 8, 5) / 3600
-
     _dec = _dec * Text.Append(Text.GetSubText(dec, 1, 1), "1")
-
     dec = _dec
-
   EndIf
-
-  ?? = Math.GetRadians((ra - rot) * 15)
-
+  φ = Math.GetRadians((ra - rot) * 15)
   θ = Math.GetRadians(dec)
-
-  x = ox - r * Math.Sin(??) * Math.Cos(θ)
-
+  x = ox - r * Math.Sin(φ) * Math.Cos(θ)
   y = oy - r * Math.Sin(θ)
-
-  z = r * Math.Cos(??) * Math.Cos(θ)
-
+  z = r * Math.Cos(φ) * Math.Cos(θ)
   If tilt <> 0 Then
-
     _z = z
-
     _y = y - oy
-
-    ?? = Math.GetRadians(tilt)
-
-    z = Math.Cos(??) * _z - Math.Sin(??) * _y
-
-    y = oy + Math.Sin(??) * _z + Math.Cos(??) * _y
-
+    τ = Math.GetRadians(tilt)
+    z = Math.Cos(τ) * _z - Math.Sin(τ) * _y
+    y = oy + Math.Sin(τ) * _z + Math.Cos(τ) * _y
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   keyDown = "True"
-
   key = GraphicsWindow.LastKey
-
 EndSub
-
-
 
 Sub Cal_Init
-
   ' Calendar | Initialize days of month
-
   WQ = Text.GetCharacter(34)
-
   CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
-
   iDoM = "1=31;2=28;3=31;4=30;5=31;6=30;7=31;8=31;9=30;10=31;11=30;12=31;"
-
   months = "1=January;2=February;3=March;4=April;5=May;6=June;7=July;"
-
   months = months + "8=August;9=September;10=October;11=November;12=December;"
-
-  symbols = "1=?��;2=?��;3=?��;4=?��;5=?��;6=?��;7=?��;8=?��;9=?��;10=?��;11=?��;12=?��;"
-
+  symbols = "1=♑;2=♒;3=♓;4=♈;5=♉;6=♊;7=♋;8=♌;9=♍;10=♎;11=♏;12=♐;"
 EndSub
-
-
 
 Sub Cal_DrawMonth
-
   ' Calendar | Print month
-
   ' param iM - month
-
   ' param iDoY - days of year
-
   ' param iWoY - week of year
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.FontName = "Consolas"
-
   iW = Math.Remainder((iDoY + iWoY), 7)
-
   line = "SUN MON TUE WED THU FRI SAT" + CRLF
-
   iWoM = 0
-
   While iWoM < iW
-
     line = line + "    "
-
     iWoM = iWoM + 1
-
   EndWhile
-
   For iD = 1 To iDoM[iM]
-
     If iD < 10 Then
-
       line = line + "  " + iD + " "
-
     Else
-
       line = line + " " + iD + " "
-
     EndIf
-
     If Math.Remainder(iWoM, 7) = 6 Then
-
       line = line + CRLF
-
     EndIf
-
     iWoM = iWoM + 1
-
   EndFor
-
   If Math.Remainder(iWoM, 7) > 0 Then
-
     line = line + CRLF
-
   EndIf
-
   cal = Shapes.AddText(line)
-
   Shapes.Move(cal, calendarX, calendarY)
-
 EndSub
-
-
 
 Sub Command_GetArgs
-
   ' Command line | Get arguments
-
   ' param sBuf - input buffer
-
   ' return sArg[] - arguments
-
   ' return iN - number of arguments
-
   iP = 1  ' buffer pointer
-
   iN = 1  ' number of args
-
   iC = Text.GetIndexOf(sBuf, ",")   ' index of comma
-
   While iC > iP
-
     sArg[iN] = Text.GetSubText(sBuf, iP, iC - iP)
-
     iP = iC + 1
-
     iN = iN + 1
-
     iC = Text.GetIndexOf(sBuf, ",")
-
   EndWhile
-
   iE = Text.GetLength(sBuf) + 1     ' end of buffer
-
   sArg[iN] = Text.GetSubText(sBuf, iP, iE - iP)  
-
 EndSub
-
-
 
 Sub Shapes_Init
-
   ' Shapes | Initialize shapes data
-
   ' return shX, shY - current position of shapes
-
   ' return shape - array of shapes
-
   shX = 216 ' x offset
-
   shY = 32  ' y offset
-
   shape = ""
-
   shape[1] = "func=ell;x=178.48;y=293.95;width=6;height=6;bc=#004400;pw=0;"
-
   shape[2] = "func=ell;x=177.73;y=296.65;width=6;height=6;bc=#004400;pw=0;"
-
   shape[3] = "func=ell;x=176.23;y=298.04;width=6;height=6;bc=#004400;pw=0;"
-
   shape[4] = "func=ell;x=173.83;y=297.89;width=6;height=6;bc=#004400;pw=0;"
-
   shape[5] = "func=ell;x=170.94;y=296.89;width=6;height=6;bc=#004400;pw=0;"
-
   shape[6] = "func=ell;x=168.27;y=296.26;width=6;height=6;bc=#004400;pw=0;"
-
   shape[7] = "func=ell;x=166.38;y=296.99;width=6;height=6;bc=#004400;pw=0;"
-
   shape[8] = "func=ell;x=165.37;y=299.23;width=6;height=6;bc=#004400;pw=0;"
-
   shape[9] = "func=ell;x=164.80;y=302.24;width=6;height=6;bc=#004400;pw=0;"
-
   shape[10] = "func=ell;x=163.96;y=304.8;width=6;height=6;bc=#004400;pw=0;"
-
   shape[11] = "func=ell;x=162.32;y=305.96;width=6;height=6;bc=#004400;pw=0;"
-
   shape[12] = "func=ell;x=159.82;y=305.62;width=6;height=6;bc=#004400;pw=0;"
-
   shape[13] = "func=ell;x=156.92;y=304.6;width=6;height=6;bc=#004400;pw=0;"
-
   shape[14] = "func=ell;x=154.33;y=304.12;width=6;height=6;bc=#004400;pw=0;"
-
   shape[15] = "func=ell;x=149.58;y=303.58;width=12;height=9;angle=150;bc=#004400;pw=0;"
-
   shape[16] = "func=ell;x=175.96;y=288.21;width=6;height=6;bc=#004400;pw=0;"
-
   shape[17] = "func=ell;x=174.53;y=290.62;width=6;height=6;bc=#004400;pw=0;"
-
   shape[18] = "func=ell;x=172.72;y=291.58;width=6;height=6;bc=#004400;pw=0;"
-
   shape[19] = "func=ell;x=170.44;y=290.81;width=6;height=6;bc=#004400;pw=0;"
-
   shape[20] = "func=ell;x=167.92;y=289.11;width=6;height=6;bc=#004400;pw=0;"
-
   shape[21] = "func=ell;x=165.50;y=287.81;width=6;height=6;bc=#004400;pw=0;"
-
   shape[22] = "func=ell;x=163.48;y=288.01;width=6;height=6;bc=#004400;pw=0;"
-
   shape[23] = "func=ell;x=161.92;y=289.92;width=6;height=6;bc=#004400;pw=0;"
-
   shape[24] = "func=ell;x=160.59;y=292.68;width=6;height=6;bc=#004400;pw=0;"
-
   shape[25] = "func=ell;x=159.13;y=294.94;width=6;height=6;bc=#004400;pw=0;"
-
   shape[26] = "func=ell;x=157.24;y=295.63;width=6;height=6;bc=#004400;pw=0;"
-
   shape[27] = "func=ell;x=154.91;y=294.66;width=6;height=6;bc=#004400;pw=0;"
-
   shape[28] = "func=ell;x=152.37;y=292.92;width=6;height=6;bc=#004400;pw=0;"
-
   shape[29] = "func=ell;x=150.00;y=291.79;width=6;height=6;bc=#004400;pw=0;"
-
   shape[30] = "func=ell;x=145.06;y=290.76;width=12;height=9;angle=165;bc=#004400;pw=0;"
-
   shape[31] = "func=ell;x=175.01;y=282.02;width=6;height=6;bc=#004400;pw=0;"
-
   shape[32] = "func=ell;x=173.01;y=283.98;width=6;height=6;bc=#004400;pw=0;"
-
   shape[33] = "func=ell;x=171.01;y=284.43;width=6;height=6;bc=#004400;pw=0;"
-
   shape[34] = "func=ell;x=169.01;y=283.1;width=6;height=6;bc=#004400;pw=0;"
-
   shape[35] = "func=ell;x=167.01;y=280.8;width=6;height=6;bc=#004400;pw=0;"
-
   shape[36] = "func=ell;x=165.00;y=278.92;width=6;height=6;bc=#004400;pw=0;"
-
   shape[37] = "func=ell;x=163.00;y=278.6;width=6;height=6;bc=#004400;pw=0;"
-
   shape[38] = "func=ell;x=161.01;y=280.04;width=6;height=6;bc=#004400;pw=0;"
-
   shape[39] = "func=ell;x=159.01;y=282.36;width=6;height=6;bc=#004400;pw=0;"
-
   shape[40] = "func=ell;x=157.01;y=284.16;width=6;height=6;bc=#004400;pw=0;"
-
   shape[41] = "func=ell;x=155.01;y=284.34;width=6;height=6;bc=#004400;pw=0;"
-
   shape[42] = "func=ell;x=153.01;y=282.8;width=6;height=6;bc=#004400;pw=0;"
-
   shape[43] = "func=ell;x=151.01;y=280.47;width=6;height=6;bc=#004400;pw=0;"
-
   shape[44] = "func=ell;x=149.00;y=278.76;width=6;height=6;bc=#004400;pw=0;"
-
   shape[45] = "func=ell;x=144.00;y=277.21;width=12;height=9;angle=180;bc=#004400;pw=0;"
-
   shape[46] = "func=ell;x=175.69;y=275.79;width=6;height=6;bc=#004400;pw=0;"
-
   shape[47] = "func=ell;x=173.25;y=277.16;width=6;height=6;bc=#004400;pw=0;"
-
   shape[48] = "func=ell;x=171.20;y=277.09;width=6;height=6;bc=#004400;pw=0;"
-
   shape[49] = "func=ell;x=169.61;y=275.29;width=6;height=6;bc=#004400;pw=0;"
-
   shape[50] = "func=ell;x=168.28;y=272.54;width=6;height=6;bc=#004400;pw=0;"
-
   shape[51] = "func=ell;x=166.83;y=270.21;width=6;height=6;bc=#004400;pw=0;"
-
   shape[52] = "func=ell;x=164.98;y=269.38;width=6;height=6;bc=#004400;pw=0;"
-
   shape[53] = "func=ell;x=162.68;y=270.25;width=6;height=6;bc=#004400;pw=0;"
-
   shape[54] = "func=ell;x=160.14;y=271.98;width=6;height=6;bc=#004400;pw=0;"
-
   shape[55] = "func=ell;x=157.75;y=273.2;width=6;height=6;bc=#004400;pw=0;"
-
   shape[56] = "func=ell;x=155.77;y=272.86;width=6;height=6;bc=#004400;pw=0;"
-
   shape[57] = "func=ell;x=154.23;y=270.85;width=6;height=6;bc=#004400;pw=0;"
-
   shape[58] = "func=ell;x=152.91;y=268.08;width=6;height=6;bc=#004400;pw=0;"
-
   shape[59] = "func=ell;x=151.42;y=265.91;width=6;height=6;bc=#004400;pw=0;"
-
   shape[60] = "func=ell;x=146.50;y=263.84;width=12;height=9;angle=195;bc=#004400;pw=0;"
-
   shape[61] = "func=ell;x=177.96;y=269.95;width=6;height=6;bc=#004400;pw=0;"
-
   shape[62] = "func=ell;x=175.25;y=270.65;width=6;height=6;bc=#004400;pw=0;"
-
   shape[63] = "func=ell;x=173.29;y=270.04;width=6;height=6;bc=#004400;pw=0;"
-
   shape[64] = "func=ell;x=172.22;y=267.89;width=6;height=6;bc=#004400;pw=0;"
-
   shape[65] = "func=ell;x=171.64;y=264.89;width=6;height=6;bc=#004400;pw=0;"
-
   shape[66] = "func=ell;x=170.85;y=262.26;width=6;height=6;bc=#004400;pw=0;"
-
   shape[67] = "func=ell;x=169.28;y=260.99;width=6;height=6;bc=#004400;pw=0;"
-
   shape[68] = "func=ell;x=166.83;y=261.23;width=6;height=6;bc=#004400;pw=0;"
-
   shape[69] = "func=ell;x=163.93;y=262.24;width=6;height=6;bc=#004400;pw=0;"
-
   shape[70] = "func=ell;x=161.30;y=262.8;width=6;height=6;bc=#004400;pw=0;"
-
   shape[71] = "func=ell;x=159.48;y=261.96;width=6;height=6;bc=#004400;pw=0;"
-
   shape[72] = "func=ell;x=158.52;y=259.62;width=6;height=6;bc=#004400;pw=0;"
-
   shape[73] = "func=ell;x=157.95;y=256.6;width=6;height=6;bc=#004400;pw=0;"
-
   shape[74] = "func=ell;x=157.07;y=254.12;width=6;height=6;bc=#004400;pw=0;"
-
   shape[75] = "func=ell;x=152.36;y=251.58;width=12;height=9;angle=210;bc=#004400;pw=0;"
-
   shape[76] = "func=ell;x=181.66;y=264.89;width=6;height=6;bc=#004400;pw=0;"
-
   shape[77] = "func=ell;x=178.86;y=264.87;width=6;height=6;bc=#004400;pw=0;"
-
   shape[78] = "func=ell;x=177.13;y=263.77;width=6;height=6;bc=#004400;pw=0;"
-
   shape[79] = "func=ell;x=176.65;y=261.42;width=6;height=6;bc=#004400;pw=0;"
-
   shape[80] = "func=ell;x=176.87;y=258.38;width=6;height=6;bc=#004400;pw=0;"
-
   shape[81] = "func=ell;x=176.79;y=255.63;width=6;height=6;bc=#004400;pw=0;"
-
   shape[82] = "func=ell;x=175.60;y=253.99;width=6;height=6;bc=#004400;pw=0;"
-
   shape[83] = "func=ell;x=173.17;y=253.59;width=6;height=6;bc=#004400;pw=0;"
-
   shape[84] = "func=ell;x=170.11;y=253.82;width=6;height=6;bc=#004400;pw=0;"
-
   shape[85] = "func=ell;x=167.42;y=253.68;width=6;height=6;bc=#004400;pw=0;"
-
   shape[86] = "func=ell;x=165.88;y=252.4;width=6;height=6;bc=#004400;pw=0;"
-
   shape[87] = "func=ell;x=165.56;y=249.89;width=6;height=6;bc=#004400;pw=0;"
-
   shape[88] = "func=ell;x=165.79;y=246.83;width=6;height=6;bc=#004400;pw=0;"
-
   shape[89] = "func=ell;x=165.59;y=244.2;width=6;height=6;bc=#004400;pw=0;"
-
   shape[90] = "func=ell;x=161.21;y=241.26;width=12;height=9;angle=225;bc=#004400;pw=0;"
-
   shape[91] = "func=ell;x=186.55;y=260.97;width=6;height=6;bc=#004400;pw=0;"
-
   shape[92] = "func=ell;x=183.85;y=260.22;width=6;height=6;bc=#004400;pw=0;"
-
   shape[93] = "func=ell;x=182.46;y=258.72;width=6;height=6;bc=#004400;pw=0;"
-
   shape[94] = "func=ell;x=182.61;y=256.32;width=6;height=6;bc=#004400;pw=0;"
-
   shape[95] = "func=ell;x=183.61;y=253.43;width=6;height=6;bc=#004400;pw=0;"
-
   shape[96] = "func=ell;x=184.24;y=250.76;width=6;height=6;bc=#004400;pw=0;"
-
   shape[97] = "func=ell;x=183.51;y=248.87;width=6;height=6;bc=#004400;pw=0;"
-
   shape[98] = "func=ell;x=181.27;y=247.86;width=6;height=6;bc=#004400;pw=0;"
-
   shape[99] = "func=ell;x=178.26;y=247.29;width=6;height=6;bc=#004400;pw=0;"
-
   shape[100] = "func=ell;x=175.70;y=246.45;width=6;height=6;bc=#004400;pw=0;"
-
   shape[101] = "func=ell;x=174.54;y=244.81;width=6;height=6;bc=#004400;pw=0;"
-
   shape[102] = "func=ell;x=174.88;y=242.31;width=6;height=6;bc=#004400;pw=0;"
-
   shape[103] = "func=ell;x=175.90;y=239.41;width=6;height=6;bc=#004400;pw=0;"
-
   shape[104] = "func=ell;x=176.38;y=236.82;width=6;height=6;bc=#004400;pw=0;"
-
   shape[105] = "func=ell;x=172.42;y=233.57;width=12;height=9;angle=240;bc=#004400;pw=0;"
-
   shape[106] = "func=ell;x=192.29;y=258.45;width=6;height=6;bc=#004400;pw=0;"
-
   shape[107] = "func=ell;x=189.88;y=257.02;width=6;height=6;bc=#004400;pw=0;"
-
   shape[108] = "func=ell;x=188.92;y=255.21;width=6;height=6;bc=#004400;pw=0;"
-
   shape[109] = "func=ell;x=189.69;y=252.93;width=6;height=6;bc=#004400;pw=0;"
-
   shape[110] = "func=ell;x=191.39;y=250.41;width=6;height=6;bc=#004400;pw=0;"
-
   shape[111] = "func=ell;x=192.69;y=247.99;width=6;height=6;bc=#004400;pw=0;"
-
   shape[112] = "func=ell;x=192.49;y=245.97;width=6;height=6;bc=#004400;pw=0;"
-
   shape[113] = "func=ell;x=190.58;y=244.41;width=6;height=6;bc=#004400;pw=0;"
-
   shape[114] = "func=ell;x=187.82;y=243.08;width=6;height=6;bc=#004400;pw=0;"
-
   shape[115] = "func=ell;x=185.56;y=241.62;width=6;height=6;bc=#004400;pw=0;"
-
   shape[116] = "func=ell;x=184.87;y=239.73;width=6;height=6;bc=#004400;pw=0;"
-
   shape[117] = "func=ell;x=185.84;y=237.4;width=6;height=6;bc=#004400;pw=0;"
-
   shape[118] = "func=ell;x=187.58;y=234.86;width=6;height=6;bc=#004400;pw=0;"
-
   shape[119] = "func=ell;x=188.71;y=232.49;width=6;height=6;bc=#004400;pw=0;"
-
   shape[120] = "func=ell;x=185.24;y=229.05;width=12;height=9;angle=255;bc=#004400;pw=0;"
-
   shape[121] = "func=ell;x=198.48;y=257.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[122] = "func=ell;x=196.52;y=255.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[123] = "func=ell;x=196.07;y=253.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[124] = "func=ell;x=197.40;y=251.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[125] = "func=ell;x=199.70;y=249.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[126] = "func=ell;x=201.58;y=247.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[127] = "func=ell;x=201.90;y=245.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[128] = "func=ell;x=200.46;y=243.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[129] = "func=ell;x=198.14;y=241.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[130] = "func=ell;x=196.34;y=239.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[131] = "func=ell;x=196.16;y=237.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[132] = "func=ell;x=197.70;y=235.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[133] = "func=ell;x=200.03;y=233.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[134] = "func=ell;x=201.74;y=231.5;width=6;height=6;bc=#004400;pw=0;"
-
   shape[135] = "func=ell;x=198.79;y=228.0;width=12;height=9;angle=270;bc=#004400;pw=0;"
-
   shape[136] = "func=ell;x=204.71;y=258.18;width=6;height=6;bc=#004400;pw=0;"
-
   shape[137] = "func=ell;x=203.34;y=255.74;width=6;height=6;bc=#004400;pw=0;"
-
   shape[138] = "func=ell;x=203.41;y=253.69;width=6;height=6;bc=#004400;pw=0;"
-
   shape[139] = "func=ell;x=205.21;y=252.1;width=6;height=6;bc=#004400;pw=0;"
-
   shape[140] = "func=ell;x=207.96;y=250.77;width=6;height=6;bc=#004400;pw=0;"
-
   shape[141] = "func=ell;x=210.29;y=249.32;width=6;height=6;bc=#004400;pw=0;"
-
   shape[142] = "func=ell;x=211.12;y=247.47;width=6;height=6;bc=#004400;pw=0;"
-
   shape[143] = "func=ell;x=210.25;y=245.17;width=6;height=6;bc=#004400;pw=0;"
-
   shape[144] = "func=ell;x=208.52;y=242.63;width=6;height=6;bc=#004400;pw=0;"
-
   shape[145] = "func=ell;x=207.30;y=240.24;width=6;height=6;bc=#004400;pw=0;"
-
   shape[146] = "func=ell;x=207.64;y=238.26;width=6;height=6;bc=#004400;pw=0;"
-
   shape[147] = "func=ell;x=209.65;y=236.72;width=6;height=6;bc=#004400;pw=0;"
-
   shape[148] = "func=ell;x=212.42;y=235.4;width=6;height=6;bc=#004400;pw=0;"
-
   shape[149] = "func=ell;x=214.59;y=233.91;width=6;height=6;bc=#004400;pw=0;"
-
   shape[150] = "func=ell;x=212.16;y=230.49;width=12;height=9;angle=285;bc=#004400;pw=0;"
-
   shape[151] = "func=ell;x=210.55;y=260.45;width=6;height=6;bc=#004400;pw=0;"
-
   shape[152] = "func=ell;x=209.85;y=257.74;width=6;height=6;bc=#004400;pw=0;"
-
   shape[153] = "func=ell;x=210.46;y=255.78;width=6;height=6;bc=#004400;pw=0;"
-
   shape[154] = "func=ell;x=212.61;y=254.71;width=6;height=6;bc=#004400;pw=0;"
-
   shape[155] = "func=ell;x=215.61;y=254.13;width=6;height=6;bc=#004400;pw=0;"
-
   shape[156] = "func=ell;x=218.24;y=253.34;width=6;height=6;bc=#004400;pw=0;"
-
   shape[157] = "func=ell;x=219.51;y=251.77;width=6;height=6;bc=#004400;pw=0;"
-
   shape[158] = "func=ell;x=219.27;y=249.32;width=6;height=6;bc=#004400;pw=0;"
-
   shape[159] = "func=ell;x=218.26;y=246.42;width=6;height=6;bc=#004400;pw=0;"
-
   shape[160] = "func=ell;x=217.70;y=243.79;width=6;height=6;bc=#004400;pw=0;"
-
   shape[161] = "func=ell;x=218.54;y=241.97;width=6;height=6;bc=#004400;pw=0;"
-
   shape[162] = "func=ell;x=220.88;y=241.01;width=6;height=6;bc=#004400;pw=0;"
-
   shape[163] = "func=ell;x=223.90;y=240.44;width=6;height=6;bc=#004400;pw=0;"
-
   shape[164] = "func=ell;x=226.38;y=239.56;width=6;height=6;bc=#004400;pw=0;"
-
   shape[165] = "func=ell;x=224.42;y=236.35;width=12;height=9;angle=300;bc=#004400;pw=0;"
-
   shape[166] = "func=ell;x=215.61;y=264.15;width=6;height=6;bc=#004400;pw=0;"
-
   shape[167] = "func=ell;x=215.63;y=261.35;width=6;height=6;bc=#004400;pw=0;"
-
   shape[168] = "func=ell;x=216.73;y=259.62;width=6;height=6;bc=#004400;pw=0;"
-
   shape[169] = "func=ell;x=219.08;y=259.14;width=6;height=6;bc=#004400;pw=0;"
-
   shape[170] = "func=ell;x=222.12;y=259.36;width=6;height=6;bc=#004400;pw=0;"
-
   shape[171] = "func=ell;x=224.87;y=259.28;width=6;height=6;bc=#004400;pw=0;"
-
   shape[172] = "func=ell;x=226.51;y=258.09;width=6;height=6;bc=#004400;pw=0;"
-
   shape[173] = "func=ell;x=226.91;y=255.66;width=6;height=6;bc=#004400;pw=0;"
-
   shape[174] = "func=ell;x=226.68;y=252.6;width=6;height=6;bc=#004400;pw=0;"
-
   shape[175] = "func=ell;x=226.82;y=249.91;width=6;height=6;bc=#004400;pw=0;"
-
   shape[176] = "func=ell;x=228.10;y=248.37;width=6;height=6;bc=#004400;pw=0;"
-
   shape[177] = "func=ell;x=230.61;y=248.05;width=6;height=6;bc=#004400;pw=0;"
-
   shape[178] = "func=ell;x=233.67;y=248.28;width=6;height=6;bc=#004400;pw=0;"
-
   shape[179] = "func=ell;x=236.30;y=248.08;width=6;height=6;bc=#004400;pw=0;"
-
   shape[180] = "func=ell;x=234.74;y=245.2;width=12;height=9;angle=315;bc=#004400;pw=0;"
-
   shape[181] = "func=ell;x=219.53;y=269.04;width=6;height=6;bc=#004400;pw=0;"
-
   shape[182] = "func=ell;x=220.28;y=266.34;width=6;height=6;bc=#004400;pw=0;"
-
   shape[183] = "func=ell;x=221.78;y=264.95;width=6;height=6;bc=#004400;pw=0;"
-
   shape[184] = "func=ell;x=224.18;y=265.1;width=6;height=6;bc=#004400;pw=0;"
-
   shape[185] = "func=ell;x=227.07;y=266.1;width=6;height=6;bc=#004400;pw=0;"
-
   shape[186] = "func=ell;x=229.74;y=266.73;width=6;height=6;bc=#004400;pw=0;"
-
   shape[187] = "func=ell;x=231.63;y=266.0;width=6;height=6;bc=#004400;pw=0;"
-
   shape[188] = "func=ell;x=232.64;y=263.76;width=6;height=6;bc=#004400;pw=0;"
-
   shape[189] = "func=ell;x=233.21;y=260.75;width=6;height=6;bc=#004400;pw=0;"
-
   shape[190] = "func=ell;x=234.05;y=258.19;width=6;height=6;bc=#004400;pw=0;"
-
   shape[191] = "func=ell;x=235.69;y=257.03;width=6;height=6;bc=#004400;pw=0;"
-
   shape[192] = "func=ell;x=238.19;y=257.37;width=6;height=6;bc=#004400;pw=0;"
-
   shape[193] = "func=ell;x=241.09;y=258.39;width=6;height=6;bc=#004400;pw=0;"
-
   shape[194] = "func=ell;x=243.68;y=258.87;width=6;height=6;bc=#004400;pw=0;"
-
   shape[195] = "func=ell;x=242.43;y=256.41;width=12;height=9;angle=330;bc=#004400;pw=0;"
-
   shape[196] = "func=ell;x=222.05;y=274.78;width=6;height=6;bc=#004400;pw=0;"
-
   shape[197] = "func=ell;x=223.48;y=272.37;width=6;height=6;bc=#004400;pw=0;"
-
   shape[198] = "func=ell;x=225.29;y=271.41;width=6;height=6;bc=#004400;pw=0;"
-
   shape[199] = "func=ell;x=227.57;y=272.18;width=6;height=6;bc=#004400;pw=0;"
-
   shape[200] = "func=ell;x=230.09;y=273.88;width=6;height=6;bc=#004400;pw=0;"
-
   shape[201] = "func=ell;x=232.51;y=275.18;width=6;height=6;bc=#004400;pw=0;"
-
   shape[202] = "func=ell;x=234.53;y=274.98;width=6;height=6;bc=#004400;pw=0;"
-
   shape[203] = "func=ell;x=236.09;y=273.07;width=6;height=6;bc=#004400;pw=0;"
-
   shape[204] = "func=ell;x=237.42;y=270.31;width=6;height=6;bc=#004400;pw=0;"
-
   shape[205] = "func=ell;x=238.88;y=268.05;width=6;height=6;bc=#004400;pw=0;"
-
   shape[206] = "func=ell;x=240.77;y=267.36;width=6;height=6;bc=#004400;pw=0;"
-
   shape[207] = "func=ell;x=243.10;y=268.33;width=6;height=6;bc=#004400;pw=0;"
-
   shape[208] = "func=ell;x=245.64;y=270.07;width=6;height=6;bc=#004400;pw=0;"
-
   shape[209] = "func=ell;x=248.01;y=271.2;width=6;height=6;bc=#004400;pw=0;"
-
   shape[210] = "func=ell;x=246.95;y=269.23;width=12;height=9;angle=345;bc=#004400;pw=0;"
-
   shape[211] = "func=ell;x=223.01;y=280.97;width=6;height=6;bc=#004400;pw=0;"
-
   shape[212] = "func=ell;x=225.01;y=279.01;width=6;height=6;bc=#004400;pw=0;"
-
   shape[213] = "func=ell;x=227.01;y=278.56;width=6;height=6;bc=#004400;pw=0;"
-
   shape[214] = "func=ell;x=229.01;y=279.89;width=6;height=6;bc=#004400;pw=0;"
-
   shape[215] = "func=ell;x=231.01;y=282.19;width=6;height=6;bc=#004400;pw=0;"
-
   shape[216] = "func=ell;x=233.01;y=284.07;width=6;height=6;bc=#004400;pw=0;"
-
   shape[217] = "func=ell;x=235.01;y=284.39;width=6;height=6;bc=#004400;pw=0;"
-
   shape[218] = "func=ell;x=237.01;y=282.95;width=6;height=6;bc=#004400;pw=0;"
-
   shape[219] = "func=ell;x=239.01;y=280.63;width=6;height=6;bc=#004400;pw=0;"
-
   shape[220] = "func=ell;x=241.01;y=278.83;width=6;height=6;bc=#004400;pw=0;"
-
   shape[221] = "func=ell;x=243.01;y=278.65;width=6;height=6;bc=#004400;pw=0;"
-
   shape[222] = "func=ell;x=245.01;y=280.19;width=6;height=6;bc=#004400;pw=0;"
-
   shape[223] = "func=ell;x=247.01;y=282.52;width=6;height=6;bc=#004400;pw=0;"
-
   shape[224] = "func=ell;x=249.01;y=284.23;width=6;height=6;bc=#004400;pw=0;"
-
   shape[225] = "func=ell;x=248.01;y=282.78;width=12;height=9;angle=360;bc=#004400;pw=0;"
-
   shape[226] = "func=ell;x=222.32;y=287.2;width=6;height=6;bc=#004400;pw=0;"
-
   shape[227] = "func=ell;x=224.76;y=285.83;width=6;height=6;bc=#004400;pw=0;"
-
   shape[228] = "func=ell;x=226.81;y=285.9;width=6;height=6;bc=#004400;pw=0;"
-
   shape[229] = "func=ell;x=228.40;y=287.7;width=6;height=6;bc=#004400;pw=0;"
-
   shape[230] = "func=ell;x=229.73;y=290.45;width=6;height=6;bc=#004400;pw=0;"
-
   shape[231] = "func=ell;x=231.18;y=292.78;width=6;height=6;bc=#004400;pw=0;"
-
   shape[232] = "func=ell;x=233.03;y=293.61;width=6;height=6;bc=#004400;pw=0;"
-
   shape[233] = "func=ell;x=235.33;y=292.74;width=6;height=6;bc=#004400;pw=0;"
-
   shape[234] = "func=ell;x=237.87;y=291.01;width=6;height=6;bc=#004400;pw=0;"
-
   shape[235] = "func=ell;x=240.26;y=289.79;width=6;height=6;bc=#004400;pw=0;"
-
   shape[236] = "func=ell;x=242.24;y=290.13;width=6;height=6;bc=#004400;pw=0;"
-
   shape[237] = "func=ell;x=243.78;y=292.14;width=6;height=6;bc=#004400;pw=0;"
-
   shape[238] = "func=ell;x=245.10;y=294.91;width=6;height=6;bc=#004400;pw=0;"
-
   shape[239] = "func=ell;x=246.59;y=297.08;width=6;height=6;bc=#004400;pw=0;"
-
   shape[240] = "func=ell;x=245.51;y=296.15;width=12;height=9;angle=375;bc=#004400;pw=0;"
-
   shape[241] = "func=ell;x=220.05;y=293.04;width=6;height=6;bc=#004400;pw=0;"
-
   shape[242] = "func=ell;x=222.76;y=292.34;width=6;height=6;bc=#004400;pw=0;"
-
   shape[243] = "func=ell;x=224.72;y=292.95;width=6;height=6;bc=#004400;pw=0;"
-
   shape[244] = "func=ell;x=225.79;y=295.1;width=6;height=6;bc=#004400;pw=0;"
-
   shape[245] = "func=ell;x=226.37;y=298.1;width=6;height=6;bc=#004400;pw=0;"
-
   shape[246] = "func=ell;x=227.16;y=300.73;width=6;height=6;bc=#004400;pw=0;"
-
   shape[247] = "func=ell;x=228.73;y=302.0;width=6;height=6;bc=#004400;pw=0;"
-
   shape[248] = "func=ell;x=231.18;y=301.76;width=6;height=6;bc=#004400;pw=0;"
-
   shape[249] = "func=ell;x=234.08;y=300.75;width=6;height=6;bc=#004400;pw=0;"
-
   shape[250] = "func=ell;x=236.71;y=300.19;width=6;height=6;bc=#004400;pw=0;"
-
   shape[251] = "func=ell;x=238.53;y=301.03;width=6;height=6;bc=#004400;pw=0;"
-
   shape[252] = "func=ell;x=239.49;y=303.37;width=6;height=6;bc=#004400;pw=0;"
-
   shape[253] = "func=ell;x=240.06;y=306.39;width=6;height=6;bc=#004400;pw=0;"
-
   shape[254] = "func=ell;x=240.94;y=308.87;width=6;height=6;bc=#004400;pw=0;"
-
   shape[255] = "func=ell;x=239.65;y=308.41;width=12;height=9;angle=390;bc=#004400;pw=0;"
-
   shape[256] = "func=rect;x=187.01;y=284.5;width=30;height=35;bc=Black;pc=#224422;pw=4;"
-
   shape[257] = "func=ell;x=172.01;y=259.5;width=60;height=45;bc=#224422;pw=0;"
-
   shape[258] = "func=ell;x=187.01;y=314.5;width=30;height=10;bc=#224422;pw=0;"
-
   shape[259] = "func=ell;x=183.01;y=277.5;width=14;height=14;bc=#660000;pw=0;"
-
   shape[260] = "func=ell;x=207.01;y=277.5;width=14;height=14;bc=#660000;pw=0;"
-
   shape[261] = "func=rect;x=199;y=37;width=138;height=14;angle=34;bc=#939393;pw=0;"
-
   shape[262] = "func=tri;x=325;y=77;x1=7;y1=0;x2=0;y2=21;x3=15;y3=21;angle=124;bc=#939393;pw=0;"
-
   shape[263] = "func=rect;x=219;y=19;width=32;height=8;angle=120;bc=#93893E;pw=0;"
-
   shape[264] = "func=rect;x=111;y=114;width=65;height=105;angle=54;bc=#AD8871;pw=0;"
-
   shape[265] = "func=ell;x=193;y=162;width=1;height=1;bc=#C5AB9B;pw=0;"
-
   shape[266] = "func=rect;x=180;y=115;width=26;height=28;angle=53;bc=#AD8871;pw=0;"
-
   shape[267] = "func=ell;x=165;y=145;width=40;height=28;angle=32;bc=#C5AB9B;pw=0;"
-
   shape[268] = "func=ell;x=149;y=108;width=27;height=42;angle=351;bc=#C5AB9B;pw=0;"
-
   shape[269] = "func=ell;x=188;y=79;width=49;height=64;angle=48;bc=#C5AB9B;pw=0;"
-
   shape[270] = "func=ell;x=134;y=141;width=20;height=24;bc=#C5AB9B;pw=0;"
-
   shape[271] = "func=ell;x=145;y=160;width=20;height=21;bc=#C5AB9B;pw=0;"
-
   shape[272] = "func=ell;x=116;y=155;width=20;height=21;bc=#C5AB9B;pw=0;"
-
   shape[273] = "func=ell;x=126;y=172;width=20;height=21;bc=#C5AB9B;pw=0;"
-
   shape[274] = "func=rect;x=163;y=55;width=18;height=61;angle=17;bc=#C5AB9B;pw=0;"
-
   shape[275] = "func=rect;x=178;y=159;width=18;height=61;angle=20;bc=#C5AB9B;pw=0;"
-
   shape[276] = "func=rect;x=185;y=16;width=19;height=50;angle=37;bc=#C5AB9B;pw=0;"
-
   shape[277] = "func=rect;x=150;y=204;width=19;height=50;angle=54;bc=#C5AB9B;pw=0;"
-
   shape[278] = "func=ell;x=202;y=0;width=27;height=27;bc=#C5AB9B;pw=0;"
-
   shape[279] = "func=ell;x=124;y=231;width=27;height=27;bc=#C5AB9B;pw=0;"
-
   shape[280] = "func=rect;x=87;y=204;width=26;height=68;angle=30;bc=#C5AB9B;pw=0;"
-
   shape[281] = "func=rect;x=52;y=143;width=26;height=68;angle=86;bc=#C5AB9B;pw=0;"
-
   shape[282] = "func=ell;x=13;y=165;width=29;height=29;bc=#C5AB9B;pw=0;"
-
   shape[283] = "func=ell;x=67;y=256;width=29;height=29;bc=#C5AB9B;pw=0;"
-
   shape[284] = "func=rect;x=69;y=276;width=23;height=60;bc=#C5AB9B;pw=0;"
-
   shape[285] = "func=rect;x=13;y=182;width=23;height=60;bc=#C5AB9B;pw=0;"
-
   shape[286] = "func=ell;x=66;y=317;width=25;height=54;angle=15;bc=#C5AB9B;pw=0;"
-
   shape[287] = "func=ell;x=0;y=221;width=25;height=54;angle=82;bc=#C5AB9B;pw=0;"
-
   shape[288] = "func=rect;x=74;y=176;width=67;height=32;angle=56;bc=#9E5B2E;pw=0;"
-
   shape[289] = "func=tri;x=76;y=150;x1=11;y1=0;x2=0;y2=28;x3=23;y3=28;angle=58;bc=#9E5B2E;pw=0;"
-
   shape[290] = "func=tri;x=113;y=204;x1=13;y1=0;x2=0;y2=32;x3=26;y3=32;angle=58;bc=#9E5B2E;pw=0;"
-
   shape[291] = "func=rect;x=98;y=175;width=14;height=37;angle=55;bc=#5B341A;pw=0;"
-
   shape[292] = "func=rect;x=108;y=188;width=14;height=37;angle=48;bc=#5B341A;pw=0;"
-
   shape[293] = "func=rect;x=117;y=200;width=14;height=37;angle=38;bc=#5B341A;pw=0;"
-
   shape[294] = "func=rect;x=88;y=160;width=14;height=37;angle=58;bc=#5B341A;pw=0;"
-
   shape[295] = "func=rect;x=81;y=149;width=14;height=37;angle=70;bc=#5B341A;pw=0;"
-
   shape[296] = "func=rect;x=11;y=200;width=25;height=9;bc=#5B341A;pw=0;"
-
   shape[297] = "func=rect;x=68;y=299;width=25;height=9;bc=#5B341A;pw=0;"
-
   shape[298] = "func=rect;x=13;y=228;width=23;height=11;bc=#5B341A;pw=0;"
-
   shape[299] = "func=rect;x=67;y=322;width=26;height=12;bc=#5B341A;pw=0;"
-
   shape[300] = "func=ell;x=200;y=96;width=13;height=13;bc=#000000;pw=0;"
-
   shape[301] = "func=ell;x=212;y=113;width=13;height=13;bc=#000000;pw=0;"
-
   shape[302] = "func=rect;x=196;y=99;width=43;height=13;angle=54;bc=#C5AB9B;pw=0;"
-
   shape[303] = "func=line;x=207;y=89;x1=0;y1=0;x2=6;y2=17;pc=#AD8871;pw=2;"
-
   shape[304] = "func=line;x=198;y=106;x1=14;y1=0;x2=0;y2=12;pc=#AD8871;pw=2;"
-
   shape[305] = "func=line;x=217;y=111;x1=0;y1=0;x2=11;y2=11;pc=#AD8871;pw=2;"
-
   shape[306] = "func=line;x=225;y=116;x1=0;y1=1;x2=0;y2=0;pc=#AD8871;pw=2;"
-
   shape[307] = "func=ell;x=247;y=103;width=12;height=38;angle=18;bc=#939393;pw=0;"
-
   shape[308] = "func=ell;x=211;y=49;width=12;height=38;angle=86;bc=#939393;pw=0;"
-
   shape[309] = "func=rect;x=240;y=102;width=10;height=25;angle=112;bc=#939393;pw=0;"
-
   shape[310] = "func=rect;x=219;y=66;width=10;height=25;angle=4;bc=#939393;pw=0;"
-
   shape[311] = "func=ell;x=220;y=78;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[312] = "func=ell;x=230;y=88;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[313] = "func=ell;x=231;y=102;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[314] = "func=ell;x=233;y=112;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[315] = "func=ell;x=209;y=76;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[316] = "func=ell;x=226;y=120;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[317] = "func=ell;x=198;y=78;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[318] = "func=ell;x=233;y=96;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[319] = "func=ell;x=225;y=82;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[320] = "func=ell;x=218;y=92;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[321] = "func=ell;x=216;y=81;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[322] = "func=ell;x=225;y=95;width=13;height=13;bc=#76523D;pw=0;"
-
   shape[323] = "func=ell;x=93;y=300;width=8;height=36;angle=20;bc=#939393;pw=0;"
-
 EndSub
-
-
 
 Sub Math_CartesianToPolar
-
   ' Math | convert cartesian coodinate to polar coordinate
-
   ' param x, y - cartesian coordinate
-
   ' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   ElseIf x = 0 Then
-
     a = 0
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
-
 
 Sub SB_RotateWorkaround
-
   ' Small Basic | Rotate workaround for Silverlight
-
   ' param shp - current shape
-
   ' param x, y - original coordinate
-
   ' param alpha - angle [radian]
-
   ' returns x, y - workaround coordinate
-
   If shp["func"] = "tri" Then
-
     x1 = -Math.Floor(shp["x3"] / 2)
-
     y1 = -Math.Floor(shp["y3"] / 2)
-
   ElseIf shp["func"] = "line" Then
-
     x1 = -Math.Floor(Math.Abs(shp["x1"] - shp["x2"]) / 2)
-
     y1 = -Math.Floor(Math.Abs(shp["y1"] - shp["y2"]) / 2)
-
   EndIf
-
   ox = x - x1
-
   oy = y - y1
-
   x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
   y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
 EndSub
-
-
 
 Sub SB_Workaround
-
   ' Small Basic | Workaround for Silverlight
-
   ' returns silverlight - "True" if in remote
-
   color = GraphicsWindow.GetPixel(0, 0)
-
   If Text.GetLength(color) > 7 Then
-
     silverlight = "True"
-
     msWait = 300
-
   Else
-
     silverlight = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub Shapes_Add
-
   ' Shapes | add shapes as shapes data
-
   ' param iMin, iMax - shape indices to add
-
   ' param shape - array of shapes
-
   ' param scale - 1 if same scale
-
   ' return shWidth, shHeight - total size of shapes
-
   ' return shAngle - current angle of shapes
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   Shapes_CalcWidthAndHeight()
-
   s = scale
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     GraphicsWindow.PenWidth = shp["pw"] * s
-
     If shp["pw"] > 0 Then
-
       GraphicsWindow.PenColor = shp["pc"]
-
     EndIf
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) Then
-
       GraphicsWindow.BrushColor = shp["bc"]
-
     EndIf
-
     If shp["func"] = "rect" Then
-
       shp["obj"] = Shapes.AddRectangle(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "ell" Then
-
       shp["obj"] = Shapes.AddEllipse(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "tri" Then
-
       shp["obj"] = Shapes.AddTriangle(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s, shp["x3"] * s, shp["y3"] * s)
-
     ElseIf shp["func"] = "line" Then
-
       shp["obj"] = Shapes.AddLine(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s)
-
     ElseIf shp["func"] = "text" Then
-
       If silverlight Then
-
         fs = Math.Floor(shp["fs"] * 0.9)
-
       Else
-
         fs = shp["fs"]
-
       EndIf
-
       GraphicsWindow.FontSize = fs * s
-
       GraphicsWindow.FontName = shp["fn"]
-
       shp["obj"] = Shapes.AddText(shp["text"])
-
     EndIf
-
     x = shp["x"]
-
     y = shp["y"]
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(shp["angle"])
-
       SB_RotateWorkaround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) And (shp["angle"] <> 0) And (shp["angle"] <> "") Then
-
       Shapes.Rotate(shp["obj"], shp["angle"])
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
   shAngle = 0
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Shapes_CalcRotatePos
-
   ' Shapes | Calculate position for rotated shape
-
   ' param["x"], param["y"] - position of a shape
-
   ' param["width"], param["height"] - size of a shape
-
   ' param ["cx"], param["cy"] - center of rotation
-
   ' param ["angle"] - rotate angle
-
   ' return x, y - rotated position of a shape
-
   _cx = param["x"] + param["width"] / 2
-
   _cy = param["y"] + param["height"] / 2
-
   x = _cx - param["cx"]
-
   y = _cy - param["cy"]
-
   Math_CartesianToPolar()
-
   a = a + param["angle"]
-
   x = r * Math.Cos(a * Math.Pi / 180)
-
   y = r * Math.Sin(a * Math.Pi / 180)
-
   _cx = x + param["cx"]
-
   _cy = y + param["cy"]
-
   x = _cx - param["width"] / 2
-
   y = _cy - param["height"] / 2
-
 EndSub
-
-
 
 Sub Shapes_CalcWidthAndHeight
-
   ' Shapes | Calculate total width and height of shapes
-
   ' param iMin, iMax - shape indices to add
-
   ' return shWidth, shHeight - total size of shapes
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If shp["func"] = "tri" Or shp["func"] = "line" Then
-
       xmin = shp["x1"]
-
       xmax = shp["x1"]
-
       ymin = shp["y1"]
-
       ymax = shp["y1"]
-
       If shp["x2"] < xmin Then
-
         xmin = shp["x2"]
-
       EndIf
-
       If xmax < shp["x2"] Then
-
         xmax = shp["x2"]
-
       EndIf
-
       If shp["y2"] < ymin Then
-
         ymin = shp["y2"]
-
       EndIf
-
       If ymax < shp["y2"] Then
-
         ymax = shp["y2"]
-
       EndIf
-
       If shp["func"] = "tri" Then
-
         If shp["x3"] < xmin Then
-
           xmin = shp["x3"]
-
         EndIf
-
         If xmax < shp["x3"] Then
-
           xmax = shp["x3"]
-
         EndIf
-
         If shp["y3"] < ymin Then
-
           ymin = shp["y3"]
-
         EndIf
-
         If ymax < shp["y3"] Then
-
           ymax = shp["y3"]
-
         EndIf
-
       EndIf
-
       shp["width"] = xmax - xmin
-
       shp["height"] = ymax - ymin
-
     EndIf
-
     If i = 1 Then
-
       shWidth = shp["x"] + shp["width"]
-
       shHeight = shp["y"] + shp["height"]
-
     Else
-
       If shWidth < shp["x"] + shp["width"] Then
-
         shWidth = shp["x"] + shp["width"]
-
       EndIf
-
       If shHeight < shp["y"] + shp["height"] Then
-
         shHeight = shp["y"] + shp["height"]
-
       EndIf
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
 EndSub
-
-
 
 Sub Shapes_Move
-
   ' Shapes | Move shapes
-
   ' param iMin, iMax - shape indices to add
-
   ' param shape - array of shapes
-
   ' param scale - to zoom
-
   ' param x, y - position to move
-
   ' return shX, shY - new position of shapes
-
   Stack.PushValue("local", i)
-
   s = scale
-
   shX = x
-
   shY = y
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       _x = shp["wx"]
-
       _y = shp["wy"]
-
     Else
-
       _x = shp["rx"]
-
       _y = shp["ry"]
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + _x * s, shY + _y * s)
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Shapes_Remove
-
   ' Shapes | Remove shapes
-
   ' param iMin, iMax - shapes indices to remove
-
   ' param shape - array of shapes
-
   Stack.PushValue("local", i)
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     Shapes.Remove(shp["obj"])
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Shapes_Rotate
-
   ' Shapes | Rotate shapes
-
   ' param iMin, iMax - shapes indices to rotate
-
   ' param shape - array of shapes
-
   ' param cx, cy - rotation center
-
   ' param scale - to zoom
-
   ' param angle - to rotate
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   s = scale
-
   param["angle"] = angle
-
   If cx <> "" Then
-
     param["cx"] = cx
-
   Else
-
     cx = ""   ' to avoid syntax error
-
     param["cx"] = shWidth / 2
-
   EndIf
-
   If cy <> "" Then
-
     param["cy"] = cy
-
   Else
-
     cy = ""   ' to avoid syntax error
-
     param["cy"] = shHeight / 2
-
   EndIf
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     param["x"] = shp["x"]
-
     param["y"] = shp["y"]
-
     param["width"] = shp["width"]
-
     param["height"] = shp["height"]
-
     Shapes_CalcRotatePos()
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(angle + shp["angle"])
-
       SB_RotateWorkAround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     Shapes.Rotate(shp["obj"], angle + shp["angle"])
-
     shape[i] = shp
-
   EndFor
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-

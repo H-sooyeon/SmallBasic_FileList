@@ -1,345 +1,172 @@
 ' Scroll Text 0.2b
-
 ' Copyright (c) 2014 Nonki Takahashi.  The MIT License.
-
 '
-
 ' History:
-
 '  0.2b 2014-08-28 Changed to trapezoid scroll.
-
 '  0.1a 2014-08-28 Created rectangular scroll.
-
 '
-
 GraphicsWindow.Title = "Scroll Text 0.2b"
-
 Init()
-
 Stars()
-
 For iText = 1 To 100
-
   If Array.ContainsIndex(txt, iText) Then
-
     GraphicsWindow.BrushColor = "#020202"
-
     GraphicsWindow.DrawText(xSource, ySource, txt[iText])
-
     AddLines()
-
     GraphicsWindow.BrushColor = "#000000"
-
     GraphicsWindow.FillRectangle(0, ySource, gw, h)
-
   EndIf
-
   ScrollLines()
-
 EndFor
-
 Sub Stars
-
   colors = "1=Blue;2=White;"
-
   GraphicsWindow.PenWidth = 0
-
   For i = 1 To 1000
-
     GraphicsWindow.BrushColor = colors[Math.GetRandomNumber(2)]
-
     x = Math.GetRandomNumber(gw + 4) - 3
-
     y = Math.GetRandomNumber(gh + 4) - 3
-
     size = Math.GetRandomNumber(2)
-
     star = Shapes.AddEllipse(size, size)
-
     Shapes.Move(star, x, y)
-
   EndFor
-
   GraphicsWindow.PenColor = "#FFFFFF"
-
   GraphicsWindow.PenWidth = 1
-
 EndSub
-
 Sub DrawGrid
-
   GraphicsWindow.PenColor = "#666666"
-
   For x = 0 To gw Step 10
-
     GraphicsWindow.DrawLine(x, 0, x, gh - 1)
-
   EndFor
-
   For y = 0 To gh Step 10
-
     GraphicsWindow.DrawLine(0, y, gw - 1, y)
-
   EndFor
-
   GraphicsWindow.PenColor = "#999999"
-
   For x = 0 To gw Step 100
-
     GraphicsWindow.DrawLine(x, 0, x, gh - 1)
-
   EndFor
-
   For y = 0 To gh Step 100
-
     GraphicsWindow.DrawLine(0, y, gw - 1, y)
-
   EndFor
-
   GraphicsWindow.PenColor = "Red"
-
   GraphicsWindow.DrawLine(xDest, 0, xDest, gh - 1)
-
   GraphicsWindow.DrawLine(0, yDest, gw - 1, yDest)
-
 EndSub
-
 Sub Init
-
   Not = "Ture=False;False=True;"
-
   gw = 598
-
   gh = 428
-
   xc = gw / 2
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BackgroundColor = "#000000"
-
   fs = 30
-
   GraphicsWindow.FontSize = fs
-
   GraphicsWindow.FontName = "Arial"
-
   txt[1] = "A long time ago in a galaxy far, far away,"
-
   txt[2] = "an incredible adventure took place......"
-
   xSource = 10
-
   ySource = gh - fs * 1.5
-
   xDest = 10          ' left x of the lower base
-
   yDest = gh - fs * 2 ' y of the lower base
-
   a = 45  ' angle for a trapezoid from vertical line to side line
-
   _a = Math.GetRadians(a)
-
   w = 500
-
   h = Math.Floor(fs * 1.5)
-
   s = 1 - 2 / w * Math.Tan(_a)  ' upper / lower base scale for a trapezoid with a pixel height
-
 EndSub
-
 Sub AddLines
-
   y = ySource
-
   sigmaH = 0
-
   For i = 1 To h
-
     scale = Math.Power(s, h - i)
-
     iLine = iLine + 1
-
     iRun = 1
-
     x = 0
-
     While x < gw
-
       ' find start point of a run
-
       found = "False"
-
       While x < gw And Not[found]
-
         GetPixel()
-
         If color <> "#000000" Then
-
           line[iLine]["x" + iRun] = x - xSource
-
           found = "True"
-
         EndIf
-
         x = x + 1
-
       EndWhile
-
       ' find end point of a run
-
       found = "False"
-
       While x < gw And Not[found]
-
         GetPixel()
-
         If color = "#000000" Then
-
           line[iLine]["len" + iRun] = x - xSource - line[iLine]["x" + iRun]
-
           line[iLine]["obj" + iRun] = Shapes.AddLine(0, 0, line[iLine]["len" + iRun], 0)
-
           xRun = xc - (xc - line[iLine]["x" + iRun] - xDest) * scale
-
           Shapes.Move(line[iLine]["obj" + iRun], xRun, sigmaH + yDest)
-
           Shapes.Zoom(line[iLine]["obj" + iRun], scale, scale)
-
           iRun = iRun + 1
-
           found = "True"
-
         EndIf
-
         x = x + 1
-
       EndWhile
-
     EndWhile
-
     y = y + 1
-
     sigmaH = sigmaH + scale
-
     If yTop = "" Then
-
       yTop = yDest
-
     EndIf
-
   EndFor
-
 EndSub
-
 Sub Profile
-
   If emsLast = "" Then
-
     emsLast = Clock.ElapsedMilliseconds
-
   Else
-
     ems = Clock.ElapsedMilliseconds
-
     ms = ems - emsLast
-
     TextWindow.WriteLine((ms / 1000) + "[sec]")
-
     emsLast = ems
-
   EndIf
-
 EndSub
-
 Sub GetPixel
-
   ' param x, y - to get pixel color
-
   ' return color
-
   color = GraphicsWindow.GetPixel(x, y)
-
   len = Text.GetLength(color)
-
   If 7 < len Then ' for Silverlight
-
     color = "#" + Text.GetSubTextToEnd(color, len - 5)
-
   EndIf
-
 EndSub
-
 Sub DumpLines
-
   nLine = Array.GetItemCount(line)
-
   For i = 1 To nLine
-
     TextWindow.WriteLine(line[i])
-
   EndFor
-
 EndSub
-
 Sub ScrollLines
-
   nLine = Array.GetItemCount(line)
-
   For iy = 1 To h
-
     n = yDest - yTop - 1
-
     scale = Math.Power(s, n)
-
     opacity = Math.Floor((y - 100) / (yDest - 101) * 90) + 10
-
     iLast = 0
-
     sigmaH = 0
-
     For j = 1 To n
-
       scale = Math.Power(s, j - 1)
-
       sigmaH = sigmaH + scale
-
     EndFor
-
     For i = 1 To nLine
-
       index = Array.GetAllindices(line)
-
       _iLine = index[i]
-
       nRun = Array.GetItemCount(line[_iLine]) / 3
-
       scale = Math.Power(s, h + yDest - yTop - _iLine - 1)
-
       sigmaH = sigmaH - scale
-
       y = yDest - sigmaH
-
       For iRun = 1 To nRun
-
         Shapes.SetOpacity(line[_iLine]["obj" + iRun], opacity)
-
         x = xc - (xc - line[_iLine]["x" + iRun] - xDest) * scale
-
         Shapes.Move(line[_iLine]["obj" + iRun], x, y)
-
         Shapes.Zoom(line[_iLine]["obj" + iRun], scale, scale)
-
       EndFor
-
     EndFor
-
     yTop = yTop - 1
-
   EndFor
-
 EndSub
-
-

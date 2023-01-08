@@ -1,603 +1,301 @@
 ' Small Basic Windows (SBW) - an attempt to make multiple windows within Small Basic.
-
 ' I failed miserably. I don't think SB is quite up to the task. Shame, but the code may be useful to someone.
-
 '               Davey~Wavey, Nov. 2009
 
-
-
 ' start the whole shebang running (the rest is currently controlled by the mouse events)
-
 sbwin_initWindows()
 
 
 
 
-
-
-
-
-
 ' a small example of use
-
 lissagous()
 
-
-
 Sub lissagous
-
   sbw_param="name=liss;x=260;y=120;w=120;h=155;bgcolour=orange"   ' alternative method
-
   
-
   ' make a window to put our pixels in
-
   sbw_makeWindow()
-
   sbw_show()
-
   
-
   For lwp = 1 To 10
-
     XT=Math.GetRandomNumber(20)
-
     YT=Math.GetRandomNumber(20)
-
     
-
     For vi=0 To 2*Math.Pi Step 0.0005
-
       GraphicsWindow.SetPixel((sbwin[4]["x"]+(sbwin[4]["w"]/2))+50*Math.sin(XT*vi),(sbwin[4]["y"]+(sbwin[4]["h"]/2)+15)+50*Math.sin(YT*vi), "black")
-
     EndFor
-
     Program.Delay(500)
-
     'GraphicsWindow.Clear()
-
   EndFor
-
 endsub
 
 
 
 
-
-
-
-
-
 ' ==============================================================================================
-
 ' ==========================              SUBROUTINE SECTION              ========================================
-
 ' ==============================================================================================
-
-
 
 ' NOTE: If you are writing subroutines for others to use within their programs (small utilities, etc.) then make sure that any
-
 '               variables and subroutines are given unique names in your utility to prevent them interfering with the main program.
-
 '               Easiest way to do this is to prefix everything with a short code indicating your initials, or your utility's name.
-
 '               You can see in all subroutines below, variables or sub's are prefixed with 'sbw' to indicate 'Small Basic Windows'.
-
 '               Davey~Wavey, Nov. 2009
 
 
 
-
-
-
-
 Sub sbwin_initWindows
-
   ' initialise windows and show them
-
   '
-
   ' params: none
-
   
-
   ' set up the event handlers
-
   GraphicsWindow.MouseDown  = sbw_checkit
-
   GraphicsWindow.MouseMove  = sbw_dragit
-
   GraphicsWindow.MouseUp    = sbw_leaveit
-
   
-
   ' create some windows
-
   sbw_param["name"]="win A"
-
   sbw_param["x"]=20
-
   sbw_param["y"]=50
-
   sbw_param["w"]=50
-
   sbw_param["h"]=100
-
   sbw_param["bgcolour"]="Yellow"
-
   sbw_makeWindow()
-
   
-
   'sbw_param["name"]="win B"
-
   'sbw_param["x"]=120
-
   'sbw_param["y"]=90
-
   'sbw_param["w"]=120
-
   'sbw_param["h"]=60
-
   'sbw_param["bgcolour"]="Green"
-
   sbw_param="name=win B;x=120;y=90;w=120;h=60;bgcolour=Green"   ' alternative method
-
   sbw_makeWindow()
-
   
-
   sbw_param["name"]="win C"
-
   sbw_param["x"]=70
-
   sbw_param["y"]=190
-
   sbw_param["w"]=180
-
   sbw_param["h"]=180
-
   sbw_param["bgcolour"]="Red"
-
   sbw_makeWindow()
-
   
-
   sbw_show()  ' show all windows
-
 EndSub
 
-
-
 ' ==============================================================================================
-
-
 
 Sub sbw_checkit
-
   ' Check if mouse has clicked on a window
-
   '
-
   ' params: none
-
   
-
   
-
   If sbw_processing = "" Then   ' prevent SB tripping over itself in trying to run this again before it's finished!
-
     sbw_processing="1"          ' flag that we're busy, so don't bother us!
-
     
-
     If sbwVar["win_status"] = "" Then    ' make sure we're not doing some other action
-
       
-
       ' initialise local vars
-
       sbw_mx=mouse.MouseX - GraphicsWindow.Left-8
-
       sbw_my=mouse.MouseY - GraphicsWindow.Top-28
-
       
-
       ' check all windows against click event
-
       For sbw_lwp = 1 To sbwVar["win_Count"]   
-
         
-
         ' get the id of the window to interact with
-
         If (sbw_mx >= sbwin[sbw_lwp]["x"] AND sbw_mx <= (sbwin[sbw_lwp]["x"]+sbwin[sbw_lwp]["w"]) ) AND (sbw_my >= sbwin[sbw_lwp]["y"] AND sbw_my <= (sbwin[sbw_lwp]["y"]+sbwin[sbw_lwp]["h"]) ) then
-
           sbwVar["win_active"] = sbw_lwp   ' track window id clicked
-
           sbw_lwp = sbwVar["win_Count"]    ' exit the for..next loop as we found the relevant window (increases program efficiency!)
-
         EndIf
-
         
-
       EndFor
-
       
-
       If sbwVar["win_active"] <> "" Then                             ' if a window was clicked, decide what action to take (move or resize)
-
         
-
         ' first, record where we clicked within the window
-
         sbwVar["win_clickx"] = sbw_mx - sbwin[sbwVar["win_active"]]["x"]      ' contains the offset from the window left edge to where the mouse holds the window
-
         sbwVar["win_clicky"] = sbw_my - sbwin[sbwVar["win_active"]]["y"]      ' contains the offset from the window top edge to where the mouse holds the window
-
         
-
         
-
         '  flag if a window move is being initiated (if we have clicked within it's title bar)
-
         ' note: at present, title bars are fixed to 25 pixels high, hence the '+25' hardcoded here
-
         If (sbw_mx >= sbwin[sbwVar["win_active"]]["x"] AND sbw_mx <= (sbwin[sbwVar["win_active"]]["x"]+sbwin[sbwVar["win_active"]]["w"]) ) AND (sbw_my >= sbwin[sbwVar["win_active"]]["y"] AND sbw_my <= (sbwin[sbwVar["win_active"]]["y"]+25) ) then
-
           sbwVar["win_status"] = "move"
-
         EndIf
-
         
-
         
-
         ' flag if a window resize is being initiated (if we have clicked in the bottom-right hand corner of the window)
-
         If (sbw_mx >= (sbwin[sbwVar["win_active"]]["x"]+sbwin[sbwVar["win_active"]]["w"])-5 AND sbw_mx <= (sbwin[sbwVar["win_active"]]["x"]+sbwin[sbwVar["win_active"]]["w"]) ) AND (sbw_my >= (sbwin[sbwVar["win_active"]]["y"]+sbwin[sbwVar["win_active"]]["h"])-5 AND sbw_my <= (sbwin[sbwVar["win_active"]]["y"]+sbwin[sbwVar["win_active"]]["h"]) ) then
-
           sbwVar["win_status"] = "resize"
-
         EndIf
-
         
-
       EndIf
-
       
-
       ' release local vars
-
       sbw_mx = ""
-
       sbw_my = ""
-
       
-
     EndIf
-
     
-
     sbw_processing=""           ' ok, I'm done being busy.
-
   EndIf
-
   
-
 EndSub
 
-
-
 ' ------------------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
 
 Sub sbw_dragit
-
   ' params: 
-
   '                 win["win_status"] = action to perform
-
   
-
   ' perform relevant action on window
-
   If sbwVar["win_status"] = "move" Then
-
     sbw_moveWin()
-
     
-
   ElseIf sbwVar["win_status"] = "resize" Then
-
     sbw_resizeWin()
-
   EndIf
-
   
-
 EndSub
-
-
 
 ' ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
-
 Sub sbw_leaveit
-
   ' we've let go of the mouse button, so stop doing whatever we may have been doing
-
   
-
   ' for some reason, the title bar is sometimes being left behind when moving a window, so we'll force it to move to the window position now!
-
   Shapes.Move (sbwin[sbwVar["win_active"]]["titleBar"], sbwin[sbwVar["win_active"]]["x"], sbwin[sbwVar["win_active"]]["y"])
-
   
-
   ' clear flags to stop any active processes
-
   sbwVar["win_active"] = ""
-
   sbwVar["win_status"] = ""
-
   sbwVar["win_newx"]   = ""
-
   sbwVar["win_newy"]   = ""  
-
 EndSub
 
-
-
 ' ==============================================================================================
-
-
 
 Sub sbw_moveWin
-
   ' move the window and the title bar to the current mouse position
-
   
-
   If sbw_processing = "" Then   ' prevent SB tripping over itself in trying to run this again before it's finished!
-
     sbw_processing="1"          ' flag that we're busy, so don't bother us!
-
     
-
     ' by subtracting 'win_clickx' we keep the window relative to the mouse position during dragging
-
     ' i.e. if we grabbed the window in the middle of the title bar, the mouse stays in the middle of the title bar while we drag it around.
-
     sbwin[sbwVar["win_active"]]["x"] = (Mouse.MouseX - graphicswindow.Left - 8) - (sbwVar["win_clickx"])
-
     sbwin[sbwVar["win_active"]]["y"] = (Mouse.MouseY - graphicswindow.Top - 28) - (sbwVar["win_clicky"])
-
     
-
     Shapes.Move (sbwin[sbwVar["win_active"]]["window"],   sbwin[sbwVar["win_active"]]["x"], sbwin[sbwVar["win_active"]]["y"])
-
     Shapes.Move (sbwin[sbwVar["win_active"]]["titleBar"], sbwin[sbwVar["win_active"]]["x"], sbwin[sbwVar["win_active"]]["y"])    ' this gets forgotten some times!?!?!? Maybe SB is still busy doing the other move? I dunno!
-
     
-
     sbw_processing=""           ' ok, I'm done being busy.
-
   EndIf
-
 EndSub
 
-
-
 ' ==============================================================================================
-
-
 
 Sub sbw_resizeWin
-
   If sbw_processing = "" Then   ' prevent SB tripping over itself in trying to run this again before it's finished!
-
     sbw_processing="1"          ' flag that we're busy, so don't bother us!
-
     
-
     ' only allow resize down to a minimum of 5 pixels (30 for y to allow for title bar height of 25)
-
     If (Mouse.MouseX - graphicswindow.Left - 8) > sbwin[sbwVar["win_active"]]["x"]+5 AND (Mouse.MouseY - graphicswindow.Top - 28) > sbwin[sbwVar["win_active"]]["y"]+30 Then
-
       
-
       sbwin[sbwVar["win_active"]]["w"] = (Mouse.MouseX - graphicswindow.Left - 8) - sbwin[sbwVar["win_active"]]["x"]
-
       sbwin[sbwVar["win_active"]]["h"] = (Mouse.MouseY - graphicswindow.Top - 28) - sbwin[sbwVar["win_active"]]["y"]
-
       
-
       
-
       ' remember current brushColor value before switching to window colour
-
       sbw_oldc = GraphicsWindow.BrushColor                           
-
       GraphicsWindow.BrushColor = sbwin[sbwVar["win_active"]]["bgcolour"]
-
       
-
       ' redraw window rectangle
-
       Shapes.Remove (sbwin[sbwVar["win_active"]]["window"])
-
       sbwin[sbwVar["win_active"]]["window"] = shapes.AddRectangle(sbwin[sbwVar["win_active"]]["w"], sbwin[sbwVar["win_active"]]["h"])  
-
       Shapes.Move (sbwin[sbwVar["win_active"]]["window"], sbwin[sbwVar["win_active"]]["x"], sbwin[sbwVar["win_active"]]["y"])
-
       Shapes.SetOpacity (sbwin[sbwVar["win_active"]]["window"],50)
-
       
-
       ' redraw title bar rectangle
-
       Shapes.Remove (sbwVar["win_active"]["titleBar"])
-
       sbwin[sbwVar["win_active"]]["titleBar"] = shapes.AddRectangle(sbwin[sbwVar["win_active"]]["w"], 25)
-
       Shapes.Move (sbwin[sbwVar["win_active"]]["titleBar"], sbwin[sbwVar["win_active"]]["x"], sbwin[sbwVar["win_active"]]["y"])      
-
     EndIf
-
     
-
     ' restore previous brushColor value
-
     GraphicsWindow.BrushColor = sbw_oldc              
-
     
-
     sbw_processing=""           ' ok, I'm done being busy.
-
   EndIf
-
   
-
   ' release vars
-
   sbw_oldc = ""
-
 EndSub
 
-
-
 ' ==============================================================================================
-
-
 
 Sub sbw_show
-
   ' show all windows
-
   '
-
   ' params: none
-
   
-
   GraphicsWindow.Show() ' make sure graphicsWindow is visible
-
   
-
   For sbw_lwp = 1 To sbwVar["win_Count"]
-
     Shapes.Move (sbwin[sbw_lwp]["window"],   sbwin[sbw_lwp]["x"], sbwin[sbw_lwp]["y"])
-
     Shapes.Move (sbwin[sbw_lwp]["titleBar"], sbwin[sbw_lwp]["x"], sbwin[sbw_lwp]["y"])
-
     Shapes.ShowShape (sbwin[sbw_lwp]["window"])
-
     Shapes.ShowShape (sbwin[sbw_lwp]["titleBar"])
-
   EndFor
-
 EndSub
-
-
 
 ' ==============================================================================================
 
-
-
 Sub sbw_makeWindow
-
   ' create a new window within the sbwin array
-
   '
-
   ' params: name, x, y, w, h, bgcolour/bgcolor
-
   
-
   ' keep track of how many windows are open
-
   sbwVar["win_Count"] = sbwVar["win_Count"] + 1                       
-
   
-
   ' stuff the parameters into the array
-
   sbwin[sbwVar["win_Count"]]["name"]     = sbw_param["name"]
-
   sbwin[sbwVar["win_Count"]]["x"]        = sbw_param["x"]
-
   sbwin[sbwVar["win_Count"]]["y"]        = sbw_param["y"]
-
   sbwin[sbwVar["win_Count"]]["w"]        = sbw_param["w"]
-
   sbwin[sbwVar["win_Count"]]["h"]        = sbw_param["h"]
-
   
-
   ' allow for either spelling of colour to work
-
   If sbw_param["bgcolour"] = "" Then                
-
     sbw_param["bgcolour"]           = sbw_param["bgcolor"]
-
   EndIf
-
   sbwin[sbwVar["win_Count"]]["bgcolour"] = sbw_param["bgcolour"]
-
   
-
   ' remember current brushColor value before switching to window colour
-
   sbw_oldc = GraphicsWindow.BrushColor              
-
   GraphicsWindow.BrushColor = sbw_param["bgcolour"]
-
   
-
   ' draw window rectangle
-
   sbwin[sbwVar["win_Count"]]["window"]   = shapes.AddRectangle(sbwin[sbwVar["win_Count"]]["w"], sbwin[sbwVar["win_Count"]]["h"])  
-
   Shapes.SetOpacity (sbwin[sbwVar["win_Count"]]["window"],50)
-
   Shapes.HideShape  (sbwin[sbwVar["win_Count"]]["window"])
-
   
-
   ' draw title bar rectangle
-
   sbwin[sbwVar["win_Count"]]["titleBar"] = shapes.AddRectangle(sbwin[sbwVar["win_Count"]]["w"], 25)
-
   Shapes.HideShape  (sbwin[sbwVar["win_Count"]]["titleBar"])
-
   
-
   ' restore previous brushColor value
-
   GraphicsWindow.BrushColor = sbw_oldc              
-
   
-
   ' release param values
-
   sbw_param["name"]     = ""
-
   sbw_param["x"]        = ""
-
   sbw_param["y"]        = ""
-
   sbw_param["w"]        = ""
-
   sbw_param["h"]        = ""
-
   sbw_param["bgcolor"]  = ""
-
   sbw_param["bgcolour"] = ""
-
 EndSub
-
-

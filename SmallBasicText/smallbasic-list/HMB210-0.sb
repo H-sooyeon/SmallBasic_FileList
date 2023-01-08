@@ -1,253 +1,126 @@
 ' Text Browser
-
 ' Copyright Â© 2014 Nonki Takahashi.  The MIT License.
-
 ' Version 0
-
 ' Program ID HMB210-0
-
 '
-
 GraphicsWindow.Title = "Text Browser 0"
-
 Not = "False=True;True=False;"
-
 LT = "<"
-
 Form()
-
 While "True"
-
   InputURL()
-
   ShowContents()
-
 EndWhile
-
 Sub Form
-
   gw = 598
-
   gh = 428
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   bw = 35
-
   bh = 26
-
   GraphicsWindow.BrushColor = "Black"
-
   tboxURL = Controls.AddTextBox(0, 0)
-
   Controls.SetSize(tboxURL, gw - bw, bh)
-
   GraphicsWindow.BrushColor = "Black"
-
-  btnSearch = Controls.AddButton("  ?Œ•  ", gw - bw, 0)
-
+  btnSearch = Controls.AddButton("  âŒ•  ", gw - bw, 0)
   tboxContents = Controls.AddMultiLineTextBox(0, bh)
-
   Controls.SetSize(tboxContents, gw, gh - bh)
-
   Controls.ButtonClicked = OnButtonClicked
-
 EndSub
-
 Sub InputURL
-
   ' return url
-
   clicked = "False"
-
   While Not[clicked]
-
     Program.Delay(500)
-
   EndWhile
-
   url = Controls.GetTextBoxText(tboxURL)
-
   If Not[Text.StartsWith(url, "http")] Then
-
     url = "http://" + url
-
   EndIf
-
 EndSub
-
 Sub OnButtonClicked
-
   clicked = "True"
-
 EndSub
-
 Sub ShowContents
-
   ' param url
-
   buf = Network.GetWebPageContents(url)
-
   p = 1
-
   param = "tag=body;"
-
   Parse_FindTag()
-
   Parse_StripTag()
-
   Controls.SetTextBoxText(tboxContents, txt)
-
 EndSub
-
 Sub Parse_FindTag
-
   ' find tag from HTML buffer
-
   ' param["tag"] - tag name
-
   ' param["class"] - class name
-
   ' param p - pointer for buffer
-
   ' param buf - HTML buffer
-
   ' return tag - found tag
-
   pSave = p
-
   tag = ""
-
   findNext = "True"
-
   While findNext
-
     findNext = "False"        ' tag may be not found
-
     pTag = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), LT + param["tag"])
-
     If 0 < pTag Then
-
       lTag = Text.GetLength(param["tag"]) + 1
-
       pTag = p + pTag - 1
-
       len = Text.GetIndexOf(Text.GetSubTextToEnd(buf, pTag), "/" + param["tag"] + ">")
-
       If len = 0 Then
-
         lTag = 1
-
         len = Text.GetIndexOf(Text.GetSubTextToEnd(buf, pTag), "/>")
-
       EndIf
-
       If param["class"] = "" Then
-
         len = len + lTag
-
         tag = Text.GetSubText(buf, pTag, len)
-
         findNext = "False"    ' found the tag
-
       ElseIf 0 < len Then
-
         findNext = "True"     ' tag may have different class
-
         len = len + lTag
-
         qt = "'"
-
         While findNext And (qt <> "")
-
           attr = "class=" + qt + param["class"] + qt
-
           pAttr = pTag + lTag + 1
-
           lAttr = Text.GetLength(attr)
-
           If Text.GetSubText(buf, pAttr, lAttr) = attr Then
-
             tag = Text.GetSubText(buf, pTag, len)
-
             findNext = "False"  ' found the tag
-
           EndIf
-
           If qt = "'" Then
-
             qt = Text.GetCharacter(34)
-
           Else
-
             qt = "" ' not found
-
           EndIf
-
         EndWhile
-
       EndIf
-
       p = pTag + len
-
     EndIf
-
   EndWhile
-
   If tag = "" Then
-
     p = pSave
-
   EndIf
-
 EndSub
-
 Sub Parse_StripTag
-
   ' param tag - HTML buffer
-
   ' return txt - text without tags
-
   lTag = Text.GetLength(tag)
-
   pTag = 1
-
   txt = ""
-
   While pTag <= lTag
-
     iLT = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), LT)
-
     If iLT = 0 Then
-
       pTag = lTag + 1
-
       txt = Text.Append(txt, Text.GetSubTextToEnd(tag, pTag))
-
     Else
-
       txt = Text.Append(txt, Text.GetSubText(tag, pTag, iLT - 1))
-
       pTag = pTag + iLT
-
       iGT = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), ">")
-
       If iGT = 0 Then
-
         pTag = lTag + 1
-
       Else
-
         pTag = pTag + iGT
-
       EndIf
-
     EndIf
-
   EndWhile
-
 EndSub
-
-

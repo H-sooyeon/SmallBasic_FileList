@@ -1,417 +1,208 @@
 GraphicsWindow.Hide()
-
 gw = 600
-
 gh = 450
 
-
-
 GraphicsWindow.CanResize = "False"
-
 GraphicsWindow.Top = (Desktop.Height - gh)*0.50
-
 GraphicsWindow.Left = (Desktop.Width - gw)*0.90
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.Show()
 
-
-
 GraphicsWindow.MouseMove = OnMouseMove 
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.MouseUp = OnMouseRelease 
 
-
-
 mouseMove = "False"
-
 mouseDown = "False"
-
 mouseRelease = "False" 
-
 TextWindow.Left = 0 'TEMP
 
-
-
 blockX = "1=50;2=94;3=138;4=182" 
-
 columnLimit = "1=60;2=70;3=80;4=90" 
-
 lastBlockInColumn = "1=1;2=2;3=3;4=4" 
-
-
 
 createBlocks()
 
-
-
 delay = 1
 
-
-
 While "True"
-
   If (mouseMove = "True") Then
-
     moveBlocks()
-
     mouseMove = "False"
-
   EndIf
-
   
-
   If(mouseDown = "True") Then 
-
     checkMousePosition()
-
     mouseDown = "False" 
-
     delay = 0 'when user moves block, delay is 0 to prevent events to build up 
-
     
-
     'TextWindow.WriteLine("mouseDown is true") 'TEMP
-
   EndIf 
-
   
-
   '****************PATCH****************
-
   If (mouseWasPressed = "True") Then 
-
     mouseRelease = "True" 
-
     mouseWasPressed = "False" 
-
   EndIf
-
   '***************************************
-
   
-
   If (mouseRelease = "True") Then 
-
     'TextWindow.WriteLine("mouseRelease is true") 'TEMP
-
     'TextWindow.WriteLine("") 
-
     
-
     curPosOfSelectedBlockInCol = Math.Floor( (mouseX - 6) / 44)
-
     curPosOfSelectedBlockInRow = Math.Floor( (mouseY - 10) / 10)
-
     
-
     'userState = "holdingBlock" prevent user from holding mouse outside boundaries & releasing it in block area to make statement true w/out holding block
-
     'selectedBlockInCol <> curPosOfSelectedBlockInCol prevent statement from being true if user drops blocks in orignal place
-
     'Math.Remainder((mouseX - 6), 44) <= 39 prevent user from holding mouse outside boundaries & releaseing it in gap area to make statement true w/out holding block
-
     If (mouseY > 19 And mouseY < columnLimit[curPosOfSelectedBlockInCol] And selectedBlockInCol <> curPosOfSelectedBlockInCol And Math.Remainder((mouseX - 6), 44) <= 39  And userState = "holdingBlock") Then 
-
       blockY = Shapes.GetTop(blockIndex[curPosOfSelectedBlockInCol][lastBlockInColumn[curPosOfSelectedBlockInCol]]) 
-
       rowIndexInCurCol = lastBlockInColumn[curPosOfSelectedBlockInCol]
-
       
-
       For i = selectedBlockInRow To lastBlockInColumn[selectedBlockInCol]
-
         blockY = blockY + 10
-
         rowIndexInCurCol = rowIndexInCurCol + 1
-
         Shapes.Move(blockIndex[selectedBlockInCol][i],blockX[curPosOfSelectedBlockInCol],blockY)
-
         blockIndex[curPosOfSelectedBlockInCol][rowIndexInCurCol] = blockIndex[selectedBlockInCol][i]
-
         blockIndex[selectedBlockInCol][i] = ""
-
       EndFor 
-
       
-
       blockData = blockIndex 'update blockData since blockIndex was manipulated (above)
-
       blockInteractionUpdateLength = lastBlockInColumn[selectedBlockInCol]
-
       For i = selectedBlockInRow To blockInteractionUpdateLength
-
         updateBlockInteractionBoundaries()
-
       EndFor
-
       
-
     Else  
-
       dropBlocks()
-
     EndIf
-
     mouseRelease = "False" 
-
     delay = 1 'delay of 1 allow program to sleep when user isn't holding block
-
   EndIf  
-
   Program.Delay(delay) 
-
 EndWhile 
 
-
-
 Sub createBlocks
-
   nextRow = 1 
-
   For i = 1 To 4
-
     For j = 1 To nextRow 
-
       blockIndex[i][j] = Shapes.AddRectangle(40,40)
-
       '40 is size of the block & 4 creates gaps between ea piece, makes 44
-
       'addtional 6 adds to x pos of block
-
       '10 used because there's no gaps instead ea piece is overlapped
-
       'addtional 10 rep y pos of block
-
       Shapes.Move(blockIndex[i][j], i * 44 + 6, j * 10 + 10) 
-
     EndFor
-
     nextRow = nextRow + 1
-
   EndFor
-
   blockData = blockIndex 'store data for blockIndex
-
 EndSub
-
-
 
 Sub checkMousePosition  
-
   selectedColumn = Math.Floor( (mouseX - 6) / 44)
-
   
-
   If (mouseY > 19 And mouseY < columnLimit[selectedColumn] And mouseX > 50 And mouseX < 221) Then 
-
     
-
     'x: val range 0-43 but statement is true if value is 39 or less. Beyond 39 is a gap. 
-
     'y: val range 0-9 & rep area of overlapped blocks 
-
     'when val reset to 0 indicates nxt block
-
     'statement doesn't distinguish specific blocks but indicates a block is clicked 
-
     If (Math.Remainder( (mouseY - 10), 10) <= 10 And Math.Remainder((mouseX - 6), 44) <= 39) Then
-
       
-
       selectedBlockInCol = Math.Floor( (mouseX - 6) / 44) 
-
       selectedBlockInRow = Math.Floor( (mouseY - 10) / 10) 
-
       
-
       'lastBlockInColumn tells program that user selected last block in column
-
       'Ex) In 4th column, there are four values, 1,2,3,4. One for ea block in col
-
       'But 4th block gives 4,5,6,7 since it's not overlapped
-
       'If value of selectedBlockInRow is 4 or greater, change it to four since it indicates user has selected last block
-
       If (selectedBlockInRow >= lastBlockInColumn[selectedBlockInCol]) Then 'applied to last block of every column 
-
         selectedBlockInRow = lastBlockInColumn[selectedBlockInCol] 
-
       EndIf
-
       
-
       'calc y pos of selected block & y increment of blocks that overlap eachother
-
       calcYPosOfSelectedBlocks() 
-
       getOrigCoordinatesOfSelectedBlocks()
-
     EndIf    
-
   EndIf
-
 EndSub 
-
-
 
 Sub calcYPosOfSelectedBlocks
-
   blockYIncrement = 0 
-
   For i = selectedBlockInRow To lastBlockInColumn[selectedBlockInCol]
-
     selectedBlockY[i] = blockYIncrement
-
     blockYIncrement = blockYIncrement + 10 
-
   EndFor
-
 EndSub 
-
-
 
 Sub getOrigCoordinatesOfSelectedBlocks
-
   userState = "holdingBlock" 
-
   blockIndex = blockData 'restore data of blockIndex  (significant after line 178 applied, insignificant first time around) 
-
   selectedBlockOrigCoordinates = "" 
-
   
-
   For i = selectedBlockInRow To lastBlockInColumn[selectedBlockInCol] 
-
     selectedBlockOrigCoordinates[i]["x"] = Shapes.GetLeft(blockIndex[selectedBlockInCol][i])
-
     selectedBlockOrigCoordinates[i]["y"] = Shapes.GetTop(blockIndex[selectedBlockInCol][i])
-
   EndFor  
-
   
-
   'prevent selected blocks from being overlapped when moved over to another row 
-
   For i = selectedBlockInRow To lastBlockInColumn[selectedBlockInCol] 
-
     Shapes.Remove(blockIndex[selectedBlockInCol][i])
-
     blockIndex[selectedBlockInCol][i] = Shapes.AddRectangle(40,40)
-
   EndFor  
-
   blockData = blockIndex 'update blockData after selected blocks are removed & reloaded
-
 EndSub
-
-
 
 Sub moveBlocks
-
   mouseX = GraphicsWindow.MouseX
-
   mouseY = GraphicsWindow.MouseY 
-
   
-
   If (Mouse.IsLeftButtonDown) Then 
-
     
-
     If (mouseY < 5 Or mouseX < 5 Or mouseX > 555 Or mouseY > 430) Then 
-
       dropBlocks()  
-
     Else 
-
       
-
       For i = selectedBlockInRow To lastBlockInColumn[selectedBlockInCol]
-
         Shapes.Move(blockIndex[selectedBlockInCol][i], mouseX, mouseY + selectedBlockY[i]) 
-
       EndFor  
-
     EndIf 
-
   EndIf  
-
 EndSub
-
-
 
 Sub dropBlocks   
-
   For i = selectedBlockInRow To lastBlockInColumn[selectedBlockInCol]
-
     Shapes.Move(blockIndex[selectedBlockInCol][i], selectedBlockOrigCoordinates[i]["x"], selectedBlockOrigCoordinates[i]["y"])
-
   EndFor
-
   blockIndex = "" 'prevent previously selected blocks from responding to mouse clicks beyond their boundaries
-
   selectedBlockY = "" 
-
   userState = ""
-
 EndSub
-
-
 
 Sub updateBlockInteractionBoundaries 
-
   columnLimit[curPosOfSelectedBlockInCol] = columnLimit[curPosOfSelectedBlockInCol] + 10 
-
   columnLimit[selectedBlockInCol] = columnLimit[selectedBlockInCol] - 10
-
   
-
   'If all blocks removed from specific column, prevent user from interacting w/ empty space & displacing blocks
-
   If (columnLimit[selectedBlockInCol] = 50) Then 
-
     columnLimit[selectedBlockInCol] = 0
-
   EndIf
-
   
-
   lastBlockInColumn[curPosOfSelectedBlockInCol] = lastBlockInColumn[curPosOfSelectedBlockInCol] + 1
-
   lastBlockInColumn[selectedBlockInCol] = lastBlockInColumn[selectedBlockInCol] - 1
-
 EndSub
-
-
 
 Sub OnMouseMove
-
   mouseMove = "True"
-
 EndSub 
-
-
 
 Sub OnMouseDown  
-
   mouseDown = "True" 
-
 EndSub
 
-
-
 Sub OnMouseRelease
-
   mouseRelease = "True" 
-
   mouseWasPressed = "True" 'PATCH
-
 EndSub 
-
-

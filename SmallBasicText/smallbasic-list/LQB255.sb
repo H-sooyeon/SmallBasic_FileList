@@ -1,403 +1,201 @@
 'Initialize variable values
-
 TextWindow.WriteLine("Enter the Distance Multiplier.")
-
 While distanceMult < 1
-
   distanceMult = TextWindow.Read()
-
 EndWhile
-
 TextWindow.WriteLine("How many bodies?")
-
 While count < 2
-
   count = TextWindow.Read()
-
 EndWhile
-
 dty = Desktop.Height
-
 dtx = Desktop.Width
-
 dtx=dtx-14
-
 dty=dty-36
-
 desktopHeight = dty
-
 desktopWidth = dtx
-
 pi = 3.14157
-
 gravity = 1
-
 bodies = count
-
 initialMass = 1'20/bodies 
-
 'Set Graphic window initial condition.
-
 GraphicsWindow.BackgroundColor = "Black"
-
 GraphicsWindow.Top = 4
-
 GraphicsWindow.Left = 4
-
 GraphicsWindow.CanResize = 0
-
 GraphicsWindow.Title = "My 2D Universe"
-
 GraphicsWindow.Width = desktopWidth
-
 GraphicsWindow.Height = desktopHeight
-
 'main will loop until the program is exited or the reset button is clicked.
-
 'When the simulation is reset the program will jump back to the place
-
 'objects subroutine and reset all momentum to zero.
-
 main:
-
 GraphicsWindow.BrushColor = "Blue"
-
 Shapes.AddText("Click to reset.")
-
 placeObjects()
-
 reset = 0
-
 While reset = 0
-
   GraphicsWindow.MouseDown = mouseClick
-
   drawUniverse()
-
   calculateForce()
-
   updateBodies()
-
 endwhile
-
 For a = 1 to bodies
-
   Shapes.Remove(body[a])
-
 EndFor
-
 reset = 0
-
 Goto main
-
 TextWindow.Read()
-
 Program.End()
 
-
-
 sub mouseClick
-
   reset = 1
-
 EndSub
-
-
 
 'updateBodies will apply force, factor in intertia, and update the x,y
-
 'coordinates of each body.
-
 Sub updateBodies
-
   'TextWindow.WriteLine("Update Bodies")
-
   onScreen = 0
-
   For a = 1 To bodies
-
     x[a] = x[a] + xa[a]
-
     y[a] = y[a] + ya[a]
-
     If x[a] > 0 And x[a] < desktopWidth And y[a] > 0 And y[a] < desktopHeight Then
-
       onScreen = 1
-
     EndIf
-
   EndFor
-
   If onScreen = 0 Then
-
     reset = 1
-
   EndIf
-
 endSub
 
-
-
 'Calculate force will iterate through each pair of bodies to create a total
-
 'of the effective force to apply to each body.
-
 Sub calculateForce
-
   startTime = Clock.ElapsedMilliseconds
-
   'TextWindow.WriteLine("Calculate Force")
-
   For a = 1 To bodies
-
     For b = a To bodies 
-
       If mass[a] > 0 And mass[b] > 0 Then
-
         dx = x[a] - x[b]
-
         dy = y[a] - y[b]
-
         dx = dx * distanceMult
-
         dy = dy * distanceMult
-
         If dx = 0 Then 
-
           dx = .0000001
-
         EndIf
-
         If dy = 0 Then 
-
           dy = .0000001
-
         EndIf
-
         distance = Math.SquareRoot((dx*dx)+(dy*dy))
-
         getSize()
-
         If distance < (size[a] * 4) then
-
           distance = size[a] * 4
-
         Endif
-
         force = (mass[a] * mass[b] * gravity) / Math.SquareRoot(distance)
-
         'calculate slope(Force Vecter)
-
         mdx = Math.Abs(dx)
-
         mdy = Math.Abs(dy)
-
         If mdx > mdy Then
-
           fx = 1
-
           fy = (mdy / mdx)
-
         Else
-
           fy = 1
-
           fx = (mdx / mdy)
-
         EndIf
-
         If dx < 0 Then 
-
           fx = fx * -1
-
         EndIf
-
         If dy < 0 Then 
-
           fy = fy * -1
-
         EndIf
-
         'constrain force vector to a maximum multiplier of 1.
-
         dforce = 1 / Math.SquareRoot((mdy * mdy) + (mdx * mdx))
-
         fy = fy * dforce
-
         fx = fx * dforce
-
         fy = fy * force
-
         fx = fx * force        
-
         xa[b] = xa[b] + fx / mass[b] 
-
         ya[b] = ya[b] + fy / mass[b] 
-
         xa[a] = xa[a] + fx * -1 / mass[a] 
-
         ya[a] = ya[a] + fy * -1 / mass[a] 
-
       EndIf
-
     EndFor
-
   EndFor
-
   For a = 1 To bodies
-
       For b = a To bodies
-
         If mass[a] > 0 And mass[b] > 0 And a <> b Then
-
           getSize()
-
           distance = Math.SquareRoot((x[a]-x[b]) * (x[a]-x[b]) + (y[a]-y[b]) * (y[a]-y[b])) * distanceMult
-
           If distance < size[a] + size[b] Then
-
             xa[a] = ((mass[a] * xa[a]) + (mass[b] * xa[b])) / (mass[a] + mass[b])
-
             ya[a] = ((mass[a] * ya[a]) + (mass[b] * ya[b])) / (mass[a] + mass[b])
-
             If mass[a]<mass[b] then
-
               x[a] = x[b]
-
               y[a] = y[b]
-
             EndIf
-
             mass[a] = mass[a] + mass[b]
-
             mass[b] = 0
-
             Shapes.Remove(body[b])
-
             Shapes.Remove(body[a])
-
             getSize()
-
             body[a] = Shapes.AddEllipse(size[a], size[a])
-
             Shapes.Move(body[a], x[a], y[a])
-
             Shapes.ShowShape(body[a])
-
           EndIf
-
         EndIf
-
       EndFor
-
     EndFor
-
   endTime = Clock.ElapsedMilliseconds
-
   cDelay = (endTime - startTime) * 2
-
   'TextWindow.WriteLine(cDelay)
-
   
-
 EndSub
-
-
 
 'Draw universe will go through and place all bodies of the array.
-
 'Additionally it will center the display on the most massive body
-
 'or the agregate center of mass in the entire universe.
-
 Sub drawUniverse
-
   'TextWindow.WriteLine("Draw Universe")
-
   zoomFactor = 1
-
   zf = zoomFactor
-
   For a = 1 To bodies
-
     getSize()
-
     Shapes.Zoom(body[a], size[a]*zf, size[a]*zf)
-
     If cDelay > 150 Then
-
       Shapes.Animate(body[a], x[a], y[a], cDelay)
-
     Else
-
       Shapes.Move(body[a], x[a], y[a])
-
     EndIf
-
   endfor
-
 EndSub
-
-
 
 'placeObjects will set initial values for the various bodies and create
-
 'the sprites for each one.
-
 Sub placeObjects
-
   'TextWindow.WriteLine("Place Objects")
-
   For a = 1 To bodies
-
     mass[a] = initialMass
-
     x[a] = Math.GetRandomNumber(desktopWidth * .8)
-
     y[a] = Math.GetRandomNumber(desktopHeight * .8)
-
     x[a] = x[a] + desktopWidth * .05
-
     y[a] = y[a] + desktopHeight * .05
-
     xa[a] = 0
-
     ya[a] = 0
-
     checked[a] = 0
-
     getSize()
-
     GraphicsWindow.BrushColor = "White"
-
     GraphicsWindow.PenColor = "White"
-
     body[a] = Shapes.AddEllipse(size[a], size[a])
-
     Shapes.Move(body[a], x[a] - size[a] / 2, y[a] - size[a] / 2)
-
     Shapes.ShowShape(body[a])
-
   EndFor
-
 EndSub
-
-
 
 Sub getSize
-
   'TextWindow.WriteLine("Get Size")
-
   size[a] = Math.SquareRoot(mass[a] / pi)+1
-
   If size[a] < 1 Then
-
     size[a] = 1
-
   EndIf
-
 EndSub
-
   
-
-

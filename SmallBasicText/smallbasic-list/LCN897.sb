@@ -1,533 +1,266 @@
 '==============================================================================
-
 'Simple Flappy Birds game - mainly just the game-engine, no levels basic graphics, sound etc
-
 'Uses LitDev extension for web high score - easily commented out or altered to store in a local file etc
-
 'By LitDev 2014
-
 '==============================================================================
-
-
 
 'Customisations
-
 gravity = 0.1 'Gravity down (0.1 to 0.3)
-
 flapPower = 3 'How much uplift from a flap (~1) (~3 if holdKey is "False")
-
 holdKey = "False" 'If "True" uplift repeats while key down, if "False" a new tap for each flap (more flapPower needed)
-
 maxSpeed = 10 'Max uplift or falling speed
-
 minGap = 2.5 'Minimum gap (*bird radius)
 
-
-
 Intro()
-
 While "True" 'Repeat game
-
   Initialise()
-
   
-
   '==============================================================================
-
   'GAME LOOP
-
   '==============================================================================
-
   
-
   While (playing)
-
     start = Clock.ElapsedMilliseconds
-
     
-
     'Gradually increase speed to make it challenging
-
     speedup = speedup+1/(50*60) 'Working at 50 fps (delay 20ms) so every 60 sec tubeSpeed increases by factor of 1
-
      
-
     'Impulse up for bird
-
     If (keyDown) Then
-
       keyDown = holdKey
-
       birdV = birdV-flapPower*speedup 'Also speedup flapping so we can negotiate different heights at faster speeds
-
     EndIf
-
     
-
     'Max speed
-
     birdV = Math.Min(maxSpeed,birdV) ' Max speed down
-
     birdV = Math.Max(-maxSpeed,birdV) ' Max speed up
-
     
-
     'accelerate down
-
     birdV = birdV+gravity*speedup 'Also speedup gravity so we can negotiate different heights at faster speeds
-
     birdY = birdY+birdV
-
     
-
     'Move bird
-
     Shapes.Move(bird,birdX-birdRadius,birdY-birdRadius)  
-
     
-
     'Move tube barriers and check for collision (end of game) - also update score for each barrier passed
-
     'passing is true while overlapping barrier - once past barrier and passing is true (we get a point)
-
     For i = 1 To numTube
-
       tubeX[i] = tubeX[i]-tubeSpeed*speedup
-
       If (tubeX[i] < -birdRadius) Then
-
         'Reset barrier off to right
-
         tubeX[i] = tubeX[i]+gw+2*birdRadius
-
         SetTubeGap() 'Gap size and Y position
-
       EndIf
-
       'A little bit of leaway since rectangle overlap is a bit harsh
-
       If (birdX-birdRadius+leaway < tubeX[i]+birdRadius And birdX+birdRadius-leaway > tubeX[i]-birdRadius) Then
-
         passing[i] = "True"     
-
         If (birdY-birdRadius+leaway < tubeY[i] Or birdY+birdRadius-leaway > tubeY[i]+tubeGap[i]) Then
-
           Sound.PlayChime()
-
           playing = "False"
-
         EndIf
-
       ElseIf (passing[i]) Then
-
         Sound.PlayClick()
-
         score = score+1
-
         passing[i] = "False"      
-
       EndIf
-
       
-
       Shapes.Move(tubeTop[i],tubeX[i]-birdRadius,tubeY[i]-gh)
-
       Shapes.Move(tubeBottom[i],tubeX[i]-birdRadius,tubeY[i]+tubeGap[i])
-
     EndFor
-
     
-
     'Move Clouds
-
     For i = 1 To numCloud
-
       cloudX[i] = cloudX[i]-tubeSpeed*speedup
-
       If (cloudX[i] < -cloudRadius) Then
-
         'Reset cloud off to right
-
         cloudX[i] = cloudX[i]+gw+2*cloudRadius
-
         SetCloudY()
-
       EndIf
-
       Shapes.Move(cloud[i],cloudX[i]-cloudRadius,cloudY[i]-cloudRadius/2)
-
     EndFor
-
     
-
     GraphicsWindow.Title = "Small Basic Flappy Birds : HighScore = "+highScore+" ("+highScorePlayer+") : Score = "+score
-
     
-
     delay = 20 - (Clock.ElapsedMilliseconds-start)
-
     If (delay > 0) Then
-
       Program.Delay(delay)
-
     EndIf
-
   EndWhile
-
   
-
   Lose()
-
 EndWhile
 
-
-
 '==============================================================================
-
 'SUBROUTINES
-
 '==============================================================================
-
-
 
 Sub Intro
-
   'Create and size window
-
   gw = 1200
-
   gh = 600
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.Left = (Desktop.Width-gw)/2
-
   GraphicsWindow.Top = (Desktop.Height-gh)/2
-
   GraphicsWindow.Title = "Small Basic Flappy Birds"
-
   Mouse.HideCursor()
-
   
-
   'Intro message
-
   GraphicsWindow.BackgroundColor = "lightBlue"
-
   GraphicsWindow.BrushColor = "Orange"
-
   GraphicsWindow.FontSize = 50
-
   GraphicsWindow.DrawBoundText(0.1*gw,0.2*gh,0.8*gw,"Use any key or mouse to flap")
-
   GraphicsWindow.DrawBoundText(0.1*gw,0.3*gh,0.8*gw,"Any key to restart when you lose")
-
   GraphicsWindow.DrawBoundText(0.1*gw,0.4*gh,0.8*gw,"Escape to quit")
-
   GraphicsWindow.DrawBoundText(0.1*gw,0.6*gh,0.8*gw,"Any key to start")
-
   
-
   'Get images - (if  they don't exist basic shapes will be used) - 48*48 png for bird and 48 * gh png for tubes
-
   birdImage = ImageList.LoadImage("http://litdev.hostoi.com/game_images/flappyBird.png")
-
   tubeTopImage = ImageList.LoadImage("http://litdev.hostoi.com/game_images/tubeTop.png")
-
   tubeBottomImage = ImageList.LoadImage("http://litdev.hostoi.com/game_images/tubeBottom.png")
-
   cloudImage = ImageList.LoadImage("http://litdev.hostoi.com/game_images/cloud.png")
-
   
-
   'High Score using LitDev Extension
-
   highScore = 0
-
   highScores = LDNetwork.HighScore("FlappyBirds","No-one",highScore)
-
   highScorePlayer = HighScores[1]
-
   highScore = HighScores[2]
-
   
-
   'Press a key to start
-
   While (GraphicsWindow.LastKey = "None" And Mouse.IsLeftButtonDown = "False")
-
     Program.Delay(100)
-
   EndWhile
-
 EndSub
 
-
-
 '==============================================================================
-
-
 
 Sub Initialise
-
   'Basic Setup
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.BackgroundColor = "lightBlue"
-
   GraphicsWindow.PenWidth = 0
-
   score = 0  
-
   speedup = 1
-
   birdRadius = 24
-
   tubeSpeed = 2
-
   leaway = (Math.SquareRoot(2)-1)*birdRadius 'for collision detection (a buffer)
-
   
-
   'Shapes are added in Z order (back ones first)
-
   
-
   'Clouds
-
   GraphicsWindow.BrushColor = "White"
-
   numCloud = 7
-
   cloudRadius = 80
-
   For i = 1 To numCloud
-
     If (ImageList.GetWidthOfImage(cloudImage) > 0) Then
-
       cloud[i] = Shapes.AddImage(cloudImage)
-
     Else
-
       cloud[i] = Shapes.AddEllipse(2*cloudRadius,cloudRadius)
-
     EndIf
-
     cloudX[i] = i*(gw+2*cloudRadius)/numCloud+Math.GetRandomNumber(cloudRadius)-cloudRadius/2
-
     SetCloudY()
-
     Shapes.Move(cloud[i],cloudX[i]-cloudRadius,cloudY[i]-cloudRadius/2)
-
   EndFor
-
   
-
   'Barriers
-
   GraphicsWindow.BrushColor = "DimGray"
-
   numTube = 4
-
   For i = 1 To numTube
-
     passing[i] = "False"  
-
     If (ImageList.GetWidthOfImage(tubeTopImage) > 0 And ImageList.GetWidthOfImage(tubeBottomImage) > 0) Then
-
       tubeTop[i] = Shapes.AddImage(tubeTopImage)
-
       tubeBottom[i] = Shapes.AddImage(tubeBottomImage)
-
     Else
-
       tubeTop[i] = Shapes.AddRectangle(2*birdRadius,gh)
-
       tubeBottom[i] = Shapes.AddRectangle(2*birdRadius,gh)
-
     EndIf
-
     tubeX[i] = gw*3/4+((i-1)*(gw+2*birdRadius)/numTube)
-
     SetTubeGap() 'Gap size and Y position
-
     Shapes.Move(tubeTop[i],tubeX[i]-birdRadius,tubeY[i]-gh)
-
     Shapes.Move(tubeBottom[i],tubeX[i]-birdRadius,tubeY[i]+tubeGap[i])
-
   EndFor
-
   
-
   'Bird
-
   GraphicsWindow.BrushColor = "Brown"
-
   birdX = gw/3
-
   birdY = gh /2
-
   'Try to get image, otherwise use circle
-
   If (ImageList.GetWidthOfImage(birdImage) > 0) Then
-
     bird = Shapes.AddImage(birdImage)
-
   Else
-
     bird = Shapes.AddEllipse(2*birdRadius,2*birdRadius)
-
   EndIf
-
   Shapes.Move(bird,birdX-birdRadius,birdY-birdRadius)
-
   birdV = 0
-
   
-
   'Start interaction (use same routines for key or mouse)
-
   playing = "True"
-
   keyDown = "False"
-
   keyUp = "True"
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   GraphicsWindow.KeyUp = OnKeyUp
-
   GraphicsWindow.MouseDown = OnKeyDown
-
   GraphicsWindow.MouseUp = OnKeyUp 
-
 EndSub
 
-
-
 '==============================================================================
-
-
 
 Sub Lose
-
   GraphicsWindow.BrushColor = "Orange"
-
   If (Score > highScore) Then
-
     Mouse.ShowCursor()
-
     highScoreTB = Controls.AddTextBox(gw/2-200,0.4*gh)
-
     Controls.SetSize(highScoreTB,400,1.5*GraphicsWindow.FontSize)
-
     Controls.SetTextBoxText(highScoreTB,"Winner's Name")
-
     highScoreButton = Controls.AddButton("Enter",gw/2-100,0.6*gh)
-
     Controls.SetSize(highScoreButton,200,1.5*GraphicsWindow.FontSize)
-
     While (Controls.LastClickedButton <> highScoreButton)
-
       Program.Delay(100)
-
     EndWhile
-
     Mouse.HideCursor()
-
     'High Score using LitDev Extension
-
     highScores = LDNetwork.HighScore("FlappyBirds",Controls.GetTextBoxText(highScoreTB),Score)
-
     highScorePlayer = HighScores[1]
-
     highScore = HighScores[2]
-
   Else
-
     'Display lose message and wait till key is pressed
-
     Shapes.Remove(loseText)
-
     loseText = Shapes.AddText("You Lose")
-
     Shapes.Move(loseText,0.4*gw,0.4*gh)
-
     While (keyDown = "False")
-
       Program.Delay(100)
-
     EndWhile
-
   EndIf
-
 EndSub
 
-
-
 '==============================================================================
-
-
 
 Sub SetTubeGap
-
   'Create gap for barrier i - a subroutine so we don't repeat code we may change
-
   tubeGap[i] = (minGap+Math.GetRandomNumber(30)/10)*birdRadius'Gap between tubes
-
   tubeY[i] = 2*birdRadius+Math.GetRandomNumber(gh-4*birdRadius-tubeGap[i]) 'Bottom of top tube
-
 EndSub
-
-
 
 Sub SetCloudY
-
   'Create cloud Y position for cloud i - a subroutine so we don't repeat code we may change
-
   cloudY[i] = cloudRadius/2+Math.GetRandomNumber(gh-cloudRadius)
-
 EndSub
 
-
-
 '==============================================================================
-
 'EVENT SUBROUTINES
-
 '==============================================================================
-
-
 
 Sub OnKeyDown
-
   If (keyUp Or holdKey) Then 'Only register if holdKey or we have done a keyUp
-
     keyDown = "True"
-
     keyUp = "False"
-
   EndIf
-
   If (GraphicsWindow.LastKey = "Escape") Then
-
     Program.End()
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   keyDown = "False"
-
   keyUp = "True"
-
 EndSub
-
-

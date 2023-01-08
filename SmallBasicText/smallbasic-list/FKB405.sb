@@ -1,2269 +1,1134 @@
 ' 16x16 Plain PPM Icon Editor
 
-
-
 pwd=1 ' penwidth
-
 title = "Icon Editor"
-
 fname = "Untitled"
-
 GraphicsWindow.Title = fname + " - " + title
-
 dficn()
-
 args=0
-
 msl=0
-
 zzm=1
-
 LDEvents.MouseWheel=mssc
 
-
-
 CR = Text.GetCharacter(13)
-
 LF = Text.GetCharacter(10)
-
 TAB = Text.GetCharacter(9)
 
-
-
 Not = "False=True;True=False;"
-
 ' width/height [%] of each character in Trebuchet MS font
-
 ratio = "32=30;48=58;49=58;50=58;51=58;52=58;53=58;54=58;55=58;56=58;"
-
 ratio = ratio + "57=58;65=63;66=59;67=61;68=64;69=57;70=58;71=67;"
-
 ratio = ratio + "72=68;73=28;74=53;75=62;76=55;77=74;78=67;79=70;"
-
 ratio = ratio + "80=59;81=71;82=61;83=51;84=61;85=68;86=62;87=88;"
-
 ratio = ratio + "88=60;89=61;90=56;97=53;98=58;99=51;100=58;101=57;"
-
 ratio = ratio + "102=37;103=50;104=59;105=30;106=37;107=55;108=29;"
-
 ratio = ratio + "109=86;110=59;111=56;112=58;113=58;114=43;115=43;"
-
 ratio = ratio + "116=39;117=59;118=53;119=78;120=55;121=53;122=53;"
-
 Mouse_Init()
-
 KB_Init()
-
 pcolor = GraphicsWindow.PenColor
-
 Form()
-
 GraphicsWindow.FontSize = 12
 
-
-
 Msg_Init()
-
 Macro_Init()
 
-
-
 While "True"
-
   If clicked Then
-
     Mouse_DetectObject()
-
     ' create message (command) for the object if found
-
     If name = "pen color" Then
-
       param = "cmd=color;"
-
       Msg_Set()
-
     ElseIf name = "icon" Then
-
       Icon_MouseToXY()
-
       If 0 <= x And 0 <= y Then
-
         param = "cmd=pixel;x=" + x + ";y=" + y + ";"
-
         Msg_Set()
-
       EndIf
-
     ElseIf name <> "" Then
-
       param = "cmd=" + name + ";"
-
       Msg_Set()
-
     EndIf
-
     clicked = "False"
-
   EndIf
-
   While keyOut < keyIn
-
     KB_InKey()
-
     ' create message (command) for the shortcut if found
-
     If c = "^N" Then
-
       param = "cmd=new;"
-
       Msg_Set()
-
       c = ""
-
     ElseIf c = "^O" Then
-
       param = "cmd=open;"
-
       Msg_Set()
-
       c = ""
-
     ElseIf c = "^S" Then
-
       param = "cmd=save;"
-
       Msg_Set()
-
       c = ""
-
     ElseIf c = "^Z" Then
-
       param = "cmd=undo;"
-
       Msg_Set()
-
       c = ""
-
     ElseIf c = "^Y" Then
-
       param = "cmd=redo;"
-
       Msg_Set()
-
       c = ""
-
       
-
     EndIf
-
   EndWhile
-
   
-
   If msgOut < msgIn Then   ' do action for the message (command)
-
     msgOut = msgOut + 1
-
     msg = message[msgOut]
-
     If msg["cmd"] = "new" Then
-
       New()
-
     ElseIf msg["cmd"] = "insert" Then
-
       paste()
-
     ElseIf msg["cmd"] = "clpget" Then
-
       GraphicsWindow.DrawImage (  Clipboard.GetImage(),0,570)      
-
     ElseIf msg["cmd"] = "open" Then
-
       Open()
-
     ElseIf msg["cmd"] = "pickclr" Then
-
       cpck=1
-
     ElseIf msg["cmd"] = "encode" Then
-
       File_GenHxPPM ()
-
     ElseIf msg["cmd"] = "saveas" Then
-
       Save()
-
     ElseIf msg["cmd"] = "penwd" Then
-
       ww=Dialogs.AskForTextLine ("Width: <1>","Pen")
-
       pwd= MathPlus.ToNumber (ww)
-
       If pwd="FAILED" or pwd<1 then 
-
         pwd=1
-
       EndIf
-
       
-
     ElseIf msg["cmd"] = "save" Then
-
       
-
       If fname="Untitled"  then
-
         Save()
-
       else
-
         File_GeneratePPM()
-
 ' The following line could be harmful and has been automatically commented.
-
 '         File.WriteContents(fname, buf)
-
         Dialogs.ShowMessageBox("Saved.","pic","OK","Information")
-
       Endif
-
     ElseIf msg["cmd"] = "undo" Then
-
       Macro_Undo()
-
     ElseIf msg["cmd"] = "redo" Then
-
       Macro_Redo()
-
     ElseIf msg["cmd"] = "color" Then
-
       
-
       pcolor =LDDialogs.Colour() 
-
       
-
       Color_SetPenColor()
-
     ElseIf msg["cmd"] = "pixel" Then
-
       for x = msg["x"] to msg["x"]+pwd-1
-
         for y = msg["y"] to msg["y"]+pwd-1
-
           Icon_GetPixel()
-
           msg["from"] = color
-
           msg["to"] = pcolor
-
           Macro_Add()
-
           color = pcolor
-
           Icon_SetPixel()
-
         endfor
-
       endfor
-
       GraphicsWindow.BrushColor="DimGray
-
       stx=xEdit + 16 * (size + gap)
-
       sty=yEdit + 16 * (size + gap)
-
       GraphicsWindow.FillRectangle (stx,menuHeight +1,100,gh) 
-
       GraphicsWindow.FillRectangle (0,sty,1000,500) 
-
     Else
-
       '  GraphicsWindow.Title = msg["cmd"] + " - " + title
-
     EndIf
-
   EndIf
-
   
-
 EndWhile
 
-
-
 Sub Form
-
   gw = 598
-
   gh = 550
-
   menuHeight = 60
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   gwh=menuHeight 
-
   GraphicsWindow.BackgroundColor = "DimGray"
-
   iconWidth = 16  '40
-
   iconHeight = 16 '40
-
   itemSize = 40
-
   itemGap = 10
-
   
-
   size = 26       '6
-
   gap = 1
-
   Menu_Draw()
-
   xEdit = Math.Floor((gw - (size + gap + 1) * iconWidth) / 2) + iconWidth
-
   yEdit = Math.Floor((gh - menuHeight - (size + gap) * iconHeight) / 2) + menuHeight
-
   xIcon = Math.Floor((xEdit - iconWidth) / 2)
-
   yIcon = yEdit
-
   add = "True"
-
   Icon_Clear()
-
   add = "False"
-
   
-
 EndSub
-
-
 
 Sub New
-
   yes = "True"
-
   If 1>0 Then
-
     caution = "Are you sure to clear the icon?"
-
     
-
     rr= LDDialogs.Confirm (caution,"Wait")
-
     If rr="Yes" Then
-
       Icon_Clear()
-
       fname = "Untitled"
-
       relPath = ""
-
       Macro_Init()
-
     EndIf
-
   EndIf 
-
   
-
 EndSub
-
-
 
 Sub Open  ' open command
-
   File_Open()
-
   Parse_PPM()
-
   If match And relPath <> "" Then
-
     fname = relPath
-
     Macro_Init()
-
   EndIf
-
 EndSub
-
-
 
 Sub Save
-
   ' save command
-
   File_GeneratePPM()
-
   File_Save()
-
 EndSub
-
-
 
 Sub Array_GetIndexOfValue  ' param arry - array
-
   ' param value - value to get index  ' return index - index if found or "" if not found
-
   nValue = Array.GetItemCount(arry)
-
   indices = Array.GetAllIndices(arry)
-
   index = ""
-
   For iArry = 1 To nValue
-
     If value = arry[indices[iArry]] Then
-
       index = indices[iArry]
-
       iArry = nValue + 1  ' break
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub Color_SetPenColor  ' param pcolor
-
   GraphicsWindow.BrushColor = pcolor
-
   padding = 4
-
   arry = item
-
   value = "Pen Color"
-
   Array_GetIndexOfValue()
-
   y = Math.Floor((menuHeight - itemSize - 10) / 2) + padding
-
   x = (index - 1) * (itemSize + itemGap) + itemGap + padding
-
   GraphicsWindow.FillRectangle(x, y, itemSize - 2 * padding, itemSize - 2 * padding)
-
 EndSub
-
-
 
 Sub File_RemoveDots
-
   ' param absPath - with dots    ' return absPath - without dots
-
   path = absPath
-
   folder = ""
-
   n = 0
-
   While Text.IsSubText(path, "\")
-
     n = n + 1
-
     p = Text.GetIndexOf(path, "\")
-
     folder[n] = Text.GetSubText(path, 1, p - 1)
-
     path = Text.GetSubTextToEnd(path, p + 1)
-
   EndWhile
-
   If path <> "" Then
-
     n = n + 1
-
     folder[n] = path
-
   EndIf
-
   While Array.ContainsValue(folder, ".") Or Array.ContainsValue(folder, "..")
-
     For i = 1 To n
-
       If folder[i] = "." Then
-
         File_RemoveEntry()
-
         i = n + 1 ' break
-
       ElseIf folder[i] = ".." Then
-
         i = i - 1
-
         File_RemoveEntry()
-
         File_RemoveEntry()
-
         i = n + 1 ' break
-
       EndIf
-
     EndFor
-
   EndWhile
-
   absPath = folder[1]
-
   For i = 2 To n
-
     absPath = absPath + "\" + folder[i]
-
   EndFor
-
 EndSub
-
-
 
 Sub File_RemoveEntry
-
   For _i = i To n - 1
-
     folder[_i] = folder[_i + 1]
-
   EndFor
-
   folder[n] = ""
-
   n = n - 1
-
 EndSub
-
-
 
 Sub File_GeneratePPM  ' File | Generate PPM in buf
-
   ' return buf - buffer
-
   buf = "P3" + CR + LF
-
   buf = buf + "16 16" + CR + LF
-
   buf = buf + "255" + CR + LF
-
   nRGB = 0
-
   For y = 0 To iconHeight - 1
-
     nCol = 0
-
     For x = 0 To iconWidth - 1
-
       Icon_GetPixel()
-
       sColor = color
-
       Color_ColorToRGB()
-
       len = Text.GetLength(iR)
-
       sp = Text.GetSubTextToEnd("  ", len)
-
       buf = buf + sp + iR + " "
-
       len = Text.GetLength(iG)
-
       sp = Text.GetSubTextToEnd("  ", len)
-
       buf = buf + sp + iG + " "
-
       len = Text.GetLength(iB)
-
       sp = Text.GetSubTextToEnd("  ", len)
-
       buf = buf + sp + iB
-
       If (Math.Remainder(nCol, 5) = 4) Or (nCol = iconWidth - 1) Then
-
         buf = buf + CR + LF
-
       Else
-
         buf = buf + "  "
-
       EndIf
-
       nCol = nCol + 1
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub File_GenHxPPM  ' File | Generate PPM in buf
-
   ' return buf - buffer
-
   buf = ""
-
   nRGB = 0
-
   For y = 0 To iconHeight - 1
-
     nCol = 0
-
     For x = 0 To iconWidth - 1
-
       Icon_GetPixel()
-
       buf=buf+text.GetSubTextToEnd (color,2)    
-
       nCol = nCol + 1
-
     EndFor
-
   EndFor
-
   TextWindow.WriteLine (buf)
-
 EndSub
-
-
-
 
 
 Sub File_Open
-
   
-
   filename =LDDialogs.OpenFile ("ppm","e:\")
-
 ' The following line could be harmful and has been automatically commented.
-
 '   If LDFile.Exists (filename ) then
-
     fname=filename 
-
     GraphicsWindow.Title=fname 
-
 ' The following line could be harmful and has been automatically commented.
-
 '     buf = File.ReadContents(filename)
-
     name = "save"
-
     Menu_EnableItem()
-
   endif
-
 EndSub
-
-
-
 
 
 Sub File_Save
-
   
-
   filename =LDDialogs.SaveFile  ("ppm","e:\")
-
   If filename<>"" then
-
     fname=filename 
-
     GraphicsWindow.Title=fname
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.WriteContents(fname, buf)
-
     Dialogs.ShowMessageBox("Saved.","pic","OK","Information")
-
   Endif
-
 EndSub
-
-
-
 
 
 Sub Icon_Clear
-
   ' param add - "True" to add menu to mouse object
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FillRectangle(xIcon, yIcon, iconWidth, iconHeight)
-
   For row = 0 To iconHeight - 1
-
     y = yEdit + row * (size + gap)
-
     For col = 0 To iconWidth - 1
-
       x = xEdit + col * (size + gap)
-
       GraphicsWindow.FillRectangle(x, y, size, size)
-
     EndFor
-
   EndFor
-
   If add Then
-
     param = ""
-
     param["name"] = "icon"
-
     param["xLeft"] = xEdit
-
     param["xRight"] = xEdit + iconWidth * (size + gap) - gap
-
     param["yTop"] = yEdit
-
     param["yBottom"] = yEdit + iconHeight * (size + gap) - gap
-
     Mouse_AddObject()
-
   EndIf
-
 EndSub
-
 Sub Icon_GetPixel
-
   ' param x, y - position in icon
-
   ' return color - got color
-
   color = GraphicsWindow.GetPixel(xIcon + x, yIcon + y)
-
   If Text.GetLength(color) = 9 Then
-
     color = "#" + Text.GetSubTextToEnd(color, 4)
-
   EndIf
-
 EndSub
-
-
 
 Sub Icon_MouseToXY  ' param xRel, yRel - position in icon edit field
-
   ' return x, y - pixel of the icon or (-1, -1) if on the grid
-
   x = Math.Floor(xRel / (size + gap))
-
   y = Math.Floor(yRel / (size + gap))
-
   If (iconWidth - 1 < x) Or (iconHeight - 1 < y) Then
-
     x = -1
-
     y = -1
-
   Else
-
     xMod = Math.Remainder(xRel, (size + gap))
-
     yMod = Math.Remainder(yRel, (size + gap))
-
     If (size - 1 < xMod) Or (size - 1 < yMod) Then
-
       x = -1
-
       y = -1
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub Icon_SetPixel
-
   ' param x, y - position in icon
-
   ' param color - set color
-
   GraphicsWindow.SetPixel(xIcon + x, yIcon + y, color)
-
   GraphicsWindow.BrushColor = color
-
   GraphicsWindow.FillRectangle(xEdit + x * (size + gap), yEdit + y * (size + gap), size, size)
-
 EndSub
-
 Sub KB_Init
-
   ' Keyboard | Initialization (use only ^n, ^o, ^s, ^z, ^y)
-
   shift = ""
-
   ctrl = ""
-
   keyIn = 0
-
   keyOut = 0
-
   GraphicsWindow.KeyDown = KB_OnKeyDown
-
   GraphicsWindow.KeyUp = KB_OnKeyUp
-
 EndSub
-
 Sub KB_InKey
-
   ' Keyboard | In key
-
   ' return c - input key
-
   If keyOut < keyIn Then
-
     keyOut = keyOut + 1
-
     Program.Delay(1)  ' workaround 29976
-
     c = fifo[keyOut]
-
     'fifo[keyOut] = ""
-
   EndIf
-
 EndSub
-
 Sub KB_OnKeyDown
-
   ' Keyboard | Key down event handler
-
   key = GraphicsWindow.LastKey
-
   If key = "LeftShift" Or key = "RightShift" Or key = "Shift" Then
-
     shift = "+"
-
   ElseIf key = "LeftCtrl" Or key = "RightCtrl" Then
-
     ctrl = "^"
-
   Else
-
     keyIn = keyIn + 1
-
     fifo[keyIn] = shift + ctrl + key
-
   EndIf
-
 EndSub
-
 Sub KB_OnKeyUp
-
   ' Keyboard | Key up event handler
-
   key = GraphicsWindow.LastKey
-
   If key = "LeftShift" Or key = "RightShift" Or key = "Shift" Then
-
     shift = ""
-
   ElseIf key = "LeftCtrl" Or key = "RightCtrl" Then
-
     ctrl = ""
-
   EndIf
-
 EndSub
-
-
 
 Sub Macro_Add
-
   ' Macro | Add macro
-
   ' param msg - message command
-
   iMacro = iMacro + 1
-
   nMacro = iMacro
-
   macro[iMacro] = msg
-
   name = "undo"
-
   Menu_EnableItem()
-
   GraphicsWindow.Title = fname + " * - " + title
-
   name = "redo"
-
   Menu_DisableItem()
-
 EndSub
-
-
 
 Sub Macro_Init  ' Macro | Initialize
-
   macro = ""
-
   iMacro = 0
-
   nMacro = 0
-
   name = "undo"
-
   Menu_DisableItem()
-
   GraphicsWindow.Title = fname + " - " + title
-
   name = "redo"
-
   Menu_DisableItem()
-
 EndSub
-
-
 
 Sub Macro_Redo
-
   If iMacro < nMacro Then
-
     iMacro = iMacro + 1
-
     msg = macro[iMacro]
-
     If msg["cmd"] = "pixel" Then
-
       x = msg["x"]
-
       y = msg["y"]
-
       color = msg["to"]
-
       Icon_SetPixel()
-
     EndIf
-
     name = "undo"
-
     Menu_EnableItem()
-
     GraphicsWindow.Title = fname + " * - " + title
-
     If iMacro = nMacro Then
-
       name = "redo"
-
       Menu_DisableItem()
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub Macro_Undo
-
   ' Macro | Undo
-
   If 0 < iMacro Then
-
     msg = macro[iMacro]
-
     If msg["cmd"] = "pixel" Then
-
       x = msg["x"]
-
       y = msg["y"]
-
       color = msg["from"]
-
       Icon_SetPixel()
-
       iMacro = iMacro - 1
-
       name = "redo"
-
       Menu_EnableItem()
-
       If iMacro = 0 Then
-
         name = "undo"
-
         Menu_DisableItem()
-
         GraphicsWindow.Title = fname + " - " + title
-
       EndIf
-
     EndIf 
-
   EndIf
-
 EndSub
 
-
-
 Sub paste
-
   Icon_Clear()
-
   stp=(30*zzm)/16
-
   For y = 0 To iconHeight - 1
-
     For x = 0 To iconWidth - 1
-
       '     GraphicsWindow.Title =(x+msx-15*zzm)+";"+(y+msy-15*zzm)
-
       ix=x*stp+msx-15*zzm
-
       If ix>0 then 
-
         color = GraphicsWindow.GetPixel (ix,y*stp+msy-15*zzm)
-
         Icon_SetPixel()
-
       endif
-
     EndFor
-
   EndFor
-
 endsub
-
-
-
 
 
 Sub Menu_Draw'-------------------------------------------------------menues-----------------------
-
   GraphicsWindow.BrushColor = "#EEEEEE"
-
   GraphicsWindow.FillRectangle(0, gwh-menuHeight , gw, menuHeight)
-
   item = "1=New;2=Open;3=Save;4=SaveAs;5=Undo;6=Redo;7=Pen Color;8=PenWd;9=Encode;10=Insert;11=ClpGet;12=PickClr
-
   nItem = Array.GetItemCount(item)
-
   add = "True
-
   For i = 1 To nItem
-
     Menu_DrawItem()
-
   EndFor
-
   add = "False
-
 EndSub
-
-
 
 Sub Menu_EnableItem
-
   
-
   i = 0
-
   While (Text.ConvertToLowerCase(item[i]) <> Text.ConvertToLowerCase(name)) And (i <= nItem)
-
     i = i + 1
-
   EndWhile
-
   If (i <= nItem) And (mask[i] <> "") Then
-
     Shapes.Remove(mask[i])
-
     mask[i] = ""
-
   EndIf
-
 EndSub
-
-
 
 Sub Menu_DisableItem
-
   i = 1
-
   While (Text.ConvertToLowerCase(item[i]) <> Text.ConvertToLowerCase(name)) And (i <= nItem)
-
     i = i + 1
-
   EndWhile
-
   If (i <= nItem) And (mask[i] = "") Then
-
     y = Math.Floor((menuHeight - itemSize - 10) / 2)
-
     x = (i - 1) * (itemSize + itemGap) + itemGap
-
     GraphicsWindow.PenWidth = 0
-
     GraphicsWindow.BrushColor = "#EEEEEE"
-
     mask[i] = Shapes.AddRectangle(itemSize, itemSize)
-
     Shapes.SetOpacity(mask[i], 70)
-
     Shapes.Move(mask[i], x, y)
-
   EndIf
-
 EndSub
 
-
-
 Sub drwicn
-
   GraphicsWindow.Height=990 
-
   GraphicsWindow.DrawImage (  Clipboard.GetImage(),0,570)  
-
   px=args[1]-3
-
   py=args[2]-3
-
   bb=args[3]
-
   
-
   For fy=0 To 15
-
     for fx=0 to 15
-
       pCol="#"+Text.GetSubText(bm[bb],1+fx*6+fy*96,6)
-
       GraphicsWindow.SetPixel(px+fx*2,py+fy*2, pcol)
-
       GraphicsWindow.SetPixel(px+fx*2+1,py+fy*2, pcol)
-
       GraphicsWindow.SetPixel(px+fx*2,py+fy*2+1, pcol)
-
       GraphicsWindow.SetPixel(px+fx*2+1,py+fy*2+1, pcol)
-
     EndFor 
-
   EndFor 
-
 endsub
-
-
-
 
 
 Sub Menu_DrawItem  ' param i - index number of the menu item
-
   ' param add - "True" to add menu to mouse object
-
   y = gwh-menuHeight + Math.Floor((menuHeight - itemSize - 10) / 2)
-
   x = (i - 1) * (itemSize + itemGap) + itemGap
-
   GraphicsWindow.DrawRectangle ( x, y,30,30)
-
   LDCall.Function3 ("DrwIcn",x+2,y+2,i)
-
   
-
   If add Then
-
     param = ""
-
     param["name"] = Text.ConvertToLowerCase(item[i])
-
     param["xLeft"] = x
-
     param["xRight"] = x + itemSize
-
     param["yTop"] = y
-
     param["yBottom"] = y + itemSize
-
     Mouse_AddObject()
-
   EndIf
-
   
-
   fs = 10
-
   GraphicsWindow.FontSize = fs
-
   GraphicsWindow.FontBold = "False"
-
   GraphicsWindow.FontName = "Trebuchet MS"
-
   GraphicsWindow.BrushColor = "Black"
-
   txt = item[i]
-
   Text_GetWidthInPx()
-
   dx = Math.Floor((itemSize - px) / 2)
-
   GraphicsWindow.DrawText(x + dx, y + itemSize, item[i])
-
 EndSub
-
-
 
 Sub Mouse_AddObject  ' return nObject
-
   nObject = nObject + 1
-
   object[nObject] = param
-
 EndSub
-
-
 
 Sub Mouse_DetectObject
-
   name = ""               ' not found
-
   For iObject = 1 To nObject
-
     obj = object[iObject]
-
     If obj["xLeft"] <= mxD And mxD <= obj["xRight"] And obj["yTop"] <= myD And myD <= obj["yBottom"] Then
-
       name = obj["name"]  ' found
-
       xRel = mxD - obj["xLeft"]
-
       yRel = myD - obj["yTop"]
-
       iObject = nObject   ' break
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub Mouse_Init
-
   clicked = "False"
-
   released = "False"
-
   moved = "False"
-
   object = ""
-
   nObject = 0
-
   GraphicsWindow.MouseDown = Mouse_OnDown
-
 EndSub
-
-
 
 Sub Mouse_SetHandler
-
   If param["up"] Then
-
     released = "False"
-
     GraphicsWindow.MouseUp = Mouse_OnUp
-
     handler["up"] = "U"
-
   ElseIf Not[param["up"]] Then
-
     GraphicsWindow.MouseUp = Mouse_DoNothing
-
     handler["up"] = ""
-
   EndIf
-
   If param["down"] Then
-
     clicked = "False"
-
     GraphicsWindow.MouseDown = Mouse_OnDown
-
     handler["down"] = "D"
-
   ElseIf Not[param["down"]] Then
-
     GraphicsWindow.MouseDown = Mouse_DoNothing
-
     handler["down"] = ""
-
   EndIf
-
   If param["move"] Then
-
     moved = "False"
-
     GraphicsWindow.MouseMove = Mouse_OnMove
-
     handler["move"] = "M"
-
   ElseIf Not[param["move"]] Then
-
     GraphicsWindow.MouseMove = Mouse_DoNothing
-
     handler["move"] = ""
-
   EndIf
-
   dmu = handler["down"] + handler["move"] + handler["up"] 
-
   
-
 EndSub
-
-
 
 Sub Mouse_OnDown
-
   mxD = Math.Floor(GraphicsWindow.MouseX)
-
   myD = Math.Floor(GraphicsWindow.MouseY)
-
   If cpck=1 Then
-
     cpck=0
-
     pcolor= GraphicsWindow.GetPixel(GraphicsWindow.MouseX ,GraphicsWindow.MouseY )
-
     Color_SetPenColor() 
-
   elseIf myD>560 Then
-
     If msl=0 Then
-
       zww=Shapes.AddRectangle (30,30)
-
       LDShapes.BrushColour (zww,"Red")
-
       Shapes.SetOpacity (zww,50)
-
     endif
-
     msl=1
-
     msx=mxD
-
     msy=myD
-
     shapes.move(zww,mxd-15,myd-15)
-
   Else
-
     clicked = "True"
-
   released = "False"
-
   
-
   endif
-
 EndSub
-
-
 
 Sub Mouse_DoNothing  ' Mouse | Common event handler to do nothing
-
 EndSub
-
-
 
 Sub mssc
-
   zzm=zzm+LDEvents.LastMouseWheelDelta/10
-
   Shapes.Zoom (zww,zzm,zzm) 
-
   scolor=pcolor   
-
   ColRGBtoHSL()
-
   rLightness=rLightness+LDEvents.LastMouseWheelDelta/100
-
   If rLightness <0 Then
-
     rLightness =0
-
   ElseIf rLightness >1  then
-
     rLightness=1
-
   EndIf  
-
   ColHSLtoRGB ()
-
   pcolor =scolor
-
   Color_SetPenColor()
-
   'GraphicsWindow.Title=zzm
-
 endsub
 
-
-
 Sub Mouse_OnMove
-
   mxM = Math.Floor(GraphicsWindow.MouseX)
-
   myM = Math.Floor(GraphicsWindow.MouseY)
-
   moved = "True"
-
   
-
   
-
 EndSub
-
-
 
 Sub Mouse_OnUp
-
   mxU = Math.Floor(GraphicsWindow.MouseX)
-
   myU = Math.Floor(GraphicsWindow.MouseY)
-
   released = "True"
-
 EndSub
-
-
 
 Sub Msg_Init
-
   msgIn = 0
-
   msgOut = 0
-
 EndSub
-
-
 
 Sub Msg_Set'  Set message to fifo   ' param["cmd"] - massage command    ' par.["*"].. - message operands
-
   msgIn = msgIn + 1
-
   message[msgIn] = param
-
 EndSub
-
-
 
 Sub Parse_Comment
-
   char = Text.GetSubText(buf, p, 1)
-
   If char = "#" Then
-
     lenBuf = Text.GetLength(buf)
-
     While (char <> LF) And (p < lenBuf)
-
       p = p + 1
-
       char = Text.GetSubText(buf, p, 1)
-
     EndWhile
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Decimal
-
   match = "False"
-
   isDigit = "True"
-
   dc = ""
-
   While isDigit
-
     char = Text.GetSubText(buf, p, 1)
-
     If TextPlus .IsNumber ( char) Then
-
       dc =TextPlus.Append ( dc  , char)
-
       p = p + 1
-
       match = "True"
-
     Else
-
       isDigit = "False"
-
     EndIf
-
   EndWhile
-
   dec= MathPlus.ToNumber (dc)
-
 EndSub
-
-
 
 Sub Parse_MagicNumber
-
   If Text.StartsWith(Text.GetSubTextToEnd(buf, p), "P3") Then
-
     p = p + 2
-
     match = "True"
-
   Else
-
     match = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_PPM
-
   p = 1
-
   Parse_MagicNumber()
-
   If match Then
-
     Parse_WhiteSpaceAndComment()
-
   EndIf
-
   If match Then
-
     Parse_Decimal()
-
     If match Then
-
       If dec <> iconWidth Then
-
         match = "False"
-
       EndIf
-
     EndIf
-
   EndIf
-
   If match Then
-
     Parse_WhiteSpaceAndComment()
-
   EndIf
-
   If match Then
-
     Parse_Decimal()
-
     If match Then
-
       If dec <> iconHeight Then
-
         match = "False"
-
       EndIf
-
     EndIf
-
   EndIf
-
   If match Then
-
     Parse_WhiteSpaceAndComment()
-
   EndIf
-
   If match Then
-
     Parse_Decimal()
-
     If match Then
-
       If 0 < dec And dec < 65536 Then
-
         maxVal = dec
-
       Else
-
         match = "False"
-
       EndIf
-
     EndIf
-
   EndIf
-
   If match Then
-
     Parse_WhiteSpaceAndComment()
-
   EndIf
-
   If match Then
-
     Icon_Clear()
-
     For y = 0 To iconHeight - 1
-
       For x = 0 To iconWidth - 1
-
         Parse_WhiteSpace()
-
         Parse_Decimal()
-
         If match Then
-
           iR = Math.Floor(255 * dec / maxVal)
-
         Else
-
           Goto PPPM_Error
-
         EndIf
-
         Parse_WhiteSpace()
-
         Parse_Decimal()
-
         If match Then
-
           iG = Math.Floor(255 * dec / maxVal)
-
         Else
-
           Goto PPPM_Error
-
         EndIf
-
         Parse_WhiteSpace()
-
         Parse_Decimal()
-
         If match Then
-
           iB = Math.Floor(255 * dec / maxVal)
-
         Else
-
           Goto PPPM_Error
-
         EndIf
-
         color = GraphicsWindow.GetColorFromRGB(iR, iG, iB)
-
         Icon_SetPixel()
-
       EndFor
-
     EndFor
-
   EndIf
-
   PPPM_Error:
-
 EndSub
-
-
 
 Sub Parse_WhiteSpace
-
   isSpace = "True"
-
   While isSpace
-
     char = Text.GetSubText(buf, p, 1)
-
     If Text.IsSubText(" " + TAB + CR + LF, char) Then
-
       p = p + 1
-
     Else
-
       isSpace = "False"
-
     EndIf
-
   EndWhile
-
   match = "True"
-
 EndSub
-
-
 
 Sub Parse_WhiteSpaceAndComment
-
   isSpace = "True"
-
   While isSpace
-
     char = Text.GetSubText(buf, p, 1)
-
     If char = "#" Then
-
       Parse_Comment()
-
     ElseIf Text.IsSubText(" " + TAB + CR + LF, char) Then
-
       p = p + 1
-
     Else
-
       isSpace = "False"
-
     EndIf
-
   EndWhile
-
   match = "True"
-
 EndSub
-
-
 
 Sub Text_GetWidthInPx
-
   len = Text.GetLength(txt)
-
   px = 0
-
   For p = 1 To len
-
     px = px + ratio[Text.GetCharacterCode(Text.GetSubText(txt, p, 1))]
-
   EndFor
-
   px = Math.Floor(px * fs / 100)
-
 EndSub
-
-
 
 Sub Color_ColorToRGB
-
   sR = Text.GetSubText(sColor, 2, 2)
-
   sG = Text.GetSubText(sColor, 4, 2)
-
   sB = Text.GetSubText(sColor, 6, 2)
-
   iR = ESLMaths.HexToInteger(sR)
-
   iG = ESLMaths.HexToInteger(sG)
-
   iB = ESLMaths.HexToInteger(sB)
-
 EndSub
-
-
 
 Sub dficn
-
   
-
   
-
   bm[1]="FAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFA
-
   bm[1]=bm[1]+"FAFCFAFAFCFAFAFCFAFAFCFAFAFC0000000000000000000000000000000000000000000000000000
-
   bm[1]=bm[1]+"00000000000000000000FAFAFCFAFAFCFAFAFBFAFAFBD3D3D4FEFEFEFEFEFEFDFDFDFCFCFCFBFBFB
-
   bm[1]=bm[1]+"FAFAFAF9F9F9F8F8F8F7F7F7F6F6F6E8E8E8000000FAFAFBF9F9FBF9F9FBA3A3A4FCFCFCFBFBFBF9
-
   bm[1]=bm[1]+"F9F9F7F7F7F5F5F5F3F3F3F2F2F2F1F1F1EFEFEFEDEDEDF1F1F1000000F9F9FBF9F9FBF9F9FBA0A0
-
   bm[1]=bm[1]+"A1FBFBFBF9F9F9F7F7F7F5F5F5F4F4F4F2F2F2F1F1F1EFEFEFEDEDEDEBEBEBF0F0F0000000FFFFFF
-
   bm[1]=bm[1]+"F9F9FBF9F9FB9F9FA0F9F9F9F7F7F7F6F6F6F4F4F4F3F3F3F1F1F1EFEFEFEDEDEDEBEBEBEAEAEAEF
-
   bm[1]=bm[1]+"EFEF000000F9F9FBF9F9FAF9F9FA9C9C9DF7F7F7F5F5F5F4F4F4F2F2F2F1F1F1EFEFEFEDEDEDEBEB
-
   bm[1]=bm[1]+"EBE9E9E9E8E8E8EEEEEE000000F9F9FAF9F9FAF9F9FA9A9A9BF5F5F5F4F4F4F3F3F3F1F1F1EFEFEF
-
   bm[1]=bm[1]+"EDEDEDEBEBEBEAEAEAE8E8E8E7E7E7ECECEC000000F9F9FAF8F8FAF8F8FA979798F3F3F3F2F2F2F1
-
   bm[1]=bm[1]+"F1F1EFEFEFEDEDEDEBEBEBE9E9E9E8E8E8E6E6E6E5E5E5EBEBEB000000F8F8FAF8F8FAF8F8FA9595
-
   bm[1]=bm[1]+"96F2F2F2F1F1F1EFEFEFEDEDEDEBEBEBE9E9E9E8E8E8E7E7E7E5E5E5E3E3E3EAEAEA000000F8F8FA
-
   bm[1]=bm[1]+"F8F8FAF8F8FA939394F1F1F1EFEFEFEDEDEDEBEBEBEAEAEAE8E8E8E7E7E7E5E5E5E3E3E3E1E1E1E9
-
   bm[1]=bm[1]+"E9E9000000F8F8FAF8F8F9F8F8F9909091EFEFEFEDEDEDEBEBEBE9E9E9E8E8E8E6E6E6E5E5E5E3E3
-
   bm[1]=bm[1]+"E3E1E1E1DFDFDFE7E7E7000000F8F8F9F8F8F9F8F8F98E8E8EEDEDEDEBEBEBEAEAEAE8E8E8E7E7E7
-
   bm[1]=bm[1]+"E5E5E5E3E3E3E1E1E1DFDFDFDEDEDEE6E6E6000000F8F8F9F8F8F9F8F8F98C8C8DEBEBEBEAEAEAE9
-
   bm[1]=bm[1]+"E9E9E7E7E7E5E5E5E3E3E3E1E1E1E0E0E0DEDEDEDDDDDDE5E5E5000000F8F8F9F8F8F9F8F8F9EAEA
-
   bm[1]=bm[1]+"EB737373737373737373737373737373737373737373737373737373737373414141FFFFFFF8F8F9
-
   bm[1]=bm[1]+"F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7
-
   bm[1]=bm[1]+"F7F8F7F7F8F7F7F8 
-
   
-
   bm[3]="FAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFA
-
   bm[3]=bm[3]+"FAFCFAFAFCFAFAFCFAFAFBFAFAFBBECEE05480B15480B15480B15480B15480B15480B15480B15480
-
   bm[3]=bm[3]+"B15480B15480B15480B185A3C7FAFAFBF9F9FBF9F9FB73A7C5ACDCE3FFFFFFFDFDFDFDFDFDFDFDFD
-
   bm[3]=bm[3]+"FDFDFDFDFDFDFDFDFDFEFEFEFFFFFFC8D1D2ACDBE3D7DFECF9F9FBF9F9FB85B7CFA6D6E0FFFFFFFF
-
   bm[3]=bm[3]+"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC7CFD1A6D6E0C4D2E3F9F9FBF9F9FB81B3
-
   bm[3]=bm[3]+"CDA1D0DDFFFFFFFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFDFFFFFFC6CED1A1D0DDC4D2E3
-
   bm[3]=bm[3]+"F9F9FBF9F9FB7EAFCB9CCBDBFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFC5
-
   bm[3]=bm[3]+"CED09CCBDBC4D2E3F9F9FAF9F9FA7AACC997C6D8FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-
   bm[3]=bm[3]+"FFFFFFFFFFFFFFC4CDD097C6D8C4D2E3F9F9FAF9F9FA76A8C893C1D7B5C8D2B5C8D2B5C8D2B5C8D2
-
   bm[3]=bm[3]+"B5C8D2B5C8D2B5C8D2B5C8D2B5C8D2AFC7D393C1D7C4D2E3F8F8FAF8F8FA71A2C58DBBD48DBBD48D
-
   bm[3]=bm[3]+"BBD48DBBD48DBBD48DBBD48DBBD48DBBD48DBBD48DBBD48DBBD48DBBD4C3D2E3F8F8FAF8F8FA6D9E
-
   bm[3]=bm[3]+"C288B5D188B5D188B5D188B5D188B5D188B5D188B5D188B5D188B5D188B5D188B5D188B5D1C3D2E3
-
   bm[3]=bm[3]+"F8F8FAF8F8FA699AC283B0CFA2BCCED9D9D9D9D9D9D9D9D9D9D9D9D9D9D9D9D9D99999999E9E9E83
-
   bm[3]=bm[3]+"B0CF83B0CFC3D2E3F8F8F9F8F8F96696C07EABCD9FB9CDD3D3D3D3D3D3D3D3D3D3D3D3D3D3D3D3D3
-
   bm[3]=bm[3]+"D38F8F8F9494957EABCD7EABCDC3D2E2F8F8F9F8F8F96393BE7AA6CA9CB6CBBFBFBF707070BFBFBF
-
   bm[3]=bm[3]+"BFBFBFBFBFBFBFBFBF8585858B8B8B7AA6CA7AA6CAC3D2E2F8F8F9F8F8F95F8EBC75A1C899B3CAAA
-
   bm[3]=bm[3]+"AAAB757575AAAAABAAAAABAAAAABAAAAAB7B7B7B81818175A1C875A1C8C3D2E2F8F8F9F8F8F94F7B
-
   bm[3]=bm[3]+"AD2E66A24B77A9718FB0718FB0718FB0718FB0718FB0718FB05A78995D7B9C2E66A2255D9CF8F8F9
-
   bm[3]=bm[3]+"F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7
-
   bm[3]=bm[3]+"F7F8F7F7F8F7F7F8
-
   
-
   bm[4]="FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF
-
   bm[4]=bm[4]+"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFBFAFAFB00000000000000000000
-
   bm[4]=bm[4]+"0000000000000000000000000000000000000000FAFAFBFAFAFBFAFAFBFAFAFBF9F9FBF9F9FB000000348E1B70A96E72AB7172AB7172AB7172AB7172AB713B931E000000F9F9FBF9F9FBF9F9FBF9F9FB
-
   bm[4]=bm[4]+"F9F9FBF9F9FB000000B5F360F9FAF7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF9DE75AD3E3D5F9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FB00000098E559F9FAF7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFF98E5
-
   bm[4]=bm[4]+"59D3E3D5F9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FB00000082DA54F8FAF7FEFEFEFEFEFEFEFEFEFEFEFEFFFFFF82DA54D3E3D5433A1AF7F7F9F9F9FBF9F9FBF9F9FAF9F9FA00000064CB4D64CB4D64
-
   bm[4]=bm[4]+"CB4D64CB4D64CB4D64CB4D64CB4D64CB4DD3E3D4DEBC4FFFDF5FCECECFF9F9FAF9F9FAF9F9FA0000004FC0474FC0474FC0474FC0474FC0474FC0474FC0474FC047BDCBBDD6A82AFFDB50FCD94FC6C6C7
-
   bm[4]=bm[4]+"F8F8FAF8F8FA00000038B54250B657DADADADADADADADADAD4D4D4AEAEAE25310DF1AC3CF7C040FCD240FFCD02F3C200F8F8FAF8F8FA0000001BA73A39AC53B0B0B0B0B0B0B0B0B0ABABABC44A00DD67
-
   bm[4]=bm[4]+"00704408A97002F7B400FECB008C8B8AF8F8F9F8F8F900000004821B218D35A0AEA0A0AEA0A0AEA0681D04D24600282401ECF1ED63430DF4AA009A9999F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8
-
   bm[4]=bm[4]+"F8F9F8F8F9F8F8F9CC3300532918F8F8F9F8F8F9995C03716E67F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F99B99984A261AF8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9
-
   bm[4]=bm[4]+"F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9361D15F7F7F8F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9  
-
   
-
   
-
   bm[5]="F9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9
-
   bm[5]=bm[5]+"F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBFFFFFFF9F9FBF9F9FBF9F9FBF9F9
-
   bm[5]=bm[5]+"FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBFFFFFFDFDFDFD8D8DAF9F9FB
-
   bm[5]=bm[5]+"F9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBFFFFFFB3B9B29E
-
   bm[5]=bm[5]+"D681A5AF9FF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBFFFF
-
   bm[5]=bm[5]+"FF9EA89B9BDD7A9BDD79B1BAAEF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FB
-
   bm[5]=bm[5]+"F9F9FBFFFFFFCDCFCE6BCB3B7FD45594DA6998D76171944AF1F1F3F9F9FBF9F9FBF9F9FBF9F9FBFF
-
   bm[5]=bm[5]+"FFFFFFFFFFF9F9FBF9F9FBFFFFFFE4E5E665BD396DCE3B74CE3477C12E8BD12E8DC726749338F9F9
-
   bm[5]=bm[5]+"FBF9F9FBF9F9FBFFFFFFFFFFFFF9F9FBF9F9FAF9F9FAFFFFFFCECECE67BA3677CD30D5D7D5A9ACA3
-
   bm[5]=bm[5]+"8AC41795CE1371795AF9F9FAF9F9FAFFFFFFFFFFFFF9F9FAF9F9FAF9F9FAF9F9FAFFFFFFE9E9E962
-
   bm[5]=bm[5]+"9F25C9CFC4FFFFFFD5D6D36C862998C70CEBEBECF9F9FAFFFFFFFFFFFFF9F9E8F9F9FAF9F9FAF9F9
-
   bm[5]=bm[5]+"FAF9F9FAFFFFFFA1A39ED3D6D0FFFFFFFFFFFFB2B6A89CCD0BCED0C9F9F9FAF9F9FAFFFFFFFFFFFF
-
   bm[5]=bm[5]+"F9F9FAF9F9FAF9F9FAF9F9FAF9F9FAFFFFFFFFFFFFF9F9FAF9F9FAFFFFFF646D4776834CF9F9FAF9
-
   bm[5]=bm[5]+"F9FAF9F9FAF9F9FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAFFFF
-
   bm[5]=bm[5]+"FF535F35F8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FA
-
   bm[5]=bm[5]+"F8F8FAF8F8FAF8F8FAFFFFFFF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8
-
   bm[5]=bm[5]+"F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8
-
   bm[5]=bm[5]+"FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FA
-
   bm[5]=bm[5]+"F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8
-
   bm[5]=bm[5]+"F8F9F8F8F9F8F8F9
-
   
-
   bm[2]="FAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFA
-
   bm[2]=bm[2]+"FAFCFAFAFCFAFAFCF9F9FBF9F9FB000000000000000000F7F4EEF9F9FBF9F9FBF9F9FBF9F9FB0000
-
   bm[2]=bm[2]+"00000000000000FFFFFFF9F9FBF9F9FB000000000000F7F0A6F7F0A6FFFFC9000000000000000000
-
   bm[2]=bm[2]+"000000000000F3EDDBE6D08DEDE0BB000000F9F9FBF9F9FB000000E2C45BFFFF9EFFFF9EFFFF9EFF
-
   bm[2]=bm[2]+"FF9EF2E1A1FFFADEFFFCD4FFFEAAFFFF9EFFFF9ECDA72B000000F9F9FBF9F9FB000000FFF6DAFFFF
-
   bm[2]=bm[2]+"9EFFFF9EFFFF9EFFFF9EFFFF9EFFFF9EFFFF9EFFFF9EFFFF9EFFFF9ECDA72BEEEAE1F1E9D1E8D49B
-
   bm[2]=bm[2]+"000000FFF1CFFFF392FFF392FFF392FFF392FFF392FFF392FAEB85D8B137EBD695FFFFFBFFFAF0FF
-
   bm[2]=bm[2]+"FFFAFFFFF7CEA837000000FFEAB7FFE584FFE584FFE584FFE584FBE07CF2D466FFFFFBFFFFD2FFFF
-
   bm[2]=bm[2]+"D2FFFFD2FFD985FFFFE8FFFFE8AFAFB0000000F0D182FFD876FCD570F7EFCBFFFFF5FFFFDCFFFFBA
-
   bm[2]=bm[2]+"FFFFBAFFFFBAFFFFBAFFFFBAFFD980FFFFD9E1C766D2D2D3000000EBC562FDCC67D8AE30FFFFA1FF
-
   bm[2]=bm[2]+"FFA1FFFFA1FFFFA1FFFFA1FFFFA1FFFFA1FFFFA1FFD97CFFFFC9ADAAA3F2F2F4000000E1B642F5C5
-
   bm[2]=bm[2]+"58FEFDECFFF897FFF897FFF897FFF897FFF897FFF897FFF897FFF897FFD879F3E78BC5C5C7F8F8FA
-
   bm[2]=bm[2]+"000000D8A925EBBA44FFF7C7FFEF8EFFEF8EFFEF8EFFEF8EFFEF8EFFEF8EFFEF8EFFEF8EFFD776B5
-
   bm[2]=bm[2]+"A46FEDEDEFF8F8FA000000D5A51FD9AC29FFE887FFE887FFE887FFE887FFE887FFE887FFE887FFE8
-
   bm[2]=bm[2]+"87FFE887F8DB74BBBBBBF8F8F9F8F8F9000000D8AF38F6E7BBFFDF7EFFDF7EFFDF7EFFDF7EFFDF7E
-
   bm[2]=bm[2]+"FADA74E1BA45C1A141AEAEAFBFBFBFEAEAEBF8F8F9F8F8F9000000DEC168FFF4DAFFD775F8D068D7
-
   bm[2]=bm[2]+"AD33B9A467B1B1B2C4C4C4DCDCDDEFEFF0F7F7F8F8F8F9F8F8F9F8F8F9F8F8F9000000E5CF8DB6A7
-
   bm[2]=bm[2]+"7AB4B4B4C8C8C9E1E1E2F2F2F3F7F7F8F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9
-
   bm[2]=bm[2]+"FFFFFFF7F7F9F3F3F5F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7
-
   bm[2]=bm[2]+"F7F9F7F7F9F7F7F9
-
   
-
   bm[6]="F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8
-
   bm[6]=bm[6]+"F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8
-
   bm[6]=bm[6]+"F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9
-
   bm[6]=bm[6]+"F8F8F9EEEDED927951A38559E6E6E6F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8
-
   bm[6]=bm[6]+"F8F9F8F8F9F8F8F9F8F8F9EFEEEDA48A5FF8C575A79882DDDCDDF8F8F9F8F8F9F8F8F9F8F8F9F8F8
-
   bm[6]=bm[6]+"F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9EFEFEFA68E6AF6C06DE4B4698C7D63E8E8E8F8F8F9
-
   bm[6]=bm[6]+"F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9B0ACA8A28F70C59752F3B85DF9BC5FF9
-
   bm[6]=bm[6]+"BB5CE9A43ADAD8D6F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9C6C6C6C4934AE4AA51EFB2
-
   bm[6]=bm[6]+"54F3B656F8B64EF7A82EF7A322927F62F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9E7E7E7A19687916A2C
-
   bm[6]=bm[6]+"E6A645E9A845EDA943EFA93CF5A322F7A321F7A3218D6933F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9A3
-
   bm[6]=bm[6]+"6A14CD8311D387137F5A227E75698A714BD58C1BF29F1FF6A221C98720F0F0F1F7F7F9F7F7F9F7F7
-
   bm[6]=bm[6]+"F9F7F7F9C4C2C2C87E10CC8110B17317D7D7D8F5F5F7B3A38ECA851BE9991EBB8129908A80F7F7F9
-
   bm[6]=bm[6]+"F7F7F9F7F7F9F7F7F9E8E8EA887558C77E0F9F6813978C7CF7F7F9F3F3F5AD997DD08819A77932B2
-
   bm[6]=bm[6]+"A89CF2F2F5F7F7F9F7F7F8F7F7F8F7F7F8BCB9B69F6C21A56A0F948773F2F2F3F7F7F8F0F0F1A48C
-
   bm[6]=bm[6]+"67CC8418C1BEBAF4F4F5F7F7F8F7F7F8F7F7F8F7F7F8ECEBEB886735BC760DCAC8C8F6F6F7F7F7F8
-
   bm[6]=bm[6]+"F7F7F8F7F7F8EDEDEEEFEFF0F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8CAC8C58E5B10845711F6
-
   bm[6]=bm[6]+"F6F7F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F89792
-
   bm[6]=bm[6]+"8C8D5D149B907FF7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8
-
   bm[6]=bm[6]+"F7F7F8F7F7F8EBEAEBECEBECF6F6F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7F7F8F7
-
   bm[6]=bm[6]+"F7F8F7F7F8F7F7F8
-
   
-
   bm[9]="F8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8
-
   bm[9]=bm[9]+"FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8FAF8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F7F7F8376BA43F71A848
-
   bm[9]=bm[9]+"76AB4876AB4876AB4876AB4876AB4876AB3D6EA592ADCCF8F8F9F8F8F9F8F8F9F8F8F9F8F8F9A6BCD5A6D8E1EEEEEEF9F9F9F9F9F9F9F9F9F9F9F9F9F9F9FFFFFFABC6DB4471C3F8F8F9F8F8F9F8F8F9
-
   bm[9]=bm[9]+"F8F8F9F8F8F9A5BBD49ED0DDEFEFEFFCFCFCFCFCFCFCFCFCFCFCFCFCFCFCFFFFFFB1CED65E94BCF8F8F9F8F8F9F8F8F9F8F8F9F8F8F9A5BBD498C8D9EDEDEDF9F9F9F9F9F9F9F9F9F9F9F9F9F9F9FFFF
-
   bm[9]=bm[9]+"FFACCAD45B90BAF8F8F9F8F8F9F8F8F9F8F8F9F8F8F9A5BBD490C1D6D8DBDDE0E3E5E0E3E5E0E3E5E0E3E5E0E5E6D3ECF194D0E15290B9F7F8F9F8F8F9F8F8F9F8F8F9F8F8F9A5BBD489B9D289B9D289
-
   bm[9]=bm[9]+"B9D289B9D28ABAD37ACBB85CC4AB8CDFC37AD66626A4792E96E8F5F7F9F8F8F9F7F7F9F7F7F9A4BAD484B4D084B4D084B4D084B4D088BDCD5BC4646FD07DB2F1DB8EE0A925A7900074D0B0D7E9F7F7F9
-
   bm[9]=bm[9]+"F7F7F8F7F7F8A4BAD37EADCD8FB3CCCFD4D8CFD4D84FA4D845BA2E62CA3880D96489DDFA0D9BF90082570A7621F7F7F8F7F7F8F7F7F8A4BAD376A5C98AACC7C1C1C1BEBEBE025BC011916325AA201EA7
-
   bm[9]=bm[9]+"B90C9CFC0084E400763B065B45F7F7F8F7F7F8F7F7F8A9BDD56E9DC682A4C2A5A5A5A1A1A10D53B3005EC40069CF008659007C990069A7026429296754F7F7F8F7F7F8F7F7F8F1F2F57A9DC27B9BC093
-
   bm[9]=bm[9]+"A9C193A9C15997D5043EA40043A90056820063350140A61E4AA44D6EA8F7F7F8F6F6F7F6F6F7F6F6F7F6F6F7F6F6F7F6F6F7F6F6F7F1F4F74783DD3E5FC52B598E2F53B74863C9556ED3F2F3F5F6F6F7
-
   bm[9]=bm[9]+"F5F5F6F5F5F6F5F5F6F5F5F6F5F5F6F5F5F6F5F5F6F5F5F6F5F5F6E2ECF47DA6E66F90DF9BB1DDF4F4F6F5F5F6F5F5F6
-
   
-
   bm[11]="FAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFA
-
   bm[11]=bm[11]+"FAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCA04747E92E2EF13030DE2A2ACDABADFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCF9F9FBF9F9FBEBE0E0DB4F00DB4F00D94D00C91E1EC91E1E
-
   bm[11]=bm[11]+"C91E1EC91E1EC81E1EDC5303DD5504DE5504E3E3E5F9F9FBF9F9FBF9F9FBD6ACA4E88500FFFFFFB07C7C7D0B0B7E06067E02027E02027E0707B98D8DFFFFFFEF950CBFBFC0F9F9FBF9F9FBF9F9FBD6AC
-
   bm[11]=bm[11]+"A4E88500FEFEFFFEFEFFFEFEFFFEFEFFFEFEFFFEFEFFFEFEFFFEFEFFFEFEFFF1980DBEBEC0F9F9FBF9F9FBF9F9FBD6ACA4E98802FDFEFFFDFEFFFDFEFFFDFEFFFDFEFFFDFEFFFDFEFFFDFEFFFDFEFFF2
-
   bm[11]=bm[11]+"9A0FBEBEC0F9F9FBF9F9FAF9F9FAD6ACA3EA8A04FCFDFFFCFDFFFCFDFFF6FBFFEFF7FFEFF7FFEFF7FFEFF7FFF1F8FFF39D11BEBEBFF9F9FAF9F9FAF9F9FAD6ACA3EB8C05FBFDFFFAFCFFEDF6FFEDF6FF
-
   bm[11]=bm[11]+"EDF6FFEDF6FFEDF6FFEDF6FFEFF7FFF49F12BEBEBFF9F9FAF8F8FAF8F8FAD6ABA3ED9008F4F9FFEBF4FFEBF4FFEBF4FFEBF4FFEBF4FFEBF4FFEBF4FFECF5FFF6A315BEBEBFF8F8FAF8F8FAF8F8FAD6AB
-
   bm[11]=bm[11]+"A3EE9209E9F5FFE8F4FFE8F4FFE8F4FFE8F4FFE8F4FFE8F4FFE8F4FFEAF5FFF7A517BEBEBFF8F8FAF8F8FAF8F8FAD6ABA3EF950BE8F3FFE7F2FFE7F2FFE7F2FFE7F2FFE7F2FFE7F2FFE7F2FFE9F3FFF8
-
   bm[11]=bm[11]+"A819BEBEBFF8F8FAF8F8F9F8F8F9D6ABA3F0970DE6F3FFE5F2FFE5F2FFE5F2FFE5F2FFE5F2FFE5F2FFE5F2FFE7F3FFF9AA1ABEBEBEF8F8F9F8F8F9F8F8F9D6ABA3F19A0FE5F2FFE3F1FFE3F1FFE3F1FF
-
   bm[11]=bm[11]+"E3F1FFE3F1FFE3F1FFE3F1FFE5F2FFFAAD1CBEBEBEF8F8F9F8F8F9F8F8F9D5ABA3F29C1096A3BEA3B0CBA3B0CBA3B0CBA4B1CBA3B1CBA3B1CBA3B1CB93A0BDFBAF1EBEBEBEF8F8F9F8F8F9F8F8F9DFD2
-
   bm[11]=bm[11]+"D1E7780EE8790FE87A10E97B11E97D12EA7E13EB8014EC8115EC8216ED8417EC8418CFCFD0F8F8F9F7F7F9F7F7F9F7F7F9F1F1F3F1F1F3F1F1F3F1F1F3F1F1F3F1F1F3F1F1F3F1F1F3F1F1F3F1F1F3F1F1F3F7F7F9F7F7F9
-
   
-
   bm[10]="FAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFCFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBFAFAFBF9F9FBF9F9FBF9F9FBF9F9FBF9F9FB9CA7C0ACB4C9ACB4C9ACB4C9ACB4C9ACB4C9ACB4C9ACB4C93D507FF8F8FAF9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF8F8FAEF
-
   bm[10]=bm[10]+"F1F6FEFEFFFEFEFFFEFEFFFEFEFFFEFEFFFEFEFFFEFEFF495B87F3F3F5F9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF8F8FAEEF1F6FDFEFFFDFEFFFDFEFFFDFEFFFDFEFFFDFEFFFDFEFF485B87F3F3F4F9F9FBF9F9FBF9F9FBF9F9FBF9F9FBF8F8FAEDF0F6FCFDFFFBFCFFF0F7FFEFF7FFEFF7FFEFF7FFEFF7FF465A87F3F3F4F9F9FBF9F9FAF9F9FAF8F8F9F0F0F1EFEFF0E4E7EDE7EFF6E5EEF6E5EEF6ECF5FEEDF6
-
   bm[10]=bm[10]+"FFEDF6FFEDF6FF465A87F3F3F4F9F9FAF9F9FAF9F9FA637298FEFFFFFEFFFFFEFFFFFEFFFFFEFFFFFEFFFFC9D1DBEAF4FFEAF4FFEAF4FF465987F3F3F4F9F9FAF8F8FAF8F8FA637198FDFEFFFDFEFFFDFEFFFDFEFFFCFEFFFDFEFFC5CED8E8F3FFE8F3FFE8F3FF455987F2F2F4F8F8FAF8F8FAF8F8FA627198FCFDFFEFF6FFEEF6FFEEF6FFEEF6FFEEF6FFC2CDD8E6F2FFE6F2FFE6F2FF455987F2F2F4F8F8FA
-
   bm[10]=bm[10]+"F8F8FAF8F8FA627198EBF5FFEBF5FFEBF5FFEBF5FFEBF5FFEBF5FFC0CCD8E3F1FFE3F1FFE3F1FF445987F2F2F4F8F8FAF8F8F9F8F8F9627198E8F3FFE8F3FFE8F3FFE8F3FFE8F3FFE8F3FFA5B2C3C4D2E7C3D1E6C4D2E7344778F3F3F4F8F8F9F8F8F9F8F8F9627198E5F2FFE5F2FFE5F2FFE5F2FFE5F2FFE5F2FFBDBDBEDEDEDFDEDEDFDFDFDFE5E5E6F8F8F9F8F8F9F8F8F9F8F8F9627197E2F0FFE2F0FFE2
-
   bm[10]=bm[10]+"F0FFE2F0FFE2F0FFE2F0FFD3D3D3F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F4F4F5D7D7D8D6D6D7D6D6D7D6D6D7D6D6D7D7D7D7F3F3F4F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F8F8F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9F7F7F9
-
   
-
   bm[12]="F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5
-
   bm[12]=bm[12]+"F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7D8E4EF2774B42774B4E6EDF3F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7D8E4EF3078B35C9CD25296CD2875B41F66A1F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F73078B33078B35C9C
-
   bm[12]=bm[12]+"D26BA8DB2875B41F6AAA1C588AF5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F73E85C05C9CD26BA8DB5296CD1F6AAA1C588ADFE7EEF5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7EDEEEFFFFFFF2972AE2875B41F6AAADFE7EEF5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7EDEEEFBBBBBBEFF2F5CAD1D81F66A11F66A3F5F6F7F5F6F7F5F6F7F5F6F7
-
   bm[12]=bm[12]+"F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7EDEEEFBBBBBBFAFBFBCAD1D88D8D8DDFE7EE1C588AF5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7BBBBBBFAFBFBEFF2F58D8D8DEAEBECF5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7EDEEEFBBBBBBD5E3F0AFC1D28D8D8DF5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7DADBDCBBBBBBAF
-
   bm[12]=bm[12]+"C1D28D8D8DEAEBECF5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7BBBBBBD3E1EE8D8D8DEAEBECF5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7F5F6F7
-
   
-
 EndSub 
 
-
-
 Sub Color_Value
-
   ' param rN1, rN2  ' param rH - [-120, 480)
-
   ' return iValue - 0..255
-
   If rH >= 360 Then
-
     rH = rH - 360
-
   EndIF
-
   If rH < 0 Then
-
     rH = rH + 360
-
   EndIF 
-
   If rH < 60 Then
-
     rV = rN1 + (rN2 - rN1) * rH / 60
-
   ElseIf rH < 180 Then
-
     rV = rN2
-
   ElseIf rH < 240 Then
-
     rV = rN1 + (rN2 - rN1) * (240 - rH) / 60
-
   Else
-
     rV = rN1
-
   EndIf
-
   iValue = Math.Round(rV * 255)
-
 EndSub
-
-
-
 
 
 Sub ColHSLtoRGB  ' param rHue - [0, 360) or UNDEFINED
-
   ' param rLightness - [0, 1]   ' param rSaturation - [0, 1]
-
   ' return sColor - "#rrggbb"
-
   If rLightness <= 0.5 Then
-
     rN2 = rLightness * (1 + rSaturation)
-
   Else
-
     rN2 = rLightness + rSaturation - rLightness * rSaturation
-
   EndIf
-
   rN1 = 2 * rLightness - rN2
-
   If rSaturation = 0 Then
-
     iR = Math.Round(rLightness * 255)
-
     iG = Math.Round(rLightness * 255)
-
     iB = Math.Round(rLightness * 255)
-
   Else
-
     rH = rHue + 120
-
     Color_Value()
-
     iR = iValue
-
     rH = rHue
-
     Color_Value()
-
     iG = iValue
-
     rH = rHue - 120
-
     Color_Value()
-
     iB = iValue
-
   EndIf
-
   sColor = GraphicsWindow.GetColorFromRGB(iR, iG, iB)
-
 EndSub
-
-
-
-
 
 
 
 Sub ColRGBtoHSL   ' param sColor - "#rrggbb"
-
   ' return rHue - [0, 360) or UNDEFINED
-
   ' return rLightness - (0, 1) Saturation - (0, 1)
-
   Color_ColorToRGB()
-
   rR = Math.Round(iR / 255 * 10000) / 10000
-
   rG = Math.Round(iG / 255 * 10000) / 10000
-
   rB = Math.Round(iB / 255 * 10000) / 10000
-
   rMax = Math.Max(rR, rG)
-
   rMax = Math.Max(rMax, rB)
-
   rMin = Math.Min(rR, rG)
-
   rMin = Math.Min(rMin, rB)
-
   rLightness = (rMax + rMin) / 2
-
   If rMax = rMin Then ' rR = rG = rB
-
     rSaturation = 0
-
     rHue =0 
-
   Else
-
     If rLightness <= 0.5 Then
-
       rSaturation = (rMax - rMin) / (rMax + rMin)
-
     Else
-
       rSaturation = (rMax - rMin) / (2 - rMax - rMin)
-
     EndIf
-
     rRC = (rMax - rR) / (rMax - rMin)
-
     rGC = (rMax - rG) / (rMax - rMin)
-
     rBC = (rMax - rB) / (rMax - rMin)
-
     If rR = rMax Then     ' between Yellow and Magenta
-
       rHue = rBC - rGC
-
     ElseIf rG = rMax Then ' between Cyan and Yellow
-
       rHue = 2 + rRC - rBC
-
     ElseIf rB = rMax Then ' between Magenta and Cyan
-
       rHue = 4 + rGC - rRC
-
       
-
     EndIf
-
     rHue = rHue * 60
-
     If rHue < 0 Then
-
       rHue = rHue + 360
-
     EndIf
-
   EndIf
-
 EndSub
-
-

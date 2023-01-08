@@ -1,819 +1,409 @@
 '***************************************************************************************
-
 'Sample program to demonstate virtually all of the SmallBasic GraphicsWindow commands
-
 'Includes use of Shapes, Images, Arrays, Mouse and Keyboard control
-
 'Does all of the main features required to write games using basic examples
-
 'You will need to look at the code to see what is supposed to happen and how it is done
-
 'Play with it, change it, break it then fix it
-
 '***************************************************************************************
-
 '
-
 'Create a graphics window
-
 '
-
 'Keep it hidden till we want to show it
-
 GraphicsWindow.Hide()
-
 'Give it a title
-
 GraphicsWindow.Title = "Graphics Window Example"
-
 'Set its size and position (use variables gw and gh because they may be useful later)
-
 gw = 800
-
 gh = 600
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 'The top and left = 4 position the window neatly in the top left of the screen
-
 GraphicsWindow.Top = 4
-
 GraphicsWindow.Left = 4
-
 'Set a background colour
-
 GraphicsWindow.BackgroundColor = "LightBlue"
-
 'Set it so it cannot be resized
-
 GraphicsWindow.CanResize = "False"
-
 'Show the window
-
 GraphicsWindow.Show()
-
 'Goto end
-
 '
-
 'Create a red ball of diameter 50 (radius 25) and place it in the middle of the window (leave it there for 5 seconds)
-
 '
-
 radius = 25
-
 GraphicsWindow.BrushColor = "Red"
-
 GraphicsWindow.PenColor = "Black"
-
 ' We set the position to be the (screen centre - radius), since the screen position is defined as the top left of the ball
-
 ball = Shapes.AddEllipse(2*radius,2*radius)
-
 Shapes.Move(ball,gw/2-radius,gh/2-radius)
-
 Program.Delay(5000) ' 5000 milliseconds = 5 seconds
-
 '
-
 'Move the ball randomly by animation 10 times (once per second)
-
 '
-
 For i = 1 To 10
-
   x = Math.GetRandomNumber(gw)
-
   y = Math.GetRandomNumber(gh)
-
   Shapes.Animate(ball,x-radius,y-radius,1000)
-
   Program.Delay(1000) ' We have to delay (pause) to wait for the animation to finish
-
 EndFor
-
 '
-
 'Move the ball to follow the mouse for 10 seconds
-
 '
-
 start = Clock.Second
-
 time = 0
-
 While (time < 10)
-
   xm = GraphicsWindow.MouseX
-
   ym = GraphicsWindow.MouseY
-
   Shapes.Move(ball,xm-radius,ym-radius)
-
   time = Clock.Second - start
-
   'If we go over the minute then seconds go back to 0 so add 60 seconds
-
   If (time < 0) Then
-
     time = time+60
-
   EndIf
-
   'Display the mouse coordinates - first overwrite the last output
-
   GraphicsWindow.PenColor = GraphicsWindow.BackgroundColor
-
   GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
-
   GraphicsWindow.FillRectangle(gw-120,10,120,30)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.DrawText(gw-120,10,"("+xm+","+ym+")")
-
 EndWhile
-
 '
-
 'Use 10 balls and move the one selected by the mouse left down (delete with right down)
-
 'Run until all balls are deleted
-
 'The moved balls change colour
-
 '
-
 GraphicsWindow.Clear()
-
 'Create an array of 10 balls and their random positions
-
 nball = 10
-
 For i = 1 To nball
-
   GraphicsWindow.BrushColor = "LightGreen"
-
   GraphicsWindow.PenColor = "Black"
-
   x[i] = radius + Math.GetRandomNumber(gw-2*radius)
-
   y[i] = radius + Math.GetRandomNumber(gh-2*radius)
-
   ball = Shapes.AddEllipse(2*radius,2*radius)
-
   Shapes.Move(ball,x[i]-radius,y[i]-radius)
-
   balls[i] = ball
-
 EndFor
-
 start = Clock.Second
-
 iball = 0
-
 While (nball > 0)
-
   If (Mouse.IsLeftButtonDown = "True") Then
-
     xm = GraphicsWindow.MouseX
-
     ym = GraphicsWindow.MouseY
-
     'If no ball selected, then check if we are over one
-
     If (iball = 0) Then
-
       For i = 1 To nball
-
         If (xm >= x[i]-radius And xm <= x[i]+radius And ym >= y[i]-radius And ym <= y[i]+radius) Then
-
           iball = i
-
           'To change the colour we delete it and replace it with a new ball
-
           GraphicsWindow.BrushColor = "Pink"
-
           Shapes.Remove(balls[iball])
-
           balls[iball] = Shapes.AddEllipse(2*radius,2*radius)
-
           'We are finished and don't want to continue checking since we have already deleted a ball so end this loop
-
           Goto completed1
-
         EndIf
-
       EndFor
-
     EndIf
-
     completed1:
-
     'Move selected ball
-
     If (iball > 0) Then
-
       ball = balls[iball]
-
       x[iball] = xm
-
       y[iball] = ym
-
       Shapes.Move(ball,x[iball]-radius,y[iball]-radius)
-
     EndIf
-
   Else
-
     'drop current ball
-
     iball = 0
-
   EndIf
-
   'Delete a ball with right click
-
   If (Mouse.IsRightButtonDown = "True") Then
-
     xm = GraphicsWindow.MouseX
-
     ym = GraphicsWindow.MouseY
-
     For i = 1 To nball
-
       If (xm >= x[i]-radius And xm <= x[i]+radius And ym >= y[i]-radius And ym <= y[i]+radius) Then
-
         'Remove the displayed object
-
         Shapes.Remove(balls[i])
-
         'Now remove the array element i - we do this by overwriting it with the balls further up the array
-
         For j = i To nball-1
-
           balls[j] = balls[j+1]
-
           x[j] = x[j+1]
-
           y[j] = y[j+1]
-
         EndFor
-
         'Delete the last ball (now moved up the array 1 place)
-
         balls[nball] = ""
-
         x[nball] = ""
-
         y[nball] = ""
-
         'Reduce the count of balls
-
         nball = nball-1
-
         'We are finished and don't want to continue checking since we have already deleted a ball so end this loop
-
         Goto completed2
-
       EndIf
-
     EndFor
-
   EndIf
-
   completed2:
-
 EndWhile
-
 '
-
 'Replace the ball with an image and move with arrow keys for 20 seconds
-
 '
-
 'Delete the last ball and set a new one as a downloaded image - get its radius
-
 GraphicsWindow.Clear()
-
 image = ImageList.LoadImage("http://www.iconarchive.com/icons/artua/soccer/football-64x64.png")
-
 ball = Shapes.AddImage(image)
-
 radius = ImageList.GetWidthOfImage(image)/2
-
 'Set variables to say if keys are pressed or not
-
 keyLeft = 0
-
 keyRight = 0
-
 keyUp = 0
-
 keyDown = 0
-
 'Start an event for keydown and keyup
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 GraphicsWindow.KeyUp = OnKeyUp
-
 'Use the event to set the keypress flags - these are only called when a key is pressed or released
-
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   If (key = "Left") Then
-
     keyLeft = 1
-
   ElseIf (key = "Right") Then
-
     keyRight = 1
-
   ElseIf (key = "Up") Then
-
     keyUp = 1
-
   ElseIf (key = "Down") Then
-
     keyDown = 1
-
   EndIF
-
 EndSub
-
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   If (key = "Left") Then
-
     keyLeft = 0
-
   ElseIf (key = "Right") Then
-
     keyRight = 0
-
   ElseIf (key = "Up") Then
-
     keyUp = 0
-
   ElseIf (key = "Down") Then
-
     keyDown = 0
-
   EndIF
-
 EndSub
-
 'Start in window centre
-
 x = gw/2
-
 y = gh/2
-
 start = Clock.Second
-
 time = 0
-
 While (time < 20)
-
   'Update position if a key is currently down
-
   If (keyLeft = 1) Then
-
     x = x-1
-
   EndIf
-
   If (keyRight = 1) Then
-
     x = x+1
-
   EndIf
-
   If (keyUp = 1) Then
-
     y = y-1 ' The pixes for the window increase downwards from the top
-
   EndIf
-
   If (keyDown = 1) Then
-
     y = y+1
-
   EndIf
-
   'Check for ball leaving screen - reneter other side
-
   If (x < 0) Then
-
     x = gw
-
   EndIf
-
   If (x > gw) Then
-
     x = 0
-
   EndIf
-
   If (y < 0) Then
-
     y = gh
-
   EndIf
-
   If (y > gh) Then
-
     y = 0
-
   EndIf
-
   'Move the ball to the new position
-
   Shapes.Move(ball,x-radius,y-radius)
-
   'Put a small delay in - the computer is too quick - this controls the update rate (frames per second)
-
   'This is not the true fps since it doesn't account for the time drawing etc
-
   fps = 500
-
   Program.Delay(1000/fps)
-
   time = Clock.Second - start
-
   'If we go over the minute then add 60 seconds
-
   If (time < 0) Then
-
     time = time+60
-
   EndIf
-
 EndWhile
-
 '
-
 'Now use the arrow keys to accelerate the ball and run until 50 wall hits (almost the same code)
-
 'We can use the keyboard events unchanged
-
 'Reverse spin the ball when we hit a boundary
-
 '
-
 'Start in window centre
-
 x = gw/2
-
 y = gh/2
-
 'Zero initial velocity
-
 u = 0
-
 v = 0
-
 start = Clock.Second
-
 spin = 0.0 'Ball spin rate (Positive is anticlockwise)
-
 angle = 0
-
 hits = 0
-
 While (hits < 50)
-
   'Update position if a key is currently down
-
   If (keyLeft = 1) Then
-
     u = u-1
-
   EndIf
-
   If (keyRight = 1) Then
-
     u = u+1
-
   EndIf
-
   If (keyUp = 1) Then
-
     v = v-1 ' The pixes for the window increase downwards from the top
-
   EndIf
-
   If (keyDown = 1) Then
-
     v = v+1
-
   EndIf
-
   'Update position - divide by 500 to stop the acceleration being too extreme
-
   'we can do gravity, friction etc here if we want
-
   x = x+u/500
-
   y = y+v/500
-
   'Check for ball leaving screen - bounce the ball this time - and spin it
-
   If (x < radius) Then
-
     u = -u
-
     spin = spin+v
-
     hits = hits+1
-
   EndIf
-
   If (x > gw-radius) Then
-
     u = -u
-
     spin = spin-v
-
     hits = hits+1
-
   EndIf
-
   If (y < radius) Then
-
     v = -v
-
     spin = spin-u
-
     hits = hits+1
-
   EndIf
-
   If (y > gh-radius) Then
-
     v = -v
-
     spin = spin+u
-
     hits = hits+1
-
   EndIf
-
   'Move the ball to the new position
-
   Shapes.Move(ball,x-radius,y-radius)
-
   'Rotate the ball with the current spin direction
-
   Shapes.Rotate(ball,angle)
-
   angle = angle+0.001*spin
-
   'Put a small delay in - the computer is too quick - this controls the update rate (frames per second)
-
   'This is not the true fps since it doesn't account for the time drawing etc
-
   fps = 500
-
   Program.Delay(1000/fps)
-
 EndWhile
-
 '
-
 'Create an array of 10 randomly sized and coloured rotating boxes, then delete them when clicked with the mouse
-
 '
-
 GraphicsWindow.Clear()
-
 'Create arrays of boxes and their positions and sizes
-
 For i = 1 To 10
-
   x[i] = 20+Math.GetRandomNumber(gw-60) ' not too close the the screen edge
-
   y[i] = 20+Math.GetRandomNumber(gh-60)
-
   w[i] = 10+Math.GetRandomNumber(30)
-
   h[i] = 10+Math.GetRandomNumber(30)
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
-
   GraphicsWindow.PenColor = "Black"
-
   box = Shapes.AddRectangle(w[i],h[i])
-
   'Note x[i],y[i] are top left of box, not its centre
-
   Shapes.Move(box,x[i],y[i])
-
   boxes[i] = box
-
   display[i] = 1 ' flag that box is displayed
-
 EndFor
-
 'Start a mouse click event
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 'Write the mouse click event to get coordinates of mouse click and set a flag that the mouse was clicked
-
 clicked = 0
-
 Sub OnMouseDown
-
   xm = GraphicsWindow.MouseX
-
   ym = GraphicsWindow.MouseY
-
   clicked = 1
-
 EndSub
-
 'Continue while boxes remain
-
 nboxes = Array.GetItemCount(boxes)
-
 angle = 0
-
 While (nboxes > 0)
-
   'Mouse was clicked
-
   If (clicked = 1) Then
-
     'Check each box
-
     For i = 1 To Array.GetItemCount(boxes)
-
       'Only look for remaining displayed boxes
-
       If (display[i] = 1) Then
-
         box = boxes[i]
-
         'Since the boxes are rotating use the maximum size to check for click region
-
         'This is not exactly correct for rotating boxes but often in games efficient is more important than absolute correctness
-
         dmax = Math.Max(w[i],h[i])
-
         If (xm >= x[i] And xm <= x[i]+dmax And ym >= y[i] And ym <= y[i]+dmax) Then
-
           'Delete this box from display and reduce the box count by 1
-
           'Note the original arrays are not deleted since we are keeping track of box status using display[i]
-
           Shapes.Remove(box)
-
           nboxes = nboxes-1
-
           display[i] = 0
-
           Sound.PlayClick()
-
         EndIf
-
       EndIf
-
     EndFor
-
     'Reset clicked flag to off since we have done everything with it
-
     clicked = 0
-
   EndIf
-
   'Rotate the boxes (even i anticlockwise, odd i clockwise - negative angle)
-
   For i = 1 To Array.GetItemCount(boxes)
-
     If (display[i] = 1) Then
-
       box = boxes[i]
-
       Shapes.Rotate(box,angle*(1-2*Math.Remainder(i,2)))
-
     EndIf
-
   EndFor
-
   angle = angle+1
-
   Program.Delay(10) ' Small delay to keep the rotation smooth
-
 EndWhile
-
 '
-
 'Finish up
-
 '
-
 end:
-
 image = ImageList.LoadImage("http://www.windowswiki.info/wp-content/uploads/smallbasic_logo.png")
-
 GraphicsWindow.Clear()
-
 GraphicsWindow.FontSize = 100
-
 GraphicsWindow.FontBold = "True"
-
 GraphicsWindow.FontName = "Rockwell"
-
 GraphicsWindow.DrawResizedImage(image,0,0,gw,gh)
-
 R = 255
-
 G = 0
-
 B = 0
-
 dR = -1
-
 dG = 2
-
 dB = 3
-
 clicked = 0
-
 While (clicked = 0)
-
   'Change the red, green, blue components of the colour at different rates to get changing colours
-
   If (R < 0 Or R > 255) Then
-
     dR = -dR
-
     R = R+dR
-
   EndIf
-
   If (G < 0 Or G > 255) Then
-
     dG = -dG
-
     G = G+dG
-
   EndIf
-
   If (B < 0 Or B > 255) Then
-
     dB = -dB
-
     B = B+dB
-
   EndIf
-
   colour = GraphicsWindow.GetColorFromRGB(R,G,B)
-
   GraphicsWindow.BrushColor = colour
-
   GraphicsWindow.DrawText(200,160,"All Done")
-
   GraphicsWindow.DrawText(100,340,"Click to Exit")
-
   GraphicsWindow.PenWidth = 10
-
   GraphicsWindow.PenColor = colour
-
   GraphicsWindow.DrawLine(50,gh-50,gw-50,gh-50)
-
   GraphicsWindow.DrawLine(gw-50,gh-50,gw-50,50)
-
   GraphicsWindow.DrawLine(gw-50,50,50,50)
-
   GraphicsWindow.DrawLine(50,50,50,gh-50)
-
   R = R+dR
-
   G = G+dG
-
   B = B+dB
-
   Program.Delay(20)
-
 EndWhile
-
-
 
 Program.End()
-
-
-
-
 
 

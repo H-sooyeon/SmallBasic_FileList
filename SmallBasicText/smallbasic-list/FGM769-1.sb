@@ -1,459 +1,229 @@
 ' Simple Donkey Kong 0.3b
-
 ' Small Basic version written by Nonki Takahashi.
-
 '
-
 ' History:
-
 '  0.3b 2014-03-12 Barrels demo with friction. (FGM769-1)
-
 '  0.2a 2014-03-10 Barrel demo without friction. (FGM769-0)
-
 '  0.1a 2014-03-08 Created only for graphics. (FGM769)
-
 '
-
 GraphicsWindow.Title = "Simple Donkey Kong 0.3b"
-
 MAXBARREL = 8
-
 Init()
-
 g = 9.8     ' [m/s^2]
-
 dt = 1 / 30 ' [s]
-
 pxpm = 50   ' [pixel/m]
-
 pslope[1] = "x1=0;y1=50;x2=540;y2=70;height=20;pitch=10;color=DeepPink;"
-
 pslope[2] = "x1=60;y1=180;x2=600;y2=160;height=20;pitch=10;color=DeepPink;"
-
 pslope[3] = "x1=0;y1=270;x2=540;y2=290;height=20;pitch=10;color=DeepPink;"
-
 pslope[4] = "x1=300;y1=408;x2=600;y2=380;height=20;pitch=10;color=DeepPink;"
-
 pslope[5] = "x1=0;y1=408;x2=300;y2=408;height=20;pitch=10;color=DeepPink;"
-
 ns = Array.GetItemCount(pslope)
-
 For i = 1 To ns
-
   param = pslope[i]
-
   Slope_Add()
-
 EndFor
-
 param = "x=10;y=10;m=5000;e=0.52;mu=1;"
-
 Barrel_Add()
-
 lastms = Clock.ElapsedMilliseconds
-
 timeout = "False"
-
 Timer.Interval = dt * 1000
-
 Timer.Tick = OnTick
-
 While "True"
-
   If timeout Then
-
     ms = Clock.ElapsedMilliseconds
-
     If 5000 < ms - lastms Then
-
       param = "x=10;y=10;m=5000;e=0.52;mu=1;"
-
       Barrel_Add()
-
       lastms = ms
-
     EndIf
-
     nb = barrel["num"]
-
     ns = slope["num"]
-
     ax = 0
-
     ay = g * pxpm
-
     For ib = 1 To nb
-
       vx = barrel[ib]["vx"]
-
       vy = barrel[ib]["vy"]
-
       barrel[ib]["vx"] = vx + ax * dt
-
       barrel[ib]["vy"] = vy + ay * dt
-
       barrel[ib]["x"] = barrel[ib]["x"] + (vx + barrel[ib]["vx"]) * dt / 2
-
       barrel[ib]["y"] = barrel[ib]["y"] + (vy + barrel[ib]["vy"]) * dt / 2
-
       xo = barrel[ib]["x"] + 16
-
       yo = barrel[ib]["y"] + 16
-
       e = barrel[ib]["e"]
-
       m = barrel[ib]["m"]
-
       mu = barrel[ib]["mu"]
-
       For is = 1 To ns
-
         a = slope[is]["a"]
-
         b = slope[is]["b"]
-
         c = slope[is]["c"]
-
         d = Math.Abs(a * xo + b * yo + c) / Math.SquareRoot(a * a + b * b)
-
         s = -(a / b) / Math.Abs(a / b)
-
         i = m * 16 * 16
-
         If d <= 16 And slope[is]["x1"] <= xo And xo <= slope[is]["x2"] Then
-
           x = barrel[ib]["vx"]
-
           y = barrel[ib]["vy"]
-
           Math_CartesianToPolar()
-
           ss = slope[is]["ss"]
-
           a = ss * 2 - a
-
           vx = r * Math.Cos(Math.GetRadians(a))
-
           vy = r * Math.Sin(Math.GetRadians(a))
-
           dv = Math.SquareRoot(Math.Power((vx - x), 2) + Math.Power((vy - y), 2))
-
           a = g * Math.Sin(Math.GetRadians(ss)) * pxpm / 2
-
           If barrel[ib]["vr"] * a < 0 Then
-
             barrel[ib]["vr"] = -0.3 * barrel[ib]["vr"]
-
           EndIf
-
           barrel[ib]["vr"] = barrel[ib]["vr"] + a * dt
-
           dvx = barrel[ib]["vr"] * 16 * Math.Cos(Math.GetRadians(ss))
-
           dvy = barrel[ib]["vr"] * 16 * Math.Sin(Math.GetRadians(ss))
-
           barrel[ib]["vx"] = (vx - x) * e / 2 + (vx + x) / 2
-
           barrel[ib]["vy"] = (vy - y) * e / 2 + (vy + y) / 2
-
           barrel[ib]["x"] = barrel[ib]["x"] + (vx - x) * (16 - d) / dv * e * e
-
           barrel[ib]["y"] = barrel[ib]["y"] + (vy - y) * (16 - d) / dv * e * e
-
         EndIf
-
       EndFor
-
       barrel[ib]["r"] = barrel[ib]["r"] + barrel[ib]["vr"] * dt
-
       Shapes.Rotate(barrel[ib]["obj"], barrel[ib]["r"] * 10)
-
       l = barrel[ib]["x"]
-
       If l < 0 And barrel[ib]["y"] < 290 Then
-
         barrel[ib]["x"] = -l * e * e
-
         barrel[ib]["vx"] = -barrel[ib]["vx"] * e
-
       EndIf
-
       r = barrel[ib]["x"] + 32
-
       If gw < r Then
-
         barrel[ib]["x"] = barrel[ib]["x"] - 2 * (r - gw) * e * e
-
         barrel[ib]["vx"] = -barrel[ib]["vx"] * e
-
       EndIf
-
       h = gh - (barrel[ib]["y"] + 32)
-
       If h < 0 Then
-
         barrel[ib]["y"] = barrel[ib]["y"] + h * e * e
-
         barrel[ib]["vy"] = -barrel[ib]["vy"] * e
-
       EndIf
-
       Shapes.Move(barrel[ib]["obj"], barrel[ib]["x"], barrel[ib]["y"])
-
     EndFor
-
     timeout = "False"
-
   Else
-
     Program.Delay(dt * 1000)
-
   EndIf
-
 EndWhile
-
 Sub OnTick
-
   timeout = "True"
-
 EndSub
-
 Sub Barrel_FindUsed
-
   ' return n - index of barrel used
-
   For n = 1 To barrel["num"]
-
     If barrel[n]["x"] < -32 Then
-
       Goto found
-
     EndIf
-
   EndFor
-
   found:
-
 EndSub
-
 Sub Barrel_Add
-
   ' param["x"] - left co-ordinate
-
   ' param["y"] - top co-ordinate
-
   ' param["m"] - mass of barrel [g]
-
   ' param["e"] - coefficient of resititution
-
   ' param["mu"] - cofficient of friction
-
   n = barrel["num"]
-
   n = n + 1
-
   If MAXBARREL < n Then
-
     Barrel_FindUsed()
-
   Else
-
     barrel["num"] = n
-
   EndIf
-
   barrel[n]["m"] = param["m"]
-
   barrel[n]["e"] = param["e"]
-
   barrel[n]["mu"] = param["mu"]
-
   url = "http://www.nonkit.com/smallbasic.files/Barrel32.png"
-
   x = param["x"]
-
   y = param["y"]
-
   If barrel[n]["obj"] = "" Then
-
     barrel[n]["obj"] = Shapes.AddImage(url)
-
   EndIf
-
   Shapes.SetOpacity(barrel[n]["obj"], 100)
-
   barrel[n]["x"] = x
-
   barrel[n]["y"] = y
-
   Shapes.Move(barrel[n]["obj"], x, y)
-
   barrel[n]["vx"] = 0
-
   barrel[n]["vy"] = 0
-
   barrel[n]["vr"] = 0 ' rotational velocity
-
   barrel[n]["r"] = 0  ' rotation angle
-
 EndSub
-
 Sub Slope_Add
-
   ' param["x1"] - top-left x co-ordinate
-
   ' param["y1"] - top-left y co-ordinate
-
   ' param["x2"] - top-right x co-ordinate
-
   ' param["y2"] - top-right y co-ordinate
-
   ' param["height"] - height of slope
-
   ' param["pitch"] - x pitch for diagonal brace
-
   ' param["color"] - color of slop
-
   ' return slope
-
   n = slope["num"]
-
   n = n + 1
-
   slope["num"] = n
-
   GraphicsWindow.PenColor = param["color"]
-
   x1 = param["x1"]
-
   y1 = param["y1"]
-
   x2 = param["x2"]
-
   y2 = param["y2"]
-
   GraphicsWindow.DrawLine(x1, y1, x2, y2)
-
   slope[n]["x1"] = x1
-
   slope[n]["y1"] = y1
-
   slope[n]["x2"] = x2
-
   slope[n]["y2"] = y2
-
   x = x2 - x1
-
   y = y2 - y1
-
   Math_CartesianToPolar()
-
   slope[n]["ss"] = a
-
   slope[n]["a"] = y
-
   slope[n]["b"] = -x
-
   slope[n]["c"] = -y * x1 + x * y1
-
   x3 = x1
-
   y3 = y1 + param["height"]
-
   x4 = x2
-
   y4 = y2 + param["height"]
-
   GraphicsWindow.DrawLine(x3, y3, x4, y4)
-
   slope[n]["x3"] = x3
-
   slope[n]["y3"] = y3
-
   slope[n]["x4"] = x4
-
   slope[n]["y4"] = y4
-
   pitch = param["pitch"]
-
   up = "False"
-
   For x5 = x1 To x2 - pitch Step pitch
-
     x6 = x5 + pitch
-
     If up Then
-
       y5 = y1 + (y2 - y1) * (x5 - x1) / (x2 - x1)
-
       y6 = y3 + (y4 - y3) * (x6 - x3) / (x4 - x3)
-
     Else
-
       y5 = y3 + (y4 - y3) * (x5 - x3) / (x4 - x3)
-
       y6 = y1 + (y2 - y1) * (x6 - x1) / (x2 - x1)
-
     EndIf
-
     GraphicsWindow.DrawLine(x5, y5, x6, y6)
-
     up = Not[up]
-
   EndFor
-
 EndSub
-
 Sub Init
-
   gw = 598
-
   gh = 428
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BackgroundColor = "Black"
-
   Not = "True=False;False=True;"
-
 EndSub
-
 Sub Math_CartesianToPolar
-
   ' Math | convert cartesian coodinate to polar coordinate
-
   ' param x, y - cartesian coordinate
-
   ' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
-

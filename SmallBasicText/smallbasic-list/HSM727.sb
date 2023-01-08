@@ -1,2383 +1,1191 @@
 'A game that simulates battles between a player and a random monster
-
 'Created by Nicholas Donaldson
-
 'Finished on 11/08/14
 
-
-
 'Initiate variables
-
 playerHealth = 35 'The health of the player
-
 hadStrength = 0 'If the player has had a strength potion
-
 magic = 0 'The type of magic the player currently has (1 = Nature, 2 = Water, 3 = Fire, 4 = Air)
-
 poison = 0 'How many more turns the monster is poisoned for
-
 weak = 0 'If the monster is weakened from water magic
-
 money = 30 'How much money the player has
-
 weapon = 1 'The current tier of the players weapon
-
 shield = 1 'The current tier of the players shield
-
 resources = 3 'The number of resources the player has
-
 difficulty = 1 'The current difficulty (Increases with each battle)
-
 For mapY = 0 To 12
-
   For mapX = 0 To 12
-
     map[mapY][mapX] = "?" 'The locations on the map are all set to be unknown
-
   EndFor
-
 EndFor
-
 playerX = 6 'The players x  position on the map
-
 playerY = 6 'The players y position on the map
-
 map[6][6] = "$" 'Set the starting location to a shop
-
 potions["h"] = 2 'The number of health potions the player has
-
 potions["s"] = 1 'The number of strength potions the player has
-
 stat["t"][0] = "Total Score:      " 'Label for the total score
-
 stat["t"][1] = "Monsters Killed:  " 'Label for the number of monsters killed
-
 stat["t"][2] = "Damage Dealt:     " 'Label for total damage the player has dealth
-
 stat["t"][3] = "Damage Taken:     " 'Label for total damage the player has taken
-
 stat["t"][4] = "Money Earned:     " 'Label for total money earned
-
 stat["t"][5] = "Items Bought:     " 'Label for total items bought
-
 stat["t"][6] = "Potions Taken:    " 'Label for total potions taken
-
 stat["t"][7] = "Nights Slept:     " 'Label for number of night slept in an inn
-
 stat["t"][8] = "Items Stolen:     " 'Label for number of items stolen
-
 stat["t"][9] = "Monsters Escaped: " 'Label for total number of battles the player escaped from
-
 stat["n"][0] = 0 'Total score
-
 stat["n"][1] = 0 'Number of monsters killed
-
 stat["n"][2] = 0 'Total damage dealt by the player
-
 stat["n"][3] = 0 'Total damage the player has taken
-
 stat["n"][4] = 0 'Total money the player has earned
-
 stat["n"][5] = 0 'Number of items bought in a shop
-
 stat["n"][6] = 0 'Number of potions used
-
 stat["n"][7] = 0 'Number of nights slept in an inn
-
 stat["n"][8] = 0 'Number of items stolen
-
 stat["n"][9] = 0 'Number of battles the player escaped from
 
-
-
 'Display statistics on the text windows title
-
 TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
 
-
-
 'Display a title
-
 TextWindow.ForegroundColor = 15
-
 TextWindow.WriteLine("              _   _                   _                ")
-
 TextWindow.WriteLine("  /\/\  _   _| |_| |__  _ __ __ _  __| | ___  _ __ ___ ")
-
 TextWindow.WriteLine(" /    \| | | | __| '_ \| '__/ _` |/ _` |/ _ \| '__/ _ \")
-
 TextWindow.WriteLine("/ /\/\ \ |_| | |_| | | | | | (_| | (_| | (_) | | |  __/")
-
 TextWindow.WriteLine("\/    \/\__, |\__|_| |_|_|  \__,_|\__,_|\___/|_|  \___|")
-
 TextWindow.WriteLine("        |___/                                          ")
-
 TextWindow.WriteLine("A text adventure by Nicholas Donaldson")
-
 TextWindow.ForegroundColor = 7
-
 TextWindow.Pause()
-
 TextWindow.Clear()
 
-
-
 'Start the game by going to a shop
-
 shop()
 
-
-
 'Check if the player is alive
-
 While playerHealth >= 1
-
   TextWindow.Clear()
-
   map:
-
   'Draw the map
-
   TextWindow.ForegroundColor = 15
-
   TextWindow.WriteLine("              ------------MAP------------")
-
   TextWindow.WriteLine("                        LEGEND:")
-
   TextWindow.WriteLine("                    You :X | I: Inn")
-
   TextWindow.WriteLine("                   Path :+ | $: Shop")
-
   TextWindow.WriteLine("                 Forest :# | D: Dungeon")
-
   TextWindow.WriteLine("               Clearing :- | ?: Unknown")
-
   TextWindow.WriteLine("                 Travel :T | ")
-
   TextWindow.WriteLine("              ---------------------------")
-
   For y = 0 To 12
-
     TextWindow.Write("               ")
-
     For x = 0 To 12
-
       If playerX = x And playerY = y Then
-
         TextWindow.ForegroundColor = 9
-
         TextWindow.Write("X ")
-
       Else
-
         If map[x][y] = "?" Then
-
           TextWindow.ForegroundColor = 8
-
         ElseIf map[x][y] = "-" Then
-
           TextWindow.ForegroundColor = 7
-
         Else
-
           TextWindow.ForegroundColor = 15
-
         EndIf
-
         TextWindow.Write(map[x][y] + " ")
-
       EndIf
-
     EndFor
-
     TextWindow.WriteLine("")
-
   EndFor
-
   TextWindow.WriteLine("")
-
   TextWindow.ForegroundColor = 7
-
   'Ask the player which way they would like to travel
-
   TextWindow.Write("In which direction would you like to travel? (n/s/e/w): ")
-
   direction = TextWindow.Read()
-
   If direction = "N" Or direction = "n" Then
-
     'Check if they can go north
-
     If playerY <> 0 Then
-
       'If yes move the player
-
       playerY = playerY - 1
-
     Else
-
       'If not tell them and ask again
-
       TextWindow.WriteLine("You can't go north!")
-
       TextWindow.Pause()
-
       TextWindow.Clear()
-
       Goto map
-
     EndIf
-
   ElseIf direction = "S" Or direction = "s" Then
-
     'Check if they can go south
-
     If playerY <> 12 Then
-
       'If yes move the player
-
       playerY = playerY + 1
-
     Else
-
       'If not tell them and ask again
-
       TextWindow.WriteLine("You can't go south!")
-
       TextWindow.Pause()
-
       TextWindow.Clear()
-
       Goto map
-
     EndIf
-
   ElseIf direction = "E" Or direction = "e" Then
-
     'Check if they can go east
-
     If playerX <> 12 Then
-
       'If yes move the player
-
       playerX = playerX + 1
-
     Else
-
       'If not tell them and ask again
-
       TextWindow.WriteLine("You can't go east!")
-
       TextWindow.Pause()
-
       TextWindow.Clear()
-
       Goto map
-
     EndIf
-
   ElseIf direction = "W" Or direction = "w" Then
-
     'Check if they can go west
-
     If playerX <> 0 Then
-
       'If yes move the player
-
       playerX = playerX - 1
-
     Else
-
       'If not tell them and ask again
-
       TextWindow.WriteLine("You can't go west!")
-
       TextWindow.Pause()
-
       TextWindow.Clear()
-
       Goto map
-
     EndIf
-
   Else 
-
     'Tell them they made an invalid choice and ask again
-
     TextWindow.WriteLine("Invalid Choice!")
-
     TextWindow.Pause()
-
     TextWindow.Clear()
-
     Goto map
-
   EndIf
-
   'If the location is unknown set it to a random event
-
   If map[playerX][playerY] = "?" Then
-
     location = Math.GetRandomNumber(14)
-
     If location = 1 Then
-
       map[playerX][playerY] = "W"
-
     ElseIf location = 2 Then
-
       map[playerX][playerY] = "I" 
-
     ElseIf location = 3 Then
-
       map[playerX][playerY] = "$" 
-
     ElseIf location = 4 Then
-
       map[playerX][playerY] = "D" 
-
     ElseIf location = 5 Then
-
       map[playerX][playerY] = "T" 
-
     ElseIf location >= 6 And location <= 8 Then
-
       map[playerX][playerY] = "#" 
-
     Else
-
       map[playerX][playerY] = "-"
-
     EndIf
-
   EndIf
-
   TextWindow.Clear()
-
   'Check where the player is and run according events
-
   If map[playerX][playerY] = "$" Then
-
     shop()
-
   ElseIf map[playerX][playerY] = "I" Then
-
     inn()
-
   ElseIf map[playerX][playerY] = "W" Then
-
     wizard()
-
   ElseIf map[playerX][playerY] = "D" Then
-
     dungeon()
-
   ElseIf map[playerX][playerY] = "T" Then
-
     travel()
-
   ElseIf map[playerX][playerY] = "-" Then
-
     'With a chance of 2/3 if there is nothing on the map battle a monster
-
     isMonster = Math.GetRandomNumber(3)
-
     If isMonster <> 1 Then
-
       randomMonster = Math.GetRandomNumber(3)
-
       If randomMonster = 1 Then
-
         'Goblin: Health - Low, Strength - High
-
         monsterType = "Golbin"
-
         maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 5))
-
         monsterHealth = maxMonsterHealth
-
         monsterStrength = Math.Round(difficulty/2 + Math.GetRandomNumber(2))
-
       ElseIf randomMonster = 2 Then
-
         'Giant Spider: Health - Medium, Strength - Medium
-
         monsterType = "Giant Spider"
-
         maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 10))
-
         monsterHealth = maxMonsterHealth
-
         monsterStrength = Math.Round(difficulty/2 + Math.GetRandomNumber(3)/2)
-
       Else
-
         'Witch: Health - High, Strength - Low
-
         monsterType = "Witch"
-
         maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 15))
-
         monsterHealth = maxMonsterHealth
-
         monsterStrength = Math.Round(difficulty/2 + 1)
-
       EndIf
-
       'Start the monster encounter and increase the difficulty
-
       TextWindow.Clear()
-
       monsterEncounter()
-
       difficulty = difficulty + 1
-
     EndIf
-
     TextWindow.ForegroundColor = 7
-
     clearing:
-
     TextWindow.Clear()
-
     TextWindow.WriteLine("You find yourself in a clearing. A path here would allow for safer transport.")
-
     TextWindow.Write("Would you like to build a path for 1 resource? (y/n): ")
-
     willPath = TextWindow.Read()
-
     If willPath = "Y" or willPath = "y" Then
-
       If resources > 0 Then
-
         map[playerX][playerY] = "+"
-
         resources = resources - 1
-
         TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
         TextWindow.WriteLine("You build a path so you can safely travel here in the future.")
-
         TextWindow.Pause()  
-
       Else
-
         TextWindow.WriteLine("You dont have enough resources!") 
-
         TextWindow.Pause()
-
       EndIf  
-
     ElseIf willPath = "N" or willPath = "n" Then
-
     Else
-
       TextWindow.WriteLine("Invalid Choice!")
-
       TextWindow.Pause()
-
       TextWindow.Clear()
-
       Goto clearing
-
     EndIf
-
   ElseIf map[playerX][playerY] = "#" Then
-
     randomMonster = Math.GetRandomNumber(3)
-
     If randomMonster = 1 Then
-
       'Goblin: Health - Low, Strength - High
-
       monsterType = "Golbin"
-
       maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 5))
-
       monsterHealth = maxMonsterHealth
-
       monsterStrength = Math.Round(difficulty/2 + Math.GetRandomNumber(2))
-
     ElseIf randomMonster = 2 Then
-
       'Giant Spider: Health - Medium, Strength - Medium
-
       monsterType = "Giant Spider"
-
       maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 10))
-
       monsterHealth = maxMonsterHealth
-
       monsterStrength = Math.Round(difficulty/2 + Math.GetRandomNumber(3)/2)
-
     Else
-
       'Witch: Health - High, Strength - Low
-
       monsterType = "Witch"
-
       maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 15))
-
       monsterHealth = maxMonsterHealth
-
       monsterStrength = Math.Round(difficulty/2 + 1)
-
     EndIf
-
     'Start the monster encounter and increase the difficulty
-
     TextWindow.Clear()
-
     monsterEncounter()
-
     difficulty = difficulty + 1
-
     TextWindow.ForegroundColor = 7
-
     forest:
-
     TextWindow.Clear()
-
     TextWindow.WriteLine("You find yourself in a forest. A path here would allow for safer transport.")
-
     TextWindow.Write("Would you like to build a path for 2 resources? (y/n): ")
-
     willPath = TextWindow.Read()
-
     If willPath = "Y" or willPath = "y" Then
-
       If resources > 1 Then
-
         map[playerX][playerY] = "+"
-
         resources = resources - 2
-
         TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
         TextWindow.WriteLine("You build a path so you can safely travel here in the future.")
-
         TextWindow.Pause()  
-
       Else
-
         TextWindow.WriteLine("You dont have enough resources!") 
-
         TextWindow.Pause()
-
       EndIf 
-
     ElseIf willPath = "N" or willPath = "n" Then
-
     Else
-
       TextWindow.WriteLine("Invalid Choice!")
-
       TextWindow.Pause()
-
       TextWindow.Clear()
-
       Goto forest 
-
     EndIf
-
   EndIf
-
   TextWindow.Clear()
-
 EndWhile 
 
-
-
 'A subroutine to simulate the battle event
-
 Sub monsterEncounter
-
   'Change the colour and tell the person what they are fighting
-
   TextWindow.ForegroundColor = 7
-
   TextWindow.WriteLine(monsterType + " Encounter!")
-
   'Tell the player what their health is
-
   TextWindow.ForegroundColor = "blue"
-
   If playerHealth = 35 Then
-
     TextWindow.WriteLine("You are unharmed!")
-
   ElseIf playerHealth > 17 Then
-
     TextWindow.WriteLine("You are slightly wounded!")
-
   ElseIf playerHealth > 8 Then
-
     TextWindow.WriteLine("You are wounded!")
-
   Else
-
     TextWindow.WriteLine("You are badly wounded!")
-
   EndIf
-
   'Tell the computer it is the players turn
-
   attackPhase = 1
-
   'Check whether to continue the battle or not
-
   While monsterHealth >= 1 And playerHealth >=1 And attackPhase <> 3
-
     'Display statistics on the text windows title
-
     TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
     If attackPhase = 1 Then
-
       choice:
-
       TextWindow.ForegroundColor = "blue"
-
       'Ask the player what they want to do
-
       TextWindow.Write("Will you attack, drink a potion or flee? (a/p/f): ")
-
       choice = TextWindow.Read()
-
       If choice = "a" or choice = "A" Then
-
         'If they say attack pick a random attack number based on your weapon level
-
         playerAttack = Math.GetRandomNumber(3) * (weapon + 1) - Math.GetRandomNumber(2) + 1
-
         'Check if they hit the monster or not
-
         critHitMiss()
-
         'Check if the player hit and apply magic on a random chance
-
         If hit <> 1 Then
-
           magicWorked = Math.GetRandomNumber(4)
-
           If magicWorked = 1 Then
-
             If magic = 1 Then
-
               TextWindow.ForegroundColor = 2
-
               TextWindow.WriteLine("Your nature magic poisons the " + monsterType + ".")
-
               poison = 3
-
             ElseIf magic = 2 Then
-
               TextWindow.ForegroundColor = 1
-
               TextWindow.WriteLine("Your water magic weakens the " + monsterType + ".")
-
               weak = 1
-
             ElseIf magic = 3 Then
-
               TextWindow.ForegroundColor = 4
-
               TextWindow.WriteLine("Your fire magic burns the " + monsterType + ".")
-
               playerAttack = playerAttack + 5
-
             ElseIf magic = 4 Then
-
               TextWindow.ForegroundColor = 6
-
               heal = Math.GetRandomNumber(2) + 2
-
               TextWindow.WriteLine("Your air magic heals and adds " + heal + " health.")
-
               playerHealth = playerHealth + heal
-
             EndIf
-
             TextWindow.ForegroundColor = "blue"  
-
           EndIf 
-
         EndIf
-
         'Check if the player has had a strength potion
-
         If hadStrength = 1 Then
-
           hadStrength = 0
-
           If hit <> 1 Then
-
             'Increase the attack if they hit the monster
-
             playerAttack= playerAttack + 5 + Math.GetRandomNumber(5)
-
             TextWindow.WriteLine("The strength potion takes effect!")
-
           EndIf
-
         EndIf
-
         'Lower the monsters health based on the attack damage and tell the player
-
         monsterHealth = monsterHealth - playerAttack
-
         stat["n"][2] = stat["n"][2] + playerAttack
-
         TextWindow.WriteLine("You attack and deal " + playerAttack + " damage!")
-
         TextWindow.WriteLine("")
-
         'Check if the monster is still alive
-
         If monsterHealth <= 0 Then
-
           'If it died tell the player add score
-
           TextWindow.WriteLine(monsterType + " Died!")
-
           Sound.PlayChimes()
-
           poison = 0
-
           weak = 0
-
           stat["n"][0] = stat["n"][0] + 25*difficulty
-
           'Give the player some money and tell them
-
           stat["n"][1] = stat["n"][1] + 1
-
           moneyEarned = Math.GetRandomNumber(5) * 2 + 1
-
           money = money + moneyEarned
-
           stat["n"][4] = stat["n"][4] + moneyEarned
-
           TextWindow.WriteLine("You found " + moneyEarned + " coins and now have " + money + "!")
-
           'Display statistics on the text windows title
-
           TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
           TextWindow.ForegroundColor = 7
-
           'Wait and then clear the screen
-
           TextWindow.Pause()
-
         Else
-
           'Display the monsters health
-
           TextWindow.ForegroundColor = "red"
-
           If monsterHealth = maxMonsterHealth Then
-
             TextWindow.WriteLine(monsterType + " is unharmed!")
-
           ElseIf monsterHealth > Math.Round(maxMonsterHealth/2) Then
-
             TextWindow.WriteLine(monsterType + " is slightly wounded!")
-
           ElseIf monsterHealth > Math.Round(maxMonsterHealth/4) Then
-
             TextWindow.WriteLine(monsterType + " is wounded!")
-
           Else
-
             TextWindow.WriteLine(monsterType + " is badly wounded!")
-
           EndIf
-
           'Tell the computer it is the monsters turn
-
           attackPhase = 2
-
         EndIf
-
       ElseIf choice = "p" or choice = "P" Then
-
         potion: 
-
         'If  they drink a potion ask them which one they want to use
-
         TextWindow.Write("Would you like to drink a health or strength potion? (h/s): ")
-
         potionType = TextWindow.Read()
-
         If potionType = "h" or potionType = "H" Then
-
           'If they choose a health potion check if they have any
-
           If potions["h"] > 0 Then
-
             'If they do tell them that they successfully had one and increase the health
-
             TextWindow.WriteLine("You drink a health potion!")
-
             stat["n"][6] = stat["n"][6] + 1
-
             playerHealth = playerHealth + 15
-
             'Remove a health potion and tell the player if they have any left
-
             potions["h"] = potions["h"] - 1
-
             TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
             If potions["h"] = 1 Then
-
               TextWindow.WriteLine("You have 1 health potion remaining.")
-
             Else
-
               TextWindow.WriteLine("You have " + potions["h"] + " health potions remaining.")
-
             EndIf
-
             'Check if the player has more health than the max and fix it
-
             If playerHealth > 35 Then
-
               playerHealth = 35
-
             EndIf
-
           Else
-
             'If they dont have any potions tell them
-
             TextWindow.WriteLine("You dont have any health potions!")
-
           EndIf
-
         ElseIf potionType = "s" or potionType = "S" Then
-
           'If they choose a strength potion check if they have any
-
           If potions["s"] > 0 Then
-
             'If they do tell them that they successfully had one and apply the effect
-
             TextWindow.WriteLine("You drink a strength potion!")
-
             stat["n"][6] = stat["n"][6] + 1
-
             hadStrength = 1
-
             'Remove a strength potion and tell the player if they have any left
-
             potions["s"] = potions["s"] - 1
-
             TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
             If potions["s"] = 1 Then
-
               TextWindow.WriteLine("You have 1 strength potion remaining.")
-
             Else
-
               TextWindow.WriteLine("You have " + potions["s"] + " strength potions remaining.")
-
             EndIf
-
           Else
-
             'If they dont have any potions tell them
-
             TextWindow.WriteLine("You dont have any strength potions!")
-
           EndIf
-
         Else 
-
           'Tell them they made an invalid choice and ask again
-
           TextWindow.WriteLine("Invalid Choice!")
-
           Goto potion
-
         EndIf  
-
         'Display statistics on the text windows title and tell the computer its the monsters turn
-
         TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
         attackPhase = 2
-
         TextWindow.WriteLine("")
-
       ElseIf choice = "f" or choice = "F" Then 
-
         'If  they try to flee check if they manage to or not
-
         canFlee = Math.GetRandomNumber(3)
-
         If canFlee = 1 And monsterType <> "Shop Keeper" And inDungeon <> 1 Then
-
           'Tell them they escaped, clear the screen and end the battle
-
           TextWindow.WriteLine("You manage to escape!")
-
           stat["n"][9] = stat["n"][9] + 1
-
           TextWindow.ForegroundColor = 7
-
           TextWindow.Pause()
-
           TextWindow.Clear()
-
           TextWindow.WriteLine("")
-
           attackPhase = 3
-
         ElseIf inDungeon = 1 Then
-
           TextWindow.WriteLine("You cannot flee in a dungeon!")
-
           attackPhase = 2
-
           TextWindow.WriteLine("")
-
         ElseIf monsterType = "Shop Keeper" Then
-
           TextWindow.WriteLine("You cannot flee from a shop keeper!")
-
           attackPhase = 2
-
           TextWindow.WriteLine("")
-
         Else
-
           'Tell them they failed and tell the computer its the monsters turn
-
           TextWindow.WriteLine("You attempt to flee but fail!")
-
           attackPhase = 2
-
           TextWindow.WriteLine("")
-
         EndIf
-
       Else
-
         'If they did not choose a valid response tell them and ask again
-
         TextWindow.WriteLine("Invalid Choice!")
-
         Goto choice
-
       EndIf  
-
     Else
-
       'Checks if the monster is poisoned and damages them
-
       If poison > 0 Then
-
         TextWindow.ForegroundColor = 2
-
         poisonDamage = Math.GetRandomNumber(2)
-
         TextWindow.WriteLine(monsterType + " takes " + poisonDamage + " damage from poison.")
-
         poison = poison - 1
-
         TextWindow.ForegroundColor = "red"
-
       EndIf
-
       'Check if the monster is still alive
-
       If monsterHealth <= 0 Then
-
         'If it died tell the player add score
-
         TextWindow.WriteLine(monsterType + " Died!")
-
         Sound.PlayChimes()
-
         poison = 0
-
         weak = 0
-
         stat["n"][0] = stat["n"][0] + 25*difficulty
-
         'Give the player some money and tell them
-
         stat["n"][1] = stat["n"][1] + 1
-
         moneyEarned = Math.GetRandomNumber(5) * 2 + 1
-
         money = money + moneyEarned
-
         stat["n"][4] = stat["n"][4] + moneyEarned
-
         TextWindow.WriteLine("You found " + moneyEarned + " coins and now have " + money + "!")
-
         'Display statistics on the text windows title
-
         TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
         TextWindow.ForegroundColor = 7
-
         'Wait and then clear the screen
-
         TextWindow.Pause()
-
       EndIf
-
       'If they say attack pick a random attack number based on your shield level
-
       monsterAttack = Math.GetRandomNumber(monsterStrength/2) * (Math.GetRandomNumber(2) + 1) + 1 - (Math.GetRandomNumber(3) * shield - Math.GetRandomNumber(2))
-
       If weak = 1 Then
-
         monsterAttack = monsterAttack - 5
-
         weak = 0
-
       EndIf     
-
       If monsterAttack < 0 Then
-
         monsterAttack = 0
-
       EndIf
-
       TextWindow.ForegroundColor = "red"
-
       'Check if the monster hit or not
-
       critHitMiss()
-
       'Lower the players health and tell the player
-
       playerHealth = playerHealth - monsterAttack
-
       stat["n"][3] = stat["n"][3] + monsterAttack
-
       TextWindow.WriteLine(monsterType + " attacks and deals " + monsterAttack + " damage!")  
-
       TextWindow.WriteLine("") 
-
       'Check if the player died
-
       If playerHealth <= 0 Then
-
         'If they did tell the player and print the stats with a sound
-
         TextWindow.WriteLine("-----------------------")
-
         TextWindow.WriteLine("       You Died!       ")
-
         TextWindow.WriteLine("-----------------------")
-
         'Calculate total score
-
         stat["n"][0] = stat["n"][0] + (weapon + shield)*5 + (potions["h"] + potions["s"])*10  + money
-
         If magic <> 0 Then
-
           stat["n"][0] = stat["n"][0] + 25
-
         EndIf
-
         For finalStats = 0 To 9
-
           TextWindow.WriteLine(stat["t"][finalStats] + " " + stat["n"][finalStats])
-
         EndFor
-
         Sound.PlayBellRing()
-
         TextWindow.ForegroundColor = 7
-
         TextWindow.Pause()
-
         Program.End()
-
       Else
-
         'If not print the players health
-
         TextWindow.ForegroundColor = "blue"
-
         If playerHealth = 35 Then
-
           TextWindow.WriteLine("You are unharmed!")
-
         ElseIf playerHealth > 17 Then
-
           TextWindow.WriteLine("You are slightly wounded!")
-
         ElseIf playerHealth > 8 Then
-
           TextWindow.WriteLine("You are wounded!")
-
         Else
-
           TextWindow.WriteLine("You are badly wounded!")
-
         EndIf
-
         'Tell the computer its the players turn
-
         attackPhase = 1
-
       EndIf
-
     EndIf
-
   EndWhile  
-
 EndSub  
-
-
 
 'A subroutine to simulate the shop event
-
 Sub shop
-
   'Display statistics on the text windows title
-
   TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
   'Choose random costs for the items
-
   weaponMod = Math.GetRandomNumber(3) - 2
-
   shieldMod = Math.GetRandomNumber(3) - 2
-
   hpCost = Math.GetRandomNumber(5) + 7
-
   spCost = Math.GetRandomNumber(5) + 7
-
   resourceCost = Math.GetRandomNumber(3) + 3
-
   willBuy = ""
-
   'Print the prices
-
   shop:
-
   TextWindow.ForegroundColor = "green"
-
   TextWindow.WriteLine("Hello and welcome to my shop!")
-
   TextWindow.WriteLine("1: Weapon Upgrade:  $" + (weapon*10 + weaponMod))
-
   TextWindow.WriteLine("2: Shield Upgrade:  $" + (5 + shield*5 + shieldMod))
-
   TextWindow.WriteLine("3: Health Potion:   $" + hpCost)
-
   TextWindow.WriteLine("4: Strength Potion: $" + spCost)
-
   TextWindow.WriteLine("5: Resources:       $" + resourceCost)
-
   TextWindow.WriteLine("You currently have: $" + money)
-
   'Check if the player has said they will buy something else
-
   If again = "y" or again = "Y" Then
-
     willBuy = "b"
-
   Else
-
     TextWindow.Write("Would you like to buy anything or would you like to steal something? (b/s/n): ")
-
     willBuy = TextWindow.Read()
-
   EndIf
-
   If willBuy = "b" or willBuy = "B" Then
-
     'Ask the player what they want to buy
-
     TextWindow.Write("What would you like to buy? (1/2/3/4/5): ")
-
     buying = TextWindow.Read()
-
     If buying = 1 Then
-
       'Check if they have enough money for the weapon
-
       If money >= weapon*10 + weaponMod Then
-
         'Buy the weapon
-
         money = money - weapon*10 - weaponMod
-
         weapon = weapon + 1
-
         TextWindow.WriteLine("Thank you!")
-
         stat["n"][5] = stat["n"][5] + 1
-
         Goto again
-
       Else
-
         'Tell them they dont have enough money
-
         TextWindow.WriteLine("You dont have enough money!")
-
         Goto again 
-
       EndIf 
-
     ElseIf buying = 2 Then
-
       'Check if they have enough money for the shield
-
       If money >= 5 + shield*5 + shieldMod Then
-
         'Buy the shield
-
         money = money - 5 - shield*5 - shieldMod
-
         shield = shield + 1
-
         TextWindow.WriteLine("Thank you!")
-
         stat["n"][5] = stat["n"][5] + 1
-
         Goto again
-
       Else
-
         'Tell them they dont have enough money
-
         TextWindow.WriteLine("You dont have enough money!")
-
         Goto again 
-
       EndIf
-
     ElseIf buying = 3 Then
-
       'Check if they have enough money for the potion
-
       If money >= hpCost Then
-
         'Buy the potion
-
         potions["h"] = potions["h"] + 1
-
         money = money - hpCost
-
         TextWindow.WriteLine("Thank you!")
-
         stat["n"][5] = stat["n"][5] + 1
-
         Goto again
-
       Else
-
         'Tell them they dont have enough money
-
         TextWindow.WriteLine("You dont have enough money!")
-
         Goto again 
-
       EndIf 
-
     ElseIf buying = 4 Then
-
       'Check if they have enough money for the potion
-
       If money >= spCost Then
-
         'Buy the potion
-
         potions["s"] = potions["s"] + 1
-
         money = money - spCost
-
         TextWindow.WriteLine("Thank you!")
-
         stat["n"][5] = stat["n"][5] + 1
-
         Goto again
-
       Else
-
         'Tell them they dont have enough money
-
         TextWindow.WriteLine("You dont have enough money!")
-
         Goto again 
-
       EndIf 
-
     ElseIf buying = 5 Then
-
       'Check if they have enough money for the resources
-
       If money >= resourceCost Then
-
         'Buy the resources
-
         resources = resources + 1
-
         money = money - resourceCost
-
         TextWindow.WriteLine("Thank you!")
-
         stat["n"][5] = stat["n"][5] + 1
-
         Goto again
-
       Else
-
         'Tell them they dont have enough money
-
         TextWindow.WriteLine("You dont have enough money!")
-
         Goto again 
-
       EndIf   
-
     Else  
-
       Goto again
-
     EndIf
-
   ElseIf willBuy = "n" or willBuy = "N" Then
-
     'If they dont want to buy any thing leave the shop
-
     Goto endShop
-
   ElseIf willBuy = "s" or willBuy = "S" Then
-
     'If they choose to steal something see if they are successful
-
     TextWindow.Write("What would you like to steal? (1/2/3/4/5): ")
-
     stealing = TextWindow.Read()
-
     canSteal = Math.GetRandomNumber(2 + Math.Round(difficulty/2))
-
     If canSteal = 1 Then
-
       If stealing = 1 Then
-
         'Steal the weapon
-
         weapon = weapon + 1
-
         TextWindow.WriteLine("You take the weapon.")
-
         TextWindow.WriteLine("You decide to leave and never come back to avoid getting caught.")
-
         map[playerX][playerY] = "-"
-
         stat["n"][8] = stat["n"][8] + 1
-
         Goto endShop
-
       ElseIf stealing = 2 Then
-
         'Steal the shield
-
         shield = shield + 1
-
         TextWindow.WriteLine("You take the shield.")
-
         TextWindow.WriteLine("You decide to leave and never come back to avoid getting caught.")
-
         map[playerX][playerY] = "-"
-
         stat["n"][8] = stat["n"][8] + 1
-
         Goto endShop
-
       ElseIf stealing = 3 Then
-
         'Steal the potion
-
         potions["h"] = potions["h"] + 1
-
         TextWindow.WriteLine("You take the potion.")
-
         TextWindow.WriteLine("You decide to leave and never come back to avoid getting caught.")
-
         map[playerX][playerY] = "-"
-
         stat["n"][8] = stat["n"][8] + 1
-
         Goto endShop
-
       ElseIf stealing = 4 Then
-
         'Steal the potion
-
         potions["s"] = potions["s"] + 1
-
         TextWindow.WriteLine("You take the potion.")
-
         TextWindow.WriteLine("You decide to leave and never come back to avoid getting caught.")
-
         map[playerX][playerY] = "-"
-
         stat["n"][8] = stat["n"][8] + 1
-
         Goto endShop
-
       ElseIf stealing = 5 Then
-
         'Steal the resources
-
         resources = resources + 1
-
         TextWindow.WriteLine("You take the resources.")
-
         TextWindow.WriteLine("You decide to leave and never come back to avoid getting caught.")
-
         map[playerX][playerY] = "-"
-
         stat["n"][8] = stat["n"][8] + 1
-
         Goto endShop
-
       Else  
-
         TextWindow.WriteLine("You decide it is best not to steal anything.")
-
         Goto again
-
       EndIf
-
     Else
-
       'Create a battle against the shop keeper if he catches you
-
       TextWindow.WriteLine("The shopkeeper catches you and draws his sword.")    
-
       'Shop Keeper: Health - High, Strength - High
-
       monsterType = "Shop Keeper"
-
       maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 15))
-
       monsterHealth = maxMonsterHealth
-
       monsterStrength = Math.Round(difficulty/4 + Math.GetRandomNumber(2))
-
       monsterEncounter()
-
       TextWindow.Clear()
-
       TextWindow.ForegroundColor = "green"
-
       'Give the player a random item if they killed the shop keeper
-
       randomDrop = Math.GetRandomNumber(3)
-
       If randomDrop = 1 Then
-
         TextWindow.WriteLine("You find a health potion on the shop keeper's body.")
-
         potions["h"] = potions["h"] + 1
-
       ElseIf randomDrop = 2 Then
-
         TextWindow.WriteLine("You find a stength potion on the shop keeper's body.")
-
         potions["s"] = potions["s"] + 1
-
       Else
-
         TextWindow.WriteLine("You find some more money on the shop keeper's body.")
-
         money = money + 10
-
         stat["n"][4] = stat["n"][4] + 10
-
       EndIf
-
       TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
       TextWindow.WriteLine("You decide you should leave before someone else sees you. You decide you wont be coming back here any time soon.")
-
       map[playerX][playerY] = "-"
-
       Goto endShop
-
     EndIf
-
   Else
-
     'Tell then they make an invalid choice and ask them again
-
     TextWindow.WriteLine("Invalid Choice!")
-
     TextWindow.Pause()
-
     TextWindow.Clear()
-
     Goto shop
-
   EndIf
-
   again:
-
   'Display the statistics on the text windows title
-
   TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
   'Ask if they want to buy anything else
-
   TextWindow.Write("Would you like to buy anything else? (y/n): ")
-
   again = TextWindow.Read()
-
   If again = "y" or again = "Y" Then
-
     'If yes restart the shop
-
     TextWindow.Clear()
-
     Goto shop
-
   ElseIf again = "n" or again = "N" Then
-
     'If they dont want to buy any thing leave the shop
-
     endShop:
-
     TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
     TextWindow.ForegroundColor = 7
-
     TextWindow.Pause()
-
     TextWindow.Clear()
-
   Else
-
     'Tell then they make an invalid choice and ask them again
-
     TextWindow.WriteLine("Invalid Choice!")
-
     TextWindow.Clear()
-
     Goto again
-
   EndIf
-
 EndSub
-
-
 
 'A subroutine to simulate the inn event
-
 Sub inn
-
   'Display the statistics on the text window title
-
   TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
   TextWindow.ForegroundColor = "yellow"
-
   'Choose a random cost for the inn
-
   innCost = Math.GetRandomNumber(5) + 7
-
   inn:
-
   TextWindow.WriteLine("Hello and welcome to my inn!")
-
   'Ask if they would like to stay
-
   TextWindow.Write("Would you like to stay the night for $" + innCost + "? (y/n): ")
-
   willStay = TextWindow.Read()
-
   If willStay = "y" or willStay = "Y" Then
-
     'If they say yes check if they have enough money
-
     If money >= innCost Then
-
       'Tell the player they slept, subtract the money and heal the player
-
       TextWindow.WriteLine("You feel refreshed and good as new!")
-
       stat["n"][7] = stat["n"][7] + 1
-
       playerHealth = 35
-
       money = money - innCost
-
       'Display the statistics on the text window title
-
       TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money 
-
     Else
-
       'Tell the player they dont have enough money
-
       TextWindow.WriteLine("You dont have enough money!")
-
     EndIf
-
   ElseIf willStay = "n" or willStay = "N" Then
-
     TextWindow.WriteLine("Goodbye then!")
-
   Else
-
     'Tell then they make an invalid choice and ask them again
-
     TextWindow.WriteLine("Invalid Choice!")
-
     TextWindow.Pause()
-
     TextWindow.Clear()
-
     Goto inn
-
   EndIf
-
   TextWindow.ForegroundColor = 7
-
   TextWindow.Pause()
-
   TextWindow.Clear()
-
 EndSub
-
-
 
 'A subroutine to simulate the wizard event
-
 Sub wizard
-
   TextWindow.ForegroundColor = "magenta"
-
   TextWindow.WriteLine("Hello and welcome to my wizard tower.")
-
   'Pick a random magic type
-
   pickMagic:
-
   magicType = Math.GetRandomNumber(4)
-
   'Check if the player already has the offered magic. If yes change it to something else
-
   If magic = magicType Then
-
     Goto pickMagic
-
   EndIf
-
   wizard:
-
   If magicType = 1 Then
-
     TextWindow.Write("Would you like to learn how to master the ")
-
     TextWindow.ForegroundColor = 2
-
     TextWindow.Write("forests")
-
     TextWindow.ForegroundColor = "magenta"
-
     TextWindow.Write(" for $20? ")
-
   ElseIf magicType = 2 Then
-
     TextWindow.Write("Would you like to learn how to master the ")
-
     TextWindow.ForegroundColor = 1
-
     TextWindow.Write("oceans")
-
     TextWindow.ForegroundColor = "magenta"
-
     TextWindow.Write(" for $20? ")
-
   ElseIf magicType = 3 Then
-
     TextWindow.Write("Would you like to learn how to master the ")
-
     TextWindow.ForegroundColor = 4
-
     TextWindow.Write("flame")
-
     TextWindow.ForegroundColor = "magenta"
-
     TextWindow.Write(" for $20? ")
-
   Else
-
     TextWindow.Write("Would you like to learn how to master the ")
-
     TextWindow.ForegroundColor = 6
-
     TextWindow.Write("skies")
-
     TextWindow.ForegroundColor = "magenta"
-
     TextWindow.Write(" for $20? ")
-
   EndIf
-
   TextWindow.Write("Note: It will override your old magic if you have any. (y/n): ")
-
   wantsMagic = TextWindow.Read()
-
   'See what the player said
-
   If wantsMagic = "y" Or wantsMagic = "Y" Then
-
     'If yes check if they have enough money
-
     If money >= 20 Then
-
       'If yes give them the new magic and subtact money
-
       magic = magicType
-
       TextWindow.WriteLine("Use your new powers wisely!")
-
       money = money - 20
-
       TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
     Else
-
       'If no tell them
-
       TextWindow.WriteLine("You dont have enough money!")
-
     EndIf
-
   ElseIf wantsMagic = "n" Or wantsMagic = "N" Then
-
     TextWindow.WriteLine("Goodbye then!")
-
   Else
-
     'Tell the player they made an invalid choice and ask again
-
     TextWindow.WriteLine("Invalid Choice!")
-
     TextWindow.Pause()
-
     TextWindow.Clear()
-
     Goto wizard
-
   EndIf
-
   TextWindow.WriteLine("As you leave the wizard tower vanishes before your eyes!")
-
   map[playerX][playerY] = "-"
-
   TextWindow.ForegroundColor = 7
-
   TextWindow.Pause()
-
   TextWindow.Clear()
-
 EndSub
-
-
 
 'A subroutine to simulate the dungeon event
-
 Sub dungeon
-
   dungeon:
-
   TextWindow.Clear()
-
   TextWindow.ForegroundColor = 8
-
   TextWindow.WriteLine("You find yourself in the enterance of a dungeon.")
-
   TextWindow.Write("Would you like to enter it? (y/n): ")
-
   willEnter = TextWindow.Read()
-
   If willEnter = "y" Or willEnter = "Y" Then
-
     inDungeon = 1
-
     'Goblin: Health - Low, Strength - High
-
     monsterType = "Golbin"
-
     maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 5))
-
     monsterHealth = maxMonsterHealth
-
     monsterStrength = Math.Round(difficulty/2 + Math.GetRandomNumber(2))
-
     TextWindow.Clear()
-
     monsterEncounter()
-
     'Giant Spider: Health - Medium, Strength - Medium
-
     monsterType = "Giant Spider"
-
     maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 10))
-
     monsterHealth = maxMonsterHealth
-
     monsterStrength = Math.Round(difficulty/2 + Math.GetRandomNumber(3)/2)
-
     TextWindow.Clear()
-
     monsterEncounter()
-
     'Witch: Health - High, Strength - Low
-
     monsterType = "Witch"
-
     maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 15))
-
     monsterHealth = maxMonsterHealth
-
     monsterStrength = Math.Round(difficulty/2 + 1)
-
     TextWindow.Clear()
-
     monsterEncounter()
-
     TextWindow.Clear()
-
     TextWindow.ForegroundColor = 8
-
     dungeonLoot[0] = Math.GetRandomNumber(5) + difficulty
-
     dungeonLoot[1] = Math.GetRandomNumber(2)
-
     TextWindow.Write("You find $" + dungeonLoot[0] + " and a ")
-
     money = money + dungeonLoot[0]
-
     If dungeonLoot[1] = 1 Then
-
       TextWindow.WriteLine("weapon upgrade at the end of the dungeon.")
-
       weapon = weapon + 1
-
     Else
-
       TextWindow.WriteLine("shield upgrade at the end of the dungeon.")
-
       shield = shield + 1
-
     EndIf
-
     TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
     map[playerX][playerY] = "-"
-
     inDungeon = 0
-
   ElseIf willEnter = "n" Or willEnter = "N" Then
-
     TextWindow.WriteLine("You decide it is best to leave and come back later.")
-
   Else
-
     TextWindow.WriteLine("Invalid Choice!")
-
     TextWindow.Pause()
-
     TextWindow.Clear()
-
     Goto dungeon
-
   EndIf
-
   TextWindow.ForegroundColor = 7
-
   TextWindow.Pause()
-
 EndSub
-
-
 
 'A subroutine to simulate the travel portal event
-
 Sub travel
-
   portal:
-
   TextWindow.Clear()
-
   TextWindow.ForegroundColor = 5
-
   TextWindow.WriteLine("You find yourself standing by a travel portal.")
-
   TextWindow.Write("Would you like to use this to move instantly to anywhere on the map? (y/n): ")
-
   willPortal = TextWindow.Read()
-
   If willPortal = "y" Or willPortal = "Y" Then
-
     TextWindow.Clear()
-
     'Draw the map
-
     TextWindow.ForegroundColor = 15
-
     TextWindow.WriteLine("              ------------MAP------------")
-
     TextWindow.WriteLine("                        LEGEND:")
-
     TextWindow.WriteLine("                    You :X | I: Inn")
-
     TextWindow.WriteLine("                   Path :+ | $: Shop")
-
     TextWindow.WriteLine("                 Forest :# | D: Dungeon")
-
     TextWindow.WriteLine("               Clearing :- | ?: Unknown")
-
     TextWindow.WriteLine("                 Travel :T | ")
-
     TextWindow.WriteLine("              ---------------------------")
-
     TextWindow.WriteLine("                                 1 1 1 1")
-
     TextWindow.WriteLine("               1 2 3 4 5 6 7 8 9 0 1 2 3")
-
     TextWindow.WriteLine("")
-
     For y = 0 To 12
-
       TextWindow.ForegroundColor = 15
-
       If y < 9 Then
-
         TextWindow.Write("            " + (y+1) + "  ")
-
       Else
-
         TextWindow.Write("           " + (y+1) + "  ")
-
       EndIf
-
       For x = 0 To 12
-
         If playerX = x And playerY = y Then
-
           TextWindow.ForegroundColor = 9
-
           TextWindow.Write("X ")
-
         Else
-
           If map[x][y] = "?" Then
-
             TextWindow.ForegroundColor = 8
-
           ElseIf map[x][y] = "-" Then
-
             TextWindow.ForegroundColor = 7
-
           Else
-
             TextWindow.ForegroundColor = 15
-
           EndIf
-
           TextWindow.Write(map[x][y] + " ")
-
         EndIf
-
       EndFor
-
       TextWindow.WriteLine("")
-
     EndFor
-
     TextWindow.WriteLine("")
-
     TextWindow.ForegroundColor = 5
-
     portalX:
-
     TextWindow.Write("To what X cordinate would you like to travel? (1-13): ")
-
     portalX = TextWindow.ReadNumber()
-
     If portalX > 0 And portalX < 14 Then
-
       portalY:
-
       TextWindow.Write("To what Y cordinate would you like to travel? (1-13): ")
-
       portalY = TextWindow.ReadNumber()
-
       If portalY > 0 And portalY < 14 Then
-
         playerX = portalX - 1
-
         playerY = portalY - 1
-
         TextWindow.WriteLine("You travel through the portal.")
-
         TextWindow.Pause()
-
         TextWindow.Clear()
-
         'If the location is unknown set it to a random event
-
         If map[playerX][playerY] = "?" Then
-
           location = Math.GetRandomNumber(14)
-
           If location = 1 Then
-
             map[playerX][playerY] = "W"
-
           ElseIf location = 2 Then
-
             map[playerX][playerY] = "I" 
-
           ElseIf location = 3 Then
-
             map[playerX][playerY] = "$" 
-
           ElseIf location = 4 Then
-
             map[playerX][playerY] = "D" 
-
           ElseIf location = 5 Then
-
             map[playerX][playerY] = "T" 
-
           ElseIf location >= 6 And location <= 8 Then
-
             map[playerX][playerY] = "#" 
-
           Else
-
             map[playerX][playerY] = "-"
-
           EndIf
-
         EndIf
-
         TextWindow.Clear()
-
         'Check where the player is and run according events
-
         If map[playerX][playerY] = "$" Then
-
           shop()
-
         ElseIf map[playerX][playerY] = "I" Then
-
           inn()
-
         ElseIf map[playerX][playerY] = "W" Then
-
           wizard()
-
         ElseIf map[playerX][playerY] = "D" Then
-
           dungeon()
-
         ElseIf map[playerX][playerY] = "T" Then
-
           travel()
-
         ElseIf map[playerX][playerY] = "-" Then
-
           'With a chance of 2/3 if there is nothing on the map battle a monster
-
           isMonster = Math.GetRandomNumber(3)
-
           If isMonster <> 1 Then
-
             randomMonster = Math.GetRandomNumber(3)
-
             If randomMonster = 1 Then
-
               'Goblin: Health - Low, Strength - High
-
               monsterType = "Golbin"
-
               maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 5))
-
               monsterHealth = maxMonsterHealth
-
               monsterStrength = Math.Round(difficulty/2 + Math.GetRandomNumber(2))
-
             ElseIf randomMonster = 2 Then
-
               'Giant Spider: Health - Medium, Strength - Medium
-
               monsterType = "Giant Spider"
-
               maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 10))
-
               monsterHealth = maxMonsterHealth
-
               monsterStrength = Math.Round(difficulty/2 + Math.GetRandomNumber(3)/2)
-
             Else
-
               'Witch: Health - High, Strength - Low
-
               monsterType = "Witch"
-
               maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 15))
-
               monsterHealth = maxMonsterHealth
-
               monsterStrength = Math.Round(difficulty/2 + 1)
-
             EndIf
-
             'Start the monster encounter and increase the difficulty
-
             TextWindow.Clear()
-
             monsterEncounter()
-
             difficulty = difficulty + 1
-
           EndIf
-
           TextWindow.ForegroundColor = 7
-
           clearing2:
-
           TextWindow.Clear()
-
           TextWindow.WriteLine("You find yourself in a clearing. A path here would allow for safer transport.")
-
           TextWindow.Write("Would you like to build a path for 1 resource? (y/n): ")
-
           willPath = TextWindow.Read()
-
           If willPath = "Y" or willPath = "y" Then
-
             If resources > 0 Then
-
               map[playerX][playerY] = "+"
-
               resources = resources - 1
-
               TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
               TextWindow.WriteLine("You build a path so you can safely travel here in the future.")
-
               TextWindow.Pause()  
-
             Else
-
               TextWindow.WriteLine("You dont have enough resources!") 
-
               TextWindow.Pause()
-
             EndIf  
-
           ElseIf willPath = "N" or willPath = "n" Then
-
           Else
-
             TextWindow.WriteLine("Invalid Choice!")
-
             TextWindow.Pause()
-
             TextWindow.Clear()
-
             Goto clearing2
-
           EndIf
-
         ElseIf map[playerX][playerY] = "#" Then
-
           randomMonster = Math.GetRandomNumber(3)
-
           If randomMonster = 1 Then
-
             'Goblin: Health - Low, Strength - High
-
             monsterType = "Golbin"
-
             maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 5))
-
             monsterHealth = maxMonsterHealth
-
             monsterStrength = Math.Round(difficulty/2 + Math.GetRandomNumber(2))
-
           ElseIf randomMonster = 2 Then
-
             'Giant Spider: Health - Medium, Strength - Medium
-
             monsterType = "Giant Spider"
-
             maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 10))
-
             monsterHealth = maxMonsterHealth
-
             monsterStrength = Math.Round(difficulty/2 + Math.GetRandomNumber(3)/2)
-
           Else
-
             'Witch: Health - High, Strength - Low
-
             monsterType = "Witch"
-
             maxMonsterHealth = Math.Round(difficulty*2 + (Math.GetRandomNumber(10) + 15))
-
             monsterHealth = maxMonsterHealth
-
             monsterStrength = Math.Round(difficulty/2 + 1)
-
           EndIf
-
           'Start the monster encounter and increase the difficulty
-
           TextWindow.Clear()
-
           monsterEncounter()
-
           difficulty = difficulty + 1
-
           TextWindow.ForegroundColor = 7
-
           forest2:
-
           TextWindow.Clear()
-
           TextWindow.WriteLine("You find yourself in a forest. A path here would allow for safer transport.")
-
           TextWindow.Write("Would you like to build a path for 2 resources? (y/n): ")
-
           willPath = TextWindow.Read()
-
           If willPath = "Y" or willPath = "y" Then
-
             If resources > 1 Then
-
               map[playerX][playerY] = "+"
-
               resources = resources - 2
-
               TextWindow.Title = "Weapon Tier: " + weapon + ", Shield Tier: " + shield + ", Health Potions: " + potions["h"] + ", Strength Potions: " + potions["s"] + ", Resources: " + resources + ", Money: " + money
-
               TextWindow.WriteLine("You build a path so you can safely travel here in the future.")
-
               TextWindow.Pause()  
-
             Else
-
               TextWindow.WriteLine("You dont have enough resources!") 
-
               TextWindow.Pause()
-
             EndIf 
-
           ElseIf willPath = "N" or willPath = "n" Then
-
           Else
-
             TextWindow.WriteLine("Invalid Choice!")
-
             TextWindow.Pause()
-
             TextWindow.Clear()
-
             Goto forest2
-
           EndIf
-
         EndIf
-
         TextWindow.Clear()
-
       Else
-
         TextWindow.WriteLine("Invalid Choice!")
-
         TextWindow.Pause()
-
         Goto portalY
-
       EndIf
-
     Else
-
       TextWindow.WriteLine("Invalid Choice!")
-
       TextWindow.Pause()
-
       Goto portalX
-
     EndIf
-
   ElseIf willPortal = "n" Or willPortal = "N" Then
-
   Else
-
     TextWindow.WriteLine("Invalid Choice!")
-
     TextWindow.Pause()
-
     TextWindow.Clear()
-
     Goto portal
-
   EndIf 
-
 EndSub  
 
-
-
 'A subroutine to check if an attack hit, was critical or missed
-
 Sub critHitMiss
-
   'Get a random number
-
   hit = Math.GetRandomNumber(10)
-
   If hit = 1 Then
-
     'With a 1/10 chance make the attack a miss
-
     playerAttack = 0
-
     monsterAttack = 0
-
     TextWindow.WriteLine("It's a miss!")
-
   ElseIf hit = 10 Then
-
     'With a 1/10 chance make the attack a critical hit
-
     playerAttack = playerAttack * 2
-
     monsterAttack = monsterAttack * 2
-
     If (attackPhase = 1 and playerAttack <> 0) or (attackPhase = 2 and monsterAttack <> 0) Then
-
       TextWindow.WriteLine("It's a critical hit!")
-
     EndIf
-
   EndIf
-
 EndSub
-
-

@@ -1,1513 +1,756 @@
 ' Programmed by John Whitener 2016
-
 ' Conversion of "Poker Squares" from GAME PROGRAMMING WITH VISUAL BASIC by Clayton Walnum.
-
 ' Difficulty levels Easy, Medium, Hard, and running score total added by John Whitener 2016.
 
-
-
 '***********Begin **********
-
 SetDefaults()
-
 BuildGameArea()       ' Primarily 1 time Graphics Window setup
-
 InitializeProgram()   ' Prep for Playing
 
 
-
-
-
 Sub SetDefaults
-
   ' Establish Graphics Window
-
   gw = 950 
-
   gh = 735  
-
   CR = Text.GetCharacter(13)
-
   LF = Text.GetCharacter(10)
-
   'Cariage Return Line Feed
-
   CRLF = CR+LF
-
   GraphicsWindow.CanResize = "False"
-
   GraphicsWindow.Title = "Programmed by John Whitener 2016"
-
   GraphicsWindow.Width = gw 
-
   GraphicsWindow.Height = gh 
-
   'Center on Desk Top
-
   GraphicsWindow.Top = (( Desktop.Height - gh ) / 2) - 25
-
   GraphicsWindow.Left = ( Desktop.Width - gw ) / 2
-
   GraphicsWindow.BackgroundColor = "SteelBlue"
-
   GraphicsWindow.Show()
-
   RowCellSize = 70
-
   ColCellSize = 100
-
   gridX = 10
-
   gridY = 10
-
   WSize = 80 
-
   HSize = 110
-
   Deck = 51
-
   CurrentCard = 0   
-
   GameStatus = "Stopped"
-
   SetEasy()                  ' At this stage it outlines the 3 next card boxes but no cards are in the box. 
-
   GreenColor = "#008000"     ' Hexidecimal neccessary for "Get Pixel Color"
-
   ValidClickCount = 0
-
   
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   Controls.ButtonClicked = ButtonClickedSub
-
   GraphicsWindow.MouseDown = MouseDownSub
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   If GraphicsWindow.LastKey= "F1" Then
-
     DisplayTestResults()     ' This is for testing and debugging
-
   EndIf
-
 EndSub
-
-
-
 
 
 Sub InitializeProgram
-
   SetOptionsText()
-
   ShuffleCards()
-
 EndSub
-
-
 
 Sub ButtonClickedSub  
-
   B = Controls.LastClickedButton
-
   If (B = NewGameButton) Then
-
     BuildCardMatrix()
-
     BestHandArray()
-
     ScoreArray()
-
     CurrentScoreArea()
-
     InitializeProgram()
-
     SetOptionsText()
-
     ValidClickCount = 0
-
     GraphicsWindow.BrushColor = "SteelBlue"
-
     GraphicsWindow.FillRectangle(NextCardX, NextCardY, NextCardW, NextCardH) 
-
     GraphicsWindow.FillRectangle(Card3X, Card3Y, Card3W, Card3H)
-
     GraphicsWindow.FillRectangle(Card2X, Card2Y, Card2W, Card2H) 
-
     TotalScore = 0 
-
     
-
   ElseIf (B = EasyButton) Then
-
     StartRound()
-
     SetEasy()
-
     HideControls()
-
     Goto GameLoop  
-
   ElseIf (B = MediumButton) Then
-
     StartRound()
-
     SetMedium()
-
     HideControls()
-
     Goto GameLoop
-
   ElseIf (B = HardButton) Then
-
     StartRound()
-
     SetHard()
-
     HideControls()
-
     Goto GameLoop
-
   ElseIf  (B = ExitButton) Then
-
     Program.End()
-
   EndIf  
-
 EndSub
-
-
 
 Sub StartRound
-
   GameState = "Playing"
-
   CurrentCard = SortedArray[1]   '1
-
   MediumCard = SortedArray[2]    '2
-
   EasyCard = SortedArray[3]      '3
-
 EndSub
-
-
 
 GameLoop:
 
-
-
 Sub MouseDownSub
-
   ' Code for mouse button presses goes here.
-
   If Mouse.IsLeftButtonDown And GameState = "Playing" Then
-
     'Get Mouse Click  Position
-
     mxpos = GraphicsWindow.MouseX
-
     mypos = GraphicsWindow.MouseY
-
     
-
     'Get color where mouse clicked
-
     ClickColor = GraphicsWindow.GetPixel(mxpos,mypos)
-
     CheckValidClick()
-
   Else
-
     'Do Nothing
-
   EndIf
-
 EndSub
-
-
 
 Sub CheckValidClick
-
   'To simplify - pixel has to be green which denotes an empty card area
-
   If ClickColor = GreenColor Then
-
     ValidClick = "Yes" 
-
     ValidClickCount = ValidClickCount + 1 'Used to determine CardNumber from SortedArray
-
     'Get MouseRow, MouseCol numbers for updating BoardArray etc.
-
     MatrixCol = Math.Floor((mxpos - gridX) / WSize)
-
     MatrixRow = Math.Floor((mypos - gridY) / HSize)
-
     x = MatrixCol * WSize + gridX
-
     y = MatrixRow * HSize + gridX
-
     
-
     MoveCard()
-
     
-
     'UpdateMatrixArray
-
     MatrixArray[MatrixCol][MatrixRow] = SortedArray[ValidClickCount]
-
     
-
     LoadColumnHand()
-
     LoadRowHand()
-
     TotalScore = 0
-
     For I = 0 To 9
-
       TotalScore = TotalScore + ScoreArray[I]
-
     EndFor
-
     Controls.SetTextBoxText(TScore, TotalScore)
-
   EndIf
-
   
-
   If ValidClickCount = 25 Then
-
     EndRoundProcess()
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub MoveCard
-
   ' Updates Card Matrix with correct Image for the clicked cell
-
   GraphicsWindow.DrawResizedImage(CardImage[CurrentCard],x,y,WSize,HSize)
-
   
-
   If ValidClickCount = 25 Then  'This stops movement of cards to options area
-
     CurrentCard = SortedArray[0]
-
     MediumCard = SortedArray[0]
-
     EasyCard = SortedArray[0]
-
   ElseIf ValidClickCount = 24 Then  ' This stops cards to Medium and Easy
-
     CurrentCard = SortedArray[ValidClickCount+1]
-
     MediumCard = SortedArray[0]
-
     EasyCard = SortedArray[0]
-
   ElseIf ValidClickCount = 23 Then ' This stops cards to Easy
-
     CurrentCard = SortedArray[ValidClickCount + 1]
-
     MediumCard = SortedArray[ValidClickCount + 2]
-
     EasyCard = SortedArray[0]
-
   Else
-
     CurrentCard = SortedArray[ValidClickCount + 1]
-
     MediumCard = SortedArray[ValidClickCount + 2]
-
     EasyCard = SortedArray[ValidClickCount + 3]
-
   EndIf
-
   
-
   If PlayLevel = "Easy" Then
-
     SetEasy()
-
   ElseIf PlayLevel = "Medium" Then
-
     SetMedium()
-
   Else
-
     SetHard()
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub LoadColumnHand
-
   For I = 0 To 4
-
     Hand[I] = MatrixArray[MatrixCol][I]
-
   EndFor
-
   SortHand()
-
   EvaluateHand()
-
   BestHandArray[MatrixCol + 5] = BestHand
-
   ScoreArray[MatrixCol + 5] = Score
-
   TotalScore = TotalScore + Score
-
   PrintScore()
-
 EndSub
-
-
 
 Sub LoadRowHand
-
   For I = 0 To 4
-
     Hand[I] = MatrixArray[I][MatrixRow]
-
   EndFor
-
   SortHand()
-
   EvaluateHand()
-
   BestHandArray[MatrixRow] = BestHand
-
   ScoreArray[MatrixRow] = Score
-
   TotalScore = TotalScore + Score
-
   PrintScore()
-
 EndSub
-
-
 
 Sub SortHand
-
   For I = 0 To 13
-
     cards[I] = 0
-
   EndFor
-
   For I = 0 To 4
-
     If Hand[I] <> "" Then
-
       val = Math.Remainder(Hand[I],13)
-
       If val = 0 Then
-
         cards[13] = 1     
-
         cards[val] = cards[val] + 1
-
       Else
-
         cards[val] = cards[val] + 1
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub EvaluateHand
-
   'Reset Flags
-
   Score = 0
-
   FlushFlag = ""
-
   StraightFlag = ""
-
   ThreeOfAKindFlag = ""
-
   FourOfAKindFlag = ""
-
   TwoPairFlag = ""
-
   'PairFlag = ""
-
   CheckForThreeOfAKind()
-
   CheckForFourOfAKind()
-
   CheckForTwoPair()
-
   CheckForPair()
-
   CheckForFlush()
-
   CheckForStraight()
-
   
-
   If (StraightFlag = "Yes") And (FlushFlag = "Yes") Then
-
     BestHand = "Straight Flush"
-
     Score = 100
-
   ElseIf FourOfAKindFlag = "Yes" Then
-
     BestHand = "Four of a Kind"
-
     Score = 60
-
   ElseIF (PairFlag = "Yes") And (ThreeOfAKindFlag = "Yes") Then
-
     BestHand = "Full House"
-
     Score = 45
-
   ElseIf FlushFlag = "Yes" Then
-
     BestHand = "Flush"
-
     Score = 35
-
   ElseIf StraightFlag = "Yes" Then
-
     BestHand = "Straight"
-
     Score = 30
-
   ElseIf ThreeOfAKindFlag = "Yes" Then
-
     BestHand = "Three of A Kind"
-
     Score = 20  
-
   ElseIf TwoPairFlag = "Yes" Then
-
     BestHand = "Two Pair"
-
     Score = 15
-
   ElseIf PairFlag = "Yes" Then
-
     BestHand = "One Pair"
-
     Score = 5
-
   Else
-
     BestHand = "No Hand"
-
     Score = 0
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub CheckForThreeOfAKind
-
   For I = 0 To 13
-
     If cards[I] = 3 Then
-
       ThreeOfAKindFlag = "Yes"
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub CheckForFourOfAKind
-
   For I = 0 To 13
-
     If cards[I] = 4 Then
-
       FourOfAKindFlag = "Yes"
-
     EndIf
-
   EndFor
-
 EndSub     
 
-
-
 Sub CheckForTwoPair
-
   PairFlag = ""
-
   For I = 0 To 13
-
     If (cards[I] = 2) And PairFlag = "Yes" Then
-
       TwoPairFlag = "Yes"
-
     ElseIf cards[I] = 2 Then
-
       PairFlag = "Yes"
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub CheckForPair
-
   PairFlag = ""
-
   For I = 0 To 13
-
     If cards[I] = 2 Then
-
       PairFlag = "Yes"
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub CheckForFlush 
-
   FlushFlag = "Yes"
-
   I = 0
-
   Suit = Math.Floor(Hand[I] / 13)
-
   For I = 0 To 4
-
     If Math.Floor(Hand[I] / 13) <> Suit Or Hand[I] = "" Then 
-
       FlushFlag = ""
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub CheckForStraight
-
   
-
   I = 0
-
   'DoLoop:
-
   If (cards[0] = 1 And cards[1] = 1) Then ' If  first 2 cards are Ace, Two)
-
     For I = 2 To 4
-
       If (Cards[I] <> 0) Then
-
         StraightFlag = "Yes"  'It is an Ace low straight 
-
       Else            'Added 10/18
-
         Goto DoLoop   'Added 10 /18
-
       EndIf
-
     EndFor
-
   Else
-
     I = 1
-
     'DoLoop:
-
     First = I 
-
     DoLoop:
-
     For I = First To First + 4
-
       If (cards[I] <> 0 And First < 10) Then
-
         CardsI = cards[I]
-
         StraightFlag = "Yes"
-
       Else
-
         First = I + 1
-
         StraightFlag = ""
-
         If First > 13 Then
-
           GoTo ExitSub
-
         Else
-
           Goto DoLoop 
-
         EndIf
-
       EndIf      
-
     EndFor
-
   EndIf
-
   ExitSub:
-
 EndSub
-
-
-
 
 
 Sub EndRoundProcess
-
   ' To Better Format for printing game score
-
   If PlayLevel = "Easy" Then 
-
     PlayLevel = "  Easy           "
-
   ElseIf PlayLevel = "Medium" Then
-
     PlayLevel = "  Medium      "
-
   ElseIf PlayLevel = "Hard" Then
-
     PlayLevel = "  Hard           "
-
   EndIf
-
   'Write Game Score
-
   GameScoreText = (GameScoreText +  PlayLevel + TotalScore + CRLF)
-
   Controls.SetTextBoxText(GameScoresBox, GameScoreText)
-
   GraphicsWindow.BrushColor = "SteelBlue"
-
   GraphicsWindow.FillRectangle(NextCardX, NextCardY, NextCardW, NextCardH)  
-
   ValidClickCount = 0 
-
 EndSub
-
-
 
 Sub HideControls
-
   Controls.HideControl(EasyButton)
-
   Controls.HideControl(MediumButton)
-
   Controls.HideControl(HardButton)
-
 EndSub
-
-
 
 Sub SetOptionsText
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.DrawText(790, 305, "<== Options")
-
   Controls.ShowControl(EasyButton)
-
   Controls.ShowControl(MediumButton)
-
   Controls.ShowControl(HardButton)
-
 EndSub
-
-
 
 Sub ShuffleCards
-
   For II = 1 To Deck
-
     SortedArray[II] = II
-
   EndFor
-
   For JJ = Deck To 2 Step -1
-
     II = Math.GetRandomNumber(JJ)
-
     TT = SortedArray[JJ]
-
     SortedArray[JJ] = SortedArray[II]
-
     SortedArray[II] = TT
-
   EndFor
-
   Card = SortedArray
-
 EndSub 
 
-
-
 Sub SetEasy
-
   'Easiest. Show 3 Cards
-
   'Build Card2 and Card 3
-
   SetHard()
-
   SetMedium()
-
   GraphicsWindow.PenColor = "Red"   
-
   GraphicsWindow.PenWidth = 5
-
   Card3X = 700
-
   Card3Y = 160
-
   Card3W = 80
-
   Card3H = 110
-
   GraphicsWindow.DrawRectangle(Card3X, Card3Y, Card3W, Card3H)
-
   GraphicsWindow.DrawResizedImage(CardImage[EasyCard], Card3X, Card3Y, Card3W, Card3H)
-
   PlayLevel = "Easy"
-
   
-
 EndSub
-
-
 
 Sub SetMedium
-
   'Show  Nexct Card and  Card2
-
   'Insure Card 3 is cleared
-
   GraphicsWindow.BrushColor = "SteelBlue"
-
   GraphicsWindow.FillRectangle(Card3X, Card3Y, Card3W, Card3H)
-
   ' Medium difficulty. Build Card 2
-
   SetHard()
-
   GraphicsWindow.PenColor = "Yellow" 'DarkGray
-
   GraphicsWindow.PenWidth = 5
-
   Card2X = 600
-
   Card2Y = 160
-
   Card2W = 80
-
   Card2H = 110
-
   GraphicsWindow.DrawRectangle(Card2X, Card2Y, Card2W, Card2H) 
-
   GraphicsWindow.DrawResizedImage(CardImage[MediumCard], Card2X, Card2Y, Card2W, Card2H)
-
   PlayLevel = "Medium"
-
   
-
 EndSub
-
-
 
 Sub SetHard
-
   'Clear Card 2 and 3 just in case
-
   GraphicsWindow.BrushColor = "SteelBlue"
-
   GraphicsWindow.FillRectangle(580, 150, 220, 130,)
-
   'Outline Next Card
-
   GraphicsWindow.PenColor = "DarkGreen"
-
   GraphicsWindow.PenWidth =7
-
   NextCardX = 480
-
   NextCardY = 130
-
   NextCardW = 100
-
   NextCardH = 140
-
   GraphicsWindow.DrawRectangle(NextCardX, NextCardY, NextCardW, NextCardH) 
-
   GraphicsWindow.DrawResizedImage(CardImage[CurrentCard],NextCardX, NextCardY, NextCardW, NextCardH)
-
   PlayLevel = "Hard"
-
 EndSub
-
-
 
 Sub StopGame
-
 EndSub
-
-
 
 Sub StartGame
-
 EndSub
 
-
-
 '************************************
-
 ' Begin Refactor
 
 
-
-
-
 Sub BuildGameArea
-
   
-
   ' This builds game title
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FontSize = 85
-
   GraphicsWindow.FontName = "Monotype Corsiva"
-
   GraphicsWindow.DrawText(450, 5, "Matrix  Poker") 
-
   ' Return to Standard Font
-
   GraphicsWindow.FontName = "Arial"
-
   
-
   'Add last elements in card area  
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.DrawText(600, 130, "<=== Next Card")
-
   GraphicsWindow.FontSize = 30
-
   
-
   'Game Explanation
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontName = "Arial"
-
   GraphicsWindow.FontSize = 14
-
   GraphicsWindow.FontBold = "True"
-
   RulesBox = Controls.AddMultiLineTextBox(10, 575)
-
   Controls.SetSize(RulesBox, 400, 145)
-
   
-
   'Explanation
-
   RulesText = ("Object of game is to make best 5 card poker hands"+CRLF)
-
   RulesText =(RulesText + "   vertically and horizontally  (10 hands total)."+CRLF)
-
   RulesText = (RulesText + "Levels: HARD = Show one card at a time" + CRLF)
-
   RulesText = (RulesText + "             MEDIUM = Show 2 cards"+ CRLF)
-
   RulesText = (RulesText + "             EASY = Show 3 cards"+ CRLF)
-
   
-
   RulesText = (RulesText + "MOUSE CLICK on location to place NEXT CARD." + CRLF)
-
   RulesText = (RulesText + "Rule: Only NEXT CARD can be played. Once Played" + CRLF)
-
   RulesText = (RulesText + "             a card cannot be moved.")
-
   Controls.SetTextBoxText(RulesBox, RulesText)
-
   
-
   'Build  Option Buttons
-
   
-
   'Exit
-
   GraphicsWindow.BrushColor = "Red"
-
   GraphicsWindow.FontSize = 20
-
   ExitButton = Controls.AddButton("    E x i t    ", 765, 650)
-
   'New Game  Button ** Resets any partial game
-
   GraphicsWindow.FontSize = 25
-
   GraphicsWindow.BrushColor = "DarkGreen"
-
   NewGameText = (" New" + CRLF + " Game")
-
   NewGameButton = Controls.AddButton(NewGameText,820, 205)
-
   
-
   'Options  Row
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontSize = 16
-
   EasyButton = Controls.AddButton(" Easy ", 715, 300)
-
   MediumButton = Controls.AddButton("Medium", 605, 300)
-
   HardButton = Controls.AddButton(" Hard ", 500, 300)
-
   
-
   
-
   'Load Card Images -   One time per session
-
   For CardNumber = 0 To Deck
-
     ImageFile = Program.Directory + "\Card"
-
     If (CardNumber < 10 ) Then
-
       ImageFile = ImageFile + Text.Append("0", CardNumber) + ".png"
-
     Else
-
       ImageFile = ImageFile + CardNumber + ".png"
-
     EndIf  
-
     CardImage[CardNumber] = ImageList.LoadImage(ImageFile)
-
   EndFor
-
   
-
   CurrentScoreArea() 'Builds/Clears/Writes Current Matrix scores
-
   BuildGameScores()    
-
   BuildCardMatrix()
-
 EndSub
-
-
-
 
 
 Sub BuildCardMatrix  
-
   'Use Row Col method
-
   CardNumber = 0
-
   For col = 0 to 4
-
     For row = 0 To 4
-
       'CardNumber = CardNumber + 1
-
       DrawCell()
-
       BuildMatrixArray() ' This will hold the Card Number which when divided by 13 will give card rank
-
     EndFor
-
   EndFor
-
 EndSub
-
-
-
 
 
 Sub DrawCell
-
   
-
   WSize = 80 
-
   HSize = 110 
-
   If (row >= 0 And col >= 0) And (row <= 4 And col <= 4) Then
-
     x = col * (WSize) + gridy
-
     y = row * (HSize) + gridX
-
     GraphicsWindow.PenColor = "DarkGray"
-
     GraphicsWindow.PenWidth = 5
-
     GraphicsWindow.DrawRectangle(x,y,WSize,HSize) 
-
     
-
     'Pseudo 3D effect
-
     'GraphicsWindow.PenColor = "Black"
-
     'GraphicsWindow.PenWidth = 2
-
     'GraphicsWindow.DrawRectangle(x, y, WSize, HSize)
-
     
-
     GraphicsWindow.BrushColor = "Green"
-
     GraphicsWindow.FillRectangle(x, y, WSize, HSize)
-
   EndIf
-
 EndSub
-
-
 
 Sub CurrentScoreArea
-
   
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FontSize = 18
-
   GraphicsWindow.FontBold = "True"
-
   GraphicsWindow.DrawText(520, 355, "      Current      Score")
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.DrawText(495, 395, "Row 1:  ")
-
   GraphicsWindow.DrawText(495, 425, "Row 2:  ")
-
   GraphicsWindow.DrawText(495, 455, "Row 3:  ")
-
   GraphicsWindow.DrawText(495, 485, "Row 4:  ")
-
   GraphicsWindow.DrawText(495, 515, "Row 5:  ")
-
   GraphicsWindow.DrawText(495, 545, "Col 1  :  ")
-
   GraphicsWindow.DrawText(495, 575, "Col 2  :  ")
-
   GraphicsWindow.DrawText(495, 605, "Col 3  :  ")
-
   GraphicsWindow.DrawText(495, 635, "Col 4  :  ")
-
   GraphicsWindow.DrawText(495, 665, "Col 5  :  ")
-
   
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontSize = 18
-
   GraphicsWindow.DrawText(520, 690, "T o t a l   S c o r e:")
-
   'Had to add text boxes so they could be cleared for new game. Drawtext simply overwrites same area
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontSize = 16
-
   Row1 = Controls.AddTextBox(550,385)
-
   Controls.SetSize(Row1, 135, 25)
-
   R1Score = Controls.AddTextBox(690,385)
-
   Controls.SetSize(R1Score, 35, 25)
-
   Row2 = Controls.AddTextBox(550,415)
-
   Controls.SetSize(Row2, 135, 25)
-
   R2Score = Controls.AddTextBox(690,415)
-
   Controls.SetSize(R2Score, 35, 25)
-
   Row3 = Controls.AddTextBox(550,445)
-
   Controls.SetSize(Row3, 135, 25)
-
   R3Score = Controls.AddTextBox(690,445)
-
   Controls.SetSize(R3Score, 35, 25)
-
   Row4 = Controls.AddTextBox(550,475)
-
   Controls.SetSize(Row4, 135, 25)
-
   R4Score = Controls.AddTextBox(690,475)
-
   Controls.SetSize(R4Score, 35, 25)
-
   Row5 = Controls.AddTextBox(550,505)
-
   Controls.SetSize(Row5, 135, 25)
-
   R5Score = Controls.AddTextBox(690,505)
-
   Controls.SetSize(R5Score, 35, 25)
-
   Col1 = Controls.AddTextBox(550,535)
-
   Controls.SetSize(Col1, 135, 25)
-
   C1Score = Controls.AddTextBox(690,535)
-
   Controls.SetSize(C1Score, 35, 25)
-
   Col2 = Controls.AddTextBox(550,565)
-
   Controls.SetSize(Col2, 135, 25)
-
   C2Score = Controls.AddTextBox(690,565)
-
   Controls.SetSize(C2Score, 35, 25)
-
   Col3 = Controls.AddTextBox(550,595)
-
   Controls.SetSize(Col3, 135, 25)
-
   C3Score = Controls.AddTextBox(690,595)
-
   Controls.SetSize(C3Score, 35, 25)
-
   Col4 = Controls.AddTextBox(550,625)
-
   Controls.SetSize(Col4, 135, 25)
-
   C4Score = Controls.AddTextBox(690,625)
-
   Controls.SetSize(C4Score, 35, 25) 
-
   Col5 = Controls.AddTextBox(550,655)
-
   Controls.SetSize(Col5, 135, 25)
-
   C5Score = Controls.AddTextBox(690,655)
-
   Controls.SetSize(C5Score, 35, 25) 
-
   TScore = Controls.AddTextBox(690,685)
-
   Controls.SetSize(TScore, 35, 25)
-
 EndSub
-
-
 
 Sub PrintScore  
-
   If MatrixRow = 0 Then
-
     Row1Text = BestHandArray[0]
-
     Row1Score = ScoreArray[0]
-
     Controls.SetTextBoxText(Row1, Row1Text)
-
     Controls.SetTextBoxText(R1Score, Row1Score)
-
     
-
   ElseIf MatrixRow = 1 Then
-
     Row2Text = BestHandArray[1]
-
     Row2Score = ScoreArray[1]
-
     Controls.SetTextBoxText(Row2, Row2Text)
-
     Controls.SetTextBoxText(R2Score, Row2Score)
-
     
-
   ElseIf MatrixRow = 2 Then
-
     Row3Text = BestHandArray[2]
-
     Row3Score = ScoreArray[2]
-
     Controls.SetTextBoxText(Row3, Row3Text)
-
     Controls.SetTextBoxText(R3Score, Row3Score)
-
     
-
   ElseIf MatrixRow = 3 Then
-
     Row4Text = BestHandArray[3]
-
     Row4Score = ScoreArray[3]
-
     Controls.SetTextBoxText(Row4, Row4Text)
-
     Controls.SetTextBoxText(R4Score, Row4Score)
-
     
-
   ElseIf MatrixRow = 4 Then
-
     Row5Text = BestHandArray[4]
-
     Row5Score = ScoreArray[4]
-
     Controls.SetTextBoxText(Row5, Row5Text)
-
     Controls.SetTextBoxText(R5Score, Row5Score)
-
     
-
   EndIf
-
   'MatrixCol BestHand Array starts at MatrixCol + 5   As does the Score Array
-
   If MatrixCol = 0 Then
-
     Col1Text = BestHandArray[5]   
-
     Col1Score = ScoreArray[5]
-
     Controls.SetTextBoxText(Col1, Col1Text)
-
     Controls.SetTextBoxText(C1Score, Col1Score)
-
     
-
   ElseIf MatrixCol = 1 Then
-
     Col2Text = BestHandArray[6]
-
     Col2Score = ScoreArray[6]
-
     Controls.SetTextBoxText(Col2, Col2Text)
-
     Controls.SetTextBoxText(C2Score, Col2Score)
-
     
-
   ElseIf MatrixCol = 2 Then
-
     Col3Text = BestHandArray[7]
-
     Col3Score = ScoreArray[7]
-
     Controls.SetTextBoxText(Col3, Col3Text)
-
     Controls.SetTextBoxText(C3Score, Col3Score)
-
     
-
   ElseIf MatrixCol = 3 Then
-
     Col4Text = BestHandArray[8]
-
     Col4Score = ScoreArray[8]
-
     Controls.SetTextBoxText(Col4, Col4Text)
-
     Controls.SetTextBoxText(C4Score, Col4Score)
-
     
-
   ElseIf MatrixCol = 4 Then
-
     Col5Text = BestHandArray[9]
-
     Col5Score = ScoreArray[9]
-
     Controls.SetTextBoxText(Col5, Col5Text)
-
     Controls.SetTextBoxText(C5Score, Col5Score)
-
     
-
   EndIf
-
  
-
 EndSub
-
-
 
 'Neededmultiline text box so scores would scroll if neccessary
-
 Sub BuildGameScores
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FontSize = 18
-
   GraphicsWindow.FontBold = "True"
-
   GraphicsWindow.DrawText(760, 355, "Games Scores")
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontName = "Arial"
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.FontBold = "True"
-
   GameScoresBox = Controls.AddMultiLineTextBox(750,385)
-
   Controls.SetSize(GameScoresBox, 150, 235)
-
 EndSub
-
-
 
 Sub BuildMatrixArray
-
   MatrixArray[col][row] = ""
-
 EndSub
-
-
 
 Sub BestHandArray
-
   'BestHandArray - Stores Best hand made from Column and or Row
-
   BestHandArray[0] = ""
-
   BestHandArray[1] = ""
-
   BestHandArray[2] = ""
-
   BestHandArray[3] = ""
-
   BestHandArray[4] = ""
-
   BestHandArray[5] = "" 
-
   BestHandArray[6] = ""
-
   BestHandArray[7] = ""
-
   BestHandArray[8] = ""
-
   BestHandArray[9] = ""
-
 EndSub
-
-
 
 Sub ScoreArray
-
   ScoreArray[0] = 0
-
   ScoreArray[1] = 0
-
   ScoreArray[2] = 0
-
   ScoreArray[3] = 0
-
   ScoreArray[4] = 0
-
   ScoreArray[5] = 0
-
   ScoreArray[6] = 0
-
   ScoreArray[7] = 0
-
   ScoreArray[8] = 0
-
   ScoreArray[9] = 0
-
 EndSub
-
-
-
 
 
 ' This is for showing information in Text Window when F1 is pressed. Left in for testing
-
 Sub DisplayTestResults
-
   TextWindow.Show()
-
   For I = 0 To 9
-
     TextWindow.WriteLine(I + " = " + ScoreArray[I]+CRLF)
-
    EndFor
-
   TextWindow.Pause()
-
   TextWindow.Hide()
-
 EndSub
-
-
-
 

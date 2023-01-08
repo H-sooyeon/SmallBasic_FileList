@@ -1,2117 +1,1058 @@
-'?��? ве??�и�? O б?�ду�? добавлен?? плавн?��? ?азгон и ?�о�?можение
+'На версии O будут добавлены плавный разгон и торможение
 
-
-
-'?�онстант�? ?�ко�?о?�те�?
-
+'Константы скоростей
 bricks_move = -90
-
 bricks_catch = 100
-
 rotate_speed = -60
-
 speed = -60
-
 pow = -50
-
 item_taking_pow = -30
-
 item_put = -50
-
 item_catch = 30
-
 before_catch = 100
 
-
-
-'?�онстант�? ?�вето�?
-
+'Константы цветов
 black_step = 50
 
-
-
-'?�онстант�? ?а?�стояни�?
-
+'Константы расстояний
 rotate_degree = 470
-
 to_box = 160
 
-
-
-'?�онстант�? ?�ИД�?
-
+'Константы ПИДа
 pid_kp = 0.62
-
 pid_kd = 4
-
 color_pid_kp = 0.7
-
 color_pid_kd = 0
-
 middle_pid_kp = 0.3
-
 middle_pid_kd = 0
 
-
-
-'?�бнулени�? пе?емен?�ы�?
-
+'Обнуление переменных
 For i = 1 To 6
-
   bricks[i] = 0
-
 EndFor
-
 target_speed = 0
-
 now_speed = 0
-
 last_motor_way_B = 0
-
 last_motor_way_C = 0
-
 pid_p = 0
-
 pid_d = 0
-
 pid = 0
-
 pid_last_p = 0
-
 pid_middle_value = 45
-
 row = 0
-
 For i = 1 to 2
-
   tree_colors[i] = 0
-
 endfor
-
 box = 0
-
 For i = 1 to 4
-
   filled[i] = 0
-
 endfor
-
 For i = 1 to 2
-
   target_box[i] = 0
-
 endfor
 
-
-
-'?�аст�?ойка ?�енсо�?ов и мо?�о�?ов
-
+'Настройка сенсоров и моторов
 Sensor.SetMode(1, 0)
-
 Sensor.SetMode(2, 0)
-
 Sensor.SetMode(3, 2)
-
 Sensor.SetMode(4, 0)
-
 Motor.ResetCount("A")
-
 Motor.ResetCount("B")
-
 Motor.ResetCount("C")
-
 Motor.ResetCount("D")
 
+'Пустота - 12
+'Зелёный - 37     =>     1
+'Жёлтый - 87 или 50     =>     2
+'Красный - 62     =>     3
+'Белый - 25 или 75     =>     0
 
-
-'?�устот�? - 12
-
-'?�елёны�? - 37     =>     1
-
-'?�ёлты�? - 87 или 50     =>     2
-
-'?��?а?�ны�? - 62     =>     3
-
-'?�елы�? - 25 или 75     =>     0
-
-
-
-'?�лавны�? ?азгон и ?�о�?можение
-
+'Плавный разгон и торможение
 Sub speed_change
-
   If (now_speed < target_speed) And ((Math.Abs(Motor.GetCount("B") - last_motor_way_B) > 1) Or (Math.Abs(Motor.GetCount("C") - last_motor_way_C) > 1)) Then
-
     now_speed = now_speed + 2
-
     If now_speed > target_speed Then
-
       now_speed = target_speed
-
     EndIf
-
     last_motor_way_B = Motor.GetCount("B")
-
     last_motor_way_C = Motor.GetCount("C")
-
   EndIf
-
   If (now_speed > target_speed) And ((Math.Abs(Motor.GetCount("B") - last_motor_way_B) > 1) Or (Math.Abs(Motor.GetCount("C") - last_motor_way_C) > 1)) Then
-
     now_speed = now_speed - 2
-
     If now_speed < target_speed Then
-
       now_speed = target_speed
-
     EndIf
-
     last_motor_way_B = Motor.GetCount("B")
-
     last_motor_way_C = Motor.GetCount("C")
-
   EndIf
-
 EndSub
 
-
-
-'?�И�?
-
+'ПИД
 Sub left_pid
-
   speed_change()
-
   pid_p = Sensor.ReadPercent(1) - pid_middle_value
-
   pid_d = pid_p - pid_last_p
-
   pid_last_p = pid_p
-
   pid = pid_p * pid_kp + pid_d * pid_kd
-
   If (pid > 0) Then
-
     Motor.StartSync("BC", now_speed, now_speed + pid)
-
   Else
-
     Motor.StartSync("BC", now_speed - pid, now_speed)
-
   EndIf
-
 EndSub
-
-
 
 Sub right_pid
-
   speed_change()
-
   pid_p = Sensor.ReadPercent(2) - pid_middle_value
-
   pid_d = pid_p - pid_last_p
-
   pid_last_p = pid_p
-
   pid = pid_p * pid_kp + pid_d * pid_kd
-
   If (pid > 0) Then
-
     Motor.StartSync("BC", now_speed + pid, now_speed)
-
   Else
-
     Motor.StartSync("BC", now_speed, now_speed - pid)
-
   EndIf
-
 EndSub
-
-
 
 Sub color_pid
-
   speed_change()
-
   pid_p = Sensor.ReadPercent(1) - Sensor.ReadPercent(2)
-
   pid_d = pid_p - pid_last_p
-
   pid_last_p = pid_p
-
   pid = pid_p * color_pid_kp + pid_d * color_pid_kd
-
   If (pid > 0) Then
-
     Motor.StartSync("BC", now_speed, now_speed + pid)
-
   Else
-
     Motor.StartSync("BC", now_speed - pid, now_speed)
-
   EndIf
-
 EndSub
-
-
 
 Sub middle_pid
-
   speed_change()
-
   pid_p = Sensor.ReadPercent(1) - Sensor.ReadPercent(2)
-
   pid_d = pid_p - pid_last_p
-
   pid_last_p = pid_p
-
   pid = pid_p * middle_pid_kp + pid_d * middle_pid_kd
-
   If (pid > 0) Then
-
     Motor.StartSync("BC", now_speed, now_speed + pid)
-
   Else
-
     Motor.StartSync("BC", now_speed - pid, now_speed)
-
   EndIf
-
 EndSub
 
-
-
-'?�зяти�? к?�бико�?
-
+'Взятие кубиков
 Sub take_bricks
-
-  '?�бнулени�? пе?еменн?��?
-
+  'Обнуление переменных
   brick_num = 0
-
   already_closed = 0
-
-  '?�адаё�? ?�ко�?о?�т�? дл?? ?азгона
-
+  'Задаём скорости для разгона
   now_speed = -10
-
   target_speed = bricks_move
-
   While (brick_num < 6)
-
     if now_speed > target_speed Then
-
-      speed_change() '?�лавно�? изменение ?�ко�?о?�те�?
-
+      speed_change() 'Плавное изменение скоростей
       Motor.StartSync("BC", now_speed, now_speed + 1)
-
     EndIf
-
-    'С?�итывани�? ?�вет�?
-
+    'Счи��ывание цвета
     current_col = Sensor.ReadPercent(3)
-
     If (current_col <> 12) Then
-
-      '?�сл�? ?�виде�? к?�би�?
-
+      'Если увиден кубик
       brick_num = brick_num + 1
-
       bricks[brick_num] = current_col
-
-      '?�дё�?, пока к?�би�? не го?�о�? к за?�ват�?
-
+      'Ждём, пока кубик не готов к захвату
       motor_memory = Motor.GetCount("B")
-
       While ((Motor.GetCount("B") - motor_memory) > -20)
-
       EndWhile
-
       If ((current_col <> 25) and (current_col <> 75)) then
-
-        'Хва?�ае�? к?�би�?, е?�л�? он не бел?��?
-
+        'Хватаем кубик, если он не белый
         Motor.Move("A", bricks_catch, 87, "True")
-
         if (brick_num < 6) then
-
-          '?�тк�??�вае�? кле?�н�?, е?�л�? к?�би�? не по?�ледни�?
-
+          'Открываем клешню, если кубик не последний
           Motor.Move("A", -bricks_catch, 87, "True")
-
         Else
-
-          '?�сл�? к?�би�? по?�ледни�?, запоминаем, ?�т�? палка ?�ж�? зак??�т�?
-
+          'Если кубик последний, запоминаем, что палка уже закрыта
           already_closed = 1
-
         EndIf
-
       Else
-
-        '?�сл�? к?�би�? бел?��?, жд?��?, ?�тоб�? он ?�к�??�лс�? из вид??
-
+        'Если кубик белый, ждём, чтобы он скрылся из виду
         motor_memory = Motor.GetCount("B")
-
         While ((Motor.GetCount("B") - motor_memory) > -50)
-
         EndWhile
-
       EndIf
-
     EndIf
-
   EndWhile
-
-  '?�становк�?
-
+  'Остановка
   target_speed = 0
-
   While (now_speed < 0)
-
     speed_change()
-
     Motor.StartSync("BC", now_speed, now_speed)
-
   EndWhile
-
   if (already_closed = 0) then
-
-    '?�сл�? палка е?��? не зак??�т�?, зак??�вае�?
-
+    'Если палка ещё не закрыта, закрываем
     Motor.Move("A", bricks_catch, 87, "True")
-
   EndIf
-
-  '?��?и?�воени�? ?�вета�? ?�добны�? зна?�ени�?
-
+  'Присвоение цветам удобных значений
   For i = 1 To 6
-
     If ((bricks[i] = 25) Or (bricks[i] = 75)) Then
-
       bricks[i] = 0
-
     EndIf
-
     If (bricks[i] = 37) Then
-
       bricks[i] = 1
-
     EndIf
-
     If ((bricks[i] = 87) Or (bricks[i] = 50)) Then
-
       bricks[i] = 2
-
     EndIf
-
     If (bricks[i] = 62) Then
-
       bricks[i] = 3
-
     EndIf
-
   EndFor
-
 EndSub
 
-
-
-'?�зяти�? п?едме?��?
-
+'Взятие предмета
 Sub take_item 'row
-
-  '?�оез�? до ??�д�?
-
+  'Доезд до ряда
   Motor.ResetCount("BC")
-
   Motor.MoveSync("BC", pow, pow, 30, "False")
-
   now_speed = pow
-
   target_speed = item_taking_pow
-
   If (row = 1) Then
-
     While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -40) And ((((Sensor.ReadPercent(1) + Sensor.ReadPercent(2)) / 2) > 42) Or (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -80))
-
       middle_pid()
-
     EndWhile
-
     While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -40)
-
       color_pid()
-
     EndWhile
-
   EndIf
-
   If (row = 2) Then
-
     While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -320) And ((((Sensor.ReadPercent(1) + Sensor.ReadPercent(2)) / 2) > 42) Or (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -80))
-
       middle_pid()
-
     EndWhile
-
     While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -320)
-
       color_pid()
-
     EndWhile
-
   EndIf
-
   If (row = 3) Then
-
     While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -575) And ((((Sensor.ReadPercent(1) + Sensor.ReadPercent(2)) / 2) > 42) Or (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -80))
-
       middle_pid()
-
     EndWhile
-
     While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -575)
-
       color_pid()
-
     EndWhile
-
   EndIf
-
   Motor.Stop("BC", "True")
-
-  motor_memory = (Motor.GetCount("B") + Motor.GetCount("C")) / 2 '?�апоминае�?, где м??
-
-  '?�одъез�? к пе?вом?? номе???
-
+  motor_memory = (Motor.GetCount("B") + Motor.GetCount("C")) / 2 'Запоминаем, где мы
+  'Подъезд к первому номеру
   Motor.ResetCount("BC")
-
   now_speed = -10
-
   target_speed = rotate_speed
-
   While (Motor.GetCount("C") > -90)
-
     speed_change()
-
     Motor.StartSync("BC", 0, now_speed)
-
   EndWhile
-
   Motor.Stop("BC", "True")
-
   Motor.ResetCount("BC")
-
   now_speed = -10
-
   target_speed = item_taking_pow
-
   While (Motor.GetCount("C") > -100)
-
     speed_change()
-
     Motor.StartSync("BC", now_speed, now_speed)
-
   EndWhile
-
   Motor.Stop("BC", "True")
-
-  '?�ахва�?
-
+  'Захват
   Motor.Move("D", before_catch, 250, "False")
-
   Motor.Move("D", item_catch, 310, "True")
-
   Program.Delay(200)
-
   tree_colors[1] = Sensor.ReadRawValue(4, 0)
-
-  '?�тъез�? о?? пе?вого номе?а
-
+  'Отъезд от первого номера
   Motor.ResetCount("BC")
-
   now_speed = 10
-
   target_speed = -item_taking_pow
-
   While (Motor.GetCount("C") < 100)
-
     speed_change()
-
     Motor.StartSync("BC", now_speed, now_speed)
-
   EndWhile
-
   Motor.Stop("BC", "True")
-
   Motor.ResetCount("BC")
-
   now_speed = 10
-
   target_speed = -rotate_speed
-
   While (Motor.GetCount("C") < 90)
-
     speed_change()
-
     Motor.StartSync("BC", 0, now_speed)
-
   EndWhile
-
   Motor.Stop("BC", "True")
-
-  '?�одъез�? ко в?�о�?ом?? номе???
-
+  'Подъезд ко второму номеру
   Motor.ResetCount("BC")
-
   now_speed = -10
-
   target_speed = rotate_speed
-
   While (Motor.GetCount("B") > -110)
-
     speed_change()
-
     Motor.StartSync("BC", now_speed, 0)
-
   EndWhile
-
   Motor.Stop("BC", "True")
-
   Motor.Move("D", item_put, 310, "True")
-
   Motor.Move("D", -before_catch, 250, "True")
-
   Motor.Move("BC", -10, 100, "True")
-
-  '?�ахва�?
-
+  'Захват
   Motor.Move("D", before_catch, 250, "False")
-
   Motor.Move("D", item_catch, 310, "True")
-
   Program.Delay(200)
-
   tree_colors[2] = Sensor.ReadRawValue(4, 0)
-
-  '?�тъез�? о?? в?�о�?ого номе?а
-
+  'Отъезд от второго номера
   Motor.ResetCount("BC")
-
   now_speed = 10
-
   target_speed = -item_taking_pow
-
   While (Motor.GetCount("B") < 100)
-
     speed_change()
-
     Motor.StartSync("BC", now_speed, now_speed)
-
   EndWhile
-
   Motor.Stop("BC", "True")
-
   Motor.ResetCount("BC")
-
   now_speed = 10
-
   target_speed = -rotate_speed
-
   While (Motor.GetCount("B") < 110)
-
     speed_change()
-
     Motor.StartSync("BC", now_speed, 0)
-
   EndWhile
-
   Motor.Stop("BC", "True")
-
-  '?�хо�? на пози?�и�?
-
+  'Вход на позицию
   Motor.ResetCount("BC")
-
   If (motor_memory + 320) > 0 Then
-
     now_speed = -10
-
     target_speed = pow
-
     While (Motor.GetCount("B") > -(motor_memory + 320))
-
       If (target_speed = now_speed) = "False" Then
-
         speed_change()
-
         Motor.StartSync("BC", now_speed, now_speed)
-
       EndIf
-
     EndWhile
-
   Else
-
     now_speed = 10
-
     target_speed = -pow
-
     While (Motor.GetCount("B") < (motor_memory + 320))
-
       If (target_speed = now_speed) = "False" Then
-
         speed_change()
-
         Motor.StartSync("BC", now_speed, now_speed)
-
       EndIf
-
     EndWhile
-
   EndIf
-
   Motor.Stop("BC", "True")
-
-  '?�ово�?о?? 180
-
+  'Поворот 180
   Motor.ResetCount("BC")
-
   now_speed = -10
-
   target_speed = rotate_speed / 2
-
   While (Motor.GetCount("B") > -(rotate_degree))
-
     speed_change()
-
     Motor.StartSync("BC", now_speed, -now_speed)
-
   EndWhile
-
-  While (Sensor.ReadPercent(1) > (black_step - 10)) '?��? пе?вой линии
-
+  While (Sensor.ReadPercent(1) > (black_step - 10)) 'До первой линии
   EndWhile
-
-  While (Sensor.ReadPercent(1) < (black_step + 10)) '?��?оп?�скае�? пе?в?��? лини??
-
+  While (Sensor.ReadPercent(1) < (black_step + 10)) 'Пропускаем первую линию
   EndWhile
-
-  While (Sensor.ReadPercent(1) > (black_step - 10)) '?��? в?�о�?ой линии
-
+  While (Sensor.ReadPercent(1) > (black_step - 10)) 'До второй линии
   EndWhile
-
   Motor.Stop("BC", "True")
-
-  '?��?еоб?азо?�ани�? ?�вето�?
-
+  'Преобразование цветов
   For i = 1 To 2
-
     If (tree_colors[i] = 4) Then
-
       tree_colors[i] = 1
-
     EndIf
-
     If (tree_colors[i] = 5) Or (tree_colors[i] = 6) Then
-
       tree_colors[i] = 2
-
     EndIf
-
     If (tree_colors[i] = 8) Or (tree_colors[i] = 9) Then
-
       tree_colors[i] = 3
-
     EndIf
-
   EndFor
-
 EndSub
 
-
-
-'?�твози�? панели(пе?в?��? ?аз, возвожно вози?��? два де?ева в одн?? ко?обк??)
-
+'Отвозим панели(первый раз, возвожно возить два дерева в одну коробку)
 Sub bring_two_items_to_one_box 'box
-
-  '?�оез�? до ко?обки
-
+  'Доезд до коробки
   now_speed = -10
-
   target_speed = pow
-
   For i = 1 To box
-
     Motor.ResetCount("BC")
-
     If ((i - Math.Floor(i / 2) * 2) = 0) Then
-
-      '?�сл�? ко?обка ?�ётна�?
-
+      'Если коробка чётная
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -120) Or (Sensor.ReadPercent(2) > black_step)
-
         left_pid()
-
       EndWhile
-
     Else
-
-      '?�сл�? ко?обка не?�ётна�?
-
+      'Если коробка нечётная
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -120) Or (Sensor.ReadPercent(1) > black_step)
-
         right_pid()
-
       EndWhile
-
     EndIf
-
     Motor.MoveSync("BC", pow, pow, 40, "False")
-
   EndFor
-
-  '?��?езд до ко?обки
-
+  'Доезд до коробки
   Motor.ResetCount("BC")
-
   If ((box - Math.Floor(box / 2) * 2) = 0) Then
-
-    '?�сл�? в ?�ётну�? ко?обк??
-
+    'Если в чётную коробку
     If (filled[box] = 1) Then
-
-      '?�сл�? пе?вое ме?�т�? заполнено
-
+      'Если первое место заполнено
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -820)
-
         right_pid()
-
       EndWhile
-
     Else
-
-      '?�сл�? пе?вое ме?�т�? не заполнено
-
+      'Если первое место не заполнено
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -660)
-
         right_pid()
-
       EndWhile
-
     EndIf
-
     filled[box] = 1
-
     Motor.Stop("BC", "False")
-
-    '?�ово�?о?? нап?аво
-
+    'Поворот направо
     now_speed = -10
-
     target_speed = Math.Round(rotate_speed / 2)
-
     Motor.ResetCount("BC")
-
     While (Motor.GetCount("B") > -rotate_degree / 2)
-
       speed_change()
-
       Motor.StartSync("BC", now_speed, -now_speed)
-
     EndWhile
-
     Motor.Stop("BC", "True")
-
   Else
-
-    '?�сл�? в не?�ётну�? ко?обк??
-
+    'Если в нечётную коробку
     If (filled[box] = 1) Then
-
-      '?�сл�? пе?вое ме?�т�? заполнено
-
+      'Если первое место заполнено
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -820)
-
         left_pid()
-
       EndWhile
-
     Else
-
-      '?�сл�? пе?вое ме?�т�? не заполнено
-
+      'Если первое место не заполнено
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -660)
-
         left_pid()
-
       EndWhile
-
     EndIf
-
     filled[box] = 1
-
     Motor.Stop("BC", "False")
-
-    '?�ово�?о?? налево
-
+    'Поворот налево
     now_speed = -10
-
     target_speed = Math.Round(rotate_speed / 2)
-
     Motor.ResetCount("BC")
-
     While (Motor.GetCount("C") > -rotate_degree / 2)
-
       speed_change()
-
       Motor.StartSync("BC", -now_speed, now_speed)
-
     EndWhile
-
     Motor.Stop("BC", "True")
-
   EndIf
-
-  '?�одъез�? к ко?обке
-
+  'Подъезд к коробке
   now_speed = -10
-
   target_speed = item_taking_pow
-
   Motor.ResetCount("BC")
-
   While (Motor.GetCount("B") > -to_box)
-
     speed_change()
-
     Motor.StartSync("BC", now_speed, now_speed)
-
   EndWhile
-
   Motor.Stop("BC", "True")
-
-  '?�ыг�??�зк�? п?едме?�о�?
-
+  'Выгрузка предметов
   Motor.Move("D", item_put, 310, "False")
-
   if box < 4 then
-
     Motor.Move("D", -before_catch, 90, "True")
-
   Else
-
     Motor.Move("D", -before_catch, 250, "True")
-
   EndIf
-
-  '?�тъез�? к линии
-
+  'Отъезд к линии
   now_speed = 10
-
   target_speed = -item_taking_pow
-
   Motor.ResetCount("BC")
-
   While (Motor.GetCount("B") < to_box)
-
     speed_change()
-
     Motor.StartSync("BC", now_speed, now_speed)
-
   EndWhile
-
   Motor.Stop("BC", "False")
-
   Motor.ResetCount("BC")
-
   now_speed = -10
-
   target_speed = rotate_speed / 2
-
   If ((box - Math.Floor(box / 2) * 2) = 0) Then
-
-    '?�сл�? в ?�ётну�? ко?обк??
-
+    'Если в чётную коробку
     While (Sensor.ReadPercent(1) > black_step) Or (Motor.GetCount("B") > -100)
-
       speed_change()
-
       Motor.StartSync("BC", now_speed, -now_speed)
-
     EndWhile
-
     Motor.Stop("BC", "False")
-
     Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, 10, "True")
-
   Else
-
-    '?�сл�? в не?�ётну�? ко?обк??
-
+    'Если в нечётную коробку
      While (Sensor.ReadPercent(2) > black_step) Or (Motor.GetCount("C") > -100)
-
       speed_change()
-
       Motor.StartSync("BC", -now_speed, now_speed)
-
     EndWhile
-
     Motor.Stop("BC", "False")
-
     Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, 10, "True")
-
   EndIf
-
   Motor.Stop("BC", "True")
-
   if box < 4 then
-
     Motor.Move("D", -before_catch, 160, "True")
-
   EndIf
-
-  '?�озв�?а?�ени�?
-
+  'Возвращение
   Motor.ResetCount("BC")
-
   now_speed = -10
-
   target_speed = pow
-
   While (Motor.GetCount("B") > -50)
-
     speed_change()
-
     Motor.StartSync("BC", now_speed, now_speed)
-
   EndWhile
-
   For i = box To 1 Step -1
-
     Motor.ResetCount("BC")
-
     If ((i - Math.Floor(i / 2) * 2) = 0) Then
-
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -90) Or (Sensor.ReadPercent(1) > black_step)
-
-        '?�сл�? ко?обка ?�ётна�?
-
+        'Если коробка чётная
         right_pid()
-
       EndWhile
-
     Else
-
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -90) Or (Sensor.ReadPercent(2) > black_step)
-
-        '?�сл�? ко?обка не?�ётна�?
-
+        'Если коробка нечётная
         left_pid()
-
       EndWhile
-
     EndIf
-
     Motor.MoveSync("BC", pow, pow, 40, "False")
-
   EndFor
-
-  '?�ыхо�? на пози?�и�?
-
+  'Выход на позицию
   Motor.ResetCount("BC")
-
   While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -70) Or (Sensor.ReadPercent(2) > black_step)
-
     left_pid()
-
   EndWhile
-
   Motor.Stop("BC", "True")
-
 EndSub
-
-
 
 Sub bring_first_item_nearer 'target_box[2]
-
-  '?�оез�? до ко?обки
-
+  'Доезд до коробки
   For i = 1 To (target_box[1] + 2)
-
     Motor.ResetCount("BC")
-
     If ((i - Math.Floor(i / 2) * 2) = 0) Then
-
-      '?�сл�? ко?обка ?�ётна�?
-
+      'Если коробка чётная
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -120) Or (Sensor.ReadPercent(2) > black_step)
-
         left_pid()
-
       EndWhile
-
     Else
-
-      '?�сл�? ко?обка не?�ётна�?
-
+      'Если коробка нечётная
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -120) Or (Sensor.ReadPercent(1) > black_step)
-
         right_pid()
-
       EndWhile
-
     EndIf
-
     Motor.MoveSync("BC", pow, pow, 40, "False")
-
   EndFor
-
-  Motor.MoveSync("BC", pow, pow, 60, "True") '?��?оезжаем впе??��?
-
-  Motor.Move("D", item_put, 310, "True") '?�тк�??�вае�? кле?�н�?
-
-  Motor.MoveSync("BC", -item_taking_pow, -item_taking_pow, 70, "True") '?�тъезае�? назад
-
-  Motor.Move("D", item_catch, 130, "True") '?��?иподнимаем пе?вое де?ево
-
+  Motor.MoveSync("BC", pow, pow, 60, "True") 'Проезжаем вперёд
+  Motor.Move("D", item_put, 310, "True") 'Открываем клешни
+  Motor.MoveSync("BC", -item_taking_pow, -item_taking_pow, 70, "True") 'Отъезаем назад
+  Motor.Move("D", item_catch, 130, "True") 'Приподнимаем первое дерево
   If (filled[target_box[1]] = 1) Then
-
-    '?�сл�? пе?вое ме?�т�? ?�ж�? заполнено
-
+    'Если первое место уже заполнено
     Motor.MoveSync("BC", -pow, -pow, 50, "True")
-
     motor_memory = 50
-
   Else
-
-    '?�сл�? пе?вое ме?�т�? е?��? не заполнено
-
+    'Если первое место ещё не заполнено
     Motor.MoveSync("BC", -pow, -pow, 240, "True")
-
     motor_memory = 240
-
   EndIf
-
   filled[target_box[1]] = 1
-
-  Motor.Move("D", item_catch, 180, "True") '?��?иподнимаем пе?вое де?ево до ве??��?
-
+  Motor.Move("D", item_catch, 180, "True") 'Приподнимаем первое дерево до верха
   If ((target_box[1] - Math.Floor(target_box[1] / 2) * 2) = 0) Then
-
-    Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, rotate_degree / 2, "True") '?�ово�?о?? нап?аво
-
+    Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, rotate_degree / 2, "True") 'Поворот направо
   Else
-
-    Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, rotate_degree / 2, "True") '?�ово�?о?? налево
-
+    Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, rotate_degree / 2, "True") 'Поворот налево
   EndIf
-
-  '?�одъез�? к ко?обке
-
+  'Подъезд к коробке
   Motor.MoveSync("BC", item_taking_pow, item_taking_pow, to_box - 45, "True")
-
-  '?�ыг�??�зк�? п?едме?�о�?
-
+  'В��грузка предметов
   Motor.Move("D", item_put, 310, "False")
-
   Motor.Move("D", -before_catch, 90, "True")
-
-  '?�тъез�? к линии
-
+  'Отъезд к линии
   Motor.MoveSync("BC", -speed, -speed, to_box - 45, "True")
-
   Motor.Move("D", -before_catch, 160, "True")
-
-  '?�ово�?о??
-
+  'Поворот
   Motor.ResetCount("BC")
-
   If ((target_box[1] - Math.Floor(target_box[1] / 2) * 2) = 0) Then
-
-    Motor.StartSync("BC", -rotate_speed / 2, rotate_speed / 2) '?�ово�?о?? налево
-
+    Motor.StartSync("BC", -rotate_speed / 2, rotate_speed / 2) 'Поворот налево
     While (Sensor.ReadPercent(1) > (black_step - 10)) Or (Motor.GetCount("C") > -100)
-
     EndWhile
-
     While Sensor.ReadPercent(1) < (black_step + 10)
-
     EndWhile
-
     Motor.Stop("BC", "True")
-
     Motor.ResetCount("BC")
-
     While ((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -(50 + motor_memory)
-
       left_pid()
-
     EndWhile
-
   Else
-
-    Motor.StartSync("BC", rotate_speed / 2, -rotate_speed / 2) '?�ово�?о?? нап?аво
-
+    Motor.StartSync("BC", rotate_speed / 2, -rotate_speed / 2) 'Поворот направо
     While (Sensor.ReadPercent(2) > (black_step - 10)) Or (Motor.GetCount("B") > -100)
-
     EndWhile
-
     While Sensor.ReadPercent(2) < (black_step + 10)
-
     EndWhile
-
     Motor.Stop("BC", "True")
-
     Motor.ResetCount("BC")
-
     While ((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -(50 + motor_memory)
-
       right_pid()
-
     EndWhile
-
   EndIf
-
   Motor.Stop("BC", "True")
-
-  '?�ахва�?
-
+  'Захват
   Motor.Move("D", before_catch, 250, "False")
-
   Motor.Move("D", item_catch, 310, "True")
-
   If (target_box[2] - target_box[1] < 2) Then 
-
-    '?�сл�? в?�о�?ое де?ево надо вез?��? в ?�ледующу�? ко?обк??
-
+    'Если второе дерево надо везти в следующую коробку
     Motor.ResetCount("BC")
-
     If target_box[2] = 2 Then
-
-      '?�сл�? во в?�о�??��? ко?обк??
-
+      'Если во вторую коробку
       If (filled[2] = 1) Then
-
-        '?�сл�? пе?вое ме?�т�? заполнено
-
+        'Если первое место заполнено
         While ((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -340
-
           left_pid()
-
         EndWhile
-
       Else
-
-        '?�сл�? пе?вое ме?�т�? не заполнено
-
+        'Если первое место не заполнено
         While ((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -150
-
           left_pid()
-
         EndWhile
-
       EndIf
-
-      Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, rotate_degree / 2, "True") '?�ово�?о?? нап?аво
-
+      Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, rotate_degree / 2, "True") 'Поворот направо
     Else
-
-      '?�сл�? в ?��?е?�ь�? ко?обк??
-
+      'Если в третью коробку
       If (filled[3] = 1) Then
-
-        '?�сл�? пе?вое ме?�т�? заполнено
-
+        'Если первое место заполнено
         While ((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -340
-
           right_pid()
-
         EndWhile
-
       Else
-
-        '?�сл�? пе?вое ме?�т�? не заполнено
-
+        'Если первое место не заполнено
         While ((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -150
-
           right_pid()
-
         EndWhile
-
       EndIf
-
-      Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, rotate_degree / 2, "True") '?�ово�?о?? налево
-
+      Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, rotate_degree / 2, "True") 'Поворот налево
     EndIf
-
   Else
-
     Motor.ResetCount("BC")
-
     While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -60) Or (Sensor.ReadPercent(2) > black_step)
-
       left_pid()
-
     EndWhile
-
     Motor.ResetCount("BC")
-
     If (filled[3] = 1) Then
-
-      '?�сл�? пе?вое ме?�т�? заполнено
-
+      'Если первое место заполнено
       While ((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -410
-
         left_pid()
-
       EndWhile
-
     Else
-
-      '?�сл�? пе?вое ме?�т�? не заполнено
-
+      'Если первое место не заполнено
       While ((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -220
-
         left_pid()
-
       EndWhile
-
     EndIf
-
-    Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, rotate_degree / 2, "True") '?�ово�?о?? налево
-
+    Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, rotate_degree / 2, "True") 'Поворот налево
   EndIf
-
   filled[target_box[2]] = 1
-
-  '?�одъез�? к ко?обке
-
+  'Подъезд к коробке
   Motor.MoveSync("BC", item_taking_pow, item_taking_pow, to_box - 10, "True")
-
-  '?�ыг�??�зк�? п?едме?��?
-
+  'Выгрузка предмета
   Motor.Move("D", item_put, 310, "False")
-
   Motor.Move("D", -before_catch, 90, "True")
-
-  '?�тъез�? к линии
-
+  'Отъезд к линии
   Motor.MoveSync("BC", -speed, -speed, to_box - 10, "True")
-
   Motor.Move("D", -before_catch, 160, "True")
-
-  '?�ово�?о??
-
+  'Поворот
   Motor.ResetCount("BC")
-
   If ((target_box[2] - Math.Floor(target_box[2] / 2) * 2) = 0) Then
-
-    '?�сл�? в ?�ётну�? ко?обк??
-
+    'Если в чётную коробку
     Motor.StartSync("BC", rotate_speed / 2, -rotate_speed / 2)
-
     While (Sensor.ReadPercent(1) > black_step) Or (Motor.GetCount("B") > -100)
-
     EndWhile
-
     Motor.Stop("BC", "False")
-
     Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, 10, "True")
-
   Else
-
-    '?�сл�? в не?�ётну�? ко?обк??
-
+    'Если в нечётную коробку
     Motor.StartSync("BC", -rotate_speed / 2, rotate_speed / 2)
-
     While (Sensor.ReadPercent(2) > black_step) Or (Motor.GetCount("C") > -100)
-
     EndWhile
-
     Motor.Stop("BC", "False")
-
     Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, 10, "True")
-
   EndIf
-
   Motor.Stop("BC", "True")
-
-  '?�озв�?а?�ени�?
-
+  'Возвращение
   Motor.MoveSync("BC", pow, pow, 50, "False")
-
   For i = target_box[2] To 1 Step -1
-
     Motor.ResetCount("BC")
-
     If ((i - Math.Floor(i / 2) * 2) = 0) Then
-
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -90) Or (Sensor.ReadPercent(1) > black_step)
-
-        '?�сл�? ко?обка ?�ётна�?
-
+        'Если коробка чётная
         right_pid()
-
       EndWhile
-
     Else
-
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -90) Or (Sensor.ReadPercent(2) > black_step)
-
-        '?�сл�? ко?обка не?�ётна�?
-
+        'Если коробка нечётная
         left_pid()
-
       EndWhile
-
     EndIf
-
     Motor.MoveSync("BC", pow, pow, 40, "False")
-
   EndFor
-
-  '?�ыхо�? на пози?�и�?
-
+  'Выход на позицию
   Motor.ResetCount("BC")
-
   While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -70) Or (Sensor.ReadPercent(2) > black_step)
-
     left_pid()
-
   EndWhile
-
   Motor.Stop("BC", "True")
-
 EndSub
-
-
 
 Sub bring_second_item_nearer 'target_box[2]
-
-  '?�оез�? до ко?обки
-
+  'Доезд до коробки
   For i = 1 To (target_box[1] + 1)
-
     Motor.ResetCount("BC")
-
     If ((i - Math.Floor(i / 2) * 2) = 0) Then
-
-      '?�сл�? ко?обка ?�ётна�?
-
+      'Если коробка чётная
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -120) Or (Sensor.ReadPercent(2) > black_step)
-
         left_pid()
-
       EndWhile
-
     Else
-
-      '?�сл�? ко?обка не?�ётна�?
-
+      'Если коробка нечётная
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -120) Or (Sensor.ReadPercent(1) > black_step)
-
         right_pid()
-
       EndWhile
-
     EndIf
-
     Motor.MoveSync("BC", pow, pow, 40, "False")
-
   EndFor
-
-  '?�азво�?о??
-
+  'Разворот
   Motor.ResetCount("BC")
-
   If (target_box[1] = 2) Then
-
-    '?�сл�? во в?�о�??��? ко?обк??
-
-    Motor.StartSync("BC", -rotate_speed / 2, rotate_speed / 2) '?�ово�?о?? налево
-
+    'Если во вторую коробку
+    Motor.StartSync("BC", -rotate_speed / 2, rotate_speed / 2) 'Поворот налево
     While (Sensor.ReadPercent(1) > (black_step - 10)) Or (Motor.GetCount("C") > -200)
-
     EndWhile
-
     While (Sensor.ReadPercent(1) < (black_step + 10))
-
     EndWhile
-
   Else
-
-    '?�сл�? в ?��?е?�ь�? ко?обк??
-
-    Motor.StartSync("BC", rotate_speed / 2, -rotate_speed / 2) '?�ово�?о?? нап?аво
-
+    'Если в третью коробку
+    Motor.StartSync("BC", rotate_speed / 2, -rotate_speed / 2) 'Поворот направо
     While (Sensor.ReadPercent(2) > (black_step - 10)) Or (Motor.GetCount("B") > -200)
-
     EndWhile
-
     While (Sensor.ReadPercent(2) < (black_step + 10))
-
     EndWhile
-
   EndIf
-
   Motor.Stop("BC", "True")
-
-  Motor.Move("D", item_put, 310, "True") '?�тк�??�вае�? кле?�н�?
-
-  Motor.MoveSync("BC", -item_taking_pow, -item_taking_pow, 75, "True") '?�тъезае�? назад
-
-  Motor.Move("D", item_catch, 130, "True") '?��?иподнимаем пе?вое де?ево
-
+  Motor.Move("D", item_put, 310, "True") 'Открываем клешни
+  Motor.MoveSync("BC", -item_taking_pow, -item_taking_pow, 75, "True") 'Отъезаем назад
+  Motor.Move("D", item_catch, 130, "True") 'Приподнимаем первое дерево
   If (filled[target_box[1]] = 1) Then
-
-    '?�сл�? пе?вое  ме?�т�? заполнено
-
+    'Если первое  место заполнено
     Motor.MoveSync("BC", -pow, -pow, 310, "True")
-
     motor_memory = 310
-
   Else
-
-    '?�сл�? пе?вое  ме?�т�? не заполнено
-
+    'Если первое  место не заполнено
     Motor.MoveSync("BC", -pow, -pow, 120, "True")
-
     motor_memory = 120
-
   EndIf
-
-  Motor.Move("D", item_catch, 180, "True") '?�однимае�? пе?вое де?ево
-
+  Motor.Move("D", item_catch, 180, "True") 'Поднимаем первое дерево
   filled[target_box[1]] = 1
-
   If target_box[1] = 2 Then
-
-    Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, rotate_degree / 2, "True") '?�ово�?о?? налево
-
+    Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, rotate_degree / 2, "True") 'Поворот налево
   Else
-
-    Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, rotate_degree / 2, "True") '?�ово�?о?? нап?аво
-
+    Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, rotate_degree / 2, "True") 'Поворот направо
   EndIf
-
-  '?�одъез�? к ко?обке
-
+  'Подъезд к коробке
   Motor.MoveSync("BC", item_taking_pow, item_taking_pow, to_box - 45, "True")
-
-  '?�ыг�??�зк�? п?едме?�о�?
-
+  'Выгрузка предметов
   Motor.Move("D", item_put, 310, "False")
-
   Motor.Move("D", -before_catch, 90, "True")
-
-  '?�тъез�? к линии
-
+  'Отъезд к линии
   Motor.MoveSync("BC", -speed, -speed, to_box - 45, "True")
-
   Motor.Move("D", -before_catch, 160, "True")
-
-  '?�ово�?о??
-
+  'Поворот
   Motor.ResetCount("BC")
-
   If (target_box[1] = 2) Then
-
-    '?�сл�? во в?�о�??��? ко?обк??
-
-    Motor.StartSync("BC", rotate_speed / 2, -rotate_speed / 2) '?�ово�?о?? нап?аво
-
+    'Если во вторую коробку
+    Motor.StartSync("BC", rotate_speed / 2, -rotate_speed / 2) 'Поворот направо
     While (Sensor.ReadPercent(1) > black_step) Or (Motor.GetCount("B") > -100)
-
     EndWhile
-
   Else
-
-    '?�сл�? в ?��?е?�ь�? ко?обк??
-
-    Motor.StartSync("BC", -rotate_speed / 2, rotate_speed / 2) '?�ово�?о?? налево
-
+    'Если в третью коробку
+    Motor.StartSync("BC", -rotate_speed / 2, rotate_speed / 2) 'Поворот налево
     While (Sensor.ReadPercent(2) > black_step) Or (Motor.GetCount("C") > -100)
-
     EndWhile
-
   EndIf
-
   Motor.Stop("BC", "True")
-
-  '?�одъезжае�? ко в?�о�?ом?? де?ев??
-
+  'Подъезжаем ко второму дереву
   Motor.ResetCount("BC")
-
   If (target_box[1] = 2) Then
-
     While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -(motor_memory + 50))
-
       right_pid()
-
     EndWhile
-
   Else
-
     While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -(motor_memory + 50))
-
       left_pid()
-
     EndWhile
-
   EndIf
-
   Motor.Stop("BC", "True")
-
-  '?�ахва�?
-
+  'Захват
   Motor.Move("D", before_catch, 250, "False")
-
   Motor.Move("D", item_catch, 310, "True")
-
-  '?�твози�? в?�о�?ое де?ево
-
+  'Отвозим второе дерево
   If ((target_box[1] - target_box[2]) < 2) Then
-
-    '?�сл�? ко?обки ?�оседни�?
-
+    'Если коробки соседние
     Motor.ResetCount("BC")
-
     If (target_box[2] = 1) Then
-
-      '?�сл�? ?�тави�? в пе?в?��? ко?обк??
-
+      'Если ставим в первую коробку
       If (filled[1] = 0) Then
-
-        '?�сл�? пе?вое ме?�т�? не заполнено
-
+        'Если первое место не заполнено
         While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -220)
-
           right_pid()
-
         EndWhile
-
       Else
-
-        '?�сл�? пе?вое ме?�т�? заполнено
-
+        'Если первое место заполнено
         While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -50)
-
           right_pid()
-
         EndWhile
-
       EndIf
-
     Else
-
-      '?�сл�? ?�тави�? во в?�о�??��? ко?обк??
-
+      'Если ставим во вторую коробку
       If (filled[2] = 0) Then
-
-        '?�сл�? пе?вое ме?�т�? не заполнено
-
+        'Если первое место не заполнено
         While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -220)
-
           left_pid()
-
         EndWhile
-
       Else
-
-        '?�сл�? пе?вое ме?�т�? заполнено
-
+        'Если первое место заполнено
         While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -50)
-
           left_pid()
-
         EndWhile
-
       EndIf
-
     EndIf
-
     Motor.Stop("BC", "True")
-
   Else
-
-    '?�сл�? ко?обки пе?ва?? и ?��?е?�ь�?
-
+    'Если коробки первая и третья
     Motor.MoveSync("BC", pow, pow, 90, "False")
-
     Motor.ResetCount("BC")
-
-    '?��? пе?ек??�стк�?
-
+    'До перекрёстка
     While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -180) Or (Sensor.ReadPercent(1) > black_step)
-
       right_pid()
-
     EndWhile
-
     Motor.ResetCount("BC")
-
     If (filled[1] = 0) Then
-
-      '?�сл�? пе?вое ме?�т�? не заполнено
-
+      'Если первое место не заполнено
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -230)
-
         left_pid()
-
       EndWhile
-
     Else
-
-      '?�сл�? пе?вое ме?�т�? заполнено
-
+      'Если первое место заполнено
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -60)
-
         left_pid()
-
       EndWhile
-
     EndIf
-
   EndIf
-
-  '?�ово�?о??
-
+  'Поворот
   If (target_box[2] = 1) Then
-
-    '?�сл�? в пе?в?��? ко?обк??
-
-    Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, rotate_degree / 2, "True") '?�ово�?о?? нап?аво
-
+    'Если в первую коробку
+    Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, rotate_degree / 2, "True") 'Поворот направо
   Else
-
-    '?�сл�? во в?�о�??��? ко?обк??
-
-    Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, rotate_degree / 2, "True") '?�ово�?о?? налево
-
+    'Если во вторую коробку
+    Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, rotate_degree / 2, "True") 'Поворот налево
   EndIf
-
-  '?�одъез�? к ко?обке
-
+  'Подъезд �� коробке
   Motor.MoveSync("BC", item_taking_pow, item_taking_pow, to_box - 10, "True")
-
-  '?�ыг�??�зк�? п?едме?�о�?
-
+  'Выгрузка предметов
   Motor.Move("D", item_put, 310, "False")
-
   Motor.Move("D", -before_catch, 90, "True")
-
-  '?�тъез�? к линии
-
+  'Отъезд к линии
   Motor.MoveSync("BC", -speed, -speed, to_box - 10, "True")
-
   Motor.Move("D", -before_catch, 160, "True")
-
-  '?�ово�?о??
-
+  'Поворот
   Motor.ResetCount("BC")
-
   If (target_box[2] = 1) Then
-
-    '?�сл�? в пе?в?��? ко?обк??
-
-    Motor.StartSync("BC", -rotate_speed / 2, rotate_speed / 2) '?�ово�?о?? налево
-
+    'Если в первую коробку
+    Motor.StartSync("BC", -rotate_speed / 2, rotate_speed / 2) 'Поворот налево
     While (Sensor.ReadPercent(2) > black_step) Or (Motor.GetCount("C") > -100)
-
     EndWhile
-
     Motor.Stop("BC", "False")
-
     Motor.MoveSync("BC", rotate_speed / 2, -rotate_speed / 2, 10, "True")
-
   Else
-
-    '?�сл�? во в?�о�??��? ко?обк??
-
-    Motor.StartSync("BC", rotate_speed / 2, -rotate_speed / 2) '?�ово�?о?? нап?аво
-
+    'Если во вторую коробку
+    Motor.StartSync("BC", rotate_speed / 2, -rotate_speed / 2) 'Поворот направо
     While (Sensor.ReadPercent(1) > black_step) Or (Motor.GetCount("B") > -100)
-
     EndWhile
-
     Motor.Stop("BC", "False")
-
     Motor.MoveSync("BC", -rotate_speed / 2, rotate_speed / 2, 10, "True")
-
   EndIf
-
   Motor.Stop("BC", "True")
-
   filled[target_box[1]] = 1
-
   filled[target_box[2]] = 1
-
-  '?�озв�?а?�ени�?
-
+  'Возвращение
   Motor.MoveSync("BC", pow, pow, 50, "False")
-
   For i = target_box[2] To 1 Step -1
-
     Motor.ResetCount("BC")
-
     If ((i - Math.Floor(i / 2) * 2) = 0) Then
-
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -90) Or (Sensor.ReadPercent(1) > black_step)
-
-        '?�сл�? ко?обка ?�ётна�?
-
+        'Если коробка чётная
         right_pid()
-
       EndWhile
-
     Else
-
       While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -90) Or (Sensor.ReadPercent(2) > black_step)
-
-        '?�сл�? ко?обка не?�ётна�?
-
+        'Если коробка нечётная
         left_pid()
-
       EndWhile
-
     EndIf
-
     Motor.MoveSync("BC", pow, pow, 40, "False")
-
   EndFor
-
-  '?�ыхо�? на пози?�и�?
-
+  'Выход на позицию
   Motor.ResetCount("BC")
-
   While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -70) Or (Sensor.ReadPercent(2) > black_step)
-
     left_pid()
-
   EndWhile
-
   Motor.Stop("BC", "False")
-
 EndSub
-
-
 
 Sub finish
-
-  '?�аск�??�вае�? кле?�н�?
-
+  'Раскрываем клешню
   Motor.Move("D", item_put, math.Abs(Motor.GetCount("D")), "True")
-
-  '?�де�? по ?�клад�?
-
+  'Едем по складу
   Motor.ResetCount("BC")
-
   Motor.MoveSync("BC", pow, pow, 30, "False")
-
   While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -760) And ((((Sensor.ReadPercent(1) + Sensor.ReadPercent(2)) / 2) > 42) Or (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -80))
-
     middle_pid()
-
   EndWhile
-
   While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -760)
-
     color_pid()
-
   EndWhile
-
-  '?��?а?�ивы�? пово?о??
-
-  Motor.Move("B", rotate_speed, rotate_degree + 50, "True") '?�ово�?о?? нап?аво
-
+  'Красивый поворот
+  Motor.Move("B", rotate_speed, rotate_degree + 50, "True") 'Поворот направо
   Motor.MoveSync("BC", speed, speed, 370, "True")
-
 EndSub
 
-
-
-'?��?ог?амма
-
+'Программа
 Program.Delay(1000)
-
-take_bricks() '?�зяти�? к?�бико�?
-
-'?�ыво�? зна?�ени�? на ?�к�?ан
-
+take_bricks() 'Взятие кубиков
+'Вывод значений на экран
 LCD.Clear()
-
 For i = 1 To 6
-
   LCD.Write(i * 20, 30, bricks[i])
-
 EndFor
-
-'?�оез�? до ?�озици�? пе?ед за?�вато�? де?ева
-
-'?�ово�?о?? налево
-
+'Доезд до позиции перед захватом дерева
+'Поворот налево
 Motor.ResetCount("BC")
-
 Motor.Stop("B", "True")
-
 now_speed = -10
-
 target_speed = rotate_speed
-
 While (Motor.GetCount("C") > -rotate_degree)
-
-  speed_change() '?�лавно�? изменение ?�ко�?о?�те�?
-
+  speed_change() 'Плавное изменение скоростей
   Motor.StartSync("BC", 0, now_speed)
-
 EndWhile
-
 Motor.Stop("BC", "False")
-
-'?�де�? до линии
-
+'Едем до линии
 now_speed = -10
-
 target_speed = speed
-
-While (Sensor.ReadPercent(2) > (black_step - 10)) '?��? пе?вой линии
-
-  speed_change() '?�лавно�? изменение ?�ко�?о?�те�?
-
+While (Sensor.ReadPercent(2) > (black_step - 10)) 'До первой линии
+  speed_change() 'Плавно�� изменение скоростей
   Motor.StartSync("BC", now_speed, now_speed)
-
 EndWhile
-
-While (Sensor.ReadPercent(2) < (black_step + 10)) '?��?оп?�скае�? пе?в?��? лини??
-
+While (Sensor.ReadPercent(2) < (black_step + 10)) 'Пропускаем первую линию
 EndWhile
-
-While (Sensor.ReadPercent(2) > (black_step - 10)) '?��? в?�о�?ой линии
-
+While (Sensor.ReadPercent(2) > (black_step - 10)) 'До второй линии
 EndWhile
-
 Motor.ResetCount("BC")
-
 While (Motor.GetCount("B") > -30)
-
 EndWhile
-
-'?�ово�?о?? налево
-
+'Поворот налево
 Motor.ResetCount("BC")
-
 Motor.Stop("B", "True")
-
 target_speed = rotate_speed
-
 While (Sensor.ReadPercent(1) > (black_step - 10)) Or (Motor.GetCount("C") > -200)
-
-  speed_change() '?�лавно�? изменение ?�ко�?о?�те�?
-
+  speed_change() 'Плавное изменение скоростей
   Motor.StartSync("BC", 0, now_speed)
-
 EndWhile
-
 While (Sensor.ReadPercent(1) < (black_step + 10))
-
-  speed_change() '?�лавно�? изменение ?�ко�?о?�те�?
-
+  speed_change() 'Плавное изменение скоростей
   Motor.StartSync("BC", 0, now_speed)
-
 EndWhile
-
 Motor.Stop("BC", "False")
-
-'?�де�? до пози?�и�?
-
+'Едем до позиции
 Motor.ResetCount("BC")
-
 now_speed = -10
-
 target_speed = pow
-
 While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -80) Or (Sensor.ReadPercent(2) > black_step)
-
-  '?�И�? до линии
-
+  'ПИД до линии
   left_pid()
-
 EndWhile
-
 Motor.ResetCount("BC")
-
 While (((Motor.GetCount("B") + Motor.GetCount("C")) / 2) > -80) Or (Sensor.ReadPercent(2) > black_step)
-
-  '?�И�? до линии
-
+  'ПИД до линии
   left_pid()
-
 EndWhile
-
 Motor.Stop("BC", "True")
-
 Motor.Move("D", 100, 320, "True")
 
-
-
 row = 1
-
 take_item()
-
 box = 4
-
 bring_two_items_to_one_box()
 
-
-
 For target_row = 2 To 3
-
   row = target_row
-
   take_item()
-
   box = 0
-
-  '?�оис�? па??? в одной ко?обке
-
+  'Поиск пары в одной коробке
   For g = 1 To 5 Step 2
-
     If ((bricks[g] = tree_colors[1]) And (bricks[g + 1] = tree_colors[2])) Or ((bricks[g] = tree_colors[2]) And (bricks[g + 1] = tree_colors[1])) Then
-
       box = Math.Floor((g + 1) / 2)
-
-      '?�анулени�? ме?��?, в ко?�о�??��? повез?��?
-
+      'Зануле��ие мест, в которые повезём
       bricks[g] = 0
-
       bricks[g + 1] = 0
-
       If (box = 1) then
-
         box = 2
-
       Else
-
         If (box = 2) then
-
           box = 1
-
         EndIf
-
       EndIf
-
     EndIf
-
   EndFor
-
   if box > 0 then
-
-    '?�сл�? на?�ё�?, о?�вез�?
-
+    'Если нашёл, отвези
     LCD.Clear()
-
-    LCD.Write(10, 10, "?�в�? в одн?? ко?обк??")
-
+    LCD.Write(10, 10, "Два в одну коробку")
     bring_two_items_to_one_box()
-
   Else
-
-    '?�сл�? не на?�ё�?
-
+    'Если не нашёл
     For g = 1 to 2
-
       target_box[g] = 0
-
     endfor
-
-    '?�оис�? одино?�ны�? ме?��? в ко?обка??
-
+    'Поиск одиночных мест в коробках
     For g = 1 To 2
-
       For b = 1 to 5 step 2
-
         If (((bricks[b] = tree_colors[g]) And (bricks[b + 1] = 0)) Or ((bricks[b + 1] = tree_colors[g]) And (bricks[b] = 0))) And (target_box[g] = 0) Then
-
           bricks[b] = 0
-
           bricks[b + 1] = 0
-
           target_box[g] = Math.Floor((b + 1) / 2)
-
         EndIf
-
       EndFor
-
     EndFor
-
-    '?�оис�? ме?�т�? в па?е ?? каким-?��? д??�ги�? де?евом, е?�л�? одино?�ног�? ме?�т�? не??
-
+    'Поиск места в паре с каким-то другим деревом, если одиночного места нет
     For g = 1 To 2
-
       If (target_box[g] = 0) Then
-
         For b = 1 To 6
-
           If (bricks[b] = tree_colors[g]) And (target_box[g] = 0) then
-
             bricks[b] = 0
-
             target_box[g] = Math.Floor((b - 1) / 2) + 1
-
           EndIf
-
         EndFor
-
       EndIf
-
     EndFor
-
-    'Элеган?�ны�? ко?�тыл�?
-
+    'Элегантный костыль
     For g = 1 To 2
-
       If (target_box[g] = 1) then
-
         target_box[g] = 2
-
       Else
-
         If (target_box[g] = 2) then
-
           target_box[g] = 1
-
         EndIf
-
       EndIf
-
     EndFor
-
-    '?�азвози�? де?ев?��?
-
+    'Развозим деревья
     LCD.Clear()
-
     LCD.Write(10, 10, target_box[1])
-
     LCD.Write(30, 10, target_box[2])
-
     If target_box[1] < target_box[2] then
-
       bring_first_item_nearer()
-
     Else
-
       bring_second_item_nearer()
-
     EndIf
-
   EndIf
-
 EndFor
 
-
-
 finish()
-
-

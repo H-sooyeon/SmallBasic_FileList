@@ -1,581 +1,290 @@
 ' BATTLESHIP in Small Basic
-
 ' written by Nonki Takahashi
-
 ' Last update 2014-03-31
-
 ' Version 0.3a
-
 ' Prigram ID GZN668-1
-
 ' Original battleship image (CC BY-SA 2.0) by jai Mansson
-
 ' Modified image (CC BY-SA 2.0) by Nonki Takahashi
-
 '
-
 GraphicsWindow.Title = "BATTLESHIP in Small Basic 0.3a"
-
 bg = "Gray"
-
 GraphicsWindow.BackgroundColor = bg
-
 gw = 598
-
 gh = 428
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.FontName = "Trebuchet MS"
-
 Opening()
-
 GraphicsWindow.PenColor = bg
-
 fc = "White"
-
 fs = 20
-
 GraphicsWindow.FontSize = fs
-
 size = 28
-
 bc = "Blue"
-
 y0 = Math.Floor((gh - size * 11) / 2) + size
-
 x0 = Math.Floor((gw - size * 21) / 2) + size * 11
-
 DrawBoard()
-
 bc = "Turquoise"
-
 x0 = Math.Floor((gw - size * 21) / 2)
-
 DrawBoard()
-
 radar = Shapes.AddImage("http://www.nonkit.com/smallbasic.files/Radar.PNG")
-
 Shapes.SetOpacity(radar, 50)
-
 Shapes.Move(radar, x0, y0)
-
 InitShip()
-
 DrawShip()
-
 angleRadar = 0
-
 Timer.Interval = 100
-
 Timer.Tick = OnTick
-
 mouseDown = "False"
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.MouseUp = OnMouseUp
-
 While "True"
-
   PrepareForBattle()
-
   inGame = "True"
-
   While inGame
-
     Player()
-
     If inGame Then
-
       CPU()
-
     EndIf
-
   EndWhile
-
 EndWhile
-
 Sub DrawBoard
-
   ' param fc - foreground color (for text)
-
   ' param bc - background color
-
   ' param x0, y0 - left top corner
-
   GraphicsWindow.BrushColor = fc
-
   y = y0 - fs * 1.2
-
   For i = 1 To 10
-
     If i = 9 Then
-
       x = x0 + (i - 1) * size + 10
-
     Else
-
       x = x0 + (i - 1) * size + 7
-
     EndIf
-
     If x0 < gw / 2 Then
-
       alpha = "ABCDEFGHIJ"
-
     Else
-
       alpha = "KLMNOPQRST"
-
     EndIf
-
     GraphicsWindow.DrawText(x, y, Text.GetSubText(alpha, i, 1))
-
   EndFor
-
   For j = 1 To 10
-
     y = y0 + (j - 1) * size
-
     If gw / 2 < x0 Then
-
       GraphicsWindow.BrushColor = fc
-
       If j = 10 Then
-
         x = x0 - fs * 1.3
-
       Else
-
         x = x0 - fs
-
       EndIF
-
       GraphicsWindow.DrawText(x, y, j)
-
     EndIf
-
     GraphicsWindow.BrushColor = bc
-
     For i = 1 To 10
-
       x = x0 + (i - 1) * size
-
       GraphicsWindow.FillRectangle(x, y, size, size)
-
       GraphicsWindow.DrawRectangle(x, y, size, size)
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub DrawPeg
-
   ' param col, row
-
   ' param color
-
   margin = 8
-
   GraphicsWindow.BrushColor = color
-
   peg = Shapes.AddEllipse(size - margin * 2, size - margin * 2)
-
   x = x0 + (col - 1) * size + margin
-
   y = y0 + (row - 1) * size + margin
-
   Shapes.Move(peg, x, y)
-
 EndSub
-
 Sub DrawShip
-
   For iShip = 1 To 10
-
     shi = ship[iShip]
-
     col = Text.GetIndexOf("ABCDEFGHIJ KLMNOPQRST", Text.GetSubText(shi["pos"], 1, 1))
-
     row = Text.GetSubTextToEnd(shi["pos"], 2)
-
     x = x0 + (col - 1) * size
-
     y = y0 + (row - 1) * size
-
     GraphicsWindow.PenWidth = 0
-
     If iShip < 6 Then
-
       GraphicsWindow.BrushColor = "DimGray"
-
     Else
-
       GraphicsWindow.BrushColor = "Turquoise"
-
     EndIf
-
     For iShape = shi["iMin"] To shi["iMax"]
-
       sha = shape[iShape]
-
       If sha["func"] = "rect" Then
-
         sha["obj"] = Shapes.AddRectangle(sha["width"], sha["height"])
-
       ElseIf sha["func"] = "ell" Then
-
         sha["obj"] = Shapes.AddEllipse(sha["width"], sha["height"])
-
       EndIf
-
       If shi["dir"] = "E" Then
-
         Shapes.Move(sha["obj"], x + sha["x"], y + sha["y"])
-
       ElseIf shi["dir"] = "S" Then
-
         ox = x + sha["y"] + sha["height"] / 2
-
         oy = y + sha["x"] + sha["width"] / 2
-
         Shapes.Move(sha["obj"], ox - sha["width"] / 2, oy - sha["height"] / 2)
-
         Shapes.Rotate(sha["obj"], 90)
-
       EndIf
-
       If 5 < iShip Then
-
         Shapes.SetOpacity(sha["obj"], 50)
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub HitShip
-
   ' param col, row - co-ordinate mouse clicked
-
   ' param grid - 0 for ocean grid (player), 1 for target grid (CPU)
-
   ' return iShip - 1..10 if hit, 11 if miss
-
   For iShip = 1 To 10
-
     shi = ship[iShip]
-
     _col = Text.GetIndexOf("ABCDEFGHIJ KLMNOPQRST", Text.GetSubText(shi["pos"], 1, 1))
-
     _row = Text.GetSubTextToEnd(shi["pos"], 2)
-
     len = shi["length"]
-
     For i = 1 To len
-
       If _col = col And _row = row Then
-
         Goto found
-
       EndIf
-
       _col = _col + dirx[shi["dir"]]
-
       _row = _row + diry[shi["dir"]]
-
     EndFor
-
   EndFor
-
   found:
-
 EndSub
-
 Sub InitShip
-
   ship[1] = "id=Carrier;length=5;iMin=1;iMax=1;pos=Q2;dir=S;"
-
   ship[2] = "id=Battleship;length=4;iMin=2;iMax=4;pos=K2;dir=E;" 
-
   ship[3] = "id=Destroyer;length=3;iMin=5;iMax=7;pos=P9;dir=E;"
-
   ship[4] = "id=Submarine;length=3;iMin=8;iMax=10;pos=S3;dir=S;"
-
   ship[5] = "id=Patrol boat;length=2;iMin=11;iMax=13;pos=M7;dir=S;"
-
   ship[6] = "id=Carrier;length=5;iMin=1;iMax=1;pos=F8;dir=E;"
-
   ship[7] = "id=Battleship;length=4;iMin=2;iMax=4;pos=C2;dir=S;" 
-
   ship[8] = "id=Destroyer;length=3;iMin=5;iMax=7;pos=G2;dir=E;"
-
   ship[9] = "id=Submarine;length=3;iMin=8;iMax=10;pos=A2;dir=S;"
-
   ship[10] = "id=Patrol boat;length=2;iMin=11;iMax=13;pos=F5;dir=E;"
-
   dirx = "E=1;S=0;W=-1;N=0;"
-
   diry = "E=0;S=1;W=0;N=-1;"
-
   shape[1] = "func=rect;x=2;y=2;width=136;height=24;"
-
   shape[2] = "func=ell;x=2;y=2;width=24;height=24;"
-
   shape[3] = "func=rect;x=14;y=2;width=70;height=24;"
-
   shape[4] = "func=ell;x=58;y=2;width=52;height=24;"
-
   shape[5] = "func=ell;x=2;y=2;width=24;height=24;"
-
   shape[6] = "func=rect;x=14;y=2;width=42;height=24;"
-
   shape[7] = "func=ell;x=30;y=2;width=52;height=24;"
-
   shape[8] = "func=ell;x=2;y=4;width=24;height=20;"
-
   shape[9] = "func=rect;x=14;y=4;width=56;height=20;"
-
   shape[10] = "func=ell;x=58;y=4;width=24;height=20;"
-
   shape[11] = "func=ell;x=2;y=2;width=24;height=24;"
-
   shape[12] = "func=rect;x=14;y=2;width=14;height=24;"
-
   shape[13] = "func=ell;x=2;y=2;width=52;height=24;"
-
 EndSub
-
 Sub OnMouseDown
-
   mouseDown = "True"
-
   clicked = "True"
-
 EndSub
-
 Sub OnMouseUp
-
   mouseDown = "False"
-
 EndSub
-
 Sub OnTick
-
   angleRadar = angleRadar + 5
-
   If 360 <= angleRadar Then
-
     angleRadar = 0
-
   EndIf
-
   Shapes.Rotate(radar, angleRadar)
-
 EndSub
-
 Sub Opening
-
   url = "http://www.nonkit.com/smallbasic.files/BATTLESHIP_gray.png"
-
   img = Shapes.AddImage(url)
-
   GraphicsWindow.BrushColor = bg
-
   GraphicsWindow.FontSize = 64
-
   title = Shapes.AddText("BATTLESHIP")
-
   Shapes.Move(title, 220, 10)
-
   Program.Delay(3000)
-
   For opacity = 100 To 0 Step -1
-
     Shapes.SetOpacity(img, opacity)
-
     Program.Delay(33)
-
   EndFor
-
   Shapes.Remove(title)
-
 EndSub
-
 Sub Player
-
   col = 1
-
   row = 1
-
   While 1 <= col And col <= 10 And 1 <= row And row <= 10
-
     If clicked Then
-
       dx = GraphicsWindow.MouseX
-
       dy = GraphicsWindow.MouseY
-
       col = Math.Floor((dx - x0) / size) + 1
-
       row = Math.Floor((dy - y0) / size) + 1
-
       If 1 <= col And col <= 10 And 1 <= row And row <= 10 Then
-
         HitShip()
-
         If iShip < 11 Then
-
           color = "Red"
-
         Else
-
           color = "White"
-
         EndIf
-
         DrawPeg()
-
       EndIf
-
       clicked = "False"
-
     Else
-
       Program.Delay(300)
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub CPU
-
   col = 11
-
   row = 1
-
   While 11 <= col And col <= 21 And 1 <= row And row <= 10
-
     If clicked Then
-
       dx = GraphicsWindow.MouseX
-
       dy = GraphicsWindow.MouseY
-
       col = Math.Floor((dx - x0) / size) + 1
-
       row = Math.Floor((dy - y0) / size) + 1
-
       If 1 <= col And col <= 10 And 1 <= row And row <= 10 Then
-
         HitShip()
-
         If iShip < 11 Then
-
           color = "Red"
-
         Else
-
           color = "White"
-
         EndIf
-
         DrawPeg()
-
       EndIf
-
       clicked = "False"
-
     Else
-
       Program.Delay(300)
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub PrepareForBattle
-
   col = 1
-
   row = 1
-
   While 1 <= col And col <= 21 And 1 <= row And row <= 10
-
     If mouseDown Then
-
       dx = GraphicsWindow.MouseX
-
       dy = GraphicsWindow.MouseY
-
       col = Math.Floor((dx - x0) / size) + 1
-
       row = Math.Floor((dy - y0) / size) + 1
-
       If 1 <= col And col <= 21 And 1 <= row And row <= 10 Then
-
         HitShip()
-
         If iShip < 11 Then
-
           color = "Red"
-
         Else
-
           color = "White"
-
         EndIf
-
         DrawPeg()
-
         dragged = "False"
-
         mouseMove = "False
-
         While mouseDown
-
           If mouseMove Then
-
             mx = GraphicsWindow.MouseX
-
             my = GraphicsWindow.MouseY
-
             mouseMove = "False"
-
           Else
-
             Program.Delay(300)
-
           EndIf
-
         EndWhile
-
       Else
-
         Program.Delay(300)
-
       EndIf
-
     Else
-
       Program.Delay(300)
-
     EndIf
-
   EndWhile
-
 EndSub
-
-

@@ -1,1287 +1,643 @@
 'SBJump - A cheap knock off of Doodle Jump written in SmallBasic
-
 'Original Concept and Programming by Zock - Import Code: PGR013
-
 'Current version by codingCat aka Matthew L. Parets
-
 '*** To enable to leader board system the file commands at the bottom
-
 '*** of the program will need to be uncommented 
-
 'As the game progresses the platforms get smaller. 
-
 'After a round at 15 pixels they reset to fifty and the game speeds up.
-
 'Controls = Left, Right and Up keys
-
-
 
 flag = 0
 
-
-
 'LoadHighScore()
-
 Initialize()
-
 SetupTitleCrawl()
 
-
-
 'Main Program Loop
-
 While exiting <> "True"
-
   LevelSet()
-
   GeneratePlatforms()
-
   frameStart = Clock.ElapsedMilliseconds
-
   
-
   'Game Loop
-
   While gameOver <> "True"
-
     OpeningTitleCrawl()
-
     MoveBall()
-
     Bounce()
-
     KeyCheck()
-
     UpdateScore()
-
     
-
     'Reached the top - Next Level
-
     If y <= -5 Then
-
       LevelUp()
-
       LevelSet()
-
       GeneratePlatforms()
-
     EndIf
-
     
-
     FrameDelay()
-
   endwhile
-
   
-
   UpdateHighScore()
-
   CreditCrawl()
-
   Initialize()
-
 endwhile
-
-
 
 Program.End()
 
-
-
 '----------------------------------------------------------------------------------
-
 'Subroutines
-
 '----------------------------------------------------------------------------------
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub FrameDelay
-
   'Loop will continue until delay has been reached. Because frameStart
-
   'is set at the end of the last frame delay, the frames should be constantly
-
   'the same regardless of the processing in each individual frame. 
-
   '(ie shorter delays when more pressing is done)
-
   While Clock.ElapsedMilliseconds - frameStart < delay
-
   EndWhile
-
   frameStart = Clock.ElapsedMilliseconds
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub Bounce
-
   'Check for bottom of window, bounce if new game, otherwise game over
-
   If (y > GraphicsWindow.height) Then
-
     If (start = "True") then
-
       dY = -3.2
-
       Sound.PlayClick()
-
     Else
-
       Sound.PlayBellRing()
-
       gameOver = "True"
-
     EndIf
-
   EndIf
-
   
-
   'Check to see if a bounce at a platform has occured
-
   If dy > 0 Then 'If moving downward (allows passing through platform on the way up.
-
     For ii = 1 To lineCnt 'check each platform
-
       'if... in the middle of a platform (left to right), AND on a platform (up and down) - adjusted for speed
-
       If (x+5 > linex[ii] and x < linex[ii]+(linesize-5)) and (y+5 > liney[ii]-(dy/2) And y+5 < liney[ii]+(dy/2)) then
-
         dy = -3.2 'Reverse the direction
-
         Sound.PlayClick()
-
         score = score + 130
-
         GraphicsWindow.Title = "L: " + level + "  S: " + score
-
         start = "False" 'Once a platform is hit, the bottom of off limits
-
       EndIf
-
     EndFor
-
   EndIf
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub KeyCheck
-
   'Check for changes based on user controls
-
   If pressed = "True" Then
-
     key = GraphicsWindow.LastKey
-
     If (key = "Right") Then
-
       flag = 1 'Disable the title crawl
-
       dx = 1
-
     ElseIf (key = "Left") Then
-
       flag = 1
-
       dx = -1
-
     ElseIf (key = "Up") Then
-
       flag = 1
-
       dx = 0
-
     ElseIf key = "Escape" then
-
       gameOver = "True"
-
       exiting = "True"
-
     EndIf
-
     pressed = "False"
-
   EndIf
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub Initialize
-
   GraphicsWindow.Clear()
-
   'Initial Setup
-
   lineCnt = 11
-
   linesize = 50
-
   start = "True"
-
   multiplier = 1.5
-
   delay = 15
-
   score = 0
-
   level = 1
-
   msgCnt = 0
-
   dx = 0
-
   
-
   'Setup the window
-
   GraphicsWindow.Height = 600
-
   GraphicsWindow.Title = "SBJump"
-
   GraphicsWindow.Width = (20*10) + (linesize + 10)
-
   GraphicsWindow.BackgroundColor = "blue"
-
   GraphicsWindow.Top = Desktop.Height / 2 - GraphicsWindow.Height / 2 - 50
-
   GraphicsWindow.left = Desktop.Width / 2 - GraphicsWindow.Width / 2
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.fillRectangle(0,GraphicsWindow.Height-3,GraphicsWindow.Width,3)
-
   
-
   x = GraphicsWindow.Width / 2
-
   'Set key event
-
   GraphicsWindow.KeyDown = OnKeyDown
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub GeneratePlatforms
-
   'First platform copied from top platform after first level
-
   If start = "False" then
-
     lastx = linex[1]
-
     lasty = liney[1]
-
   endif
-
   
-
   'Randomly generate the platforms. 
-
   platlevl = 75 'Top platform just in range of the top of the screen
-
   For ii = 1 to lineCnt
-
     linex[ii] = (Math.GetRandomNumber(20) * 10)
-
     liney[ii] = platlevl + ((Math.GetRandomNumber(2) * 10) - 10)
-
     platlevl = platlevl + 50
-
   endfor
-
   'Start at the bottom
-
   If start = "False" then 'top becomes bottom
-
     linex[lineCnt] = lastx
-
     y = GraphicsWindow.Height - (GraphicsWindow.Height - liney[lineCnt]) 
-
   Else
-
     y = GraphicsWindow.Height - 1
-
   endif
-
   For i = 1 to lineCnt 'Display the new platforms
-
     GraphicsWindow.DrawLine(linex[i],liney[i],linex[i]+linesize,liney[i])
-
   endfor
-
   Sound.PlayChimes()
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub LevelSet
-
   'Setup for the start of a new level
-
   gameOver = "False"
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "black"
-
   GraphicsWindow.BrushColor = "red"
-
   GraphicsWindow.FontName = "Tahoma"
-
   ball = Shapes.AddEllipse(10,10)
-
   GraphicsWindow.PenWidth = 2
-
   dy = -3.2
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub LevelUp
-
   'Set up for next level 
-
   'Multiply score, decrese the platform size, increase the speed
-
   score = math.Round(score * multiplier)
-
   level = level + 1
-
   GraphicsWindow.Title = "L: " + level + "  S: " + score
-
   'Shrink the platform size
-
   If linesize > 15 then
-
     linesize = linesize - 5
-
   Else
-
     'Speed the game up
-
     linesize = 50
-
     If delay > 1 then
-
       delay = delay - 2
-
     endif
-
   endif
-
   GraphicsWindow.Clear()
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub MoveBall
-
   'Update the location of the ball based on user input and 
-
   'current volocity
-
   x = x + dx
-
   y = y + dy
-
   Shapes.Move(ball, x,y)
-
   'Wrap past the edges
-
   If x > GraphicsWindow.Width Then 
-
     x = 0
-
   EndIf
-
   If x < 0 Then 
-
     x = GraphicsWindow.Width
-
   EndIf
-
   dy = dy + 0.05 'Increase the downward speed
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub UpdateScore
-
   'Update the score
-
   If Math.Remainder(score,100) = 0 then
-
     GraphicsWindow.Title = "L: " + level + "  S: " + score
-
   EndIf
-
   score = score - 1
-
   If score < 0 Then
-
     score = 0 
-
   EndIf
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub CreditCrawl
-
   'A WAY overly complicated way of creating the score and credit crawl
-
   'because smallbasic lacks the option of multiple statements on one line,
-
   'or brace notation for loading arrays.
-
   'I hate lots of lines doing nothing but loading array indices.   :-)
-
   GraphicsWindow.BackgroundColor = "White"
-
   scrloc = 0
-
   msgCnt = 0
-
   GraphicsWindow.FontName = "Tahoma"
-
   GraphicsWindow.BrushColor = "white"
-
   msgPos = 1
-
   messages = " ``Score`30` ``Level Reached`30` ``Position`30` ``High Score`30`Game Over`42`------------------------------------``-lb-``-lb-``-lb-``-lb-``-lb-``-lb-``-lb-``-lb-``-lb-``-lb-``------------------------------------``Leader Board`20`Press <Enter> for New Game``No Rights Reserved  ;-)``Product Parets Programming``codingCat and Zock``Programming by``Idea by Zock``SBJump``"
-
   While msgPos < Text.GetLength(messages)
-
     msgCnt = msgCnt + 1
-
     messages = Text.GetSubTextToEnd(messages,msgPos)
-
     msgPos = Text.GetIndexOf(messages,"`")
-
     msgNxt = Text.GetSubText(messages,1,msgPos - 1)
-
     If Text.GetSubText(messages,msgPos+1,1) <> "`" then 
-
       GraphicsWindow.FontSize = Text.GetSubText(messages,msgPos+1,2)
-
       msgPos = msgPos + 2
-
     Else
-
       GraphicsWindow.FontSize = 15
-
     EndIf
-
     msgPos = msgPos + 2
-
     If msgNxt = "-lb-" Then
-
       msgNxt = (9-scrloc) + ") " + highname[10-scrloc] + Text.GetCharacter(9657) + highlevel[10-scrloc] + Text.GetCharacter(9657) + highscore[10-scrloc]
-
       scrloc = scrloc + 1
-
     EndIf
-
     shps[msgCnt] = Shapes.AddText(msgNxt)
-
   EndWhile
-
   
-
   GraphicsWindow.FontSize = 20
-
   shps[7] = Shapes.AddText(highname[1] + Text.GetCharacter(9657) + highlevel[1] + Text.GetCharacter(9657) + highscore[1]) 'All time High Score
-
   GraphicsWindow.FontSize = 30
-
   shps[5] = Shapes.AddText(fndPos + " of " + extraCount)
-
   shps[3] = Shapes.AddText(level) 'This games max level
-
   shps[1] = Shapes.AddText(score) 'This games score
-
   
-
   'Initial Credit Locations
-
   goy = msgCnt * -50
-
   For i = 1 To msgCnt
-
     Shapes.Move(shps[i], 25, goy)
-
     goy = goy + 50
-
   EndFor
-
   FlashBackGround()
-
   
-
   'Crawl the Scores and Credits
-
   crawlspeed = 15
-
   crawlstep = 1
-
   key = ""
-
   While Key <> "Return" And key <> "Escape" And exiting <> "True"
-
     If pressed = "True" Then
-
       key = GraphicsWindow.LastKey
-
       If key = "Up" then
-
         If crawlstep = 1 then 
-
           crawlspeed = crawlspeed + 5
-
         Else
-
           crawlstep = crawlstep - 1
-
         EndIf
-
       ElseIf key = "Down" then
-
         crawlspeed = crawlspeed - 5
-
         If crawlspeed < 0 then
-
           crawlspeed = 0
-
           crawlstep = crawlstep + 1
-
         endif
-
       endif
-
       pressed = "False"
-
     EndIf
-
     goy = goy + crawlstep
-
     'Wrap at the edge of the screen
-
     If goy > (GraphicsWindow.Height * 2) + (GraphicsWindow.Height + (7 * 50) + 200) Then
-
       goy = 0
-
     EndIf
-
     For i = 1 To msgCnt
-
       shpy = 20
-
       shpyOff = GraphicsWindow.Height * 2
-
       If i < 10 Then 'Different offsets for different parts of the credits
-
         shpy = 50
-
         shpyOff = 0
-
       ElseIf i < 23 then
-
         shpyOff = GraphicsWindow.Height
-
       EndIf
-
       Shapes.Move(shps[i], 15, goy - (i * shpy) - shpyOff)
-
     EndFor
-
     
-
     Program.Delay(crawlspeed)
-
   EndWhile
-
   If key = "Escape" Then
-
     exiting = "True"
-
   EndIf
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub SetupTitleCrawl
-
   'A slightly simplified version of the credit clawl
-
   GraphicsWindow.BackgroundColor = "White"
-
   msgCnt = 0
-
   GraphicsWindow.BrushColor = "white"
-
   msgPos = 1
-
   messages = "Keys: Left, Right, Up -- <Escape> to exit`10`SBJump`50'"
-
   While msgPos < Text.GetLength(messages)
-
     msgCnt = msgCnt + 1
-
     messages = Text.GetSubTextToEnd(messages,msgPos)
-
     msgPos = Text.GetIndexOf(messages,"`")
-
     msgNxt = Text.GetSubText(messages,1,msgPos - 1)
-
     GraphicsWindow.FontSize = Text.GetSubText(messages,msgPos+1,2)
-
     msgPos = msgPos + 4
-
     shps[msgCnt] = Shapes.AddText(msgNxt)
-
   EndWhile
-
   
-
   'Initial Credit Locations
-
   goy = msgCnt * -65
-
   For i = 1 To msgCnt
-
     Shapes.Move(shps[i], 25, goy)
-
     goy = goy + 65
-
   EndFor
-
   FlashBackGround()
-
   tdy = 0
-
   tdx = 0.25
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub OpeningTitleCrawl
-
   'Only do this on power up.
-
   If flag = 0 then
-
     'Bonce the title down the screen
-
     tdy = tdy + 0.05
-
     If tdy > 3.2 Then 
-
       tdy = -1.6
-
     EndIf
-
     goy = goy + tdy
-
     If gox > 55 Or gox < 0 Then 
-
       tdx=tdx * -1
-
     EndIf
-
     gox = gox + tdx
-
     'Wrap at the edge of the screen
-
     If goy > GraphicsWindow.Height + (msgCnt * 50) + 50 Then
-
       goy = 0
-
     EndIf
-
     For i = 1 To msgCnt
-
       shpy = 65
-
       shpyOff = 0
-
       Shapes.Move(shps[i], gox, goy - (i * shpy) - shpyOff)
-
     EndFor
-
   Else
-
     If flag = 1 Then 
-
       For i = 1 To msgCnt
-
         Shapes.HideShape(shps[i])
-
       EndFor
-
     EndIf  
-
   EndIf
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub EnterInitials
-
   'Prompt for initials when a high score has been earned
-
   If exiting <> "True" then
-
     initials = ""
-
     curWid = 50
-
     curHei = 65
-
     promptx = (GraphicsWindow.Width / 2) - (((curWid + 5) * 3) / 2)
-
     prompty = (GraphicsWindow.Height / 2) - 100
-
     
-
     'Shapes used for consistantcy. Could easily have switch to drawtext.
-
     GraphicsWindow.BackgroundColor = "white"
-
     GraphicsWindow.FontName = "Tahoma"
-
     GraphicsWindow.BrushColor = "white"
-
     GraphicsWindow.FontSize = 20
-
     titleinitials1 = Shapes.AddText("Enter initials for the")
-
     GraphicsWindow.FontSize = 30
-
     titleinitials2 = Shapes.AddText("Leader Board")
-
     Shapes.Move(titleinitials1, 25, prompty - 100)
-
     Shapes.Move(titleinitials2, 25, prompty - 75)
-
     FlashBackGround()
-
     
-
     'Create the cursors. Overly complicated to avoid repeating code with only color changing.
-
     cclrString = "cyan;magenta;yellow;"
-
     ccpos = Text.GetIndexOf(cclrString,";")
-
     curcnt = 0
-
     While ccpos > 0
-
       cclrnam = Text.GetSubText(cclrString,1,ccpos-1)
-
       cclrString = Text.GetSubTextToEnd(cclrString,ccpos+1)
-
       ccpos = Text.GetIndexOf(cclrString,";")
-
       GraphicsWindow.PenColor = cclrnam
-
       GraphicsWindow.BrushColor = cclrnam
-
       curcnt = curcnt + 1
-
       cursor[curcnt] = Shapes.AddRectangle(curWid,curHei)
-
       Shapes.HideShape(cursor[curcnt])
-
     EndWhile
-
     
-
     GraphicsWindow.FontName = "Courier New"
-
     
-
     GraphicsWindow.FontBold = "True"
-
     GraphicsWindow.FontSize = 70
-
     
-
     cur = 1
-
     pressed = "False"
-
     pos = 0
-
     InitEntry = "true"
-
     While InitEntry = "True"
-
       Shapes.HideShape(cursor[cur])
-
       cur = cur + 1
-
       If cur > curcnt Then
-
         cur = 1
-
       EndIf
-
       
-
       If pressed = "True" Then 
-
         key = GraphicsWindow.LastKey
-
         If key = "Return" then
-
           InitEntry = "False"
-
         EndIf
-
         If key = "Space" then
-
           key = " "
-
         endif
-
         If Text.GetLength(key) = 2 and Text.GetSubText(key,1,1) = "D" then
-
           key = Text.GetSubTextToEnd(key,2)
-
         endif
-
         If (key = "Back" Or key = "Left") and pos > 0 then
-
           Shapes.HideShape(initialsShapes[pos])
-
           Shapes.HideShape(initialsShadows[pos])
-
           initials = Text.GetSubText(initials,1,Text.GetLength(initials)-1)
-
           pos = pos - 1
-
         ElseIf pos < 3 then
-
           If Text.GetLength(key) = 1 then
-
             keycode = Text.GetCharacterCode(key)
-
             If keycode >= 97 And keycode <= 122 then
-
               keycode = keycode - 32
-
             EndIf
-
             If keycode = 32 or (keycode >= 65 and keycode <= 90) or (keycode >= 48 and keycode < 57) then
-
               key = Text.GetCharacter(keycode)
-
               initials = initials + key
-
               GraphicsWindow.BrushColor = "darkgray"
-
               initialsShadows[pos+1] = Shapes.AddText(key)
-
               GraphicsWindow.BrushColor = "white"
-
               initialsShapes[pos+1] = Shapes.AddText(key)
-
               Shapes.Move(initialsShapes[pos+1],promptx + (((curWid + 5) * pos+1)) + 2,prompty)
-
               Shapes.Move(initialsShadows[pos+1],promptx + (((curWid + 5) * pos+1)) + 2 + 2,prompty + 2)
-
               pos = pos + 1
-
             endif
-
           EndIf
-
         endif
-
         pressed = "False"
-
       EndIf
-
       
-
       Shapes.Move(cursor[cur],promptx + ((curWid + 5) * pos),prompty+5)
-
       Shapes.ShowShape(cursor[cur])
-
       
-
       Program.Delay(50)
-
     EndWhile
-
     For ii = 1 To Text.GetLength(initials)
-
       Shapes.HideShape(initialsShapes[ii])
-
       Shapes.HideShape(initialsShadows[ii])
-
     EndFor
-
     For ii = 1 To curcnt
-
       Shapes.HideShape(cursor[ii])
-
     EndFor
-
     Shapes.HideShape(titleinitials1)
-
     Shapes.HideShape(titleinitials2)
-
     
-
   EndIf
-
 endsub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub SortScores
-
   'Once a new score has been added to the leader board,
-
   'place it in its correct location
-
   For si = 1 To 10 'a simple bubble sort
-
     For sj = 1 To 10
-
       If highscore[si] > highscore[sj] Then
-
         holdscore = highscore[si]
-
         holdlevel = highlevel[si]
-
         holdname = highname[si]
-
         highscore[si] = highscore[sj]
-
         highlevel[si] = highlevel[sj]
-
         highname[si] = highname[sj]
-
         highscore[sj] = holdscore
-
         highlevel[sj] = holdlevel
-
         highname[sj] = holdname
-
       EndIf
-
     EndFor
-
   EndFor      
-
 EndSub
-
-
 
 Sub FlashBackGround
-
   'flash the background to make the white to hide the shape build seem on purpose
-
   For i = 1 To 10
-
     GraphicsWindow.BackgroundColor = GraphicsWindow.GetRandomColor()
-
     Program.Delay(25)
-
   EndFor
-
   GraphicsWindow.BackgroundColor = "blue"
-
 EndSub 
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub UpdateExtraScores
-
   spos = 0
-
   fndPos = -1
-
   found = "False"
-
   While spos < extraCount And fndPos = -1
-
     spos = spos + 1
-
     If extraScore[spos] = score Then
-
       fndPos = spos
-
       found = "True"
-
     EndIf
-
     If score > extraScore[spos] Then
-
       fndPos = spos
-
     EndIf
-
   EndWhile
-
   If found = "False" Then
-
      extraCount = extraCount + 1
-
     If fndPos <> -1 Then
-
       For sei = extraCount To fndPos + 1 Step - 1
-
         extraScore[sei] = extraScore[sei - 1]
-
       EndFor
-
       extraScore[spos] = score
-
     Else
-
       extraScore[extraCount] = score
-
       fndPos = extraCount
-
     EndIf
-
   EndIf 
-
  EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub LoadHighScore
-
   'Load high score from file. If no file present, go with codingCat's high scores. 
-
   filename = Program.Directory + "\SBJumpScores.txt"
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '   highname[1] = File.ReadLine(filename,1)
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '   highscore[1] = File.ReadLine(filename,2)
-
   extraScore[1] = highscore[1]
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '   highlevel[1] = File.ReadLine(filename,3)
-
   If highscore[1] <= 0 Or highlevel[1] <=0 Then 'Gotta beat codingCat for the top spot :-)
-
     highname[1] = "cC"
-
     highscore[1] = 2453721060
-
     highlevel[1] = 38
-
     For ih = 2 To 10
-
       highname[ih] = "cC"
-
       highscore[ih] = 0
-
       extraScore[ih] = 0
-
       highlevel[ih] = 0      
-
     EndFor
-
     extraCount = 10
-
   Else
-
     For ih = 2 To 10
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '       highname[ih] = File.ReadLine(filename,((ih-1)*3)+1)
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '       highscore[ih] = File.ReadLine(filename,((ih-1)*3)+2)
-
       extraScore[ih] = highscore[ih]
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '       highlevel[ih] = File.ReadLine(filename,((ih-1)*3)+3)    
-
     EndFor
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '     extraCount = File.ReadLine(filename,31)
-
     For ih = 11 To extraCount
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '       extraScore[ih] = File.ReadLine(filename,31 - 10 + ih)
-
     EndFor
-
   EndIf
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub UpdateHighScore
-
   'If the current score beats the best, update the high score file
-
   If score > highscore[10] Then
-
     EnterInitials()
-
     highname[10] = initials
-
     highscore[10] = score
-
     highlevel[10] = level
-
     SortScores()
-
   EndIf
-
   UpdateExtraScores()
-
   filename = Program.Directory + "\SBJumpScores.txt"
-
   For ih = 0 To 9
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '     File.WriteLine(filename,(ih*3) + 1,highname[ih+1])
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '     File.WriteLine(filename,(ih*3) + 2,highscore[ih+1])
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '     File.WriteLine(filename,(ih*3) + 3,highlevel[ih+1])
-
   endfor
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '   File.WriteLine(filename, 31, extraCount)
-
   For ih = 11 To extraCount + 10
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' '     File.WriteLine(filename, 31 - 10 + ih, extraScore[ih])
-
   EndFor
-
 EndSub
 
-
-
 '----------------------------------------------------------------------------------
-
 '----------------------------------------------------------------------------------
-
 'Event Subroutines
 
-
-
 '----------------------------------------------------------------------------------
-
 Sub OnKeyDown
-
   'Take note of the fact that a key has been pressed
-
   pressed = "True"
-
 EndSub
-
-

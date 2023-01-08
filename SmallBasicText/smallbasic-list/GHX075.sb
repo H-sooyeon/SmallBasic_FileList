@@ -1,583 +1,291 @@
 ' Weigh Scale 0.1
-
 ' Copyright (c) 2012 Nonki Takahashi
-
 '
-
 ' History :
-
 ' 0.1 2012/07/14 Created
-
 '
-
 MAG = 5
-
 GraphicsWindow.Title = "Weigh Scale 0.1"
-
 wtApple = 300   ' [g]
-
 wtOrange = 200  ' [g]
-
 wtLimit = 3200  ' [g]
-
 wtMax = 5000    ' [g]
-
 nLine = 0
-
 DrawScale()
-
 nApple = Math.Floor(wtMax / wtApple)
-
 GraphicsWindow.PenColor = "DarkRed"
-
 j = 0 ' to calculate nABase (base number for apples)
-
 GraphicsWindow.FontSize = MAG * 2.5
-
 GraphicsWindow.FontName = "Consolas"
-
 For i = 1 To nApple
-
   j = j + i
-
   If j < nApple + (i + 1) Then
-
     nABase = i
-
   EndIf
-
   GraphicsWindow.BrushColor = "Red"
-
   oApple[i] = Shapes.AddEllipse(MAG * 14, MAG * 15)
-
   GraphicsWindow.BrushColor = "DarkRed"
-
   oAHull[i] = Shapes.AddText("l")
-
 EndFor
-
 nABase = nABase + 1
-
 h = 0
-
 w = 0
-
 x0 = 0
-
 y0 = GraphicsWindow.Height - MAG * 2
-
 For i = 1 To nApple
-
   w = w + 1
-
   x1 = x0 + w * MAG * 4 + h * MAG * 2
-
   y1 = y0 - MAG * (15 + h * 13) + 1
-
   Shapes.Move(oApple[i], x1, y1)
-
   Shapes.Move(oAHull[i], x1 + MAG * 6.5, y1 - MAG)
-
   uApple[i]["x"] = x1 ' unload position
-
   uApple[i]["y"] = y1
-
   If w >= nABase - h Then 
-
     h = h + 1
-
     w = 0
-
   EndIf
-
 EndFor
-
 h = 0
-
 w = 0
-
 x0 = x - MAG * 7.5 * nABase / 2
-
 y0 = y - MAG * 20
-
 For i = 1 To nApple
-
   w = w + 1
-
   x1 = x0 + w * MAG * 4 + h * MAG * 2
-
   y1 = y0 - MAG * (15 + h * 13) + 1
-
   lApple[nApple - i + 1]["x"] = x1 ' load position
-
   lApple[nApple - i + 1]["y"] = y1
-
   If w >= nABase - h Then 
-
     h = h + 1
-
     w = 0
-
   EndIf
-
 EndFor
-
 nOrange = Math.Floor(wtMax / wtOrange)
-
 GraphicsWindow.PenColor = "DarkOrange"
-
 GraphicsWindow.FontSize = MAG * 2.5
-
 GraphicsWindow.FontName = "Consolas"
-
 j = 0 ' to calculate nOBase (base number for oranges)
-
 For i = 1 To nOrange
-
   j = j + i
-
   If j < nOrange + (i + 1) Then 
-
     nOBase = i
-
   EndIf
-
   GraphicsWindow.BrushColor = "Orange"
-
   oOrange[i] = Shapes.AddEllipse(MAG * 13, MAG * 11)
-
   GraphicsWindow.BrushColor = "Green"
-
   oOHull[i] = Shapes.AddText("*")
-
 EndFor
-
 nOBase = nOBase + 1
-
 h = 0
-
 w = 0
-
 x0 = MAG * 4
-
 y0 = GraphicsWindow.Height - MAG * 2
-
 For i = 1 To nOrange
-
   w = w + 1
-
   x1 = x0 + w * MAG * 4 + h * MAG * 2
-
   y1 = y0 - MAG * (11 + h * 9) + 1
-
   Shapes.Move(oOrange[i], x1, y1)
-
   Shapes.Move(oOHull[i], x1 + MAG * 6, y1)
-
   uOrange[i]["x"] = x1 ' unload position
-
   uOrange[i]["y"] = y1
-
   If w >= nOBase - h Then 
-
     h = h + 1
-
     w = 0
-
   EndIf
-
 EndFor
-
 h = 0
-
 w = 0
-
 x0 = x - MAG * 5.5 * nOBase / 2
-
 y0 = y - MAG * 20
-
 For i = 1 To nOrange
-
   w = w + 1
-
   x1 = x0 + w * MAG * 4 + h * MAG * 2
-
   y1 = y0 - MAG * (11 + h * 9) + 1
-
   lOrange[nOrange - i + 1]["x"] = x1 ' load position
-
   lOrange[nOrange - i + 1]["y"] = y1
-
   If w >= nOBase - h Then 
-
     h = h + 1
-
     w = 0
-
   EndIf
-
 EndFor
-
 DrawLimit()
-
 For wt = 0 To 5000 Step 100
-
   DrawArm()
-
 EndFor
-
 For wt = 5000 To 0 Step -100
-
 EndFor
-
 wt = 0
-
 For iApple = 0 To nApple
-
   For iOrange = 1 To nOrange
-
     wt = wt + wtOrange
-
     DrawArm()
-
     LoadOrange()
-
     If wt = wtLimit Then
-
       ShowAnswer()
-
       UnloadOranges()
-
       Goto break
-
     ElseIf wt > wtLimit Then
-
       UnloadOranges()
-
       Goto break
-
     EndIf
-
   EndFor
-
 break:
-
   wt = wt + wtApple
-
   DrawArm()
-
   LoadApple()
-
   If wt = wtLimit Then
-
     ShowAnswer()
-
     Goto exit
-
   ElseIf wt > wtLimit Then
-
     Goto exit
-
   EndIf
-
 EndFor
-
 exit:
 
-
-
 Sub ShowAnswer
-
   ' param iApple - number of apple loaded
-
   ' param iOrange - number of orange loaded
-
   GraphicsWindow.FontSize = 14
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(10, 10 + nLine * 16, "Apple=" + iApple + ", Orange=" + iOrange)
-
   nLine = nLine + 1
-
   Program.Delay(500)
-
 EndSub
-
-
 
 Sub LoadApple
-
   ' param iApple - index to load
-
   x1 = lApple[nApple - iApple + 1]["x"]  ' load position
-
   y1 = lApple[nApple - iApple + 1]["y"]
-
   Shapes.Animate(oApple[nApple - iApple + 1], x1, y1, 400)
-
   Shapes.Animate(oAHull[nApple - iApple + 1], x1 + MAG * 6.5, y1 - MAG, 400)
-
   Program.Delay(400)
-
   RedrawApplesAndOranges()
-
 EndSub
-
   
-
 Sub LoadOrange
-
   ' param iOrange - index to load
-
   x1 = lOrange[nOrange - iOrange + 1]["x"]  ' load position
-
   y1 = lOrange[nOrange - iOrange + 1]["y"]
-
   Shapes.Animate(oOrange[nOrange - iOrange + 1], x1, y1, 400)
-
   Shapes.Animate(oOHull[nOrange - iOrange + 1], x1 + MAG * 6, y1, 400)
-
   Program.Delay(400)
-
   RedrawApplesAndOranges()
-
 EndSub
-
-
 
 Sub RedrawApplesAndOranges
-
   For i = 1 To iApple
-
     x1 = lApple[nApple - i + 1]["x"]    ' load position
-
     y1 = lApple[nApple - i + 1]["y"]
-
     Shapes.Move(oApple[nApple - i + 1], x1, y1 + MAG * dy)
-
     Shapes.Move(oAHull[nApple - i + 1], x1 + MAG * 6.5, y1 + MAG * (dy - 1))
-
   EndFor
-
   For i = 1 To iOrange
-
     x1 = lOrange[nOrange - i + 1]["x"]  ' load position
-
     y1 = lOrange[nOrange - i + 1]["y"]
-
     Shapes.Move(oOrange[nOrange - i + 1], x1, y1 + MAG * dy)
-
     Shapes.Move(oOHull[nOrange - i + 1], x1 + MAG * 6, y1 + MAG * dy)
-
   EndFor
-
 EndSub
-
-
 
 Sub UnloadOranges
-
   For iOrange = iOrange To 1 Step -1
-
     wt = wt - wtOrange
-
     DrawArm()
-
     UnloadOrange()
-
   EndFor
-
   RedrawApplesAndOranges()
-
 EndSub
-
-
 
 Sub UnloadOrange
-
   ' param iOrange - index to unload
-
   x1 = uOrange[nOrange - iOrange + 1]["x"]  ' unload position
-
   y1 = uOrange[nOrange - iOrange + 1]["y"]
-
   Shapes.Animate(oOrange[nOrange - iOrange + 1], x1, y1, 100)
-
   Shapes.Animate(oOHull[nOrange - iOrange + 1], x1 + MAG * 6, y1, 100)
-
   Program.Delay(100)
-
 EndSub
-
   
-
 Sub DrawScale
-
   ' return x, y - center of scale
-
   x = GraphicsWindow.Width * 0.7
-
   y = GraphicsWindow.Height * 0.8
-
   ' Draw cylinders and tray
-
   GraphicsWindow.PenColor = "Gray"
-
   GraphicsWindow.BrushColor = "Gray"
-
   oLCylinder = Shapes.AddRectangle(MAG, MAG * 5)
-
   oRCylinder = Shapes.AddRectangle(MAG, MAG * 5)
-
   Shapes.Move(oLCylinder, x - MAG * 4, y - MAG * 19)
-
   Shapes.Move(oRCylinder, x + MAG * 3, y - MAG * 19)
-
   oTray = Shapes.AddRectangle(MAG * 50, MAG)
-
   Shapes.Move(oTray, x - MAG * 25, y - MAG * 20 + 1)
-
   ' Draw body and foot
-
   GraphicsWindow.PenColor = "DarkCyan"
-
   GraphicsWindow.BrushColor = "DarkCyan"
-
   oBody = Shapes.AddRectangle(MAG * 14, MAG * 28)
-
   Shapes.Move(oBody, x - MAG * 7, y - MAG * 14)
-
   oFoot = Shapes.AddRectangle(MAG * 20, MAG * 2)
-
   Shapes.Move(oFoot, x - MAG * 10, y + MAG * 14 - 1)
-
   ' Draw disk and scale
-
   GraphicsWindow.PenColor = "Gray"
-
   GraphicsWindow.BrushColor = "White"
-
   oDisk = Shapes.AddEllipse(MAG * 24, MAG * 24)
-
   Shapes.Move(oDisk, x - MAG * 12, y - MAG * 12)
-
   GraphicsWindow.PenColor = "LightGray"
-
   For wt = 100 To wtMax Step 100
-
     l = MAG
-
     If Math.Remainder(wt, 500) = 0 Then
-
       l = MAG * 2
-
     EndIf
-
     oScale = Shapes.AddLine(0, 0, 0, l)
-
     a = wt / wtMax * 360  ' angle [degree]
-
     x1 = x + MAG * 10 * Math.Sin(a / 180 * Math.Pi)
-
     y1 = y - MAG * 10 * Math.Cos(a / 180 * Math.Pi) - l / 2
-
     Shapes.Move(oScale, x1, y1)
-
     Shapes.Rotate(oScale, a)
-
   EndFor  
-
   GraphicsWindow.BrushColor = "DimGray"
-
   GraphicsWindow.FontSize = MAG * 2
-
   For wt = 1000 To wtMax Step 1000
-
     oDigits = Shapes.AddText(wt)
-
     a = wt / wtMax * 360  ' angle [degree]
-
     x1 = x + MAG * 7 * Math.Sin(a / 180 * Math.Pi) - MAG * 1.4 * 2
-
     y1 = y - MAG * 7 * Math.Cos(a / 180 * Math.Pi) - MAG
-
     Shapes.Move(oDigits, x1, y1)
-
   EndFor  
-
   ' Draw arms
-
   GraphicsWindow.PenColor = "Red"
-
   oLimit = Shapes.AddLine(0, 0, 0, MAG * 10)
-
   Shapes.Move(oLimit, x, y - MAG * 10)
-
   GraphicsWindow.PenColor = "Black"
-
   oArm = Shapes.AddLine(0, 0, 0, MAG * 10)
-
   Shapes.Move(oArm, x, y - MAG * 10)
-
   GraphicsWindow.PenColor = "DarkCyan"
-
   GraphicsWindow.BrushColor = "DarkCyan"
-
   oSticker = Shapes.AddEllipse(MAG * 6, MAG * 6)
-
   Shapes.Move(oSticker, x - MAG * 3, y - MAG * 3)
-
 EndSub
-
-
 
 Sub DrawArm
-
   ' param x, y - center of scale
-
   ' param wt - weight [g]
-
   ' return dy - offset by weight
-
   a = wt / wtMax * 360  ' angle [degree]
-
   dy = 5 * wt / wtMax
-
   Shapes.Move(oLCylinder, x - MAG * 4, y - MAG * (19 - dy))
-
   Shapes.Move(oRCylinder, x + MAG * 3, y - MAG * (19 - dy))
-
   Shapes.Move(oTray, x - MAG * 25, y - MAG * (20 - dy) + 1)
-
   x1 = x + MAG * 5 * Math.Sin(a / 180 * Math.Pi)
-
   y1 = y - MAG * 5 * (Math.Cos(a / 180 * Math.Pi) + 1)
-
   Shapes.Move(oArm, x1, y1)
-
   Shapes.Rotate(oArm, a)
-
 EndSub
-
-
 
 Sub DrawLimit
-
   ' param x, y - center of scale
-
   ' param wtLimit - limit weight [g]
-
   a = wtLimit / wtMax * 360  ' angle [degree]
-
   x1 = x + MAG * 5 * Math.Sin(a / 180 * Math.Pi)
-
   y1 = y - MAG * 5 * (Math.Cos(a / 180 * Math.Pi) + 1)
-
   Shapes.Move(oLimit, x1, y1)
-
   Shapes.Rotate(oLimit, a)
-
 EndSub
-
-

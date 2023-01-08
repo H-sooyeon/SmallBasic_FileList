@@ -1,1277 +1,638 @@
 ' MasterMind Game
-
 ' Original by _paul_ (Visual Basic Version)
-
 ' Modified by Nonki Takahashi (Small Basic Version)
-
 ' Last update 2019-10-06
-
 ' Program ID GMV958-0
 
-
-
 Form_Load()
-
 While "True"
-
   If Controls_triggered Then
-
     Controls_Proc()
-
     If selectedIndexChanged Then
-
       Form_SelectedIndexChanged()
-
     EndIf
-
   ElseIf btnCheck_Clicked Then
-
     Form_btnCheck_Click()
-
     btnCheck_Clicked = "False"
-
   ElseIf btnNew_Clicked Then
-
     Form_btnNew_Click()
-
     btnNew_Clicked = "False"
-
   ElseIf Controls_mouseDown Then
-
     Peg_Click_Check()
-
     Controls_mouseDown = "False"
-
   Else
-
     Program.Delay(200)
-
   EndIf
-
 EndWhile
 
-
-
 Sub Dummy
-
   cms = "Not Used" 
-
 EndSub
-
-
 
 Sub Controls_AddComboBox
-
   ' param item - array of items
-
   ' param left - the x co-ordinate of the combo box
-
   ' param top - the y co-ordinate of the combo box
-
   ' return cbox - the combo box
-
   Stack.PushValue("local", i)
-
   nCBox = nCBox + 1
-
   fs = GraphicsWindow.FontSize
-
   cbProp[nCBox]["height"] = fs * 1.8
-
   nItem = Array.GetItemCount(item)
-
   cbProp[nCBox]["nItem"] = nItem
-
   cbProp[nCBox]["item"] = item
-
   widthMax = 0
-
   For i = 1 To nItem
-
     len = Text.GetLength(item[i])
-
     width = 0
-
     For j = 1 To len
-
       width = width + Math.Floor(luw[Text.GetSubText(item[i], j, 1)] * fs / 100)
-
     EndFor
-
     If widthMax < width Then
-
       widthMax = width
-
     EndIf
-
   EndFor
-
   tboxWidth = widthMax ' + fs
-
   cbProp[nCBox]["width"] = tboxWidth
-
   cbProp[nCBox]["x"] = left
-
   cbProp[nCBox]["y"] = top
-
   cbProp[nCBox]["tbox"] = Controls.AddTextBox(left, top)
-
   Controls.SetSize(cbProp[nCBox]["tbox"], tboxWidth, cbProp[nCBox]["height"])
-
   selectedIndex = 1
-
   Controls.SetTextBoxText(cbProp[nCBox]["tbox"], cbProp[nCBox]["item"][selectedIndex])
-
-  cbProp[nCBox]["btn"] = Controls.AddButton("?��", left + tboxWidth - 1, top)
-
+  cbProp[nCBox]["btn"] = Controls.AddButton("▾", left + tboxWidth - 1, top)
   Controls.SetSize(cbProp[nCBox]["btn"], fs * 1.8, cbProp[nCBox]["height"])
-
   cbox = "ComboBox" + nCBox
-
   Controls.ButtonClicked = Controls_OnButtonClicked
-
   GraphicsWindow.MouseMove = Controls_OnMouseMove
-
   GraphicsWindow.MouseDown = Controls_OnMouseDown
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Controls_Proc
-
   ' 
-
   selectedIndexChanged = "False"
-
   For i = 1 To nCBox
-
     If Controls.LastClickedButton = cbProp[i]["btn"] Then
-
       GraphicsWindow.PenColor = "Gray"
-
       GraphicsWindow.PenWidth = 1
-
       GraphicsWindow.BrushColor = "White"
-
       rect = Shapes.AddRectangle(cbProp[i]["width"], cbProp[i]["height"] * cbProp[i]["nItem"])
-
       Shapes.Move(rect, cbProp[i]["x"], cbProp[i]["y"] + cbProp[i]["height"] - 1)
-
       GraphicsWindow.BrushColor = "Black"
-
       For j = 1 To cbProp[i]["nItem"]
-
         it[j] = Shapes.AddText(cbProp[i]["item"][j])
-
         Shapes.Move(it[j], cbProp[i]["x"] + cbProp[i]["height"] * 0.3, cbProp[i]["y"] + (j + 0.2) * cbProp[i]["height"])
-
       EndFor
-
       Controls_mouseDown = "False"
-
       While Not[Controls_mouseDown]
-
         If Controls_mouseMove Then
-
           Controls_Select()
-
           Controls_mouseMove = "False"
-
         Else
-
           Program.Delay(200)
-
         EndIf
-
       EndWhile
-
       Controls_Select()
-
       Shapes.Remove(cbSelect)
-
       cbSelect = ""
-
       For j = 1 To cbProp[i]["nItem"]
-
         Shapes.Remove(it[j])
-
       EndFor
-
       Shapes.Remove(rect)
-
       If selected <> 0 Then
-
         lastItem = Controls.GetTextBoxText(cbProp[i]["tbox"])
-
         If lastItem <> cbProp[i]["item"][selected] Then
-
           Controls.SetTextBoxText(cbProp[i]["tbox"],cbProp[i]["item"][selected])
-
           selectedIndexChanged = "True"
-
           selectedIndex = selected
-
         EndIf
-
       EndIf
-
     EndIf
-
   EndFor
-
   Controls_triggered = "False"
-
 EndSub
-
-
 
 Sub Controls_Init
-
   Not = "False=True;True=False;"
-
   GraphicsWindow.FontName = "Lucida UI"
-
   GraphicsWindow.BrushColor = "Black"
-
   WQ = Text.GetCharacter(34)
-
   ' Lucida UI font width [px] table while the size (height) 100 [px]
-
   luw = " =60;!=65;" + WQ + "=82;#=92;$=90;%=119;&=117;'=62;(=69;)=69;"
-
   luw = luw + "*=78;+=103;,=59;-=73;.=59;/=77;0=90;1=90;2=90;3=90;4=90;"
-
   luw = luw + "5=90;6=90;7=90;8=90;9=90;:=59;\;=59;<=103;\==103;>=103;"
-
   luw = luw + "?=76;@=128;A=86;B=94;C=80;D=94;E=86;F=71;G=94;H=93;I=61;"
-
   luw = luw + "J=61;K=88;L=61;M=124;N=93;O=94;P=94;Q=94;R=72;S=76;T=71;"
-
   luw = luw + "U=93;V=87;W=112;X=88;Y=86;Z=80;[=69;\\=76;]=69;^=103;_=74;"
-
   luw = luw + "`=64;{=69;|=65;}=69;~=103; =60;¡=65;¢=90;£=90;¤=88;¥=90;"
-
   luw = luw + "¦=65;§=81;¨=79;©=120;ª=73;«=90;¬=103;­=32;®=120;¯=74;°=70;"
-
   luw = luw + "±=103;²=73;³=73;´=63;µ=94;¶=83;·=59;¸=54;¹=72;º=78;»=90;"
-
-  luw = luw + "¼=128;½=129;¾=130;¿=76;?=86;Á=86;Â=86;Ã=86;Ä=86;Å=86;Æ=115;"
-
+  luw = luw + "¼=128;½=129;¾=130;¿=76;À=86;Á=86;Â=86;Ã=86;Ä=86;Å=86;Æ=115;"
   luw = luw + "Ç=80;È=86;É=86;Ê=86;Ë=86;Ì=61;Í=61;Î=61;Ï=61;Ð=92;Ñ=93;Ò=93;"
-
   luw = luw + "Ó=93;Ô=93;Õ=93;Ö=93;×=103;Ø=94;Ù=93;Ú=93;Û=93;Ü=93;Ý=86;"
-
   luw = luw + "Þ=94;ß=95;÷=103;ÿ=86;"
-
   Controls_triggered = "False"
-
 EndSub
-
-
 
 Sub Controls_OnButtonClicked
-
   ' button handler for [Check] and [New Game] buttons and combo box
-
   btn = Controls.LastClickedButton
-
   If btn = btnCheck Then
-
     btnCheck_Clicked = "True"
-
   ElseIf btn = btnNew Then
-
     btnNew_Clicked = "True"
-
   Else
-
     Controls_triggered = "True"
-
   EndIf
-
 EndSub
-
-
 
 Sub Controls_OnMouseMove
-
   ' mouse move handler for combo box
-
   Controls_mx = GraphicsWindow.MouseX
-
   Controls_my = GraphicsWindow.MouseY
-
   Controls_mouseMove = "True"
-
 EndSub
-
-
 
 Sub Controls_OnMouseDown
-
   ' mouse down handler for combo box and peg
-
   Controls_mx = GraphicsWindow.MouseX
-
   Controls_my = GraphicsWindow.MouseY
-
   Controls_mouseDown = "True"
-
 EndSub
-
-
 
 Sub Controls_Select
-
   ' select an item from combo box menu
-
   ' return selected - item
-
   selected = 0
-
   If cbProp[i]["x"] <= Controls_mx And Controls_mx <= cbProp[i]["x"] + cbProp[i]["width"] Then
-
     For j = 1 To cbProp[i]["nItem"]
-
       y1 = cbProp[i]["y"] + j * cbProp[i]["height"]
-
       y2 = y1 + cbProp[i]["height"]
-
       If y1 <= Controls_my And Controls_my <= y2 Then
-
         GraphicsWindow.BrushColor = "#663399FF"
-
         GraphicsWindow.PenWidth = 0
-
         If cbSelect = "" Then
-
           cbSelect = Shapes.AddRectangle(cbProp[i]["width"], cbProp[i]["height"])
-
         EndIf
-
         Shapes.Move(cbSelect, cbProp[i]["x"], y1 - 1)
-
         selected = j
-
       EndIf
-
     EndFor
-
   EndIf
-
 EndSub
 
-
-
 ' ----------------------------------------------------------------
-
 ' Code (The pegPlace custom control):
-
 ' ----------------------------------------------------------------
-
 ' The rows of ellipses are actually controls derived from the Control Class with a 
-
 ' pegColor Property (which is initially set to Empty), and a Boolean property: 
-
 ' CMSEnabled:
 
-
-
 Sub Peg_Init
-
   pegColor = ""
-
   CMSEnabled = ""
-
 EndSub
 
-
-
 ' ...an overridden OnPaint event. (I eventually decided regular Green and Blue were  
-
 ' too dark, so I chose Lime and RoyalBlue instead):
 
-
-
 Sub Peg_OnPaint
-
   If visible[peg] Then
-
     GraphicsWindow.BrushColor = bg
-
     GraphicsWindow.FillRectangle(pegX[peg] - 1, pegY[peg] - 1, 17, 17)
-
     If pegColor[peg] = "Green" Then
-
       GraphicsWindow.BrushColor = "Lime"
-
     ElseIf pegColor[peg] = "Blue" Then
-
       GraphicsWindow.BrushColor = "RoyalBlue"
-
     Else
-
       GraphicsWindow.BrushColor = pegColor[peg]
-
     EndIf
-
     GraphicsWindow.FillEllipse(pegX[peg], pegY[peg], 15, 15)
-
     GraphicsWindow.PenWidth = 1
-
     GraphicsWindow.PenColor = black
-
     GraphicsWindow.DrawEllipse(pegX[peg], pegY[peg], 15, 15)
-
   EndIf
-
 EndSub 
-
-
 
 ' ...a reset method:
 
-
-
 Sub Peg_Reset
-
   pegColor[peg] = bg
-
   Peg_Invalidate()
-
 EndSub
-
-
 
 ' ...a ContextMenuStrip and some handlers and a public event:
 
-
-
 'Public Event colorSelected(sender As Object)
-
 'Private WithEvents cms As New ContextMenuStrip
 
-
-
 Sub Peg_ItemClicked
-
   ' param sender As Object
-
   ' param  e As EventArgs
-
   peg = sender
-
   c = toolStripMenuItem[peg][1]
-
   pegColor[peg] = c
-
   Peg_Invalidate()
-
   Form_ColorSelected()
-
 EndSub
-
-
 
 Sub Peg_CMS_Opening
-
   ' param sender As Object
-
   ' param e As System_ComponentModel_CancelEventArgs
-
   ' Handles cms_Opening
-
   e_Cancel = Not[CMSEnabled]
-
 EndSub 
-
-
 
 ' Notice how the ContextMenuStrip only opens for controls in the current line?
-
 ' In the itemClicked event, I raised an event to inform the parent control (Form1)  
-
 ' that color had been set for the pegPlace. On receiving that event notification,  
-
 ' the code in the form checks whether to enable btnCheck or not.
-
-' This code is duplicated in the control?�s MouseDown event, where you can click to  
-
+' This code is duplicated in the control’s MouseDown event, where you can click to  
 ' cycle through the colors:
 
-
-
 Sub Peg_OnMouseDown
-
   ' param e As MouseEventArgs
-
   If CMSEnabled[peg] Then 'And Mouse.IsLeftButtonDown Then
-
     colors = "1=Red;2=Green;3=Blue;4=Yellow;"
-
     Color_FromName = "Red=1;Green=2;Blue=3;Yellow=4;"
-
     index = 0
-
     For i = 1 To 4
-
       If pegColor[peg] = colors[i] Then
-
         index = i
-
         i = 4 ' exit For
-
       EndIf
-
     EndFor
-
     index = Math.Remainder(index, 4) + 1
-
     pegColor[peg] = colors[index]
-
     Peg_Invalidate()
-
     Form_ColorSelected()
-
   EndIf
-
 EndSub
-
-
 
 Sub Peg_Click_Check
-
   y = lineIndex
-
   For x = 1 To 6
-
     peg = lines[y][x]
-
     If visible[peg] Then
-
       x1 = pegX[peg]
-
       x2 = x1 + size[peg]["x"]
-
       y1 = pegY[peg]
-
       y2 = y1 + size[peg]["y"]
-
       mx = Controls_mx
-
       my = Controls_my
-
       If (x1 <= mx) And (mx <= x2) And (y1 <= my) And (my <= y2) Then
-
         sender = peg
-
         Peg_OnMouseDown()
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndSub
 
-
-
-' In the control?�s constructor, I set the size, and setup the ContextMenuStrip:
-
+' In the control’s constructor, I set the size, and setup the ContextMenuStrip:
 '
-
 ' A ContextMenuStrip_Items property contains objects of type: ToolStripMenuItem.
-
 ' In the code I added an array of ToolStripMenuItem, created from an array of  
-
 ' Strings, using the Array_ConvertAll Generic Method   with a Lambda Function to  
-
 ' convert each string to a ToolStripMenuItem, using the ToolStripMenuItem  
-
 ' OverLoad that takes a String (the text), an Image (unused in my implementation),
-
 ' and an EventHandler (the common itemClicked Sub-Procedure):
 
-
-
 Sub Peg_New
-
   size[peg] = "x=16;y=16;"
-
   contextMenuStrip[peg] = cms
-
   toolStripMenuItem[peg] = "1=Red;2=Green;3=Blue;4=Yellow;"
-
 EndSub
-
-
 
 Sub Peg_Invalidate
-
   Peg_OnPaint()
-
 EndSub
 
-
-
 ' ----------------------------------------------------------------
-
 ' Code (The Form):
-
 ' ----------------------------------------------------------------
-
 ' In the Load event, I load some arrays (which are reference types  ) and add the 
-
 ' pegPlace colorSelected event handler, which enables or disables btnCheck. Setting 
-
 ' the ToolStripComboBox_SelectedIndex sets up the UI and the call to newGame() 
-
 ' initializes the variables for gameplay:
-
 '
-
 ' The winning line array is a string array, which contains the current random 
-
 ' winning sequence of colors. Colors are assigned with a Form level Random object, 
-
 ' ensuring maximum randomness (see: Random Class  and: Random Constructor (Int32) ):
 
-
-
 Sub Form_Load
-
   ' param sender As Object
-
   ' param e As EventArgs
-
   ' Handles MyBase_Load
-
   title = "mastermind"
-
   GraphicsWindow.Title = title
-
   black = "#CC000000"
-
   bg = "#EEEEEE"
-
   GraphicsWindow.BackgroundColor = bg
-
   Controls_Init()
-
   gw = 154
-
   gh = 329
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   item = "1=Beginner;2=Intermediate;3=Advanced;"
-
   left = 12
-
   top = 10
-
   Controls_AddComboBox()
-
   scoreLine = "1=1;2=2;3=3;4=4;5=37;6=38;"
-
   lines[1] = "1=5;2=6;3=7;4=8;5=39;6=40;"
-
   lines[2] = "1=9;2=10;3=11;4=12;5=41;6=42;"
-
   lines[3] = "1=13;2=14;3=15;4=16;5=43;6=44;"
-
   lines[4] = "1=17;2=18;3=19;4=20;5=45;6=46;"
-
   lines[5] = "1=21;2=22;3=23;4=24;5=47;6=48;"
-
   lines[6] = "1=25;2=26;3=27;4=28;5=49;6=50;"
-
   lines[7] = "1=29;2=30;3=31;4=32;5=51;6=52;"
-
   lines[8] = "1=33;2=34;3=35;4=36;5=53;6=54;"
-
   lines[9] = "1=55;2=56;3=57;4=58;5=59;6=60;"
-
   lines[10] = "1=61;2=62;3=63;4=64;5=65;6=66;"
-
   lines[11] = "1=67;2=68;3=69;4=70;5=71;6=72;"
-
   lines[12] = "1=73;2=74;3=75;4=76;5=77;6=78;"
-
   gx = left
-
   gy = top + 32
-
   For x = 1 To 6
-
     peg = scoreLine[x]
-
     Peg_New()
-
     pegX[peg] = gx
-
     pegY[peg] = gy
-
     gx = gx + size[peg]["x"] * 1.5
-
   EndFor
-
   gy = gy + size[peg]["y"] * 2
-
   For y = 1 To 12
-
     gx = left
-
     For x = 1 To 6
-
       peg = lines[y][x]
-
       Peg_New()
-
       pegX[peg] = gx
-
       pegY[peg] = gy
-
       gx = gx + size[peg]["x"] * 1.5
-
     EndFor 
-
     gy = gy + size[peg]["y"] * 1.5
-
   EndFor
-
   GraphicsWindow.BrushColor = "Black"
-
   btnCheck = Controls.AddButton("Check", left, gy)
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "#99" + Text.GetSubText(bg, 2, 6)
-
   btnCheckDisabled = Shapes.AddRectangle(100, 26)
-
   Shapes.Move(btnCheckDisabled, left, gy)
-
   gy = gy + 30
-
   GraphicsWindow.BrushColor = "Black"
-
   btnNew = Controls.AddButton("New Game", left, gy)
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "#99" + Text.GetSubText(bg, 2, 6)
-
   btnNewDisabled = Shapes.AddRectangle(100, 26)
-
   Shapes.Move(btnNewDisabled, left, gy)
-
   Form_SelectedIndexChanged()
-
 EndSub
-
-
 
 Sub Form_ColorSelected
-
   '  param sender As Object
-
   For y = 1 To 12
-
     For x = 1 To 6
-
       If sender = lines[y][x] Then
-
         containsAll = "True"
-
         For i = 1 To level
-
           _peg = lines[y][i]
-
           If pegColor[_peg] = bg Then
-
             containsAll = "False"
-
           EndIf
-
         EndFor
-
         If containsAll Then
-
           Shapes.HideShape(btnCheckDisabled)
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub Form_SelectedIndexChanged
-
   ' param sender As Object
-
   ' param e As EventArgs
-
   ' Handles ToolStripComboBox1_SelectedIndexChanged
-
   level = selectedIndex + 3
-
   levelSizes[1] = "x=154;y=329;"
-
   levelSizes[2] = "x=176;y=373;"
-
   levelSizes[3] = "x=192;y=416;"
-
   gw = levelSizes[selectedIndex]["x"]
-
   GraphicsWindow.Width = gw
-
   gh = levelSizes[selectedIndex]["y"]
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BrushColor = bg
-
   GraphicsWindow.FillRectangle(0, 0, gw, gh)
-
   
-
   For x = 1 To 6
-
     peg = scoreLine[x]
-
     If x <= level Then
-
       visible[peg] = "True"
-
     Else
-
       visible[peg] = "False"
-
     EndIf
-
   EndFor 
-
   For y = 1 To 12
-
     For x = 1 To 6
-
       peg = lines[y][x]
-
       If (y <= level * 2) And (x <= level) Then
-
         visible[peg] = "True"
-
       Else
-
         visible[peg] = "False"
-
       EndIf
-
     EndFor
-
     If y <= level * 2 Then
-
       gy = pegY[peg] + size[peg]["y"] * 1.5
-
     EndIf
-
   EndFor
-
   Controls.Move(btnCheck, left, gy)
-
   Shapes.Move(btnCheckDisabled, left, gy)
-
   gy = gy + 30
-
   Controls.Move(btnNew, left, gy)
-
   Shapes.Move(btnNewDisabled, left, gy)
-
   Form_NewGame()
-
 EndSub  
 
-
-
 Sub Form_NewGame
-
   colors = "1=Red;2=Green;3=Blue;4=Yellow;"
-
   winningLine = ""
-
   For x = 1 To level
-
     winningLine[x] = colors[Math.GetRandomNumber(4)]
-
   EndFor
-
   lineIndex = level * 2
-
   Form_broadcastCMSEnabled()
-
   clues = ""
-
   For x = 1 To 6
-
     peg = scoreLine[x]
-
     Peg_Reset()
-
   EndFor 
-
   For y = 1 To 12
-
     For x = 1 To 6
-
       peg = lines[y][x]
-
       Peg_Reset()
-
     EndFor 
-
   EndFor 
-
   Shapes.ShowShape(btnCheckDisabled)
-
   Shapes.ShowShape(btnNewDisabled)
-
   Form_Invalidate()
-
 EndSub 
 
-
-
 '...The feedback scores are stored in an array of structure (again a Reference Type  
-
 ' array, although each element is a Value Type), with one element for each row of 
-
-' pegPlaces. This array is used in the Form?�s Paint event, where the feedback 
-
+' pegPlaces. This array is used in the Form’s Paint event, where the feedback 
 ' ellipses are drawn directly on the form:
 
-
-
 Sub Form_Paint
-
   ' param sender As Object
-
   ' param e As PaintEventArgs
-
   ' Handles Me_Paint
-
   GraphicsWindow.PenWidth = 3
-
   GraphicsWindow.PenColor = black
-
   GraphicsWindow.DrawLine(12, 65, gw - 12, 65)
-
   If level = 6 Then
-
     positions[1] = "x=8;y=2;"
-
     positions[2] = "x=13;y=2;"
-
     positions[3] = "x=18;y=2;"
-
     positions[4] = "x=8;y=7;"
-
     positions[5] = "x=13;y=7;"
-
     positions[6] = "x=18;y=7;"
-
   ElseIf level = 5 Then
-
     positions[1] = "x=8;y=2;"
-
     positions[2] = "x=13;y=2;"
-
     positions[3] = "x=18;y=5;"
-
     positions[4] = "x=8;y=7;"
-
     positions[5] = "x=13;y=7;"
-
   Else
-
     positions[1] = "x=8;y=2;"
-
     positions[2] = "x=13;y=2;" 
-
     positions[3] = "x=8;y=7;"
-
     positions[4] = "x=13;y=7;"
-
   EndIf
-
   For y = 12 To 1 Step -1
-
     peg = lines[y][1]
-
     If visible[peg] Then 
-
       For x = 1 To level
-
         fillColor = "" 
-
         If x <= clues[y]["black"] Then 
-
           fillColor = "Black"
-
         Else 
-
           If x <= clues[y]["black"] + clues[y]["red"] Then 
-
             fillColor = "Red"
-
           EndIf 
-
         EndIf 
-
         peg = lines[y][level]
-
         right = pegX[peg] + size[peg]["x"]
-
         top = pegY[peg]
-
         If x = 1 Then
-
           GraphicsWindow.BrushColor = bg
-
           GraphicsWindow.FillRectangle(right, top + 2, 22, 11) 
-
         EndIf
-
         If fillColor <> "" Then
-
           GraphicsWindow.BrushColor = fillColor
-
           GraphicsWindow.FillEllipse(right + positions[x]["x"], top + positions[x]["y"] + 2, 3, 3)
-
         EndIf 
-
         GraphicsWindow.PenColor = black
-
         GraphicsWindow.PenWidth =  1
-
         GraphicsWindow.DrawEllipse(right + positions[x]["x"], top + positions[x]["y"] + 2, 3, 3)
-
       EndFor 
-
     EndIf
-
   EndFor 
-
 EndSub
-
-
 
 ' ...The btnCheck Click event checks the guessed sequence of colors against the 
-
 ' winning sequence of colors. During this checking, the feedback for the row being 
-
 ' checked is calculated, then the Paint event is invoked (Control_Invalidate Method) 
-
 ' to draw the feedback on the form.
-
 ' Also in this event, the app. checks if the game is over, either as a result of a 
-
 ' correct guess, or because the eight, ten, or twelve guesses have been unsuccessful. 
-
 ' The two Buttons, btnCheck, and btnNew are enabled or disabled in this event, 
-
 ' depending on the state of play:
 
-
-
 Sub Form_btnCheck_Click
-
   ' param sender As Object
-
   ' param e As EventArgs
-
   ' Handles btnCheck_Click
-
   line = ""
-
   clues[lineIndex] = "black=0;red=0;"
-
   countB = 0
-
   countR = 0
-
   For x = 1 To level
-
     peg = lines[lineIndex][x]
-
     lineColors[x] = pegColor[peg]
-
     If winningLine[x] = lineColors[x] Then
-
       countB = countB + 1
-
     EndIf
-
   EndFor
-
   For x = 1 To level
-
     If winningLine[x] <> lineColors[x] Then
-
       For x2 = 1 To level
-
         If (winningLine[x2] <> lineColors[x2]) And (winningLine[x] = lineColors[x2]) Then 
-
           temp = lineColors[x]
-
           lineColors[x] = lineColors[x2]
-
           countR = countR + 1
-
           lineColors[x2] = temp
-
           If winningLine[x2] = lineColors[x2] Then 
-
             countR = countR + 1
-
           EndIf 
-
         EndIf 
-
       EndFor 
-
     EndIf
-
   EndFor
-
   clues[lineIndex]["black"] = countB
-
   clues[lineIndex]["red"] = countR
-
   Form_Invalidate()
-
   If clues[lineIndex]["black"] = level Then 
-
     GraphicsWindow.ShowMessage("You've won!", title)
-
     lineIndex = 0
-
     Form_broadcastCMSEnabled()
-
     Shapes.HideShape(btnNewDisabled)
-
     Shapes.ShowShape(btnCheckDisabled)
-
   Else
-
     Shapes.ShowShape(btnCheckDisabled)
-
     lineIndex = lineIndex - 1
-
     Form_broadcastCMSEnabled()
-
     If lineIndex = 0 Then 
-
       GraphicsWindow.ShowMessage("You've lost!", title)
-
       Shapes.HideShape(btnNewDisabled)
-
     Else 
-
       Goto FbCC_Return
-
     EndIf 
-
   EndIf 
-
   For x = 1 To level
-
     peg = scoreLine[x]
-
     pegColor[peg] = winningLine[x]
-
     Peg_Invalidate()
-
   EndFor
-
   FbCC_Return:
-
 EndSub
-
-
 
 Sub Form_Invalidate
-
   Form_Paint()
-
 EndSub
 
-
-
-' ...This method is used after each line is checked to change all of the pegPlaces?? 
-
+' ...This method is used after each line is checked to change all of the pegPlaces’ 
 ' CMSEnabled property:
 
-
-
 Sub Form_broadcastCMSEnabled
-
   ' param lineIndex
-
   For y = 1 To 12
-
     For x = 1 To 6
-
       peg = lines[y][x]
-
       If y = lineIndex Then
-
         CMSEnabled[peg] = "True"
-
       Else
-
         CMSEnabled[peg] = "False"
-
       EndIf
-
     EndFor 
-
   EndFor 
-
 EndSub
-
-
 
 ' ...The btnNew Click event calls newGame() which puts a new random sequence
-
 ' of colors in the winningLine array, then resets all of the Class level variables 
-
 ' back to their original state, for a fresh start:
 
-
-
 Sub Form_btnNew_Click
-
   ' param sender As Object
-
   ' param e As EventArgs
-
   ' Handles btnNew_Click
-
   Form_NewGame()
-
 EndSub
-
-

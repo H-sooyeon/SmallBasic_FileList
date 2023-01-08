@@ -1,5183 +1,2591 @@
 ' Small SVG Editor
-
 ' Copyright © 2012-2014 Nonki Takahashi.  The MIT License.
-
 ' Version 1.97b
-
 ' Repository https://git01.codeplex.com/smallsvgeditor
-
 ' Last update 2014-12-20
-
 ' Program ID TLW744-7
-
 ' * comment lines removed to Publish
-
 title = "Small SVG Editor 1.97b"
-
 GraphicsWindow.Title = title
-
 debug = "False"
-
 SB_Workaround()
-
 gw = 598
-
 gh = 428
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 Not = "False=True;True=False;"
-
 WQ = Text.GetCharacter(34)
-
 qt = WQ
-
 CR = Text.GetCharacter(13)
-
 LF = Text.GetCharacter(10)
-
 LT = "<"
-
 UPPER = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 LOWER = "abcdefghijkomnopqrstuvwxyz"
-
 DIGIT = "0123456789"
-
 LCHAR = UPPER + LOWER + "_"
-
 TCHAR = LCHAR + DIGIT
-
 Popup_Init()
-
 CS_InitPalette()          ' initialize palette for color slider
-
 DrawMenu()
-
 shape = ""
-
 nShapes = 0
-
 cont = "True"             ' continue
-
 Mouse_Init()
-
 KB_Init()
-
 param = "down=True;move=False;up=True;"     ' wait to click
-
 Mouse_SetHandler()
-
 While cont
-
   If clicked Then         ' mouse clicked
-
     DetectClickedObject()
-
     DoObject()
-
     param = "down=True;move=False;up=True;"
-
     Mouse_SetHandler()
-
   ElseIf in > out Then    ' key input buffer is not empty
-
     KB_InKey()
-
     If c = "^x" Then
-
       obj = "menu" + icut
-
       DoMenu()
-
     ElseIf c = "^c" Then
-
       obj = "menu" + icopy
-
       DoMenu()
-
     ElseIf c = "^v" Then
-
       obj = "menu" + ipaste
-
       DoMenu()
-
     ElseIf c = "DEL" Then
-
       If selectedshape <> "" Then
-
         DeleteSelectedShape()
-
         i = selectedshape
-
         select = "False"
-
         ShapeSelect()     ' removes pinches
-
       EndIf
-
     ElseIf c = "LEFT" Or c = "RIGHT" Or c = "UP" Or c="DOWN" Then
-
       If selectedshape <> "" Then
-
         i = selectedshape
-
         shp = shape[i]
-
         _x = shp["x"] + arrow_dx[c]
-
         _y = shp["y"] + arrow_dy[c]
-
         MoveShape()
-
       EndIf
-
     EndIf
-
     param = "down=True;move=False;up=True;"
-
     Mouse_SetHandler()
-
   Else
-
     Program.Delay(100)
-
   EndIf
-
 EndWhile
-
 Sub CalcDetectBorder
-
   shp = shape[i]
-
   If shp["func"] = "line" Then           ' line
-
     x = shp["x2"] - shp["x1"]
-
     y = shp["y2"] - shp["y1"]
-
     Math_CartesianToPolar()
-
     If 180 <= a Then
-
       a = a - 180
-
     EndIf
-
     shp["angle"] = a
-
     cx = shp["x"] + Math.Abs(x) / 2
-
     cy = shp["y"] + Math.Abs(y) / 2
-
     len = Math.SquareRoot(x * x + y * y)
-
     shp["_x0"] = Math.Floor(cx - len / 2)
-
     shp["_x1"] = Math.Floor(cx + len / 2)
-
     shp["_y0"] = cy - 4
-
     shp["_y1"] = cy + 4
-
   Else                                   ' rectangle, ellipse or triangle
-
     If shp["func"] = "tri" Then          ' triangle
-
       shp["width"] = shp["x3"]
-
       shp["height"] = shp["y2"]
-
     EndIf
-
     shp["_x0"] = shp["x"]
-
     shp["_y0"] = shp["y"]
-
     shp["_x1"] = shp["x"] + shp["width"]
-
     shp["_y1"] = shp["y"] + shp["height"]
-
   EndIf
-
   shape[i] = shp
-
 EndSub
-
 Sub CalcPinchPos
-
   shp = shape[i]
-
   _x = shp["x"]
-
   _y = shp["y"]
-
   width = shp["width"]
-
   height = shp["height"]
-
   angle = shp["angle"]
-
   param = "width=0;height=0;angle=" + angle + ";"
-
   param["cx"] = _x + width / 2
-
   param["cy"] = _y + height / 2
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   Stack.PushValue("local", _x)
-
   Stack.PushValue("local", _y)
-
   param["x"] = param["cx"]
-
   param["y"] = param["cy"] - 10
-
   Shapes_CalcRotatePos()
-
   mxM = x
-
   myM = y
-
   _y = Stack.PopValue("local")
-
   _x = Stack.PopValue("local")
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
 EndSub
-
 Sub CalcVertexes
-
   shp = shape[selectedshape]
-
   If shp["func"] = "line" Then
-
     If i = 1 Then
-
       mxM = shp["x"] + shp["x1"]
-
       myM = shp["y"] + shp["y1"]
-
       mxD = shp["x"] + shp["x2"]
-
       myD = shp["y"] + shp["y2"]
-
     ElseIf i = 2 Then
-
       mxM = shp["x"] + shp["x2"]
-
       myM = shp["y"] + shp["y2"]
-
       mxD = shp["x"] + shp["x1"]
-
       myD = shp["y"] + shp["y1"]
-
     EndIf
-
   Else
-
     mxM = shp["x"]
-
     myM = shp["y"]
-
     mxD = mxM
-
     myD = myM
-
     If i = 1 Or i = 3 Then
-
       mxD = mxD + shp["width"]
-
     EndIf
-
     If i = 1 Or i = 2 Then
-
       myD = myD + shp["height"]
-
     EndIf
-
     If i = 2 Or i = 4 Then
-
       mxM = mxM + shp["width"]
-
     EndIf
-
     If i = 3 Or i = 4 Then
-
       myM = myM + shp["height"]
-
     EndIf
-
     param = "x=" + mxD + ";y=" + myD + ";width=0;height=0;angle=" + angle
-
     param = param + ";cx=" + (mxD + mxM) / 2 + ";cy=" + (myD + myM) / 2 + ";"
-
     Shapes_CalcRotatePos()
-
     mxD = x
-
     myD = y
-
     param["x"] = mxM
-
     param["y"] = myM
-
     Shapes_CalcRotatePos()
-
     mxM = x
-
     myM = y
-
   EndIf
-
 EndSub  
-
 Sub DeleteSelectedShape
-
   shp = shape[selectedshape]
-
   Shapes.Remove(shp["obj"])
-
   nShapes = nShapes - 1
-
   For _i = selectedshape To nShapes
-
     shape[_i] = shape[_i + 1]
-
   EndFor
-
   shape[nShapes + 1] = ""
-
   selectedshape = ""
-
 EndSub
-
 Sub DetectClickedObject
-
   Stack.PushValue("local", i)
-
   obj = ""
-
   For i = 1 To nPinch
-
     pnch = pinch[i]
-
     If pnch["_x0"] <= mxD And mxD <= pnch["_x1"] And pnch["_y0"] <= myD And myD <= pnch["_y1"] Then
-
       obj = "pinch" + i
-
       Goto dco_exit
-
     EndIf
-
   EndFor
-
   For i = nShapes To 1 Step -1
-
     shp = shape[i]
-
     param = "x=" + mxD + ";y=" + myD + ";width=0;height=0;"
-
     param["cx"] = (shp["_x0"] + shp["_x1"]) / 2
-
     param["cy"] = (shp["_y0"] + shp["_y1"]) / 2
-
     param["angle"] = -shp["angle"]
-
     Shapes_CalcRotatePos()
-
     If shp["_x0"] <= x And x <= shp["_x1"] And shp["_y0"] <= y And y <= shp["_y1"] Then
-
       If shp["func"] = "rect" Or shp["func"] = "line" Then
-
         obj = "shape" + i
-
         Goto dco_exit
-
       ElseIf shp["func"] = "ell" Then
-
         x = (x - param["cx"]) / shp["width"] * 2
-
         y = (y - param["cy"]) / shp["height"] * 2
-
         r = Math.SquareRoot(x * x + y * y)
-
         If r <= 1 Then
-
           obj = "shape" + i
-
           Goto dco_exit
-
         EndIf
-
       ElseIf shp["func"] = "tri" Then
-
         x = (x - param["cx"]) / shp["width"] * 2
-
         y = (y - shp["_y1"]) / shp["height"]
-
         r = Math.Abs(x) + Math.Abs(y)
-
         If r <= 1 And y <= 0 Then
-
           obj = "shape" + i
-
           Goto dco_exit
-
         EndIf
-
       EndIf
-
     EndIf
-
   EndFor
-
   For i = 1 To nMenu
-
     mnu = menu[i]
-
     If mnu["func"] <> "" And mnu["_x0"] <= mxD And mxD <= mnu["_x1"] And mnu["_y0"] <= myD And myD <= mnu["_y1"] Then
-
       obj = "menu" + i
-
       Goto dco_exit
-
     EndIf
-
   EndFor
-
   dco_exit:
-
   If obj = "" And selectedshape <> "" Then
-
     i = selectedshape
-
     select = "False"
-
     ShapeSelect()
-
   EndIf
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub DoMenu                        ' if a menu item clicked do the funciton
-
   If Text.StartsWith(obj, "menu") Then
-
     param = "down=False;move=False;up=False;"   ' wait button pushed
-
     Mouse_SetHandler()
-
     i = Text.GetSubTextToEnd(obj, 5)
-
     obj = ""
-
     mnu = menu[i]
-
     func = mnu["func"]
-
     select = "True"
-
     ItemSelect()                  ' shows menu item frame
-
     If selecteditem = i And Text.IsSubText("rect|ell|tri|line", func) Then
-
       If mode = "repeat" Then
-
         mode = "single"
-
         Shapes.HideShape(repeat[func])
-
       Else
-
         mode = "repeat"
-
         Shapes.ShowShape(repeat[func])
-
       EndIf
-
     Else
-
       mode = "single"
-
     EndIf
-
     selecteditem = i
-
     If Text.IsSubText("open|save|cut|paste|rect|ell|tri|line", func) And selectedshape <> "" Then
-
       i = selectedshape
-
       select = "False"
-
       ShapeSelect()               ' removes pinches if a shape selected
-
       If func = "cut" Then
-
         selectedshape = i
-
       EndIf
-
     EndIf
-
     If func = "open" Then         ' open shapes from file
-
       ReadShapes()
-
     ElseIf func = "save" Then     ' save shapes to file
-
       WriteShapes()
-
     ElseIf func = "cut" Then
-
       If selectedshape <> "" Then
-
         clipboard = shape[selectedshape]
-
         DeleteSelectedShape()
-
       EndIf
-
     ElseIf func = "copy" Then
-
       If selectedshape <> "" Then
-
         clipboard = shape[selectedshape]
-
         index = "1=x;2=y;3=_x0;4=_x1;5=_y0;6=_y1;"
-
         For _i = 1 To 6
-
           clipboard[index[_i]] = clipboard[index[_i]] + 10
-
         EndFor
-
       EndIf
-
     ElseIf func = "paste" Then
-
       If clipboard <> "" Then
-
         nShapes = nShapes + 1
-
         shape[nShapes] = clipboard
-
         index = "1=x;2=y;3=_x0;4=_x1;5=_y0;6=_y1;"
-
         For _i = 1 To 6
-
           clipboard[index[_i]] = clipboard[index[_i]] + 10
-
         EndFor
-
         iMin = nShapes
-
         iMax = nShapes
-
         scale = 1
-
         shX = 0
-
         shY = 0
-
         Shapes_Add()
-
         i = nShapes
-
         select = "True"
-
         ShapeSelect()
-
       EndIf
-
     ElseIf func = "rect" Or func = "ell" Or func = "tri" Then
-
       While "True"
-
         WaitToClick()             ' to get mxD, myD
-
         DetectClickedObject()
-
         If Text.StartsWith(obj, "menu") Then
-
           Goto dm_exit            ' cancel to register shape
-
         EndIf
-
         obj = ""
-
         mxM = mxD
-
         myM = myD
-
         angle = 0
-
         WaitToReleaseS()          ' to get mxU, myU
-
         resize = "False"
-
         nShapes = nShapes + 1
-
         i = nShapes               ' to set shape[nShapes]
-
         RegisterShapeData()
-
         If w = 0 And h = 0 Then
-
           shape[i] = ""
-
           nShapes = nShapes - 1
-
           Goto dm_exit            ' cansel to register zero sized shape
-
         EndIf
-
         GraphicsWindow.BrushColor = bcolor
-
         GraphicsWindow.PenWidth = pwidth
-
         If pwidth > 0 Then
-
           GraphicsWindow.PenColor = pcolor
-
         EndIf
-
         shp = shape[nShapes]
-
         If func = "rect" Then
-
           shp["obj"] = Shapes.AddRectangle(w, h)
-
         ElseIf func = "ell" Then
-
           shp["obj"] = Shapes.AddEllipse(w, h)
-
         ElseIf func = "tri" Then
-
           shp["obj"] = Shapes.AddTriangle(xt, 0, 0, h, w, h)
-
         EndIf
-
         Shapes.Move(shp["obj"], xmin, ymin)
-
         shape[nShapes] = shp
-
         If mode = "single" Then
-
           Goto dm_exit
-
         EndIf
-
       EndWhile
-
     ElseIf func = "line" Then     ' line
-
       While "True"
-
         WaitToClick()             ' to get mxD, myD
-
         DetectClickedObject()
-
         If Text.StartsWith(obj, "menu") Then
-
           Goto dm_exit            ' cancel to register line
-
         EndIf
-
         obj = ""
-
         mxM = mxD
-
         myM = myD
-
         WaitToReleaseS()          ' to get mxU, myU
-
         nShapes = nShapes + 1
-
         i = nShapes               ' to set shape[nShapes]
-
         RegisterShapeData()
-
         If x1 = x2 And y1 = y2 Then
-
           shape[i] = ""
-
           nShapes = nShapes - 1
-
           Goto dm_exit            ' cansel to register zero sized line
-
         EndIf
-
         GraphicsWindow.BrushColor = bcolor
-
         GraphicsWindow.PenWidth = pwidth
-
         If pwidth > 0 Then
-
           GraphicsWindow.PenColor = pcolor
-
         EndIf
-
         shp = shape[nShapes]
-
         shp["obj"] = Shapes.AddLine(x1, y1, x2, y2)
-
         Shapes.Move(shp["obj"], xmin, ymin)
-
         shape[nShapes] = shp
-
         If mode = "single" Then
-
           Goto dm_exit
-
         EndIf
-
       EndWhile
-
     ElseIf func = "pw" Then       ' pen width
-
       If pen = nPen Then
-
         pen = 1
-
       Else
-
         pen = pen + 1
-
       EndIf
-
       pwidth = pw[pen]
-
       mnu = menu[i]
-
       x = mnu["_x0"]
-
       y = mnu["_y0"]
-
       size = mnu["_x1"] - x
-
       GraphicsWindow.BrushColor = "#EEEEEE"
-
       GraphicsWindow.FillRectangle(x, y, size, size)
-
       DrawMenuItem()
-
     ElseIf func = "pc" Then       ' pen color
-
       color = pcolor
-
       CS_ShowPopup()
-
       pcolor = color
-
       DrawMenuItem()
-
     ElseIf func = "bc" Then       ' brush color
-
       color = bcolor
-
       CS_ShowPopup()
-
       bcolor = color
-
       DrawMenuItem()
-
     ElseIf func = "gr" Then       ' grid
-
       grid = Not[grid]
-
       If grid Then
-
         colorGrid = "#EEEEEE"
-
         stepGrid = 10
-
         DrawGrid()
-
         colorGrid = "#AAAAAA"
-
         stepGrid = 50
-
         DrawGrid()
-
         colorGrid = "#666666"
-
         stepGrid = 100
-
         DrawGrid()
-
       Else
-
         GraphicsWindow.BrushColor = "White"
-
         GraphicsWindow.FillRectangle(0, sizeMenu + 20, gw, gh - sizeMenu - 20)
-
       EndIf
-
     ElseIf func = "menubar" And selectedshape <> "" Then
-
       i = selectedshape
-
       select = "False"
-
       ShapeSelect()
-
     EndIf
-
     If selectedshape <> "" And (func = "pw" Or func = "pc" Or func = "bc") Then
-
       i = selectedshape
-
       select = "False"
-
       ShapeSelect()
-
       shp = shape[i]
-
       If func = "pw" Then
-
         shp["pw"] = pwidth
-
       ElseIf func = "pc" Then
-
         shp["pc"] = pcolor
-
       ElseIf func = "bc" Then
-
         shp["bc"] = color
-
       EndIf
-
       shape[i] = shp
-
       iMin = i                    ' to re-size Shapes
-
       iMax = nShapes              ' to keep z-order of Shapes
-
       Shapes_Remove()
-
       scale = 1
-
       shX = 0
-
       shY = 0
-
       Shapes_Add()
-
       select = "True"
-
       ShapeSelect()
-
     EndIf
-
     dm_exit:
-
     i = selecteditem
-
     select = "False"
-
     ItemSelect()                  ' removes menu item frame
-
     If Text.IsSubText("rect|ell|tri|line", func) Then
-
       Shapes.HideShape(repeat[func])
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub DoObject
-
   While obj <> ""
-
     fromMenu = "False"
-
     DoMenu()
-
     If obj <> "" Then
-
       DoShape()
-
     EndIf
-
     If obj <> "" Then
-
       DoPinch()
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub DoPinch                     ' if a pinch clicked then rotate or re-size a shape
-
   If Text.StartsWith(obj, "pinch") Then
-
     i = Text.GetSubTextToEnd(obj, 6)
-
     obj = ""
-
     If i = 5 Then               ' rotate a shape
-
       i = selectedshape
-
       WaitToReleaseR()          ' to get angle
-
       shp = shape[i]
-
       Shapes.Rotate(shp["obj"], angle)
-
       shp["angle"] = Math.Floor(angle)
-
       shape[i] = shp
-
       select = "False"
-
       ShapeSelect()             ' remove pinches
-
       select = "True"
-
       ShapeSelect()             ' show pinches
-
     Else                        ' re-size a shape
-
       shp = shape[selectedshape]
-
       angle = shp["angle"]
-
       CalcVertexes()            ' to get mxM, myM, mxD, myD
-
       func = shp["func"]
-
       WaitToReleaseS()          ' to get mxU, myU
-
       i = selectedshape
-
       select = "False"
-
       ShapeSelect()             ' remove pinches
-
       RegisterShapeMetrics()    ' re-size shape[i]
-
       iMin = i                  ' to re-size Shapes
-
       iMax = nShapes            ' to keep z-order of Shapes
-
       Shapes_Remove()
-
       scale = 1
-
       shX = 0
-
       shY = 0
-
       Shapes_Add()
-
       select = "True"
-
       ShapeSelect()             ' show pinches
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub DoShape                     ' if a shape clicked then move it
-
   If Text.StartsWith(obj, "shape") Then
-
     If selectedshape <> "" Then ' if other shape selected
-
       i = selectedshape
-
       select = "False"
-
       ShapeSelect()             ' removes pinches
-
     EndIf
-
     i = Text.GetSubTextToEnd(obj, 6)  ' shape index
-
     select = "True"
-
     ShapeSelect()               ' shows pinches
-
     Mouse_SetHandler()
-
     WaitToReleaseM()            ' for moving a shape
-
     clicked = "False"
-
     obj = ""
-
   EndIf
-
 EndSub
-
 Sub DrawGrid
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = colorGrid
-
   For x = 0 To gw - 1 Step stepGrid
-
     GraphicsWindow.DrawLine(x, sizeMenu + 20, x, gh)
-
   EndFor
-
   For y = sizeMenu + 20 To gh - 1 Step stepGrid
-
     GraphicsWindow.DrawLine(0, y, gw, y)
-
   EndFor
-
 EndSub
-
 Sub DrawMenu
-
   pwidth = GraphicsWindow.PenWidth
-
   cxMenu = 6
-
   cyMenu = 6
-
   sizeMenu = 40
-
   nMenu = 13
-
   grid = "False"
-
   GraphicsWindow.BrushColor = "#EEEEEE"
-
   GraphicsWindow.FillRectangle(0, 0, gw, 20 + sizeMenu)
-
   pw = "1=2;2=4;3=8;4=16;5=0;6=1;"  ' pen width
-
   pen = 1                           ' pen width index
-
   nPen = 6                          ' number of pen width
-
   For i = 1 To nMenu
-
     xMenu = cxMenu + Math.Floor((i - 1) / 1) * (sizeMenu + 4)
-
     yMenu = cyMenu + Math.Remainder(i - 1, 1) * (sizeMenu + 14)
-
     GraphicsWindow.BrushColor = "#EEEEEE"
-
     GraphicsWindow.FillRectangle(xMenu, yMenu, sizeMenu, sizeMenu)
-
     mnu = menu[i]
-
     mnu["_x0"] = xMenu
-
     mnu["_y0"] = yMenu
-
     mnu["_x1"] = xMenu + sizeMenu
-
     mnu["_y1"] = yMenu + sizeMenu
-
     menu[i] = mnu
-
     DrawMenuItem()
-
   EndFor
-
   nMenu = nMenu + 1
-
   imenubar = nMenu
-
   mnu = menu[i]
-
   mnu["_x0"] = 0
-
   mnu["_y0"] = 0
-
   mnu["_x1"] = gw
-
   mnu["_y1"] = 20 + sizeMenu
-
   mnu["func"] = "menubar"
-
   menu[i] = mnu
-
 EndSub
-
 Sub DrawMenuItem
-
   margin = 4
-
   mnu = menu[i]
-
   x = mnu["_x0"]
-
   y = mnu["_y0"]
-
   size = mnu["_x1"] - x
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.PenWidth = 2
-
   GraphicsWindow.FontBold = "False"
-
   GraphicsWindow.FontSize = 8
-
   url = "http://www.nonkit.com/smallbasic.files/"
-
   If i = 1 Then
-
     mnu["func"] = "open"
-
     GraphicsWindow.DrawImage(url + "open.png", x, y)
-
     itemname[i] = "Open"
-
   ElseIf i = 2 Then
-
     mnu["func"] = "save"
-
     GraphicsWindow.DrawImage(url + "save.png", x, y)
-
     Program.Delay(msWait)       ' ? for Silverlight
-
     itemname[i] = "Save"
-
   ElseIf i = 3 Then
-
     icut = i                    ' for short cut key
-
     mnu["func"] = "cut"
-
     Shapes_Init()
-
     nShapes = Array.GetItemCount(shape)
-
     scale = 0.11
-
     iMin = 1
-
     iMax = nShapes
-
     Shapes_Add()
-
     x = x + 14
-
     Program.Delay(msWait)
-
     Shapes_Move()
-
     x = x - 14
-
     iMax = 3
-
     For t = 0 To 360 * 0.3
-
       angle = 30 - 30 * Math.Cos(t * Math.Pi / 180)
-
       Shapes_Rotate()
-
     EndFor
-
     itemname[i] = "Cut"
-
   ElseIf i = 4 Then
-
     icopy = i                   ' for short cut key
-
     mnu["func"] = "copy"
-
     GraphicsWindow.DrawImage(url + "copy.png", x, y)
-
     Program.Delay(msWait)       ' ? for Silverlight
-
     itemname[i] = "Copy"
-
   ElseIf i = 5 Then
-
     ipaste = i                  ' for short cut key
-
     mnu["func"] = "paste"
-
     GraphicsWindow.DrawImage(url + "paste.png", x, y)
-
     Program.Delay(msWait)       ' ? for Silverlight
-
     itemname[i] = "Paste"
-
   ElseIf i = 6 Then
-
     mnu["func"] = "rect"
-
     GraphicsWindow.DrawRectangle(x + margin, y + margin, size - margin * 2, size - margin * 2)
-
     itemname[i] = "Rectangle"
-
     repeat["rect"] = Shapes.AddImage(url + "repeat.png")
-
     Shapes.Move(repeat["rect"], x, y)   ' for consecutive shapes addition
-
     Shapes.HideShape(repeat["rect"])
-
   ElseIf i = 7 Then
-
     mnu["func"] = "ell"
-
     GraphicsWindow.DrawEllipse(x + margin, y + margin, size - margin * 2, size - margin * 2)
-
     itemname[i] = "Ellipse"
-
     repeat["ell"] = Shapes.AddImage(url + "repeat.png")
-
     Shapes.Move(repeat["ell"], x, y)    ' for consecutive shapes addition
-
     Shapes.HideShape(repeat["ell"])
-
   ElseIf i = 8 Then
-
     mnu["func"] = "tri"
-
     x1 = x + size / 2
-
     y1 = y + margin
-
     x2 = x + margin
-
     y2 = y + size - margin
-
     x3 = x + size - margin
-
     y3 = y + size - margin
-
     GraphicsWindow.DrawTriangle(x1, y1, x2, y2, x3, y3)
-
     itemname[i] = "Triangle"
-
     repeat["tri"] = Shapes.AddImage(url + "repeat.png")
-
     Shapes.Move(repeat["tri"], x, y)    ' for consecutive shapes addition
-
     Shapes.HideShape(repeat["tri"])
-
   ElseIf i = 9 Then
-
     mnu["func"] = "line"
-
     x1 = x + margin
-
     y1 = y + margin
-
     x2 = x + size - margin
-
     y2 = y + size - margin
-
     GraphicsWindow.DrawLine(x1, y1, x2, y2)
-
     itemname[i] = "Line"
-
     repeat["line"] = Shapes.AddImage(url + "repeat.png")
-
     Shapes.Move(repeat["line"], x, y)   ' for consecutive shapes addition
-
     Shapes.HideShape(repeat["line"])
-
   ElseIf i = 10 Then
-
     mnu["func"] = "pw"
-
     GraphicsWindow.PenWidth = pwidth
-
     x1 = x + margin
-
     y1 = y + size / 2
-
     x2 = x + size - margin
-
     y2 = y + size / 2
-
     GraphicsWindow.DrawLine(x1, y1, x2, y2)
-
     itemname[i] = "Pen Width"
-
   ElseIf i = 11 Then
-
     mnu["func"] = "pc"
-
     margin = 6
-
     GraphicsWindow.PenWidth = 4
-
     GraphicsWindow.PenColor = pcolor
-
     GraphicsWindow.DrawRectangle(x + margin, y + margin, size - margin * 2, size - margin * 2)
-
     itemname[i] = "Pen Color"
-
   ElseIf i = 12 Then
-
     mnu["func"] = "bc"
-
     GraphicsWindow.BrushColor = bcolor
-
     GraphicsWindow.FillRectangle(x + margin, y + margin, size - margin * 2, size - margin * 2)
-
     GraphicsWindow.PenColor = "Black"
-
     GraphicsWindow.PenWidth = 2
-
     GraphicsWindow.DrawRectangle(x + margin, y + margin, size - margin * 2, size - margin * 2)
-
     itemname[i] = "Brush Color"
-
   ElseIf i = 13 Then
-
     mnu["func"] = "gr"
-
     GraphicsWindow.PenColor = "#AAAAAA"
-
     GraphicsWindow.PenWidth = 1
-
     For _x = x + margin To x + size - margin Step (size - margin * 2) / 4
-
       GraphicsWindow.DrawLine(_x, y + margin, _x, y + size - margin)
-
     EndFor
-
     For _y = y + margin To y + size - margin Step (size - margin * 2) / 4
-
       GraphicsWindow.DrawLine(x + margin, _y, x + size - margin, _y)
-
     EndFor
-
     itemname[i] = "Grid"
-
   EndIf
-
   menu[i] = mnu
-
   If itemname[i] <> "" And oItem[i] = "" Then
-
     GraphicsWindow.BrushColor = "Black"
-
     oItem[i] = Shapes.AddText(itemname[i])
-
     Shapes.Move(oItem[i], x + margin, y + size)
-
   EndIf
-
   GraphicsWindow.FontBold = "True"
-
   GraphicsWindow.FontSize = 12
-
 EndSub
-
 Sub DumpShape
-
   TextWindow.WriteLine("shX=" + shX)
-
   TextWindow.WriteLine("shY=" + shY)
-
   For i = 1 To nShapes
-
     TextWindow.WriteLine("shape[" + i + "]:" + shape[i])
-
   EndFor
-
 EndSub
-
 Sub ItemSelect
-
   If i <> imenubar Then
-
     If select Then
-
       GraphicsWindow.PenColor = "Gray"
-
     Else
-
       GraphicsWindow.PenColor = "#EEEEEE"
-
     EndIf
-
     GraphicsWindow.PenWidth = 2
-
     mnu = menu[i]
-
     x = mnu["_x0"] - 1
-
     y = mnu["_y0"] - 1
-
     width = mnu["_x1"] - x + 1
-
     height = mnu["_y1"] - y + 1
-
     GraphicsWindow.DrawRectangle(x, y, width, height)
-
   EndIf
-
 EndSub
-
 Sub MoveShape
-
   shp = shape[i]
-
   dx = _x - shp["x"]
-
   dy = _y - shp["y"]
-
   shp["x"] = _x
-
   shp["y"] = _y
-
   shp["_x0"] = shp["_x0"] + dx
-
   shp["_x1"] = shp["_x1"] + dx
-
   shp["_y0"] = shp["_y0"] + dy
-
   shp["_y1"] = shp["_y1"] + dy
-
   shape[i] = shp
-
   Shapes.Move(shp["obj"], _x, _y)
-
   If shp["func"] = "line" Then
-
     _iMax = 2
-
   Else
-
     _iMax = 5
-
   EndIf
-
   For _i = 1 To _iMax
-
     pnch = pinch[_i]
-
     pnch["_x0"] = pnch["_x0"] + dx
-
     pnch["_x1"] = pnch["_x1"] + dx
-
     pnch["_y0"] = pnch["_y0"] + dy
-
     pnch["_y1"] = pnch["_y1"] + dy
-
     pinch[_i] = pnch
-
     Shapes.Move(pnch["obj"], pnch["_x0"], pnch["_y0"])
-
   EndFor
-
 EndSub
-
 Sub NormalizePos
-
   param = "x=" + mxD + ";y=" + myD + ";width=0;height=0;"
-
   param["cx"] = (mxD + mxM) / 2
-
   param["cy"] = (myD + myM) / 2
-
   param["angle"] = -angle
-
   Shapes_CalcRotatePos()
-
   _mxD = Math.Floor(x)
-
   _myD = Math.Floor(y)
-
   param["x"] = mxM
-
   param["y"] = myM
-
   Shapes_CalcRotatePos()
-
   _mxM = Math.Floor(x)
-
   _myM = Math.Floor(y)
-
 EndSub
-
 Sub ReadShapes
-
   File_Open()
-
   scale = 1
-
   iMin = nShapes + 1
-
   iMax = nShapes
-
   p = 1
-
   Parse_Header()
-
   Parse_Space()
-
   Parse_Defs()
-
   While match
-
     Parse_Space()
-
     Parse_Rect()
-
     If match Then
-
       iMax = iMax + 1
-
       shape[iMax] = shp
-
     EndIf
-
     If Not[match] Then
-
       Parse_Ellipse()
-
       If match Then
-
         iMax = iMax + 1
-
         shape[iMax] = shp
-
       EndIf
-
     EndIf
-
     If Not[match] Then
-
       Parse_Polygon()
-
       If match Then
-
         iMax = iMax + 1
-
         shape[iMax] = shp
-
       EndIf
-
     EndIf
-
     If Not[match] Then
-
       Parse_Line()
-
       If match Then
-
         iMax = iMax + 1
-
         shape[iMax] = shp
-
       EndIf
-
     EndIf
-
   EndWhile
-
   nShapes = iMax
-
   Parse_Use()
-
   Shapes_Add()
-
 EndSub
-
 Sub RegisterShapeData
-
   shp = shape[i]
-
   shp["func"] = func
-
   shape[i] = shp
-
   RegisterShapeStyle()
-
   RegisterShapeMetrics()
-
 EndSub
-
 Sub RegisterShapeMetrics
-
   shp = shape[i]
-
   If func = "line" Then           ' line
-
     xmin = Math.Min(mxD, mxU)
-
     ymin = Math.Min(myD, myU)
-
     xmax = Math.Max(mxD, mxU)
-
     ymax = Math.Max(myD, myU)
-
     x1 = mxD - xmin
-
     y1 = myD - ymin
-
     x2 = mxU - xmin
-
     y2 = myU - ymin
-
     shp["x1"] = x1
-
     shp["y1"] = y1
-
     shp["x2"] = x2
-
     shp["y2"] = y2
-
   Else                            ' rectangle, ellipse or triangle
-
     mxM = mxU
-
     myM = myU
-
     angle = shp["angle"]
-
     NormalizePos()
-
     xmin = Math.Min(_mxD, _mxM)
-
     ymin = Math.Min(_myD, _myM)
-
     xmax = Math.Max(_mxD, _mxM)
-
     ymax = Math.Max(_myD, _myM)
-
     w = xmax - xmin
-
     h = ymax - ymin
-
     shp["width"] = w
-
     shp["height"] = h
-
   EndIf
-
   shp["x"] = xmin
-
   shp["y"] = ymin
-
   If func = "tri" Then                    ' triangle
-
     xt = Math.Floor((xmax - xmin) / 2)    ' x top
-
     shp["x1"] = xt
-
     shp["y1"] = 0
-
     shp["x2"] = 0
-
     shp["y2"] = h
-
     shp["x3"] = w
-
     shp["y3"] = h
-
   EndIf
-
   shape[i] = shp
-
   CalcDetectBorder()
-
 EndSub
-
 Sub RegisterShapeStyle
-
   shp = shape[i]
-
   shp["pw"] = pwidth
-
   If pwidth > 0 Then
-
     shp["pc"] = pcolor
-
   Else
-
     shp["pc"] = ""
-
   EndIf
-
   If func <> "line" Then        ' rectangle, ellipse or triangle
-
     shp["bc"] = bcolor
-
   EndIf
-
   shape[i] = shp
-
 EndSub
-
 Sub ShapeSelect
-
   If select Then
-
     shp = shape[i]
-
     Stack.PushValue("local", x)
-
     Stack.PushValue("local", y)
-
     GraphicsWindow.PenColor = "Black"
-
     GraphicsWindow.PenWidth = 1
-
     sizePinch = 10
-
     selectedshape = i
-
     shX = shp["x"]
-
     shY = shp["y"]
-
     GraphicsWindow.BrushColor = "Lime"
-
     If shp["func"] = "line" Then
-
       nPinch = 2
-
       For _i = 1 To nPinch
-
         pnch = pinch[_i]
-
         pnch["obj"] = Shapes.AddEllipse(sizePinch, sizePinch)
-
         x = shX + shp["x" + _i] - sizePinch / 2
-
         y = shY + shp["y" + _i] - sizePinch / 2
-
         Shapes.Move(pnch["obj"], x, y)
-
         pnch["_x0"] = x
-
         pnch["_y0"] = y
-
         pnch["_x1"] = x + sizePinch
-
         pnch["_y1"] = y + sizePinch
-
         pinch[_i] = pnch
-
       EndFor
-
     Else
-
       pnch = pinch[5]
-
       pnch["obj"] = Shapes.AddEllipse(sizePinch, sizePinch)
-
       shWidth = shp["width"]
-
       shHeight = shp["height"]
-
       param["cx"] = shX + shWidth / 2
-
       param["cy"] = shY + shHeight / 2
-
       param["angle"] = shp["angle"]
-
       param["x"] = shX + shWidth / 2 - sizePinch / 2
-
       param["y"] = shY - 30 - sizePinch / 2
-
       param["width"] = sizePinch
-
       param["height"] = sizePinch
-
       Shapes_CalcRotatePos()
-
       Shapes.Move(pnch["obj"], x, y)
-
       pnch["_x0"] = x
-
       pnch["_y0"] = y
-
       pnch["_x1"] = x + sizePinch
-
       pnch["_y1"] = y + sizePinch
-
       pinch[5] = pnch
-
       nPinch = 5
-
       xPinch = "1=0;2=" + shWidth + ";3=0;4=" + shWidth + ";"
-
       yPinch = "1=0;2=0;3=" + shHeight + ";4=" + shHeight + ";"
-
       GraphicsWindow.BrushColor = "#639AE7"
-
       For _i = 1 To 4
-
         pnch = pinch[_i]
-
         pnch["obj"] = Shapes.AddEllipse(sizePinch, sizePinch)
-
         param["x"] = shX + xPinch[_i] - sizePinch / 2
-
         param["y"] = shY + yPinch[_i] - sizePinch / 2
-
         Shapes_CalcRotatePos()
-
         Shapes.Move(pnch["obj"], x, y)
-
         pnch["_x0"] = x
-
         pnch["_y0"] = y
-
         pnch["_x1"] = x + sizePinch
-
         pnch["_y1"] = y + sizePinch
-
         pinch[_i] = pnch
-
       EndFor
-
       shape[i] = shp
-
     EndIf
-
     y = Stack.PopValue("local")
-
     x = Stack.PopValue("local")
-
   Else
-
     selectedshape = ""
-
     For _i = 1 To nPinch
-
       pnch = pinch[_i]
-
       Shapes.Remove(pnch["obj"])
-
     EndFor
-
     nPinch = 0
-
   EndIf
-
 EndSub
-
 Sub WaitToClick
-
   param = "down=True;move=False;up=False;"     ' wait to click
-
   Mouse_SetHandler()
-
   While clicked = "False"
-
     Program.Delay(100)
-
   EndWhile
-
 EndSub
-
 Sub WaitToReleaseM ' for moving a shape
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.BrushColor = "White"
-
   param = "down=False;move=True;"   ' for moving a shape
-
   Mouse_SetHandler()
-
   shp = shape[i]
-
   func = shp["func"]
-
   _x = shp["x"]
-
   _y = shp["y"]
-
   shAngle = shp["angle"]
-
   mxM = mxD
-
   myM = myD
-
   moved = "True"
-
   While released = "False"
-
     If moved Then
-
       param = "move=False;"   ' while moving a shape
-
       Mouse_SetHandler()
-
       _x = shp["x"] + mxM - mxD
-
       _y = shp["y"] + myM - myD
-
       If oFrame[func] = "" Then
-
         If func = "rect" Then
-
           oFrame[func] = Shapes.AddRectangle(shp["width"], shp["height"])
-
         ElseIf func = "ell" Then
-
           oFrame[func] = Shapes.AddEllipse(shp["width"], shp["height"])
-
         ElseIf func = "tri" Then
-
           _x1 = shp["x1"]
-
           _y1 = shp["y1"]
-
           _x2 = shp["x2"]
-
           _y2 = shp["y2"]
-
           _x3 = shp["x3"]
-
           _y3 = shp["y3"]
-
           oFrame[func] = Shapes.AddTriangle(_x1, _y1, _x2, _y2, _x3, _y3)
-
         ElseIf func = "line" Then
-
           _x1 = shp["x1"]
-
           _y1 = shp["y1"]
-
           _x2 = shp["x2"]
-
           _y2 = shp["y2"]
-
           oFrame[func] = Shapes.AddLine(_x1, _y1, _x2, _y2)
-
           Shapes.SetOpacity(oFrame[func], 50)
-
         EndIf
-
       EndIf
-
       If func = "rect" Or func = "ell" Or func = "tri" Then
-
         Shapes.SetOpacity(oFrame[func], 0)
-
         Shapes.Move(oFrame[func], _x, _y)
-
         Shapes.Rotate(oFrame[func], shAngle)
-
         Shapes.SetOpacity(oFrame[func], 50)
-
       ElseIf func = "line" Then
-
         Shapes.Move(oFrame[func], _x, _y)
-
       EndIf
-
       param = "move=True;"   ' for next moving a shape
-
       Mouse_SetHandler()
-
     Else
-
       Program.Delay(100)
-
     EndIf
-
   EndWhile
-
   param = "move=False;up=False;"   ' mouse released
-
   Mouse_SetHandler()
-
   MoveShape()
-
   If oFrame[func] <> "" Then
-
     Shapes.Remove(oFrame[func])
-
     oFrame[func] = ""
-
   EndIf
-
 EndSub
-
 Sub WaitToReleaseR ' for rotating a shape
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.BrushColor = "White"
-
   param = "down=False;move=True;up=True;"   ' for rotating a shape / wait to release
-
   Mouse_SetHandler()
-
   CalcPinchPos()  ' into mxM, myM
-
   cx = param["cx"]
-
   cy = param["cy"]
-
   shp = shape[i]
-
   func = shp["func"]
-
   If func = "tri" Then
-
     x1 = shp["x1"]
-
     y1 = shp["y1"]
-
     x2 = shp["x2"]
-
     y2 = shp["y2"]
-
     x3 = shp["x3"]
-
     y3 = shp["y3"]
-
   EndIf
-
   moved = "True"
-
   If oFrame[func] <> "" Then
-
     Shapes.Remove(oFrame[func])
-
   EndIf
-
   If func = "rect" Then
-
     oFrame[func] = Shapes.AddRectangle(width, height)
-
   ElseIf func = "ell" Then
-
     oFrame[func] = Shapes.AddEllipse(width, height)
-
   ElseIf func = "tri" Then
-
     oFrame[func] = Shapes.AddTriangle(x1, y1, x2, y2, x3, y3)
-
   EndIf
-
   Shapes.SetOpacity(oFrame[func], 0)
-
   Shapes.Move(oFrame[func], _x, _y)
-
   While released = "False"
-
     If moved Then
-
       param = "move=False;"       ' while sizing a shape
-
       Mouse_SetHandler()
-
       x = mxM - cx
-
       y = myM - cy
-
       If x <> 0 Or y <> 0 Then
-
         Math_CartesianToPolar()
-
         angle = Math.Floor(a + 90)
-
         If angle >= 360 Then
-
           angle = angle - 360
-
         EndIf
-
       EndIf
-
       Shapes.Rotate(oFrame[func], angle)
-
       Shapes.SetOpacity(oFrame[func], 50)
-
       param = "move=True;"        ' for next sizing a shape
-
       Mouse_SetHandler()
-
     Else
-
       Program.Delay(100)
-
     EndIf
-
   EndWhile
-
   param = "move=False;up=False;"  ' mouse released
-
   Mouse_SetHandler()
-
   If oFrame[func] <> "" Then
-
     Shapes.Remove(oFrame[func])
-
     oFrame[func] = ""
-
   EndIf
-
 EndSub
-
 Sub WaitToReleaseS  ' for sizing a shape
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.BrushColor = "White"
-
   param = "down=False;move=True;up=True;"   ' for sizing a shape / wait to release
-
   Mouse_SetHandler()
-
   moved = "True"
-
   While released = "False"
-
     If moved Then
-
       param = "move=False;"   ' while sizing a shape
-
       Mouse_SetHandler()
-
       If func = "rect" Or func = "ell" Or func = "tri" Then
-
         If oFrame[func] <> "" Then
-
           Shapes.Remove(oFrame[func])
-
         EndIf
-
         NormalizePos()
-
         xmin = Math.Min(_mxD, _mxM)
-
         ymin = Math.Min(_myD, _myM)
-
         xmax = Math.Max(_mxD, _mxM)
-
         ymax = Math.Max(_myD, _myM)
-
         If func = "rect" Then
-
           oFrame[func] = Shapes.AddRectangle(xmax - xmin, ymax - ymin)
-
         ElseIf func = "ell" Then
-
           oFrame[func] = Shapes.AddEllipse(xmax - xmin, ymax - ymin)
-
         ElseIf func = "tri" Then
-
           oFrame[func] = Shapes.AddTriangle((xmax - xmin) / 2, 0, 0, ymax - ymin, xmax - xmin, ymax - ymin)
-
         EndIf
-
         Shapes.SetOpacity(oFrame[func], 0)
-
         Shapes.Move(oFrame[func], xmin, ymin)
-
         Shapes.Rotate(oFrame[func], angle)
-
         Shapes.SetOpacity(oFrame[func], 50)
-
       ElseIf func = "line" Then
-
         If oFrame[func] <> "" Then
-
           Shapes.Remove(oFrame[func])
-
         EndIf
-
         oFrame[func] = Shapes.AddLine(mxD, myD, mxM, myM)
-
         Shapes.SetOpacity(oFrame[func], 50)
-
       EndIf
-
       param = "move=True;"        ' for next sizing a shape
-
       Mouse_SetHandler()
-
     Else
-
       Program.Delay(100)
-
     EndIf
-
   EndWhile
-
   param = "move=False;up=False;"  ' mouse released
-
   Mouse_SetHandler()
-
   If oFrame[func] <> "" Then
-
     Shapes.Remove(oFrame[func])
-
     oFrame[func] = ""
-
   EndIf
-
 EndSub
-
 Sub WriteShapes
-
   Stack.PushValue("local", i)
-
   sp[4] = "    "
-
   sp[6] = "      "
-
   sp[8] = "        "
-
   buf = LT + "svg width=" + WQ + gw + WQ + " "
-
   buf = buf + "height=" + WQ + gh + WQ + ">" + CR + LF
-
   buf = buf + "  " + LT + "defs>" + CR + LF
-
   buf = buf + sp[4] + LT + "g id=" + WQ + "g1" + WQ + ">" + CR + LF
-
   If nShapes > 0 Then
-
     shp = shape[1]
-
     xmin = shp["x"]
-
     ymin = shp["y"]
-
     xmax = shp["x"]
-
     ymax = shp["y"]
-
   EndIf
-
   For i = 2 To nShapes
-
     shp = shape[i]
-
     If shp["x"] < xmin Then
-
       xmin = shp["x"]
-
     EndIf
-
     If shp["y"] < ymin Then
-
       ymin = shp["y"]
-
     EndIf
-
     If xmax < shp["x"] Then
-
       xmax = shp["x"]
-
     EndIf
-
     If ymax < shp["y"] Then
-
       ymax = shp["y"]
-
     EndIf
-
   EndFor
-
   For i = 1 To nShapes
-
     shp = shape[i]
-
     If shp["func"] = "rect" Then
-
       buf = buf + sp[6] + LT + "rect "
-
       buf = buf + "x=" + WQ + Math.Floor(shp["x"] + shp["pw"] / 2 - xmin) + WQ + " "
-
       buf = buf + "y=" + WQ + Math.Floor(shp["y"] + shp["pw"] / 2 - ymin) + WQ + " "
-
       buf = buf + "width=" + WQ + (shp["width"] - shp["pw"]) + WQ + " "
-
       buf = buf + "height=" + WQ + (shp["height"] - shp["pw"]) + WQ + " "
-
       If shp["angle"] <> 0 And shp["angle"] <> "" Then
-
         buf = buf + CR + LF + sp[8]
-
         buf = buf + "transform=" + WQ + "rotate(" + shp["angle"] + " "
-
         buf = buf + Math.Floor(shp["width"] / 2 + shp["x"] - xmin) + " "
-
         buf = buf + Math.Floor(shp["height"] / 2 + shp["y"] - ymin) + ")" + WQ + " "
-
       EndIf
-
       buf = buf + CR + LF + sp[8]
-
       buf = buf + "style=" + WQ + "fill:" + Text.ConvertToLowerCase(shp["bc"]) + ";"
-
     ElseIf shp["func"] = "ell" Then
-
       buf = buf + sp[6] + LT + "ellipse "
-
       cx = Math.Floor(shp["width"] / 2 + shp["x"] - xmin)
-
       cy = Math.Floor(shp["height"] / 2 + shp["y"] - ymin)
-
       rx = Math.Floor((shp["width"] - shp["pw"]) / 2)
-
       ry = Math.Floor((shp["height"] - shp["pw"]) / 2)
-
       buf = buf + "cx=" + WQ + cx + WQ + " "
-
       buf = buf + "cy=" + WQ + cy + WQ + " "
-
       buf = buf + "rx=" + WQ + rx + WQ + " "
-
       buf = buf + "ry=" + WQ + ry + WQ + " "
-
       If shp["angle"] <> 0 And shp["angle"] <> "" Then
-
         buf = buf + CR + LF + sp[8]
-
         buf = buf + "transform=" + WQ + "rotate(" + shp["angle"] + " "
-
         buf = buf + cx + " "
-
         buf = buf + cy + ")" + WQ + " "
-
       EndIf
-
       buf = buf + CR + LF + sp[8]
-
       buf = buf + "style=" + WQ + "fill:" + Text.ConvertToLowerCase(shp["bc"]) + ";"
-
     ElseIf shp["func"] = "tri" Then
-
       buf = buf + sp[6] + LT + "polygon points=" + WQ
-
       buf = buf + (shp["x1"] + shp["x"] - xmin) + ","
-
       buf = buf + (shp["y1"] + shp["y"] - ymin) + " "
-
       buf = buf + (shp["x2"] + shp["x"] - xmin) + ","
-
       buf = buf + (shp["y2"] + shp["y"] - ymin) + " "
-
       buf = buf + (shp["x3"] + shp["x"] - xmin) + ","
-
       buf = buf + (shp["y3"] + shp["y"] - ymin) + WQ + " "
-
       If shp["angle"] <> 0 And shp["angle"] <> "" Then
-
         buf = buf + CR + LF + sp[8]
-
         buf = buf + "transform=" + WQ + "rotate(" + shp["angle"] + " "
-
         buf = buf + (shp["x1"] + shp["x"] - xmin) + " "
-
         buf = buf + Math.Floor((shp["y2"] - shp["y1"]) / 2 + shp["y"] - ymin) + ")" + WQ + " "
-
       EndIf
-
       buf = buf + CR + LF + sp[8]
-
       buf = buf + "style=" + WQ + "fill:" + Text.ConvertToLowerCase(shp["bc"]) + ";"
-
     ElseIf shp["func"] = "line" Then
-
       buf = buf + sp[6] + LT + "line "
-
       buf = buf + "x1=" + WQ + (shp["x1"] + shp["x"] - xmin) + WQ + " "
-
       buf = buf + "y1=" + WQ + (shp["y1"] + shp["y"] - ymin) + WQ + " "
-
       buf = buf + "x2=" + WQ + (shp["x2"] + shp["x"] - xmin) + WQ + " "
-
       buf = buf + "y2=" + WQ + (shp["y2"] + shp["y"] - ymin) + WQ + " "
-
       buf = buf + CR + LF + sp[8]
-
       buf = buf + "style=" + WQ
-
     EndIf
-
     If shp["pw"] > 0 Then
-
       buf = buf + "stroke:" + Text.ConvertToLowerCase(shp["pc"]) + ";"
-
     EndIf
-
     buf = buf + "stroke-width:" + shp["pw"] + WQ + "/>" + CR + LF
-
   EndFor
-
   buf = buf + sp[4] + LT + "/g>" + CR + LF
-
   buf = buf + "  " + LT + "/defs>" + CR + LF
-
   buf = buf + "  " + LT + "use x=" + WQ + xmin + WQ + " y=" + WQ + ymin + WQ + " xlink:href=" + WQ + "#g1" + WQ + " />" + CR + LF
-
   buf = buf + LT + "/svg>" + CR + LF
-
   File_Save()
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Color_ColorToRGB
-
   sR = Text.GetSubText(sColor, 2, 2)
-
   sG = Text.GetSubText(sColor, 4, 2)
-
   sB = Text.GetSubText(sColor, 6, 2)
-
   sHex = sR
-
   Math_Hex2Dec()
-
   iR = iDec
-
   sHex = sG
-
   Math_Hex2Dec()
-
   iG = iDec
-
   sHex = sB
-
   Math_Hex2Dec()
-
   iB = iDec
-
 EndSub
-
 Sub Color_HSLtoRGB
-
   If rLightness <= 0.5 Then
-
     rN2 = rLightness * (1 + rSaturation)
-
   Else
-
     rN2 = rLightness + rSaturation - rLightness * rSaturation
-
   EndIf
-
   rN1 = 2 * rLightness - rN2
-
   If rSaturation = 0 Then
-
     iR = Math.Round(rLightness * 255)
-
     iG = Math.Round(rLightness * 255)
-
     iB = Math.Round(rLightness * 255)
-
   Else
-
     rH = rHue + 120
-
     Color_Value()
-
     iR = iValue
-
     rH = rHue
-
     Color_Value()
-
     iG = iValue
-
     rH = rHue - 120
-
     Color_Value()
-
     iB = iValue
-
   EndIf
-
   sColor = GraphicsWindow.GetColorFromRGB(iR, iG, iB)
-
 EndSub
-
 Sub Color_RGBtoHSL
-
   Color_ColorToRGB()
-
   rR = Math.Round(iR / 255 * 10000) / 10000
-
   rG = Math.Round(iG / 255 * 10000) / 10000
-
   rB = Math.Round(iB / 255 * 10000) / 10000
-
   rMax = Math.Max(rR, rG)
-
   rMax = Math.Max(rMax, rB)
-
   rMin = Math.Min(rR, rG)
-
   rMin = Math.Min(rMin, rB)
-
   rLightness = (rMax + rMin) / 2
-
   If rMax = rMin Then ' rR = rG = rB
-
     rSaturation = 0
-
     rHue = UNDEFINED
-
   Else
-
     If rLightness <= 0.5 Then
-
       rSaturation = (rMax - rMin) / (rMax + rMin)
-
     Else
-
       rSaturation = (rMax - rMin) / (2 - rMax - rMin)
-
     EndIf
-
     rRC = (rMax - rR) / (rMax - rMin)
-
     rGC = (rMax - rG) / (rMax - rMin)
-
     rBC = (rMax - rB) / (rMax - rMin)
-
     If rR = rMax Then     ' between Yellow and Magenta
-
       rHue = rBC - rGC
-
     ElseIf rG = rMax Then ' between Cyan and Yellow
-
       rHue = 2 + rRC - rBC
-
     ElseIf rB = rMax Then ' between Magenta and Cyan
-
       rHue = 4 + rGC - rRC
-
     Else
-
       TextWindow.WriteLine("Error:")
-
       TextWindow.WriteLine("rMax=" + rMax)
-
       TextWindow.WriteLine("rR=" + rR + ",sR=" + sR)
-
       TextWindow.WriteLine("rG=" + rG + ",sG=" + sG)
-
       TextWindow.WriteLine("rB=" + rB + ",sB=" + sB)
-
     EndIf
-
     rHue = rHue * 60
-
     If rHue < 0 Then
-
       rHue = rHue + 360
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub Color_Value
-
   If rH >= 360 Then
-
     rH = rH - 360
-
   EndIF
-
   If rH < 0 Then
-
     rH = rH + 360
-
   EndIF 
-
   If rH < 60 Then
-
     rV = rN1 + (rN2 - rN1) * rH / 60
-
   ElseIf rH < 180 Then
-
     rV = rN2
-
   ElseIf rH < 240 Then
-
     rV = rN1 + (rN2 - rN1) * (240 - rH) / 60
-
   Else
-
     rV = rN1
-
   EndIf
-
   iValue = Math.Round(rV * 255)
-
 EndSub
-
 Sub CS_AddColorToPalette
-
   Stack.PushValue("local", i)
-
   For i = 1 To nPalette
-
     pltt = palette[i]
-
     If color = pltt["color"] Then
-
       Goto csactp_not_new_color
-
     EndIf
-
   EndFor
-
   pltt = palette[tPalette]
-
   pltt["color"] = color
-
   palette[tPalette] = pltt
-
   If nPalette < maxPalette Then
-
     nPalette = nPalette + 1
-
   EndIf
-
   tPalette = tPalette + 1
-
   If maxPalette < tPalette Then
-
     tPalette = 1
-
   EndIf
-
   csactp_not_new_color:  
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub CS_AdjustSlider
-
   Stack.PushValue("local", iSlider)
-
   If iSlider = iHue Or iSlider = iLightness Or iSlider = iSaturation Then
-
     If iSlider = iHue Then
-
       Slider_GetLevel()
-
       rHue = level
-
     ElseIf iSlider = iLightness Then
-
       Slider_GetLevel()
-
       rLightness = level / 100
-
     Else
-
       Slider_GetLevel()
-
       rSaturation = level / 100
-
     EndIf
-
     Color_HSLtoRGB()
-
     iSlider = iRed
-
     level = iR
-
     Slider_SetLevel()
-
     iSlider = iGreen
-
     level = iG
-
     Slider_SetLevel()
-
     iSlider = iBlue
-
     level = iB
-
     Slider_SetLevel()
-
   Else
-
     CS_GetColorFromSlider()
-
     sColor = GraphicsWindow.GetColorFromRGB(red, green, blue)
-
     Color_RGBtoHSL()
-
     If rHue = UNDEFINED Then
-
       rHue = 0
-
     EndIf
-
     iSlider = iHue
-
     level = Math.Floor(rHue)
-
     Slider_SetLevel()
-
     iSlider = iSaturation
-
     level = Math.Floor(rSaturation * 100)
-
     Slider_SetLevel()
-
     iSlider = iLightness
-
     level = Math.Floor(rLightness * 100)
-
     Slider_SetLevel()
-
   EndIf
-
   iSlider = Stack.PopValue("local")
-
 EndSub
-
 Sub CS_DoObject
-
   While obj <> ""
-
     CS_DoSlider()
-
     If obj <> "" Then
-
       CS_DoPalette()
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub CS_DoPalette
-
   If Text.StartsWith(obj, "palette") Then
-
     iPalette = Text.GetSubTextToEnd(obj, 8)
-
     pltt = palette[iPalette]
-
     color = pltt["color"]
-
     CS_SetColorToSlider()   ' set color to slider
-
     CS_ShowNewColor()       ' show new color name
-
     CS_DrawColorRect()      ' draw new color rectangle
-
     obj = ""
-
     param = "down=True;move=False;up=False;"  ' wait to click
-
     Mouse_SetHandler()
-
   EndIf
-
 EndSub
-
 Sub CS_DoSlider
-
   If Text.StartsWith(obj, "slider") Then
-
     Slider_WaitToRelease()
-
     obj = ""
-
     param = "down=True;move=False;up=False;"  ' wait to click
-
     Mouse_SetHandler()
-
   EndIf
-
 EndSub
-
 Sub CS_DrawColorRect
-
   GraphicsWindow.BrushColor = color
-
   GraphicsWindow.PenColor = BORDERCOLOR
-
   If oRect <> "" Then
-
     Shapes.Remove(oRect)
-
   EndIf
-
   oRect = Shapes.AddRectangle(width, height)
-
   Shapes.Move(oRect, x, y)
-
 EndSub
-
 Sub CS_DrawPalette
-
   Stack.PushValue("local", i)
-
   GraphicsWindow.PenColor = BORDERCOLOR
-
   For i = 1 To nPalette
-
     pltt = palette[i]
-
     GraphicsWindow.BrushColor = pltt["color"]
-
     pltt["oCell"] = Shapes.AddRectangle(width, height)
-
     dx = Math.Remainder((i - 1), 8) * (width + 4)
-
     dy = Math.Floor((i - 1) / 8) * (height + 4)
-
     Shapes.Move(pltt["oCell"], x + dx, y + dy)
-
     pltt["x"] = x + dx
-
     pltt["y"] = y + dy
-
     pltt["width"] = width
-
     pltt["height"] = height
-
     palette[i] = pltt
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub CS_GetColorFromSlider
-
   Stack.PushValue("local", iSlider)
-
   iSlider = iRed    ' slider index
-
   Slider_GetLevel()
-
   red = level
-
   iSlider = iGreen  ' slider index
-
   Slider_GetLevel()
-
   green = level
-
   iSlider = iBlue   ' slider index
-
   Slider_GetLevel()
-
   blue = level
-
   color = GraphicsWindow.GetColorFromRGB(red, green, blue)
-
   iSlider = Stack.PopValue("local")
-
 EndSub
-
 Sub CS_Init
-
   width = 256
-
   min = 0
-
   max = 255
-
   left = 190
-
   top = TOPY
-
   caption = "R"
-
   Slider_Add()
-
   iRed = iSlider        ' index of slider
-
   top = top + DELTAY
-
   caption = "G"
-
   Slider_Add()
-
   iGreen = iSlider      ' index of slider
-
   top = top + DELTAY
-
   caption = "B"
-
   Slider_Add()
-
   iBlue = iSlider       ' index of slider
-
   width = 360
-
   top = top + DELTAY
-
   max = 360
-
   caption = "H"
-
   Slider_Add()
-
   iHue = iSlider        ' index of slider
-
   width = 100
-
   top = top + DELTAY
-
   max = 100
-
   caption = "S"
-
   Slider_Add()
-
   iSaturation = iSlider ' index of slider
-
   width = 100
-
   top = top + DELTAY
-
   max = 100
-
   caption = "L"
-
   Slider_Add()
-
   iLightness = iSlider  ' index of slider
-
   CS_GetColorFromSlider()
-
   CS_ShowNewColor()
-
   x = LEFTX
-
   y = TOPY + DELTAY * 4
-
   width = 100 
-
   height = 100
-
   CS_DrawColorRect()
-
   GraphicsWindow.BrushColor = CAPTIONCOLOR
-
   top = y + height + 4
-
   oNewColor = Shapes.AddText("")
-
   Shapes.Move(oNewColor, LEFTX, top)
-
 EndSub
-
 Sub CS_DumpSlider
-
   For i = 1 To numSlider
-
     TextWindow.WriteLine("slider" + i)
-
     TextWindow.WriteLine(slider[i])
-
   EndFor
-
 EndSub
-
 Sub CS_InitPalette
-
   pcolor = GraphicsWindow.PenColor
-
   If Text.GetLength(pcolor) = 9 Then      ' for Silverlight
-
     pcolor = "#" + Text.GetSubText(pcolor, 4, 6)
-
   EndIf
-
   bcolor = GraphicsWindow.BrushColor
-
   If Text.GetLength(bcolor) = 9 Then      ' for Silverlight
-
     bcolor = "#" + Text.GetSubText(bcolor, 4, 6)
-
   EndIf
-
   maxPalette = 16 ' max cell number of palette
-
   nPalette = 2    ' number of palette in use
-
   tPalette = 3    ' index of update target cell
-
   pltt = palette[1]
-
   pltt["color"] = pcolor
-
   palette[1] = pltt
-
   pltt = palette[2]
-
   pltt["color"] = bcolor
-
   palette[2] = pltt
-
 EndSub
-
 Sub CS_RemovePalette
-
   Stack.PushValue("local", i)
-
   For i = 1 To nPalette
-
     oPalette = "Palette" + i
-
     pltt = palette[i]
-
     Shapes.Remove(pltt["oCell"])
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub CS_RemoveSliders
-
   For iSlider = 1 To numSlider
-
     Slider_Remove()
-
   EndFor
-
   numSlider = 0
-
 EndSub
-
 Sub CS_SearchClickedObject
-
   Stack.PushValue("local", i)
-
   For iSlider = 1 To numSlider
-
     obj = "slider" + iSlider
-
     sldr = slider[iSlider]
-
     x2 = sldr["x2"]
-
     y2 = sldr["y2"]
-
     x3 = sldr["x3"]
-
     y3 = sldr["y3"]
-
     If x2 <= mxD And mxD <= x3 And y2 <= myD And myD <= y3 Then
-
       Goto scco_obj_found
-
     EndIf
-
   EndFor
-
   For iPalette = 1 To nPalette
-
     obj = "palette" + iPalette
-
     pltt = palette[iPalette]
-
     x2 = pltt["x"]
-
     y2 = pltt["y"]
-
     x3 = pltt["x"] + pltt["width"]
-
     y3 = pltt["y"] + pltt["height"]
-
     If x2 <= mxD And mxD <= x3 And y2 <= myD And myD <= y3 Then
-
       Goto scco_obj_found
-
     EndIf
-
   EndFor
-
   obj = ""
-
   scco_obj_found:
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub CS_SetColorToSlider
-
   Stack.PushValue("local", iSlider)
-
   sColor = color
-
   Color_ColorToRGB()
-
   iSlider = iRed
-
   level = iR
-
   Slider_SetLevel()
-
   iSlider = iGreen
-
   level = iG
-
   Slider_SetLevel()
-
   iSlider = iBlue
-
   level = iB
-
   Slider_SetLevel()
-
   CS_AdjustSlider()
-
   iSlider = Stack.PopValue("local")
-
 EndSub
-
 Sub CS_ShowNewColor
-
   Shapes.SetText(oNewColor, color)
-
 EndSub
-
 Sub CS_ShowPopup
-
   Stack.PushValue("local", cont)
-
   colorInit = color           ' initial color
-
   GraphicsWindow.PenWidth = 2
-
   GraphicsWindow.PenColor = POPUPCOLOR
-
   GraphicsWindow.BrushColor = POPUPCOLOR
-
   oPopup = Shapes.AddRectangle(gw, gh)
-
   Shapes.SetOpacity(oPopup, 64)
-
   Shapes.Move(oPopup, LEFTX - 10, TOPY - 10)
-
   GraphicsWindow.BrushColor = CAPTIONCOLOR
-
   oOK = Controls.AddButton("OK", gw - 100, gh - 34)
-
   oCancel = Controls.AddButton("Cancel", gw - 60, gh - 34)
-
   Controls.ButtonClicked = CS_OnButtonClicked
-
   CS_Init()
-
   Stack.PushValue("local", y)
-
   y = TOPY
-
   color = colorInit
-
   CS_DrawColorRect()    ' original color
-
   oRectCurrent = oRect
-
   oRect = ""            ' keep current color
-
   If Text.GetLength(color) = 9 Then       ' for Silverlight
-
     color = "#" + Text.GetSubText(color, 4, 6)
-
   EndIf
-
   GraphicsWindow.BrushColor = CAPTIONCOLOR
-
   oColor = Shapes.AddText(colorInit)
-
   Shapes.Move(oColor, x, y + height + 2)
-
   y = Stack.PopValue("local")
-
   CS_SetColorToSlider()
-
   CS_DrawColorRect()      ' draw new color rectangle
-
   CS_ShowNewColor()       ' show new color name
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   Stack.PushValue("local", width)
-
   Stack.PushValue("local", height)
-
   x = x + width + 30
-
   y = TOPY + height * 2 + 24
-
   width = 30
-
   height = 30
-
   CS_DrawPalette()
-
   height = Stack.PopValue("local")
-
   width = Stack.PopValue("local")
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   cont = "True"         ' continue
-
   param = "down=True;move=False;up=False;"   ' wait click
-
   Mouse_SetHandler()
-
   While cont
-
     If clicked Then
-
       CS_SearchClickedObject()
-
       CS_DoObject()
-
       clicked = "False"
-
     Else
-
       Program.Delay(100)
-
     EndIf
-
   EndWhile
-
   If cancel Then
-
     color = colorInit
-
   Else
-
     CS_AddColorToPalette()
-
   EndIf
-
   CS_RemovePalette()
-
   CS_RemoveSliders()
-
   Shapes.Remove(oColor)
-
   Shapes.Remove(oNewColor)
-
   Shapes.Remove(oRectCurrent)
-
   Shapes.Remove(oRect)
-
   Controls.Remove(oOK)
-
   Controls.Remove(oCancel)
-
   Shapes.Remove(oPopup)
-
   cont = Stack.PopValue("local")
-
 EndSub
-
 Sub CS_OnButtonClicked
-
   cont = "False"
-
   If Controls.LastClickedButton = oCancel Then
-
     cancel = "True"
-
   Else
-
     cancel = "False"
-
   EndIf
-
 EndSub
-
 Sub File_Open
-
   Stack.PushValue("local", cont)
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = POPUPCOLOR
-
   oPopup = Shapes.AddRectangle(gw, gh)
-
   Shapes.SetOpacity(oPopup, 64)
-
   Shapes.Move(oPopup, LEFTX - 10, TOPY - 10)
-
   GraphicsWindow.BrushColor = CAPTIONCOLOR
-
   oCaption = Shapes.AddText("Filename")
-
   Shapes.Move(oCaption, LEFTX, TOPY + 4)
-
   GraphicsWindow.BrushColor = TEXTCOLOR
-
   oFilename = Controls.AddTextBox(LEFTX + 80, TOPY)
-
   Shapes.SetOpacity(oFilename, OPACITY)
-
   Controls.SetSize(oFilename, 300, 24)
-
   oText = Controls.AddMultiLineTextBox(LEFTX, TOPY + 30)
-
   Controls.SetSize(oText, gw - 20, gh - 84)
-
   Shapes.SetOpacity(oText, OPACITY)
-
   oOK = Controls.AddButton("OK", gw - 40, gh - 34)
-
   Controls.ButtonClicked = File_OnButtonClicked
-
   Controls.TextTyped = File_OnTextTyped
-
   subname = "Shapes_Init"
-
   typed = "False"
-
   cont = "True"         ' continue
-
   While cont
-
     If typed Then
-
       filename = Controls.GetTextBoxText(oFilename)
-
       If Not[Text.IsSubText(filename, ":")] And Not[Text.IsSubText(filename, "\")] Then
-
         filename = Program.Directory + "\" + filename
-
       EndIf
-
       buf = ""
-
 ' The following line could be harmful and has been automatically commented.
-
 '       buf = File.ReadContents(filename)
-
       Controls.SetTextBoxText(oText, buf)
-
       typed = "False"
-
     Else
-
       Program.Delay(200)
-
     EndIf
-
   EndWhile
-
   buf = Controls.GetTextBoxText(oText)
-
   Controls.Remove(oCaption)
-
   Controls.Remove(oFilename)
-
   Controls.Remove(oText)
-
   Controls.Remove(oOK)
-
   Controls.Remove(oPopup)
-
   cont = Stack.PopValue("local")
-
 EndSub
-
 Sub File_OnTextTyped
-
   If Controls.LastTypedTextBox = oFilename Then
-
     typed = "True"
-
   EndIf
-
 EndSub
-
 Sub File_Save
-
   Stack.PushValue("local", cont)
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = POPUPCOLOR
-
   oPopup = Shapes.AddRectangle(gw, gh)
-
   Shapes.SetOpacity(oPopup, OPACITY)
-
   Shapes.Move(oPopup, LEFTX - 10, TOPY - 10)
-
   GraphicsWindow.BrushColor = TEXTCOLOR
-
   oText = Controls.AddMultiLineTextBox(LEFTX, TOPY)
-
   Controls.SetSize(oText, gw - 20, gh - 50)
-
   Shapes.SetOpacity(oText, OPACITY)
-
   Controls.SetTextBoxText(oText, buf)
-
   oOK = Controls.AddButton("OK", gw - 40, gh - 34)
-
   GraphicsWindow.BrushColor = CAPTIONCOLOR
-
   oMsg = Shapes.AddText("Click textbox above, push Ctrl+A, Ctrl+C to copy and save to your editor")
-
   Shapes.Move(oMsg, LEFTX, gh - 28)
-
   cont = "True"         ' continue
-
   Controls.ButtonClicked = File_OnButtonClicked
-
   While cont
-
     Program.Delay(500)
-
   EndWhile
-
   Controls.Remove(oText)
-
   Controls.Remove(oMsg)
-
   Controls.Remove(oOK)
-
   Controls.Remove(oPopup)
-
   cont = Stack.PopValue("local")
-
 EndSub
-
 Sub File_OnButtonClicked
-
   cont = "False"
-
 EndSub
-
 Sub KB_FlushFIFO
-
   For out = out + 1 To in
-
     fifok[out] = ""
-
     fifos[out] = ""
-
     fifoc[out] = ""
-
   EndFor    
-
 EndSub
-
 Sub KB_InKey
-
   c = ""
-
   If in > out Then
-
     out = out + 1
-
     c = fifok[out]
-
     _shift = fifos[out]
-
     _ctrl = fifoc[out]
-
     fifok[out] = ""
-
     fifos[out] = ""
-
     fifoc[out] = ""
-
     If Text.GetLength(c) > 1 Then
-
       If Array.ContainsIndex(keys, c) Then
-
         c = keys[_shift + c]
-
       Else
-
         c = "<" + c + ">" 
-
       EndIf
-
     ElseIf _shift = "" Then
-
       c = Text.ConvertToLowerCase(c)
-
     EndIf
-
     c = Text.Append(_ctrl, c)
-
   EndIf
-
 EndSub  
-
 Sub KB_Init
-
   shift = ""
-
   ctrl = ""
-
   in = 0
-
   out = 0
-
   keys = "Delete=DEL;Left=LEFT;Right=RIGHT;Up=UP;Down=DOWN;"
-
   arrow_dx = "LEFT=-1;RIGHT=1;UP=0;DOWN=0;"
-
   arrow_dy = "LEFT=0;RIGHT=0;UP=-1;DOWN=1;"
-
   GraphicsWindow.KeyDown = KB_OnKeyDown
-
   GraphicsWindow.KeyUp = KB_OnKeyUp
-
 EndSub  
-
 Sub KB_OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   If key = "LeftShift" Or key = "RightShift" Then
-
     shift = "+"
-
   ElseIf key = "LeftCtrl" Or key = "RightCtrl" Then
-
     ctrl = "^"
-
   Else
-
     in = in + 1
-
     fifok[in] = key
-
     fifos[in] = shift
-
     fifoc[in] = ctrl
-
   EndIf
-
 EndSub
-
 Sub KB_OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   If key = "LeftShift" Or key = "RightShift" Then
-
     shift = ""
-
   ElseIf key = "LeftCtrl" Or key = "RightCtrl" Then
-
     ctrl = ""
-
   EndIf
-
 EndSub
-
 Sub Math_CartesianToPolar
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
 Sub Math_Hex2Dec
-
   iDec = 0
-
   iLen = Text.GetLength(sHex)
-
   For iPtr = 1 To iLen
-
     iDec = iDec * 16 + Text.GetIndexOf("0123456789ABCDEF", Text.GetSubText(sHex, iPtr, 1)) - 1
-
   EndFor
-
 EndSub
-
 Sub Mouse_Init
-
   clicked = "False"
-
   moved = "False"
-
   released = "False"
-
   If debug Then
-
     Timer.Interval = 200
-
     Timer.Tick = Mouse_OnTick
-
   EndIf
-
 EndSub
-
 Sub Mouse_SetHandler
-
   If param["up"] Then
-
     released = "False"
-
     GraphicsWindow.MouseUp = Mouse_OnUp
-
     handler["up"] = "U"
-
   ElseIf param["up"] = "False" Then
-
     GraphicsWindow.MouseUp = Mouse_DoNothing
-
     handler["up"] = ""
-
   EndIf
-
   If param["down"] Then
-
     clicked = "False"
-
     GraphicsWindow.MouseDown = Mouse_OnDown
-
     handler["down"] = "D"
-
   ElseIf param["down"] = "False" Then
-
     GraphicsWindow.MouseDown = Mouse_DoNothing
-
     handler["down"] = ""
-
   EndIf
-
   If param["move"] Then
-
     moved = "False"
-
     GraphicsWindow.MouseMove = Mouse_OnMove
-
     handler["move"] = "M"
-
   ElseIf param["move"] = "False" Then
-
     GraphicsWindow.MouseMove = Mouse_DoNothing
-
     handler["move"] = ""
-
   EndIf
-
   dmu = handler["down"] + handler["move"] + handler["up"] 
-
   If debug Then
-
     smrc = " set "
-
   EndIf
-
 EndSub
-
 Sub Mouse_OnDown
-
   mxD = Math.Floor(GraphicsWindow.MouseX)
-
   myD = Math.Floor(GraphicsWindow.MouseY)
-
   clicked = "True"
-
   released = "False"
-
   If debug Then
-
     smrc = " clicked " + mxD + "," + myD
-
   EndIf
-
 EndSub
-
 Sub Mouse_DoNothing
-
 EndSub
-
 Sub Mouse_OnMove
-
   mxM = Math.Floor(GraphicsWindow.MouseX)
-
   myM = Math.Floor(GraphicsWindow.MouseY)
-
   moved = "True"
-
   If debug Then
-
     smrc = " moved " + mxM + "," + myM
-
   EndIf
-
 EndSub
-
 Sub Mouse_OnTick
-
   If clicked Then
-
     cmr = "C"
-
   Else
-
     cmr = ""
-
   EndIf
-
   If moved Then
-
     cmr = cmr + "M"
-
   EndIf
-
   If released Then
-
     cmr = cmr + "R"
-
   EndIf
-
   GraphicsWindow.Title = title + smrc + " " + dmu + " " + cmr
-
 EndSub
-
 Sub Mouse_OnUp
-
   mxU = Math.Floor(GraphicsWindow.MouseX)
-
   myU = Math.Floor(GraphicsWindow.MouseY)
-
   released = "True"
-
   If debug Then
-
     smrc = " released " + mxU + "," + myU
-
   EndIf
-
 EndSub
-
 Sub Parse_Angle
-
   angle = ""
-
   If attr["transform"] <> "" Then
-
     pAngle = 8
-
     lAngle = Text.GetIndexOf(Text.GetSubTextToEnd(attr["transform"], pAngle), " ") - 1
-
     angle = Text.GetSubText(attr["transform"], pAngle, lAngle)
-
   EndIf
-
 EndSub
-
 Sub Parse_Defs
-
   match = "False"
-
   If Text.StartsWith(Text.GetSubTextToEnd(buf, p), LT + "defs>") Then
-
     Stack.PushValue("local", p)
-
     p = p + 6
-
     Parse_Space()
-
     match = "False"
-
     If Text.StartsWith(Text.GetSubTextToEnd(buf, p), LT + "g id=" + WQ + "g1" + WQ + ">") Then
-
       p = p + 11
-
       match = "True"
-
     EndIf
-
     _p = Stack.PopValue("local")
-
     If Not[match] Then
-
       p = _p
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub Parse_Ellipse
-
   match = "False"
-
   If Text.StartsWith(Text.GetSubTextToEnd(buf, p), LT + "ellipse") Then
-
     param = "tag=ellipse;"
-
     Parse_FindTag() ' p is updated
-
     Parse_GetAttrAndText()
-
     cx = attr["cx"]
-
     cy = attr["cy"]
-
     rx = attr["rx"]
-
     ry = attr["ry"]
-
     Parse_SetStyle()
-
     Parse_Angle()
-
     shp = ""
-
     shp["func"] = "ell"
-
     shp["x"] = cx - rx - Math.Floor(pw / 2)
-
     shp["y"] = cy - ry - Math.Floor(pw / 2)
-
     shp["width"] = 2 * rx + pw
-
     shp["height"] = 2 * ry + pw
-
     shp["angle"] = angle
-
     shp["pw"] = pw
-
     shp["pc"] = pc
-
     shp["bc"] = bc
-
     match = "True"
-
   EndIf
-
 EndSub
-
 Sub Parse_FindTag
-
   pSave = p
-
   tag = ""
-
   findNext = "True"
-
   While findNext
-
     findNext = "False"        ' tag may be not found
-
     pTag = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), LT + param["tag"])
-
     If 0 < pTag Then
-
       lTag = Text.GetLength(param["tag"]) + 1
-
       pTag = p + pTag - 1
-
       len = Text.GetIndexOf(Text.GetSubTextToEnd(buf, pTag), "/" + param["tag"] + ">")
-
       If len = 0 Then
-
         lTag = 1
-
         len = Text.GetIndexOf(Text.GetSubTextToEnd(buf, pTag), "/>")
-
       EndIf
-
       If param["class"] = "" Then
-
         len = len + lTag
-
         tag = Text.GetSubText(buf, pTag, len)
-
         findNext = "False"    ' found the tag
-
       ElseIf 0 < len Then
-
         findNext = "True"     ' tag may have different class
-
         len = len + lTag
-
         attr = "class=" + qt + param["class"] + qt
-
         pAttr = pTag + lTag + 1
-
         lAttr = Text.GetLength(attr)
-
         If Text.GetSubText(buf, pAttr, lAttr) = attr Then
-
           tag = Text.GetSubText(buf, pTag, len)
-
           findNext = "False"  ' found the tag
-
         EndIf
-
       EndIf
-
       p = pTag + len
-
     EndIf
-
   EndWhile
-
   If tag = "" Then
-
     p = pSave
-
   EndIf
-
 EndSub
-
 Sub Parse_GetAttrAndText
-
   pTag = Text.GetIndexOf(tag, " ") + 1
-
   pEnd = Text.GetIndexOf(tag, ">")
-
   attr = ""
-
   While pTag <= pEnd
-
     Parse_SkipSpaceInTag()
-
     pEq = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), "=")
-
     If 0 < pEq Then
-
       pEq = pTag + pEq - 1
-
       If Text.GetSubText(tag, pEq + 1, 1) = qt Then
-
         pQ = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pEq + 2), qt)
-
         If 0 < pQ Then
-
           pQ = pEq + 2 + pQ - 1
-
           attr[Text.GetSubText(tag, pTag, pEq - pTag)] = Text.GetSubText(tag, pEq + 2, pQ - pEq - 2)
-
           pTag = pQ + 2
-
         EndIf
-
       EndIf
-
     Else
-
       pTag = pEnd + 1
-
     EndIf
-
   EndWhile
-
   If pEnd + 1 < pTag Then
-
     pTag = pEnd + 1
-
   EndIf
-
   len = Text.GetLength(tag)
-
   txt = ""
-
   While pTag <= len
-
     pL = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), LT)
-
     If pL = 0 Then
-
       txt = Text.Append(txt, Text.GetSubTextToEnd(tag, pTag))
-
       pTag = len + 1
-
     Else
-
       pL = pTag + pL - 1
-
       txt = Text.Append(txt, Text.GetSubText(tag, pTag, pL - pTag))
-
       pR = Text.GetIndexOf(Text.GetSubTextToEnd(tag, pTag), ">")
-
       If 0 < pR Then
-
         pTag = pTag + pR
-
       Else
-
         pTag = len + 1
-
       EndIf
-
     EndIf  
-
   EndWhile
-
 EndSub
-
 Sub Parse_GetStyleAttr
-
   pKw = Text.GetIndexOf(Text.GetSubTextToEnd(attr["style"], pStyle), kw)
-
   If pKw = 0 Then
-
     value = ""
-
   Else
-
     pValue = pStyle + pKw + Text.GetLength(kw)
-
     pColon = Text.GetIndexOf(Text.GetSubTextToEnd(attr["style"], pValue), ";")
-
     If pColon = 0 Then
-
       pColon = Text.GetLength(kw) + 1
-
     EndIf
-
     value = Text.GetSubText(attr["style"], pValue, pColon - 1)
-
   EndIf
-
 EndSub
-
 Sub Parse_Header
-
   If Text.StartsWith(Text.GetSubTextToEnd(buf, p), LT + "svg") Then
-
     len = Text.GetIndexOf(Text.GetSubTextToEnd(buf, p), ">")
-
     If 0 < len Then
-
       tag = Text.GetSubText(buf, p, len)
-
       Parse_GetAttrAndText()
-
       width = attr["width"]
-
       height = attr["height"]
-
       p = p + len
-
       match = "True"
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub Parse_Line
-
   match = "False"
-
   If Text.StartsWith(Text.GetSubTextToEnd(buf, p), LT + "line") Then
-
     param = "tag=line;"
-
     Parse_FindTag() ' p is updated
-
     Parse_GetAttrAndText()
-
     Parse_SetStyle()
-
     points = attr["x1"] + "," + attr["y1"] + " " + attr["x2"] + "," + attr["y2"]
-
     Parse_Points()
-
     shp = ""
-
     shp["func"] = "line"
-
     shp["x"] = x
-
     shp["y"] = y
-
     shp["width"] = width
-
     shp["height"] = height
-
     shp["x1"] = px[1] - x
-
     shp["y1"] = py[1] - y
-
     shp["x2"] = px[2] - x
-
     shp["y2"] = py[2] - y
-
     shp["pw"] = pw
-
     shp["pc"] = pc
-
     match = "True"
-
   EndIf
-
 EndSub
-
 Sub Parse_Points
-
   len = Text.GetLength(points)
-
   px = ""
-
   py = ""
-
   nPoints = 1
-
   For pPoints = 1 To len
-
     c = Text.GetSubText(points, pPoints, 1)
-
     While (pPoints <= len) And Text.IsSubText(DIGIT, c)
-
       px[nPoints] = Text.Append(px[nPoints], c)
-
       pPoints = pPoints + 1
-
       c = Text.GetSubText(points, pPoints, 1)
-
     EndWhile
-
     If c = "," Then
-
       pPoints = pPoints + 1
-
       c = Text.GetSubText(points, pPoints, 1)
-
     EndIf
-
     While (pPoints <= len) And Text.IsSubText(DIGIT, c)
-
       py[nPoints] = Text.Append(py[nPoints], c)
-
       pPoints = pPoints + 1
-
       c = Text.GetSubText(points, pPoints, 1)
-
     EndWhile
-
     If nPoints = 1 Then
-
       xmin = px[1]
-
       ymin = py[1]
-
       xmax = px[1]
-
       ymax = py[1]
-
     Else
-
       If px[nPoints] < xmin Then
-
         xmin = px[nPoints]
-
       EndIf 
-
       If py[nPoints] < ymin Then
-
         ymin = py[nPoints]
-
       EndIf 
-
       If xmax < px[nPoints] Then
-
         xmax = px[nPoints]
-
       EndIf 
-
       If ymax < py[nPoints] Then
-
         ymax = py[nPoints]
-
       EndIf 
-
     EndIf
-
     If c = " " Then
-
       nPoints = nPoints + 1
-
     EndIf
-
   EndFor
-
   x = xmin
-
   y = ymin
-
   width = xmax - xmin
-
   height = ymax - ymin
-
 EndSub
-
 Sub Parse_Polygon
-
   match = "False"
-
   If Text.StartsWith(Text.GetSubTextToEnd(buf, p), LT + "polygon") Then
-
     param = "tag=polygon;"
-
     Parse_FindTag() ' p is updated
-
     Parse_GetAttrAndText()
-
     points = attr["points"]
-
     Parse_Points()
-
     Parse_SetStyle()
-
     Parse_Angle()
-
     shp = ""
-
     shp["func"] = "tri"
-
     shp["x"] = x
-
     shp["y"] = y
-
     shp["width"] = width
-
     shp["height"] = height
-
     shp["angle"] = angle
-
     shp["x1"] = px[1] - x
-
     shp["y1"] = py[1] - y
-
     shp["x2"] = px[2] - x
-
     shp["y2"] = py[2] - y
-
     shp["x3"] = px[3] - x 
-
     shp["y3"] = py[3] - y
-
     shp["pw"] = pw
-
     shp["pc"] = pc
-
     shp["bc"] = bc
-
     match = "True"
-
   EndIf
-
 EndSub
-
 Sub Parse_SetStyle
-
   pStyle = 1
-
   kw = "fill"
-
   Parse_GetStyleAttr()
-
   bc = value
-
   kw = "stroke"
-
   Parse_GetStyleAttr()
-
   pc = value
-
   kw = "stroke-width"
-
   Parse_GetStyleAttr()
-
   pw = value
-
 EndSub
-
 Sub Parse_SkipSpaceInTag
-
   isSpace = "True"
-
   While isSpace
-
     char = Text.GetSubText(tag, pTag, 1)
-
     If Text.IsSubText(" " + CR + LF, char) Then
-
       pTag = pTag + 1
-
     Else
-
       isSpace = "False"
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub Parse_Space
-
   isSpace = "True"
-
   While isSpace
-
     char = Text.GetSubText(buf, p, 1)
-
     If Text.IsSubText(" " + CR + LF, char) Then
-
       p = p + 1
-
     Else
-
       isSpace = "False"
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub Parse_Rect
-
   match = "False"
-
   If Text.StartsWith(Text.GetSubTextToEnd(buf, p), LT + "rect") Then
-
     param = "tag=rect;"
-
     Parse_FindTag() ' p is updated
-
     Parse_GetAttrAndText()
-
     x = attr["x"]
-
     y = attr["y"]
-
     width = attr["width"]
-
     height = attr["height"]
-
     Parse_SetStyle()
-
     Parse_Angle()
-
     shp = ""
-
     shp["func"] = "rect"
-
     shp["x"] = x - Math.Floor(pw / 2)
-
     shp["y"] = y - Math.Floor(pw / 2)
-
     shp["width"] = width + pw
-
     shp["height"] = height + pw
-
     shp["angle"] = angle
-
     shp["pw"] = pw
-
     shp["pc"] = pc
-
     shp["bc"] = bc
-
     match = "True"
-
   EndIf
-
 EndSub
-
 Sub Parse_Use
-
   param = "tag=use;"
-
   Parse_FindTag() ' p is updated
-
   Parse_GetAttrAndText()
-
   shX = 0
-
   shY = 0
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     shp["x"] = shp["x"] + attr["x"]
-
     shp["y"] = shp["y"] + attr["y"]
-
     If shp["func"] = "tri" And (shp["y2"] < shp["y1"]) Then
-
       shp["y2"] = shp["y1"]
-
       shp["y1"] = shp["y3"]
-
       shp["y3"] = shp["y2"]
-
       shp["angle"] = shp["angle"] + 180
-
       If 360 <= shp["angle"] Then
-
         shp["angle"] = shp["angle"] - 360
-
       EndIF
-
     EndIf
-
     If shp["pc"] <> "" Then
-
       color = shp["pc"]
-
       CS_AddColorToPalette()
-
     EndIf
-
     If shp["bc"] <> "" Then
-
       color = shp["bc"]
-
       CS_AddColorToPalette()
-
     EndIf
-
     shape[i] = shp
-
     CalcDetectBorder()
-
   EndFor
-
 EndSub
-
 Sub DumpBuf
-
   If sp[10] = "" Then
-
     For i = 1 To 10
-
       sp[10] = sp[10] + " "
-
     EndFor
-
   EndIf
-
   TextWindow.WriteLine(Text.GetSubText(buf, p - 10, 21))
-
   TextWindow.WriteLine(sp[10] + "^" + sp[10])
-
 EndSub
-
 Sub Popup_Init
-
   TOPY = 10   ' top y
-
   LEFTX = 10  ' left x
-
   DELTAY = 36 ' delta y
-
   OPACITY = 70
-
   POPUPCOLOR = "LightGray"
-
   CAPTIONCOLOR = "Black"
-
   TEXTCOLOR = "Black"
-
   BORDERCOLOR = "#666666"
-
   BOXCOLOR = "LightGray"
-
   SLITCOLOR = "#555555"
-
   UNDEFINED = "N/A"
-
 EndSub
-
 Sub SB_RotateWorkaround
-
   If shp["func"] = "tri" Then
-
     x1 = -Math.Floor(shp["x3"] / 2)
-
     y1 = -Math.Floor(shp["y3"] / 2)
-
   ElseIf shp["func"] = "line" Then
-
     x1 = -Math.Floor(Math.Abs(shp["x1"] - shp["x2"]) / 2)
-
     y1 = -Math.Floor(Math.Abs(shp["y1"] - shp["y2"]) / 2)
-
   EndIf
-
   ox = x - x1
-
   oy = y - y1
-
   x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
   y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
 EndSub
-
 Sub SB_Workaround
-
   color = GraphicsWindow.GetPixel(0, 0)
-
   If Text.GetLength(color) > 7 Then
-
     silverlight = "True"
-
     msWait = 300
-
   Else
-
     silverlight = "False"
-
   EndIf
-
 EndSub
-
 Sub Shapes_Init
-
   shX = 230 ' x offset
-
   shY = 30 ' y offset
-
   shape = ""
-
   shape[1] = "func=tri;x=45;y=0;x1=22;y1=0;x2=0;y2=213;x3=44;y3=213;bc=#6E6E6E;pw=0;"
-
   shape[2] = "func=rect;x=45;y=212;width=15;height=47;bc=#6E6E6E;pw=0;"
-
   shape[3] = "func=ell;x=0;y=235;width=66;height=104;bc=#EEEEEE;pc=#0C95BB;pw=16;"
-
   shape[4] = "func=tri;x=45;y=0;x1=22;y1=0;x2=0;y2=213;x3=44;y3=213;bc=#939393;pw=0;"
-
   shape[5] = "func=rect;x=75;y=212;width=14;height=49;bc=#919191;pw=0;"
-
   shape[6] = "func=ell;x=61;y=163;width=13;height=15;bc=#6E6E6E;pw=0;"
-
   shape[7] = "func=ell;x=70;y=236;width=64;height=104;bc=#EEEEEE;pc=#0C95BB;pw=16;"
-
 EndSub
-
 Sub Shapes_Add
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   Shapes_CalcWidthAndHeight()
-
   s = scale
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     GraphicsWindow.PenWidth = shp["pw"] * s
-
     If shp["pw"] > 0 Then
-
       GraphicsWindow.PenColor = shp["pc"]
-
     EndIf
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) Then
-
       GraphicsWindow.BrushColor = shp["bc"]
-
     EndIf
-
     If shp["func"] = "rect" Then
-
       shp["obj"] = Shapes.AddRectangle(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "ell" Then
-
       shp["obj"] = Shapes.AddEllipse(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "tri" Then
-
       shp["obj"] = Shapes.AddTriangle(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s, shp["x3"] * s, shp["y3"] * s)
-
     ElseIf shp["func"] = "line" Then
-
       shp["obj"] = Shapes.AddLine(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s)
-
     ElseIf shp["func"] = "text" Then
-
       If silverlight Then
-
         fs = Math.Floor(shp["fs"] * 0.9)
-
       Else
-
         fs = shp["fs"]
-
       EndIf
-
       GraphicsWindow.FontSize = fs * s
-
       GraphicsWindow.FontName = shp["fn"]
-
       shp["obj"] = Shapes.AddText(shp["text"])
-
     EndIf
-
     x = shp["x"]
-
     y = shp["y"]
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(shp["angle"])
-
       SB_RotateWorkaround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) And (shp["angle"] <> 0) And (shp["angle"] <> "") Then
-
       Shapes.Rotate(shp["obj"], shp["angle"])
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
   shAngle = 0
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_CalcRotatePos
-
   _cx = param["x"] + param["width"] / 2
-
   _cy = param["y"] + param["height"] / 2
-
   x = _cx - param["cx"]
-
   y = _cy - param["cy"]
-
   Math_CartesianToPolar()
-
   a = a + param["angle"]
-
   x = r * Math.Cos(a * Math.Pi / 180)
-
   y = r * Math.Sin(a * Math.Pi / 180)
-
   _cx = x + param["cx"]
-
   _cy = y + param["cy"]
-
   x = _cx - param["width"] / 2
-
   y = _cy - param["height"] / 2
-
 EndSub
-
 Sub Shapes_CalcWidthAndHeight
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If shp["func"] = "tri" Or shp["func"] = "line" Then
-
       xmin = shp["x1"]
-
       xmax = shp["x1"]
-
       ymin = shp["y1"]
-
       ymax = shp["y1"]
-
       If shp["x2"] < xmin Then
-
         xmin = shp["x2"]
-
       EndIf
-
       If xmax < shp["x2"] Then
-
         xmax = shp["x2"]
-
       EndIf
-
       If shp["y2"] < ymin Then
-
         ymin = shp["y2"]
-
       EndIf
-
       If ymax < shp["y2"] Then
-
         ymax = shp["y2"]
-
       EndIf
-
       If shp["func"] = "tri" Then
-
         If shp["x3"] < xmin Then
-
           xmin = shp["x3"]
-
         EndIf
-
         If xmax < shp["x3"] Then
-
           xmax = shp["x3"]
-
         EndIf
-
         If shp["y3"] < ymin Then
-
           ymin = shp["y3"]
-
         EndIf
-
         If ymax < shp["y3"] Then
-
           ymax = shp["y3"]
-
         EndIf
-
       EndIf
-
       shp["width"] = xmax - xmin
-
       shp["height"] = ymax - ymin
-
     EndIf
-
     If i = 1 Then
-
       shWidth = shp["x"] + shp["width"]
-
       shHeight = shp["y"] + shp["height"]
-
     Else
-
       If shWidth < shp["x"] + shp["width"] Then
-
         shWidth = shp["x"] + shp["width"]
-
       EndIf
-
       If shHeight < shp["y"] + shp["height"] Then
-
         shHeight = shp["y"] + shp["height"]
-
       EndIf
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
 EndSub
-
 Sub Shapes_Move
-
   Stack.PushValue("local", i)
-
   s = scale
-
   shX = x
-
   shY = y
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       _x = shp["wx"]
-
       _y = shp["wy"]
-
     Else
-
       _x = shp["rx"]
-
       _y = shp["ry"]
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + _x * s, shY + _y * s)
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Remove
-
   Stack.PushValue("local", i)
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     Shapes.Remove(shp["obj"])
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Rotate
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   s = scale
-
   param["angle"] = angle
-
   param["cx"] = shWidth / 2
-
   param["cy"] = shHeight / 2
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     param["x"] = shp["x"]
-
     param["y"] = shp["y"]
-
     param["width"] = shp["width"]
-
     param["height"] = shp["height"]
-
     Shapes_CalcRotatePos()
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(angle + shp["angle"])
-
       SB_RotateWorkAround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     Shapes.Rotate(shp["obj"], angle + shp["angle"])
-
     shape[i] = shp
-
   EndFor
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Slider_Add
-
   numSlider = numSlider + 1
-
   iSlider = numSlider
-
   GraphicsWindow.BrushColor = CAPTIONCOLOR
-
   len = Text.GetLength(caption)
-
   sldr = slider[iSlider]
-
   sldr["oCaption"] = Shapes.AddText(caption)
-
   Shapes.Move(sldr["oCaption"], left - (len * 5 + 10), top + 1)
-
   level = Math.Floor((min + max) / 2)
-
   sldr["level"] = level  ' property
-
   sldr["min"] = min
-
   sldr["max"] = max
-
   GraphicsWindow.PenColor = BORDERCOLOR
-
   mag = (level - min) / (max - min)
-
   GraphicsWindow.BrushColor = SLITCOLOR
-
   sldr["oSlit"] = Shapes.AddRectangle(width, 10)
-
   GraphicsWindow.PenColor = BORDERCOLOR
-
   GraphicsWindow.BrushColor = BOXCOLOR
-
   sldr["oBox"] = Shapes.AddRectangle(10, 18)
-
   GraphicsWindow.BrushColor = CAPTIONCOLOR
-
   sldr["oLevel"] = Shapes.AddText(level)
-
   sldr["x0"] = left
-
   sldr["x1"] = left + width
-
   sldr["y0"] = top
-
   Shapes.Move(sldr["oLevel"], left + width + 5, top)
-
   Shapes.Move(sldr["oSlit"], left, top + 4)
-
   slider[iSlider] = sldr
-
   Slider_SetLevel()
-
 EndSub
-
 Sub Slider_CallBack
-
   CS_AdjustSlider()
-
   CS_GetColorFromSlider()
-
   CS_ShowNewColor()       ' show new color name
-
   CS_DrawColorRect()      ' draw new color rectangle
-
 EndSub
-
 Sub Slider_GetLevel
-
   sldr = slider[iSlider]
-
   level = sldr["level"]
-
 EndSub
-
 Sub Slider_GetMouseLevel
-
   sldr = slider[iSlider]
-
   x0 = sldr["x0"]
-
   x1 = sldr["x1"]
-
   max = sldr["max"]
-
   min = sldr["min"]
-
   level = min + Math.Floor((max - min) * (mxM - x0) / (x1 - x0))
-
 EndSub
-
 Sub Slider_WaitToRelease
-
   param = "down=False;move=True;up=True;"  ' for slider moving / wait to release
-
   Mouse_SetHandler()
-
   While released = "False"
-
     If moved Then
-
       param = "move=False;"  ' while slider moving
-
       Mouse_SetHandler()
-
       sldr = slider[iSlider]
-
       x0_ = sldr["x0"]
-
       x1_ = sldr["x1"]
-
       If mxM < x0_ Then
-
         mxM = x0_
-
       EndIf
-
       If x1_ < mxM Then
-
         mxM = x1_
-
       EndIf
-
       Slider_GetMouseLevel()  ' get mouse level of slider
-
       Slider_SetLevel()       ' set slider level and move slider box
-
       Slider_CallBack()
-
       param = "move=True;"    ' for next slider moving
-
       Mouse_SetHandler()
-
     Else
-
       Program.Delay(100)
-
     EndIf
-
   EndWhile
-
   param = "move=False;up=False;"  ' mouse released
-
   Mouse_SetHandler()
-
 EndSub
-
 Sub Slider_Remove
-
   sldr = slider[iSlider]
-
   Shapes.Remove(sldr["oCaption"])
-
   Shapes.Remove(sldr["oSlit"])
-
   Shapes.Remove(sldr["oBox"])
-
   Shapes.Remove(sldr["oLevel"])
-
 EndSub
-
 Sub Slider_SetLevel
-
   Stack.PushValue("local", width)
-
   sldr = slider[iSlider]
-
   x0 = sldr["x0"]
-
   x1 = sldr["x1"]
-
   y0 = sldr["y0"]
-
   width = x1 - x0
-
   sldr["level"] = level
-
   Shapes.SetText(sldr["oLevel"], level)
-
   min = sldr["min"]
-
   max = sldr["max"]
-
   mag = (level - min) / (max - min)
-
   Shapes.Move(sldr["oBox"], x0 + Math.Floor(width * mag) - 5, y0)
-
   sldr["x2"] = x0 + Math.Floor(width * mag) - 5
-
   sldr["x3"] = x0 + Math.Floor(width * mag) - 5 + 10
-
   sldr["y2"] = y0
-
   sldr["y3"] = y0 + 18
-
   slider[iSlider] = sldr
-
   width = Stack.PopValue("local")
-
 EndSub
-
-

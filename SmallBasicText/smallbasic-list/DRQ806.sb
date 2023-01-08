@@ -1,1341 +1,670 @@
 ' Perseid Meteor Shower
-
 ' Version 0.1
-
-' ?��?��?��?��?��座流?���?
-
+' ペルセウス座流星群
 ' Copyright © 2016 Nonki Takahashi.  The MIT License.
-
 ' Update 2016-08-11
-
 '
-
 ' Reference:
-
 '  http://en.wikipedia.org/wiki/List_of_stars_in_Perseus
-
 '
-
 GraphicsWindow.Title = "Perseid Meteor Shower 0.1"
-
 debug = "False"
-
 SB_Workaround()
-
 wrap = "False"
-
 gw = 598
-
 gh = 428
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.BackgroundColor = "Black"
-
 ' initialize shapes
-
 'Shapes_Init()
-
 Cal_Init()
-
 ' add shapes
-
 scale = 1
-
 angle = 0
-
 iMin = 1
-
 iMax = 66
-
 'Shapes_Add()
-
 If silverlight Then
-
   Program.Delay(msWait)
-
 EndIf
-
 GraphicsWindow.FontSize = 100
-
 GraphicsWindow.BrushColor = "Gray"
-
 year = 2016
-
 month = 8
-
 'symbol = Shapes.AddText(symbols[month])
-
 'symbolX = 30
-
 'symbolY = gh - 130
-
 'Shapes.Move(symbol, symbolX, symbolY)
-
 InitStars()
-
 num = Array.GetItemCount(star)
-
 index = Array.GetAllIndices(star)
-
 offsetX = 0
-
 offsetY = 0
-
 GetMinMax()
-
 If debug Then
-
   TextWindow.WriteLine("xMin=" + xMin)
-
   TextWindow.WriteLine("yMin=" + yMin)
-
 EndIf
-
 offsetX = -xMin + 60
-
 offsetY = -yMin + 40
-
 monthX = 40
-
 monthY = 40
-
 calendarX = gw - 270
-
 calendarY = gh - 150
-
 DrawGrids()
-
 GraphicsWindow.PenWidth = 1
-
 GraphicsWindow.PenColor = "DarkGray"
-
 num = Array.GetItemCount(edge)
-
 index = Array.GetAllIndices(edge)
-
 For i = 1 To num
-
   e = edge[index[i]]
-
   m = Text.GetIndexOf(e, "-")
-
   ra = star[Text.GetSubText(e, 1, m - 1)]["RA"]
-
   dec = star[Text.GetSubText(e, 1, m - 1)]["Dec"]
-
   RADec2XY()
-
   x1 = x
-
   y1 = y
-
   ra = star[Text.GetSubTextToEnd(e, m + 1)]["RA"]
-
   dec = star[Text.GetSubTextToEnd(e, m + 1)]["Dec"]
-
   RADec2XY()
-
   x2 = x
-
   y2 = y
-
   Shapes.AddLine(x1, y1, x2, y2)
-
 EndFor
-
 ra = radiant["RA"]
-
 dec = radiant["Dec"]
-
 RADec2XY()
-
 rx = x
-
 ry = y
-
 num = Array.GetItemCount(star)
-
 index = Array.GetAllIndices(star)
-
 GraphicsWindow.BrushColor = "White"
-
 For i = 1 To num
-
   ra = star[index[i]]["RA"]
-
   dec = star[index[i]]["Dec"]
-
   RADec2XY()
-
   mag = star[index[i]]["Mag"]
-
   d = 16 / mag
-
   ell = Shapes.AddEllipse(d, d)
-
   Shapes.Move(ell, x - d / 2, y - d / 2) 
-
 EndFor
-
 GraphicsWindow.BrushColor = "White"
-
 If silverlight Then
-
   Program.Delay(msWait)
-
 EndIf
-
 GraphicsWindow.FontSize = 30
-
 GraphicsWindow.DrawText(monthX, monthY, months[month])
-
 If silverlight Then
-
   Program.Delay(msWait)
-
 EndIf
-
 GraphicsWindow.FontSize = 40
-
 GraphicsWindow.DrawText(monthX, monthY + 30, year)
-
 sBuf = year + "," + month
-
 Command_GetArgs()
-
 iYear = sArg[1]
-
 if iYear = "" Then
-
   Goto lEnd
-
 Endif
-
 If Math.Remainder(iYear, 4) = 0 And Math.Remainder(iYear, 100) > 0 Or Math.Remainder(iYear, 400) = 0 Then
-
   iDoM[2] = iDoM[2] + 1
-
 Endif
-
 iNoL = Math.Floor((iYear - 1) / 4) - Math.Floor((iYear - 1) / 100) + Math.Floor((iYear - 1) / 400)  ' number of leap year
-
 iWoY = Math.Remainder((iYear + iNoL), 7)  ' week of year
-
 iMonth = sArg[2]
-
 If iMonth = "" Then
-
   iM0 = 1
-
   iM1 = 12
-
 Else
-
   iM0 = iMonth
-
   iM1 = iMonth
-
 Endif
-
 iDoY = 0  ' days of year
-
 iNoM = 1  ' number of month
-
 For iM = iM0 To iM1
-
   While iNoM < iM
-
     iDoY = iDoY + iDoM[iNoM]
-
     iNoM = iNoM + 1
-
   EndWhile
-
   Cal_DrawMonth()
-
 EndFor  
-
 lEnd:
-
 ' Meteor shower start
-
 GraphicsWindow.PenColor = "White"
-
 While "True"
-
   Program.Delay(2000)
-
   angle = Math.GetRandomNumber(360)
-
   _a = Math.GetRadians(angle)
-
   r1 = Math.GetRandomNumber(150) + 50
-
   r2 = Math.GetRandomNumber(300) + 50 + r1
-
   x1 = rx + r1 * Math.Sin(_a)
-
   y1 = ry - r1 * Math.Cos(_a)
-
   x2 = rx + r2 * Math.Sin(_a)
-
   y2 = ry - r2 * Math.Cos(_a)
-
   meteor = Shapes.AddLine(x1, y1, x2, y2)
-
   For op = 100 To 0 Step -5
-
     Shapes.SetOpacity(meteor, op)
-
     Program.Delay(50)
-
   EndFor
-
   Shapes.Remove(meteor)
-
 EndWhile
-
 ' end of main
-
 Sub Cal_Init
-
   ' Calendar | Initialize days of month
-
   WQ = Text.GetCharacter(34)
-
   CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
-
   iDoM = "1=31;2=28;3=31;4=30;5=31;6=30;7=31;8=31;9=30;10=31;11=30;12=31;"
-
   months = "1=January;2=February;3=March;4=April;5=May;6=June;7=July;"
-
   months = months + "8=August;9=September;10=October;11=November;12=December;"
-
-  symbols = "1=?��;2=?��;3=?��;4=?��;5=?��;6=?��;7=?��;8=?��;9=?��;10=?��;11=?��;12=?��;"
-
+  symbols = "1=♑;2=♒;3=♓;4=♈;5=♉;6=♊;7=♋;8=♌;9=♍;10=♎;11=♏;12=♐;"
 EndSub
-
 Sub Cal_DrawMonth
-
   ' Calendar | Print month
-
   ' param iM - month
-
   ' param iDoY - days of year
-
   ' param iWoY - week of year
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.FontName = "Consolas"
-
   iW = Math.Remainder((iDoY + iWoY), 7)
-
   line = "SUN MON TUE WED THU FRI SAT" + CRLF
-
   iWoM = 0
-
   While iWoM < iW
-
     line = line + "    "
-
     iWoM = iWoM + 1
-
   EndWhile
-
   For iD = 1 To iDoM[iM]
-
     If iD < 10 Then
-
       line = line + "  " + iD + " "
-
     Else
-
       line = line + " " + iD + " "
-
     EndIf
-
     If Math.Remainder(iWoM, 7) = 6 Then
-
       line = line + CRLF
-
     EndIf
-
     iWoM = iWoM + 1
-
   EndFor
-
   If Math.Remainder(iWoM, 7) > 0 Then
-
     line = line + CRLF
-
   EndIf
-
   cal = Shapes.AddText(line)
-
   Shapes.Move(cal, calendarX, calendarY)
-
 EndSub
-
 Sub Command_GetArgs
-
   ' Command line | Get arguments
-
   ' param sBuf - input buffer
-
   ' return sArg[] - arguments
-
   ' return iN - number of arguments
-
   iP = 1  ' buffer pointer
-
   iN = 1  ' number of args
-
   iC = Text.GetIndexOf(sBuf, ",")   ' index of comma
-
   While iC > iP
-
     sArg[iN] = Text.GetSubText(sBuf, iP, iC - iP)
-
     iP = iC + 1
-
     iN = iN + 1
-
     iC = Text.GetIndexOf(sBuf, ",")
-
   EndWhile
-
   iE = Text.GetLength(sBuf) + 1     ' end of buffer
-
   sArg[iN] = Text.GetSubText(sBuf, iP, iE - iP)  
-
 EndSub
-
 Sub GetMinMax
-
   For i = 1 To num
-
     ra = star[index[i]]["RA"]
-
     dec = star[index[i]]["Dec"]
-
     RADec2XY()
-
     ra1 = Text.GetSubText(ra, 1, 2)
-
     If wrap And 12 < ra1 Then
-
       ra1 = ra1 - 24
-
     EndIf
-
     If i = 1 Then
-
       raMin = ra1
-
       decMin = Text.GetSubText(dec, 1, 3)
-
       raMax = ra1
-
       decMax = Text.GetSubText(dec, 1, 3)
-
       xMin = x
-
       yMin = y
-
       xMax = x
-
       yMax = y
-
     Else
-
       raMin = Math.Min(ra1, raMin)
-
       decMin = Math.Min(Text.GetSubText(dec, 1, 3), decMin)
-
       raMax = Math.Max(ra1, raMax)
-
       decMax = Math.Max(Text.GetSubText(dec, 1, 3), decMax)
-
       xMin = Math.Min(x, xMin)
-
       yMin = Math.Min(y, yMin)
-
       xMax = Math.Max(x, xMax)
-
       yMax = Math.Max(y, yMax)
-
     EndIf
-
   EndFor
-
   decMin = Math.Floor(decMin / 10) * 10
-
   raMax = raMax + 1
-
   decMax = decMax + 1
-
 EndSub
-
 Sub InitStars
-
   ' Initialize stars in Perseus
-
   ' index: Flamsteed designation
-
   ' RA (Right ascension), Dec (Declination), Mag (Apparent magnitude)
-
   star["α Per"] = "ra=03 24 19.35;dec=+49 51 40.5;mag=1.79;fd=33;"
-
   star["Algol"] = "ra=03 08 10.13;dec=+40 57 20.3;mag=2.09;fd=26;"
-
   star["ζ Per"] = "ra=03 54 07.92;dec=+31 53 01.2;mag=2.84;fd=44;"
-
   star["ε Per"] = "ra=03 57 51.22;dec=+40 00 37.0;mag=2.90;fd=45;"
-
   star["γ Per A"] = "ra=03 04 47.79;dec=+53 30 23.2;mag=2.91;fd=23;"
-
   star["γ Per B"] = "ra=03 04 44.10;dec=+53 31 10.0;mag=3.00;fd=23;"
-
   star["δ Per"] = "ra=03 42 55.48;dec=+47 47 15.6;mag=3.01;fd=39;"
-
-  star["?? Per"] = "ra=03 05 10.50;dec=+38 50 25.9;mag=3.32;fd=25;"
-
+  star["ρ Per"] = "ra=03 05 10.50;dec=+38 50 25.9;mag=3.32;fd=25;"
   star["η Per"] = "ra=02 50 41.79;dec=+55 53 43.9;mag=3.77;fd=15;"
-
   star["ν Per"] = "ra=03 45 11.64;dec=+42 34 42.8;mag=3.77;fd=41;"
-
   star["κ Per"] = "ra=03 09 29.63;dec=+44 51 28.4;mag=3.79;fd=27;"
-
   star["ο Per"] = "ra=03 44 19.13;dec=+32 17 17.8;mag=3.84;fd=38;"
-
-  star["?? Per A"] = "ra=02 54 15.46;dec=+52 45 45.0;mag=3.93;fd=18;"
-
+  star["τ Per A"] = "ra=02 54 15.46;dec=+52 45 45.0;mag=3.93;fd=18;"
   star["48 Per"] = "ra=04 08 39.67;dec=+47 42 45.3;mag=3.96;fd=48;"
-
   star["ξ Per"] = "ra=03 58 57.90;dec=+35 47 27.7;mag=3.98;fd=46;"
-
-  star["?? Per B"] = "ra=02 54 20.80;dec=+52 45 30.0;mag=4.00;fd=18;"
-
-  star["?? Per"] = "ra=01 43 39.62;dec=+50 41 19.6;mag=4.01;"
-
+  star["τ Per B"] = "ra=02 54 20.80;dec=+52 45 30.0;mag=4.00;fd=18;"
+  star["φ Per"] = "ra=01 43 39.62;dec=+50 41 19.6;mag=4.01;"
   star["ι Per"] = "ra=03 09 02.88;dec=+49 36 48.6;mag=4.05;"
-
   star["θ Per"] = "ra=02 44 11.69;dec=+49 13 43.2;mag=4.10;fd=13;"
-
   star["μ Per"] = "ra=04 14 53.86;dec=+48 24 33.7;mag=4.12;fd=51;"
-
   star["16 Per"] = "ra=02 50 34.91;dec=+38 19 08.1;mag=4.22;fd=16;"
-
   star["λ Per"] = "ra=04 06 35.06;dec=+50 21 04.9;mag=4.25;fd=47;"
-
   star["58 Per"] = "ra=04 36 41.43;dec=+41 15 53.5;mag=4.25;fd=58;"
-
-  star["?? Per"] = "ra=03 36 29.36;dec=+48 11 33.7;mag=4.32;fd=37;"
-
-  star["?? Per"] = "ra=03 30 34.48;dec=+47 59 42.6;mag=4.36;fd=35;"
-
+  star["ψ Per"] = "ra=03 36 29.36;dec=+48 11 33.7;mag=4.32;fd=37;"
+  star["σ Per"] = "ra=03 30 34.48;dec=+47 59 42.6;mag=4.36;fd=35;"
   star["17 Per"] = "ra=02 51 30.83;dec=+35 03 35.6;mag=4.56;fd=17;"
-
   star["HD 26961"] = "ra=04 18 14.58;dec=+50 17 44.3;mag=4.60;"
-
-  star["?? Per"] = "ra=03 11 17.40;dec=+39 36 41.7;mag=4.61;fd=28;"
-
+  star["ω Per"] = "ra=03 11 17.40;dec=+39 36 41.7;mag=4.61;fd=28;"
   star["34 Per"] = "ra=03 29 22.03;dec=+49 30 32.5;mag=4.67;fd=34;"
-
   star["52 Per"] = "ra=04 14 53.31;dec=+40 29 01.4;mag=4.67;fd=52;"
-
-  star["? Per"] = "ra=02 58 45.65;dec=+39 39 46.2;mag=4.68;fd=22;"
-
+  star["π Per"] = "ra=02 58 45.65;dec=+39 39 46.2;mag=4.68;fd=22;"
   star["HD 18970"] = "ra=03 05 32.43;dec=+56 42 20.0;mag=4.77;"
-
   star["53 Per"] = "ra=04 21 33.15;dec=+46 29 56.3;mag=4.80;fd=53;"
-
   star["HD 20468"] = "ra=03 18 43.82;dec=+34 13 21.6;mag=4.85;"
-
   star["1 Aur"] = "ra=04 49 54.67;dec=+37 29 17.5;mag=4.89;fd=(1);"
-
   star["12 Per"] = "ra=02 42 14.93;dec=+40 11 39.8;mag=4.91;fd=12;"
-
   star["54 Per"] = "ra=04 20 24.66;dec=+34 34 00.3;mag=4.93;fd=54;"
-
   star["24 Per"] = "ra=02 59 03.71;dec=+35 10 59.2;mag=4.94;fd=24;"
-
   star["32 Per"] = "ra=03 21 26.61;dec=+43 19 46.7;mag=4.96;fd=32;"
-
   star["40 Per"] = "ra=03 42 22.64;dec=+33 57 54.1;mag=4.97;fd=40;"
-
   star["4 Per"] = "ra=02 02 18.07;dec=+54 29 15.2;mag=4.99;fd=4;"
-
   star["HD 21278"] = "ra=03 28 03.05;dec=+49 03 46.6;mag=4.99;"
-
   star["31 Per"] = "ra=03 19 07.62;dec=+50 05 42.1;mag=5.05;fd=31;"
-
   star["21 Per"] = "ra=02 57 17.28;dec=+31 56 03.5;mag=5.10;fd=21;"
-
   star["42 Per"] = "ra=03 49 32.70;dec=+33 05 29.0;mag=5.14;fd=42;"
-
   star["9 Per"] = "ra=02 22 21.43;dec=+55 50 44.4;mag=5.16;fd=9;"
-
   star["29 Per"] = "ra=03 18 37.72;dec=+50 13 20.0;mag=5.16;fd=29;"
-
   star["43 Per"] = "ra=03 56 36.44;dec=+50 41 44.5;mag=5.28;fd=43;"
-
   star["36 Per"] = "ra=03 32 26.30;dec=+46 03 25.4;mag=5.30;fd=36;"
-
   star["59 Per"] = "ra=04 42 54.30;dec=+43 21 55.0;mag=5.30;fd=59;"
-
   star["V575 Per"] = "ra=03 23 13.18;dec=+49 12 48.0;mag=5.32;"
-
   star["20 Per"] = "ra=02 53 42.58;dec=+38 20 15.6;mag=5.34;fd=20;"
-
   star["14 Per"] = "ra=02 44 05.16;dec=+44 17 49.4;mag=5.43;fd=14;"
-
   star["V396 Per"] = "ra=03 32 08.58;dec=+48 01 24.7;mag=5.47;"
-
   star["30 Per"] = "ra=03 17 47.33;dec=+44 01 30.3;mag=5.49;fd=30;"
-
   star["50 Per"] = "ra=04 08 36.49;dec=+38 02 24.8;mag=5.52;fd=50;"
-
   star["1 Per"] = "ra=01 51 59.31;dec=+55 08 50.7;mag=5.53;fd=1;"
-
   star["HD 27192"] = "ra=04 20 11.51;dec=+50 55 15.4;mag=5.55;"
-
   star["V472 Per"] = "ra=02 08 40.58;dec=+58 25 25.0;mag=5.66;"
-
   star["2 Per"] = "ra=01 52 09.35;dec=+50 47 34.3;mag=5.70;fd=2;"
-
   star["3 Per"] = "ra=01 58 33.50;dec=+49 12 15.3;mag=5.70;fd=3;"
-
   star["55 Per"] = "ra=04 24 29.14;dec=+34 07 51.0;mag=5.73;fd=55;"
-
   star["8 Per"] = "ra=02 17 59.82;dec=+57 53 59.3;mag=5.75;fd=8;"
-
   star["11 Per"] = "ra=02 43 02.80;dec=+55 06 21.9;mag=5.76;fd=11;"
-
   star["56 Per"] = "ra=04 24 37.42;dec=+33 57 35.6;mag=5.77;fd=56;"
-
   star["IW Per"] = "ra=03 33 35.02;dec=+39 53 58.5;mag=5.79;"
-
   star["V376 Per"] = "ra=03 49 08.12;dec=+43 57 46.9;mag=5.95;"
-
   star["V573 Per"] = "ra=03 16 35.19;dec=+32 11 03.2;mag=5.98;"
-
   star["7 Per"] = "ra=02 18 04.60;dec=+57 30 58.8;mag=5.99;fd=7;"
-
   star["49 Per"] = "ra=04 08 15.46;dec=+37 43 40.7;mag=6.07;fd=49;"
-
   star["V576 Per"] = "ra=03 25 57.36;dec=+49 07 15.0;mag=6.09;"
-
   star["57 Per"] = "ra=04 33 24.90;dec=+43 03 50.0;mag=6.09;fd=57;"
-
   star["V545 Per"] = "ra=04 18 08.09;dec=+42 08 28.5;mag=6.22;"
-
   star["10 Per"] = "ra=02 25 16.03;dec=+56 36 35.4;mag=6.25;fd=10;"
-
   star["V480 Per"] = "ra=02 49 30.74;dec=+57 05 03.6;mag=6.25;"
-
   star["V440 Per"] = "ra=02 23 51.75;dec=+55 21 53.5;mag=6.29;"
-
   star["5 Per"] = "ra=02 11 29.19;dec=+57 38 44.0;mag=6.38;fd=5;"
-
   star["V521 Per"] = "ra=03 07 47.34;dec=+47 18 31.3;mag=6.38;"
-
   star["KP Per"] = "ra=03 32 38.98;dec=+44 51 20.8;mag=6.42;"
-
   star["V572 Per"] = "ra=03 15 48.65;dec=+50 57 21.5;mag=6.46;"
-
   star["V509 Per"] = "ra=03 03 56.75;dec=+47 50 54.6;mag=6.48;"
-
   star["V520 Per"] = "ra=02 19 04.45;dec=+57 08 07.8;mag=6.55;fd=(61);"
-
   star["X Per"] = "ra=03 55 23.08;dec=+31 02 45.1;mag=6.79;"
-
   edge = "1=η Per-γ Per A;2=γ Per A-α Per;3=α Per-κ Per;4=κ Per-Algol;"
-
-  edge = edge + "5=Algol-?? Per;6=?? Per-16 Per;7=α Per-?? Per;8=?? Per-δ Per;"
-
+  edge = edge + "5=Algol-ρ Per;6=ρ Per-16 Per;7=α Per-ψ Per;8=ψ Per-δ Per;"
   edge = edge + "9=δ Per-48 Per;10=48 Per-μ Per;11=μ Per-λ Per;12=δ Per-ν Per;"
-
   edge = edge + "13=ν Per-ε Per;14=ε Per-ξ Per;15=ξ Per-ζ Per;"
-
   radiant = "ra=03 10 00.00;dec=+58 00 00.0;"
-
 EndSub
-
 Sub DrawGrids
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "DimGray"
-
   GraphicsWindow.BrushColor = "DimGray"
-
   GraphicsWindow.FontSize = 12
-
   y1 = 0
-
   y2 = GraphicsWindow.Height
-
   If debug Then
-
     TextWindow.WriteLine("raMin=" + raMin)
-
     TextWindow.WriteLine("raMax=" + raMax)
-
   EndIf
-
   For ra = raMin To raMax
-
     RADec2XY()
-
     Shapes.AddLine(x, y1, x, y2)
-
     raTxt = ra
-
     If wrap And raTxt < 0 Then
-
       raTxt = raTxt + 24
-
     EndIf
-
     If debug Then
-
       TextWindow.WriteLine("raTxt=" + raTxt)
-
       TextWindow.WriteLine("x=" + x)
-
     EndIf
-
     txt = Shapes.AddText(raTxt + "h")
-
     Shapes.Move(txt, x, 5) 
-
   EndFor
-
   x1 = 0
-
   x2 = GraphicsWindow.Width
-
   For dec = decMin To decMax + 10 Step 10
-
     If dec > 0 Then
-
       dec = Text.Append("+", Math.Abs(dec))
-
     EndIf
-
     RADec2XY()
-
     Shapes.AddLine(x1, y, x2, y)
-
     txt = Shapes.AddText(dec)
-
     Shapes.Move(txt, x1, y) 
-
   EndFor
-
 EndSub
-
 Sub RADec2XY
-
   ' param ra - right ascension
-
   ' param dec - declination
-
   ' return x, y
-
   x = Text.GetSubText(ra, 1, 2)
-
   If wrap And 12 < x Then
-
     x = x - 24
-
   EndIf
-
   x = x + Text.GetSubText(ra, 4, 2) / 60
-
   x = x + Text.GetSubText(ra, 7, 5) / 3600
-
   x = offsetX - (x - raMin) * 3600 / 24
-
   y = Text.GetSubText(dec, 2, 2)
-
   y = y + Text.GetSubText(dec, 5, 2) / 60
-
   y = y + Text.GetSubText(dec, 8, 5) / 3600
-
   y = y * Text.Append(Text.GetSubText(dec, 1, 1), "1")
-
   y = offsetY - y * 3600 / 360
-
 EndSub
-
 Sub Shapes_Init
-
   ' Shapes | Initialize shapes data
-
   ' return shX, shY - current position of shapes
-
   ' return shape - array of shapes
-
   shX = 109 ' x offset
-
   shY = 56 ' y offset
-
   shape = ""
-
 EndSub
-
 Sub Math_CartesianToPolar
-
   ' Math | convert cartesian coodinate to polar coordinate
-
   ' param x, y - cartesian coordinate
-
   ' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   ElseIf x = 0 Then
-
     a = 0
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
 Sub SB_RotateWorkaround
-
   ' Small Basic | Rotate workaround for Silverlight
-
   ' param shp - current shape
-
   ' param x, y - original coordinate
-
   ' param alpha - angle [radian]
-
   ' returns x, y - workaround coordinate
-
   If shp["func"] = "tri" Then
-
     x1 = -Math.Floor(shp["x3"] / 2)
-
     y1 = -Math.Floor(shp["y3"] / 2)
-
   ElseIf shp["func"] = "line" Then
-
     x1 = -Math.Floor(Math.Abs(shp["x1"] - shp["x2"]) / 2)
-
     y1 = -Math.Floor(Math.Abs(shp["y1"] - shp["y2"]) / 2)
-
   EndIf
-
   ox = x - x1
-
   oy = y - y1
-
   x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
   y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
 EndSub
-
 Sub SB_Workaround
-
   ' Small Basic | Workaround for Silverlight
-
   ' returns silverlight - "True" if in remote
-
   color = GraphicsWindow.GetPixel(0, 0)
-
   If Text.GetLength(color) > 7 Then
-
     silverlight = "True"
-
     msWait = 300
-
   Else
-
     silverlight = "False"
-
   EndIf
-
 EndSub
-
 Sub Shapes_Add
-
   ' Shapes | add shapes as shapes data
-
   ' param iMin, iMax - shape indices to add
-
   ' param shape - array of shapes
-
   ' param scale - 1 if same scale
-
   ' return shWidth, shHeight - total size of shapes
-
   ' return shAngle - current angle of shapes
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   Shapes_CalcWidthAndHeight()
-
   s = scale
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     GraphicsWindow.PenWidth = shp["pw"] * s
-
     If shp["pw"] > 0 Then
-
       GraphicsWindow.PenColor = shp["pc"]
-
     EndIf
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) Then
-
       GraphicsWindow.BrushColor = shp["bc"]
-
     EndIf
-
     If shp["func"] = "rect" Then
-
       shp["obj"] = Shapes.AddRectangle(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "ell" Then
-
       shp["obj"] = Shapes.AddEllipse(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "tri" Then
-
       shp["obj"] = Shapes.AddTriangle(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s, shp["x3"] * s, shp["y3"] * s)
-
     ElseIf shp["func"] = "line" Then
-
       shp["obj"] = Shapes.AddLine(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s)
-
     ElseIf shp["func"] = "text" Then
-
       If silverlight Then
-
         fs = Math.Floor(shp["fs"] * 0.9)
-
       Else
-
         fs = shp["fs"]
-
       EndIf
-
       If silverlight Then
-
         Program.Delay(msWait)
-
       EndIf
-
       GraphicsWindow.FontSize = fs * s
-
       GraphicsWindow.FontName = shp["fn"]
-
       shp["obj"] = Shapes.AddText(shp["text"])
-
     EndIf
-
     x = shp["x"]
-
     y = shp["y"]
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(shp["angle"])
-
       SB_RotateWorkaround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) And (shp["angle"] <> 0) And (shp["angle"] <> "") Then
-
       Shapes.Rotate(shp["obj"], shp["angle"])
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
   shAngle = 0
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_CalcRotatePos
-
   ' Shapes | Calculate position for rotated shape
-
   ' param["x"], param["y"] - position of a shape
-
   ' param["width"], param["height"] - size of a shape
-
   ' param ["cx"], param["cy"] - center of rotation
-
   ' param ["angle"] - rotate angle
-
   ' return x, y - rotated position of a shape
-
   _cx = param["x"] + param["width"] / 2
-
   _cy = param["y"] + param["height"] / 2
-
   x = _cx - param["cx"]
-
   y = _cy - param["cy"]
-
   Math_CartesianToPolar()
-
   a = a + param["angle"]
-
   x = r * Math.Cos(a * Math.Pi / 180)
-
   y = r * Math.Sin(a * Math.Pi / 180)
-
   _cx = x + param["cx"]
-
   _cy = y + param["cy"]
-
   x = _cx - param["width"] / 2
-
   y = _cy - param["height"] / 2
-
 EndSub
-
 Sub Shapes_CalcWidthAndHeight
-
   ' Shapes | Calculate total width and height of shapes
-
   ' param iMin, iMax - shape indices to add
-
   ' return shWidth, shHeight - total size of shapes
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If shp["func"] = "tri" Or shp["func"] = "line" Then
-
       xmin = shp["x1"]
-
       xmax = shp["x1"]
-
       ymin = shp["y1"]
-
       ymax = shp["y1"]
-
       If shp["x2"] < xmin Then
-
         xmin = shp["x2"]
-
       EndIf
-
       If xmax < shp["x2"] Then
-
         xmax = shp["x2"]
-
       EndIf
-
       If shp["y2"] < ymin Then
-
         ymin = shp["y2"]
-
       EndIf
-
       If ymax < shp["y2"] Then
-
         ymax = shp["y2"]
-
       EndIf
-
       If shp["func"] = "tri" Then
-
         If shp["x3"] < xmin Then
-
           xmin = shp["x3"]
-
         EndIf
-
         If xmax < shp["x3"] Then
-
           xmax = shp["x3"]
-
         EndIf
-
         If shp["y3"] < ymin Then
-
           ymin = shp["y3"]
-
         EndIf
-
         If ymax < shp["y3"] Then
-
           ymax = shp["y3"]
-
         EndIf
-
       EndIf
-
       shp["width"] = xmax - xmin
-
       shp["height"] = ymax - ymin
-
     EndIf
-
     If i = 1 Then
-
       shWidth = shp["x"] + shp["width"]
-
       shHeight = shp["y"] + shp["height"]
-
     Else
-
       If shWidth < shp["x"] + shp["width"] Then
-
         shWidth = shp["x"] + shp["width"]
-
       EndIf
-
       If shHeight < shp["y"] + shp["height"] Then
-
         shHeight = shp["y"] + shp["height"]
-
       EndIf
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
 EndSub
-
 Sub Shapes_Move
-
   ' Shapes | Move shapes
-
   ' param iMin, iMax - shape indices to add
-
   ' param shape - array of shapes
-
   ' param scale - to zoom
-
   ' param x, y - position to move
-
   ' return shX, shY - new position of shapes
-
   Stack.PushValue("local", i)
-
   s = scale
-
   shX = x
-
   shY = y
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       _x = shp["wx"]
-
       _y = shp["wy"]
-
     Else
-
       _x = shp["rx"]
-
       _y = shp["ry"]
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + _x * s, shY + _y * s)
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Remove
-
   ' Shapes | Remove shapes
-
   ' param iMin, iMax - shapes indices to remove
-
   ' param shape - array of shapes
-
   Stack.PushValue("local", i)
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     Shapes.Remove(shp["obj"])
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Rotate
-
   ' Shapes | Rotate shapes
-
   ' param iMin, iMax - shapes indices to rotate
-
   ' param shape - array of shapes
-
   ' param cx, cy - rotation center
-
   ' param scale - to zoom
-
   ' param angle - to rotate
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   s = scale
-
   param["angle"] = angle
-
   If cx <> "" Then
-
     param["cx"] = cx
-
   Else
-
     cx = ""   ' to avoid syntax error
-
     param["cx"] = shWidth / 2
-
   EndIf
-
   If cy <> "" Then
-
     param["cy"] = cy
-
   Else
-
     cy = ""   ' to avoid syntax error
-
     param["cy"] = shHeight / 2
-
   EndIf
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     param["x"] = shp["x"]
-
     param["y"] = shp["y"]
-
     param["width"] = shp["width"]
-
     param["height"] = shp["height"]
-
     Shapes_CalcRotatePos()
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(angle + shp["angle"])
-
       SB_RotateWorkAround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     Shapes.Rotate(shp["obj"], angle + shp["angle"])
-
     shape[i] = shp
-
   EndFor
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-

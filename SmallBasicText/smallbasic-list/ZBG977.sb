@@ -1,401 +1,201 @@
 ' Small Basic Parser Generator 1.1b
-
 ' for Code Block Generator
-
 ' Copyright (c) 2012 Nonki Takahashi.  All rights reserved.
-
 '
-
 ' History :
-
 ' 1.1b 2012/10/26 Simplified BNF. ()
-
 ' 1.0 2012/10/25 Rewrote as HTML code block generator. (not complete)
-
 ' 0.4 2012/10/06 Rewrote as Parser Generator. (XWX066)
-
 ' 0.3 2012/09/01 Modified for all GraphicsWindows operations (*).
-
 ' 0.2 2012/09/01 Support more statements (*).
-
 ' 0.1 2012/08/31 Created (*).
-
 ' (*) as Small Basic Compiler Compiler
-
 '
-
 version = "1.1b"
-
 title = "Small Basic Parser Generator " + version
-
 dir = Program.Directory
-
 filename = dir + "/ParserGenerator1_1b.smallbasic"
-
 targetname = dir + "/CodeBlockGenerator1_1b.smallbasic"
-
 TextWindow.Title = title
-
 TextWindow.WriteLine("Wait a moment...")
-
 traceC = "False"    ' debug
-
 PG_Init()
-
 PG_Main()
-
 TextWindow.Write(code)
-
 ' The following line could be harmful and has been automatically commented.
-
 ' File.WriteContents(targetname, code)
 
-
-
 Sub CBG_Main
-
   ' Code Block Generator | Main
-
   title = "Code Block Generator " + version
-
   traceC = "False"        ' trace subroutine call
-
   traceX = "False"        ' trace operation execution
-
   WQ = Text.GetCharacter(34)
-
   CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
-
   bcolor[1] = "#FFFFFF"   ' background color 1
-
   bcolor[0] = "#F8F8F8"   ' background color 2
-
   rcolor = "#008020"      ' remark (comment) color
-
   lcolor = "#DD6633"      ' literal color
-
   kcolor = "#7777FF"      ' keyword color
-
   ccolor = "#006060"      ' class (object) color
-
   mcolor = "#802020"      ' member (property, operation, event) color
-
   ocolor = "#800000"      ' operator color
-
   ncolor = "#5C5C5C"      ' line number color
-
   fcolor = "#7F9DB9"      ' frame color
-
   vcolor = "#000000"      ' variable (or label) color
-
   sample[1] = "' Sample Program"
-
   sample[2] = "For i = 1 To 10"
-
   sample[3] = "  TextWindow.Write(i + " + WQ + " " + WQ + ")"
-
   sample[4] = "EndFor"
-
   sample[5] = "TextWindow.WriteLine(" + WQ + WQ + ")"
-
   GraphicsWindow.Title = title
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontName = "Consolas"
-
   fsize = 12
-
   GraphicsWindow.FontSize = fsize
-
   lheight = fsize * 1.22  ' line height
-
   cwidth = fsize * 0.54   ' column width
-
   gwidth = GraphicsWindow.Width
-
   gheight = GraphicsWindow.Height
-
   oheight = lheight * 6   ' options height
-
   fheight = lheight * 3   ' footer height
-
   bheight = (gheight - oheight - fheight - lheight * 3 - 20) / 2  ' source / preview text box
-
   dheight = gheight - fheight - lheight - 20                      ' destination text box
-
   Lex_Init()
-
   While "True"
-
     CBG_ShowSourceWindow()
-
     nlines = Array.GetItemCount(sample) ' number of lines
-
     sbuf = ""
-
     For line = 1 To nlines
-
       sbuf = Text.Append(sbuf, sample[line])
-
       If line < nlines Then
-
         sbuf = Text.Append(sbuf, CRLF)
-
       EndIf
-
     EndFor
-
     Controls.SetTextBoxText(stextbox, sbuf)
-
     Controls.ButtonClicked = CBG_OnButtonClicked
-
     GraphicsWindow.MouseDown = CBG_OnMouseDown
-
     clicked = ""
-
     x0 = 12
-
     x = x0 + 4
-
     y0 = 10 + lheight * 3 + bheight + oheight + 2
-
     height = lheight
-
     While clicked <> obutton
-
       If clicked = pbutton Then
-
         clicked = ""
-
         swidth = Controls.GetTextBoxText(wtextbox)  ' max snippet width
-
         sheight = Controls.GetTextBoxText(htextbox) ' max snippet height
-
         If (swidth <> lswidth) Or (sheight <> lsheight)Then
-
           lswidth = swidth                          ' last snippet width
-
           lsheight = sheight                        ' last snippet height
-
           GraphicsWindow.BrushColor = "White"
-
           GraphicsWindow.FillRectangle(x0 - 4, y0 - 4, _swidth + 4, _sheight + 4)
-
           If Text.EndsWith(swidth, "%") Then
-
             percent = Text.GetSubText(swidth, 1, Text.GetLength(swidth) - 1)
-
             _swidth = Math.Floor((gwidth - 20) * percent / 100)
-
           ElseIf swidth = "" Then
-
             _swidth = gwidth - 20
-
           Else
-
             _swidth = swidth
-
           EndIf
-
           If Text.EndsWith(sheight, "%") Then
-
             percent = Text.GetSubText(sheight, 1, Text.GetLength(sheight) - 1)
-
             _sheight = Math.Floor(bheight * percent / 100)
-
           ElseIf sheight = "" Then
-
             _sheight = bheight
-
           Else
-
             _sheight = swidth
-
           EndIf
-
           GraphicsWindow.PenWidth = 1
-
           GraphicsWindow.PenColor = fcolor
-
           GraphicsWindow.DrawRectangle(x0 - 2, y0 - 2, _swidth, _sheight)
-
         EndIf
-
         sbuf = Controls.GetTextBoxText(stextbox)    ' source buffer
-
         CBG_GetLineCount()                          ' get nlines (number of lines)
-
         max = Math.Floor(bheight / lheight)
-
         nlines = Math.Min(nlines, max)
-
         display = "True"
-
         CBG_Parse()
-
       ElseIf clicked = "cbox" Then
-
         clicked = ""
-
         If dispnum Then
-
           dispnum = "False"
-
           Shapes.HideShape(check)
-
         Else
-
           dispnum = "True"
-
           Shapes.ShowShape(check)
-
         EndIf
-
       Else
-
         Program.Delay(100)
-
       EndIf
-
     EndWhile
-
     display = "False"
-
     swidth = Controls.GetTextBoxText(wtextbox)    ' max snippet width
-
     sheight = Controls.GetTextBoxText(htextbox)   ' max snippet height
-
     sbuf = Controls.GetTextBoxText(stextbox)      ' source buffer
-
     CBG_GetLineCount()                            ' get nlines (number of lines)
-
     CBG_Parse()
-
     CBG_ShowDestinationWindow()
-
     clicked = ""
-
     While clicked <> obutton
-
       Program.Delay(100)
-
     EndWhile
-
   EndWhile
-
 EndSub
-
-
 
 Sub CBG_OnMouseDown
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   If (bx0 <= mx) And (mx <= bx1) And (by0 <= my) And (my <= by1) Then
-
     clicked = "cbox"
-
   EndIf
-
 EndSub
 
-
-
 Sub CBG_Parse
-
   GraphicsWindow.FontBold = "False"
-
   cbuf = "<div class=" + WQ + "reCodeBlock" + WQ + " style=" + WQ + "border:1px solid " + fcolor + "; "
-
   If swidth <> "" Then
-
     cbuf = cbuf + "width:" + swidth
-
     If Text.EndsWith(swidth, "%") = "False" Then
-
       cbuf = cbuf + "px"
-
     EndIf
-
     cbuf = cbuf + "; "
-
   EndIf
-
   If sheight <> "" Then
-
     cbuf = cbuf + "height:" + sheight
-
     If Text.EndsWith(sheight, "%") = "False" Then
-
       cbuf = cbuf + "px"
-
     EndIf
-
     cbuf = cbuf + "; "
-
   EndIf
-
   cbuf = cbuf + "overflow-y:auto; font-size: 12px;" + WQ + ">" + CRLF + "  "
-
   For line = 1 To nlines
-
     linetop = "True"
-
     cbuf = cbuf + "<div style=" + WQ + "background-color: " + bcolor[Math.Remainder(line, 2)] + ";" + WQ + ">"
-
     If dispnum Then
-
       cbuf = cbuf + "<code" + CRLF + "  "
-
       cbuf = cbuf + "style=" + WQ + "color:" + ncolor + "; float:left; width:3em; padding-right:0.3em; text-align:right; display:block;" + WQ + ">" + line + ".</code" + CRLF + "  "
-
       cbuf = cbuf + ">"
-
     EndIf
-
     If display Then
-
       y = y0 + height * (line - 1)
-
       GraphicsWindow.BrushColor = bcolor[Math.Remainder(line, 2)]
-
       GraphicsWindow.FillRectangle(x0, y, width - 4, height)
-
       If dispnum Then
-
         GraphicsWindow.BrushColor = ncolor
-
         GraphicsWindow.DrawText(x, y, Text.Append(line, "."))
-
         column = 5
-
       Else
-
         column = 1
-
       EndIf
-
     EndIf
-
     CBG_GetLine()
-
     len = Text.GetLength(buf)
-
     ptr = 1
-
     Parse_State()
-
     If linetop Then
-
       linetop = "False"
-
     Else
-
       cbuf = cbuf + "</code>"
-
     EndIf
-
     cbuf = cbuf + "

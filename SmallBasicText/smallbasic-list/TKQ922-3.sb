@@ -1,415 +1,207 @@
 
-
 DataExtension.Init()    '  this is not necessary          
-
 init()                  '  init view
-
 Control_button()        '  control button 
-
 Open_Files()            '  gets music moview files
-
-
 
 Player = Media.CreateMediaPlayer(Files_Array[Song_Id],7,7,446,296) '  Open first  file song_id=1
 
-
-
 While "True"
-
     Media_Position= (Media.GetPosition(Player)*100)/Media.GetLength(Player) ' ##.# %
-
     GameControls.SetValue(Seek_Bar,Media_Position/10)                       ' #.## %
-
     Min = Math.Floor(Media.GetPosition(Player)/1000/60)                     ' ##  min
-
     Secs = Math.Floor(Math.Remainder(Media.GetPosition(Player)/1000,60))    ' ## sec
-
     GameControls.SetText(Time_Box,Min+" : "+Secs+"")
-
     If Media_Position>=99.9 then                               '  End point  
-
        Play_Next() 
-
     EndIf
-
 endwhile
 
 
-
-
-
 Sub Open_Files
-
   start:
-
   Dir = Dialogs.AskForDirectory()                    ' Select a directory that include music files
-
   Files_Array = FilePlus.GetFiles(Dir)               '  gets visible files
-
   Total_Files = Array.GetItemCount(Files_Array)      '  array number
-
   For i=1 To Total_Files
-
      CurrentExt=FilePlus.GetFileExtension(Files_Array[i])   '  gets  extension
-
     If  text.IsSubText(Musicext,CurrentExt)="True" then     ' compare  if music( movie)  file exists
-
         MM=MM+1
-
         Files_Array[MM]=Files_Array[i]
-
       Else
-
         Files_Array[i]=" "  
-
     EndIf
-
   EndFor
-
   GameWindow.Title = "Small Music Player - By Amir   "+Dir
-
   Song_Id=1                                                'First file To Play
-
   CurrentExt= FilePlus.GetFileExtension(Files_Array[Song_Id])
-
   If  text.IsSubText(Musicext,CurrentExt)="True" then
-
     If flag<>1 Then 
-
        Add_List()                ' write music(movie) files in the ListBox
-
     Else 
-
       Scroll()
-
       Play_Song()
-
     endif  
-
      SetVolume()               ' set volume
-
   Else 
-
     Dialogs.ShowMessageBox("Please Select Media Directory First","No Files","OK","Error")
-
     Goto Start
-
   EndIf
-
   flag=1
-
 EndSub
-
-
 
 Sub Play_Song
-
   If GameControls.GetText(Pause_Button) = "Paused" Then
-
     Media.Resume(Player)
-
   Else
-
    Song_Id = 1
-
    Media.stop(Player)
-
    Media.SetMedia(Player, Files_Array[Song_Id])        '  set  new music file
-
    GameControls.SetValue(Seek_Bar,Media_Position/10)   '  slider =0
-
    Media.Play(Player)
-
   EndIf
-
    GameControls.SetText(Play_Button,"Playing")
-
    GameControls.SetText(Pause_Button,"Pause")
-
 EndSub
-
-
 
 Sub Play_Next
-
    Media.Stop(Player)
-
    Song_Id = Song_Id + 1
-
    If Song_Id > Total_Files Then
-
       Song_Id = Total_Files
-
    EndIf
-
    Media.SetMedia(Player, Files_Array[Song_Id])   '  Song_ID is  already +1 
-
    Scroll() 
-
    GameControls.SetValue(Seek_Bar,0)              '  progress bar =0
-
    Media.Play(Player)
-
    GameControls.SetText(Play_Button,"Playing")
-
    GameControls.SetText(Pause_Button,"Pause")
-
 EndSub
-
-
 
 Sub Play_Prev
-
    Media.stop(Player)
-
    Song_Id = Song_Id - 1
-
    If Song_Id < 1 Then
-
      Song_Id = 1
-
    EndIf
-
    Media.SetMedia(Player, Files_Array[Song_Id])   '  Song_ID is  already -1
-
    Scroll() 
-
    GameControls.SetValue(Seek_Bar,0)              '  progress bar =0
-
    GameControls.SetValue(Seek_Bar,0)
-
    Media.Play(Player)
-
    GameControls.SetText(Play_Button,"Playing")
-
    GameControls.SetText(Pause_Button,"Pause")
-
 EndSub 
 
-
-
 Sub Stop_Song
-
    Media.stop(Player)
-
    GameControls.SetText(Play_Button,"Play")
-
    GameControls.SetText(Pause_Button,"Pause")
-
 EndSub
-
-
 
 Sub Volume_Set
-
    Vol_Value = GameControls.GetValue(Volume_Control_Bar)
-
    Media.SetVolume(Player,Vol_Value/100)
-
 EndSub
-
-
 
 Sub Pause
-
    GameControls.SetText(Pause_Button,"Paused")
-
    Media.Pause(Player)
-
    GameControls.SetText(Play_Button,"Play")
-
 EndSub
-
-
 
 Sub Hide
-
    For i = GW To 460 Step -5
-
     GameWindow.Width = i
-
    EndFor
-
    GameControls.SetVisibility(Hide_PlayList,"False")
-
 EndSub
-
-
 
 Sub Show
-
    For i = 460 To GW Step 5
-
     GameWindow.Width = i
-
    EndFor
-
    GameControls.SetVisibility(Hide_PlayList,"True")
-
 EndSub
-
-
 
 Sub Slider_Move
-
    Slider_Position = GameControls.GetValue(Seek_Bar)
-
    Slider_Time_Position = (Slider_Position*Media.GetLength(Player))/100
-
    Media.SetPosition(Player,Slider_Time_Position)
-
 EndSub
-
-
 
 Sub SetVolume
-
    Media.SetVolume(Player,50)
-
    GameControls.SetValue(Volume_Control_Bar,50/10)
-
 EndSub
-
-
 
 Sub Add_List
-
    For i=1 To 17
-
       Song_name[i]= GameControls.AddText(FilePlus.GetFileName(Files_Array[i])+FilePlus.GetFileExtension(Files_Array[i]),465,10+20*(i-1),"Arial",20,"False","False")
-
    EndFor 
-
    GameControls.SetColors(Song_name[Song_Id],"red","red",2) 
-
 EndSub
-
-
 
 Sub Scroll
-
    NN=math.Round(GameControls.GetValue(Scroller)+0.5)
-
    For i=1 To 17
-
      GameControls.SetText(Song_name[i],FilePlus.GetFileName(Files_Array[i+NN])+FilePlus.GetFileExtension(Files_Array[i+NN]))
-
      If Song_Id=i+NN Then 
-
         GameControls.SetColors(Song_name[i],"red","red",2)
-
      Else
-
         GameControls.SetColors(Song_name[i],"Black","Black",2)
-
      endif   
-
    EndFor
-
 EndSub
-
-
 
 Sub init
-
   GW=900
-
   GameWindow.Width = GW
-
   GameWindow.Height = 422
-
   GameWindow.CanResize = "True"
-
   GameWindow.Theme = "ExpressionLight"
-
   GameWindow.Show()
-
 EndSub
-
-
 
 Sub Control_button
-
   Musicext=".mp3:.wma:.mp4:.avi:.wmv:.mpg:.wav:.mid:.mov"  '  music  movie file extensions
-
   VideoBox = GameControls.AddRectangle(5,5,450,300)        '  rectangle for Movie view
-
   GameControls.SetColors(VideoBox,"White","Black",1)
-
   PlayListBox = GameControls.AddRectangle(460,5,GW-460,380) '  rectangle for file list
-
   GameControls.SetColors(PlayListBox,"White","Black",1)
-
   Scroller = GameControls.AddSlider(0,GW-220,182.5,380,25)  '  Scroller X position is changed by Rotation 
-
   GameControls.Rotate(Scroller,90)
-
   Seek_Bar = GameControls.AddSlider(0,10,315,395,22)           '  Slider for progress 
-
   Volume_Control_Bar = GameControls.AddSlider(0,350,345,75,22) '  volume bar 
-
   Time_Box = GameControls.AddTextBox("Text",410,315,45,22)     '  time box
-
   
-
   Show_PlayList = GameControls.AddButton(">>",427,360,30,25)   '  Show list mark
-
   Hide_PlayList = GameControls.AddButton("<<",427,360,30,25) 
-
   Play_Button = GameControls.AddButton("Play",140,345,60,40)   '  Play button
-
   Pause_Button = GameControls.AddButton("Pause",205,345,60,40) '  pause button 
-
   Next_Button = GameControls.AddButton("Next",270,345,60,40)   '  Next button
-
   Prev_Button = GameControls.AddButton("Prev",75,345,60,40)    '  Previous button
-
   Stop_Button = GameControls.AddButton("Stop",10,345,60,40)    '  Stop button
-
   PrgEnd= GameControls.AddButton("End",360,360,60,25)          '  Program end button
-
   F_Open= GameControls.AddButton("File Open",470,358,100,25)   '  New file open button 
-
   
-
   GameControls.RegisterMouseDownEvent(Play_Button,"Play_Song")
-
   GameControls.RegisterMouseDownEvent(Pause_Button,"Pause")
-
   GameControls.RegisterMouseDownEvent(Next_Button,"Play_Next")
-
   GameControls.RegisterMouseDownEvent(Prev_Button,"Play_Prev")
-
   GameControls.RegisterMouseDownEvent(Stop_Button,"Stop_Song")
-
   
-
   GameControls.RegisterValueChangedEvent(Scroller,"Scroll")
-
   GameControls.RegisterMouseDownEvent(Seek_Bar,"Slider_Move")
-
   GameControls.RegisterValueChangedEvent(Volume_Control_Bar,"Volume_Set")
-
   GameControls.RegisterMouseDownEvent(Hide_PlayList,"Hide")
-
   GameControls.RegisterMouseDownEvent(Show_PlayList,"Show")
-
   GameControls.RegisterMouseDownEvent(PrgEnd,"PRG_END")
-
   GameControls.RegisterMouseDownEvent(F_Open,"Open_Files")
-
 EndSub
-
   
-
 Sub PRG_END 
-
   Program.End()  
-
 EndSub
-
   
-
   
-
-

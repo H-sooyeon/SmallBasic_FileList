@@ -1,957 +1,478 @@
 ' Draco / Quadrantids
-
 ' Version 0.1
-
-' ?��?��?�� / ?��?��?��?��座流?���?
-
+' りゅう / しぶんぎ座流星群
 ' Copyright © 2017 Nonki Takahashi.  The MIT License.
-
 ' Update 2017-01-02
-
 '
-
 ' Reference:
-
 '  http://en.wikipedia.org/wiki/List_of_stars_in_Draco
-
 '
-
 title = "Quadrantids"
-
 r = 430     ' [px]
-
 delay = 100 ' [ms]
-
 Init()
-
 Cal_Init()
-
 InitStars()
-
 ra = radiant["ra"]
-
 dec = radiant["dec"]
-
 Mapping()
-
 rot = ra - 0.33333333
-
 tilt = dec + 16
-
 GraphicsWindow.Title = title + " | RA=" + (Math.Round(ra * 100) / 100) + "h Dec=" + dec + "°"
-
 DrawRA()
-
 DrawDec()
-
 DrawStars()
-
 DrawCalendar()
-
 DrawMeteorShower()
-
 While "True"
-
   If keyDown Then
-
     If key = "Right" Then
-
       rot = rot + 0.25
-
       If 24 <= rot Then
-
         rot = rot - 24
-
       EndIf
-
     ElseIf key = "Left" Then
-
       rot = rot - 0.25
-
       If rot < 0 Then
-
         rot = rot + 24
-
       EndIf
-
     ElseIf key = "Up" Then
-
       If tilt <= 85 Then
-
         tilt = tilt + 5
-
       EndIf
-
     ElseIf key = "Down" Then
-
       If -85 <= tilt Then
-
         tilt = tilt - 5
-
       EndIf
-
     ElseIf key = "Add" Then
-
       r = r * 1.2
-
     ElseIf key = "Subtract" Then
-
       r = r / 1.2
-
     EndIf
-
     GraphicsWindow.Title = title + " RA=" + rot + "h Dec=" + tilt + "°"
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.FillRectangle(0, 0, gw, gh)
-
     DrawRA()
-
     DrawDec()
-
     DrawStars()
-
     keyDown = "False"
-
   EndIf
-
   Program.Delay(delay)
-
 EndWhile
 
-
-
 Sub DrawDec
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "#666666"
-
   For dec = -80 To 80 Step 10
-
     For ra = 0 To 24 Step 0.2
-
       Mapping()
-
       If 0 < ra Then
-
         DrawLine()
-
       EndIf
-
       xLast = x
-
       yLast = y
-
       zLast = z
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub DrawRA
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "#666666"
-
   For ra = 0 To 23
-
     For dec = -90 To 90 Step 5
-
       Mapping()
-
       If -90 < dec Then
-
         DrawLine()
-
       EndIf
-
       xLast = x
-
       yLast = y
-
       zLast = z
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub DrawCalendar
-
   GraphicsWindow.BrushColor = "White"
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 30
-
   txt = Shapes.AddText(months[month])
-
   Shapes.Move(txt, monthX, monthY)
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 40
-
   txt = Shapes.AddText(year)
-
   Shapes.Move(txt, monthX, monthY + 30)
-
   sBuf = year + "," + month
-
   Command_GetArgs()
-
   iYear = sArg[1]
-
   if iYear = "" Then
-
     Goto lEnd
-
   Endif
-
   If Math.Remainder(iYear, 4) = 0 And Math.Remainder(iYear, 100) > 0 Or Math.Remainder(iYear, 400) = 0 Then
-
     iDoM[2] = iDoM[2] + 1
-
   Endif
-
   iNoL = Math.Floor((iYear - 1) / 4) - Math.Floor((iYear - 1) / 100) + Math.Floor((iYear - 1) / 400)  ' number of leap year
-
   iWoY = Math.Remainder((iYear + iNoL), 7)  ' week of year
-
   iMonth = sArg[2]
-
   If iMonth = "" Then
-
     iM0 = 1
-
     iM1 = 12
-
   Else
-
     iM0 = iMonth
-
     iM1 = iMonth
-
   Endif
-
   iDoY = 0  ' days of year
-
   iNoM = 1  ' number of month
-
   For iM = iM0 To iM1
-
     While iNoM < iM
-
       iDoY = iDoY + iDoM[iNoM]
-
       iNoM = iNoM + 1
-
     EndWhile
-
     Cal_DrawMonth()
-
   EndFor  
-
   lEnd:
-
 EndSub
-
-
 
 Sub DrawLine
-
   visible = "False"
-
   If 0 <= z And 0 <= zLast Then
-
     If 0 <= x And x < gw And 0 <= y And y < gh Then
-
       visible = "True"
-
     ElseIf 0 <= xLast And xLast < gw And 0 <= yLast And yLast < gh Then
-
       visible = "True"
-
     EndIf
-
   EndIf
-
   If visible Then
-
     GraphicsWindow.DrawLine(xLast, yLast, x, y)
-
   EndIf
-
 EndSub
-
-
 
 Sub DrawMeteorShower
-
   ra = radiant["RA"]
-
   dec = radiant["Dec"]
-
   Mapping()
-
   rx = x
-
   ry = y
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "White"
-
   While "True"
-
     Program.Delay(2000)
-
     angle = Math.GetRandomNumber(360)
-
     _a = Math.GetRadians(angle)
-
     r1 = Math.GetRandomNumber(100) + 50
-
     r2 = r1 * 2.5
-
     x1 = rx + r1 * Math.Sin(_a)
-
     y1 = ry - r1 * Math.Cos(_a)
-
     x2 = rx + r2 * Math.Sin(_a)
-
     y2 = ry - r2 * Math.Cos(_a)
-
     meteor = Shapes.AddLine(x1, y1, x2, y2)
-
     For op = 100 To 0 Step -5
-
       Shapes.SetOpacity(meteor, op)
-
       Program.Delay(50)
-
     EndFor
-
     Shapes.Remove(meteor)
-
   EndWhile
-
 EndSub
-
-
 
 Sub DrawStars
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "MidnightBlue"
-
   n = Array.GetItemCount(edge)
-
   index = Array.GetAllIndices(edge)
-
   For i = 1 To n
-
     e = edge[index[i]]
-
     m = Text.GetIndexOf(e, "-")
-
     ra = star[Text.GetSubText(e, 1, m - 1)]["RA"]
-
     dec = star[Text.GetSubText(e, 1, m - 1)]["Dec"]
-
     Mapping()
-
     x1 = x
-
     y1 = y
-
     z1 = z
-
     ra = star[Text.GetSubTextToEnd(e, m + 1)]["RA"]
-
     dec = star[Text.GetSubTextToEnd(e, m + 1)]["Dec"]
-
     Mapping()
-
     x2 = x
-
     y2 = y
-
     z2 = z
-
     If connect[index[i]] <> "" Then
-
       Shapes.Remove(connect[index[i]])
-
       connect[index[i]] = ""
-
     EndIf
-
     visible = "False"
-
     If 0 <= z1 And 0 <= z2 Then
-
       If 0 <= x1 And x1 <= gw And 0 <= y1 And y1 <= gh Then
-
         visible = "True"
-
       ElseIf 0 <= x2 And x2 <= gw And 0 <= y2 And y2 <= gh Then
-
         visible = "True"
-
       EndIf
-
       If visible Then
-
         connect[index[i]] = Shapes.AddLine(x1, y1, x2, y2)
-
       EndIf
-
     EndIf
-
   EndFor
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "White"
-
   n = Array.GetItemCount(star)
-
   index = Array.GetAllIndices(star)
-
   For i = 1 To n
-
     ra = star[index[i]]["ra"]
-
     dec = star[index[i]]["dec"]
-
     Mapping()
-
     If ell[index[i]] <> "" Then
-
       Shapes.Remove(ell[index[i]])
-
       ell[index[i]] = ""
-
     EndIf
-
     If 0 <= z Then
-
       mag = star[index[i]]["mag"]
-
       d = 16 / mag
-
       ell[index[i]] = Shapes.AddEllipse(d, d)
-
       Shapes.Move(ell[index[i]], x - d / 2, y - d / 2)
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub Init
-
   gw = 598
-
   gh = 428
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BackgroundColor = "Black"
-
   ox = gw / 2
-
   oy = gh * 0.4
-
   rot = 0     ' rotation
-
   tilt = 0
-
   monthX = 40
-
   monthY = gh - 150
-
   calendarX = gw - 270
-
   calendarY = gh - 150
-
   year = 2017
-
   month = 1
-
   GraphicsWindow.KeyDown = OnKeyDown
-
 EndSub
-
-
 
 Sub InitStars
-
   ' Initialize stars in Draco
-
   ' index: Name of the star
-
   ' RA (Right ascension), Dec (Declination), Mag (Apparent magnitude),
-
   ' FD Flamsteed designation
-
   star["γ Dra"] = "ra=17 56 36.38;dec=+51 29 20.2;mag=2.24;fd=33;"
-
   star["η Dra"] = "ra=16 23 59.51;dec=+61 30 50.7;mag=2.73;fd=14;"
-
   star["β Dra"] = "ra=17 30 25.98;dec=+52 18 04.9;mag=2.79;fd=23;"
-
   star["δ Dra"] = "ra=19 12 33.15;dec=+67 39 40.7;mag=3.07;fd=57;"
-
   star["ζ Dra"] = "ra=17 08 47.23;dec=+65 42 52.7;mag=3.17;fd=22;"
-
   star["ι Dra"] = "ra=15 24 55.78;dec=+58 57 57.7;mag=3.29;fd=12;"
-
-  star["?? Dra"] = "ra=18 21 02.34;dec=+72 44 01.3;mag=3.55;fd=44;"
-
+  star["χ Dra"] = "ra=18 21 02.34;dec=+72 44 01.3;mag=3.55;fd=44;"
   star["Thuban"] = "ra=14 04 23.43;dec=+64 22 32.9;mag=3.67;fd=11;" ' α
-
   star["ξ Dra"] = "ra=17 53 31.63;dec=+56 52 20.8;mag=3.73;fd=32;"
-
   star["λ Dra"] = "ra=11 31 24.29;dec=+69 19 52.0;mag=3.82;fd=1;"
-
   star["ε Dra"] = "ra=19 48 10.21;dec=+70 16 04.2;mag=3.84;fd=63;"
-
   star["κ Dra"] = "ra=12 33 29.04;dec=+69 47 17.6;mag=3.85;fd=5;"
-
   star["θ Dra"] = "ra=16 01 53.70;dec=+58 33 52.0;mag=4.01;fd=13;"
-
-  star["?? Dra"] = "ra=18 20 45.44;dec=+71 20 15.8;mag=4.22;fd=43;"
-
+  star["φ Dra"] = "ra=18 20 45.44;dec=+71 20 15.8;mag=4.22;fd=43;"
   star["HD 81817"] = "ra=09 37 05.35;dec=+81 19 35.1;mag=4.28;"
-
-  star["?? Dra"] = "ra=19 15 33.29;dec=+73 21 18.8;mag=4.45;fd=60;"
-
-  star["?? Dra"] = "ra=20 02 49.05;dec=+67 52 24.4;mag=4.51;fd=67;"
-
-  star["??1 Dra A"] = "ra=17 41 56.31;dec=+72 08 58.2;mag=4.57;fd=31;"
-
+  star["τ Dra"] = "ra=19 15 33.29;dec=+73 21 18.8;mag=4.45;fd=60;"
+  star["ρ Dra"] = "ra=20 02 49.05;dec=+67 52 24.4;mag=4.51;fd=67;"
+  star["ψ1 Dra A"] = "ra=17 41 56.31;dec=+72 08 58.2;mag=4.57;fd=31;"
   star["CU Dra"] = "ra=13 51 25.94;dec=+64 43 23.8;mag=4.58;fd=10;"
-
-  star["? Dra"] = "ra=19 20 40.07;dec=+65 42 51.9;mag=4.60;fd=58;"
-
+  star["π Dra"] = "ra=19 20 40.07;dec=+65 42 51.9;mag=4.60;fd=58;"
   star["ο Dra"] = "ra=18 51 12.01;dec=+59 23 17.8;mag=4.63;fd=47;"
-
-  star["?? Dra"] = "ra=19 32 20.59;dec=+69 39 55.4;mag=4.67;fd=61;"
-
-  star["?? Dra"] = "ra=17 36 57.09;dec=+68 45 25.9;mag=4.77;fd=28;"
-
+  star["σ Dra"] = "ra=19 32 20.59;dec=+69 39 55.4;mag=4.67;fd=61;"
+  star["ω Dra"] = "ra=17 36 57.09;dec=+68 45 25.9;mag=4.77;fd=28;"
   star["45 Dra"] = "ra=18 32 34.52;dec=+57 02 44.2;mag=4.77;fd=45;"
-
   star["42 Dra"] = "ra=18 25 58.99;dec=+65 33 48.8;mag=4.82;fd=42;"
-
-  star["?? Dra"] = "ra=18 54 23.77;dec=+71 17 49.5;mag=4.82;fd=52;"
-
+  star["υ Dra"] = "ra=18 54 23.77;dec=+71 17 49.5;mag=4.82;fd=52;"
   star["18 Dra"] = "ra=16 40 55.12;dec=+64 35 20.7;mag=4.84;fd=18;"
-
   star["HD 151613"] = "ra=16 45 17.79;dec=+56 46 54.1;mag=4.84;"
-
   star["HD 91190"] = "ra=10 35 05.59;dec=+75 42 46.7;mag=4.86;"
-
   star["ν2 Dra"] = "ra=17 32 15.88;dec=+55 10 22.1;mag=4.86;fd=25;"
-
   star["19 Dra"] = "ra=16 56 01.36;dec=+65 08 04.8;mag=4.88;fd=19;"
-
   star["ν1 Dra"] = "ra=17 32 10.42;dec=+55 11 02.8;mag=4.89;fd=24;"
-
   star["μ Dra A"] = "ra=17 05 20.18;dec=+54 28 11.5;mag=4.91;fd=21;"
-
   star["HD 175535"] = "ra=18 53 13.54;dec=+50 42 29.8;mag=4.92;"
-
   star["15 Dra"] = "ra=16 27 59.05;dec=+68 46 05.0;mag=4.94;fd=15;"
-
   star["6 Dra"] = "ra=12 34 44.07;dec=+70 01 18.4;mag=4.95;fd=6;"
-
   star["CL Dra"] = "ra=15 57 47.59;dec=+54 44 58.2;mag=4.96;"
-
   star["39 Dra"] = "ra=18 23 54.65;dec=+58 48 02.1;mag=4.98;fd=39;"
-
   star["36 Dra"] = "ra=18 13 53.36;dec=+64 23 49.9;mag=4.99;fd=36;"
-
   star["54 Dra"] = "ra=19 13 55.16;dec=+57 42 18.9;mag=5.00;fd=54;"
-
   star["CQ Dra"] = "ra=12 30 06.76;dec=+69 12 04.5;mag=5.01;fd=4;"
-
   star["30 Dra"] = "ra=17 49 04.33;dec=+50 46 50.0;mag=5.02;fd=30;"
-
   star["35 Dra"] = "ra=17 49 26.94;dec=+76 57 44.2;mag=5.02;fd=35;"
-
   star["46 Dra"] = "ra=18 42 37.96;dec=+55 32 21.8;mag=5.03;fd=46;"
-
   star["17 Dra"] = "ra=16 36 13.73;dec=+52 55 27.7;mag=5.07;fd=17;"
-
   star["27 Dra"] = "ra=17 31 57.89;dec=+68 08 04.9;mag=5.07;fd=27;"
-
   star["59 Dra"] = "ra=19 09 09.75;dec=+76 33 38.9;mag=5.11;fd=59;"
-
   star["53 Dra"] = "ra=19 11 40.52;dec=+56 51 32.7;mag=5.13;fd=53;"
-
   star["AF Dra"] = "ra=20 31 30.40;dec=+74 57 16.8;mag=5.18;fd=73;"
-
   star["2 Dra"] = "ra=11 36 02.62;dec=+69 19 23.7;mag=5.19;fd=2;"
-
   star["64 Dra"] = "ra=20 01 28.53;dec=+64 49 15.6;mag=5.22;fd=64;"
-
   star["8 Dra"] = "ra=12 55 28.56;dec=+65 26 18.8;mag=5.23;fd=8;"
-
   star["26 Dra"] = "ra=17 34 59.25;dec=+61 52 33.0;mag=5.23;fd=26;"
-
   star["3 Dra"] = "ra=11 42 28.43;dec=+66 44 41.3;mag=5.32;fd=3;"
-
   star["9 Dra"] = "ra=12 59 55.28;dec=+66 35 50.3;mag=5.37;fd=9;"
-
   star["50 Dra"] = "ra=18 46 22.26;dec=+75 26 01.7;mag=5.37;fd=50;"
-
   star["75 Dra"] = "ra=20 28 14.45;dec=+81 25 21.6;mag=5.38;fd=75;"
-
   star["LV Dra"] = "ra=19 00 13.67;dec=+50 32 00.5;mag=5.39;"
-
   star["51 Dra"] = "ra=19 04 55.17;dec=+53 23 47.8;mag=5.40;fd=51;"
-
   star["66 Dra"] = "ra=20 05 32.73;dec=+61 59 42.9;mag=5.40;fd=66;"
-
   star["7 Dra"] = "ra=12 47 34.34;dec=+66 47 25.1;mag=5.43;fd=7;"
-
-  star["??2 Dra"] = "ra=17 55 11.14;dec=+72 00 18.5;mag=5.43;fd=34;"
-
+  star["ψ2 Dra"] = "ra=17 55 11.14;dec=+72 00 18.5;mag=5.43;fd=34;"
   star["49 Dra"] = "ra=19 00 43.47;dec=+55 39 29.9;mag=5.51;fd=49;"
-
   star["16 Dra"] = "ra=16 36 11.43;dec=+52 53 59.9;mag=5.53;fd=16;"
-
   star["AC Dra"] = "ra=20 20 05.98;dec=+68 52 48.9;mag=5.59;"
-
   star["48 Dra"] = "ra=18 56 45.08;dec=+57 48 54.0;mag=5.67;fd=48;"
-
   star["68 Dra"] = "ra=20 11 34.74;dec=+62 04 42.1;mag=5.70;fd=68;"
-
   star["DE Dra"] = "ra=20 19 36.70;dec=+62 15 26.7;mag=5.71;fd=71;"
-
   star["41 Dra"] = "ra=18 00 09.07;dec=+80 00 13.7;mag=5.74;fd=41;"
-
   star["DQ Dra"] = "ra=16 24 25.33;dec=+55 12 18.2;mag=5.75;"
-
   star["76 Dra"] = "ra=20 42 35.10;dec=+82 31 52.0;mag=5.75;fd=76;"
-
   star["μ Dra B"] = "ra=17 05 19.70;dec=+54 28 13.0;mag=5.80;fd=21;"
-
-  star["??1 Dra B"] = "ra=17 41 58.04;dec=+72 09 27.3;mag=5.81;fd=31;"
-
+  star["ψ1 Dra B"] = "ra=17 41 58.04;dec=+72 09 27.3;mag=5.81;fd=31;"
   star["CX Dra"] = "ra=18 46 43.08;dec=+52 59 16.7;mag=5.91;"
-
   star["HD 193664"] = "ra=20 17 30.63;dec=+66 51 10.7;mag=5.91;"
-
   star["37 Dra"] = "ra=18 15 17.05;dec=+68 45 21.5;mag=5.96;fd=37;"
-
   star["74 Dra"] = "ra=20 29 27.31;dec=+81 05 26.7;mag=5.96;fd=74;"
-
   star["HD 139357"] = "ra=15 35 16.22;dec=+53 55 19.7;mag=5.97;"
-
   star["HD 113337"] = "ra=13 01 47.15;dec=+63 36 36.6;mag=6.01;"
-
   star["40 Dra"] = "ra=18 00 03.37;dec=+80 00 01.9;mag=6.11;fd=40;"
-
   star["69 Dra"] = "ra=19 59 36.69;dec=+76 28 53.5;mag=6.20;fd=69;"
-
   star["UX Dra"] = "ra=19 21 35.53;dec=+76 33 34.6;mag=6.22;"
-
   star["DL Dra"] = "ra=14 42 03.16;dec=+61 15 43.2;mag=6.24;"
-
   star["ER Dra"] = "ra=14 31 42.87;dec=+60 13 32.1;mag=6.26;"
-
   star["55 Dra"] = "ra=19 09 45.80;dec=+65 58 42.4;mag=6.26;fd=55;"
-
   star["65 Dra"] = "ra=20 02 20.16;dec=+64 38 03.8;mag=6.27;fd=65;"
-
   star["DK Dra"] = "ra=12 15 41.51;dec=+72 33 04.5;mag=6.29;"
-
   star["VW Dra"] = "ra=17 16 29.45;dec=+60 40 14.1;mag=6.32;"
-
   star["CN Dra"] = "ra=19 46 44.66;dec=+68 26 16.8;mag=6.34;"
-
   star["20 Dra"] = "ra=16 56 25.32;dec=+65 02 20.6;mag=6.40;fd=20;"
-
   star["17 Dra"] = "ra=16 36 14.10;dec=+52 55 27.0;mag=6.53;fd=17;"
-
   star["29 Dra"] = "ra=17 32 41.35;dec=+74 13 38.2;mag=6.61;fd=29;"
-
   star["RY Dra"] = "ra=12 56 25.89;dec=+65 59 39.9;mag=6.63;"
-
-  star["HD 143105"] = "ra=15 53 37.0s;dec=+68 43 12??;mag=6.75;"
-
+  star["HD 143105"] = "ra=15 53 37.0s;dec=+68 43 12″;mag=6.75;"
   star["38 Dra"] = "ra=18 16 58.77;dec=+68 44 30.1;mag=6.79;fd=38;"
-
   edge = "1=γ Dra-β Dra;2=β Dra-ν2 Dra;3=γ Dra-ξ Dra;4=ξ Dra-ν2 Dra;"
-
-  edge = edge + "5=ξ Dra-δ Dra;6=δ Dra-ε Dra;7=ε Dra-?? Dra;"
-
-  edge = edge + "8=?? Dra-?? Dra;9=?? Dra-ζ Dra;10=ζ Dra-η Dra;"
-
+  edge = edge + "5=ξ Dra-δ Dra;6=δ Dra-ε Dra;7=ε Dra-τ Dra;"
+  edge = edge + "8=τ Dra-χ Dra;9=χ Dra-ζ Dra;10=ζ Dra-η Dra;"
   edge = edge + "11=η Dra-θ Dra;12=θ Dra-ι Dra;13=ι Dra-Thuban;"
-
   edge = edge + "14=Thuban-κ Dra;15=κ Dra-λ Dra;"
-
   radiant = "ra=15 20 00.00;dec=+49 00 00.0;"
-
 EndSub
-
-
 
 Sub Mapping
-
   ' param ra - right asension [h]
-
   ' param rot - rotation [h]
-
   ' param dec - declination [deg]
-
   ' param tilt - tilt [deg]
-
   ' param r - radius [px]
-
   ' return x, y - position in the graphics window [px]
-
   ' return z - visible if 0 <= z
-
   If Text.IsSubText(ra, " ") Then
-
     _ra = Text.GetSubText(ra, 1, 2)
-
     _ra = _ra + Text.GetSubText(ra, 4, 2) / 60
-
     _ra = _ra + Text.GetSubText(ra, 7, 5) / 3600
-
     ra = _ra
-
   EndIf
-
   If Text.IsSubText(dec, " ") Then
-
     _dec = Text.GetSubText(dec, 2, 2)
-
     _dec = _dec + Text.GetSubText(dec, 5, 2) / 60
-
     _dec = _dec + Text.GetSubText(dec, 8, 5) / 3600
-
     _dec = _dec * Text.Append(Text.GetSubText(dec, 1, 1), "1")
-
     dec = _dec
-
   EndIf
-
-  ?? = Math.GetRadians((ra - rot) * 15)
-
+  φ = Math.GetRadians((ra - rot) * 15)
   θ = Math.GetRadians(dec)
-
-  x = ox - r * Math.Sin(??) * Math.Cos(θ)
-
+  x = ox - r * Math.Sin(φ) * Math.Cos(θ)
   y = oy - r * Math.Sin(θ)
-
-  z = r * Math.Cos(??) * Math.Cos(θ)
-
+  z = r * Math.Cos(φ) * Math.Cos(θ)
   If tilt <> 0 Then
-
     _z = z
-
     _y = y - oy
-
-    ?? = Math.GetRadians(tilt)
-
-    z = Math.Cos(??) * _z - Math.Sin(??) * _y
-
-    y = oy + Math.Sin(??) * _z + Math.Cos(??) * _y
-
+    τ = Math.GetRadians(tilt)
+    z = Math.Cos(τ) * _z - Math.Sin(τ) * _y
+    y = oy + Math.Sin(τ) * _z + Math.Cos(τ) * _y
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   keyDown = "True"
-
   key = GraphicsWindow.LastKey
-
 EndSub
-
-
 
 Sub Cal_Init
-
   ' Calendar | Initialize days of month
-
   WQ = Text.GetCharacter(34)
-
   CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
-
   iDoM = "1=31;2=28;3=31;4=30;5=31;6=30;7=31;8=31;9=30;10=31;11=30;12=31;"
-
   months = "1=January;2=February;3=March;4=April;5=May;6=June;7=July;"
-
   months = months + "8=August;9=September;10=October;11=November;12=December;"
-
-  symbols = "1=?��;2=?��;3=?��;4=?��;5=?��;6=?��;7=?��;8=?��;9=?��;10=?��;11=?��;12=?��;"
-
+  symbols = "1=♑;2=♒;3=♓;4=♈;5=♉;6=♊;7=♋;8=♌;9=♍;10=♎;11=♏;12=♐;"
 EndSub
-
-
 
 Sub Cal_DrawMonth
-
   ' Calendar | Print month
-
   ' param iM - month
-
   ' param iDoY - days of year
-
   ' param iWoY - week of year
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.FontName = "Consolas"
-
   iW = Math.Remainder((iDoY + iWoY), 7)
-
   line = "SUN MON TUE WED THU FRI SAT" + CRLF
-
   iWoM = 0
-
   While iWoM < iW
-
     line = line + "    "
-
     iWoM = iWoM + 1
-
   EndWhile
-
   For iD = 1 To iDoM[iM]
-
     If iD < 10 Then
-
       line = line + "  " + iD + " "
-
     Else
-
       line = line + " " + iD + " "
-
     EndIf
-
     If Math.Remainder(iWoM, 7) = 6 Then
-
       line = line + CRLF
-
     EndIf
-
     iWoM = iWoM + 1
-
   EndFor
-
   If Math.Remainder(iWoM, 7) > 0 Then
-
     line = line + CRLF
-
   EndIf
-
   cal = Shapes.AddText(line)
-
   Shapes.Move(cal, calendarX, calendarY)
-
 EndSub
-
-
 
 Sub Command_GetArgs
-
   ' Command line | Get arguments
-
   ' param sBuf - input buffer
-
   ' return sArg[] - arguments
-
   ' return iN - number of arguments
-
   iP = 1  ' buffer pointer
-
   iN = 1  ' number of args
-
   iC = Text.GetIndexOf(sBuf, ",")   ' index of comma
-
   While iC > iP
-
     sArg[iN] = Text.GetSubText(sBuf, iP, iC - iP)
-
     iP = iC + 1
-
     iN = iN + 1
-
     iC = Text.GetIndexOf(sBuf, ",")
-
   EndWhile
-
   iE = Text.GetLength(sBuf) + 1     ' end of buffer
-
   sArg[iN] = Text.GetSubText(sBuf, iP, iE - iP)  
-
 EndSub
-
-
 
 Sub SB_Workaround
-
   ' Small Basic | Workaround for Silverlight
-
   ' returns silverlight - "True" if in remote
-
   color = GraphicsWindow.GetPixel(0, 0)
-
   If Text.GetLength(color) > 7 Then
-
     silverlight = "True"
-
     msWait = 300
-
   Else
-
     silverlight = "False"
-
   EndIf
-
 EndSub
-
-

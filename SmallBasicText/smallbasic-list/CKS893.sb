@@ -1,505 +1,252 @@
 ' Train
-
 ' Version 0.1
-
 ' Copyright © 2017 Nonki Takahashi.  The MIT License.
 
-
-
 GraphicsWindow.Title = "Train 0.1"
-
 Init()
-
 DrawRails()
-
 cars = 3
-
 While "True"
-
   Run()
-
 EndWhile
 
-
-
 Sub CalcCarPos
-
   ' param i - car index
-
   ' param car[i]["x1"], car[i]["y1"] - car head position
-
   ' return car[i]["x2"], car[i]["y2"] - car tail position
-
   ' return car[i]["xc"], car[i]["yc"] - car center position
-
   ' return car[i]["xj"], car[i]["yj"] - joint center position (if not last car)
-
   ' return car[i+1]["x1"], car[i+1]["y1"] - next car hed position (if not last car)
-
   car_i = car[i]
-
   x1 = car_i["x1"]   ' car head
-
   y1 = car_i["y1"]
-
   len = carLength
-
   CalcNextPos()
-
   car_i["x2"] = x2   ' car end
-
   car_i["y2"] = y2
-
   car_i["xc"] = xc   ' car center
-
   car_i["yc"] = yc
-
   car_i["ac"] = a   ' car angle
-
   If i < cars Then
-
     x1 = car_i["x2"]
-
     y1 = car_i["y2"]
-
     len = jointLength
-
     p0 = p1
-
     CalcNextPos()
-
     car_i1 = car[i + 1]
-
     car_i1["x1"] = x2 ' next car head
-
     car_i1["y1"] = y2
-
     car[i + 1] = car_i1
-
     car_i["xj"] = xc     ' joint center
-
     car_i["yj"] = yc
-
     car_i["aj"] = a      ' joint angle
-
   EndIf
-
   car[i] = car_i
-
 EndSub
-
-
 
 Sub CalcNextPos
-
   ' param p0 - rail position index
-
   ' param r0 - ratio between p0 and p0-1
-
   ' param x1, y1 - start position
-
   ' param len - length
-
   ' return x2, y2 - end position
-
   ' return xc, yc - center position
-
   ' return a - angle
-
   ' return p1 - end rail position index
-
   ' return r1 - ratio between p1 and p2
-
   p0_1 = p0 - 1
-
   If p0_1 <= 0 Then
-
     p0_1 = numRails
-
   EndIf
-
   rails_p0 = rails[p0]
-
   rails_p0_1 = rails[p0_1]
-
   x0 = rails_p0["x"] + r0 * (rails_p0_1["x"] - rails_p0["x"])
-
   y0 = rails_p0["y"] + r0 * (rails_p0_1["y"] - rails_p0["y"])
-
   p2 = p0_1
-
   rails_p2 = rails[p2]
-
   d = Math.SquareRoot(Math.Power(rails_p2["x"] - x0, 2) + Math.Power(rails_p2["y"] - y0, 2))
-
   While d < len
-
     p2 = p2 - 1
-
     If p2 <= 0 Then
-
       p2 = numRails
-
     EndIf
-
     rails_p2 = rails[p2]
-
     d = Math.SquareRoot(Math.Power(rails_p2["x"] - x0, 2) + Math.Power(rails_p2["y"] - y0, 2))
-
   EndWhile
-
   p1 = p2 + 1
-
   If numRails < p1 Then
-
     p1 = 1
-
   EndIf
-
   If p1 = p0 Then
-
     r1 = r0
-
   Else
-
     r1 = 0
-
   EndIf
-
   FindPos()
-
   xc = (x1 + x2) / 2
-
   yc = (y1 + y2) / 2
-
   x = x2 - x1
-
   y = y2 - y1
-
   Math_CartesianToPolar()
-
   r0 = r1
-
   p0 = p1
-
 EndSub
-
-
 
 Sub DrawRails
-
   GraphicsWindow.PenWidth = 2
-
   GraphicsWindow.PenColor = railColor
-
   For pos = 1 To numRails
-
     rails_pos = rails[pos]
-
     x2 = rails_pos["x"]
-
     y2 = rails_pos["y"]
-
     If 1 < pos Then
-
       GraphicsWindow.DrawLine(x1, y1, x2, y2)
-
     EndIf
-
     x1 = x2
-
     y1 = y2
-
     Program.Delay(20)
-
   EndFor
-
   rails_1 = rails[1]
-
   x2 = rails_1["x"]
-
   y2 = rails_1["y"]
-
 EndSub
-
-
 
 Sub DrawTrain
-
   ' param cars - number of cars
-
   ' param pos - rail position index
-
   rails_pos = rails[pos]
-
   car_1 = car[1]
-
   car_1["x1"] = rails_pos["x"]
-
   car_1["y1"] = rails_pos["y"]
-
   car[1] = car_1
-
   r0 = 0
-
   p0 = pos
-
   For i = 1 To cars
-
     GraphicsWindow.PenWidth = 0
-
     GraphicsWindow.BrushColor = carColor
-
     car_i = car[i]
-
     If car_i["obj"] = "" Then
-
       car_i["obj"] = Shapes.AddRectangle(carLength, carWidth)
-
       car[i] = car_i
-
     EndIf
-
     CalcCarPos()
-
     Shapes.Move(car_i["obj"], car_i["xc"] - carLength / 2, car_i["yc"] - carWidth / 2)
-
     Shapes.Rotate(car_i["obj"], car_i["ac"])
-
     If i < cars Then
-
       GraphicsWindow.PenWidth = jointWidth
-
       GraphicsWindow.PenColor = jointColor
-
       If joint[i] = "" Then
-
         joint[i] = Shapes.AddLine(0, 0, jointLength, 0)
-
       EndIf
-
       Shapes.Move(joint[i], car_i["xj"] - jointLength / 2, car_i["yj"] - jointWidth / 2)
-
       Shapes.Rotate(joint[i], car_i["aj"])
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub FindPos
-
   ' param x0, y0 - start position
-
   ' param len - length
-
   ' param p1 - position 1
-
   ' param p2 - position 2
-
   ' param r1 - ratio between pos and pos+1
-
   ' return x2, y2 - found position
-
   ' return r1 - found ratio between p1 and p2
-
   r2 = 1
-
   While 0.1 < (r2 - r1)
-
     r = (r1 + r2) / 2
-
     rails_p1 = rails[p1]
-
     rails_p2 = rails[p2]
-
     x2 = rails_p1["x"] + r * (rails_p2["x"] - rails_p1["x"])
-
     y2 = rails_p1["y"] + r * (rails_p2["y"] - rails_p1["y"])
-
     d = Math.SquareRoot(Math.Power(x2 - x0, 2) + Math.Power(y2 - y0, 2))
-
     If d < len Then
-
       r1 = r
-
     Else
-
       r2 = r
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 Sub Init
-
   GraphicsWindow.Width = 600
-
   GraphicsWindow.Height = 400
-
   carLength = 40
-
   carWidth = carLength / 5
-
   carColor = "YellowGreen"
-
   railColor = "Silver"
-
   railLength = 10
-
   jointLength = 4
-
   jointWidth = 2
-
   jointColor = "Gray"
-
   x = 310
-
   y = 90
-
   For pos = 1 To 11
-
     rails_pos["x"] = x
-
     rails_pos["y"] = y
-
     rails[pos] = rails_pos
-
     x = x - railLength
-
   EndFor
-
   a = 0
-
   For pos = 12 To 47
-
     rails_pos["x"] = x
-
     rails_pos["y"] = y
-
     rails[pos] = rails_pos
-
     _a = Math.GetRadians(a)
-
     x = x - railLength * Math.Cos(_a)
-
     y = y + railLength * Math.Sin(_a)
-
     a = a + 5
-
   EndFor
-
   For pos = 48 To 68
-
     rails_pos["x"] = x
-
     rails_pos["y"] = y
-
     rails[pos] = rails_pos
-
     x = x + railLength
-
   EndFor
-
   For pos = 69 To 104
-
     rails_pos["x"] = x
-
     rails_pos["y"] = y
-
     rails[pos] = rails_pos
-
     _a = Math.GetRadians(a)
-
     x = x - railLength * Math.Cos(_a)
-
     y = y + railLength * Math.Sin(_a)
-
     a = a + 5
-
   EndFor
-
   For pos = 105 To 115
-
     rails_pos["x"] = x
-
     rails_pos["y"] = y
-
     rails[pos] = rails_pos
-
     x = x - railLength
-
   EndFor
-
   numRails = pos - 1
-
 EndSub
-
-
 
 Sub Run
-
   For pos = 1 To numRails
-
     DrawTrain()
-
     Program.Delay(200)
-
   EndFor
-
 EndSub
-
-
 
 Sub Math_CartesianToPolar
-
   ' Math | convert Cartesian coodinate to polar coordinate
-
   ' param x, y - Cartesian coordinate
-
   ' return r, a - polar Coordinate (0<=a<360)
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   ElseIf x = 0 And y = 0 Then
-
     a = 0
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   ' at this point -90<=a<=90
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x >= 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
   ' at this point 0<=a<360
-
 EndSub
-
-

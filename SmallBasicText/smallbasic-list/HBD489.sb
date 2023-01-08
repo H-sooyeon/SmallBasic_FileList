@@ -1,2345 +1,1174 @@
 DECLARE SUB setasci ()
-
 DECLARE FUNCTION isdosbox% ()
-
 DECLARE SUB playgame ()
-
 DECLARE SUB evaluatemoves ()
-
 DECLARE FUNCTION aangevallen% (veld%, doorkleur%)
-
 DECLARE SUB checkforbugs ()
-
 DECLARE SUB playdemo (pause%)
-
 DECLARE SUB playbest (pause%)
-
 DECLARE SUB heap.maxsort ()
-
 DECLARE SUB heap.siftdown (index%, n%)
-
 DECLARE FUNCTION checkeval% (zetnr%)
-
 DECLARE SUB getevaluations ()
-
 DECLARE FUNCTION woodeval% (zetnr%)
-
 DECLARE FUNCTION waarde% (stuk%)
-
 DECLARE SUB updateboard ()
-
 DECLARE FUNCTION veldkleur% (veld%)
-
 DECLARE SUB printpiece (veld%)
-
 DECLARE SUB gen.kingmoves ()
-
 DECLARE FUNCTION screenline% (veld%)
-
 DECLARE FUNCTION screenkolom% (veld%)
-
 DECLARE FUNCTION isillegalmove% (vanveld%, naarveld%)
-
 DECLARE FUNCTION shakehands% ()
-
 DECLARE SUB getmove ()
-
 DECLARE FUNCTION kolom2index% (startline%)
-
 DECLARE SUB domove (zetkeuze%)
-
 DECLARE SUB mouseshow (show%)
-
 DECLARE SUB zetmuislimiet (x%, tox%, y%, toy%)
-
 DECLARE SUB interrupt ()
-
 DECLARE SUB interruptx ()
-
 DECLARE FUNCTION muisinit% ()
-
 DECLARE SUB dubbelclick ()
-
 DECLARE SUB setboardpallet ()
-
 DECLARE SUB displaymovegen ()
-
 DECLARE SUB displaynotatie (i%)
-
 DECLARE FUNCTION stukvoorkoning% (penningsrichting%)
-
 DECLARE SUB schaakENpenning ()
-
 DECLARE FUNCTION ismatepotential% (vanwelkekleur%)
-
 DECLARE SUB mateordraw ()
-
 DECLARE SUB updatecastlinginfo (vanveld%, naarveld%)
-
 DECLARE SUB updateEPinfo (zettype%, naarveld%)
-
 DECLARE SUB putpromoties (vanveld%, naarveld%, metslaan%)
-
 DECLARE SUB gen.rookcapture (rotstuk AS ANY)
-
 DECLARE SUB gen.bisshopcapture (rotstuk AS ANY)
-
 DECLARE SUB gen.pawncapture (rotstuk AS ANY)
-
 DECLARE SUB gen.horsecapture (rotstuk AS ANY)
-
 DECLARE SUB gen.pawnto (naarveld%)
-
 DECLARE SUB gen.rookto (naarveld%)
-
 DECLARE SUB gen.horseto (naarveld%)
-
 DECLARE SUB gen.bisshopto (naarveld%)
-
 DECLARE FUNCTION rookside% (veld%)
-
 DECLARE FUNCTION koningopEPrij% ()
-
 DECLARE SUB zetdatstuk (zetnr%)
-
 DECLARE SUB displayboard ()
-
 DECLARE SUB printzet (zetnr%)
-
 DECLARE FUNCTION tweederij% (vanveld%)
-
 DECLARE SUB putmoveinlist (vanveld%, naarveld%, geslagen%, promotie%, zettype%)
-
 DECLARE FUNCTION zevenderij% (veld%)
-
 DECLARE SUB printmovegen ()
-
 DECLARE SUB gen.bisshopmoves (vanveld%)
-
 DECLARE SUB gen.rookmoves (vanveld%)
-
 DECLARE SUB gen.horsemoves (vanveld%)
-
 DECLARE SUB gen.pawnmoves (vanveld%)
-
 DECLARE SUB gen.capturemoves ()
-
 DECLARE SUB gen.tussenplaatsingen ()
-
 DECLARE FUNCTION eerstestukrichting% (tableid%, vanveld%, richtingid%)
-
 DECLARE SUB generatemoves ()
-
 DECLARE SUB printboardlayout ()
-
 DECLARE SUB inittabellen ()
-
 DECLARE SUB printboard ()
-
 DECLARE SUB opzettenstukken ()
-
 DECLARE SUB zetopdatstuk (soortstuk%, veld%)
-
 DECLARE FUNCTION isschaakrichting% (richtingid%)
-
 DEFINT A-Z
-
-
 
 'Just the plain movegenerator without bugs as far as can see..
 
 
-
-
-
 ON ERROR GOTO errorhandler
 
-
-
 CONST false = 0, true = NOT false
-
 DIM SHARED intx(60): DIM SHARED regs(11): CALL interrupt
-
 CONST intnr = 0, ax = 1, bx = 2, cx = 3, dx = 4, bp = 5, si = 6, ds = 7
-
 CONST di = 8, es = 9, flag = 10
 
-
-
 TYPE mouseinfo
-
 	xpos AS INTEGER
-
 	ypos AS INTEGER
-
 	knoplinks AS INTEGER
-
 	knoprechts AS INTEGER
-
 	linksdubbel AS INTEGER
-
 	rechtsdubbel AS INTEGER
-
 	tabkolom AS INTEGER
-
 END TYPE
-
 DIM SHARED muisinstalled
-
 DIM SHARED muisinfo AS mouseinfo
-
 IF mouseinit = 0 THEN muisinstalled = true
-
 DIM SHARED viewportline        'need that for keeping track of view print
-
 DIM SHARED A8onscreen(2)       'Were A8 is on screen.
-
-
 
 CLS
 
-
-
 'Pak bord:
-
 CALL setboardpallet
-
-
-
 
 
 'The BOARD as we use it(a 16*16 board)
 
-
-
 ' b0   b1 b2 b3 b4 b5 b6 b7 b8   b9 ba bb bc bd be bf
-
 ' a0   a1 a2 a3 a4 a5 a6 a7 a8   a9 aa ab ac ad ae af
-
 '    +-------------------------+
-
 ' 90 | A8 B8 C8 D8 E8 F8 G8 H8 | 99 9a 9b 9c 9d 9e 9f
-
 ' 80 | A7 B7 C7 D7 E7 F7 G7 H7 | 89 8a 8b 8c 8d 8e 8f
-
 ' 70 | A6 B6 C6 D6 E6 F6 G6 H6 | 79 7a 7b 7c 7d 7e 7f
-
 ' 60 | A5 B5 C5 D5 E5 F5 G5 H5 | 69 6a 6b 6c 6d 6e 6f
-
 ' 50 | A4 B4 C4 D4 E4 F4 G4 H4 | 59 5a 5b 5c 5d 5e 5f
-
 ' 40 | A3 B3 C3 D3 E3 F3 G3 H3 | 49 4a 4b 4c 4d 4e 4f
-
 ' 30 | A2 B2 C2 D2 E2 F2 G2 H2 | 39 3a 3b 3c 3d 3e 3f
-
 ' 20 | A1 B1 C1 D1 E1 F1 G1 H1 | 29 2a 2b 2c 2d 2e 2f
-
 '    +-------------------------+
-
 ' 10   11 12 13 14 15 16 17 18   19 1a 1b 1c 1d 1e 1f
-
 ' 00   01 02 03 04 05 06 07 08   09 0a 0b 0c 0d 0e 0f
 
-
-
 CONST A = 1: CONST B = 2: CONST C = 3: CONST D = 4
-
 CONST E = 5: CONST F = 6: CONST G = 7: CONST H = 8
 
-
-
 CONST H8 = &H98: CONST H7 = &H88: CONST H6 = &H78: CONST H5 = &H68:
-
 CONST H4 = &H58: CONST H3 = &H48: CONST H2 = &H38: CONST H1 = &H28
-
 CONST G8 = &H97: CONST G7 = &H87: CONST G6 = &H77: CONST G5 = &H67:
-
 CONST G4 = &H57: CONST G3 = &H47: CONST G2 = &H37: CONST G1 = &H27
-
 CONST F8 = &H96: CONST F7 = &H86: CONST F6 = &H76: CONST F5 = &H66:
-
 CONST F4 = &H56: CONST F3 = &H46: CONST F2 = &H36: CONST F1 = &H26
-
 CONST E8 = &H95: CONST E7 = &H85: CONST E6 = &H75: CONST E5 = &H65:
-
 CONST E4 = &H55: CONST E3 = &H45: CONST E2 = &H35: CONST E1 = &H25
-
 CONST D8 = &H94: CONST D7 = &H84: CONST D6 = &H74: CONST D5 = &H64:
-
 CONST D4 = &H54: CONST D3 = &H44: CONST D2 = &H34: CONST D1 = &H24
-
 CONST C8 = &H93: CONST C7 = &H83: CONST C6 = &H73: CONST C5 = &H63:
-
 CONST C4 = &H53: CONST C3 = &H43: CONST C2 = &H33: CONST C1 = &H23
-
 CONST B8 = &H92: CONST B7 = &H82: CONST B6 = &H72: CONST B5 = &H62:
-
 CONST B4 = &H52: CONST B3 = &H42: CONST B2 = &H32: CONST B1 = &H22
-
 CONST A8 = &H91: CONST A7 = &H81: CONST A6 = &H71: CONST A5 = &H61:
-
 CONST A4 = &H51: CONST A3 = &H41: CONST A2 = &H31: CONST A1 = &H21
 
-
-
 													 'bitwijs gecodeerde
-
 CONST bordrand = &H80: CONST leeg = 0   'bezetting van velden
-
-
 
 'De vertaling van het bord naar een array:
 
-
-
 DIM SHARED bord(&H10 * 12)
-
 FOR i = 0 TO &H20: bord(i) = bordrand: NEXT
-
 FOR i = &HA0 TO &H10 * 12: bord(i) = bordrand: NEXT
-
 FOR i = &H20 TO &HA0:
-
  IF i MOD &H10 = 0 OR i MOD &H10 > 8 THEN
-
 	bord(i) = bordrand
-
  END IF
-
 NEXT
 
-
-
 'Laat zien dat lege bord!
-
 CLS
-
 CALL printboardlayout
-
 CALL printboard
-
 SLEEP
-
-
 
 'En het hout:
 
-
-
 CONST colorid = 1
-
 CONST pion = 2: CONST paard = 4
-
 CONST loper = 8: CONST toren = &H10
-
 CONST dame = &H20: CONST koning = &H40
-
 CONST diagonaalstuk = loper OR dame
-
 CONST rechtstuk = toren OR dame
 
-
-
 CONST wit = 0: CONST zwart = 1
-
 CONST zwartepion = zwart OR pion
-
 CONST zwartepaard = zwart OR paard
-
 CONST zwarteloper = zwart OR loper
-
 CONST zwartetoren = zwart OR toren
-
 CONST zwartedame = zwart OR dame
-
 CONST zwartekoning = zwart OR koning
-
 CONST wittepion = wit OR pion
-
 CONST wittepaard = wit OR paard
-
 CONST witteloper = wit OR loper
-
 CONST wittetoren = wit OR toren
-
 CONST wittedame = wit OR dame
-
 CONST wittekoning = wit OR koning
 
-
-
 'Vertaling naar arrays
-
 CONST indoos = 16                  'Geef ze geen stuk voor!
-
 DIM SHARED aantalstukken(wit TO zwart)
-
 TYPE stukken
-
 	soort  AS INTEGER
-
 	veld  AS INTEGER
-
 END TYPE
-
 DIM SHARED stukken(indoos, wit TO zwart) AS stukken
-
 DIM SHARED stukindex(A1 TO H8)'Holds the index into stukken() of that square' piece
-
 DIM SHARED wood(wit TO zwart) 'Materiaal..(slechte schaker maar goed)
 
-
-
 DIM SHARED pions$
-
 DIM SHARED torens$
-
 DIM SHARED dames$
-
 DIM SHARED konings$
-
 DIM SHARED lopers$
-
 DIM SHARED paards$
 
-
-
 IF isdosbox = false THEN
-
 	CALL setasci  'Nice pictures..
-
 ELSE
-
 	konings$ = "K"
-
 	dames$ = "D"
-
 	torens$ = "T"
-
 	lopers$ = "L"
-
 	paards$ = "P"
-
 	pions$ = "i"
-
 END IF
 
-
-
 'Kijk Jantje.. een loper mag schuin..een toren mag recht
-
 'en een paard..nou ja...dat vertel ik je later nog wel eens
 
-
-
 'Vertaling naar tabellen van constanten voor zet richtingen:
-
 '[zowel koning als koningin kunnen vanuit de
-
 'loperrichting en torenrichting afgeleid worden]
 
-
-
 CONST up = &H10: CONST down = -&H10:
-
 CONST left = -1: CONST right = 1
 
-
-
 DIM SHARED paardrichting(8)
-
 paardrichting(0) = up * 2 + left: paardrichting(1) = up * 2 + right
-
 paardrichting(2) = down * 2 + left: paardrichting(3) = down * 2 + right
-
 paardrichting(4) = right * 2 + down: paardrichting(5) = right * 2 + up
-
 paardrichting(6) = left * 2 + down: paardrichting(7) = left * 2 + up
 
-
-
 DIM SHARED loperrichting(4)
-
 loperrichting(0) = up + left: loperrichting(1) = up + right
-
 loperrichting(2) = down + left: loperrichting(3) = down + right
 
-
-
 DIM SHARED torenrichting(4)
-
 torenrichting(0) = left: torenrichting(1) = right
-
 torenrichting(2) = up: torenrichting(3) = down
 
-
-
 DIM SHARED pionslagrichting(2, wit TO zwart)
-
 pionslagrichting(0, wit) = up + left: pionslagrichting(1, wit) = up + right
-
 pionslagrichting(0, zwart) = down + left: pionslagrichting(1, zwart) = down + right
 
-
-
 'Voor efficientie worden er lookuptables gegeneerd die elke
-
 'zet van een bepaald type van alle velden bevatten;
 
-
-
 CONST maxtorenzetten = 14
-
 CONST maxloperzetten = 13
-
 CONST maxpaardzetten = 8
 
-
-
 DIM SHARED pionzetten(A1 TO H8, 2, wit TO zwart)
-
 DIM SHARED pionslagzetten(A1 TO H8, 2, wit TO zwart)'2+ e.p.
-
 DIM SHARED paardzetten(A1 TO H8, 0 TO maxpaardzetten - 1)
-
 DIM SHARED loperzetten(A1 TO H8, 3, 0 TO maxloperzetten - 1)
-
 DIM SHARED torenzetten(A1 TO H8, 3, 0 TO maxtorenzetten - 1)
-
-
 
 CALL inittabellen                 'Initialize lookup tables
 
-
-
 '...,Look here Jacky..do you see those pieces ? Those different
-
 'ones have different values( when you are grown up we might
-
 'exchange that with 'meaning') ...,
 
-
-
 'Translation of assumed constant values for pieces..
-
 CONST pionwaarde = 10
-
 CONST paardwaarde = 32
-
 CONST loperwaarde = 32
-
 CONST torenwaarde = 50
-
 CONST damewaarde = 90 'Dit voorkomt problemen
-
 CONST koningswaarde = 99
-
 '[I never said it would play above random;=)]
 
-
-
 '...,And the goal of the game is to capture the KING
-
 DIM SHARED koningsveld(wit TO zwart)
 
-
-
 '..Oke now that you know about the pieces, there values,
-
 'there moves and the goal of the game, lets put the pieces
-
 'on the board..:
-
-
 
 CALL opzettenstukken
 
-
-
 CLS : CALL printboard
-
 SLEEP
 
-
-
 '...,Oke Sjaan, I have been cheating for a while know...
-
 'There are a few other moves allowed then what you know
-
 'already, and also some moves are not allowed...
-
-
 
 'Vertaling van bijzondere zetten:
 
-
-
 CONST normaal = 1          'bitwise encoded types of moves
-
 CONST slaan = 2
-
 CONST promotie = 4
-
 CONST jumpingpion = 8
-
 CONST korterochade = 16
-
 CONST langerochade = 32
-
 CONST ep = 64
-
 'Schaak en penningen
-
 TYPE schaak
-
 	richting AS INTEGER                     'Waarvandaan ? (voor Paard/pion=0)
-
 	veld AS INTEGER                         'Gebruikt voor tussenplaatsingen
-
 END TYPE
-
 'Updated every move(first resetted!)
-
 DIM SHARED nrchecks                        'How many ??
-
 DIM SHARED schaakgever(0 TO 1) AS schaak   'What about it..?
-
 DIM SHARED gepend(A1 TO H8) AS INTEGER     'of 0 of richting van penning
 
-
-
 DIM SHARED shortcastlepossible(wit TO zwart) 'Rook or king moved ?
-
 DIM SHARED longcastlepossible(wit TO zwart)  'Rook and king there.?
-
 FOR i = wit TO zwart
-
 	longcastlepossible(i) = true
-
 	shortcastlepossible(i) = true
-
 NEXT
 
-
-
 DIM SHARED epfield                          'Pion prone to ep ??
-
 epfield = -1
-
-
 
 'Schaken(0)==Genereer zetten
 
-
-
 '
-
 '... 50 games in a row later, .......
 
-
-
 '..Oke, oke Paul , you want to play again...
-
 'But I am a little bit tired right now....
-
 'Don't cry..don't cry...Yes, I know its no fun
-
 'to play alone(..), and I know you have still
-
 'problems to know what moves are allowed
-
 'from which position, but do you know what ??
-
-
-
 
 
 '..I will pregenerate possible moves for you....
 
-
-
 'De zetlijst die we gaan genereren..
-
 TYPE zet
-
 	vanveld  AS INTEGER
-
 	naarveld  AS INTEGER
-
 	promotiestuk AS INTEGER  'dubbel
-
 	geslagenstuk AS INTEGER  'masochiste
-
 	zettype AS INTEGER       'above..
-
 	eval AS INTEGER
-
 END TYPE
-
 CONST maxzetten = 250                     'Can't be more for 1 movess
-
 DIM SHARED zetlijst(1 TO maxzetten) AS zet
-
 DIM SHARED zetlijstlengte                 'How many do we have
 
-
-
 'And you know what ? If you don't want
-
 'to choose a move, or want to have the PC
-
 'as your opponent, you can let the PC
-
 'choose one move
-
-
 
 DIM SHARED zetkeuze                       'Random or choosen one..
 
-
-
 'Remise marge:
-
 DIM SHARED zettenzonderslaan              '50 move rule..
-
 DIM SHARED lastmove(wit TO zwart) AS zet
-
 DIM SHARED herhalingzetten                '3 *zelfde
 
-
-
 'Now....whos to move ??
-
 DIM SHARED aanzet: aanzet = wit
-
-
 
 '[Intermezzo for daddy...]
 
-
-
 'Chess::First an developersexample{
-
 CALL generatemoves
-
 CLS : CALL printmovegen
-
 '     }
-
 SLEEP
 
-
-
 'Next a gameplayers example: lets play a little random..
-
 DEF SEG = &H40: POKE &H1C, PEEK(&H1A): DEF SEG
 
-
-
 'Put moves in a file..(maybe the movegen too..)
-
 DIM SHARED filename$
-
 PRINT : LINE INPUT "File to put notations in(required): "; filename$
-
 DIM SHARED tofile   'Wanna write that into the file ??
-
 tofile = 0:
 
-
-
 DIM SHARED noteerzetnr         'verplicht(maar voor het zetten verboden!)
-
 noteerzetnr = 1
 
-
-
 												  'use >99 for no pause..
-
 secsbetweenmoves = 1                  'use nul for keypress between moves
-
 CALL playdemo(secsbetweenmoves)       'random moveselect
-
 CALL playbest(secsbetweenmoves)       'plays best move
-
 CALL playgame                         'select moves from movelist
 
 
 
-
-
-
-
 CLOSE
 
 
-
-
-
 END
-
 errorhandler:
-
 IF ERR = 100 THEN PRINT "THe end~": CLOSE
-
 'Schaak door dame horizontaal is niet oke(toren??)
 
-
-
 '
-
 'Kijkt of een veld aangevallen wordt door niet aanzet!
-
 '
-
 FUNCTION aangevallen (veld, doorkleur)
-
-
 
 tegenstander = doorkleur
 
-
-
 	'Aangevallen door dame,toren,loper ?
 
-
-
 FOR i = 0 TO 3
-
 	naarveld = eerstestukrichting(loper, veld, i)
-
 	IF naarveld THEN
-
 		stuk = bord(naarveld)
-
 		IF stuk AND diagonaalstuk THEN
-
 			IF (stuk AND colorid) = tegenstander THEN
-
 				aangevallen = true: EXIT FUNCTION
-
 			END IF
-
 		END IF
-
 	END IF'<no piece in that direction>
-
   
-
 	naarveld = eerstestukrichting(toren, veld, i)
-
 	IF naarveld THEN
-
 		stuk = bord(naarveld)
-
 		IF stuk AND rechtstuk THEN
-
 			IF (stuk AND colorid) = tegenstander THEN
-
 				aangevallen = true: EXIT FUNCTION
-
 			END IF
-
 		END IF
-
 	END IF '<no piece in that direction>
-
 NEXT
-
-
 
 'aangevallen door paard
 
-
-
 FOR i = 0 TO maxpaardzetten - 1
-
 	naarveld = paardzetten(veld, i)
-
 	IF naarveld THEN
-
 		stuk = bord(naarveld)
-
 		IF stuk AND paard THEN
-
 			IF (stuk AND colorid) = tegenstander THEN
-
 				aangevallen = true: EXIT FUNCTION
-
 			END IF
-
 		END IF'<geen paard van de tegenstander>
-
 	END IF
-
 NEXT
-
-
 
 'Aangevallen door andere koning..duck!
-
 FOR i = 0 TO 3
-
 	'Aangevallen door koning
-
 	naarveld = loperzetten(veld, i, 0) 'alleen eerste veld kijken
-
 	IF naarveld THEN            'dat ben ik zelf..
-
 		stuk = bord(naarveld)
-
 		IF koning AND stuk THEN
-
 			IF (stuk AND colorid) = tegenstander THEN
-
 				aangevallen = true: EXIT FUNCTION
-
 			END IF 'thats me
-
 		END IF 'thats no king
-
 	END IF
-
 	naarveld = torenzetten(veld, i, 0) 'alleen eerste veld kijken
-
 	IF naarveld THEN
-
 		stuk = bord(naarveld)
-
 		IF koning AND stuk THEN
-
 			IF (stuk AND colorid) = tegenstander THEN
-
 				aangevallen = true: EXIT FUNCTION
-
 			END IF 'thats me
-
 		END IF 'thats no king
-
 	END IF
-
 NEXT
-
-
 
 'Aangevallen door pion(symmetrical for colors e4xd5 and d5xe4)
 
-
-
 FOR i = 0 TO 1                        'dat ben ik weer zelf
-
 	naarveld = pionslagzetten(veld, i, colorid XOR tegenstander)
-
 	IF naarveld THEN
-
 		stuk = bord(naarveld)
-
 		IF stuk AND pion THEN      'als jij dit bent val je mij aan
-
 			IF (stuk AND colorid) = tegenstander THEN
-
 				aangevallen = true: EXIT FUNCTION
-
 			END IF
-
 		END IF '<ander stuk dan pion van tegenstander>
-
 	END IF '<uberhaupt geen zet daar>
-
 NEXT
 
 
 
 
-
-
-
-
-
 END FUNCTION
-
-
 
 FUNCTION checkeval (zetnr)
 
-
-
 END FUNCTION
 
-
-
 '
-
 '
-
 '
-
 SUB checkforbugs
 
-
-
 FOR rij = &H9 * &H10 TO &H20 STEP -&H10:
-
 	FOR lijn = 1 TO &H8
-
 		veld = lijn + rij
-
 		stuk = bord(veld)
-
 		kleur = stuk AND colorid
-
 		IF stuk <> leeg THEN
-
 			IF stukindex(veld) > aantalstukken(kleur) THEN
-
 				errors$ = errors$ + "Error, geen stuk verwacht op veld: " + HEX$(veld)
-
 			END IF
-
 			IF stukken(stukindex(veld), kleur).soort <> stuk THEN
-
 				errors$ = errors$ + "Error in kleuren op veld: " + HEX$(veld)
-
 			END IF
-
 			IF stukken(stukindex(veld), kleur).veld <> veld THEN
-
 				errors$ = errors$ + "Error, stuk van veld: " + HEX$(veld)
-
 				errors$ = errors$ + " verwacht op veld : "
-
 				errors$ = errors$ + HEX$(stukken(stukindex(veld), kleur).veld)
-
 				errors$ = errors$ + "+dir: " + HEX$(schaakgever(0).richting)
-
 				errors$ = errors$ + " stuk(wit)  :" + HEX$(aantalstukken(wit))
-
 				errors$ = errors$ + " stuk(zwart):" + HEX$(aantalstukken(zwart))
-
 				'errors$ = errors$ + " EP: " + HEX$(epfield)
-
 			END IF
-
 		END IF
-
 	NEXT
-
 NEXT
-
 IF LEN(errors$) THEN LOCATE 20, 1: PRINT errors$; : PRINT #1, errors$: END
-
-
 
 END SUB
 
-
-
 '
-
 'Displays the whole board while storing screen offsets..
-
 '
-
 SUB displayboard
 
-
-
 PRINT :
-
 A8onscreen(0) = CSRLIN
-
 A8onscreen(1) = POS(1) + 2
 
-
-
 FOR rij = &H9 * &H10 TO &H20 STEP -&H10:
-
 	PRINT "  ";
-
 	FOR lijn = 1 TO &H8
-
 		CALL printpiece(lijn + rij)
-
 	NEXT
-
 	COLOR 4, 0: PRINT USING "###"; (rij - &H10) \ &H10
-
 NEXT
-
 PRINT : COLOR 7, 0: PRINT "  ";
-
 COLOR 4, 0: PRINT " A  B  C  D  E  F  G  H "; :
-
 COLOR 7, 0
 
 
 
 
-
-
-
-
-
 END SUB
 
-
-
 '
-
 'For humanreadable
-
 '
-
 SUB displaymovegen
 
-
-
 VIEW PRINT 14 TO 24
-
 COLOR 7, 0: CLS 2
-
 CALL zetmuislimiet(3, 68, 15, 24)            'and viewport for  mouse
-
 viewportline = CSRLIN + 1
 
-
-
 IF tofile THEN
-
 	PRINT #1, "Moves generated for ";
-
 	IF aanzet = zwart THEN PRINT #1, "black" ELSE PRINT #1, "white"
-
 END IF
-
-
 
 PRINT "MOVES GENERATED VOOR ";
-
 IF aanzet = zwart THEN
-
 	COLOR 0, 11: PRINT "ZWART";
-
 ELSE
-
 	COLOR 0, 7: PRINT "WIT";
-
 END IF
-
-
-
 
 
 COLOR 7, 0:
-
 PRINT " (Stukken:"; aantalstukken(aanzet);
-
 IF longcastlepossible(aanzet) THEN PRINT ", Lang";
-
 IF shortcastlepossible(aanzet) THEN PRINT ", Kort";
-
 IF epfield <> -1 THEN PRINT ", Ep field: "; HEX$(epfield);
-
 PRINT ")":
-
-
 
 VIEW PRINT 15 TO 24
 
-
-
 FOR i = 1 TO zetlijstlengte
-
 	CALL displaynotatie(i)
-
 	IF tofile THEN IF i MOD 4 = 0 THEN PRINT #1, "":
-
 NEXT
-
 VIEW PRINT
-
 CALL mouseshow(true)                         'en laat zien
 
-
-
 IF tofile THEN PRINT #1, "": PRINT #1, ""
-
   
-
-
 
 END SUB
 
-
-
 '
-
 'Human readable display for zet nummer i uit de lijst
-
 '
-
 SUB displaynotatie (i)
 
-
-
 PRINT USING "###"; noteerzetnr;
-
 IF aanzet = wit THEN
-
 	PRINT "."; :
-
 	IF tofile THEN PRINT #1, USING "###"; noteerzetnr; : PRINT #1, ".";
-
 ELSE
-
 	IF tofile THEN PRINT #1, USING "###"; noteerzetnr; : PRINT #1, "...";
-
 	PRINT "...";
-
 END IF
 
-
-
 stuk = bord(zetlijst(i).vanveld)
-
 	  
-
 		IF stuk AND toren THEN
-
 			stuk$ = torens$
-
 		ELSEIF stuk AND loper THEN
-
 			stuk$ = lopers$
-
 		ELSEIF stuk AND paard THEN
-
 			stuk$ = paards$
-
 		ELSEIF stuk AND dame THEN
-
 			stuk$ = dames$
-
 		ELSEIF stuk AND koning THEN
-
 			IF zetlijst(i).zettype AND korterochade THEN
-
 				IF tofile THEN PRINT #1, "0-0  ";
-
 				PRINT "0-0  ", : EXIT SUB
-
 			ELSEIF zetlijst(i).zettype AND langerochade THEN
-
 				IF tofile THEN PRINT #1, "0-0-0";
-
 				PRINT "0-0-0", : EXIT SUB
-
 			ELSE
-
 				stuk$ = konings$
-
 			END IF
-
 		END IF
-
-
 
 PRINT stuk$;
 
 
-
-
-
 lijn$ = CHR$(&H60 + zetlijst(i).vanveld MOD &H10)
-
 rij = (zetlijst(i).vanveld \ &H10 - 1)
-
 lijn$ = lijn$ + HEX$(rij)
-
 stuk$ = stuk$ + lijn$
-
 PRINT lijn$;
 
-
-
 IF zetlijst(i).zettype AND slaan THEN
-
 	stuk$ = stuk$ + "x": PRINT "x";
-
 ELSE
-
 	stuk$ = stuk$ + "-"
-
 	PRINT "-";
-
 END IF
-
-
 
 lijn$ = CHR$(&H60 + zetlijst(i).naarveld MOD &H10)
-
 rij = (zetlijst(i).naarveld \ &H10 - 1)
-
 PRINT lijn$ + HEX$(rij);
-
 stuk$ = stuk$ + lijn$ + HEX$(rij)
-
   
-
 	IF zetlijst(i).zettype AND ep THEN
-
 		extra$ = "ep"
-
 	ELSEIF zetlijst(i).zettype AND promotie THEN
-
 		IF zetlijst(i).promotiestuk AND dame THEN
-
 			extra$ = dames$
-
 		ELSEIF zetlijst(i).promotiestuk AND toren THEN
-
 			extra$ = torens$
-
 		ELSEIF zetlijst(i).promotiestuk AND loper THEN
-
 			extra$ = lopers$
-
 		ELSEIF zetlijst(i).promotiestuk AND paard THEN
-
 			extra$ = paards$
-
 		END IF
-
 	END IF
 
-
-
 stuk$ = stuk$ + extra$
-
 PRINT extra$,
 
-
-
 IF tofile THEN
-
 	PRINT #1, stuk$,
-
 END IF
-
-
 
 END SUB
 
-
-
 '
-
 'Select a random move, and do that one
-
 '
-
 SUB domove (zetkeuze)
-
-
 
 IF tofile = false THEN tofile = true: resets = true
 
-
-
 IF zetkeuze = true THEN
-
 	wasrandom = true
-
 	RANDOMIZE TIMER
-
 	zetkeuze = 1 + FIX(RND * (zetlijstlengte))
-
 END IF
 
 
-
-
-
 VIEW PRINT 1 TO 1: CLS 2
-
 IF aanzet = wit THEN PRINT "WIT ";  ELSE PRINT "ZWART ";
-
 PRINT "GEZET: ";
 
-
-
 CALL displaynotatie(zetkeuze):
-
 IF wasrandom THEN PRINT "(random)  ";
-
 PRINT "Materiaal: "; wood(aanzet);
-
 VIEW PRINT:                                'reset viewport
-
 PRINT : PRINT
-
 IF aanzet = zwart THEN PRINT #1, "":   ELSE PRINT #1, "......":
-
-
-
 
 
 CALL zetdatstuk(zetkeuze)
 
-
-
 IF resets THEN tofile = false
-
-
 
 zetlijstlengte = 0
 
 
 
 
-
-
-
-
-
 END SUB
 
-
-
 '
-
 'Dubbel click van muis
-
 '
-
 SUB dubbelclick
-
-
 
 muisinfo.linksdubbel = false
 
-
-
 regs(ax) = 5
-
 regs(bx) = 0
-
 regs(intx) = &H33
-
 CALL interruptx
 
-
-
 IF regs(bx) THEN
-
 	IF muisinfo.knoplinks THEN
-
 		muisinfo.knoplinks = false
-
 		y = regs(dx) \ 8 + 1: x = regs(cx) \ 8 + 1
-
 		IF (x = muisinfo.xpos) AND (y = muisinfo.ypos) THEN
-
 			muisinfo.linksdubbel = true
-
 			muisinfo.tabkolom = 1 + x \ 14
-
 			IF muisinfo.tabkolom > 5 THEN muisinfo.tabkolom = 5'no more
-
 		END IF
-
 	ELSE
-
 		muisinfo.knoplinks = true
-
 		muisinfo.ypos = regs(dx) \ 8 + 1
-
 		muisinfo.xpos = regs(cx) \ 8 + 1
-
 	END IF
-
 END IF
-
-
-
 
 
 END SUB
 
-
-
 '
-
 'Zoekt het eerste stuk in een bepaalde tabel
-
 '[alleen voor toren,loper,en dame!]
-
 'OUT: 0 voor geen, anders veld waarop het stuk staat
-
 '
-
 FUNCTION eerstestukrichting (tableid, vanveld, richtingid)
 
-
-
 IF tableid = toren THEN
-
 	maxaantal = maxtorenzetten - 1
-
 ELSE
-
 	maxaantal = maxloperzetten - 1
-
 END IF
-
-
 
 FOR j = 0 TO maxaantal
-
 	IF tableid = toren THEN
-
 		naarveld = torenzetten(vanveld, richtingid, j)
-
 	ELSE
-
 		naarveld = loperzetten(vanveld, richtingid, j)
-
 	END IF
-
 	IF naarveld = 0 THEN EXIT FOR  'niks te doen in die richting!
-
 	stuk = bord(naarveld)
-
 	IF stuk THEN EXIT FOR'reached the end.:found one(or edge!).
-
 NEXT
 
-
-
 IF (stuk <> leeg) AND (stuk <> bordrand) THEN
-
 	eerstestukrichting = naarveld
-
 END IF
-
-
-
-
 
 
 
 END FUNCTION
 
-
-
 '
-
 'The main evaluator dispatcher...
-
 '
-
 SUB evaluatemoves
 
-
-
 CALL getevaluations    'Get the evaluations into zetlijst(i).eval
-
 CALL heap.maxsort      'Structure the tree accordingly
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Generate all bisshopmoves to capture piece at veld
-
 '
-
 SUB gen.bisshopcapture (rotstuk AS schaak)
 
-
-
 naarveld = rotstuk.veld
-
 FOR i = 0 TO 3
-
 	IF loperrichting(i) <> -rotstuk.richting THEN
-
 		FOR j = 0 TO maxloperzetten - 1
-
 			vanveld = loperzetten(naarveld, i, j)    'symmetrie!
-
 			IF vanveld = 0 THEN EXIT FOR
-
 			stuk = bord(vanveld)
-
 			IF (stuk AND diagonaalstuk) THEN               'staat een stuk
-
 				IF (stuk AND colorid) = aanzet THEN         'van mij
-
 					pendir = gepend(vanveld)
-
 					loperdir = loperrichting(i)              'niet gepend
-
 					IF (pendir = 0) OR (pendir = loperdir) OR (pendir = -loperdir) THEN
-
 						CALL putmoveinlist(vanveld, naarveld, bord(naarveld), 0, slaan OR normaal)
-
 						EXIT FOR
-
 					END IF
-
 				END IF
-
 			END IF
-
 			IF stuk <> leeg THEN EXIT FOR                  'block on the road
-
 		NEXT'<another move in that direction>
-
 	END IF'<another diagonal direction>
-
 NEXT
 
 
 
-
-
-
-
 END SUB
 
-
-
 '
-
 'Generate bisshop moves from a field
-
 '
-
 SUB gen.bisshopmoves (vanveld)
-
-
 
 penning = gepend(vanveld)
 
-
-
 FOR i = 0 TO 3
-
 	richting = loperrichting(i)   'we mogen bewegen in diagonaal van penning
-
 	IF penning = 0 OR penning = richting OR penning = -richting THEN
-
 		FOR j = 0 TO maxloperzetten - 1
-
 			naarveld = loperzetten(vanveld, i, j)
-
 			IF naarveld = 0 THEN EXIT FOR
-
 			stuk = bord(naarveld)
-
 			IF stuk = leeg THEN
-
 				CALL putmoveinlist(vanveld, naarveld, 0, 0, normaal)
-
 			ELSEIF (stuk AND bordrand) = 0 THEN
-
 				IF (stuk AND colorid) <> aanzet THEN
-
 					CALL putmoveinlist(vanveld, naarveld, stuk, 0, slaan)
-
 				END IF '<we can't beat ourselves..>
-
 				EXIT FOR
-
 			ELSE
-
 				EXIT FOR
-
 			END IF 'we are over the edge..
-
 		NEXT '<next move in this direction>
-
 	ELSE   'we mogen ook bewegen als er nog een ander stuk tussenstaat
-
   
-
 	END IF'we are pinned down in another direction(can't move!)
-
 			'Tenzij er nog een ander stuk achter staat!
-
 NEXT '<next direction>
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Generates bisshopmoves to a specific veld
-
 '
-
 SUB gen.bisshopto (naarveld)
 
-
-
 FOR i = 0 TO 3
-
 	FOR j = 0 TO maxloperzetten - 1
-
 		vanveld = loperzetten(naarveld, i, j)
-
 		IF vanveld = 0 THEN EXIT FOR
-
 		IF bord(vanveld) AND diagonaalstuk THEN
-
 			IF (bord(vanveld) AND colorid) = aanzet THEN
-
 				pendir = gepend(vanveld)
-
 				loperdir = loperrichting(i)
-
 				IF pendir = 0 OR pendir = loperdir OR pendir = -loperdir THEN
-
 					CALL putmoveinlist(vanveld, naarveld, 0, 0, normaal)
-
 				END IF'<gepend>
-
 			END IF '<niet mijn loper of dame>
-
 		END IF'<geen loper of dame>
-
 		IF bord(vanveld) <> leeg THEN EXIT FOR ' <block on the road>
-
 	NEXT
-
 NEXT
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Genereer alle sla dat stuk moves( maar niet die van de koning zelf)
-
 '
-
 SUB gen.capturemoves
-
-
 
 'altijd maar 1 schaakgever(anders helpt het weinig)
 
-
-
 CALL gen.pawncapture(schaakgever(0))
-
 CALL gen.horsecapture(schaakgever(0))
-
 CALL gen.bisshopcapture(schaakgever(0))
-
 CALL gen.rookcapture(schaakgever(0))
-
-
 
 END SUB
 
-
-
 '
-
 'Generate all horsemoves to capture piece at veld
-
 '
-
 SUB gen.horsecapture (rotstuk AS schaak)
 
-
-
 naarveld = rotstuk.veld
-
 FOR i = 0 TO maxpaardzetten - 1
-
 	IF paardrichting(i) <> -rotstuk.richting THEN
-
 		vanveld = paardzetten(naarveld, i)
-
 		IF vanveld = 0 THEN EXIT FOR
-
 		stuk = bord(vanveld)
-
 		IF stuk = (paard OR aanzet) THEN                               'staat een stuk
-
 			IF gepend(vanveld) = 0 THEN         'niet gepend
-
 				CALL putmoveinlist(vanveld, naarveld, bord(naarveld), 0, slaan OR normaal)
-
 				EXIT FOR
-
 			END IF
-
 		END IF
-
 	END IF
-
 NEXT'<another movedirection>
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Generates all knight moves from a given field
-
 '
-
 '
-
 SUB gen.horsemoves (vanveld)
-
-
 
 IF gepend(vanveld) THEN EXIT SUB
 
-
-
 FOR i = 0 TO maxpaardzetten - 1
-
 	naarveld = paardzetten(vanveld, i)
-
 	IF naarveld = 0 THEN EXIT FOR     'nothing
-
 	stuk = bord(naarveld)
-
 	IF stuk = leeg THEN
-
 		CALL putmoveinlist(vanveld, naarveld, 0, 0, normaal)
-
 	ELSEIF (stuk AND bordrand) = 0 THEN
-
 		IF (stuk AND colorid) <> aanzet THEN
-
 			CALL putmoveinlist(vanveld, naarveld, stuk, 0, slaan)
-
 		END IF '<we can't beat ourselves..>
-
 	END IF 'we are over the edge..
-
 NEXT
-
 END SUB
 
-
-
 '
-
 'Generates horsemoves to a specific veld
-
 '
-
 '
-
 SUB gen.horseto (naarveld)
 
 
-
-
-
 FOR i = 0 TO maxpaardzetten - 1
-
 	vanveld = paardzetten(naarveld, i)
-
 	IF vanveld = 0 THEN EXIT FOR
-
 	IF bord(vanveld) AND paard THEN
-
 		IF (bord(vanveld) AND colorid) = aanzet THEN
-
 			IF gepend(vanveld) = 0 THEN
-
 				CALL putmoveinlist(vanveld, naarveld, 0, 0, normaal)
-
 			END IF '<gepend>
-
 		END IF '<not mine>
-
 	END IF'<not horse>
-
 NEXT
-
-
-
-
 
 
 
 END SUB
 
-
-
 '
-
 'Generates all kingmoves from a kingsfield
-
 '
-
 SUB gen.kingmoves
 
-
-
 'Not there..temporaraly
-
 vanveld = koningsveld(aanzet)
-
 bord(vanveld) = leeg
-
 joukleur = aanzet XOR colorid
 
-
-
 'Look into rows/lines directions
-
 FOR i = 0 TO 3
-
 	naarveld = torenzetten(vanveld, i, 0)   'eerste in die richting
-
 	IF naarveld THEN
-
 		stuk = bord(naarveld)
-
 		IF stuk = leeg THEN
-
 			IF isschaakrichting(torenrichting(i)) = 0 THEN
-
 				IF isschaakrichting(-torenrichting(i)) = 0 THEN
-
 					IF aangevallen(naarveld, joukleur) = 0 THEN
-
 						CALL putmoveinlist(vanveld, naarveld, 0, 0, normaal)
-
 					END IF
-
 				END IF
-
 			END IF
-
 		ELSEIF (stuk AND bordrand) = 0 THEN               'slaan
-
 			IF (stuk AND colorid) = joukleur THEN          'niet van andere kant:
-
 				IF isschaakrichting(-torenrichting(i)) = 0 THEN 'neem schaakgever!
-
 					IF aangevallen(naarveld, joukleur) = 0 THEN  'als niet toch aangevallen
-
 						CALL putmoveinlist(vanveld, naarveld, stuk, 0, slaan)
-
 					END IF
-
 				END IF
-
 			END IF '<we can't beat ourselves..>
-
 		END IF 'we are over the edge..
-
 	END IF  '<no moves in that direction possible
-
 NEXT
-
-
 
 'looks into diagonal directions
-
 FOR i = 0 TO 3
-
 	naarveld = loperzetten(vanveld, i, 0)   'eerste in die richting
-
 	IF naarveld THEN
-
 		stuk = bord(naarveld)
-
 		IF stuk = leeg THEN
-
 			IF isschaakrichting(loperrichting(i)) = 0 THEN
-
 				IF isschaakrichting(-loperrichting(i)) = 0 THEN
-
 					IF aangevallen(naarveld, joukleur) = 0 THEN
-
 						CALL putmoveinlist(vanveld, naarveld, 0, 0, normaal)
-
 					END IF
-
 				END IF
-
 			END IF
-
 		ELSEIF (stuk AND bordrand) = 0 THEN
-
 			IF (stuk AND colorid) = joukleur THEN          'niet van andere kant:
-
 				IF isschaakrichting(-loperrichting(i)) = 0 THEN 'neem schaakgever!
-
 					IF aangevallen(naarveld, joukleur) = 0 THEN         'als niet toch aangevallen
-
 						CALL putmoveinlist(vanveld, naarveld, stuk, 0, slaan)
-
 					END IF
-
 				END IF
-
 			END IF '<we can't beat ourselves..>
-
 		END IF 'we are over the edge..
-
 	END IF  '<no moves in that direction possible
-
 NEXT
 
-
-
 'Castling
-
 IF nrchecks = 0 THEN
-
 	IF aanzet = wit THEN
-
 		veld1 = E1: veld2 = F1: veld3 = G1
-
 		veld4 = D1: veld5 = C1: veld6 = B1
-
 	ELSE
-
 		veld1 = E8: veld2 = F8: veld3 = G8
-
 		veld4 = D8: veld5 = C8: veld6 = B8
-
 	END IF
-
 	IF shortcastlepossible(aanzet) THEN
-
 		IF bord(veld2) = leeg AND bord(veld3) = leeg THEN
-
 			IF aangevallen(veld2, joukleur) = 0 AND aangevallen(veld3, joukleur) = 0 THEN
-
 				CALL putmoveinlist(veld1, veld3, 0, 0, korterochade)
-
 			END IF
-
 		END IF
-
 	END IF
-
 	IF longcastlepossible(aanzet) THEN
-
 		IF bord(veld4) = leeg AND bord(veld5) = leeg AND bord(veld6) = leeg THEN
-
 			IF aangevallen(veld4, joukleur) = 0 AND aangevallen(veld5, joukleur) = 0 AND aangevallen(veld6, joukleur) = 0 THEN
-
 				CALL putmoveinlist(veld1, veld5, 0, 0, langerochade)
-
 			END IF'<field between rook and king attacked:no castling>
-
 		END IF '<fields between rook and king not all empty:no castling>
-
 	END IF '<already moved rook/king:no castling>
-
 END IF '<in check:no castling>
 
-
-
 'If not in check, put him back:
-
 bord(koningsveld(aanzet)) = koning OR aanzet
 
 
 
-
-
-
-
 END SUB
 
-
-
 '
-
 'Generate all pawnmoves to capture piece at veld
-
 '
-
 SUB gen.pawncapture (rotstuk AS schaak)
-
-
 
 naarveld = rotstuk.veld
 
-
-
 'normaal slaan
 
-
-
 FOR i = 0 TO 1
-
 	piondir = pionslagrichting(i, aanzet XOR colorid)
-
 	IF piondir <> -rotstuk.richting THEN
-
 		vanveld = pionslagzetten(naarveld, i, aanzet XOR colorid)
-
 		IF vanveld THEN
-
 			stuk = bord(vanveld)
-
 			IF stuk AND pion THEN
-
 				IF (stuk AND colorid) = aanzet THEN
-
 					pendir = gepend(vanveld)
-
 					IF (pendir = 0) OR (pendir = piondir) OR (pendir = -piondir) THEN
-
 						IF zevenderij(vanveld) THEN
-
 							CALL putpromoties(vanveld, naarveld, true)
-
 						ELSE
-
 							CALL putmoveinlist(vanveld, naarveld, bord(naarveld), 0, slaan)
-
 						END IF
-
 					END IF '<gepend>
-
 				END IF '<geen pion van mij daar>
-
 			END IF'<geen pion>
-
 		END IF'<geen slaan in die richting>
-
 	END IF'<geen schaak uit die richting>
-
 NEXT
 
-
-
 'passanten meppen
-
 IF aanzet = wit THEN richting = up ELSE richting = down
 
-
-
 IF epfield = naarveld + richting THEN
-
 	vanveld = naarveld + right
-
 	stuk = bord(vanveld)
-
 	IF stuk AND pion THEN
-
 		IF (stuk AND colorid) = aanzet THEN
-
 			pendir = gepend(vanveld)                 'gepend op diagonaal
-
 			IF pendir = 0 OR (pendir = richting + right) OR pendir = (-richting - right) THEN
-
 				CALL putmoveinlist(vanveld, epfield, bord(naarveld), 0, slaan OR ep)
-
 			END IF '<gepend>
-
 		END IF'<niet mijn pion>
-
 	END IF  '< geen pion>
 
-
-
 	vanveld = naarveld + left
-
 	stuk = bord(vanveld)
-
 	IF stuk AND pion THEN
-
 		IF (stuk AND colorid) = aanzet THEN
-
 			pendir = gepend(vanveld)                 'gepend op diagonaal
-
 			IF pendir = 0 OR (pendir = richting + left) OR pendir = (-richting - left) THEN
-
 				CALL putmoveinlist(vanveld, epfield, bord(naarveld), 0, slaan OR ep)
-
 			END IF '<gepend>
-
 		END IF'<niet mijn pion>
-
 	END IF '<geen pion>
-
 END IF'<geen mogelijkheden voor ep>
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Generate pion zetten van veld
-
 '
-
 SUB gen.pawnmoves (vanveld)
 
-
-
 'Niet slaan...
-
 													'we zetten in penningsrichting
-
 pendir = gepend(vanveld)
-
 IF pendir = 0 OR pendir = up OR pendir = down THEN
-
 	naarveld = pionzetten(vanveld, 0, aanzet)
-
 	IF bord(naarveld) = leeg THEN
-
 		IF zevenderij(vanveld) THEN
-
 			CALL putpromoties(vanveld, naarveld, 0)
-
 		ELSE  '<niet op zevende rij: move on..!>
-
 			CALL putmoveinlist(vanveld, naarveld, 0, 0, normaal)
-
 		END IF
-
 		IF tweederij(vanveld) THEN
-
 			naarveld = pionzetten(vanveld, 1, aanzet)
-
 			IF bord(naarveld) = leeg THEN
-
 				CALL putmoveinlist(vanveld, naarveld, 0, 0, jumpingpion)
-
 			END IF
-
 		END IF
-
 	END IF  '<can't move forward :piece there >
-
 END IF '<piece IS fixated>
 
-
-
 'slaan dan maar
-
 FOR i = 0 TO 1               'links/rechts:join the army!
-
 	sladir = pionslagrichting(i, aanzet)
-
 	IF pendir = 0 OR pendir = sladir OR pendir = -sladir THEN
-
 		slapion = pion OR (aanzet XOR colorid)
-
 		naarveld = pionslagzetten(vanveld, i, aanzet)
-
 		IF naarveld = epfield THEN
-
 			'kijk naar Kw pz pw op een rij...!(dan mag ep misschien niet!)
-
 			IF koningopEPrij = 0 THEN
-
 				CALL putmoveinlist(vanveld, naarveld, slapion, 0, slaan OR ep)
-
 			ELSE                                        'K on ep line
-
 				'remove pawns temporaraly
-
 				IF aanzet = wit THEN addveld = -&H10 ELSE addveld = &H10
-
 				bord(vanveld) = leeg: bord(epfield + addveld) = leeg
-
 				gevaarlijk = dame OR toren
-
 				veld = eerstestukrichting(toren, koningsveld(aanzet), 0) 'links
-
 				stuk = bord(veld): color1 = (stuk AND colorid)
-
 				IF (color1 = aanzet) OR (stuk <> gevaarlijk) THEN
-
 					veld = eerstestukrichting(toren, koningsveld(aanzet), 1) 'rechts
-
 					stuk = bord(veld): color1 = (stuk AND colorid)
-
 					IF (color1 = aanzet) OR (stuk <> gevaarlijk) THEN  'ei
-
 						CALL putmoveinlist(vanveld, naarveld, slapion, 0, slaan OR ep)
-
 					END IF
-
 				ELSE          'eigen stuk of ongevaarlijk stuk tegenstander
-
 					CALL putmoveinlist(vanveld, naarveld, slapion, 0, slaan OR ep)
-
 				END IF
-
 				'Put back pawns..
-
 				bord(vanveld) = pion OR aanzet
-
 				bord(epfield + addveld) = slapion
-
 			END IF
-
 		ELSE 'no Ep
-
 			stuk = bord(naarveld)
-
 			IF (stuk AND bordrand) = 0 AND (stuk <> leeg) THEN
-
 				IF (stuk AND colorid) <> aanzet THEN
-
 					IF zevenderij(vanveld) THEN
-
 						CALL putpromoties(vanveld, naarveld, 1)
-
 					ELSE    '<niet op zevende rij>
-
 						CALL putmoveinlist(vanveld, naarveld, stuk, 0, slaan OR normaal)
-
 					END IF
-
 				END IF  '<its my own piece>
-
 			END IF '<its an empty field or over the edge..>
-
 		END IF '<beats me where too>
-
 	END IF'<no beating there:we are pinned...!>
-
 NEXT
 
 
@@ -2350,1066 +1179,531 @@ NEXT
 
 
 
-
-
-
-
-
-
-
-
-
-
 END SUB
 
-
-
 '
-
 'Generates pawnmoves to a specific veld
-
 '
-
 SUB gen.pawnto (naarveld)
-
 													  'symmetric!
-
 vanveld = pionzetten(naarveld, 0, aanzet XOR colorid)
-
 IF bord(vanveld) = leeg THEN
-
 	IF wit THEN rank = 4 ELSE rank = 7
-
 	IF vanveld \ &H10 = rank THEN
-
 		typeof = jumpingpion
-
 		vanveld = pionzetten(vanveld, 0, aanzet XOR colorid) 'eentje verder//
-
 	ELSE
-
 		typeof = normaal
-
 	END IF
-
 END IF
-
 IF bord(vanveld) = (pion OR aanzet) THEN
-
 	pendir = gepend(vanveld)
-
 	IF pendir = 0 OR pendir = up OR pendir = down THEN
-
 		IF zevenderij(vanveld) THEN
-
 			CALL putpromoties(vanveld, naarveld, 0)
-
 		ELSE
-
 			CALL putmoveinlist(vanveld, naarveld, 0, 0, typeof)
-
 		END IF
-
 	END IF '<gepend !>
-
 END IF   '<niet mijn pion>
 
 
 
-
-
-
-
 END SUB
 
-
-
 '
-
 '
-
 'Generate all rookmoves to capture piece at veld
-
 '
-
 '
-
 SUB gen.rookcapture (rotstuk AS schaak)
 
-
-
 naarveld = rotstuk.veld
-
 FOR i = 0 TO 3
-
 	IF torenrichting(i) <> -rotstuk.richting THEN
-
 		FOR j = 0 TO maxloperzetten - 1
-
 			vanveld = torenzetten(naarveld, i, j)    'symmetrie!
-
 			IF vanveld = 0 THEN EXIT FOR
-
 			stuk = bord(vanveld)
-
 			IF (stuk AND rechtstuk) THEN               'staat een stuk
-
 				IF (stuk AND colorid) = aanzet THEN         'van mij
-
 					pendir = gepend(vanveld)
-
 					torendir = torenrichting(i)              'niet gepend
-
 					IF (pendir = 0) OR (pendir = torendir) OR (pendir = -torendir) THEN
-
 						CALL putmoveinlist(vanveld, naarveld, bord(naarveld), 0, slaan OR normaal)
-
 						EXIT FOR
-
 					END IF
-
 				END IF
-
 			END IF
-
 			IF stuk <> leeg THEN EXIT FOR                  'block on the road
-
 		NEXT'<another move in that direction>
-
 	END IF'<another straight direction>
-
 NEXT
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Generate rookmoves from a field
-
 '
-
 SUB gen.rookmoves (vanveld)
 
-
-
 penning = gepend(vanveld)
-
 FOR i = 0 TO 3
-
 	richting = torenrichting(i)   'we mogen bewegen in diagonaal van penning
-
 	IF penning = 0 OR penning = richting OR penning = -richting THEN
-
 		FOR j = 0 TO maxtorenzetten - 1
-
 			naarveld = torenzetten(vanveld, i, j)
-
 			IF naarveld = 0 THEN EXIT FOR
-
 			stuk = bord(naarveld)
-
 			IF stuk = leeg THEN
-
 				CALL putmoveinlist(vanveld, naarveld, 0, 0, normaal)
-
 			ELSEIF (stuk AND bordrand) = 0 THEN
-
 				IF (stuk AND colorid) <> aanzet THEN
-
 					CALL putmoveinlist(vanveld, naarveld, stuk, 0, slaan)
-
 				END IF '<we can't beat ourselves..>
-
 				EXIT FOR
-
 			ELSE
-
 				EXIT FOR
-
 			END IF 'we are over the edge..
-
 		NEXT '<next move in this direction>
-
 	END IF 'we are pinned down in another direction(can't move!)
-
 NEXT '<next direction>
 
 
 
 
-
-
-
-
-
 END SUB
 
-
-
 '
-
 'Generates rookmoves to a specific veld
-
 '
-
 SUB gen.rookto (naarveld)
 
-
-
 FOR i = 0 TO 3
-
 	FOR j = 0 TO maxtorenzetten - 1
-
 		vanveld = torenzetten(naarveld, i, j)
-
 		IF vanveld = 0 THEN EXIT FOR
-
 		IF bord(vanveld) AND rechtstuk THEN
-
 			IF (bord(vanveld) AND colorid) = aanzet THEN
-
 				pendir = gepend(vanveld)
-
 				torendir = torenrichting(i)
-
 				IF pendir = 0 OR pendir = torendir OR pendir = -torendir THEN
-
 					CALL putmoveinlist(vanveld, naarveld, 0, 0, normaal)
-
 				END IF'<gepend>
-
 			END IF '<niet mijn toren of dame>
-
 		END IF '<geen toren of dame>
-
 		IF bord(vanveld) <> leeg THEN EXIT FOR  '<block on the road>
-
 	NEXT
-
 NEXT
 
 
 
-
-
-
-
 END SUB
 
-
-
 '
-
 'Generates tussenplaatsingen(bij 1 schaak!)
-
 '
-
 SUB gen.tussenplaatsingen
 
-
-
 richting = schaakgever(0).richting
-
 tussenveld = koningsveld(aanzet) + richting
 
 
-
-
-
 DO WHILE tussenveld <> schaakgever(0).veld
-
 	CALL gen.pawnto(tussenveld)
-
 	CALL gen.bisshopto(tussenveld)
-
 	CALL gen.rookto(tussenveld)
-
 	CALL gen.horseto(tussenveld)
-
 	tussenveld = tussenveld + richting
-
 LOOP
-
-
 
 END SUB
 
-
-
 '
-
 SUB generatemoves
 
-
-
 zetlijstlengte = 0
-
 CALL schaakENpenning
-
 nrstukken = aantalstukken(aanzet)
 
-
-
 IF nrchecks = 2 THEN           'Dubbelschaak:smakelijk
-
 										'one solution: move away (and capture one with king!)
-
 	CALL gen.kingmoves
 
-
-
 ELSEIF nrchecks = 1 THEN       'options include put something in between
-
   
-
 	CALL gen.capturemoves
-
   
-
 	IF schaakgever(0).richting THEN       '=0 for horse and pion(can't interpose)
-
 		interposefield = koningsveld(aanzet) + schaakgever(0).richting
-
 		IF interposefield <> schaakgever(0).veld THEN 'not directly aligned!
-
 			CALL gen.tussenplaatsingen
-
 		END IF                  '<schaakgever is op aanliggend veld>
-
 	END IF                     '<schaakgever is pion of paard>
-
 	CALL gen.kingmoves         'gewoon wegwezen..
 
-
-
 ELSE
-
 	'alle zetten!
-
 	FOR j = 0 TO nrstukken - 1
-
 		stuk = stukken(j, aanzet).soort
-
 		veld = stukken(j, aanzet).veld
-
 		IF stuk AND pion THEN
-
 			CALL gen.pawnmoves(veld)
-
 		ELSEIF stuk AND paard THEN              'put penningcheck in sub
-
 			CALL gen.horsemoves(veld)
-
 		ELSEIF stuk AND koning THEN
-
 			CALL gen.kingmoves
-
 		ELSE
-
 			IF stuk AND diagonaalstuk THEN
-
 				CALL gen.bisshopmoves(veld)
-
 			END IF
-
 			IF stuk AND rechtstuk THEN
-
 				CALL gen.rookmoves(veld)
-
 			END IF
-
 		END IF
-
 	NEXT
-
 END IF
 
 
 
 
 
-
-
-
-
-
-
 END SUB
 
-
-
 '
-
 '
-
 SUB getevaluations
 
-
-
 FOR i = 1 TO zetlijstlengte
-
 	eval = woodeval(i)
-
 	eval = eval + checkeval(i)
-
 	zetlijst(i).eval = eval
-
 NEXT
 
 
 
-
-
-
-
 END SUB
 
-
-
 '
-
 '
-
 SUB getmove
 
-
-
 'Get either a key or mousepress
-
 i$ = "": zetkeuze = true
-
 DO
-
 	CALL dubbelclick:
-
 	IF muisinfo.linksdubbel THEN
-
 		index = kolom2index(viewportline)
-
 		IF (index > 0) AND (index <= zetlijstlengte) THEN
-
 			zetkeuze = index
-
 		END IF
-
 		EXIT DO            'dubbel clicked somewhere
-
 	END IF
-
 	i$ = INKEY$
-
 LOOP UNTIL LEN(i$)
 
-
-
 VIEW PRINT                                   'restore
-
 CALL mouseshow(false)                        'hide mouse too.
 
-
-
 END SUB
-
-
 
 SUB heap.maxsort
 
-
-
 max = zetlijstlengte \ 2
 
-
-
 FOR i = max TO 1 STEP -1
-
 	CALL heap.siftdown(i, zetlijstlengte)
-
 NEXT
-
-
 
 FOR i = zetlijstlengte TO 2 STEP -1
-
 	CALL heap.siftdown(1, i)
-
 	SWAP zetlijst(i), zetlijst(1)
-
 NEXT
 
 
 
-
-
-
-
 END SUB
 
-
-
 '
-
 '
-
 SUB heap.siftdown (index, n)
 
-
-
 i = index
-
 DO
-
 	child = i * 2
-
 	IF child > n THEN EXIT SUB
-
 	IF child < n THEN
-
 		IF zetlijst(child + 1).eval < zetlijst(child).eval THEN
-
 			child = child + 1                   'compare with smallest child
-
 		END IF
-
 	END IF
-
 	IF zetlijst(i).eval < zetlijst(child).eval THEN EXIT DO
-
 	SWAP zetlijst(i), zetlijst(child)
-
 	i = child
-
 LOOP
-
-
 
 END SUB
 
-
-
 '
-
 'This initializes the lookup tables.
-
 'ALL MOVES for ALL FIELDS are stored here!
-
 '
-
 '
-
 SUB inittabellen
-
-
 
 'knight table
 
-
-
 FOR i = A TO H
-
 	FOR j = 1 TO 8
-
 		 vanveld = (j + 1) * &H10 + i
-
 		 aantalzetten = 0
-
 		 FOR k = 0 TO maxpaardzetten - 1
-
 			naarveld = vanveld + paardrichting(k)
-
 			IF bord(naarveld) = 0 THEN
-
 				 paardzetten(vanveld, aantalzetten) = naarveld
-
 				 aantalzetten = aantalzetten + 1
-
 			END IF
-
 		 NEXT
-
 	 NEXT
-
 NEXT
-
-
-
 
 
 'Loper tabel
-
 FOR i = A TO H
-
 	FOR j = 1 TO 8
-
 		vanveld = (j + 1) * &H10 + i
-
 		FOR k = 0 TO 3
-
 			naarveld = vanveld + loperrichting(k)
-
 			aantalzetten = 0
-
 			DO WHILE bord(naarveld) = leeg
-
 				loperzetten(vanveld, k, aantalzetten) = naarveld
-
 				aantalzetten = aantalzetten + 1
-
 				naarveld = naarveld + loperrichting(k)
-
 			LOOP
-
 		NEXT
-
 	NEXT
-
 NEXT
-
-
 
 'Toren tabellen
 
-
-
 FOR i = A TO H
-
 	FOR j = 1 TO 8
-
 		vanveld = (j + 1) * &H10 + i
-
 		FOR k = 0 TO 3
-
 			naarveld = vanveld + torenrichting(k)
-
 			aantalzetten = 0
-
 			DO WHILE bord(naarveld) = leeg
-
 				torenzetten(vanveld, k, aantalzetten) = naarveld
-
 				aantalzetten = aantalzetten + 1
-
 				naarveld = naarveld + torenrichting(k)
-
 			LOOP
-
 		NEXT
-
 	NEXT
-
 NEXT
-
-
 
 'Pionmove  tabel
 
-
-
 FOR i = A TO H
-
 	FOR j = 1 TO 8
-
 		vanveld = (j + 1) * &H10 + i
-
 		IF j = 2 THEN
-
 			pionzetten(vanveld, 1, wit) = vanveld + up + up
-
 		ELSEIF j = 7 THEN
-
 			pionzetten(vanveld, 1, zwart) = vanveld + down + down
-
 		END IF
-
 		pionzetten(vanveld, 0, wit) = vanveld + up
-
 		pionzetten(vanveld, 0, zwart) = vanveld + down
-
 	NEXT
-
 NEXT
-
 			 
-
 'pionslag zetten
-
 FOR i = A TO H
-
 	FOR j = 1 TO 8
-
 		vanveld = (j + 1) * &H10 + i
-
 		FOR k = 0 TO 1
-
 			naarveld = vanveld + pionslagrichting(k, wit)
-
 			IF bord(naarveld) = leeg THEN
-
 				pionslagzetten(vanveld, k, wit) = naarveld
-
 			END IF
-
 			naarveld = vanveld + pionslagrichting(k, zwart)
-
 			IF bord(naarveld) = leeg THEN
-
 				pionslagzetten(vanveld, k, zwart) = naarveld
-
 			END IF
-
 		NEXT
-
 	NEXT
-
 NEXT
-
-
-
-
 
 
 
 END SUB
 
-
-
 '
-
 'Initializes the interrupt routine
-
 '
-
 SUB interrupt
-
 '-------------------------------------------------------
-
 'This routine gives credit and thanks to Rusty Angel!
-
 '-------------------------------------------------------
-
 'Pass: regs()1   2   3   4   5   6   7   8   9    10
-
 'Array intnr, ax, bx, cx, dx, bp, si, ds, di, es, flag
 
-
-
 'adress: 0    2   4   6   8   a   c       10       14
-
 'displc:      0   2   4   6   8   a       e        12
-
 '-------------------------------------------------------
-
 regseg = VARSEG(regs(0))                                         'clocks bytes
 
-
-
 asm$ = ""
-
-
 
 'Save ES( no trick available)
-
 '----------------------------
-
 asm$ = asm$ + CHR$(&H6)                            'push Es          3     01
 
-
-
 'Load DS[SI] with regs() and interruptnr to CS:[&h25]
-
 '---------------------------------------------------
-
 asm$ = asm$ + CHR$(&HB8) + MKI$(regseg)            'mov ax,regseg    1     04
-
 asm$ = asm$ + CHR$(&H8E) + CHR$(&HD8)              'mov ds,ax        3     06
-
 asm$ = asm$ + CHR$(&HA1) + MKI$(0)                 'mov ax,[0] intnr 1+5   09
-
 asm$ = asm$ + CHR$(&H2E) + CHR$(&HA2) + MKI$(&H25) 'mov CS[&h25],al  2+9+1 13
-
 asm$ = asm$ + CHR$(&HBE) + CHR$(&H2) + CHR$(0)     'mov si,2         1     16
 
-
-
 'Load the registers.                                                    26
-
 '-------------------
-
 asm$ = asm$ + CHR$(&H8B) + CHR$(&H4)              'mov ax,[si]       1+5   18
-
 asm$ = asm$ + CHR$(&H8B) + CHR$(&H5C) + CHR$(&H2) 'mov bx,[si+2]     1+9   21
-
 asm$ = asm$ + CHR$(&H8B) + CHR$(&H4C) + CHR$(&H4) 'mov cx,[si+4]     1+9   24
-
 asm$ = asm$ + CHR$(&H8B) + CHR$(&H54) + CHR$(&H6) 'mov dx,[si+6]     1+9   27
-
 asm$ = asm$ + CHR$(&H87) + CHR$(&H6C) + CHR$(&H8) 'xchg bp,mov [si+8]3+9   30
-
 asm$ = asm$ + CHR$(&HC4) + CHR$(&H7C) + CHR$(&HE) 'les di,[si+E]     6+9   33
-
 asm$ = asm$ + CHR$(&HC5) + CHR$(&H74) + CHR$(&HA) 'lds si,[si+A]     6+9   36
 
-
-
 'Execute interrupt                                                      104
-
 '-----------------
-
 asm$ = asm$ + CHR$(&HCD) + CHR$(&H0)              'int nr           26     38
 
-
-
 'Set up DS[SI] again to regs and store DS                               130
-
 '-----------------------------------------
-
 asm$ = asm$ + CHR$(&H1E)                          'push ds          3      39
-
 asm$ = asm$ + CHR$(&H2E) + CHR$(&H8E) + CHR$(&H1E) + MKI$(86)'mov ds,cs[0]2+9+1 44
-
 asm$ = asm$ + CHR$(&H89) + CHR$(&H36) + MKI$(&HC) 'mov [c],si       1+9    48
-
 asm$ = asm$ + CHR$(&HBE) + CHR$(&H2) + CHR$(&H0)  'mov si,2         1      51
 
-
-
 'Store it!                                                              156
-
 '---------
-
 asm$ = asm$ + CHR$(&H89) + CHR$(&H4)              'mov [si],ax      1+5    53
-
 asm$ = asm$ + CHR$(&H9F)                          'lahf             1      54
-
 asm$ = asm$ + CHR$(&H88) + CHR$(&H64) + CHR$(&H12)'mov [si+12],ah   1+9    57
-
 asm$ = asm$ + CHR$(&H89) + CHR$(&H5C) + CHR$(&H2) 'mov [si+2],bx    1+9    60
-
 asm$ = asm$ + CHR$(&H89) + CHR$(&H4C) + CHR$(&H4) 'mov [si+4],cx    1+9    63
-
 asm$ = asm$ + CHR$(&H89) + CHR$(&H54) + CHR$(&H6) 'mov [si+6],dx    1+9    66
-
 asm$ = asm$ + CHR$(&H87) + CHR$(&H6C) + CHR$(&H8) 'xchg [si+8],bp   3+9    69
-
 asm$ = asm$ + CHR$(&H89) + CHR$(&H7C) + CHR$(&HE) 'mov [si+e],di    1+9    72
-
 asm$ = asm$ + CHR$(&H8C) + CHR$(&H44) + CHR$(&H10)'mov [si+10],es   3+9    75
-
 asm$ = asm$ + CHR$(&H58)                          'pop ax  get ds   4      76
-
 asm$ = asm$ + CHR$(&H89) + CHR$(&H44) + CHR$(&HC) 'mov [si+c] ,ax   1+9    79
-
 '                                                                      251
-
 asm$ = asm$ + CHR$(&H7)                           'pop es           3      80
-
 asm$ = asm$ + CHR$(&HB8) + MKI$(VARSEG(asm$))     'mov ax,stringseg 1      83
-
 asm$ = asm$ + CHR$(&H8E) + CHR$(&HD8)             'mov ds,ax        3      85
-
 asm$ = asm$ + CHR$(&HCB)                          'retf             13     86
-
 'TEMP Storage arrea:
-
 '-------------
-
 asm$ = asm$ + MKI$(regseg)     'segment regs storage         271 clocks   88 bytes
 
-
-
 DEF SEG = VARSEG(intx(0)): FOR i = 0 TO LEN(asm$) - 1:
-
 POKE i, ASC(MID$(asm$, i + 1, 1)): NEXT
-
 DEF SEG
-
 asm$ = ""
 
-
-
 END SUB
 
-
-
 '
-
 '
-
 '
-
 SUB interruptx
 
-
-
 DEF SEG = VARSEG(intx(0))
-
 	CALL absolute(0)
-
 DEF SEG
-
-
 
 END SUB
 
-
-
 '
-
 '
-
 '
-
 FUNCTION isdosbox
 
-
-
 regs(ax) = &H160A
-
 regs(intnr) = &H2F
-
 CALL interruptx
 
-
-
 IF regs(ax) THEN
-
 	isdosbox = false
-
 ELSE
-
 	IF regs(cx) = 0 THEN
-
 		isdosbox = false
-
 	ELSE
-
 		isdosbox = true
-
 	END IF
-
 END IF
 
 
 
 
 
-
-
-
-
-
-
 END FUNCTION
 
-
-
 '
-
 'Returns the index of the move in the list or true
-
 '
-
 FUNCTION isillegalmove (vanveld, naarveld)
 
-
-
 FOR i = 1 TO zetlijstlengte
-
 	IF vanveld = zetlijst(i).vanveld AND naarveld = zetlijst(i).naarveld THEN
-
 		isillegalmove = i: EXIT FUNCTION
-
 	END IF
-
 NEXT
-
 isillegalmove = true
 
 
-
-
-
 END FUNCTION
 
-
-
 '
-
 'Determins matepotential
-
 '
-
 FUNCTION ismatepotential (vanwelkekleur)
-
-
-
 
 
 IF aantalstukken(vanwelkekleur) = 1 THEN EXIT FUNCTION
 
-
-
 FOR i = 0 TO aantalstukken(vanwelkekleur) - 1
-
   
-
 	stuk = stukken(i, vanwelkekleur).soort
-
 	IF stuk AND (dame OR toren) THEN
-
 		ismatepotential = true: EXIT FUNCTION
-
 	ELSEIF stuk AND paard THEN
-
 		IF bijna OR kleurloper THEN
-
 			ismatepotential = true: EXIT FUNCTION
-
 		ELSE
-
 			bijna = stuk
-
 		END IF
-
 	ELSEIF stuk AND loper THEN
-
 		IF kleurloper THEN
-
 			kleur = stukken(i, vanwelkekleur).veld
-
 			IF (kleur MOD &H20) = (kleurloper MOD &H20) THEN
-
 				IF (kleur MOD 2) = (kleurloper MOD 2) THEN
-
 					ismatepotential = true: EXIT FUNCTION
-
 				END IF
-
 			ELSEIF (kleur MOD 2) <> (kleurloper MOD 2) THEN
-
 					ismatepotential = true: EXIT FUNCTION
-
 			END IF
-
 		ELSE
-
 			IF bijna THEN ismatepotential = true: EXIT FUNCTION
-
 			kleurloper = stukken(i, vanwelkekleur).veld
-
 		END IF
-
 	ELSEIF (stuk AND koning) = 0 THEN
-
 		ismatepotential = true: EXIT FUNCTION
-
 	END IF
-
 NEXT
 
 
@@ -3417,1154 +1711,573 @@ NEXT
 
 
 
-
-
-
-
-
-
-
 END FUNCTION
 
-
-
 '
-
 'Returns true if a certain direction is check direction
-
 '
-
 FUNCTION isschaakrichting (richtingid)
 
-
-
 IF (schaakgever(0).richting = richtingid) OR (schaakgever(1).richting = richtingid) THEN
-
 	isschaakrichting = true
-
 END IF
 
 
-
-
-
 END FUNCTION
 
-
-
 '
-
 'Mouse xpos/ypos to an index, assuming every kolom has an index
-
 '
-
 FUNCTION kolom2index (startline)
-
-
 
 kolom2index = (muisinfo.ypos - startline) * 5 + muisinfo.tabkolom
 
-
-
 END FUNCTION
 
-
-
 '
-
 'Looks if the king is on the same row as were two pawns will be removed!
-
 '
-
 FUNCTION koningopEPrij
-
-
 
 koningsrij = koningsveld(aanzet) \ &H10
 
-
-
 IF (koningsrij = 5 AND aanzet = wit) THEN
-
 	koningopEPrij = true
-
 ELSEIF koningsrij = 3 AND aanzet = zwart THEN
-
 	koningopEPrij = true
-
 END IF
-
-
 
 END FUNCTION
 
-
-
 '
-
 'Game finished!
-
 '
-
 SUB mateordraw
 
 
-
-
-
 tofile = 1
-
 IF zetlijstlengte = 0 THEN
-
 	IF nrchecks THEN
-
 		mat$ = "MAT!  ,Winner: "
-
 		IF aanzet = wit THEN mat$ = mat$ + "Zwart" ELSE mat$ = mat$ + "WIT"
-
 	ELSE
-
 		mat$ = "PAT!"
-
 	END IF
-
 ELSE
-
 	mat$ = "Draw"
-
 	IF zettenzonderslaan > 49 THEN
-
 		mat$ = mat$ + " 50 moves rule"
-
 	ELSEIF herhalingszetten > 5 THEN
-
 	  mat$ = mat$ + " by repetition"
-
 	ELSE
-
 		mat$ = mat$ + " no MATE potential anymore"
-
 	END IF
-
 END IF
 
-
-
 LOCATE A8onscreen(0) + 4, A8onscreen(1) + 35: COLOR 7, 4:
-
 PRINT mat$;
-
 IF tofile THEN PRINT #1, mat$
-
 FOR i = 100 TO 115 STEP 5: NEXT'SOUND i, 5: SOUND 2300 - i, 5: NEXT
-
 COLOR 7, 0
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Shows the mouse or hide it
-
 '
-
 SUB mouseshow (show)
 
-
-
 IF show THEN regs(ax) = 1 ELSE regs(ax) = 2
-
 regs(intnr) = &H33
-
 CALL interruptx
-
-
 
 END SUB
 
-
-
 '
-
 'Returns -1 if mouse not installed!
-
 '
-
 FUNCTION muisinit
 
-
-
 regs(ax) = 0
-
 regs(intnr) = &H33
-
 CALL interruptx
-
 IF regs(ax) = 0 THEN muisinit = false      'software wise..
-
-
-
 
 
 END FUNCTION
 
-
-
 '
-
 'Zet de stukken op het bord
-
 '
-
 SUB opzettenstukken
 
-
-
 'Inits
-
 FOR i = A1 TO H8: bord(i) = 0: NEXT                   'Empty board
-
 ERASE zetlijst          'Another one please
-
 aantalstukken(wit) = 0: aantalstukken(zwart) = 0
-
 ERASE stukindex
-
 wood(wit) = 0: wood(zwart) = 0
-
 																		'All specials 0
-
 herhalingszetten = 0: zettenzonderslaan = 0: zetlijstlengte = 0
-
 FOR i = wit TO zwart
-
 	longcastlepossible(i) = true
-
 	shortcastlepossible(i) = true
-
 NEXT
-
 epfield = -1
-
-
 
 noteerzetnr = 1: aanzet = wit                          'Starts..
 
-
-
 CALL zetopdatstuk(wittetoren, A1)
-
 CALL zetopdatstuk(wittetoren, H1)      'zodat we later met
-
 CALL zetopdatstuk(witteloper, C1)
-
 CALL zetopdatstuk(witteloper, F1)
-
 CALL zetopdatstuk(wittepaard, B1)
-
 CALL zetopdatstuk(wittepaard, G1)
-
 CALL zetopdatstuk(wittedame, D1)
-
 CALL zetopdatstuk(wittekoning, E1)
 
-
-
 CALL zetopdatstuk(zwartetoren, A8)
-
 CALL zetopdatstuk(zwartetoren, H8)
-
 CALL zetopdatstuk(zwarteloper, C8)
-
 CALL zetopdatstuk(zwarteloper, F8)
-
 CALL zetopdatstuk(zwartepaard, B8)
-
 CALL zetopdatstuk(zwartepaard, G8)
-
 CALL zetopdatstuk(zwartedame, D8)
-
 CALL zetopdatstuk(zwartekoning, E8)
 
 
-
-
-
 CALL zetopdatstuk(wittepion, A2)
-
 CALL zetopdatstuk(wittepion, B2)
-
 CALL zetopdatstuk(wittepion, C2)
-
 CALL zetopdatstuk(wittepion, D2)
-
 CALL zetopdatstuk(wittepion, E2)
-
 CALL zetopdatstuk(wittepion, F2)
-
 CALL zetopdatstuk(wittepion, G2)
-
 CALL zetopdatstuk(wittepion, H2)
-
 		
-
 CALL zetopdatstuk(zwartepion, A7)
-
 CALL zetopdatstuk(zwartepion, B7)
-
 CALL zetopdatstuk(zwartepion, C7)
-
 CALL zetopdatstuk(zwartepion, D7)
-
 CALL zetopdatstuk(zwartepion, E7)
-
 CALL zetopdatstuk(zwartepion, F7)
-
 CALL zetopdatstuk(zwartepion, G7)
-
 CALL zetopdatstuk(zwartepion, H7)
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Plays the best move(if one available..)
-
 '
-
 SUB playbest (pause)
 
-
-
 IF pause > 99 THEN waitforme = false ELSE waitforme = true
-
 OPEN filename$ FOR OUTPUT AS #1
-
-
 
 COLOR 7, 0: CLS : PRINT "LETS START THE GAME..."
 
-
-
 CALL opzettenstukken
-
 CALL displayboard
 
-
-
 DO
-
 	zetkeuze = 1
-
 	CALL generatemoves
-
 	CALL evaluatemoves
-
 	IF shakehands THEN CALL mateordraw: EXIT DO
-
 	CALL displaymovegen
-
 	IF waitforme THEN SLEEP pause
-
 	IF zetlijst(1).eval = 0 THEN zetkeuze = true
-
 	CALL domove(zetkeuze)
-
 	CALL updateboard
-
 	aanzet = aanzet XOR colorid
-
 	IF aanzet = wit THEN noteerzetnr = noteerzetnr + 1
-
 LOOP UNTIL (INP(&H60) OR &H80) = &H81 'esc pressed or released
-
 CLOSE
-
 SLEEP 5
-
-
 
 END SUB
 
-
-
 '
-
 'Play a demo random game..
-
 '
-
 SUB playdemo (pause)
 
-
-
 IF pause > 99 THEN waitforme = false ELSE waitforme = true
-
 OPEN filename$ FOR OUTPUT AS #1
-
-
 
 COLOR 7, 0: CLS : PRINT "LETS START THE GAME..."
 
-
-
 CALL opzettenstukken
-
 CALL displayboard
 
-
-
 DO
-
 	zetkeuze = true
-
 	CALL generatemoves
-
 	IF shakehands THEN CALL mateordraw: EXIT DO
-
 	CALL displaymovegen
-
 	IF waitforme THEN SLEEP pause
-
 	CALL domove(zetkeuze)
-
 	CALL updateboard
-
 	aanzet = aanzet XOR colorid
-
 	IF aanzet = wit THEN noteerzetnr = noteerzetnr + 1
-
 LOOP UNTIL (INP(&H60) OR &H80) = &H81 'esc pressed or released
-
 SLEEP 5
-
 CLOSE
 
-
-
 END SUB
-
-
 
 SUB playgame
 
-
-
 DEF SEG = &H40: POKE &H1C, PEEK(&H1A): DEF SEG
-
 CLS : PRINT "LETS START THE GAME...":
-
 OPEN filename$ FOR OUTPUT AS #1
 
-
-
 CALL opzettenstukken
-
 CALL displayboard
-
 DO
-
 	CALL generatemoves
-
 	IF shakehands THEN CALL mateordraw: EXIT DO
-
 	CALL displaymovegen
-
 	CALL getmove
-
 	CALL domove(zetkeuze)
-
 	CALL updateboard
-
 	aanzet = aanzet XOR colorid
-
 	IF aanzet = wit THEN noteerzetnr = noteerzetnr + 1
-
 	IF noteerzetnr > 199 THEN EXIT DO
-
 LOOP UNTIL (INP(&H60) OR &H80) = &H81 'esc pressed or released
-
 CLOSE
-
 END SUB
 
-
-
 '
-
 'Prints out the current pieces on the board
-
 '
-
 SUB printboard
-
 FOR i = &HB * &H10 TO 0 STEP -&H10:
-
 	FOR j = 0 TO &HF
-
 		PRINT " ";
-
 		IF bord(j + i) AND 1 THEN
-
 			COLOR 0, 11
-
 		ELSE
-
 			COLOR 0, 7
-
 		END IF
-
 	 
-
 		SELECT CASE bord(j + i) AND &HFFFE
-
 	 
-
 		CASE pion: PRINT "p"; : COLOR 7, 0: PRINT " ";
-
 		CASE toren: PRINT "T"; : COLOR 7, 0: PRINT " ";
-
 		CASE loper: PRINT "L"; : COLOR 7, 0: PRINT " ";
-
 		CASE paard: PRINT "P"; : COLOR 7, 0: PRINT " ";
-
 		CASE dame: PRINT "D"; : COLOR 7, 0: PRINT " ";
-
 		CASE koning: PRINT "K"; : COLOR 7, 0: PRINT " ";
-
 		CASE ELSE: COLOR 7, 0: PRINT USING "\\"; HEX$(bord(i + j));
-
 		END SELECT
 
-
-
 	NEXT
-
 	IF i THEN PRINT
-
 NEXT
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Prints our boardlayout
-
 '
-
 '
-
 SUB printboardlayout
 
-
-
 FOR i = &HB * &H10 TO 0 STEP -&H10:
-
 	PRINT " ";
-
 	FOR j = 0 TO &HF
-
 		IF i < &HA * &H10 AND i > &H1 * &H10 AND j > 0 AND j < &H9 THEN
-
 			COLOR 0, 7:
-
 			PRINT USING "\ \"; CHR$(ASC("A") + j - 1) + CHR$(ASC("1") + i \ &H10 - 2);
-
 			COLOR 7, 0: PRINT ;
-
 		ELSE
-
 			PRINT USING "\ \"; HEX$(j + i);
-
 		END IF
-
 	NEXT
-
 	PRINT
-
 NEXT
-
-
-
 
 
 END SUB
 
-
-
 '
-
 '
-
 '
-
 SUB printmovegen
 
-
-
 FOR i = &HB * &H10 TO 0 STEP -&H10:
-
 	FOR j = 0 TO &HF
-
 		PRINT " ";
-
 		IF bord(j + i) AND 1 THEN
-
 			COLOR 0, 11
-
 		ELSE
-
 			COLOR 0, 7
-
 		END IF
-
 	 
-
 		SELECT CASE bord(j + i) AND &HFFFE
-
 	
-
 		CASE pion: PRINT "p"; : COLOR 7, 0: PRINT " ";
-
 		CASE toren: PRINT "T"; : COLOR 7, 0: PRINT " ";
-
 		CASE loper: PRINT "L"; : COLOR 7, 0: PRINT " ";
-
 		CASE paard: PRINT "P"; : COLOR 7, 0: PRINT " ";
-
 		CASE dame: PRINT "D"; : COLOR 7, 0: PRINT " ";
-
 		CASE koning: PRINT "K"; : COLOR 7, 0: PRINT " ";
-
 		CASE ELSE: COLOR 7, 0: PRINT USING "\\"; HEX$(i + j);
-
 		END SELECT
 
-
-
 	NEXT
-
 	IF i THEN PRINT
-
 NEXT
-
 PRINT : PRINT "MOVES GENERATED VOOR ";
-
 IF aanzet = zwart THEN COLOR 0, 11: PRINT "ZWART";  ELSE COLOR 0, 7: PRINT "WIT";
-
 COLOR 7, 0: PRINT
 
-
-
 FOR i = 1 TO zetlijstlengte
-
 	CALL printzet(i)
-
 NEXT
-
-
-
 
 
 END SUB
 
-
-
 '
-
 'Does printit..
-
 '
-
 SUB printpiece (veld)
 
-
-
 CONST zwartveld = 2, witveld = 5     'colorconstants
-
 CONST zwartstuk = 0, witstuk = 7
 
-
-
 stuk = bord(veld)
-
 IF stuk AND zwart THEN kleurstuk = zwartstuk ELSE kleurstuk = witstuk
-
 kleurveld = veldkleur(veld)
-
 IF kleurveld = wit THEN kleurveld = witveld ELSE kleurveld = zwartveld
-
-
 
 COLOR kleurstuk, kleurveld
 
-
-
 LOCATE screenline(veld), screenkolom(veld)
 
-
-
 SELECT CASE stuk AND &HFFFE
-
   
-
 	CASE pion: PRINT " " + pions$ + " ";
-
 	CASE toren: PRINT " " + torens$ + " ";
-
 	CASE loper: PRINT " " + lopers$ + " ";
-
 	CASE paard: PRINT " " + paards$ + " ";
-
 	CASE dame: PRINT " " + dames$ + " ";
-
 	CASE koning: PRINT " " + konings$ + " ";
-
 	CASE ELSE: PRINT "   ";
-
 	 
-
 END SELECT
 
 
-
-
-
 END SUB
 
-
-
 '
-
 '
-
 SUB printzet (zetnr)
-
 	i = zetnr
-
 	stuk = bord(zetlijst(i).vanveld)
-
 		IF stuk AND pion THEN
-
 			PRINT "p:"; :
-
 		ELSEIF stuk AND toren THEN
-
 			PRINT "T:"; :
-
 		ELSEIF stuk AND loper THEN
-
 			PRINT "L:"; :
-
 		ELSEIF stuk AND paard THEN
-
 			PRINT "P:"; :
-
 		ELSEIF stuk AND dame THEN
-
 			PRINT "D:"; :
-
 		ELSEIF stuk AND koning THEN
-
 			PRINT "K:";
-
 		END IF
-
-
 
 	PRINT HEX$(zetlijst(i).vanveld);
-
 	IF zetlijst(i).zettype AND slaan THEN PRINT "x";  ELSE PRINT "=>";
-
 	PRINT HEX$(zetlijst(i).naarveld); "  ";
-
   
-
 	IF zetlijst(i).zettype AND ep THEN
-
 		PRINT "En passent",
-
 	ELSEIF zetlijst(i).zettype AND slaan THEN
-
 		PRINT " Slaan",
-
 	ELSEIF zetlijst(i).zettype AND normaal THEN
-
 		PRINT "Normaal",
-
 	ELSEIF zetlijst(i).zettype AND promotie THEN
-
 		IF zetlijst(i).zettype AND dame THEN
-
 			PRINT "D "
-
 		ELSEIF zetlijst(i).zettype AND toren THEN
-
 			PRINT "T "
-
 		ELSEIF zetlijst(i).zettype AND loper THEN
-
 			PRINT "L "
-
 		ELSEIF zetlijst(i).zettype AND paard THEN
-
 			PRINT "P "
-
 		END IF
-
 		PRINT "Promotie",
-
 	  
-
 	ELSEIF zetlijst(i).zettype AND jumpingpion THEN
-
 		PRINT "Pion dubbel",
-
 	ELSEIF zetlijst(i).zettype AND korterochade THEN
-
 		PRINT "Korte rochade",
-
 	ELSEIF zetlijst(i).zettype AND langerochade THEN
-
 		PRINT "Lange rochade",
-
 	END IF
 
 
-
-
-
 END SUB
 
-
-
 '
-
 SUB putmoveinlist (vanveld, naarveld, geslagen, promotie, zettype)
-
 			  
-
 zetlijstlengte = zetlijstlengte + 1
-
 zetlijst(zetlijstlengte).vanveld = vanveld
-
 zetlijst(zetlijstlengte).naarveld = naarveld
-
 zetlijst(zetlijstlengte).promotiestuk = promotie
-
 zetlijst(zetlijstlengte).geslagenstuk = geslagen
-
 zetlijst(zetlijstlengte).zettype = zettype
 
 
 
 
-
-
-
-
-
 END SUB
 
-
-
 '
-
 'Put all the promotion moves into the move list..
-
 '
-
 SUB putpromoties (vanveld, naarveld, metslaan)
-
-
 
 IF metslaan THEN promoties = promotie OR slaan ELSE promoties = promotie
 
-
-
 CALL putmoveinlist(vanveld, naarveld, bord(naarveld), paard OR aanzet, promoties)
-
 CALL putmoveinlist(vanveld, naarveld, bord(naarveld), loper OR aanzet, promoties)
-
 CALL putmoveinlist(vanveld, naarveld, bord(naarveld), toren OR aanzet, promoties)
-
 CALL putmoveinlist(vanveld, naarveld, bord(naarveld), dame OR aanzet, promoties)
 
-
-
 END SUB
 
-
-
 '
-
 'Is there a repeat of this position
-
 '
-
 SUB repeats (dezezet AS zet)
 
-
-
 IF dezezet.zettype = normaal THEN
-
 	IF dezezet.vanveld = lastmove(aanzet).naarveld THEN
-
 		IF dezezet.naarveld = lastmove(aanzet).vanveld THEN
-
 			herhalingzetten = herhalingzetten + 1
-
 		END IF
-
 	END IF
-
 END IF
-
-
 
 END SUB
 
-
-
 '
-
 'Returns if its a rook on the short side(1) or long side(2)
-
 '
-
 FUNCTION rookside (veld)
 
-
-
 IF aanzet = wit THEN
-
 	IF veld = H1 THEN
-
 		rookside = 1
-
 	ELSEIF veld = A1 THEN
-
 		rookside = 2
-
 	END IF
-
 ELSE
-
 	IF veld = H8 THEN
-
 		rookside = 1
-
 	ELSEIF veld = A8 THEN
-
 		rookside = 2
-
 	END IF
-
 END IF
-
-
 
 END FUNCTION
 
-
-
 '
-
 'Zoekt schaaks tegen koning en penningen van eigen stukken
-
 'OUT: SHARED nrchecks!
-
 '
-
 SUB schaakENpenning
 
-
-
 schaakgever(0).richting = false: schaakgever(1).richting = false
-
 FOR i = A1 TO H8: gepend(i) = 0: NEXT         'Reset all!
 
-
-
 kingveld = koningsveld(aanzet)
-
 nrchecks = 0
 
-
-
 'schaak of gepend door toren,loper of dame
-
 FOR richting = 0 TO 3
-
 	aanvallerveld = eerstestukrichting(loper, kingveld, richting)
-
 	IF aanvallerveld THEN                        'stuk in diagonale richting?
-
 		aanvaller = bord(aanvallerveld)
-
 		IF (aanvaller AND colorid) <> aanzet THEN   'tegenstander
-
 			IF aanvaller AND diagonaalstuk THEN
-
 				schaakgever(nrchecks).veld = aanvallerveld
-
 				schaakgever(nrchecks).richting = loperrichting(richting)
-
 				nrchecks = nrchecks + 1
-
 			END IF
-
 		ELSE                                      'zelf(gepend ?)
-
 			verdedigerveld = aanvallerveld
-
 			aanvallerveld = eerstestukrichting(loper, verdedigerveld, richting)
-
 			aanvaller = bord(aanvallerveld)
-
 			IF (aanvaller AND colorid) <> aanzet THEN    'tegenstander ??
-
 				IF aanvaller AND diagonaalstuk THEN     'erachter op diagonaal
-
 					gepend(verdedigerveld) = loperrichting(richting)
-
 				END IF
-
 			END IF
-
 		END IF '<stukken in diagonaal>
-
 	END IF'<stukken in diagonalen/rijen>
 
-
-
 'stuk in lijn/rij
-
 	aanvallerveld = eerstestukrichting(toren, kingveld, richting)
-
 	IF aanvallerveld THEN
-
 		aanvaller = bord(aanvallerveld)
-
 		IF (aanvaller AND colorid) <> aanzet THEN   'tegenstander
-
 			IF aanvaller AND rechtstuk THEN
-
 				schaakgever(nrchecks).veld = aanvallerveld
-
 				schaakgever(nrchecks).richting = torenrichting(richting)
-
 				nrchecks = nrchecks + 1
-
 			END IF
-
 		ELSE                                      'zelf(gepend ?)
-
 			verdedigerveld = aanvallerveld
-
 			aanvallerveld = eerstestukrichting(toren, verdedigerveld, richting)
-
 			aanvaller = bord(aanvallerveld)
-
 			IF (aanvaller AND colorid) <> aanzet THEN    'tegenstander ??
-
 				IF aanvaller AND rechtstuk THEN     'erachter op diagonaal
-
 					gepend(verdedigerveld) = torenrichting(richting)
-
 				END IF
-
 			END IF
-
 		END IF
-
 	END IF '<stukken in lijnen/rij>
-
 NEXT
-
-
 
 'schaak door paard
-
 FOR i = 0 TO maxpaardzetten - 1
-
 	aanvallerveld = paardzetten(kingveld, i)
-
 	IF aanvallerveld = 0 THEN EXIT FOR
-
 	aanvaller = bord(aanvallerveld)
-
 	IF aanvaller AND paard THEN
-
 		IF (aanvaller AND colorid) <> aanzet THEN
-
 			schaakgever(nrchecks).veld = aanvallerveld
-
 			schaakgever(nrchecks).richting = 0
-
 			nrchecks = nrchecks + 1
-
 		END IF
-
 	END IF
-
 NEXT
-
-
 
 'schaak door pion
-
 FOR i = 0 TO 1
-
 	aanvallerveld = pionslagzetten(kingveld, i, aanzet)
-
 	IF aanvallerveld THEN
-
 		aanvaller = bord(aanvallerveld)
-
 		IF aanvaller AND pion THEN
-
 			IF (aanvaller AND colorid) <> aanzet THEN
-
 				schaakgever(nrchecks).veld = aanvallerveld
-
 				schaakgever(nrchecks).richting = 0
-
 				nrchecks = nrchecks + 1
-
 			END IF
-
 		END IF
-
 	 END IF
-
 NEXT
-
-
-
-
-
-
-
-
 
 
 
@@ -4574,833 +2287,416 @@ NEXT
 
 END SUB
 
-
-
 '
-
 'Translates a square to a screenkolom
-
 '
-
 FUNCTION screenkolom (veld)
-
-
 
 screenkolom = A8onscreen(1) + 3 * ((veld MOD &H10) - 1)
 
 
-
-
-
 END FUNCTION
 
-
-
 '
-
 'Translates a square to a screenline
-
 '
-
 FUNCTION screenline (veld)
-
-
 
 screenline = A8onscreen(0) + 9 - veld \ &H10
 
-
-
 END FUNCTION
 
-
-
 '
-
 'Sets the asci values 240..246 to pieces..
-
 '
-
 SUB setasci
 
-
-
 konings$ = CHR$(0) + CHR$(0) + CHR$(24) + CHR$(126) + CHR$(24) + CHR$(90) + CHR$(231) + CHR$(255) + CHR$(255) + CHR$(126) + CHR$(126) + CHR$(60) + CHR$(60) + CHR$(255) + CHR$(255) + CHR$(0) + CHR$(0)
-
 dames$ = CHR$(0) + CHR$(0) + CHR$(153) + CHR$(90) + CHR$(189) + CHR$(90) + CHR$(255) + CHR$(126) + CHR$(60) + CHR$(60) + CHR$(60) + CHR$(60) + CHR$(126) + CHR$(255) + CHR$(255) + CHR$(0) + CHR$(0)
-
 torens$ = CHR$(0) + CHR$(0) + CHR$(0) + CHR$(219) + CHR$(219) + CHR$(255) + CHR$(255) + CHR$(255) + CHR$(126) + CHR$(126) + CHR$(126) + CHR$(126) + CHR$(126) + CHR$(255) + CHR$(255) + CHR$(0) + CHR$(0)
-
 paards$ = CHR$(0) + CHR$(0) + CHR$(0) + CHR$(32) + CHR$(120) + CHR$(252) + CHR$(246) + CHR$(255) + CHR$(254) + CHR$(248) + CHR$(252) + CHR$(254) + CHR$(254) + CHR$(254) + CHR$(126) + CHR$(0) + CHR$(0)
-
 pions$ = CHR$(0) + CHR$(0) + CHR$(0) + CHR$(0) + CHR$(0) + CHR$(0) + CHR$(60) + CHR$(126) + CHR$(126) + CHR$(60) + CHR$(60) + CHR$(60) + CHR$(126) + CHR$(255) + CHR$(255) + CHR$(0) + CHR$(0)
-
 lopers$ = CHR$(0) + CHR$(0) + CHR$(0) + CHR$(24) + CHR$(94) + CHR$(231) + CHR$(251) + CHR$(255) + CHR$(126) + CHR$(60) + CHR$(60) + CHR$(60) + CHR$(126) + CHR$(255) + CHR$(255) + CHR$(0) + CHR$(0)
 
-
-
 charid = 240
-
 FOR i = 0 TO 5
-
 	tableid = 0
-
 	regs(ax) = &H1100
-
 	regs(bx) = &H14 * &H100 OR tableid
-
 	regs(cx) = 1
-
 	regs(dx) = charid + i
-
 	SELECT CASE i
-
 		CASE 0: regs(bp) = SADD(konings$)
-
 		CASE 1: regs(bp) = SADD(dames$)
-
 		CASE 2: regs(bp) = SADD(torens$)
-
 		CASE 3: regs(bp) = SADD(pions$)
-
 		CASE 4: regs(bp) = SADD(lopers$)
-
 		CASE 5: regs(bp) = SADD(paards$)
-
 	END SELECT
-
 	regs(es) = VARSEG(konings$)
-
 	regs(intnr) = &H10
-
 	CALL interruptx
 
-
-
 NEXT
-
 konings$ = CHR$(240)
-
 dames$ = CHR$(241)
-
 torens$ = CHR$(242)
-
 pions$ = CHR$(243)
-
 lopers$ = CHR$(244)
-
 paards$ = CHR$(245)
 
 
 
-
-
-
-
 END SUB
 
-
-
 '
-
 'Sets a 'nice' pallet for bord en stukken
-
 '
-
 SUB setboardpallet
 
-
-
 colortoset = 7
-
 OUT &H3C8, colortoset  'set to real white..
-
 OUT &H3C9, 60          'r
-
 OUT &H3C9, 60          'g
-
 OUT &H3C9, 60          'b
 
-
-
 colortoset = 2         'set to grey(white field)
-
 OUT &H3C8, colortoset
-
 OUT &H3C9, 17          'r
-
 OUT &H3C9, 17          'g
-
 OUT &H3C9, 17          'b
 
 
-
-
-
 colortoset = 5         'set to green(black field)
-
 OUT &H3C8, colortoset
-
 OUT &H3C9, 21          'r
-
 OUT &H3C9, 21          'g
-
 OUT &H3C9, 0           'b
 
 
-
-
-
 END SUB
 
-
-
 '
-
 '
-
 '
-
 SUB setreset (colorvalue)
 
-
-
 OUT &H3CE, 0  'index for setreset
-
 OUT &H3CF, colorvalue
-
 OUT &H3CE, 1   'setreset
-
 OUT &H3CF, &HF
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Is it time to shake hands ??(updates moves against KA)
-
 '
-
 FUNCTION shakehands
 
-
-
 'Valt er nog wat te doen dan..
-
 IF zetlijstlengte = 0 THEN
-
 	shakehands = true
-
 ELSEIF herhalingszetten > 5 THEN
-
 	shakehands = true
-
 ELSEIF aantalstukken(aanzet) = 1 THEN
-
 	IF ismatepotential(aanzet XOR colorid) = 0 THEN
-
 		shakehands = true
-
 	END IF
-
 ELSEIF zettenzonderslaan > 49 THEN
-
 	shakehands = true
-
 END IF
-
-
-
 
 
 END FUNCTION
 
-
-
 '
-
 'Returns the field with the first piece in front of king in pen direction
-
 'Or zero if none(impossible, but you never know..)
-
 '
-
 FUNCTION stukvoorkoning (penningsrichting)
-
-
 
 tussenveld = koningsveld(aanzet) + penningsrichting
 
-
-
 DO UNTIL bord(tussenveld)
-
 	tussenveld = tussenveld + penningsrichting
-
 LOOP
 
-
-
 IF bord(tussenveld) <> bordrand THEN
-
 	stukvoorkoning = tussenveld
-
 END IF
 
 
-
-
-
 END FUNCTION
 
-
-
 '
-
 'Can we jump with the pawn ??
-
 '
-
 FUNCTION tweederij (vanveld)
 
-
-
 wasnog = aanzet
-
 IF aanzet = wit THEN aanzet = zwart ELSE aanzet = wit
-
 tweederij = zevenderij(vanveld)
-
 aanzet = wasnog
-
-
 
 END FUNCTION
 
-
-
 '
-
 'Updates the boarddisplay
-
 '
-
 SUB updateboard
 
 
-
-
-
 CONST zwartveld = 2, witveld = 5     'colorconstants
-
 CONST zwartstuk = 0, witstuk = 7
 
-
-
 vanveld = zetlijst(zetkeuze).vanveld
-
 naarveld = zetlijst(zetkeuze).naarveld
-
 zettype = zetlijst(zetkeuze).zettype
-
 stuk = bord(naarveld)
-
 IF stuk AND zwart THEN kleurstuk = zwartstuk ELSE kleurstuk = witstuk
 
 
-
-
-
 IF zettype AND korterochade THEN
-
 	IF aanzet = wit THEN
-
 		veld1 = F1: veld2 = H1:
-
 	ELSE
-
 		veld1 = F8: veld2 = H8:
-
 	END IF
-
 	CALL printpiece(veld1)
-
 	CALL printpiece(veld2)
-
 ELSEIF zettype AND langerochade THEN
-
 	IF aanzet = wit THEN
-
 		veld1 = D1: veld2 = A1
-
 	ELSE
-
 		veld1 = D8: veld2 = A8
-
 	END IF
-
 	CALL printpiece(veld1)
-
 	CALL printpiece(veld2)
-
 ELSEIF zettype AND ep THEN
-
 	IF aanzet = wit THEN add = -&H10 ELSE add = &H10
-
 	CALL printpiece(naarveld + add)
-
 END IF
 
-
-
 printpiece (vanveld)
-
 printpiece (naarveld)
 
 
-
-
-
 END SUB
 
-
-
 '
-
 'Is castling still allowed after this move..?
-
 '
-
 SUB updatecastlinginfo (vanveld, naarveld)
-
  
-
 IF shortcastlepossible(wit) THEN
-
 	IF vanveld = H1 OR naarveld = H1 OR vanveld = E1 THEN
-
 		shortcastlepossible(wit) = false
-
 	END IF
-
 END IF
-
 IF shortcastlepossible(zwart) THEN
-
 	IF vanveld = H8 OR naarveld = H8 OR vanveld = E8 THEN
-
 		shortcastlepossible(zwart) = false
-
 	END IF
-
 END IF
-
-
 
 IF longcastlepossible(wit) THEN
-
 	IF vanveld = A1 OR naarveld = A1 OR vanveld = E1 THEN
-
 		longcastlepossible(wit) = false
-
 	END IF
-
 END IF
-
-
 
 IF longcastlepossible(zwart) THEN
-
 	IF vanveld = A8 OR naarveld = A8 OR vanveld = E8 THEN
-
 		longcastlepossible(zwart) = false
-
 	END IF
-
 END IF
-
-
-
 
 
 END SUB
 
-
-
 '
-
 'Is ep possible after this move ??
-
 '
-
 SUB updateEPinfo (zettype, naarveld)
 
-
-
 IF zettype AND jumpingpion THEN
-
 	IF aanzet = wit THEN
-
 		epfield = naarveld - &H10
-
 	ELSE
-
 		epfield = naarveld + &H10
-
 	END IF
-
 ELSE
-
 	epfield = -1    'reset!
-
 END IF
-
-
 
 END SUB
 
-
-
 '
-
 'Returns the color of a field
-
 '
-
 FUNCTION veldkleur (veld)
 
-
-
 IF (veld MOD &H20) > 8 THEN
-
 	IF veld MOD 2 THEN
-
 		veldkleur = wit
-
 	ELSE
-
 		veldkleur = zwart
-
 	END IF
-
 ELSE
-
 	IF veld MOD 2 THEN veldkleur = zwart ELSE veldkleur = wit
-
 END IF
-
-
-
-
 
 
 
 END FUNCTION
 
-
-
 '
-
 '
-
 FUNCTION waarde (stuk)
 
-
-
 SELECT CASE stuk AND &HFFFE
-
 	CASE pion: waarde = pionwaarde
-
 	CASE loper: waarde = loperwaarde
-
 	CASE paard: waarde = paardwaarde
-
 	CASE toren: waarde = torenwaarde
-
 	CASE koning: waarde = koningswaarde
-
 	CASE dame: waarde = damewaarde
-
 END SELECT
 
 
-
-
-
 END FUNCTION
 
-
-
 '
-
 'Material evaluations..
-
 '
-
 FUNCTION woodeval (zetnr)
 
-
-
 eval = waarde(zetlijst(zetnr).geslagenstuk)
-
 IF zetlijst(zetnr).promotiestuk THEN
-
 	eval = eval + waarde(zetlijst(zetnr).promotiestuk) - waarde(pion)
-
 END IF
-
 woodeval = eval
-
-
 
 END FUNCTION
 
-
-
 '
-
 'Raken is zetten!
-
 '
-
 SUB zetdatstuk (zetnr)
 
 
-
-
-
 vanveld = zetlijst(zetnr).vanveld
-
 naarveld = zetlijst(zetnr).naarveld
-
 zettype = zetlijst(zetnr).zettype
-
 promotiestuk = zetlijst(zetnr).promotiestuk
 
-
-
 stuk = bord(vanveld)
-
 naanzet = aanzet XOR colorid
 
-
-
 'Store for herhaling van zetten
-
 lastmove(aanzet) = zetlijst(zetnr)
 
-
-
 'store new kingposition..
-
 IF stuk AND koning THEN koningsveld(aanzet) = naarveld
 
-
-
 'Update en passent info
-
 CALL updateEPinfo(zettype, naarveld)
-
-
 
 'castling still allowed after move ?? //and update koningsveld
 
-
-
 CALL updatecastlinginfo(vanveld, naarveld)
 
-
-
 'Did a capture? (50 move rule..)
-
 IF zettype AND slaan THEN
-
 	zettenzonderslaan = 0
-
 ELSEIF stuk AND koning THEN
-
 	zettenzonderslaan = zettenzonderslaan + 1
-
 END IF
-
-
 
 'de speciale zetten:
-
  
-
 IF zettype AND ep THEN
-
 	'Maak geslagen pion leeg hier..                         eentje verder
-
 	veld = pionzetten(naarveld, 0, naanzet)            'staat pion
-
 	vrijeindex = stukindex(veld)
-
 	aantalstukken(naanzet) = aantalstukken(naanzet) - 1     'stond
-
 								 'Het laatste stuk naar vrije plaats in stukken!
-
 	stukken(vrijeindex, naanzet) = stukken(aantalstukken(naanzet), naanzet)
-
 								 'en de oude pionindex aan het voorheen laatste stuk
-
 	stukindex(stukken(vrijeindex, naanzet).veld) = vrijeindex
-
 	bord(veld) = leeg     'daar stond die ander pion
-
 	wood(aanzet XOR colorid) = wood(aanzet XOR colorid) - waarde(pion)
-
 ELSEIF zettype AND slaan THEN
-
 	vrijeindex = stukindex(naarveld)
-
 	aantalstukken(naanzet) = aantalstukken(naanzet) - 1
-
 	stukken(vrijeindex, naanzet) = stukken(aantalstukken(naanzet), naanzet)
-
 	stukindex(stukken(vrijeindex, naanzet).veld) = vrijeindex
-
 	wood(aanzet XOR colorid) = wood(aanzet XOR colorid) - waarde(bord(naarveld))
-
 ELSEIF zettype AND korterochade THEN
-
 	'Torenzet hier..
-
 	IF aanzet = wit THEN
-
 		veld1 = F1: veld2 = H1
-
 	ELSE
-
 		veld1 = F8: veld2 = H8
-
 	END IF
-
 	bord(veld1) = bord(veld2)
-
 	bord(veld2) = 0
-
 	stukken(stukindex(veld2), aanzet).veld = veld1
-
 	stukindex(veld1) = stukindex(veld2)
-
 	stukindex(veld2) = 0
-
 ELSEIF zettype AND langerochade THEN
-
 	IF aanzet = wit THEN
-
 		veld1 = D1: veld2 = A1
-
 	ELSE
-
 		veld1 = D8: veld2 = A8
-
 	END IF
-
 	bord(veld1) = bord(veld2)
-
 	bord(veld2) = 0
-
 	stukken(stukindex(veld2), aanzet).veld = veld1
-
 	stukindex(veld1) = stukindex(veld2)
-
 	stukindex(veld2) = 0
-
 END IF
-
 'Not this I said(stupid me)
-
 IF zettype AND promotie THEN
-
 	wood(aanzet) = wood(aanzet) - waarde(pion) + waarde(promotiestuk)
-
 	bord(vanveld) = promotiestuk
-
 	stukken(stukindex(vanveld), aanzet).soort = promotiestuk
-
 END IF
-
-
 
 'For all moves:
 
-
-
 bord(naarveld) = bord(vanveld)
-
 bord(vanveld) = leeg
-
 stukken(stukindex(vanveld), aanzet).veld = naarveld
-
 stukindex(naarveld) = stukindex(vanveld)
-
 stukindex(vanveld) = leeg
-
-
 
 CALL checkforbugs
 
 
 
-
-
-
-
 END SUB
 
-
-
 '
-
 'Zet een viewport voor de muist
-
 '
-
 SUB zetmuislimiet (x, tox, y, toy)
 
-
-
 IF tox < 1 OR tox > 80 OR x < 1 OR x > 80 THEN EXIT SUB
-
 regs(ax) = 7
-
 regs(cx) = (x - 1) * 8
-
 regs(dx) = (tox - 1) * 8
-
 regs(intnr) = &H33
-
 CALL interruptx
-
-
-
 
 
 IF toy < 1 OR toy > 25 OR y < 1 OR y > 25 THEN EXIT SUB
-
 regs(ax) = 8
-
 regs(cx) = (y - 1) * 8
-
 regs(dx) = (toy - 1) * 8
-
 regs(intnr) = &H33
-
 CALL interruptx
-
-
-
-
-
-
 
 
 
@@ -5408,80 +2704,40 @@ CALL interruptx
 
 END SUB
 
-
-
 '
-
 'Actually moves a piece
-
 '
-
 SUB zetopdatstuk (soortstuk, veld)
 
-
-
 bord(veld) = soortstuk
-
 kleur = soortstuk AND 1
 
-
-
 stukken(aantalstukken(kleur), kleur).soort = soortstuk
-
 stukken(aantalstukken(kleur), kleur).veld = veld
-
 stukindex(veld) = aantalstukken(kleur)                 'Uniek id per stuk/kleur
-
 aantalstukken(kleur) = aantalstukken(kleur) + 1        'Doorgeefschaak!
 
-
-
 IF soortstuk AND koning THEN
-
 	koningsveld(kleur) = veld
-
 END IF
-
-
-
 
 
 wood(kleur) = wood(kleur) + waarde(soortstuk)
 
 
 
-
-
-
-
 END SUB
 
-
-
 '
-
 'Kijk of pion of zevenderij staat
-
 '
-
 FUNCTION zevenderij (veld)
 
-
-
 IF aanzet = wit THEN
-
 	IF veld \ &H10 = 8 THEN zevenderij = true
-
 ELSE
-
 	IF veld \ &H10 = 3 THEN zevenderij = true
-
 END IF
 
-
-
 END FUNCTION
-
-
-
 

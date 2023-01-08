@@ -1,1059 +1,529 @@
 'Small Basic Raytracer
-
 'by ThirdMagus
-
 'arranged for C2H5OH by Nonki Takahashi
 
-
-
 Init()
-
 LoadScene()
 
-
-
 previewscene:
-
 Preview()
-
 GraphicsWindow.BrushColor = "Black"
-
 GraphicsWindow.DrawText(10,450,"Press Enter to render image, or press Space for different scene.")
-
 While(Space = "False" And Enter = "False")
-
   Program.Delay(10)
-
 EndWhile
-
 If(Space = "True") Then
-
   Space = "False"
-
   Enter = "False"
-
   RandomScene()
-
   Goto previewscene
-
 EndIf
 
-
-
 Preview()
 
-
-
 For y=0 To 479
-
   For x=0 To 639
-
     Level = 0
-
     Coefficient = 1
-
     Red = 0
-
     Green = 0
-
     Blue = 0
-
     Ray["Coord"]["x"] = x
-
     Ray["Coord"]["y"] = y
-
     Ray["Coord"]["z"] = -1000
-
     Ray["Dir"]["x"] = 0
-
     Ray["Dir"]["y"] = 0
-
     Ray["Dir"]["z"] = 1
-
     While (Coefficient > 0) And (Level < 10)
-
       t = 2000
-
       FoundIndex = 0
-
       ObjectIndices = Array.GetAllIndices(Objects)
-
       IntersectRay = Ray
-
       For i = 1 To Array.GetItemCount(ObjectIndices)
-
         Object = Objects[ObjectIndices[i]]
-
         DetermineIntersection()
-
       EndFor
-
       If(FoundIndex > 0) Then
-
         Ray["Coord"]["x"] = Ray["Coord"]["x"] + Ray["Dir"]["x"] * t
-
         Ray["Coord"]["y"] = Ray["Coord"]["y"] + Ray["Dir"]["y"] * t
-
         Ray["Coord"]["z"] = Ray["Coord"]["z"] + Ray["Dir"]["z"] * t
-
         FoundObject = Objects[FoundIndex]
-
         Normalise_Vector["x"] = Ray["Coord"]["x"] - FoundObject["Coord"]["x"]
-
         Normalise_Vector["y"] = Ray["Coord"]["y"] - FoundObject["Coord"]["y"]
-
         Normalise_Vector["z"] = Ray["Coord"]["z"] - FoundObject["Coord"]["z"]
-
         Normalise()
-
         SphereNormal = Normalise_Vector
-
         LightIndices = Array.GetAllIndices(Lights)
-
         For j = 1 To Array.GetItemCount(LightIndices)
-
           Light = Lights[LightIndices[j]]
-
           LightRay["Coord"] = Ray["Coord"]
-
           Normalise_Vector["x"] = Light["Coord"]["x"] - Ray["Coord"]["x"]
-
           Normalise_Vector["y"] = Light["Coord"]["y"] - Ray["Coord"]["y"]
-
           Normalise_Vector["z"] = Light["Coord"]["z"] - Ray["Coord"]["z"]
-
           Normalise()
-
           LightRay["Dir"] = Normalise_Vector
-
           DotProduct_Vector1 = SphereNormal
-
           DotProduct_Vector2 = LightRay["Dir"]
-
           DotProduct()
-
           If(DotProduct_Product <= 0) Then
-
             Goto skiplight
-
           EndIf
-
           InShadow = "False"
-
           IntersectRay = LightRay
-
           FoundIndex = 0
-
           For i = 1 To Array.GetItemCount(ObjectIndices)
-
             Object = Objects[ObjectIndices[i]]
-
             DetermineIntersection()
-
             If(FoundIndex > 0) Then
-
               InShadow = "True"
-
             EndIf
-
           EndFor
-
           If(InShadow = "False") Then
-
             DotProduct_Vector1 = SphereNormal
-
             DotProduct_Vector2 = LightRay["Dir"]
-
             DotProduct()
-
             Lambert = DotProduct_Product * Coefficient
-
             Red = Red + Lambert * Light["Color"]["r"] * FoundObject["Color"]["r"]
-
             Green = Green + Lambert * Light["Color"]["g"] * FoundObject["Color"]["g"]
-
             Blue = Blue + Lambert * Light["Color"]["b"] * FoundObject["Color"]["b"]
-
           EndIf
-
           skiplight:
-
         EndFor
-
         Coefficient = Coefficient * FoundObject["Reflect"]
-
         DotProduct_Vector1 = Ray["Dir"]
-
         DotProduct_Vector2 = SphereNormal
-
         DotProduct()
-
         Reflet = 2 * DotProduct_Product
-
         Normalise_Vector["x"] = Ray["Dir"]["x"] - (Reflet * SphereNormal["x"])
-
         Normalise_Vector["y"] = Ray["Dir"]["y"] - (Reflet * SphereNormal["y"])
-
         Normalise_Vector["z"] = Ray["Dir"]["z"] - (Reflet * SphereNormal["z"])
-
         Normalise()
-
         Ray["Dir"] = Normalise_Vector
-
         Level = Level + 1
-
       Else
-
         Level = 10
-
       EndIf
-
     EndWhile
-
     
-
     If(Red > 1) Then
-
       Red = 1
-
     EndIf
-
     If(Green > 1) Then
-
       Green = 1
-
     EndIf
-
     If(Blue > 1) Then
-
       Blue = 1
-
     EndIf
-
     
-
     GraphicsWindow.SetPixel(x,y,GraphicsWindow.GetColorFromRGB(Red*255, Green*255, Blue*255))
-
   EndFor
-
 EndFor
 
-
-
 'Inititalises screen
-
 'Input: <none>
-
 'Output: <none>
-
 Sub Init
-
   LF = Text.GetCharacter(10)
-
   DECIMAL = "."
-
   space = "  "
-
   For l = 3 To 10
-
     space = space + " "
-
     sp[l] = space
-
   EndFor
-
   GraphicsWindow.Title = "C2H5OH by Raytracer"
-
   GraphicsWindow.BackgroundColor = "Gray"
-
   GraphicsWindow.Height = 480
-
   GraphicsWindow.Width = 640
-
   GraphicsWindow.KeyUp = OnKeyUp
-
   Space = "False"
-
   Enter = "False"
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   If Text.IsSubText("Space|Left|Right|Up|Down", key) Then
-
     Space = "True"
-
   ElseIf (key = "Return") Then
-
     Enter = "True"
-
   EndIf
-
 EndSub
-
-
-
 
 
 'Inititalises scene
-
 'Input: <none>
-
 'Output: Objects, Lights
-
 Sub LoadScene
-
   x1 = 320
-
   y1 = 240
-
   z1 = 0
-
   sH = 55 ' diamater
-
   sC = 85
-
   sO = 76
-
   dH = 32 ' distance
-
   dC = 75
-
   dO = 63
-
   l1 = Math.SquareRoot(3)
-
   l2 = Math.SquareRoot(1 + 1 + 1.2*1.2)
-
   
-
   Objects[1]["Coord"]["x"] = x1
-
   Objects[1]["Coord"]["y"] = y1
-
   Objects[1]["Coord"]["z"] = z1
-
   Objects[1]["Size"] = sC / 2
-
   Objects[1]["Color"]["r"] = 0.1
-
   Objects[1]["Color"]["g"] = 0.1
-
   Objects[1]["Color"]["b"] = 0.1
-
   Objects[1]["Reflect"] = 0.2
-
   
-
   x2 = x1 - (dC + dC) / l1
-
   y2 = y1 + (dC + dC) / l1
-
   z2 = z1 + (dC + dC) / l1
-
   Objects[2]["Coord"]["x"] = x2
-
   Objects[2]["Coord"]["y"] = y2
-
   Objects[2]["Coord"]["z"] = z2
-
   Objects[2]["Size"] = sC / 2
-
   Objects[2]["Color"]["r"] = 0.1
-
   Objects[2]["Color"]["g"] = 0.1
-
   Objects[2]["Color"]["b"] = 0.1
-
   Objects[2]["Reflect"] = 0.2
-
   
-
   x3 = x1 + (dC + dO) / l1
-
   y3 = y1 - (dC + dO) / l1
-
   z3 = z1 + (dC + dO) / l1
-
   Objects[3]["Coord"]["x"] = x3
-
   Objects[3]["Coord"]["y"] = y3
-
   Objects[3]["Coord"]["z"] = z3
-
   Objects[3]["Size"] = sO / 2
-
   Objects[3]["Color"]["r"] = 0.93
-
   Objects[3]["Color"]["g"] = 0
-
   Objects[3]["Color"]["b"] = 0
-
   Objects[3]["Reflect"] = 0.2
-
   
-
   Objects[4]["Coord"]["x"] = x1 - (dC + dH) / l1
-
   Objects[4]["Coord"]["y"] = y1 - (dC + dH) / l1
-
   Objects[4]["Coord"]["z"] = z1 - (dC + dH) / l1
-
   Objects[4]["Size"] = sH / 2
-
   Objects[4]["Color"]["r"] = 1
-
   Objects[4]["Color"]["g"] = 1
-
   Objects[4]["Color"]["b"] = 1
-
   Objects[4]["Reflect"] = 0.2
-
   
-
   Objects[5]["Coord"]["x"] = x1 + (dC + dH) / l1
-
   Objects[5]["Coord"]["y"] = y1 + (dC + dH) / l1
-
   Objects[5]["Coord"]["z"] = z1 - (dC + dH) / l1
-
   Objects[5]["Size"] = sH / 2
-
   Objects[5]["Color"]["r"] = 1
-
   Objects[5]["Color"]["g"] = 1
-
   Objects[5]["Color"]["b"] = 1
-
   Objects[5]["Reflect"] = 0.2
-
   
-
   Objects[6]["Coord"]["x"] = x2 - (dC + dH) / l1
-
   Objects[6]["Coord"]["y"] = y2 + (dC + dH) / l1
-
   Objects[6]["Coord"]["z"] = z2 - (dC + dH) / l1
-
   Objects[6]["Size"] = sH / 2
-
   Objects[6]["Color"]["r"] = 1
-
   Objects[6]["Color"]["g"] = 1
-
   Objects[6]["Color"]["b"] = 1
-
   Objects[6]["Reflect"] = 0.2
-
   
-
   Objects[7]["Coord"]["x"] = x2 - (dC + dH) / l1
-
   Objects[7]["Coord"]["y"] = y2 - (dC + dH) / l1
-
   Objects[7]["Coord"]["z"] = z2 + (dC + dH) / l1
-
   Objects[7]["Size"] = sH / 2
-
   Objects[7]["Color"]["r"] = 1
-
   Objects[7]["Color"]["g"] = 1
-
   Objects[7]["Color"]["b"] = 1
-
   Objects[7]["Reflect"] = 0.2
-
   
-
   Objects[8]["Coord"]["x"] = x2 + (dC + dH) / l1
-
   Objects[8]["Coord"]["y"] = y2 + (dC + dH) / l1
-
   Objects[8]["Coord"]["z"] = z2 + (dC + dH) / l1
-
   Objects[8]["Size"] = sH / 2
-
   Objects[8]["Color"]["r"] = 1
-
   Objects[8]["Color"]["g"] = 1
-
   Objects[8]["Color"]["b"] = 1
-
   Objects[8]["Reflect"] = 0.2
-
   
-
   Objects[9]["Coord"]["x"] = x3 + (dO + dH) / l2
-
   Objects[9]["Coord"]["y"] = y3 - (dO + dH) / l2
-
   Objects[9]["Coord"]["z"] = z3 - (dO + dH) * 1.2 / l2
-
   Objects[9]["Size"] = sH / 2
-
   Objects[9]["Color"]["r"] = 1
-
   Objects[9]["Color"]["g"] = 1
-
   Objects[9]["Color"]["b"] = 1
-
   Objects[9]["Reflect"] = 0.2
-
   
-
   Lights[1]["Coord"]["x"] = -1000
-
   Lights[1]["Coord"]["y"] = -3000
-
   Lights[1]["Coord"]["z"] = -2000
-
   Lights[1]["Color"]["r"] = 1
-
   Lights[1]["Color"]["g"] = 1
-
   Lights[1]["Color"]["b"] = 1
-
   
-
   Lights[2]["Coord"]["x"] = 640
-
   Lights[2]["Coord"]["y"] = 240
-
   Lights[2]["Coord"]["z"] = -10000
-
   Lights[2]["Color"]["r"] = 0.5
-
   Lights[2]["Color"]["g"] = 0.5
-
   Lights[2]["Color"]["b"] = 0.5
-
 EndSub
-
-
 
 'Generates a new random scene with rotation
-
 Sub RandomScene
-
   If key = "Right" Then
-
     α = 0
-
     β = Math.GetRadians(-15)
-
     γ = 0
-
   ElseIf key = "Left" Then
-
     α = 0
-
     β = Math.GetRadians(15)
-
     γ = 0
-
   ElseIf key = "Up" Then
-
     α = Math.GetRadians(-15)
-
     β = 0
-
     γ = 0
-
   ElseIf key = "Down" Then
-
     α = Math.GetRadians(15)
-
     β = 0
-
     γ = 0
-
   Else
-
     α = Math.GetRadians(Math.GetRandomNumber(360))
-
     β = Math.GetRadians(Math.GetRandomNumber(360))
-
     γ = Math.GetRadians(Math.GetRandomNumber(360))
-
   EndIf
-
   m[1][1] = Math.Cos(β) * Math.Cos(γ)
-
   m[1][2] = Math.Sin(α) * Math.Sin(β) * Math.Cos(γ) - Math.Cos(α) * Math.Sin(γ)
-
   m[1][3] = Math.Sin(α) * Math.Sin(γ) + Math.Cos(α) * Math.Sin(β) * Math.Cos(γ)
-
   m[2][1] = Math.Cos(β) * Math.Sin(γ)
-
   m[2][2] = Math.Sin(α) * Math.Sin(β) * Math.Sin(γ) + Math.Cos(α) * Math.Cos(γ)
-
   m[2][3] = -Math.Sin(α) * Math.Cos(γ) + Math.Cos(α) * Math.Sin(β) * Math.Sin(γ)
-
   m[3][1] = -Math.Sin(β)
-
   m[3][2] = Math.Sin(α) * Math.Cos(β)
-
   m[3][3] = Math.Cos(α) * Math.Cos(β)
-
   param = "name=R;rows=3;cols=3;"
-
   param["init"] = m
-
   Matrix_Init()
-
   ObjectCount = Array.GetItemCount(Objects)
-
   For i=1 To ObjectCount
-
     v[1][1] = Objects[i]["Coord"]["x"] - 320
-
     v[2][1] = Objects[i]["Coord"]["y"] - 240
-
     v[3][1] = Objects[i]["Coord"]["z"]
-
     Stack.PushValue("local", i)
-
     param = "name=v;rows=3;cols=3;"
-
     param["init"] = v
-
     Matrix_Init()
-
     param = "name1=R;name2=v;name=v;"
-
     Matrix_Mul()
-
     entry = matrix["v"]
-
     v = entry["values"]
-
     i = Stack.PopValue("local")
-
     Objects[i]["Coord"]["x"] = v[1][1] + 320
-
     Objects[i]["Coord"]["y"] = v[2][1] + 240
-
     Objects[i]["Coord"]["z"] = v[3][1]
-
   EndFor
-
 EndSub
-
-
-
 
 
 'Shows a preview of what will be rendered
-
 Sub Preview
-
   ObjectIndices = Array.GetAllIndices(Objects)
-
   'First bubblesort to object list so the objects furthest away are drawn first
-
   bubblesort:
-
   swapped = "False"
-
   For i = 1 To Array.GetItemCount(ObjectIndices)-1
-
     Object = Objects[ObjectIndices[i]]
-
     If(Objects[ObjectIndices[i+1]]["Coord"]["z"] > Object["Coord"]["z"]) Then
-
       swapped = "True"
-
       Objects[ObjectIndices[i]] = Objects[ObjectIndices[i+1]]
-
       Objects[ObjectIndices[i+1]] = Object
-
     EndIf
-
   EndFor
-
   If(swapped = "True") Then
-
     Goto bubblesort
-
   EndIf
-
   
-
   GraphicsWindow.Clear()
-
   
-
   For i = 1 To Array.GetItemCount(ObjectIndices)
-
     Object = Objects[ObjectIndices[i]]
-
     r = Object["Color"]["r"]*255
-
     g = Object["Color"]["g"]*255
-
     b = Object["Color"]["b"]*255
-
     GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(r,g,b)
-
     x = Object["Coord"]["x"] - Object["Size"]
-
     y = Object["Coord"]["y"] - Object["Size"]
-
     GraphicsWindow.FillEllipse(x, y, Object["Size"]*2, Object["Size"]*2)
-
   EndFor
-
 EndSub
-
-
-
 
 
 'Determines if and where the ray and object intersect
-
 'Input: IntersectRay["Coord"["x", "y", "z"], "Dir"["x", "y", "z"]], Object["Coord"["x", "y", "z"], "Size"], ObjectIndices[i]
-
 'Output: t, FoundIndex
-
 Sub DetermineIntersection
-
   Distance["x"] = Object["Coord"]["x"] - IntersectRay["Coord"]["x"]
-
   Distance["y"] = Object["Coord"]["y"] - IntersectRay["Coord"]["y"]
-
   Distance["z"] = Object["Coord"]["z"] - IntersectRay["Coord"]["z"]
-
   DotProduct_Vector1 = IntersectRay["Dir"]
-
   DotProduct_Vector2 = Distance
-
   DotProduct()
-
   B = DotProduct_Product
-
   DotProduct_Vector1 = Distance
-
   DotProduct_Vector2 = Distance
-
   DotProduct()
-
   D = B*B - DotProduct_Product + Object["Size"]*Object["Size"]
-
   If(D >= 0) Then
-
     t0 = B - Math.SquareRoot(D)
-
     t1 = B + Math.SquareRoot(D)
-
     
-
     If((t0 > 0.1) And (t0 < t)) Then
-
       t = t0
-
       FoundIndex = ObjectIndices[i]
-
     EndIf
-
     If((t1 > 0.1) And (t1 < t)) Then
-
       t = t1
-
       FoundIndex = ObjectIndices[i]
-
     EndIf
-
   EndIf  
-
 EndSub
-
-
 
 'Calculates dot product of two vectors
-
 'Input: DotProduct_Vector1["x", "y", "z"], DotProduct_Vector2["x", "y", "z"]
-
 'Output: DotProduct_Product
-
 Sub DotProduct
-
   DotProduct_Product = DotProduct_Vector1["x"] * DotProduct_Vector2["x"]
-
   DotProduct_Product = DotProduct_Product + DotProduct_Vector1["y"] * DotProduct_Vector2["y"]
-
   DotProduct_Product = DotProduct_Product + DotProduct_Vector1["z"] * DotProduct_Vector2["z"]
-
 EndSub
-
-
 
 'Normalises vector
-
 'Input: Normalise_Vector["x", "y", "z"]
-
 'Output: Normalise_Vector["x", "y", "z"]
-
 Sub Normalise
-
   DotProduct_Vector1 = Normalise_Vector
-
   DotProduct_Vector2 = Normalise_Vector
-
   DotProduct()
-
   If(Math.SquareRoot(DotProduct_Product) > 0) Then
-
     Normalise_Vector["x"] = Normalise_Vector["x"] / Math.SquareRoot(DotProduct_Product)
-
     Normalise_Vector["y"] = Normalise_Vector["y"] / Math.SquareRoot(DotProduct_Product)
-
     Normalise_Vector["z"] = Normalise_Vector["z"] / Math.SquareRoot(DotProduct_Product)
-
   EndIf
-
 EndSub
-
-
 
 Sub Matrix_Init
-
   ' param["name"] - matrix name to initialize
-
   ' param["rows"] - number of rows
-
   ' param["cols"] - number of columns
-
   ' param["init"] - initial data array
-
   name = param["name"]
-
   rows = param["rows"]
-
   cols = param["cols"]
-
   init = param["init"]
-
   _init = ""
-
   _rows = Array.GetItemCount(init)
-
   _row = Array.GetAllIndices(init)
-
   For j = 1 To _rows
-
     row = _row[j]
-
     _cols = Array.GetItemCount(init[row])
-
     _col = Array.GetAllIndices(init[row])
-
     For i = 1 To _cols
-
       col = _col[i]
-
       _init[row][col] = init[row][col]
-
     EndFor
-
   EndFor
-
   entry["rows"] = rows
-
   entry["cols"] = cols
-
   entry["values"] = _init
-
   matrix[name] = entry
-
 EndSub
-
-
 
 Sub Matrix_Mul
-
   ' multiply two matrices
-
   ' param["name1"] - left matrix name
-
   ' param["name2"] - right matrix name
-
   ' param["name"] - matrix name to return
-
   name1 = param["name1"]
-
   entry1 = matrix[name1]
-
   cols1 = entry1["cols"]
-
   rows1 = entry1["rows"]
-
   name2 = param["name2"]
-
   entry2 = matrix[name2]
-
   cols2 = entry2["cols"]
-
   rows2 = entry2["rows"]
-
   If cols1 = rows2 Then
-
     values1 = entry1["values"]
-
     values2 = entry2["values"]
-
     values = ""
-
     For col = 1 To cols2
-
       For row = 1 To rows1
-
         For i = 1 To cols1
-
           values[row][col] = values[row][col] + values1[row][i] * values2[i][col]
-
         EndFor
-
       EndFor
-
     EndFor
-
     name = param["name"]
-
     Stack.PushValue("local", param)
-
     param = ""
-
     param["name"] = name
-
     param["cols"] = cols2
-
     param["rows"] = rows1
-
     param["init"] = values
-
     Matrix_Init()
-
     param = Stack.PopValue("local")
-
   Else
-
     msg = "Matrix " + name1 + " has " + cols1 + "column[s],"
-
     msg = msg + LF + "but matrix " + name2 + " has " + rows2 + "row[s]"
-
     GraphicsWindow.ShowMessage(msg, "Matrix_Mul Error")
-
   EndIf
-
 EndSub
-
-
 
 Sub DumpBuf
-
   TextWindow.WriteLine(buf)
-
 EndSub
-
-
 
 Sub Format
-
   ' format value as ###0.00
-
   value = value * 1
-
   dot = Text.GetIndexOf(value, DECIMAL)
-
   If 0 < dot Then
-
     value = Math.Round(value * 100) / 100
-
   Else
-
     value = Text.Append(value, ".")
-
   EndIf
-
   dot = Text.GetIndexOf(value, DECIMAL)
-
   len = Text.GetLength(value)
-
   If len < dot + 2 Then
-
     value = Text.Append(value, Text.GetSubText("00", 1, dot + 2 - len))
-
   EndIf
-
   len = Text.GetLength(value)
-
   If len < 7 Then
-
     value = Text.Append(Text.GetSubText("   ", 1, 7 - len), value)
-
   EndIf
-
 EndSub
-
-
 
 Sub Matrix_Dump
-
   ' param["name"] - matrix name to set
-
   name = param["name"]
-
   entry = matrix[name]
-
   rows = entry["rows"]
-
   cols = entry["cols"]
-
   values = entry["values"]
-
   left = name + " = "
-
   buf = ""
-
   For row = 1 To rows
-
     buf = buf + left
-
     If row = 1 Then
-
       left = sp[Text.GetLength(left)]
-
     EndIf
-
     For col = 1 To cols
-
       value = values[row][col]
-
       Format()
-
       buf = buf + value
-
       If col < cols Then
-
         buf = buf + " "
-
       EndIf
-
     EndFor
-
     buf = buf + LF
-
     DumpBuf()
-
   EndFor
-
 EndSub
-
     
-
-

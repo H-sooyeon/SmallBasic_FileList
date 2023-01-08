@@ -1,327 +1,163 @@
 version = "1.0 Jul 9, 2009 - for SmallBasic 0.5, Daddyo"
 
-
-
 ' Shows astronomy pictures of the day from http://antwrp.gsfc.nasa.gov/apod/
-
 ' Check out the site yourself to see full information on each image.
 
-
-
 ' Size of display window
-
 width = 1000
-
 height = 700
 
-
-
 GraphicsWindow.Hide()
-
 GraphicsWindow.BackgroundColor = 0
-
 GraphicsWindow.CanResize = "False"
-
 GraphicsWindow.Width = width
-
 GraphicsWindow.Height = height
-
 GraphicsWindow.Title = "AstroPic"
 
-
-
 ' Center GraphicsWindow on the desktop
-
 GraphicsWindow.Left = Desktop.Width / 2 - width / 2
-
 GraphicsWindow.Top = Desktop.Height / 2 - height / 2
-
-
 
 GraphicsWindow.Show()
 
-
-
 ' Show 1st image manually
-
 OnTick()
 
-
-
 ' Set up periodic timer to show images
-
 Timer.Interval = 10000
-
 Timer.Tick = OnTick
 
-
-
 ' Where the daily web pages are located
-
 apodPath = "http://antwrp.gsfc.nasa.gov/apod/"
 
-
-
 ' Loop forever until user presses escape
-
 While GraphicsWindow.LastKey <> "Escape"
-
   ' Spend most of our time doing nothing, use delay so 
-
   ' that PC isn't too busy sitting in While loop
-
   Program.Delay(400)
-
 EndWhile
 
-
-
 ' End the program now that we left the While loop
-
 Program.End()
 
-
-
 ' Periodic timer event used to get & display photos
-
 Sub OnTick
 
-
-
   ' Get a random date, returned in randomDate variable
-
   CreateRandomDate()
-
   
-
   'textwindow.WriteLine(apodPath + "ap" + randomDate + ".html")
-
   
-
   ' Load the HTML page that contains only text of web page
-
   page = Network.GetWebPageContents(apodPath + "ap" + randomDate + ".html")
-
   
-
   ' Get title of page, example:
-
   ' <title> APOD: 2009 July 8 - The Dark River to Antares
-
   ' </title>
 
-
-
   titlePos = Text.GetIndexOf(page, "<title>") + 7
-
   If titlePos > 7 Then
-
     title = Text.GetSubTextToEnd(page, titlePos)
-
   
-
     titlePos = Text.GetIndexOf(title, "</title>") - 2
-
   
-
     If titlePos > -1 Then
-
       title = Text.GetSubText(title, 1, titlePos)
-
       
-
       ' Only display if reasonable length, 
-
       ' otherwise might have an error finding title
-
       If Text.GetLength(title) < 100 Then 
-
         GraphicsWindow.Title = title 
-
       EndIf 
-
     EndIf 
-
   EndIf 
-
   
-
   ' Find picture file path, for example:
-
   ' <IMG SRC="image/0907/RhoOphregion_jennings800.jpg"
-
   picPathPosition = Text.GetIndexOf(page, "SRC=") + 5
 
-
-
   ' If found start of picture path
-
   If picPathPosition > 5 Then
-
-
 
     page = Text.GetSubTextToEnd(page, picPathPosition)
 
-
-
     picPathLength = Text.GetIndexOf(page, Text.GetCharacter(34)) - 1
 
-
-
     ' If found end of picture path
-
     If picPathLength > 2 Then 
 
-
-
       ' Create full path to picture
-
       picPath = apodPath + Text.GetSubText(page, 1, picPathLength)
-
-
 
       'TextWindow.WriteLine(picPath)
 
-
-
       ' Download the picture
-
       pic = ImageList.LoadImage(picPath)
 
-
-
       ' If we got it, show it centered on our GraphicsWindow
-
       If pic <> "" Then 
-
         GraphicsWindow.Clear()
-
         left = GraphicsWindow.Width / 2 - ImageList.GetWidthOfImage(pic) / 2
-
         top = GraphicsWindow.Height / 2 - ImageList.GetHeightOfImage(pic) / 2
-
         
-
         GraphicsWindow.DrawImage(pic, left, top)
-
       EndIf 
-
       
-
     EndIf 
-
   EndIf 
-
 EndSub 
-
-
-
 
 
 ' Create date in text format of "090708" for year/month/day
-
 ' Note year before 2000 is two digit i.e. 1995 is 95.
-
 Sub CreateRandomDate
-
   ' Date 950616 is first APOD available  
-
   yearFirst = 1995
-
   monthFirst = 6
-
   dayFirst = 16
-
   
-
   ' Get today
-
   yearToday = Clock.Year
-
   monthToday = Clock.Month
-
   dayToday = Clock.Day
-
   
-
   dateFound = "False"
-
   
-
   ' Keep trying random dates in past since
-
   ' we may randomly pick one too old or too new
-
   While dateFound = "False"
-
     year = yearFirst + Math.GetRandomNumber(yearToday - yearFirst + 1) - 1
-
     month = Math.GetRandomNumber(12)
-
     day = Math.GetRandomNumber(28) ' Won't see months with 29/30 days, but there's plenty to see so no big loss
-
     
-
     ' Make sure it's not in future
-
     If year = yearToday And month > monthToday Then
-
       dateFound = "False"
-
     ElseIf year = yearToday And month = monthToday And day > dayToday Then
-
       dateFound = "False"
-
     ' Make sure it's not before the 1st picture available
-
     ElseIf year = yearFirst And month < monthFirst Then 
-
       dateFound = "False"
-
     ElseIf year = yearFirst And month = monthFirst And day < dayFirst Then 
-
       dateFound = "False"
-
     Else
-
       ' Found a good date!
-
       dateFound = "True"
-
     EndIf
-
       
-
   EndWhile
-
   
-
   ' Convert month & day to 2 digits
-
   If Text.GetLength(month) < 2 Then 
-
     month = Text.Append("0", month) 
-
   EndIf 
-
   If Text.GetLength(day) < 2 Then 
-
     day = Text.Append("0", day) 
-
   EndIf 
-
   
-
   ' Put together year-month-day string
-
   randomDate = Text.Append(Text.GetSubTextToEnd(year, 3), month)
-
   randomDate = Text.Append(randomDate, day)
-
   
-
 EndSub 
-
-
-
 

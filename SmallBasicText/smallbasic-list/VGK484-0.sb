@@ -1,261 +1,130 @@
 ' Scale 0.2
-
 ' Copyright (c) 2013 Nonki Takahashi.  All rights reserved.
-
 '
-
 ' History:
-
 '  0.2 23/03/2013 Completed. (VGK484-0)
-
 '  0.1a 19/03/2013 Created. (VGK484)
-
 '
-
 GraphicsWindow.Title = "Scale 0.2b"
-
 x0 = GraphicsWindow.Width / 2
-
 y0 = GraphicsWindow.Height / 2
-
 GraphicsWindow.PenColor = "LightGray"
-
 For i = 1 To 4
-
   GraphicsWindow.DrawEllipse(x0 - i * 50, y0 - i * 50, i * 100, i * 100)
-
 EndFor
-
 GraphicsWindow.BrushColor = "Black"
-
 oAngle = Shapes.AddText("")
-
 Shapes.Move(oAngle, 10, 10)
-
 GraphicsWindow.FillTriangle(x0, y0, x0 - 10, y0 + 20, x0 + 10, y0 + 20)
-
 GraphicsWindow.PenColor = "Black"
-
 scale = Shapes.AddLine(0, 0, 400, 0)
-
 Shapes.Move(scale, x0 - 200, y0)
-
 weight = "1=10;2=10;3=20;4=20;5=40;6=40;"
-
 color = "1=Red;2=Orange;3=Green;4=DarkCyan;5=DarkBlue;6=Purple;"
-
 nBlock = Array.GetItemCount(weight)
-
 GraphicsWindow.PenWidth = 0
-
 For i = nBlock To 1 Step -1
-
   size[i] = Math.Floor(Math.Power(weight[i], 1/3) * 10)
-
   GraphicsWindow.BrushColor = color[i]
-
   block[i] = Shapes.AddRectangle(size[i], size[i])
-
   x[i] = 50 * i
-
   y[i] = y0 * 2 - 50 - size[i]
-
   Shapes.Move(block[i], x[i], y[i])
-
 EndFor
-
 iPicked = 0
-
 angle = 0
-
 Rotate()
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.MouseUp = OnMouseUp
-
 GraphicsWindow.MouseMove = OnMouseMove
-
 Timer.Interval = 1000 / 24
-
 Timer.Tick = OnTick
-
 Sub CalcMoment
-
   moment = -angle * 100
-
   cosa = Math.Cos(Math.GetRadians(angle))
-
   For i = 1 To 9
-
     posx = (i - 1) * 50 - 200
-
     iLoaded = loaded[posx]
-
     If iLoaded <> "" Then
-
       moment = moment + posx * weight[iLoaded] * cosa
-
     EndIf
-
   EndFor
-
   da = moment / 1000
-
 EndSub
-
 Sub OnTick
-
   ms = Math.Remainder(Clock.ElapsedMilliseconds, 3000)
-
   CalcMoment()
-
   If da <> 0 Then
-
     angle = angle + da
-
     If angle < -60 Then
-
       angle = -60
-
     ElseIf 60 < angle Then
-
       angle = 60
-
     EndIf
-
     Rotate()
-
     Shapes.SetText(oAngle, "angle=" + Math.Round(angle))
-
   EndIf
-
 EndSub
-
 Sub OnMouseDown
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   For i = 1 To nBlock
-
     If x[i] <= mx And mx <= x[i] + size[i] And y[i] <= my And my <= y[i] + size[i] Then
-
       iPicked = i
-
       Shapes.Rotate(block[iPicked], 0)
-
       dx = mx - x[i]
-
       dy = my - y[i]
-
       i = nBlock + 1  ' break
-
       For j = 1 To 9
-
         If loaded[(j - 1) * 50 - 200] = iPicked Then
-
           loaded[(j - 1) * 50 - 200] = ""
-
         EndIf
-
       EndFor
-
     EndIf
-
   EndFor
-
 EndSub
-
 Sub OnMouseMove
-
   If iPicked <> 0 Then
-
     mx = GraphicsWindow.MouseX
-
     my = GraphicsWindow.MouseY
-
     x[iPicked] = mx - dx
-
     y[iPicked] = my - dy
-
     Shapes.Move(block[iPicked], x[iPicked], y[iPicked])
-
   EndIf
-
 EndSub
-
 Sub OnMouseUp
-
   If iPicked <> 0 Then
-
     mx = GraphicsWindow.MouseX
-
     my = GraphicsWindow.MouseY
-
     For i = 1 To 9
-
       xx = Math.Abs((mx - dx + size[iPicked]) - lx[i])
-
       yy = Math.Abs((my - dy + size[iPicked]) - ly[i])
-
       If xx < size[iPicked] And yy < size[iPicked] Then
-
         loaded[(i - 1) * 50 - 200] = iPicked
-
         i = 9 ' break
-
       EndIf
-
     EndFor
-
   EndIf
-
   iPicked = 0
-
   Rotate()
-
 EndSub
-
 Sub Rotate
-
   ' param angle
-
   Shapes.Rotate(scale, angle)
-
   nLoaded = Array.GetItemCount(loaded)
-
   pos = Array.GetAllIndices(loaded)
-
   cosa = Math.Cos(Math.GetRadians(angle))
-
   sina = Math.Sin(Math.GetRadians(angle))
-
   For i = 1 To nLoaded
-
     iLoaded = loaded[pos[i]]
-
     half = size[iLoaded] / 2
-
     x[iLoaded] = x0 + pos[i] * cosa + half * sina - half
-
     y[iLoaded] = y0 + pos[i] * sina - half * cosa - half
-
     Shapes.Move(block[iLoaded], x[iLoaded], y[iLoaded])
-
     Shapes.Rotate(block[iLoaded], angle)
-
   EndFor
-
   For i = 1 To 9
-
     lx[i] = x0 + ((i - 1) * 50 - 200) * cosa
-
     ly[i] = y0 + ((i - 1) * 50 - 200) * sina
-
   EndFor
-
 EndSub
-
-

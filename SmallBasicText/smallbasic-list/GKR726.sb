@@ -1,701 +1,350 @@
 ' IsNumber
-
 ' Version 0.2
-
 ' Copyright © 2017 Nonki Takahashi.  The MIT License.
 
-
-
 LF = Text.GetCharacter(10)
-
 WQ = Text.GetCharacter(34)
-
 Parse_Init()
-
 Test()
-
 While "True"
-
   TextWindow.Write("Number? ")
-
   n = TextWindow.Read()
-
   Text_IsNumber()
-
   If match  Then
-
     TextWindow.ForegroundColor = "Green"
-
     TextWindow.WriteLine(WQ + n + WQ + " = " + value)
-
   Else
-
     TextWindow.ForegroundColor = "Red"
-
     TextWindow.WriteLine(WQ + n + WQ + " is not number.")
-
   EndIf
-
   TextWindow.ForegroundColor = "Gray"
-
 EndWhile
 
-
-
 Sub Test
-
   testcase[1] = "n=123;match=True;"
-
   testcase[2] = "n=4.5;match=True;"
-
   testcase[3] = "n=-6;match=True;"
-
   testcase[4] = "n=.7;match=True;"
-
   testcase[5] = "n=8.;match=True;"
-
   testcase[6] = "n=3-D;match=False;"
-
   testcase[7] = "match=False;"  '  n=""
-
   testcase[8] = "n= ;match=False;"
-
   testcase[9] = "n= -19;match=True;"
-
   testcase[10] = "n=02E-3 ;match=True;"
-
   testcase[11] = "n= -5.4E+6 ;match=True;"
-
   testcase[12] = "n=8E28;match=False;"
-
   testcase[13] = "n=3.1415926535897932384626433832795;match=True;"
-
   testcase[14] = "n=-79228162514264337593543950335;match=True;"
-
   testcase[15] = "n=-79228162514264337593543950336;match=False;"
-
   testcase[16] = "n=-1E-28;match=True;"
-
   testcase[17] = "n=-1E-29;match=False;"
-
   testcase[18] = "n=1E-28;match=True;"
-
   testcase[19] = "n=1E-29;match=False;"
-
   testcase[20] = "n=79228162514264337593543950335;match=True;"
-
   testcase[21] = "n=79228162514264337593543950336;match=False;"
-
   nTest = Array.GetItemCount(testcase)
-
   TextWindow.WriteLine("Test started")
-
   nPass = 0
-
   For i = 1 To nTest
-
     If i < 10 Then
-
       TextWindow.Write(" ")
-
     EndIf
-
     TextWindow.Write(i + " ")
-
     case = testcase[i]
-
     index = Array.GetAllIndices(case)
-
     n = case["n"]
-
     Text_IsNumber()
-
     If match = case["match"] Then
-
       TextWindow.ForegroundColor = "Green"
-
       TextWindow.Write("Pass")
-
       nPass = nPass + 1
-
     Else
-
       TextWindow.ForegroundColor = "Red"
-
       TextWindow.Write("Fail")
-
     EndIf
-
     TextWindow.ForegroundColor = "Gray"
-
     TextWindow.Write(" " + WQ + n + WQ + " ")
-
     If match Then
-
       TextWindow.WriteLine("= " + value)
-
     Else
-
       TextWindow.WriteLine("is not number.")
-
     EndIf
-
   EndFor
-
   TextWindow.Write("Test ended")
-
   TextWindow.WriteLine(" (Pass: " + nPass + "/" + nTest + ")" + LF)
-
 EndSub
-
-
 
 Sub Text_IsNumber
-
   ' Text | Check if the text is number
-
   ' param n - text to check
-
   ' return match - "True" if match
-
   ' return value - number
-
   buf = n
-
   len = Text.GetLength(buf)
-
   p = 1
-
   Parse_Number()
-
   If match And (p <= len) Then
-
     match = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub Parse_Init
-
   ' Parse | Initialization
-
   Not = "False=True;True=False;"
-
 EndSub
-
-
 
 Sub Parse_Char
-
   ' Parse | Parse character
-
   ' param chr - character set
-
   ' param buf - text buffer to T
-
   ' param p - pointer to buf
-
   ' return match - "True" if match
-
   ' return value - char
-
   ' return p - updated pointer to buf
-
   Stack.PushValue("local", _c)
-
   _c = Text.GetSubText(buf, p, 1)
-
   If Text.IsSubText(chr, _c) Then
-
     value = _c
-
     match = "True"
-
     p = p + 1
-
   Else
-
     match = "False"
-
   EndIf
-
   _c = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Parse_Digit
-
   ' Parse | Parse digit
-
   ' EBNF: digit = '0'|'1'|'2'|'3'|'4'|'5'|'6'|'7'|'8'|'9'.
-
   ' param buf - text buffer to parse
-
   ' param p - pointer to buf
-
   ' return match - "True" if match
-
   ' return value - digit
-
   ' return p - updated pointer to buf
-
   Stack.PushValue("local", chr)
-
   chr = "0123456789"
-
   Parse_Char()
-
   chr = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Parse_Integer
-
   ' Parse | Parse integer
-
   ' EBNF: integer = ['-'],digit,{digit}.
-
   ' param buf - text buffer to parse
-
   ' param p - pointer to buf
-
   ' return match - "True" if match
-
   ' return value - integer
-
   ' return p - updated pointer to buf
-
   Stack.PushValue("local", _p)
-
   Stack.PushValue("local", chr)
-
   Stack.PushValue("local", _sgn)
-
   Stack.PushValue("local", _nz)
-
   Stack.PushValue("local", _value)
-
   Stack.PushValue("local", _match)
-
   _p = p
-
   chr = "-"
-
   Parse_Char()
-
   If match Then
-
     _sgn = "-"
-
   Else
-
     _sgn = ""
-
   EndIf
-
   Parse_Digit()
-
   _nz = "False"
-
   If match Then
-
     If 0 < value Then
-
       _nz = "True"
-
     EndIf
-
     _value = value
-
     While match
-
       Parse_Digit()
-
       If match then
-
         If 0 < value Then
-
           _nz = "True"
-
         EndIf
-
         _value = Text.Append(_value, value)
-
       Else
-
         value = (_sgn + _value) * 1
-
         If _nz And (value = 0) Then
-
           _match = "False"
-
           p = _p
-
         Else
-
           _match = "True"
-
         EndIf
-
       EndIf
-
     EndWhile
-
     match = _match
-
   Else
-
     p = _p
-
   EndIF
-
   _match = Stack.PopValue("local")
-
   _value = Stack.PopValue("local")
-
   _nz = Stack.PopValue("local")
-
   _sgn = Stack.PopValue("local")
-
   chr = Stack.PopValue("local")
-
   _p = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Parse_Real
-
   ' Parse | Parse real
-
   ' EBNF: real = ((integer,'.')|('.',digit)),{digit}.
-
   ' param buf - text buffer to parse
-
   ' param p - pointer to buf
-
   ' return match - "True" if match
-
   ' return value - real
-
   ' return p - updated pointer to buf
-
   Stack.PushValue("local", _p)
-
   Stack.PushValue("local", _int)
-
   Stack.PushValue("local", _frac)
-
   Stack.PushValue("local", chr)
-
   Stack.PushValue("local", _nz)
-
   _p = p
-
   Parse_Integer()
-
   _frac = ""
-
   If match Then
-
     _int = value
-
     chr = "."
-
     Parse_Char()
-
   Else
-
     _int = ""
-
     chr = "."
-
     Parse_Char()
-
     If match Then
-
       Parse_Digit()
-
       _nz = "False"
-
       If match Then
-
         If 0 < value Then
-
           _nz = "True"
-
         EndIf
-
         _frac = value
-
       EndIf
-
     EndIf
-
   EndIf
-
   If match Then
-
     Parse_Digit()
-
     If match Then
-
       If 0 < value Then
-
         _nz = "True"
-
       EndIf
-
       _frac = Text.Append(_frac, value)
-
       While match
-
         Parse_Digit()
-
         If match Then
-
           If 0 < value Then
-
             _nz = "True"
-
           EndIf
-
           _frac = Text.Append(_frac, value)
-
         EndIf
-
       EndWhile
-
     EndIf
-
     value = Text.Append(_int + ".", _frac) * 1
-
     If _nz And (value = 0) Then
-
       match = "False"
-
       p = _p
-
     Else
-
       match = "True"
-
     EndIf
-
   Else
-
     p = _p
-
   EndIf
-
   _nz = Stack.PopValue("local")
-
   chr = Stack.PopValue("local")
-
   _frac = Stack.PopValue("local")
-
   _int = Stack.PopValue("local")
-
   _p = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Parse_Sci
-
   ' Parse | Parse scientific notation number
-
   ' EBNF: sci = (real|integer),('E'|'e'),['-'|'+'],integer.
-
   ' param buf - text buffer to parse
-
   ' param p - pointer to buf
-
   ' return match - "True" if match
-
   ' return value - scientific notation number
-
   ' return p - updated pointer to buf
-
   Stack.PushValue("local", _p)
-
   Stack.PushValue("local", _base)
-
   Stack.PushValue("local", chr)
-
   Stack.PushValue("local", _sgn)
-
   Stack.PushValue("local", _pwr)
-
   _p = p
-
   Parse_Real()
-
   If Not[match] Then
-
     Parse_Integer()
-
   EndIf
-
   If match Then
-
     _base = value
-
     chr = "Ee"
-
     Parse_Char()
-
     If match Then
-
       _sgn = ""
-
       chr = "-+"
-
       Parse_Char()
-
       If match Then
-
         _sgn = value
-
       EndIf
-
       Parse_Integer()
-
       If match Then
-
         _pwr = value
-
         value = (_base + "E" + _sgn + _pwr) * 1
-
         If ((_base < 0) Or (0 < _base)) And (value = 0) Then
-
           p = _p
-
           match = "False"
-
         EndIf
-
       Else
-
         p = _p
-
       EndIf
-
     Else
-
       p = _p
-
     EndIf
-
   EndIf
-
   _pwr = Stack.PopValue("local")
-
   _sgn = Stack.PopValue("local")
-
   chr = Stack.PopValue("local")
-
   _base = Stack.PopValue("local")
-
   _p = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Parse_Number
-
   ' Parse | Parse number
-
   ' EBNF: number = {' '}(sci|real|integer){' '}.
-
   ' param buf - text buffer to parse
-
   ' param p - pointer to buf
-
   ' return match - "True" if match
-
   ' return value - number
-
   ' return p - updated pointer to buf
-
   Stack.PushValue("local", _p)
-
   Stack.PushValue("local", chr)
-
   Stack.PushValue("local", _match)
-
   Stack.PushValue("local", _value)
-
   _p = p
-
   chr = " "
-
   Parse_Char()
-
   While match
-
     Parse_Char()
-
   EndWhile
-
   Parse_Sci()
-
   If Not[match] Then
-
     Parse_Real()
-
   EndIf
-
   If Not[match] Then
-
     Parse_Integer()
-
   EndIf
-
   _match = match
-
   _value = value
-
   If match Then
-
     chr = " "
-
     Parse_Char()
-
     While match
-
       Parse_Char()
-
     EndWhile
-
   Else
-
     p = _p
-
   EndIF
-
   value = _value
-
   match = _match
-
   _value = Stack.PopValue("local")
-
   _match = Stack.PopValue("local")
-
   chr = Stack.PopValue("local")
-
   _p = Stack.PopValue("local")
-
 EndSub
-
-

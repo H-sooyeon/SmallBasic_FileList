@@ -1,2155 +1,1077 @@
 
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Get Todays's Date
-
 '----------------------------------------------------------------------------------------------------------------------
-
 str_MONTH[1] = "Jan"
-
 str_MONTH[2] = "Feb"
-
 str_MONTH[3] = "Mar"
-
 str_MONTH[4] = "Apr"
-
 str_MONTH[5] = "May"
-
 str_MONTH[6] = "Jun"
-
 str_MONTH[7] = "Jul"
-
 str_MONTH[8] = "Aug"
-
 str_MONTH[9] = "Sep"
-
 str_MONTH[10] = "Oct"
-
 str_MONTH[11] = "Nov"
-
 str_MONTH[12] = "Dec"
 
 
 
-
-
-
-
 str_Date_Full    = Clock.WeekDay + " " + str_MONTH[Clock.Month] + " "
-
 If Clock.Day<10 then
-
   str_Date_Full    = str_Date_Full + Text.GetSubTextToEnd("x0" + Clock.Day,2) + " "
-
 Else
-
   str_Date_Full    = str_Date_Full + Clock.Day + " "
-
 Endif
-
 str_Date_Full    = str_Date_Full + Clock.Year
-
-
 
   
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Set File Location
-
 '----------------------------------------------------------------------------------------------------------------------
-
 str_File_Path = "c:\plawn\work\worklogs\"
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Set work log file name
-
 '----------------------------------------------------------------------------------------------------------------------
-
 str_File_Base = str_File_Path + "Work Log-"
-
 int_File_Base = Text.GetLength(str_File_Base)
-
 str_File_Name = str_File_Base + str_Date_Full + ".txt"
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Check Path for most recent 
-
 '----------------------------------------------------------------------------------------------------------------------
-
 log_File_TodayInProgress = 0
-
 str_File_MostRecent      = ""
-
 int_File_MostRecent      = 0
-
 ' The following line could be harmful and has been automatically commented.
-
 ' str_File_Path_List = File.GetFiles(str_File_Path)
-
 For int_i = 1 To Array.GetItemCount(str_File_Path_List)
-
   If Text.ConvertToUpperCase(str_File_Path_List[int_i]) = Text.ConvertToUpperCase(str_File_Name) Then
-
     str_File_MostRecent      = str_File_Path_List[int_i]
-
     log_File_TodayInProgress = 1
-
   ElseIf log_File_TodayInProgress=0 then
-
     str_temp_File_Base     = Text.ConvertToUpperCase(Text.GetSubText(str_File_Path_List[int_i],1,int_File_Base))
-
     str_temp_File_Name     = Text.ConvertToUpperCase(Text.GetSubTextToEnd(str_File_Path_List[int_i],int_File_Base+1))
-
     int_temp_File_Name_Len = Text.GetLength(str_temp_File_Name)
-
     If Text.GetSubText(str_temp_File_Name,int_temp_File_Name_Len-10,1)=" " Then
-
       str_temp_File_Name = Text.GetSubText(str_temp_File_Name,1,int_temp_File_Name_Len-10) + "0" + Text.GetSubTextToEnd(str_temp_File_Name,int_temp_File_Name_Len-9)
-
       int_temp_File_Name_Len = int_temp_File_Name_Len + 1
-
     EndIf
-
     If Text.ConvertToUpperCase(str_File_Base)=str_temp_File_Base And Text.EndsWith(str_temp_File_Name,".TXT") then
-
       str_temp_File_Date = "x" + Text.GetSubText(str_temp_File_Name,int_temp_File_Name_Len-7,4)
-
       For int_j = 1 To 12
-
         If Text.GetSubText(Text.ConvertToUpperCase(str_temp_File_Name),int_temp_File_Name_Len-14,3)=Text.ConvertToUpperCase(str_MONTH[int_j]) Then
-
           If int_j<10 then
-
             str_temp_File_Date = str_temp_File_Date + "0" + int_j
-
           Else
-
             str_temp_File_Date = str_temp_File_Date + int_j
-
           EndIf
-
         EndIf  
-
       EndFor
-
       str_temp_File_Date = str_temp_File_Date + Text.GetSubText(str_temp_File_Name,int_temp_File_Name_Len-10,2)
-
       int_temp_File_Date = Text.GetSubTextToEnd(str_temp_File_Date,2)
-
       If int_temp_File_Date>int_File_MostRecent then
-
         int_File_MostRecent = int_temp_File_Date
-
         str_File_MostRecent = str_File_Path_List[int_i]
-
       EndIf
-
     EndIf
-
   EndIf
-
 EndFor 
 
 
-
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Calculate midnight today in ms
-
 '----------------------------------------------------------------------------------------------------------------------
-
 flt_NowRef_Midnight = Clock.ElapsedMilliseconds
-
 flt_Initial_Midnight = Math.Floor(flt_NowRef_Midnight/86400000)*86400000
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Add Share The Love Button
-
 '----------------------------------------------------------------------------------------------------------------------
-
 str_Charge_Line[0] = "Share The Love"
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 '  Initialize "Share The Love" flags
-
 '----------------------------------------------------------------------------------------------------------------------
-
 int_STL_Counter = 0
-
 For int_i = 1 to int_Charge_Line
-
   log_Charge_STL[int_i] = 0
-
 EndFor
-
 log_STL_Active = 0
-
 flt_STL_Factor = 1.0
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Set  Initial Time
-
 '----------------------------------------------------------------------------------------------------------------------
-
 flt_Initial_ms   = Clock.ElapsedMilliseconds
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize Actbve Charge
-
 '----------------------------------------------------------------------------------------------------------------------
-
 int_Charge_Active  = 0
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize time since lat run, will be updated to a valie if a day is in progress.
-
 '----------------------------------------------------------------------------------------------------------------------
-
 flt_OffLine_ms = 0.0
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize From File : START
-
 '----------------------------------------------------------------------------------------------------------------------
-
 int_Charge_Line = 0
-
 If str_File_MostRecent<>"" then
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize From File : Set saved start time if day in Progress
-
 '----------------------------------------------------------------------------------------------------------------------
-
   If log_File_TodayInProgress=1 Then
-
 ' The following line could be harmful and has been automatically commented.
-
 '     str_temp = File.ReadLine(str_File_MostRecent,2)
-
     flt_Initial_ms = flt_Initial_Midnight
-
     flt_Initial_ms = flt_Initial_ms + Text.GetSubText(str_temp,14,2) * 3600000
-
     flt_Initial_ms = flt_Initial_ms + Text.GetSubText(str_temp,17,2) * 60000
-
     flt_Initial_ms = flt_Initial_ms + Text.GetSubText(str_temp,20,2) * 1000
-
   Endif
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize From File : Set offline time if day in Progress
-
 '----------------------------------------------------------------------------------------------------------------------
-
   If log_File_TodayInProgress=1 Then
-
 ' The following line could be harmful and has been automatically commented.
-
 '     str_temp = File.ReadLine(str_File_MostRecent,3)
-
     
-
     flt_OffLine_ms_start = flt_Initial_Midnight
-
     flt_OffLine_ms_start = flt_OffLine_ms_start + Text.GetSubText(str_temp,13,2) * 3600000
-
     flt_OffLine_ms_start = flt_OffLine_ms_start + Text.GetSubText(str_temp,16,2) * 60000
-
     flt_OffLine_ms_start = flt_OffLine_ms_start + Text.GetSubText(str_temp,19,2) * 1000
-
     flt_OffLine_ms = flt_NowRef_Midnight - flt_OffLine_ms_start
-
   Endif
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize From File : Charge lines and initial Time
-
 ' If a line ends in * it was delete in previous session and will not be used
-
 '----------------------------------------------------------------------------------------------------------------------
-
   For int_i = 1 To 100
-
 ' The following line could be harmful and has been automatically commented.
-
 '     str_temp = File.ReadLine(str_File_MostRecent,int_i+3)
-
     If str_temp<>"" then
-
       int_temp = Text.GetLength(str_temp)
-
       str_temp_last = Text.GetSubText(str_temp,int_temp,1)
-
       If str_temp_last=")" then
-
         int_Charge_Line = int_Charge_Line + 1
-
         int_j = int_Charge_Line
-
         str_Charge_Line[int_j] = Text.GetSubText(str_temp,1,int_temp-10)
-
         flt_Charge_ms[int_j] = 0.0
-
         str_Charge_time[int_j] = "00:00:00"
-
         If log_File_TodayInProgress = 1 then
-
           str_Charge_time[int_j] = Text.GetSubText(str_temp,int_temp-8,8)
-
           flt_Charge_ms[int_j]   = flt_Charge_ms[int_j] + Text.GetSubText(str_Charge_time[int_j],1,2) * 3600000
-
           flt_Charge_ms[int_j]   = flt_Charge_ms[int_j] + Text.GetSubText(str_Charge_time[int_j],4,2) * 60000
-
           flt_Charge_ms[int_j]   = flt_Charge_ms[int_j] + Text.GetSubText(str_Charge_time[int_j],7,2) * 1000
-
         EndIf
-
       EndIf  
-
     EndIf
-
   EndFor
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize From File : Set the Active Charge Line
-
 '----------------------------------------------------------------------------------------------------------------------
-
   For int_i = 1 To int_Charge_Line
-
     If Text.StartsWith(str_Charge_Line[int_i],"<") And Text.EndsWith(str_Charge_Line[int_i],">") Then
-
       str_Charge_Line[int_i] = Text.GetSubText(str_Charge_Line[int_i],2,Text.GetLength(str_Charge_Line[int_i])-2)
-
       int_Charge_Active  = int_i
-
     EndIf
-
   EndFor
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize From File : Share The Love
-
 '----------------------------------------------------------------------------------------------------------------------
-
   For int_i = 1 To int_Charge_Line
-
     If (Text.StartsWith(str_Charge_Line[int_i],"{") And Text.EndsWith(str_Charge_Line[int_i],"}")) Or (Text.StartsWith(str_Charge_Line[int_i],"[") And Text.EndsWith(str_Charge_Line[int_i],"]"))Then
-
       log_Charge_STL[int_i] = 1
-
       If Text.StartsWith(str_Charge_Line[int_i],"{") then
-
         log_STL_Active = 1
-
       EndIf
-
       flt_STL_Factor         = flt_STL_Factor + 1.0
-
       str_Charge_Line[int_i] = Text.GetSubText(str_Charge_Line[int_i],2Text.GetLength(str_Charge_Line[int_i])-2)
-
     EndIf
-
   EndFor
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize From File : END
-
 '----------------------------------------------------------------------------------------------------------------------
-
 EndIf
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize Charge Lines From NO FILE or failed read
-
 '----------------------------------------------------------------------------------------------------------------------
-
 If int_Charge_Line=0 then
-
   int_Charge_Line = 4
-
   str_Charge_Line[1]  = "Charge 1"
-
   str_Charge_Line[2]  = "Charge 2"
-
   str_Charge_Line[3]  = "Charge 3"
-
   str_Charge_Line[4]  = "Charge 4"
-
 'int_Charge_Line = 20
-
 'str_Charge_Line[1]  = "112646 A350 Product"
-
 'str_Charge_Line[2]  = "111448 Airbus Asia Training Center (Singapore) A350 APT "
-
 'str_Charge_Line[3]  = "111447 Airbus Asia Training Center (Singapore) A350 R4 FFS"
-
 'str_Charge_Line[4]  = "112688 AACE (Vietnam Airlines) A350 FFS "
-
 'str_Charge_Line[5]  = "104632 Qatar A350 FFS"
-
 'str_Charge_Line[6]  = "110167 Finnair A350 FFS"
-
 'str_Charge_Line[7]  = "104631 Etihad A350 FFS"
-
 'str_Charge_Line[8]  = "104630 Etihad A350 R4 APT"
-
 'str_Charge_Line[9]  = "110403 Asiana A350 FFS"
-
 'str_Charge_Line[10] = "110167 Finnair A350 FFS #1"
-
 'str_Charge_Line[11] = "110403 Asiana A350 FFS #1"
-
 'str_Charge_Line[12] = "111041 American A350 400XR"
-
 'str_Charge_Line[13] = "112502 American A350 FMST"
-
 'str_Charge_Line[14] = "109975 American A350 FFS #1"
-
 'str_Charge_Line[15] = "110402 American A350 FFS #2"
-
 'str_Charge_Line[16] = "111592 United A350 FTD"
-
 'str_Charge_Line[17] = "111471 United A350 FFS"
-
 'str_Charge_Line[18] = "A320 Std 2.0 Activities"
-
 'str_Charge_Line[19] = "Swiss A320 Bid"
-
 'str_Charge_Line[20] = "AA A32 #6 Kick Off"
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize Charge Timers to Default
-
 '----------------------------------------------------------------------------------------------------------------------
-
    For int_i = 1 to int_Charge_Line
-
      flt_Charge_ms[int_i]   = 0.0
-
      str_Charge_time[int_i] = "00:00:00"
-
    EndFor
-
 EndIf
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Decose  Initial Time to String
-
 '----------------------------------------------------------------------------------------------------------------------
-
 int_Initial_Days = Math.Floor(flt_Initial_ms/86400000)
-
 flt_Initial_ms   = flt_Initial_ms - int_Initial_Days*86400000
-
 int_Initial_Hrs  = Math.Floor(flt_Initial_ms/3600000)
-
 flt_Initial_ms   = flt_Initial_ms - int_Initial_Hrs*3600000
-
 int_Initial_Min  = Math.Floor(flt_Initial_ms/60000)
-
 flt_Initial_ms   = flt_Initial_ms - int_Initial_Min*60000
-
 int_Initial_Sec  = Math.Floor(flt_Initial_ms/1000)
 
-
-
 str_Initial_Time = "X"
-
 If int_Initial_Hrs<10 then
-
   str_Initial_Time = str_Initial_Time + "0"
-
 EndIf
-
 str_Initial_Time = str_Initial_Time + int_Initial_Hrs + ":"
-
 If int_Initial_Min<10 then
-
   str_Initial_Time = str_Initial_Time + "0"
-
 EndIf
-
 str_Initial_Time = str_Initial_Time + int_Initial_Min + ":"
-
 If int_Initial_Sec<10 then
-
   str_Initial_Time = str_Initial_Time + "0"
-
 EndIf
-
 str_Initial_Time = str_Initial_Time + int_Initial_Sec
-
 str_Initial_Time = Text.GetSubTextToEnd(str_Initial_Time,2)
 
 
-
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Add Pause if not already there
-
 '----------------------------------------------------------------------------------------------------------------------
-
 If Text.ConvertToUpperCase(str_Charge_Line[int_Charge_Line])<>"PAUSE" Then
-
   int_Charge_Line = int_Charge_Line + 1
-
   str_Charge_Line[int_Charge_Line] = "PAUSE"
-
 Endif
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' If not starting a new dat then set the active charge to PAUSE and Share The Love is OFF
-
 '----------------------------------------------------------------------------------------------------------------------
-
 If log_File_TodayInProgress=0 then
-
   int_Charge_Active = int_Charge_Line
-
   log_STL_Active    = 0
-
   for int_i = 1 to int_Charge_Line
-
     log_Charge_STL[int_i] = 0
-
   EndFor
-
 Endif
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Initialize Charge Line Delete Flag
-
 '----------------------------------------------------------------------------------------------------------------------
-
 for int_i = 1 to int_Charge_Line
-
   log_Charge_Delete[int_i] = 0
-
 EndFor
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Add Share The Love Button
-
 '----------------------------------------------------------------------------------------------------------------------
-
 If log_STL_Active=1 then
-
   str_Charge_Line[0] = "Share The Love : ACTIVE"
-
 Else
-
   str_Charge_Line[0] = "Share The Love"
-
 Endif
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Open Gui
-
 '----------------------------------------------------------------------------------------------------------------------
-
 GraphicsWindow.Title     = "Peter's Timers - " + str_Date_Full
-
 GraphicsWindow.Width     = 350
-
 GraphicsWindow.Height    = (int_Charge_Line+4)*30 + 10
-
 GraphicsWindow.CanResize = 1
-
 For int_i = 0 To int_Charge_Line
-
   ID_Button_ID[int_i] = Controls.AddButton(str_Charge_Line[int_i],10,5+30*int_i)
-
   Controls.SetSize(ID_Button_ID[int_i], 250,25)
-
   ID_Text_ID[int_i]   = Controls.AddTextBox(275,5+30*int_i)
-
   Controls.SetTextBoxText(ID_Text_ID[int_i],str_Charge_time[int_i])
-
   If int_i=0 then
-
     Controls.SetSize(ID_Text_ID[int_i], 25, 25)
-
   Else
-
     Controls.SetSize(ID_Text_ID[int_i], 75, 25)
-
   EndIf
-
 EndFor
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Open Gui - Quit Button
-
 '----------------------------------------------------------------------------------------------------------------------
-
 Controls.SetSize(ID_Button_ID[int_Charge_Line+1], 100,25)
-
 ID_Button_ID[int_Charge_Line+1] = Controls.AddButton("QUIT",10,5+30*(int_Charge_Line+2))
-
 Controls.SetSize(ID_Button_ID[int_Charge_Line+1], 100,25)
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Open Gui - Report Button
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ID_Button_ID_Report = Controls.AddButton("Report",275,5+30*(int_Charge_Line+2))
-
 Controls.SetSize(ID_Button_ID_Report,75,25)
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Open Gui - Total Time
-
 '----------------------------------------------------------------------------------------------------------------------
-
 GraphicsWindow.DrawText(10,5+30*(int_Charge_Line+1),"TOTAL TIME")
-
 ID_Text_ID_TOTAL = Controls.AddTextBox(275,5+30*int_i)
-
 Controls.SetSize(ID_Text_ID_TOTAL, 75, 25)
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' Open Gui - Green around active timers
-
 '----------------------------------------------------------------------------------------------------------------------
-
 For int_i = 1 To int_Charge_Line
-
   If (log_Charge_STL[int_i]=1 And log_STL_Active=1) Or int_i = int_Charge_Active then
-
     GraphicsWindow.PenColor = "Green"
-
   Else
-
     GraphicsWindow.PenColor = "White"
-
   EndIf
-
   GraphicsWindow.DrawRectangle(275,5+30*int_i,75,25)
-
 EndFor    
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : START
-
 '----------------------------------------------------------------------------------------------------------------------
-
 int_Quit           = 0
-
 log_Button_Change  = 0
-
 int_Button_ID      = 0
-
 flt_ms_start       = Clock.ElapsedMilliseconds
-
 flt_Save_Timer     = 0.0
-
 Controls.ButtonClicked = OnButtonClicked
 
-
-
 While int_Quit=0
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Show how many are sharing the love
-
 '----------------------------------------------------------------------------------------------------------------------
-
     Controls.SetTextBoxText(ID_Text_ID[0],flt_STL_Factor )
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Get Current Time
-
 '----------------------------------------------------------------------------------------------------------------------
-
   flt_ms_Now    = Clock.ElapsedMilliseconds
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Clock & make it the window title
-
 '----------------------------------------------------------------------------------------------------------------------
-
   flt_Clock_ms  = flt_ms_Now - flt_Initial_Midnight
-
   flt_Clock_Hrs = Math.Floor(flt_Clock_ms/3600000)
-
   flt_Clock_ms  = flt_Clock_ms - flt_Clock_Hrs * 3600000
-
   flt_Clock_Min = Math.Floor(flt_Clock_ms/60000)
-
   flt_Clock_ms  = flt_Clock_ms - flt_Clock_Min * 60000
-
   flt_Clock_Sec = Math.Floor(flt_Clock_ms/1000)
-
   
-
   str_Clock = "x"
-
   If flt_Clock_Hrs<10 Then 
-
     str_Clock = str_Clock + "0"
-
   EndIf
-
   str_Clock = str_Clock + flt_Clock_Hrs +":"
-
   If flt_Clock_Min<10 Then 
-
     str_Clock = str_Clock + "0"
-
   EndIf
-
   str_Clock = str_Clock + flt_Clock_Min +":"
-
   If flt_Clock_Sec<10 Then 
-
     str_Clock = str_Clock + "0"
-
   EndIf
-
   str_Clock = str_Clock + flt_Clock_Sec
-
   str_Clock = Text.GetSubTextToEnd(str_Clock,2)
-
-
 
   GraphicsWindow.Title     = "Peter's Timers - " + str_Date_Full + " " + str_Clock
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Save every 5 minutes (300000 ms)
-
 '----------------------------------------------------------------------------------------------------------------------
-
   If (flt_ms_Now-flt_Save_Timer)>=300000 Then
-
     flt_Save_Timer = flt_ms_Now
-
     SaveChargeLog()
-
   EndIf    
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Action on Button Change - START
-
 '----------------------------------------------------------------------------------------------------------------------
-
   If log_Button_Change = 1 Then
-
     int_Button_ID = Text.GetSubTextToEnd(Controls.LastClickedButton,7) - 1
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Action on Button Change - Save Data
-
 '----------------------------------------------------------------------------------------------------------------------
-
     SaveChargeLog()
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Action on Button Change - Quit
-
 '----------------------------------------------------------------------------------------------------------------------
-
     str_Button_Text = Controls.GetButtonCaption(Controls.LastClickedButton)
-
     If str_Button_Text="QUIT" then
-
       int_Quit = 1
-
       SaveChargeLog()
-
     ElseIf str_Button_Text="Report" then
-
       WeeklyReport()
-
     EndIf
-
     
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Action on Button Change : Charge ID  - START
-
 '----------------------------------------------------------------------------------------------------------------------
-
     If int_Button_ID>=0 And int_Button_ID<=int_Charge_Line Then
-
       
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Action on Button Change : Charge ID  - Save current Timer Values
-
 ' If there is an offline time, use it here then reset
-
 '----------------------------------------------------------------------------------------------------------------------
-
       For int_i = 1 To int_Charge_Line
-
         If (log_Charge_STL[int_i]=1 And log_STL_Active=1) Or int_i = int_Charge_Active then
-
           If log_STL_Active=1 then
-
             flt_STL_TimeFactor = flt_STL_Factor
-
           Else
-
             flt_STL_TimeFactor = 1.0
-
           EndIf
-
           flt_Charge_ms[int_i] = flt_Charge_ms[int_i] + (flt_OffLine_ms + flt_ms_Now - flt_ms_start)/flt_STL_TimeFactor
-
         EndIf
-
         If int_i<int_Charge_Line then
-
           flt_Total_ms = flt_Total_ms + flt_Charge_ms[int_i]
-
         EndIf
-
       EndFor    
-
       flt_OffLine_ms = 0.0
-
       flt_ms_start = flt_ms_Now
-
       
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Action on Button Change : Charge ID  - Toggle Share The Love
-
 '----------------------------------------------------------------------------------------------------------------------
-
       If int_Button_ID = 0 Then
-
         If log_STL_Active = 1 Then
-
           log_STL_Active = 0
-
           Controls.SetButtonCaption(ID_Button_ID[0],"Share the Love")
-
         Else
-
           log_STL_Active = 1
-
           Controls.SetButtonCaption(ID_Button_ID[0],"Share the Love: ACTIVE")
-
         EndIf
-
       EndIf
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Action on Button Change : Charge ID 
-
 ' - Toggle Charge STL flag if STL is active
-
 ' - Change active Charge if STL is not active
-
 '----------------------------------------------------------------------------------------------------------------------
-
       If log_STL_Active=1 Then
-
         if log_Charge_STL[int_Button_ID]=1 Then 
-
           log_Charge_STL[int_Button_ID] = 0
-
         Else
-
           log_Charge_STL[int_Button_ID] = 1
-
         EndIf
-
         flt_STL_Factor = 0.0
-
         For int_i = 1 To int_Charge_Line
-
           If log_Charge_STL[int_i]=1 Or int_i = int_Charge_Active then
-
             flt_STL_Factor = flt_STL_Factor + 1.0
-
           EndIf
-
         EndFor    
-
       ElseIf int_Button_ID>0 then
-
         int_Charge_Active = int_Button_ID
-
       EndIf
-
       
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Action on Button Change : HighLight Acitive Timers
-
 '----------------------------------------------------------------------------------------------------------------------
-
       For int_i = 1 To int_Charge_Line
-
         If (log_Charge_STL[int_i]=1 And log_STL_Active=1) Or int_i = int_Charge_Active then
-
           GraphicsWindow.PenColor = "Green"
-
         Else
-
           GraphicsWindow.PenColor = "White"
-
         EndIf
-
         GraphicsWindow.DrawRectangle(275,5+30*int_i,75,25)
-
       EndFor    
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Action on Button Change : Charge ID  - END
-
 '----------------------------------------------------------------------------------------------------------------------
-
     EndIf
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Action on Button Change - END
-
 '----------------------------------------------------------------------------------------------------------------------
-
     log_Button_Change = 0
-
   EndIf      
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Increment & Display Timers (not update until a button is pressed)
-
 ' If a timer is being incremented then its delete flag is removed
-
 '----------------------------------------------------------------------------------------------------------------------
-
   If log_STL_Active=1 then
-
     flt_STL_TimeFactor = flt_STL_Factor
-
   Else
-
     flt_STL_TimeFactor = 1.0
-
   EndIf
-
   For int_i = 1 To int_Charge_Line
-
     If (log_Charge_STL[int_i]=1 And log_STL_Active=1) Or int_i = int_Charge_Active then
-
       flt_temp_ms = flt_Charge_ms[int_i] + (flt_OffLine_ms + flt_ms_Now - flt_ms_start)/flt_STL_TimeFactor
 
-
-
       int_temp_hrs  = Math.Floor(flt_temp_ms/3600000.0)
-
       int_temp_min  = Math.Floor((flt_temp_ms - int_temp_hrs*3600000)/60000.0)
-
       int_temp_sec  = Math.Floor((flt_temp_ms - int_temp_hrs*3600000 - int_temp_min*60000.0)/1000.0)
-
       str_temp_time = "X"
-
       If int_temp_hrs<10 then
-
         str_temp_time = str_temp_time + "0"
-
       EndIf
-
       str_temp_time = str_temp_time + int_temp_hrs + ":"
-
       If int_temp_min<10 then
-
         str_temp_time = str_temp_time + "0"
-
       EndIf
-
       str_temp_time = str_temp_time + int_temp_min + ":"
-
       If int_temp_sec<10 then
-
         str_temp_time = str_temp_time + "0"
-
       EndIf
-
       str_temp_time = str_temp_time + int_temp_sec
-
       str_temp_time = Text.GetSubTextToEnd(str_temp_time,2)
-
       str_Charge_time[int_i] = str_temp_time
-
       
-
       Controls.SetTextBoxText(ID_Text_ID[int_i],str_Charge_time[int_i])
-
       
-
       If log_Charge_Delete[int_i]=1 then
-
         log_Charge_Delete[int_i]=0
-
         SaveChargeLog()
-
       Endif
-
     EndIf
-
   EndFor
-
   
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Main Program Loop : Increment Total Time
-
 '----------------------------------------------------------------------------------------------------------------------
-
   flt_Total_ms = 0.0
-
   For int_i = 1 To int_Charge_Line
-
     If int_i<int_Charge_Line then
-
       flt_Total_ms = flt_Total_ms + flt_Charge_ms[int_i]
-
     EndIf
-
   EndFor
-
   If int_Charge_Active<int_Charge_Line And int_Charge_Active>0 then
-
     flt_temp_ms = flt_Total_ms + (flt_ms_Now - flt_ms_start)
-
   Else
-
     flt_temp_ms = flt_Total_ms
-
   EndIf
-
   If flt_temp_ms>1000 then
-
     int_temp_hrs  = Math.Floor(flt_temp_ms/3600000.0)
-
     int_temp_min  = Math.Floor((flt_temp_ms - int_temp_hrs*3600000)/60000.0)
-
     int_temp_sec  = Math.Floor((flt_temp_ms - int_temp_hrs*3600000 - int_temp_min*60000.0)/1000.0)
-
     str_temp_time = "X"
-
     If int_temp_hrs<10 then
-
       str_temp_time = str_temp_time + "0"
-
     EndIf
-
     str_temp_time = str_temp_time + int_temp_hrs + ":"
-
     If int_temp_min<10 then
-
       str_temp_time = str_temp_time + "0"
-
     EndIf
-
     str_temp_time = str_temp_time + int_temp_min + ":"
-
     If int_temp_sec<10 then
-
       str_temp_time = str_temp_time + "0"
-
     EndIf
-
     str_temp_time = str_temp_time + int_temp_sec
-
     str_temp_time = Text.GetSubTextToEnd(str_temp_time,2)
-
   Else
-
     str_temp_time = "00:00:00"
-
   EndIf
-
   
-
   Controls.SetTextBoxText(ID_Text_ID_TOTAL,str_temp_time)
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' MPL: Check for Deleted Charges
-
 '----------------------------------------------------------------------------------------------------------------------
-
   For int_i = 1 To int_Charge_Line
-
     If log_Charge_Delete[int_i]=0 then
-
       str_temp = Controls.GetTextBoxText(ID_Text_ID[int_i])
-
       If flt_Charge_ms[int_i]>0.0 Or (log_Charge_STL[int_i]=1 And log_STL_Active=1) Or int_i = int_Charge_Active then
-
         If Text.GetLength(str_temp)<>8 then
-
           Controls.SetTextBoxText(ID_Text_ID[int_i],str_Charge_time[int_i])
-
         Endif  
-
       Else
-
         If str_temp = "" Then
-
           log_Charge_Delete[int_i]=1
-
           Controls.SetTextBoxText(ID_Text_ID[int_i],"Deleted")
-
         EndIf
-
       Endif    
-
     EndIf
-
   EndFor
-
 EndWhile
-
 Program.End()
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report
-
 '----------------------------------------------------------------------------------------------------------------------
-
 Sub WeeklyReport
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Save data to ebnnsure using latest
-
 '----------------------------------------------------------------------------------------------------------------------
-
     SaveChargeLog()
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Initialize daily file 
-
 '----------------------------------------------------------------------------------------------------------------------
-
   int_REPORT_Weekday = 0
-
   int_REPORT_Day     = Clock.Day
-
   int_REPORT_Month   = Clock.Month
-
   int_REPORT_Year    = Clock.Year
-
   str_REPORT_Weekday = Clock.WeekDay
 
-
-
   str_REPORT_File_Day[1] = "Saturday"
-
   str_REPORT_File_Day[2] = "Sunday"
-
   str_REPORT_File_Day[3] = "Monday"
-
   str_REPORT_File_Day[4] = "Tuesday"
-
   str_REPORT_File_Day[5] = "Wednesday"
-
   str_REPORT_File_Day[6] = "Thursday"
-
   str_REPORT_File_Day[7] = "Friday"
-
   
-
   int_REPORT_MonthDays[1]  = 31
-
   If Text.IsSubText("/2016/2020/2024/2028/2032/2036/","/" + int_REPORT_Year +"/") Then
-
     int_REPORT_MonthDays[2] = 29
-
   Else
-
     int_REPORT_MonthDays[2] = 28
-
   Endif
-
   int_REPORT_MonthDays[3]  = 31
-
   int_REPORT_MonthDays[4]  = 30
-
   int_REPORT_MonthDays[5]  = 31
-
   int_REPORT_MonthDays[6]  = 30
-
   int_REPORT_MonthDays[7]  = 31
-
   int_REPORT_MonthDays[8]  = 31
-
   int_REPORT_MonthDays[9]  = 30
-
   int_REPORT_MonthDays[10] = 31
-
   int_REPORT_MonthDays[11] = 30
-
   int_REPORT_MonthDays[12] = 31
 
-
-
   For int_REPORT_i = 1 To 7
-
     If str_REPORT_File_Day[int_REPORT_i]=str_REPORT_Weekday Then
-
       int_REPORT_Weekday = int_REPORT_i
-
     EndIf
-
   EndFor
-
   
-
   For int_REPORT_i = 1 To 7
-
     int_REPORT_File_Day[int_REPORT_i]   = int_REPORT_Day + int_REPORT_i - int_REPORT_Weekday
-
     int_REPORT_File_Month[int_REPORT_i] = int_REPORT_Month
-
     int_REPORT_File_Year[int_REPORT_i]  = int_REPORT_Year
-
     If int_REPORT_File_Day[int_REPORT_i]<1 Then
-
       int_REPORT_File_Month[int_REPORT_i] = int_REPORT_File_Month[int_REPORT_i] - 1
-
       If int_REPORT_File_Month[int_REPORT_i]<1 Then
-
         int_REPORT_File_Month[int_REPORT_i] = 12
-
         int_REPORT_File_Year[int_REPORT_i]  = int_REPORT_File_Year[int_REPORT_i] -1
-
       EndIf
-
       int_REPORT_File_Day[int_REPORT_i] = int_REPORT_MonthDays[int_REPORT_File_Month[int_REPORT_i]] + int_REPORT_File_Day[int_REPORT_i]
-
     ElseIf int_REPORT_File_Day[int_REPORT_i]>int_REPORT_MonthDays[int_REPORT_File_Month[int_REPORT_i]] then
-
       int_REPORT_File_Day[int_REPORT_i]=int_REPORT_File_Day[int_REPORT_i] - int_REPORT_MonthDays[int_REPORT_File_Month[int_REPORT_i]]
-
       int_REPORT_File_Month[int_REPORT_i] = int_REPORT_File_Month[int_REPORT_i] + 1
-
       If int_REPORT_File_Month[int_REPORT_i]>12 Then
-
         int_REPORT_File_Month[int_REPORT_i] = 1
-
         int_REPORT_File_Year[int_REPORT_i]  = int_REPORT_File_Year[int_REPORT_i] +1
-
       EndIf
-
     EndIf
-
     
-
     str_REPORT_File_Day[int_REPORT_i] = str_File_Base + str_REPORT_File_Day[int_REPORT_i] + " " + str_MONTH[int_REPORT_File_Month[int_REPORT_i]] + " "
-
     If int_REPORT_File_Day[int_REPORT_i]<10 Then
-
       str_REPORT_File_Day[int_REPORT_i] = str_REPORT_File_Day[int_REPORT_i] + Text.GetSubTextToEnd("x0" + int_REPORT_File_Day[int_REPORT_i],2)
-
     Else
-
       str_REPORT_File_Day[int_REPORT_i] = str_REPORT_File_Day[int_REPORT_i] + int_REPORT_File_Day[int_REPORT_i]
-
     EndIf    
-
     str_REPORT_File_Day[int_REPORT_i] = str_REPORT_File_Day[int_REPORT_i] + " " + int_REPORT_File_Year[int_REPORT_i] + ".txt"
-
     
-
   EndFor  
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Get teh week Start Date fromthe first File
-
 '----------------------------------------------------------------------------------------------------------------------
-
   str_REPORT_Week_Start = str_REPORT_File_Day[1]
-
   str_REPORT_Week_Start = Text.GetSubText(str_REPORT_Week_Start,Text.GetLength(str_File_Base)+1,Text.GetLength(str_REPORT_Week_Start)-Text.GetLength(str_File_Base)-4)
-
   
-
   '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Check that FILES exists
-
 '----------------------------------------------------------------------------------------------------------------------
-
   For int_REPORT_i = 1 To 7
-
     log_REPORT_File_Exists[int_REPORT_i] = 0
-
   EndFor
-
 ' The following line could be harmful and has been automatically commented.
-
 '   str_REPORT_Path_LIST = File.GetFiles(str_File_Path)
-
   For int_REPORT_i = 1 To Array.GetItemCount(str_REPORT_Path_LIST)
-
     str_temp_REPORT_File = Text.ConvertToUpperCase(str_REPORT_Path_LIST[int_REPORT_i])
-
     For int_REPORT_j = 1 To 7
-
       If str_temp_REPORT_File=Text.ConvertToUpperCase(str_REPORT_File_Day[int_REPORT_j]) Then
-
         log_REPORT_File_Exists[int_REPORT_j] = 1
-
       Endif
-
     EndFor
-
   EndFor
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Initialize the total number of Charges
-
 '----------------------------------------------------------------------------------------------------------------------
-
   int_REPORT_Total_Charges = 0
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Build Data Table
-
 '----------------------------------------------------------------------------------------------------------------------
-
   For int_REPORT_i = 1 To 7
-
     flt_REPORT_Day_Length[int_REPORT_i] = 0.0
-
     If log_REPORT_File_Exists[int_REPORT_i]=0 Then
-
       str_REPORT_Day_Start[int_REPORT_i]  = "0000"
-
       str_REPORT_Day_End[int_REPORT_i]    = "0000"
-
       TextWindow.WriteLine(str_REPORT_File_Day[int_REPORT_i] + " - NOT Found")
-
     Else
-
       
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Build Data Table - START / STOP 
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' The following line could be harmful and has been automatically commented.
-
 '       str_REPORT_temp_Line = File.ReadLine(str_REPORT_File_Day[int_REPORT_i],2)
-
       str_REPORT_Day_Start[int_REPORT_i] = "X" + Text.GetSubText(str_REPORT_temp_Line,14,2)+Text.GetSubText(str_REPORT_temp_Line,17,2)
-
       str_REPORT_Day_Start[int_REPORT_i] = Text.GetSubTextToEnd(str_REPORT_Day_Start[int_REPORT_i],2)
-
 ' The following line could be harmful and has been automatically commented.
-
 '       str_REPORT_temp_Line = File.ReadLine(str_REPORT_File_Day[int_REPORT_i],3)
-
       str_REPORT_Day_End[int_REPORT_i] = "X" + Text.GetSubText(str_REPORT_temp_Line,13,2)+Text.GetSubText(str_REPORT_temp_Line,16,2)
-
       str_REPORT_Day_End[int_REPORT_i] = Text.GetSubTextToEnd(str_REPORT_Day_End[int_REPORT_i],2)
-
       
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Build Data Table - Extract Task and Time
-
 '----------------------------------------------------------------------------------------------------------------------
-
       TextWindow.WriteLine(str_REPORT_File_Day[int_REPORT_i] + " - Found")
-
       For int_REPORT_j = 4 To 100
-
 ' The following line could be harmful and has been automatically commented.
-
 '         str_REPORT_temp_Line     = File.ReadLine(str_REPORT_File_Day[int_REPORT_i],int_REPORT_j)
-
         int_REPORT_temp_Line_Len = Text.getLength(str_REPORT_temp_Line)
-
         If int_REPORT_temp_Line_Len>10 Then         
-
           If Text.GetSubText(str_REPORT_temp_Line,int_REPORT_temp_Line_Len,1)<>")" then
-
             str_REPORT_temp_Line = Text.GetSubText(str_REPORT_temp_Line,1,int_REPORT_temp_Line_Len-1)
-
             int_REPORT_temp_Line_Len = Text.getLength(str_REPORT_temp_Line)
-
           EndIf
-
           If Text.GetSubText(str_REPORT_temp_Line,int_REPORT_temp_Line_Len,1)<>")" then
-
             str_REPORT_temp_Line = Text.GetSubText(str_REPORT_temp_Line,1,int_REPORT_temp_Line_Len-1)
-
             int_REPORT_temp_Line_Len = Text.getLength(str_REPORT_temp_Line)
-
           EndIf
-
           int_REPORT_temp_Hour = Text.GetSubText(str_REPORT_temp_Line,int_REPORT_temp_Line_Len-8,2)
-
           int_REPORT_temp_Min  = Text.GetSubText(str_REPORT_temp_Line,int_REPORT_temp_Line_Len-5,2)
-
           int_REPORT_temp_sec  = Text.GetSubText(str_REPORT_temp_Line,int_REPORT_temp_Line_Len-2,2)
-
           flt_REPORT_temp_Hour = int_REPORT_temp_Hour + int_REPORT_temp_Min/60.0 + int_REPORT_temp_sec/3600.0
-
           str_REPORT_temp_Name = Text.GetSubText(str_REPORT_temp_Line,1,int_REPORT_temp_Line_Len-10)
-
           str_REPORT_temp_Name_Len = Text.getLength(str_REPORT_temp_Name)
-
           For int_REPORT_k = 1 To 2
-
             If (Text.GetSubText(str_REPORT_temp_Name,1,1)="<" And Text.GetSubText(str_REPORT_temp_Name,str_REPORT_temp_Name_Len,1)=">") Or (Text.GetSubText(str_REPORT_temp_Name,1,1)="[" And Text.GetSubText(str_REPORT_temp_Name,str_REPORT_temp_Name_Len,1)="]")  Or (Text.GetSubText(str_REPORT_temp_Name,1,1)="{" And Text.GetSubText(str_REPORT_temp_Name,str_REPORT_temp_Name_Len,1)="}")then
-
               str_REPORT_temp_Name = Text.GetSubText(str_REPORT_temp_Name,2,str_REPORT_temp_Name_Len-2)
-
               str_REPORT_temp_Name_Len = Text.getLength(str_REPORT_temp_Name)
-
             EndIf
-
           EndFor  
-
             
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Build Data Table - Increment Day Length
-
 '----------------------------------------------------------------------------------------------------------------------
-
           if str_REPORT_temp_Name_Len>0 And flt_REPORT_temp_Hour>0.0 And str_REPORT_temp_Name<>"PAUSE" Then
-
             flt_REPORT_Day_Length[int_REPORT_i] = flt_REPORT_Day_Length[int_REPORT_i] + flt_REPORT_temp_Hour
-
             If int_REPORT_Total_Charges=0 Then
-
               int_REPORT_Total_Charges   = 1
-
               str_REPORT_ChgLine_Name[1] = str_REPORT_temp_Name
-
               flt_REPORT_HourTable[1][1]  = flt_REPORT_temp_Hour
-
               For int_REPORT_k = 2 To 7
-
                 flt_REPORT_HourTable[1][int_REPORT_k] = 0.0
-
               EndFor
-
             Else
-
               int_REPORT_temp_MATCH = 0
-
               For int_REPORT_k = 1 To int_REPORT_Total_Charges
-
                 If str_REPORT_ChgLine_Name[int_REPORT_k]=str_REPORT_temp_Name And int_REPORT_temp_MATCH=0 Then
-
                   int_REPORT_temp_MATCH = int_REPORT_k
-
                 EndIf
-
               EndFor
-
               If int_REPORT_temp_MATCH>0 Then
-
                 flt_REPORT_HourTable[int_REPORT_temp_MATCH][1] = flt_REPORT_HourTable[int_REPORT_temp_MATCH][1] + flt_REPORT_temp_Hour
-
               Else              
-
                 int_REPORT_Total_Charges = int_REPORT_Total_Charges + 1
-
                 str_REPORT_ChgLine_Name[int_REPORT_Total_Charges] = str_REPORT_temp_Name
-
                 flt_REPORT_HourTable[int_REPORT_Total_Charges][1]  = flt_REPORT_temp_Hour
-
                 For int_REPORT_k = 2 To 7
-
                   flt_REPORT_HourTable[int_REPORT_Total_Charges][int_REPORT_k] = 0.0
-
                 EndFor
-
               EndIf  
-
             EndIf
-
           EndIf
-
         Endif
-
       EndFor    
-
     EndIf  
-
   EndFor
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Balance time to 1/10 hour
-
 '----------------------------------------------------------------------------------------------------------------------
-
   If int_REPORT_Total_Charges<=0 Then
-
     TextWindow.WriteLine("No hours this week  :-(")
-
   Else
-
     For int_REPORT_i = 1 To int_REPORT_Total_Charges
-
       flt_REPORT_HourTable[int_REPORT_i][1] = flt_REPORT_HourTable[int_REPORT_i][1]*10.0
-
     EndFor
-
     For int_REPORT_i = 1 To int_REPORT_Total_Charges
-
       If int_REPORT_i<int_REPORT_Total_Charges Then
-
         flt_REPORT_HourTable[int_REPORT_i+1][1] = flt_REPORT_HourTable[int_REPORT_i+1][1] + flt_REPORT_HourTable[int_REPORT_i][1] - Math.Floor(flt_REPORT_HourTable[int_REPORT_i][1])
-
         flt_REPORT_HourTable[int_REPORT_i][1] = Math.Floor(flt_REPORT_HourTable[int_REPORT_i][1])
-
       EndIf  
-
     EndFor
-
     flt_REPORT_HourTable[int_REPORT_Total_Charges][1] = Math.Round(flt_REPORT_HourTable[int_REPORT_Total_Charges][1])
-
     For int_REPORT_i = 1 To int_REPORT_Total_Charges
-
       flt_REPORT_HourTable[int_REPORT_i][1] = flt_REPORT_HourTable[int_REPORT_i][1]/10.0
-
     EndFor
-
     
 
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Balance days to 1/10 hour
-
 '----------------------------------------------------------------------------------------------------------------------
-
     For int_REPORT_i = 1 To 7
-
       flt_REPORT_Day_Length[int_REPORT_i] = flt_REPORT_Day_Length[int_REPORT_i]*10.0
-
     EndFor
-
     For int_REPORT_i = 1 To 6
-
       flt_REPORT_Day_Length[int_REPORT_i+1] = flt_REPORT_Day_Length[int_REPORT_i+1] + flt_REPORT_Day_Length[int_REPORT_i] - Math.Floor(flt_REPORT_Day_Length[int_REPORT_i])
-
       flt_REPORT_Day_Length[int_REPORT_i] = Math.Floor(flt_REPORT_Day_Length[int_REPORT_i])
-
     EndFor
-
     flt_REPORT_Day_Length[7] = Math.Round(flt_REPORT_Day_Length[7])
-
     For int_REPORT_i = 1 To 7
-
       flt_REPORT_Day_Length[int_REPORT_i] = flt_REPORT_Day_Length[int_REPORT_i]/10.0
-
     EndFor
 
 
-
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Eliminate any 0 charge lines that may result from 1/10 balancing
-
 '----------------------------------------------------------------------------------------------------------------------
-
     str_REPORT_ChgLine_Name[int_REPORT_Total_Charges+1] = ""
-
     For int_REPORT_i = 1 To 7
-
       flt_REPORT_HourTable[int_REPORT_Total_Charges+1][int_REPORT_i + 1] = 0.0
-
     EndFor
-
     int_REPORT_Freeze_Charges  = int_REPORT_Total_Charges
-
     For int_REPORT_i = 1 To int_REPORT_Freeze_Charges
-
       int_REPORT_Reduced_Charges = int_REPORT_Total_Charges
-
       For int_REPORT_j = 1 To int_REPORT_Total_Charges
-
         If flt_REPORT_HourTable[int_REPORT_j][1]=0.0 Then
-
           int_REPORT_Reduced_Charges = int_REPORT_Reduced_Charges - 1
-
           For int_REPORT_k = int_REPORT_j To int_REPORT_Total_Charges
-
             str_REPORT_ChgLine_Name[int_REPORT_k] = str_REPORT_ChgLine_Name[int_REPORT_k+1]
-
             flt_REPORT_HourTable[int_REPORT_k][1] = flt_REPORT_HourTable[int_REPORT_k+1][1]
-
           EndFor
-
         EndIf  
-
       EndFor
-
       int_REPORT_Total_Charges = int_REPORT_Reduced_Charges
-
     EndFor
-
     
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Save Project Hours to Column 8 of array
-
 '----------------------------------------------------------------------------------------------------------------------
-
     For int_REPORT_i = 1 To int_REPORT_Total_Charges
-
       flt_REPORT_HourTable[int_REPORT_i][8] = flt_REPORT_HourTable[int_REPORT_i][1]
-
     EndFor
-
     
-
     '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Spread The hours
-
 '----------------------------------------------------------------------------------------------------------------------
-
     For int_REPORT_i = 1 To 6
-
       flt_temp_Today_Total  = 0.0
-
       log_temp_Day_Overflow = 0
-
       For int_REPORT_j = 1 To int_REPORT_Total_Charges
-
         If log_temp_Day_Overflow = 0 Then
-
           flt_temp_Today_Total = flt_temp_Today_Total + flt_REPORT_HourTable[int_REPORT_j][int_REPORT_i]
-
           If flt_temp_Today_Total>=flt_REPORT_Day_Length[int_REPORT_i] Then
-
             log_temp_Day_Overflow = 1
-
             flt_REPORT_HourTable[int_REPORT_j][int_REPORT_i+1] = flt_temp_Today_Total - flt_REPORT_Day_Length[int_REPORT_i]
-
             flt_REPORT_HourTable[int_REPORT_j][int_REPORT_i] = flt_REPORT_HourTable[int_REPORT_j][int_REPORT_i] - flt_REPORT_HourTable[int_REPORT_j][int_REPORT_i+1]
-
             If int_REPORT_j<int_REPORT_Total_Charges Then
-
               For int_REPORT_k = int_REPORT_j+1 To int_REPORT_Total_Charges
-
                 flt_REPORT_HourTable[int_REPORT_k][int_REPORT_i+1] = flt_REPORT_HourTable[int_REPORT_k][int_REPORT_i]
-
                 flt_REPORT_HourTable[int_REPORT_k][int_REPORT_i]   = 0.0
-
               EndFor 
-
             EndIf    
-
           EndIf
-
         EndIf  
-
       EndFor
-
     EndFor  
 
 
-
-
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Totals
-
 '----------------------------------------------------------------------------------------------------------------------
-
   flt_REPORT_Week_Total = 0.0
-
   For int_REPORT_i = 1 To 8
-
     flt_REPORT_Day_Total[int_REPORT_i] = 0.0
-
     For int_REPORT_j = 1 To int_REPORT_Total_Charges
-
       flt_REPORT_Day_Total[int_REPORT_i] = flt_REPORT_Day_Total[int_REPORT_i] + flt_REPORT_HourTable[int_REPORT_j][int_REPORT_i]
-
     EndFor   
-
 '    flt_REPORT_Week_Total = flt_REPORT_Week_Total + flt_REPORT_Day_Total[int_REPORT_i]
-
   EndFor
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Weekly Report - Output
-
 '----------------------------------------------------------------------------------------------------------------------
-
     str_REPORT_Out_File = str_File_Path + "Weekly Report " + str_REPORT_Week_Start + ".txt"
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.DeleteFile(str_REPORT_Out_File)
 
 
-
-
-
     log_REPORT_background = 1
-
     str_REPORT_temp_Line = "Report Starting  : " + str_REPORT_Week_Start
-
     TextWindow.WriteLine(str_REPORT_temp_Line)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(str_REPORT_Out_File,str_REPORT_temp_Line)
-
     
-
     str_REPORT_temp_Line = "Report Generated : " + str_Date_Full
-
     TextWindow.WriteLine(str_REPORT_temp_Line)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(str_REPORT_Out_File,str_REPORT_temp_Line)
 
-
-
     str_REPORT_temp_Line = ">"
-
     For int_REPORT_i = 1 To 7
-
       str_REPORT_temp_Line = str_REPORT_temp_Line + " " + str_REPORT_Day_Start[int_REPORT_i]
-
     EndFor
-
     str_REPORT_temp_Line = Text.GetSubTextToEnd(str_REPORT_temp_Line,2)
-
     TextWindow.WriteLine(str_REPORT_temp_Line)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(str_REPORT_Out_File,str_REPORT_temp_Line)
 
-
-
     str_REPORT_temp_Line = ">"
-
     For int_REPORT_i = 1 To 7
-
       str_REPORT_temp_Line = str_REPORT_temp_Line + " " + str_REPORT_Day_End[int_REPORT_i]
-
     EndFor
-
     str_REPORT_temp_Line = Text.GetSubTextToEnd(str_REPORT_temp_Line,2)
-
     TextWindow.WriteLine(str_REPORT_temp_Line)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(str_REPORT_Out_File,str_REPORT_temp_Line)
-
        
-
     str_REPORT_temp_Line = " Sat  Sun  Mon  Tue  Wed  Thu  Fri"
-
     TextWindow.WriteLine(str_REPORT_temp_Line)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(str_REPORT_Out_File,str_REPORT_temp_Line)
-
     For int_REPORT_i = 1 To int_REPORT_Total_Charges
-
       str_REPORT_temp_Line = ">"
-
       For int_REPORT_j = 1 To 8
-
         If int_REPORT_j = 8 Then
-
           str_REPORT_temp_Line = str_REPORT_temp_Line + "|"
-
         EndIf
-
         If flt_REPORT_HourTable[int_REPORT_i][int_REPORT_j]<=0.0 Then
-
           str_REPORT_temp_Line = str_REPORT_temp_Line + "     "
-
         Else
-
           If flt_REPORT_HourTable[int_REPORT_i][int_REPORT_j]<10.0 Then
-
             str_REPORT_temp_Line = str_REPORT_temp_Line + " "
-
           EndIf
-
           If flt_REPORT_HourTable[int_REPORT_i][int_REPORT_j]>0.0 And Math.floor(flt_REPORT_HourTable[int_REPORT_i][int_REPORT_j]) = flt_REPORT_HourTable[int_REPORT_i][int_REPORT_j] then
-
             str_REPORT_temp_Line = str_REPORT_temp_Line + Math.floor(flt_REPORT_HourTable[int_REPORT_i][int_REPORT_j])
-
             str_REPORT_temp_Line = str_REPORT_temp_Line + ".0"
-
             str_REPORT_temp_Line = str_REPORT_temp_Line + " "
-
           Else
-
             str_REPORT_temp_Line = str_REPORT_temp_Line + flt_REPORT_HourTable[int_REPORT_i][int_REPORT_j]
-
             str_REPORT_temp_Line = str_REPORT_temp_Line + " "
-
           EndIf
-
         EndIf
-
       EndFor
-
       str_REPORT_temp_Line = str_REPORT_temp_Line + " " + str_REPORT_ChgLine_Name[int_REPORT_i]
-
       str_REPORT_temp_Line = str_REPORT_temp_Line + "                                             "                                                                              
-
       If log_REPORT_background=1 Then
-
         log_REPORT_background = 0
-
         TextWindow.BackgroundColor = "blue"
-
       Else
-
         log_REPORT_background = 1
-
         TextWindow.BackgroundColor = "black"
-
       EndIf
-
       TextWindow.WriteLine(Text.GetSubText(str_REPORT_temp_Line,2,78))
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.AppendContents(str_REPORT_Out_File,Text.GetSubTextToEnd(str_REPORT_temp_Line,2))
-
     EndFor  
-
     TextWindow.BackgroundColor = "black"
-
     str_REPORT_temp_Line = "------------------------------------------------------------------------------"
-
     TextWindow.WriteLine(str_REPORT_temp_Line)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(str_REPORT_Out_File,str_REPORT_temp_Line)
-
     str_REPORT_temp_Line = ">"
-
     For int_REPORT_i = 1 To 8
-
       If int_REPORT_i = 8 Then
-
         str_REPORT_temp_Line = str_REPORT_temp_Line + "|"
-
       EndIf
-
-
 
       If flt_REPORT_Day_Total[int_REPORT_i]<=0.0 Then
-
         str_REPORT_temp_Line = str_REPORT_temp_Line + "     "
-
       Else
-
         If flt_REPORT_Day_Total[int_REPORT_i]<10.0 Then
-
           str_REPORT_temp_Line = str_REPORT_temp_Line + " "
-
         EndIf
-
         str_REPORT_temp_Line = str_REPORT_temp_Line + flt_REPORT_Day_Total[int_REPORT_i]
-
         If flt_REPORT_Day_Total[int_REPORT_i]>0.0 And Math.floor(flt_REPORT_Day_Total[int_REPORT_i]) = flt_REPORT_Day_Total[int_REPORT_i] then
-
 '          str_REPORT_temp_Line = str_REPORT_temp_Line + ".0"
-
           str_REPORT_temp_Line = str_REPORT_temp_Line + " "
-
         Else
-
           str_REPORT_temp_Line = str_REPORT_temp_Line + " "
-
         EndIf
-
       EndIf
-
     EndFor
-
     str_REPORT_temp_Line = Text.GetSubTextToEnd(str_REPORT_temp_Line,2)
-
     TextWindow.WriteLine(str_REPORT_temp_Line)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(str_REPORT_Out_File,str_REPORT_temp_Line)
-
     
-
   EndIf
-
 EndSub  
-
   
-
 '----------------------------------------------------------------------------------------------------------------------
-
 ' SUBROUTINE : Save Data
-
 '----------------------------------------------------------------------------------------------------------------------
-
 Sub SaveChargeLog
-
   
-
   log_ENBANBLE_SAVE = 1   ' Set to 0 when debugging
-
   If log_STL_Active = 1 Then
-
     str_temp_STL_bracket1 = "{"
-
     str_temp_STL_bracket2 = "}"
-
   Else
-
     str_temp_STL_bracket1 = "["
-
     str_temp_STL_bracket2 = "]"
-
   EndIf
-
   If log_ENBANBLE_SAVE=1 Then
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.DeleteFile(str_File_Name)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(str_File_Name,"Date : " + str_Date_Full)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(str_File_Name,"Start Time : " + str_Initial_Time)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     File.AppendContents(str_File_Name,"Save Time : " + str_Clock)
-
   EndIf
-
   For int_i = 1 To int_Charge_Line
-
     If int_i = int_Charge_Active Then
-
       str_temp = "<"
-
     Elseif log_Charge_STL[int_i]=1 Then
-
       str_temp = str_temp_STL_bracket1
-
     Else
-
       str_temp = ""
-
     EndIf
-
     str_temp = str_temp + str_Charge_Line[int_i]
-
     if int_i = int_Charge_Active Then
-
       str_temp = str_temp + ">"
-
     ElseIf log_Charge_STL[int_i]=1 Then
-
       str_temp = str_temp + str_temp_STL_bracket2
-
     EndIf
-
     str_temp = str_temp + "(" + str_Charge_time[int_i] + ")"
-
     If log_Charge_Delete[int_i]=1 then
-
       str_temp = str_temp + "*"
-
     EndIf
-
     If log_ENBANBLE_SAVE=1 Then
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.AppendContents(str_File_Name,str_temp)
-
     EndIf
-
   EndFor
-
 EndSub
 
-
-
 Sub OnButtonClicked
-
   log_Button_Change = 1
-
 EndSub  
-
   
-
-

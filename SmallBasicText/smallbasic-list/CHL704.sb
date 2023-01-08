@@ -1,821 +1,410 @@
 'Craig Hlady March 2010
-
 'connect 4
-
 'be the first to connect four disks in a row - horizontally, vertically or diagonally
-
 'board size is 7 wide x 6 high
 
-
-
 SplashScreen()
-
 Initialize()
-
-
 
 GraphicsWindow.MouseMove = SelectorMove
 
-
-
 'start with the human (player 1)
-
 GraphicsWindow.MouseDown = HumanMove
 
-
-
 Sub SplashScreen
-
   
-
   'set up graphics window parameters
-
   GraphicsWindow.Height = 800
-
   GraphicsWindow.Width = 920
-
   GraphicsWindow.BackgroundColor = "Green"
-
   GraphicsWindow.Title = "Connect 4"
-
   
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.BrushColor = "Black"
-
   string = "Welcome to Connect 4. Beat the computer by being the first to connect 4 "
-
   string = string + "chips in a row, either vertically, horizontally or diagonally.  "  
-
   string = string + "Move by hovering your mouse over top the game board.  The yellow"
-
   string = string + " triangle indicates in which column you will drop your chip.  "
-
   string = string + "Click the mouse to make you move.  Press the space bar when you "
-
   string = string + "are ready to begin!
-
   GraphicsWindow.DrawBoundText(200, 500, 520, string)
-
   gw = 300
-
   gh = 200
-
   fs = 50 ' font size
-
   For fs = 50 to 10 step -1
-
     GraphicsWindow.FontSize = fs
-
     GraphicsWindow.BrushColor = "Yellow"
-
     GraphicsWindow.DrawText(420 - 2 * fs,300,"CONNECT")
-
     For i = 1 To 400
-
       GraphicsWindow.SetPixel(Math.GetRandomNumber(gw)+320,Math.GetRandomNumber(gh)+300,"green")
-
     EndFor
-
     GraphicsWindow.BrushColor = "Green"
-
     GraphicsWindow.FillRectangle(320, 250, 250, 150)
-
   Endfor
-
   fs = 200
-
   GraphicsWindow.FontSize = fs
-
   GraphicsWindow.BrushColor = "Yellow"
-
   GraphicsWindow.DrawText(380,200,"4")
-
   
-
   While GraphicsWindow.LastKey <> "Space"
-
    GraphicsWindow.SetPixel(Math.GetRandomNumber(gw)+280,Math.GetRandomNumber(gh)+200,"green")
-
   EndWhile
-
  
-
   Initialize()
-
   GraphicsWindow.BrushColor = "Green"
-
   
-
 EndSub
-
-
 
 Sub Initialize
-
   'set up graphics window parameters
-
   GraphicsWindow.Height = 800
-
   GraphicsWindow.Width = 920
-
   GraphicsWindow.BackgroundColor = "Green"
-
   'set up game board
-
   GraphicsWindow.BrushColor = "DeepSkyBlue"
-
   Board = Shapes.AddRectangle(720, 620)
-
   BoardX = 100
-
   BoardY = 100
-
   Shapes.Move(Board, BoardX, BoardY)
-
   GraphicsWindow.BrushColor = "Green"
-
   
-
   'set up slot positions
-
   For i = 0 To 6
-
     Posx[i] = 120 + i * 100
-
   EndFor
-
   For j = 0 To 5
-
     Posy[j] = 620 - j * 100
-
   EndFor
-
   
-
   'GraphicsWindow.PenWidth = 2
-
   For i = 0 To 6
-
     For j = 0 To 5
-
       Slot[i][j] = Shapes.AddEllipse(80, 80)
-
       Shapes.Move(Slot[i][j], Posx[i], Posy[j])
-
     EndFor
-
   EndFor
-
   
-
   'initialize selection triangle
-
   GraphicsWindow.BrushColor = "Yellow"
-
   Selector = Shapes.AddTriangle(0, 0, 40, 0, 20, 28)
-
   Shapes.HideShape(Selector)
-
   
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.DrawText(720, 740, "Quit")
-
   
-
   'initialize game array: 0 = empty, 1 = Player 1, 2 = Player 2
-
   'also intialize counter array for victory check
-
   'each  index corresponds to a direction 1 = up-right, 2 = right, 3 = down-right, etc
-
   For i = 0 To 6
-
     For j = 0 To 5
-
       GameState[i][j] = 0
-
     EndFor
-
   EndFor
-
   WinMove = 0
-
   
-
   'initialize player
-
   PlayerNo = 1
-
   'initialize move counter
-
   MoveCount = 0
-
   
-
 EndSub
-
   
-
 Sub SelectorMove
 
-
-
 Ym = GraphicsWindow.MouseY
-
 Xm = GraphicsWindow.MouseX
 
-
-
   If Ym < BoardY Then
-
     If Xm > BoardX And Xm < BoardX + 100 Then
-
       Xindex = 0
-
     EndIf
-
     If Xm > BoardX + 100 And Xm < BoardX + 200 Then
-
       Xindex = 1
-
     EndIf
-
     If Xm > BoardX +200 And Xm < BoardX + 300 Then
-
       Xindex = 2
-
     EndIf
-
     If Xm > BoardX + 300 And Xm < BoardX + 400 Then
-
       Xindex = 3
-
     EndIf
-
     If Xm > BoardX + 400 And Xm < BoardX + 500 Then
-
       Xindex = 4
-
     EndIf
-
     If Xm > BoardX + 500 And Xm < BoardX + 600 Then
-
       Xindex = 5
-
     EndIf
-
     If Xm > BoardX + 600 And Xm < BoardX + 700 Then
-
       Xindex = 6
-
     EndIf
-
     
-
     SelPos = Posx[Xindex]
-
     Shapes.Move(Selector, SelPos + 20, 40)
-
     Shapes.ShowShape(Selector)
-
     
-
   Else
-
     Shapes.HideShape(Selector)
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub HumanMove
-
   
-
   Ym = GraphicsWindow.MouseY
-
   Xm = GraphicsWindow.MouseX
-
   
-
   If Ym < BoardY Then 'only make the move if mouse in right position
-
     
-
     'check for lowest available open slot
-
     FindOpenSlot()
-
     
-
     If OpenSlot < 6 Then 'column is open, make the move and fill the slot
-
       GameState[Xindex][OpenSlot] = PlayerNo
-
       
-
       FillSlot()
-
       
-
       'check for win
-
       WinCheck()
-
       MoveCount = MoveCount + 1
-
       If MoveCount = 43 then
-
         EndGame()
-
       Endif
-
       
-
     EndIf
-
     
-
     'computer moves next
-
     PlayerNo = 2
-
     ComputerMove()
-
     MoveCount = MoveCount + 1
-
     If MoveCount = 43 then
-
       EndGame()
-
     Endif
-
     
-
   EndIf
-
   
-
   'if user clicks mouse in the 'quit' area end program
-
   If (Ym > 720 And Xm > 740) then
-
     Program.End()
-
   Endif
-
   
-
 EndSub
-
-
 
 Sub FindOpenSlot
-
   OpenSlot = 6
-
     For j = 5 To 0 step -1
-
       If GameState[Xindex][j] = 0 Then
-
         OpenSlot = j
-
       EndIf
-
     EndFor  
-
 EndSub
-
-
 
 Sub FillSlot
 
-
-
   Shapes.Remove(Slot[Xindex][OpenSlot])
-
   If PlayerNo = 1 Then
-
     GraphicsWindow.BrushColor = "Orange"
-
   Else
-
     GraphicsWindow.BrushColor = "Purple"
-
   EndIf
-
   
-
   Slot[Xindex][OpenSlot] = Shapes.AddEllipse(80, 80)
-
   Shapes.Move(Slot[Xindex][OpenSlot], Posx[Xindex], Posy[OpenSlot])
-
   Sound.PlayClick()
 
-
-
 EndSub
-
-
 
 Sub WinCheck
-
   'check the board to see if a player has won
-
   
-
   For i = 0 to 6
-
     For j = 0 To 5
-
       
-
       'check 7 directions (don't have to check vertical up)
-
       For k = 1 To 7
-
         TempCheck = 0
-
     
-
         If k = 2 Or k = 6 Then
-
           dy = 0
-
         ElseIf k = 1 Or k = 7 Then
-
           dy = 1
-
         Else
-
           dy = -1
-
         EndIf
-
     
-
         If k < 4 Then
-
           dx = 1
-
         ElseIf k = 4 then
-
           dx = 0
-
         Else
-
           dx = -1
-
         EndIf
-
     
-
         For check = 0 To 3
-
           If GameState[i+check*dx][j+check*dy] = PlayerNo Then
-
             TempCheck = TempCheck + 1
-
             If TempCheck = 4 Then
-
               Victory()
-
             EndIf
-
           EndIf
-
         Endfor
-
         
-
       EndFor  'end k loop
-
     EndFor  'end j loop
-
   EndFor   'end i loop
-
     
-
 EndSub
-
-
 
 Sub Victory
-
   GraphicsWindow.ShowMessage("Player " + PlayerNo + " wins!", "Victory!")
-
   Initialize()
-
 EndSub
-
-
 
 Sub ComputerMove
-
   
-
   'priorities: 
-
   '1. Check for a winning move
-
   '2. Block a winning move of the opponent
-
   '3. Make random move but check first that this isn't setting up the opponent
-
   'for a cheap win
 
-
-
   'decide where to go
-
   
-
   '1. see if there is a winning move
-
   WinMoveCheck()
-
   
-
   OpenSlot = WinSlot
-
   Xindex = WinIndex
-
   
-
   '2. no winning move found, check to see if need to block other player
-
   If WinMove = 0 then
-
     PlayerNo = 1 'switch to human to check board
-
     WinMoveCheck()
-
     If WinMove = 1 Then
-
       OpenSlot = WinSlot
-
       Xindex = WinIndex
-
     EndIf
-
     PlayerNo = 2 'reset player to computer
-
   Endif
-
     
-
   'no winning move or blocking move found,  make move at random
-
   'special case: first computer move, place move in an open middle bottom slot to 
-
   '(avoids a human cheap win scenario)
-
   RandomMove:
-
   If WinMove = 0 then
-
     OpenSlot = 6
-
     While OpenSlot = 6
-
       Xindex = Math.GetRandomNumber(7) - 1
-
       FindOpenSlot()
-
     EndWhile
-
       
-
     If MoveCount < 2 then
-
        OpenSlot = 6
-
       While OpenSlot > 0
-
         Xindex = Math.GetRandomNumber(3) + 1
-
         FindOpenSlot()
-
       Endwhile
-
     Endif
-
   EndIf
-
   
-
   GameState[Xindex][OpenSlot] = PlayerNo
-
   
-
   'before committing, check now to see if this move has led to victory 
-
   'for the other player.  If so then try again.
-
   If WinMove = 0 then
-
     PlayerNo = 1
-
     Tempindex = Xindex
-
     TempSlot = OpenSlot
-
     WinMoveCheck()
-
     If WinMove = 1 then
-
       'GraphicsWindow.ShowMessage("Can't fool me!", "Ha ha")
-
       WinMove = 0
-
       Xindex = Tempindex
-
       OpenSlot = TempSlot
-
       GameState[Xindex][OpenSlot] = 0
-
       PlayerNo = 2
-
     
-
       Goto RandomMove
-
     Endif
-
     
-
     PlayerNo = 2
-
     Xindex = Tempindex
-
     OpenSlot = TempSlot
-
     
-
   Endif
-
   
-
   FillSlot()
-
   WinCheck()
-
   'back to human's turn
-
   PlayerNo = 1
-
   SelectorMove() 'force this subroutine in case human does not move mouse
 
-
-
 EndSub
-
-
 
 Sub WinMoveCheck 'check to see if there is a winning move
 
-
-
   WinMove = 0
-
   WinSlot = 0
-
   For Xindex = 0 to 6
-
     FindOpenSlot()
-
     If OpenSlot < 6 then 'make sure column isn't full
-
       
-
       'check 7 directions (don't have to check vertical up)
-
       For k = 1 To 7
 
-
-
         TempCheckA = 0
-
         TempCheckB = 0
-
     
-
         If k = 2 Or k = 6 Then
-
           dy = 0
-
         ElseIf k = 1 Or k = 7 Then
-
           dy = 1
-
         Else
-
           dy = -1
-
         EndIf
-
-
 
         If k < 4 Then
-
           dx = 1
-
         ElseIf k = 4 then
-
           dx = 0
-
         Else
-
           dx = -1
-
         EndIf
-
     
-
         'case A - winning move is at head of chain
-
         For check = 1 To 3
-
           If GameState[Xindex+check*dx][OpenSlot+check*dy] = PlayerNo Then
-
             TempCheckA = TempCheckA + 1
-
             If TempCheckA = 3 Then
-
               WinMove = 1
-
               WinSlot = OpenSlot
-
               WinIndex = Xindex
-
             EndIf
-
             
-
           EndIf
-
         Endfor ' end check loop
-
         
-
         'case B - winning move is 2nd position of chain
-
         For check = -1 To 2
-
           If GameState[Xindex+check*dx][OpenSlot+check*dy] = PlayerNo Then
-
             TempCheckB = TempCheckB + 1
-
             If TempCheckB = 3 Then
-
               WinMove = 1
-
               WinSlot = OpenSlot
-
               WinIndex = Xindex
-
             EndIf
-
             
-
           EndIf
-
         Endfor ' end check loop
-
         
-
       EndFor  'end k loop
-
       
-
     EndIf
-
     
-
   EndFor   'end i loop
 
-
-
 EndSub
-
-
 
 Sub EndGame
-
   GraphicsWindow.ShowMessage("No victor!", "Tie Game")
-
   Initialize()
-
 EndSub
-
   
-
-

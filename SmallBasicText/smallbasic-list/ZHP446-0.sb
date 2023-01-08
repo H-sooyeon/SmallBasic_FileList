@@ -1,1199 +1,599 @@
 ' Sprites
-
 ' Version 0.2
-
 ' Copyright © 2019 Nonki Takahashi.  The MIT License.
-
 ' Original sprites Apple, Car and Tree by mahreen miangul
-
 ' Last update 2019-10-04
-
 ' Program ID ZHP446-0
 
-
-
 GraphicsWindow.Title = "Sprites 0.2"
-
 GraphicsWindow.BackgroundColor = "SkyBlue"
-
 SB_Workaround()
-
 Init()
-
 GraphicsWindow.BrushColor = "Tan"
-
 GraphicsWindow.FillRectangle(0, gh - 360, gw, 360)
 
-
-
 ' initialize shapes
-
 Shapes_Init_Tree()
-
 ' add shapes
-
 scale = 0.7
-
 x = 0
-
 y = 100
-
 For i = 1 To 8
-
   name = "Tree" + i
-
   Group_Add()
-
   Group_Move()
-
   x = x + 150
-
 EndFor
-
 ' initialize shapes
-
 Shapes_Init_Apple()
-
 ' add shapes
-
 scale = 0.2
-
 x = 0
-
 y = 100
-
 For i = 8 + 1 To 8 + 24
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   name = "Apple" + (i - 8)
-
   Group_Add()
-
   If Math.Remainder(i, 3) = 0 Then
-
     a = Math.GetRandomNumber(120)
-
   Else
-
     a = a + 120
-
   EndIf
-
   _a = Math.GetRadians(a)
-
   x = x + 50 + 30 * Math.Cos(_a)
-
   y = y + 30 + 30 * Math.Sin(_a)
-
   Group_Move()
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   If Math.Remainder(i, 3) = 2 Then
-
     x = x + 150
-
   EndIf
-
 EndFor
-
 ' initialize shapes
-
 Shapes_Init_Car()
-
 ' add shapes
-
 scale = 1
-
 name = "Car1"
-
 Group_Add()
-
 ' initialize shapes
-
 Shapes_Init_Rabbit()
-
 ' add shapes
-
 scale = 0.5
-
 name = "Rabbit"
-
 Group_Add()
-
 ' initialize shapes
-
 Shapes_Init_BlueCar()
-
 ' add shapes
-
 scale = 1
-
 name = "Car2"
-
 Group_Add()
-
 'Shapes_Normalize()
-
 'Shapes_DumpArray()
 
-
-
 Sub Init
-
   gw = 1200
-
   gh = 600
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   dw = Desktop.Width
-
   dh = Desktop.Height
-
   GraphicsWindow.Left = (dw - gw) / 2
-
   GraphicsWindow.Top = (dh - 50 - gh) / 2
-
 EndSub
-
-
 
 Sub Group_Add
-
   ' Group | add shapes to a group
-
   ' param name - group name
-
   ' param shX, shY - origin of shape array
-
   ' param scale - to resize
-
   ' param shape[] - shape array
-
   ' param nGroup - number of group
-
   ' return nGroup - updated number of group
-
   ' return group - group array
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   nGroup = nGroup + 1
-
   grp = ""
-
   grp["name"] = name
-
   grp["x"] = shX
-
   grp["y"] = shY
-
   grp["angle"] = 0
-
   grp["dir"] = 1
-
   Shapes_CalcWidthAndHeight()
-
   grp["width"] = shWidth
-
   grp["height"] = shHeight
-
   grp["cx"] = shWidth / 2
-
   grp["cy"] = shHeight / 2
-
   s = scale
-
   grp["scale"] = s
-
   For i = 1 To Array.GetItemCount(shape)
-
     shp = shape[i]
-
     GraphicsWindow.PenWidth = shp["pw"] * s
-
     If shp["pw"] > 0 Then
-
       GraphicsWindow.PenColor = shp["pc"]
-
     EndIf
-
     If Text.IsSubText("rect|ell|tri|text|btn", shp["func"]) Then
-
       GraphicsWindow.BrushColor = shp["bc"]
-
     EndIf
-
     If Text.IsSubText("text|btn", shp["func"]) Then
-
       If silverlight Then
-
         fs = Math.Floor(shp["fs"] * 0.9)
-
       Else
-
         fs = shp["fs"]
-
       EndIf
-
       GraphicsWindow.FontSize = fs * s
-
       GraphicsWindow.FontName = shp["fn"]
-
       If shp["fb"] = "False" Then
-
         GraphicsWindow.FontBold = "False"
-
       Else
-
         GraphicsWindow.FontBold = "True"
-
       EndIf
-
     EndIf
-
     If shp["func"] = "rect" Then
-
       shp["obj"] = Shapes.AddRectangle(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "ell" Then
-
       shp["obj"] = Shapes.AddEllipse(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "tri" Then
-
       shp["obj"] = Shapes.AddTriangle(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s, shp["x3"] * s, shp["y3"] * s)
-
     ElseIf shp["func"] = "line" Then
-
       shp["obj"] = Shapes.AddLine(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s)
-
     ElseIf shp["func"] = "text" Then
-
       shp["obj"] = Shapes.AddText(shp["text"])
-
     EndIf
-
     x = shp["x"]
-
     y = shp["y"]
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If sbd And (shp["func"] = "line") Then
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     ElseIf silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       _alpha = Math.GetRadians(shp["angle"])
-
       SB_RotateWorkaround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     If shp["func"] = "btn" Then
-
       shp["obj"] = Controls.AddButton(shp["caption"], shX + x * s, shY + y * s)
-
     Else
-
       Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     EndIf
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) And (shp["angle"] <> 0) And (shp["angle"] <> "") Then
-
       Shapes.Rotate(shp["obj"], shp["angle"])
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
   grp["shape"] = shape
-
   group[nGroup] = grp
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Group_Move
-
   ' Group | move a group
-
   ' param group[i] - group To move
-
   ' param x, y - position To move
-
   ' return group[i] - updated group
-
   Stack.PushValue("local", j)
-
   grp = group[i]
-
   s = grp["scale"]
-
   grp["x"] = x
-
   grp["y"] = y
-
   shape = grp["shape"]
-
   n = Array.GetItemCount(shape)
-
   For j = 1 To n
-
     shp = shape[j]
-
     If sbd And (shp["func"] = "line") Then
-
       _x = shp["wx"]
-
       _y = shp["wy"]
-
     ElseIf silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       _x = shp["wx"]
-
       _y = shp["wy"]
-
     Else
-
       _x = shp["rx"]
-
       _y = shp["ry"]
-
     EndIf
-
     Shapes.Move(shp["obj"], grp["x"] + _x * s, grp["y"]  + _y * s)
-
   EndFor
-
   group[i] = grp
-
   j = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Math_CartesianToPolar
-
   ' Math | convert cartesian coodinate to polar coordinate
-
   ' param x, y - cartesian coordinate
-
   ' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
-
 
 Sub SB_RotateWorkaround
-
   ' Small Basic | Rotate workaround for Silverlight
-
   ' param x, y - original coordinate
-
   ' param _alpha - angle [radian]
-
   ' returns x, y - workaround coordinate
-
   If shape[i]["func"] = "tri" Then
-
     x1 = -Math.Floor(shape[i]["x3"] / 2)
-
     y1 = -Math.Floor(shape[i]["y3"] / 2)
-
   ElseIf shape[i]["func"] = "line" Then
-
     x1 = -Math.Floor(Math.Abs(shape[i]["x1"] - shape[i]["x2"]) / 2)
-
     y1 = -Math.Floor(Math.Abs(shape[i]["y1"] - shape[i]["y2"]) / 2)
-
   EndIf
-
   ox = x - x1
-
   oy = y - y1
-
   x = x1 * Math.Cos(_alpha) - y1 * Math.Sin(_alpha) + ox
-
   y = x1 * Math.Sin(_alpha) + y1 * Math.Cos(_alpha) + oy
-
 EndSub
-
-
 
 Sub SB_Workaround
-
   ' Small Basic | workaround for Silverlight / SBD
-
   ' return silverlight - "True" if in remote
-
   ' return sbd - "True" if Small Basic Desktop
-
   color = GraphicsWindow.GetPixel(0, 0)
-
   sbd = "False"
-
   If Text.GetLength(color) > 7 Then
-
     silverlight = "True"
-
     msWait = 300
-
   Else
-
     silverlight = "False"
-
     _gw = GraphicsWindow.Width
-
     _gh = GraphicsWindow.Height
-
     If (_gw = 624) And (_gh = 441) Then
-
       sbd = "True"
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub Shapes_CalcRotatePos2
-
   param = ""
-
   ' Shapes | Calculate position for rotated shape
-
   ' param["x"], param["y"] - position of a shape
-
   ' param["width"], param["height"] - size of a shape
-
   ' param ["cx"], param["cy"] - center of rotation
-
   ' param ["angle"] - rotate angle
-
   ' return x, y - rotated position of a shape
-
   _cx = param["x"] + param["width"] / 2
-
   _cy = param["y"] + param["height"] / 2
-
   x = _cx - param["cx"]
-
   y = _cy - param["cy"]
-
   Math_CartesianToPolar()
-
   a = a + param["angle"]
-
   x = r * Math.Cos(a * Math.Pi / 180)
-
   y = r * Math.Sin(a * Math.Pi / 180)
-
   _cx = x + param["cx"]
-
   _cy = y + param["cy"]
-
   x = _cx - param["width"] / 2
-
   y = _cy - param["height"] / 2
-
 EndSub
-
-
 
 Sub Shapes_CalcWidthAndHeight
-
   ' Shapes | calculate total width and height of shapes
-
   ' param shape[] - shape array
-
   ' return shWidth, shHeight - total size of shapes
-
   For i = 1 To Array.GetItemCount(shape)
-
     shp = shape[i]
-
     If shp["func"] = "tri" Or shp["func"] = "line" Then
-
       xmin = shp["x1"]
-
       xmax = shp["x1"]
-
       ymin = shp["y1"]
-
       ymax = shp["y1"]
-
       If shp["x2"] < xmin Then
-
         xmin = shp["x2"]
-
       EndIf
-
       If xmax < shp["x2"] Then
-
         xmax = shp["x2"]
-
       EndIf
-
       If shp["y2"] < ymin Then
-
         ymin = shp["y2"]
-
       EndIf
-
       If ymax < shp["y2"] Then
-
         ymax = shp["y2"]
-
       EndIf
-
       If shp["func"] = "tri" Then
-
         If shp["x3"] < xmin Then
-
           xmin = shp["x3"]
-
         EndIf
-
         If xmax < shp["x3"] Then
-
           xmax = shp["x3"]
-
         EndIf
-
         If shp["y3"] < ymin Then
-
           ymin = shp["y3"]
-
         EndIf
-
         If ymax < shp["y3"] Then
-
           ymax = shp["y3"]
-
         EndIf
-
       EndIf
-
       shp["width"] = xmax - xmin
-
       shp["height"] = ymax - ymin
-
     EndIf
-
     If i = 1 Then
-
       shWidth = shp["x"] + shp["width"]
-
       shHeight = shp["y"] + shp["height"]
-
     Else
-
       If shWidth < shp["x"] + shp["width"] Then
-
         shWidth = shp["x"] + shp["width"]
-
       EndIf
-
       If shHeight < shp["y"] + shp["height"] Then
-
         shHeight = shp["y"] + shp["height"]
-
       EndIf
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
 EndSub
-
-
 
 Sub Shapes_DumpArray
-
   ' Shapes | dump shapes data
-
   order = "1=func;2=x;3=y;4=width;5=height;6=x1;7=y1;8=x2;9=y2;"
-
   order = order + "10=x3;11=y3;12=txt;13=fn;14=fs;15=fb;16=fi;"
-
   order = order + "17=angle;18=pw;19=pc;20=bc;"
-
   nOrder = Array.GetItemCount(order)
-
   WQ = Text.GetCharacter(34)
-
   LF = Text.GetCharacter(10)
-
   gw = GraphicsWindow.Width
-
   gh = GraphicsWindow.Height
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontName = "Consolas"
-
   GraphicsWindow.FontSize = 14
-
   tbox = Controls.AddMultiLineTextBox(gw / 2, 10)
-
   Controls.SetSize(tbox, gw / 2 - 10, gh - 20)
-
   buf = "  shX = " + shX + " ' x offset" + LF
-
   buf = buf + "  shY = " + shY + " ' y offset" + LF
-
   buf = buf + "  shape = " + WQ + WQ + LF
-
   For i = 1 To Array.GetItemCount(shape)
-
     buf = buf + "  shape[" + i + "] = " + WQ
-
     shp = shape[i]
-
     For j = 1 To nOrder
-
       If shp[order[j]] <> "" Then
-
         buf = buf + order[j] + "=" + shp[order[j]] + ";"
-
       EndIf
-
     EndFor
-
     buf = buf + WQ + LF
-
   EndFor
-
   Controls.SetTextBoxText(tbox, buf)
-
   Shapes.SetOpacity(tbox, 50)
-
 EndSub
-
-
 
 Sub Shapes_Init_Apple
-
   ' Shapes | Initialize shapes data
-
   ' return shX, shY - current position of shapes
-
   ' return shape - array of shapes
-
   shX = 630 ' x offset
-
   shY = 570 ' y offset
-
   shape = ""
-
   shape[1] = "func=rect;x=115;y=0;width=20;height=60;angle=30;pw=0;bc=YellowGreen;"
-
   shape[2] = "func=ell;x=0;y=38;width=150;height=150;pw=0;bc=Crimson;"
-
   shape[3] = "func=ell;x=92;y=38;width=150;height=150;pw=0;bc=Crimson;"
-
   shape[4] = "func=ell;x=83;y=78;width=40;height=40;pw=0;bc=Snow;"
-
   shape[5] = "func=ell;x=122;y=78;width=40;height=40;pw=0;bc=Snow;"
-
   shape[6] = "func=ell;x=103;y=86;width=15;height=15;pw=0;bc=DarkSlateGray;"
-
   shape[7] = "func=ell;x=124;y=86;width=15;height=15;angle=7;pw=0;bc=DarkSlateGray;"
-
   shape[8] = "func=rect;x=89;y=140;width=80;height=20;angle=-5;pw=0;bc=Purple;"
-
 EndSub
-
-
 
 Sub Shapes_Init_BlueCar
-
   ' Shapes | Initialize shapes data
-
   ' return shX, shY - current position of shapes
-
   ' return shape - array of shapes
-
   shX = 140   ' x offset
-
   shY = 290   ' y offset
-
   shape = ""
-
   shape[1] = "func=ell;x=431.58;y=154;width=70.71;height=100;pw=0;bc=#333333;"
-
   shape[2] = "func=rect;x=431.58;y=154;width=35.35;height=100;pw=0;bc=#333333;"
-
   shape[3] = "func=ell;x=396.23;y=154;width=70.71;height=100;pw=0;bc=#444444;"
-
   shape[4] = "func=ell;x=410.37;y=174;width=42.42;height=60;pw=0;bc=#333333;"
-
   shape[5] = "func=ell;x=78.03;y=154;width=70.71;height=100;pw=0;bc=#333333;"
-
   shape[6] = "func=rect;x=78.03;y=154;width=35.35;height=100;pw=0;bc=#333333;"
-
   shape[7] = "func=ell;x=254.81;y=154;width=70.71;height=100;pw=0;bc=#333333;"
-
   shape[8] = "func=rect;x=254.81;y=154;width=35.35;height=100;pw=0;bc=#333333;"
-
   shape[9] = "func=ell;x=449.26;y=104;width=70.71;height=100;pw=0;bc=#6495ED;"
-
   shape[10] = "func=ell;x=25.00;y=104;width=17.67;height=25;pw=0;bc=#6495ED;"
-
   shape[11] = "func=rect;x=33.84;y=104;width=450.78;height=12.5;pw=0;bc=#6495ED;"
-
   shape[12] = "func=rect;x=25.00;y=116.5;width=459.61;height=12.5;pw=0;bc=#6495ED;"
-
   shape[13] = "func=rect;x=25.00;y=129;width=459.61;height=25;pw=0;bc=#6495ED;"
-
   shape[14] = "func=rect;x=25.00;y=154;width=494.97;height=50;pw=0;bc=#6495ED;"
-
   shape[15] = "func=ell;x=42.68;y=154;width=70.71;height=100;pw=0;bc=#444444;"
-
   shape[16] = "func=ell;x=56.82;y=174;width=42.42;height=60;pw=0;bc=#C0C0C0;"
-
   shape[17] = "func=ell;x=219.45;y=154;width=70.71;height=100;pw=0;bc=#444444;"
-
   shape[18] = "func=ell;x=233.59;y=174;width=42.42;height=60;pw=0;bc=#C0C0C0;"
-
   shape[19] = "func=rect;x=0.00;y=184;width=35.6;height=20;pw=0;bc=#C0C0C0;"
-
   shape[20] = "func=rect;x=279.56;y=184;width=265.41;height=20;pw=0;bc=#C0C0C0;"
-
   shape[21] = "func=rect;x=396.23;y=194;width=70.71;height=30;pw=0;bc=White;"
-
   shape[22] = "func=ell;x=309.36;y=104;width=50;height=50;pw=0;bc=#FFFFCC;"
-
   shape[23] = "func=ell;x=450.78;y=104;width=50;height=50;pw=0;bc=#FFFFCC;"
-
   shape[24] = "func=rect;x=343.20;y=159;width=141.42;height=5;pw=0;bc=#99000000;"
-
   shape[25] = "func=rect;x=343.20;y=169;width=141.42;height=5;pw=0;bc=#99000000;"
-
   shape[26] = "func=tri;x=78.03;y=4;x1=0;y1=100;x2=35.35;y2=0;x3=35.35;y3=100;pw=0;bc=#99000000;"
-
   shape[27] = "func=rect;x=113.39;y=4;width=229.8;height=100;pw=0;bc=#99000000;"
-
   shape[28] = "func=tri;x=343.20;y=4;x1=0;y1=0;x2=0;y2=100;x3=53.03;y3=100;pw=0;bc=#99000000;"
-
   shape[29] = "func=line;x=113.39;y=4;x1=0;y1=0;x2=229.8;y2=0;pw=8;pc=#6495ED;"
-
   shape[30] = "func=ell;x=109.39;y=0;width=8;height=8;pw=0;bc=#6495ED;"
-
   shape[31] = "func=ell;x=339.20;y=0;width=8;height=8;pw=0;bc=#6495ED;"
-
   shape[32] = "func=line;x=78.03;y=4;x1=0;y1=100;x2=35.35;y2=0;pw=8;pc=#6495ED;"
-
   shape[33] = "func=ell;x=74.03;y=100;width=8;height=8;pw=0;bc=#6495ED;"
-
   shape[34] = "func=line;x=343.20;y=4;x1=0;y1=0;x2=53.03;y2=100;pw=8;pc=#6495ED;"
-
   shape[35] = "func=ell;x=392.23;y=100;width=8;height=8;pw=0;bc=#6495ED;"
-
   shape[36] = "func=line;x=237.13;y=4;x1=0;y1=0;x2=17.67;y2=100;pw=8;pc=#6495ED;"
-
   shape[37] = "func=ell;x=250.81;y=100;width=8;height=8;pw=0;bc=#6495ED;"
-
   shape[38] = "func=line;x=166.42;y=4;x1=17.67;y1=0;x2=0;y2=100;pw=8;pc=#6495ED;"
-
   shape[39] = "func=ell;x=162.42;y=100;width=8;height=8;pw=0;bc=#6495ED;"
-
 EndSub
-
-
 
 Sub Shapes_Init_Car
-
   ' Shapes | Initialize shapes data
-
   ' return shX, shY - current position of shapes
-
   ' return shape - array of shapes
-
   shX = 730 ' x offset
-
   shY = 300 ' y offset
-
   shape = ""
-
   ' Right Wheel
-
   shape[1] = "func=ell;x=0;y=180;width=60;height=50;angle=6;bc=Black;"
-
   shape[2] = "func=ell;x=10;y=80;width=60;height=130;angle=20;bc=Pink;"
-
   shape[3] = "func=ell;x=20;y=90;width=80;height=130;angle=20;bc=Red;"
-
   ' Front
-
   shape[4] = "func=ell;x=30;y=185;width=180;height=50;angle=10;bc=White;"
-
   shape[5] = "func=ell;x=30;y=190;width=180;height=30;angle=10;bc=Black;"
-
   shape[6] = "func=ell;x=30;y=165;width=180;height=50;angle=10;bc=White;"
-
   shape[7] = "func=ell;x=50;y=110;width=160;height=100;angle=10;bc=Crimson;"
-
   shape[8] = "func=ell;x=85;y=130;width=100;height=60;bc=Black;"
-
   shape[9] = "func=ell;x=90;y=130;width=90;height=50;bc=White;"
-
   ' Left Wheel
-
   shape[10] = "func=ell;x=200;y=200;width=80;height=40;angle=10;bc=Gray;"
-
   shape[11] = "func=ell;x=200;y=80;width=60;height=130;angle=20;bc=Pink;"
-
   shape[12] = "func=ell;x=230;y=90;width=80;height=130;angle=20;bc=Red;"
-
   shape[13] = "func=ell;x=240;y=20;width=40;height=130;angle=100;bc=Pink;"
-
   shape[14] = "func=ell;x=240;y=160;width=110;height=40;angle=100;bc=Black;"
-
   shape[15] = "func=ell;x=275;y=170;width=40;height=25;angle=105;bc=LightCyan;"
-
   shape[16] = "func=ell;x=200;y=202;width=83;height=15;angle=6;bc=Black;"
-
   ' Bornet 
-
   shape[17] = "func=ell;x=90;y=60;width=100;height=110;angle=10;bc=Red;"
-
   shape[18] = "func=ell;x=90;y=60;width=70;height=90;angle=10;bc=Pink;"
-
   ' Wind Screen
-
   shape[19] = "func=rect;x=120;y=20;width=150;height=55;angle=10;bc=LightCyan;"
-
   ' Left
-
   shape[20] = "func=rect;x=120;y=0;width=10;height=66;angle=10;bc=Red;"
-
   ' Right
-
   shape[21] = "func=rect;x=270;y=30;width=10;height=60;angle=10;bc=Red;"
-
   ' Up
-
   shape[22] = "func=rect;x=130;y=10;width=155;height=10;angle=10;bc=Red;"
-
   ' Eyes
-
   shape[23] = "func=ell;x=35;y=40;width=80;height=80;pw=2;pc=Black;bc=Red;"
-
   shape[24] = "func=ell;x=40;y=50;width=70;height=70;pw=2;pc=Black;bc=Yellow;"
-
   shape[25] = "func=ell;x=47;y=57;width=55;height=55;pw=2;pc=Black;bc=LightBlue;"
-
   shape[26] = "func=ell;x=60;y=70;width=25;height=25;bc=Black;"
-
   shape[27] = "func=ell;x=168;y=60;width=80;height=80;pw=2;pc=Black;bc=Red;"
-
   shape[28] = "func=ell;x=170;y=70;width=70;height=70;pw=2;pc=Black;bc=Yellow;"
-
   shape[29] = "func=ell;x=178;y=77;width=55;height=55;pw=2;pc=Black;bc=LightBlue;"
-
   shape[30] = "func=ell;x=193;y=91;width=25;height=25;bc=Black;"
-
 EndSub
-
-
 
 Sub Shapes_Init_Rabbit
-
   ' Shapes | Initialize shapes data
-
   ' return shX, shY - current position of shapes
-
   ' return shape - array of shapes
-
   shX = 420   ' x offset
-
   shY = 240   ' y offset
-
   shape = ""
-
   shape[1] = "func=ell;x=118;y=285;width=30;height=31;bc=#EBBCCE;pc=#000000;pw=2;"
-
   shape[2] = "func=tri;x=0;y=202;x1=70;y1=0;x2=0;y2=124;x3=140;y3=124;bc=#EBBCCE;pc=#000000;pw=2;"
-
   shape[3] = "func=ell;x=13;y=0;width=43;height=158;bc=#EBBCCE;pc=#000000;pw=2;"
-
   shape[4] = "func=ell;x=117;y=14;width=44;height=159;angle=38;bc=#EBBCCE;pc=#000000;pw=2;"
-
   shape[5] = "func=ell;x=20;y=128;width=97;height=109;bc=#EBBCCE;pc=#000000;pw=2;"
-
   shape[6] = "func=ell;x=32;y=172;width=23;height=28;bc=#000000;pc=#000000;pw=2;"
-
   shape[7] = "func=ell;x=86;y=172;width=22;height=28;bc=#000000;pc=#000000;pw=2;"
-
   shape[8] = "func=ell;x=64;y=221;width=14;height=10;bc=#000000;pc=#000000;pw=2;"
-
   shape[9] = "func=ell;x=27;y=42;width=17;height=95;bc=#992E57;pc=#000000;pw=2;"
-
   shape[10] = "func=ell;x=124;y=54;width=16;height=97;angle=37;bc=#992E57;pc=#000000;pw=2;"
-
   shape[11] = "func=ell;x=24;y=255;width=24;height=30;bc=#EBBCCE;pc=#000000;pw=2;"
-
   shape[12] = "func=ell;x=92;y=256;width=22;height=27;bc=#EBBCCE;pc=#000000;pw=2;"
-
   shape[13] = "func=tri;x=54;y=238;x1=11;y1=0;x2=0;y2=64;x3=22;y3=64;angle=241;bc=#E17F46;pc=#000000;pw=2;"
-
   shape[14] = "func=line;x=93;y=231;x1=0;y1=20;x2=23;y2=0;pc=#216E2E;pw=4;"
-
   shape[15] = "func=line;x=93;y=237;x1=0;y1=17;x2=28;y2=0;pc=#216E2E;pw=4;"
-
   shape[16] = "func=line;x=95;y=247;x1=0;y1=9;x2=28;y2=0;pc=#216E2E;pw=4;"
-
   shape[17] = "func=line;x=81;y=255;x1=0;y1=0;x2=4;y2=9;pc=#000000;pw=1;"
-
   shape[18] = "func=line;x=76;y=261;x1=0;y1=0;x2=1;y2=4;pc=#000000;pw=1;"
-
   shape[19] = "func=line;x=70;y=266;x1=0;y1=0;x2=1;y2=3;pc=#000000;pw=1;"
-
 EndSub
-
-
 
 Sub Shapes_Init_Tree
-
   ' Shapes | Initialize shapes data
-
   ' return shX, shY - current position of shapes
-
   ' return shape - array of shapes
-
   shX = 690 ' x offset
-
   shY = 270 ' y offset
-
   shape = ""
-
   shape[1] = "func=ell;x=0;y=11;width=200;height=140;pw=0;bc=Green;"
-
   shape[2] = "func=ell;x=10;y=100;width=80;height=60;pw=0;bc=Green;"
-
   shape[3] = "func=ell;x=4;y=78;width=80;height=70;pw=0;bc=Green;"
-
   shape[4] = "func=ell;x=0;y=14;width=80;height=80;pw=0;bc=Green;"
-
   shape[5] = "func=ell;x=40;y=0;width=80;height=80;pw=0;bc=Green;"
-
   shape[6] = "func=ell;x=100;y=0;width=120;height=80;pw=0;bc=Green;"
-
   shape[7] = "func=ell;x=130;y=63;width=100;height=80;pw=0;bc=Green;"
-
   shape[8] = "func=ell;x=130;y=83;width=100;height=80;pw=0;bc=Green;"
-
   shape[9] = "func=rect;x=80;y=145;width=60;height=100;pw=0;bc=SaddleBrown;"
-
   shape[10] = "func=tri;x=110;y=85;x1=30;y1=0;x2=0;y2=60;x3=30;y3=60;pw=0;bc=SaddleBrown;"
-
   shape[11] = "func=tri;x=140;y=85;x1=0;y1=0;x2=30;y2=0;x3=0;y3=60;pw=0;bc=SaddleBrown;"
-
   shape[12] = "func=tri;x=50;y=85;x1=0;y1=0;x2=46;y2=0;x3=30;y3=60;pw=0;bc=SaddleBrown;"
-
   shape[13] = "func=tri;x=80;y=85;x1=16;y1=0;x2=0;y2=60;x3=46;y3=60;pw=0;bc=SaddleBrown;"
-
 EndSub
-
-
 
 Sub Shapes_Normalize
-
   ' Shapes | normalize shapes data
-
   iMax = Array.GetItemCount(shape)
-
   For i = 1 To iMax
-
     shp = shape[i]
-
     If Text.IsSubText("line|tri", shp["func"]) Then
-
       xmin = shp["x1"]
-
       ymin = shp["y1"]
-
       If shp["x2"] < xmin Then
-
         xmin = shp["x2"]
-
       EndIf
-
       If shp["y2"] < ymin Then
-
         ymin = shp["y2"]
-
       EndIf
-
       If shp["func"] = "tri" Then
-
         If shp["x3"] < xmin Then
-
           xmin = shp["x3"]
-
         EndIf
-
         If shp["y3"] < ymin Then
-
           ymin = shp["y3"]
-
         EndIf
-
         shp["x3"] = shp["x3"] - xmin
-
         shp["y3"] = shp["y3"] - ymin
-
       EndIf
-
       shp["x"] = shp["x"] + xmin
-
       shp["y"] = shp["y"] + ymin
-
       shp["x1"] = shp["x1"] - xmin
-
       shp["y1"] = shp["y1"] - ymin
-
       shp["x2"] = shp["x2"] - xmin
-
       shp["y2"] = shp["y2"] - ymin
-
       shape[i] = shp
-
     EndIf
-
   EndFor
-
   If 0 < iMax Then
-
     shp = shape[1]
-
     xmin = shp["x"]
-
     ymin = shp["y"]
-
     xmax = shp["x"]
-
     ymax = shp["y"]
-
   EndIf
-
   For i = 2 To iMax
-
     shp = shape[i]
-
     If shp["x"] < xmin Then
-
       xmin = shp["x"]
-
     EndIf
-
     If shp["y"] < ymin Then
-
       ymin = shp["y"]
-
     EndIf
-
     If xmax < shp["x"] Then
-
       xmax = shp["x"]
-
     EndIf
-
     If ymax < shp["y"] Then
-
       ymax = shp["y"]
-
     EndIf
-
   EndFor
-
   shX = xmin
-
   shY = ymin
-
   For i = 1 To iMax
-
     shp = shape[i]
-
     shp["x"] = shp["x"] - xmin
-
     shp["y"] = shp["y"] - ymin
-
     If shp["angle"] = 0 Then
-
       shp["angle"] = ""
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
 EndSub
-
-

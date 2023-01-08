@@ -1,379 +1,189 @@
 'Initialise graphics window
-
 GW = 600
-
 Slime_Amount = 25
-
 Slime_Radius = 25
-
 Slime_Diameter = Slime_Radius*2
 
-
-
 GraphicsWindow.Height = GW
-
 GW = GW + Slime_Radius
-
 GraphicsWindow.Width = GW
-
 GraphicsWindow.BrushColor =  "Green"
-
 GraphicsWindow.PenColor = GraphicsWindow.BrushColor
 
-
-
 ' Gravity, friction and attraction to mouse
-
 grav = 1' 0 for none
-
 fric = 0.5 ' 0 for none
-
 dt = 1 'timestep (speed)
-
 elastic = 1 '1 fully elastic collisions
 
 
-
-
-
 For i = 1 To Slime_Amount
-
   Slime_X[i] = Math.GetRandomNumber(GW-Slime_Diameter*2)+Slime_Diameter
-
   Slime_Y[i] = Math.GetRandomNumber(GW-Slime_Diameter*2)+Slime_Diameter
-
   Slime[i] = Shapes.AddEllipse(Slime_Diameter,Slime_Diameter)
-
 endfor
 
 
-
-
-
 While "True"
-
   TimeStart = Clock.ElapsedMilliseconds
-
   
-
   For i = 1 To Slime_Amount
-
     update()
-
     Shapes.Move(Slime[i],Slime_X[i]-Slime_Radius,Slime_Y[i]-Slime_Radius) 'Shapes.Move(Slimes,x-Slime_Radius,y-Slime_Radius)
-
   EndFor
-
   
-
   
-
   PerfectDelay = 20-(Clock.ElapsedMilliseconds-TimeStart)
-
   If PerfectDelay > 0 Then
-
     Program.Delay(PerfectDelay)
-
   EndIf
-
 endwhile
 
 
-
-
-
 'Update ball positions
-
 Sub update
-
   u = Slime_WX[i]
-
   v = Slime_WY[i]
-
   u = Math.Min(100,Math.Max(u,-100))
-
   v = Math.Min(100,Math.Max(v,-100))
-
   x = Slime_X[i]+dt*u
-
   y = Slime_Y[i]+dt*v
-
   bounce()
-
   gravity()
-
   collision()
-
   Slime_X[i] = x
-
   Slime_Y[i] = y
-
 EndSub
-
-
 
 'Check for edge bounces
-
 Sub bounce
-
   If (x < Slime_Radius) Then
-
     Slime_WX[i] = -Slime_WX[i]
-
     x = Slime_Radius
-
   elseif (x > gw-Slime_Radius) Then
-
     Slime_WX[i] = -Slime_WX[i]
-
     x = GW-Slime_Radius
-
   EndIf
-
   If (y < Slime_Radius) Then
-
     Slime_WY[i] = -Slime_WY[i]
-
     y = Slime_Radius
-
   elseIf (y > GW-Slime_Radius) Then
-
     Slime_WY[i] = -Slime_WY[i]
-
     y = GW-Slime_Radius
-
   EndIf
-
 EndSub
-
-
-
 
 
 'Gravity and friction
-
 Sub gravity
-
   u = Slime_WX[i]
-
   v = Slime_WY[i]
-
   fricscale = (1-fric/Math.SquareRoot(1+u*u+v*v))
-
   Slime_WX[i] = fricscale*u
-
   Slime_WY[i] = fricscale*v+grav
-
 EndSub
-
-
-
 
 
 'Check for collisions
-
 Sub collision
-
   'Only check each pair once
-
   For j = i+1 To Slime_Amount
-
     xi = x
-
     yi = y
-
     xj = Slime_X[j]
-
     yj = Slime_Y[j]
-
     dx = xi-xj
-
     dy = yi-yj
-
     dist = Math.SquareRoot(dx*dx+dy*dy)
-
     
-
     
-
     Shapes.Remove(Line[i*Slime_Amount+j])
-
     If dist <= Slime_Diameter + Slime_Radius Then
-
       'Add the lines to simulate a fusion of the blobs
-
       If dist >= Slime_Diameter And dist <= Slime_Diameter + Slime_Radius Then
-
         Line_Width = Slime_Diameter*3 - dist*2
-
       ElseIf dist > Slime_Diameter Then
-
         Line_Width = 0
-
       ElseIf dist < Slime_Diameter Then
-
         Line_Width = Slime_Diameter
-
       endif
-
       GraphicsWindow.PenWidth = Line_Width
-
       
-
       If Line_Width > 0 Then
-
         Line[i*Slime_Amount+j] = Shapes.AddLine(Slime_X[i],Slime_Y[i],Slime_X[j],Slime_Y[j])
-
       endif
-
     endif
-
     
-
     
-
     
-
     
-
     
-
     If (dist <= Slime_Diameter) Then
-
       'Get ball vectors
-
       ui = Slime_WX[i]
-
       vi = Slime_WY[i]
-
       uj = Slime_WX[j]
-
       vj = Slime_WY[j]
-
       'Move backwards (forwards if dt < 0)  in time until balls are just touching
-
       CoefA = (ui-uj)*(ui-uj)+(vi-vj)*(vi-vj)
-
       CoefB = 2*((ui-uj)*(xi-xj)+(vi-vj)*(yi-yj))
-
       CoefC = (xi-xj)*(xi-xj)+(yi-yj)*(yi-yj)-Slime_Diameter*Slime_Diameter
-
       If (CoefA = 0) Then
-
         t = -CoefC/CoefB
-
       Else
-
         If (dt >= 0) Then
-
           t = (-CoefB-Math.SquareRoot(CoefB*CoefB-4*CoefA*CoefC))/(2*CoefA)
-
         Else
-
           t = (-CoefB+Math.SquareRoot(CoefB*CoefB-4*CoefA*CoefC))/(2*CoefA)
-
         EndIf
-
       EndIF
-
       xi = xi+t*ui
-
       yi = yi+t*vi
-
       xj = xj+t*uj
-
       yj = yj+t*vj
-
       'Centre of momentum coordinates
-
       mx = (ui+uj)/2
-
       my = (vi+vj)/2
-
       ui = ui-mx
-
       vi = vi-my
-
       uj = uj-mx
-
       vj = vj-my
-
       'New centre to centre line
-
       dx = xi-xj
-
       dy = yi-yj
-
       dist = Math.SquareRoot(dx*dx+dy*dy)
-
       dx = dx/dist
-
       dy = dy/dist
-
       'Reflect balls velocity vectors in centre to centre line
-
       OB = -(dx*ui+dy*vi)
-
       ui = ui+2*OB*dx
-
       vi = vi+2*OB*dy
-
       OB = -(dx*uj+dy*vj)
-
       uj = uj+2*OB*dx
-
       vj = vj+2*OB*dy
-
       'Back to moving coordinates with elastic velocity change
-
       e = Math.SquareRoot(elastic)
-
       ui = e*(ui+mx)
-
       vi = e*(vi+my)
-
       uj = e*(uj+mx)
-
       vj = e*(vj+my)
-
       'Move to new bounced position
-
       xi = xi-t*ui
-
       yi = yi-t*vi
-
       xj = xj-t*uj
-
       yj = yj-t*vj
-
       'Set velocities
-
       Slime_WX[i] = ui
-
       Slime_WY[i] = vi
-
       Slime_WX[j] = uj
-
       Slime_WY[j] = vj
-
       'Set position
-
       Slime_X[j] = xj
-
       Slime_Y[j] = yj
-
       x = xi
-
       y = yi
-
     EndIf
-
   EndFor
-
   Slime_Old_X[j] = X
-
   Slime_Old_Y[j] = Y
-
 EndSub
-
-

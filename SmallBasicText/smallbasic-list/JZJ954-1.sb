@@ -1,905 +1,452 @@
 ' Pattern Login Demo
-
 ' Version 0.3b
-
 ' Copyright © 2016 Nonki Takahashi.  All rights reserved.
-
 ' Last update 2016-05-17
-
 ' Challenge 2016-05
-
 ' Program ID JZJ954-1
-
 GraphicsWindow.Title = "Pattern Login Demo"
-
 Init()
-
 Form()
-
 LoadPattern()
-
 While "True"
-
   While canceled
-
     GraphicsWindow.BackgroundColor = "#111111"
-
     Demo()
-
     ClearPattern()
-
     mode = MODE_SET
-
     AskPattern()
-
     ptnSaved = ptn
-
     ClearPattern()
-
     If Not[canceled] Then
-
       mode = MODE_CONFIRM
-
       AskPattern()
-
       ClearPattern()
-
     EndIf
-
   EndWhile
-
   GraphicsWindow.BackgroundColor = "#000033"
-
   SavePattern()
-
   mode = MODE_LOGIN
-
   AskPattern()
-
   ClearPattern()
-
   canceled = "True"
-
 EndWhile
-
 Sub AskPattern
-
   If mode = MODE_SET Then
-
     iMsg = MSG_ASK
-
   ElseIf mode = MODE_CONFIRM Then
-
     iMsg = MSG_CONFIRM
-
   ElseIf mode = MODE_LOGIN Then
-
     GraphicsWindow.PenWidth = pr
-
     GraphicsWindow.PenColor = "#80FFFFFF"
-
     iMsg = MSG_NOTHING
-
   EndIf
-
   SetMsgAndBtn()
-
   If set = "" Then
-
     GraphicsWindow.MouseDown = OnMouseDown
-
     GraphicsWindow.MouseMove = OnMouseMove
-
     GraphicsWindow.MouseUp = OnMouseUp
-
     Timer.Tick = OnTick
-
     set = "True"
-
   EndIf
-
   complete = "False"
-
   While Not[complete]
-
     WaitUntilFirstTap()
-
     If (mode = MODE_SET) Or (mode = MODE_CONFIRM) Then
-
       iMsg = MSG_RELEASE
-
       SetMsgAndBtn()
-
     EndIf
-
     nLine = 0
-
     If canceled Then
-
       complete = "True"
-
     Else
-
       RecordSwipe()
-
       If mode = MODE_LOGIN Then
-
         If ptn = ptnSaved Then
-
           complete = "True"
-
         Else
-
           DarkenRings()
-
           Timer.Interval = 2000
-
         EndIf
-
       ElseIf mode = MODE_CONFIRM Then 
-
         If ptn = ptnSaved Then
-
           iMsg = MSG_CONFIRMED
-
           SetMsgAndBtn()
-
           buttonClicked = "False"
-
           While Not[buttonClicked]
-
             Program.Delay(200)
-
           EndWhile
-
           If caption = "Confirm" Then
-
             canceled = "False"
-
           Else  ' Cancel
-
             canceled = "True"
-
           EndIf
-
           complete = "True"
-
         Else
-
           iMsg = MSG_DIFFERENT
-
           SetMsgAndBtn()
-
           DarkenRings()
-
           Timer.Interval = 2000
-
         EndIf
-
       ElseIf 4 <= Text.GetLength(ptn) Then
-
         iMsg = MSG_RECORDED
-
         SetMsgAndBtn()
-
         buttonClicked = "False"
-
         While Not[buttonClicked]
-
           Program.Delay(200)
-
         EndWhile
-
         If caption = "Next" Then
-
           complete = "True"
-
         Else  ' Retry
-
           iMsg = MSG_ASK
-
           SetMsgAndBtn()
-
           ClearPattern()
-
         EndIf
-
       Else
-
         iMsg = MSG_SHORT
-
         SetMsgAndBtn()
-
         DarkenRings()
-
         Timer.Interval = 2000
-
       EndIf
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub CheckMiddle
-
   mx = (point[iLast]["x"] + point[i]["x"]) / 2
-
   my = (point[iLast]["y"] + point[i]["y"]) / 2
-
   Stack.PushValue("local", i)
-
   MouseToPoint()
-
   If 0 < i Then
-
     ShowRing()
-
   EndIf
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub ClearPattern
-
   For i = 1 To 9
-
     Shapes.SetOpacity(ring[i], 100)
-
     Shapes.HideShape(ring[i])
-
   EndFor
-
   For i = 1 To nLine
-
     Shapes.Remove(line[i])
-
   EndFor
-
 EndSub
-
 Sub DarkenRings
-
   len = Text.GetLength(ptn)
-
   For p = 1 To len
-
     i = Text.GetSubText(ptn, p, 1)
-
     Shapes.SetOpacity(ring[i], 30)
-
   EndFor
-
 EndSub
-
 Sub Demo
-
   iMsg = MSG_DEMO
-
   SetMsgAndBtn()
-
   p = 1
-
   len = Text.GetLength(demoPtn)
-
   GraphicsWindow.PenWidth = pr
-
   GraphicsWindow.PenColor = "#80FFFFFF"
-
   buttonClicked = "False"
-
   nLine = 0
-
   While Not[buttonClicked]
-
     i = Text.GetSubText(demoPtn, p, 1)
-
     Shapes.ShowShape(ring[i])
-
     If 1 < p Then
-
       x1 = point[iLast]["x"]
-
       y1 = point[iLast]["y"]
-
       x2 = point[i]["x"]
-
       y2 = point[i]["y"]
-
       nLine = nLine + 1
-
       line[nLine] = Shapes.AddLine(x1, y1, x2, y2)
-
     EndIf
-
     iLast = i
-
     p = p + 1
-
     Program.Delay(500)
-
     If len < p Then
-
       p = 1
-
       ClearPattern()
-
       nLine = 0
-
     EndIf
-
   EndWhile
-
 EndSub
-
 Sub Form
-
   gw = 300
-
   gh = 400
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BackgroundColor = "#111111"
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.PenWidth = 1
-
   x1 = 10
-
   x2 = gw - 10
-
   pr = 4
-
   r = 27
-
   y = 150 - 1.7 * r
-
   GraphicsWindow.DrawLine(x1, y, x2, y)
-
   For row = 1 To 3
-
     y = 150 + (row - 1) * (3 * r)
-
     For col = 1 To 3
-
       x = (gw - (6 * r)) / 2 + (col - 1) * (3 * r)
-
       i = (row - 1) * 3 + col
-
       point[i]["x"] = x
-
       point[i]["y"] = y
-
       GraphicsWindow.PenColor = "White"
-
       GraphicsWindow.PenWidth = 1
-
       GraphicsWindow.BrushColor = "Gray"
-
       p = Shapes.AddEllipse(2 * pr, 2 * pr)
-
       Shapes.Move(p, x - pr, y - pr)
-
       GraphicsWindow.PenColor = "Lime"
-
       GraphicsWindow.PenWidth = 4
-
       GraphicsWindow.BrushColor = "#00000000"
-
       ring[i] = Shapes.AddEllipse(2 * r, 2 * r)
-
       Shapes.Move(ring[i], x - r, y - r)
-
       Shapes.HideShape(ring[i])
-
     EndFor
-
   EndFor
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FontName = "Segoe UI"
-
   GraphicsWindow.FontBold = "False"
-
   txtMsg = Shapes.AddText("")
-
   Shapes.Move(txtMsg, 10, 10)
-
   GraphicsWindow.FontBold = "True"
-
   GraphicsWindow.BrushColor = "#333333"
-
   btn1 = Controls.AddButton("", 10, gh - 40)
-
   Controls.SetSize(btn1, (gw - 30) / 2, 26)
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "White"
-
   mask1 = Shapes.AddRectangle((gw - 30) / 2, 26)
-
   Shapes.SetOpacity(mask1, 50)
-
   Shapes.Move(mask1, 10, gh - 40)
-
   GraphicsWindow.BrushColor = "#333333"
-
   btn2 = Controls.AddButton("", gw / 2 + 5, gh - 40)
-
   Controls.SetSize(btn2, (gw - 30) / 2, 26)
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "White"
-
   mask2 = Shapes.AddRectangle((gw - 30) / 2, 26)
-
   Shapes.SetOpacity(mask2, 50)
-
   Shapes.Move(mask2, gw / 2 + 5, gh - 40)
-
 EndSub
-
 Sub Init
-
   CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
-
   Not = "False=True;True=False;"
-
   MODE_SET = 1
-
   MODE_CONFIRM = 2
-
   MODE_LOGIN = 3
-
   MSG_NOTHING = 0
-
   ' message and button for Demo()
-
   MSG_DEMO = 1
-
   msg[1] = "Connect at least four dots.  Tap Next when you" + CRLF
-
   msg[1] = msg[1] + "are ready to draw your own pattern."
-
   b1[1] = "Gray:Cancel"
-
   b2[1] = "Next"
-
   ' for AskPattern()
-
   MSG_ASK = 2
-
   msg[2] = "Draw an unlock pattern."
-
   b1[2] = "Cancel"
-
   b2[2] = "Gray:Next"
-
   MSG_RELEASE = 3
-
   msg[3] = "Release finger when finished."
-
   b1[3] = "Gray:Cancel"
-
   b2[3] = "Gray:Next"
-
   MSG_SHORT = 4
-
   msg[4] = "Connect at least 4 dots.  Try again:"
-
   b1[4] = "Retry"
-
   b2[4] = "Gray:Next"
-
   MSG_RECORDED = 5
-
   msg[5] = "Pattern recorded."
-
   b1[5] = "Retry"
-
   b2[5] = "Next"
-
   ' for ConfirmPattern()
-
   MSG_CONFIRM = 6
-
   msg[6] = "Confirm saved pattern."
-
   b1[6] = "Cancel"
-
   b2[6] = "Gray:Confirm"
-
   MSG_DIFFERENT = 7
-
   msg[7] = "Sorry, try again."
-
   b1[7] = "Cancel"
-
   b2[7] = "Gray:Confirm"
-
   MSG_CONFIRMED = 8
-
   msg[8] = "Your new unlock pattern:"
-
   b1[8] = "Cancel"
-
   b2[8] = "Confirm"
-
   demoPtn = "215369"
-
   Controls.ButtonClicked = OnButtonClicked
-
 EndSub
-
 Sub LoadPattern
-
 ' The following line could be harmful and has been automatically commented.
-
 '   settings = File.ReadContents(File.GetSettingsFilePath())
-
   If 0 < settings Then
-
     bin = settings
-
     Math_BinToDec()
-
     ptnSaved = dec
-
     canceled = "False"
-
   Else
-
     canceled = "True"
-
   EndIf
-
 EndSub
-
 Sub MouseToPoint
-
   ' param mx - mouse x coordinate
-
   ' param my - mouse y coordinate
-
   For i = 1 To 9
-
     x = mx - point[i]["x"]
-
     y = my - point[i]["y"]
-
     d = Math.SquareRoot(x * x + y * y)
-
     If d <= r Then
-
       Goto FoundPoint
-
     EndIf
-
   EndFor
-
   i = 0
-
   FoundPoint:
-
 EndSub
-
 Sub OnButtonClicked
-
   buttonClicked = "True"
-
   caption = Controls.GetButtonCaption(Controls.LastClickedButton)
-
 EndSub
-
 Sub OnMouseDown
-
   mouseDown = "True"
-
 EndSub
-
 Sub OnMouseMove
-
   mouseMove = "True"
-
 EndSub
-
 Sub OnMouseUp
-
   mouseDown = "False"
-
 EndSub
-
 Sub OnTick
-
   ClearPattern()
-
   Timer.Interval = 100000000
-
 EndSub
-
 Sub RecordSwipe
-
   nLine = 1
-
   While mouseDown
-
     If mouseMove Then
-
       mx = GraphicsWindow.MouseX
-
       my = GraphicsWindow.MouseY
-
       Shapes.Remove(line[nLine])
-
       line[nLine] = Shapes.AddLine(point[iLast]["x"], point[iLast]["y"], mx, my)
-
       MouseToPoint()
-
       If (0 < i) And Not[Text.IsSubText(ptn, i)] Then
-
         CheckMiddle()
-
         ShowRing()
-
       EndIf
-
       mouseMove = "False"
-
     Else
-
       Program.Delay(200)
-
     EndIf
-
   EndWhile
-
   Shapes.Remove(line[nLine])
-
   nLine = nLine - 1
-
 EndSub
-
 Sub SavePattern
-
   ' param ptnSaved
-
   dec = ptnSaved
-
   Math_DecToBin()
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteContents(File.GetSettingsFilePath(), bin)
-
 EndSub
-
 Sub SetMsgAndBtn
-
   ' param iMsg
-
   If iMsg = MSG_NOTHING Then
-
     Shapes.HideShape(txtMsg)
-
     Controls.HideControl(btn1)
-
     Controls.HideControl(btn2)
-
     Shapes.HideShape(mask1)
-
     Shapes.HideShape(mask2)
-
   Else
-
     Shapes.ShowShape(txtMsg)
-
     Controls.ShowControl(btn1)
-
     Controls.ShowControl(btn2)
-
     Shapes.SetText(txtMsg, msg[iMsg])
-
     If Text.StartsWith(b1[iMsg], "Gray:") Then
-
       gray1 = "True"
-
       caption = Text.GetSubTextToEnd(b1[iMsg], 6)
-
     Else
-
       gray1 = "False"
-
       caption = b1[iMsg]
-
     EndIf
-
     Controls.SetButtonCaption(btn1, caption)
-
     If gray1 Then
-
       Shapes.ShowShape(mask1)
-
     Else
-
       Shapes.HideShape(mask1)
-
     EndIf
-
     If Text.StartsWith(b2[iMsg], "Gray:") Then
-
       gray2 = "True"
-
       caption = Text.GetSubTextToEnd(b2[iMsg], 6)
-
     Else
-
       gray2 = "False"
-
       caption = b2[iMsg]
-
     EndIf
-
     Controls.SetButtonCaption(btn2, caption)
-
     If gray2 Then
-
       Shapes.ShowShape(mask2)
-
     Else
-
       Shapes.HideShape(mask2)
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub ShowRing
-
   ptn = Text.Append(ptn, i)
-
   Shapes.Remove(line[nLine])
-
   line[nLine] = Shapes.AddLine(point[iLast]["x"], point[iLast]["y"], point[i]["x"], point[i]["y"])
-
   nLine = nLine + 1
-
   Shapes.ShowShape(ring[i])
-
   iLast = i
-
 EndSub
-
 Sub Test
-
   While "True"
-
     TextWindow.Write("Decimal? ")
-
     dec = TextWindow.Read()
-
     Math_DecToBin()
-
     TextWindow.WriteLine(bin)
-
     Math_BinToDec()
-
     TextWindow.WriteLine(dec)
-
   EndWhile
-
 EndSub
-
 Sub WaitUntilFirstTap
-
   pointTapped = "False"
-
   While Not[pointTapped]
-
     mouseDown = "False"
-
     While Not[mouseDown]
-
       If buttonClicked And caption = "Cancel" Then
-
         canceled = "True"
-
         Goto EndAsking
-
       Else
-
         Program.Delay(200)
-
       EndIf
-
     EndWhile
-
     mx = GraphicsWindow.MouseX
-
     my = GraphicsWindow.MouseY
-
     MouseToPoint()
-
     If 0 < i Then
-
       ptn = i
-
       ClearPattern()
-
       Shapes.ShowShape(ring[ptn])
-
       iLast = ptn
-
       pointTapped = "True"
-
     EndIf
-
   EndWhile
-
   canceled = "False"
-
   EndAsking:
-
 EndSub
-
 Sub Math_BinToDec
-
   ' param bin - binary
-
   ' return dec - decimal
-
   len = Text.GetLength(bin)
-
   dec = 0
-
   For i = 1 To len
-
     b = Text.GetSubText(bin, i, 1)
-
     dec = dec * 2
-
     If b = 1 Then
-
       dec = dec + 1
-
     EndIf
-
   EndFor
-
 EndSub
-
 Sub Math_DecToBin
-
   ' param dec - decimal
-
   ' return bin - binary
-
   bin = ""
-
   While 0 < dec
-
     bin = Text.Append(Math.Remainder(dec, 2), bin)
-
     dec = Math.Floor(dec / 2)
-
   EndWhile
-
   If bin = "" Then
-
     bin = 0
-
   EndIf
-
 EndSub
-
-

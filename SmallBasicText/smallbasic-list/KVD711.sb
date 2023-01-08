@@ -1,463 +1,231 @@
 gw = 1000 ' = 26cm, 1cm = 38.5px
-
 gh = 600
-
 Xorg = gw/2 - 150
-
 Yorg = gh/2
-
 leftOffset = 260
-
 topOffset = 5
-
 scale = 150
-
 ER = 6371/scale 'km. eRadius is used for Calculations in routines copied from myTW code
-
 r = 4 'sat radius
-
 k = "stop"
 
-
-
 min_Alt = 200/scale
-
 LEO_Alt = 2000/scale
-
 MEO1_Alt = 13262/scale
-
 MEO_Alt = 24524/scale
-
 Calc_GEO_Alt()
-
 DurationRatios() 'calculates ratio to 24hrs. Copied from myTW code. Basically a speed coefficient
 
-
-
 DefineGW()
-
 ShowOrbitZones()
-
 AddEarth()
-
 Label()
-
 AddSatelites()
-
 ShowData()
 
-
-
 Timer.Interval = 1000
-
 Timer.Pause()
-
 Timer.Tick = OnTick
 
-
-
 GUI()
-
 Controls.ButtonClicked = ButtonClicked
 
-
-
 While "true"
-
   loop:  
-
   If k = "stop" Then    
-
     Goto loop
-
   EndIf  
-
   
-
   angle = angle + 0.1
-
   Shapes.Rotate(theEarth,angle)
-
   
-
   X_LEO = Math.Cos(angle * durationRatio_LEO * Math.Pi / 180) * (ER + LEO_Alt) + Xorg - r
-
   Y_LEO = Math.Sin(angle * durationRatio_LEO * Math.Pi / 180) * (ER + LEO_Alt) + Yorg - r
-
   Shapes.Move(LEO, X_LEO, Y_LEO)
-
   
-
   X_MEO1 = Math.Cos(angle * durationRatio_MEO1 * Math.Pi / 180) * (ER + MEO1_Alt) + Xorg - r
-
   Y_MEO1 = Math.Sin(angle * durationRatio_MEO1 * Math.Pi / 180) * (ER + MEO1_Alt) + Yorg - r
-
   Shapes.Move(MEO1, X_MEO1, Y_MEO1)
-
   
-
   X_MEO = Math.Cos(angle * durationRatio_MEO * Math.Pi / 180) * (ER + MEO_Alt) + Xorg - r
-
   Y_MEO = Math.Sin(angle * durationRatio_MEO * Math.Pi / 180) * (ER + MEO_Alt) + Yorg - r
-
   Shapes.Move(MEO, X_MEO, Y_MEO)   
-
   
-
   X_GEO = Math.Cos(angle * Math.Pi / 180) * (ER + GEO_Alt) + Xorg - r
-
   Y_GEO = Math.Sin(angle * Math.Pi / 180) * (ER + GEO_Alt) + Yorg - r
-
   Shapes.Move(GEO, X_GEO, Y_GEO) 
-
   Program.Delay(5)
-
   
-
   If angle = 360 Then '            shows runtime scale    
-
     Shapes.HideShape(wait)
-
     GraphicsWindow.BrushColor = "lime"
-
     GraphicsWindow.FontSize = 12
-
     timeScale_seconds = Shapes.AddText(runTime + " s")
-
     Shapes.Move(timeScale_seconds, gw-leftOffset+127, topOffset)
-
   EndIf  
-
 EndWhile
-
 '-------------------------------------Event subroutines--------------------------------------------------------------------
-
 Sub ButtonClicked
-
   count = count + 1  
-
   If Math.Remainder(count, 2) <> 0 Then
-
     k = "start"
-
     Timer.Resume()
-
     Controls.SetButtonCaption(StartStop, "Stop")    
-
   ElseIf Math.Remainder(count, 2) = 0 Then
-
     k = "stop"
-
     Timer.Pause()
-
     Controls.SetButtonCaption(StartStop, "Start")
-
   EndIf
-
 EndSub
-
-
 
 Sub OnTick
-
   runTime = runTime + 1
-
 EndSub
-
 '----------------------------------------------Subroutines-------------------------------------------------------------------
-
 Sub GUI
-
   GraphicsWindow.FontSize = 18
-
   GraphicsWindow.BrushColor = "black"
-
   StartStop = Controls.AddButton("Start", gw-90, gh-50)
-
   Controls.SetSize(StartStop,80,40)
-
 EndSub
-
-
 
 Sub ShowData
-
   timeScale_Hdr = Shapes.AddText("Time Scale: 1 SRP =  ") 'show data
-
   wait = Shapes.AddText("wait for 1 GEO orbit")
-
   linearScale_Hdr = Shapes.AddText("Linear Scale: 1cm = " + Math.Round(ER*scale) + " km")
-
   
-
   Shapes.Move(timeScale_Hdr, gw-leftOffset, topOffset)
-
   Shapes.Move(wait, gw-leftOffset+127, topOffset)
-
   Shapes.Move(linearScale_Hdr, gw-leftOffset, topOffset+15)  
-
 EndSub
-
-
 
 Sub AddSatelites
-
   GraphicsWindow.PenWidth = 0
-
   LEO = Shapes.AddEllipse(r*2, r*2)
-
   MEO1 = Shapes.AddEllipse(r*2, r*2)
-
   MEO = Shapes.AddEllipse(r*2, r*2)
-
   GEO = Shapes.AddEllipse(r*2, r*2)
-
   Shapes.Move(LEO, Xorg + ER + LEO_Alt - r, Yorg - r)
-
   Shapes.Move(MEO1, Xorg + ER + MEO1_Alt - r, Yorg - r)
-
   Shapes.Move(MEO, Xorg + ER + MEO_Alt - r, Yorg - r)
-
   Shapes.Move(GEO, Xorg + ER + GEO_Alt - r, Yorg - r)
-
 EndSub
-
-
 
 Sub AddEarth
-
   GraphicsWindow.BrushColor = "blue"
-
   earth = Shapes.AddEllipse(ER*2, ER*2)
-
   
-
   GraphicsWindow.BrushColor = "Lime"  
-
   theEarth = Shapes.AddText("Earth")
-
   Shapes.Zoom(theEarth, 1.5,1.5)  
-
   
-
   Shapes.Move(earth, Xorg-ER, Yorg-ER)
-
   Shapes.Move(theEarth, Xorg-ER+25, Yorg-7)  
-
 EndSub
-
-
 
 Sub ShowOrbitZones
-
   GraphicsWindow.PenWidth = 0
-
   
-
   GraphicsWindow.BrushColor = "purple" 'MEO zone
-
   MEO_zone = Shapes.AddEllipse((ER+GEO_Alt)*2, (ER+GEO_Alt)*2)
-
   Shapes.Move(MEO_zone, Xorg-(ER+GEO_Alt), Yorg-(ER+GEO_Alt))
-
   Shapes.SetOpacity(MEO_zone, 30)
-
   
-
   GraphicsWindow.BrushColor = "black" 'LEO zone
-
   LEO_zone = Shapes.AddEllipse((ER+LEO_Alt)*2, (ER+LEO_Alt)*2)
-
   Shapes.Move(LEO_zone, Xorg-(ER+LEO_Alt), Yorg-(ER+LEO_Alt))  
-
 EndSub
-
-
 
 Sub Calc_GEO_Alt
-
   eRadius = 6371 * Math.Power(10, 3) 'm,  Earths mean radius
-
-  G = Math.Round(6.67384 *100)/100 * Math.Power(10, -11) 'm3 * kg^-1 * s^-2  , bigG. rel uncertainty 1.2Ã—10?ˆ’4
-
+  G = Math.Round(6.67384 *100)/100 * Math.Power(10, -11) 'm3 * kg^-1 * s^-2  , bigG. rel uncertainty 1.2Ã—10âˆ’4
   M = 5.9736 * Math.Power(10, 24) 'kg,  Earth mass
-
   SRP = (23 + (56/60))*60*60 + 4.1 ' h, "sidereal" rotation period (nearly = SD)
-
   numer = Math.Round(G*M*Math.Power(SRP,2)/Math.Power(10,21))*Math.Power(10,21)'kg and s units cancel
-
   denom = 4*Math.Power(Math.Pi,2)
-
   Ans = (Math.Floor(Math.Power( numer / denom, 1/3)/Math.Power(10,3))*Math.Power(10,3) - eRadius)/1000 'to "the" km
-
   GEO_Alt = Ans/scale  
-
 EndSub
-
-
 
 Sub DurationRatios ' a bit messy, was brought in later from my TW code
-
   altitude = LEO_Alt * scale * 1000
-
   DurationRatioFormula()
-
   durationRatio_LEO = (SRP/60) / (t/60)  
-
   speed_1stSat = (C/1000)/(t/60/60) 'sat speed in km/hr 
-
   duration_1stSat = Math.Ceiling(t/60)
-
   
-
   altitude = MEO1_Alt * scale * 1000 
-
   DurationRatioFormula()
-
   durationRatio_MEO1 = (SRP/60) / (t/60)
-
   speed_2ndSat = (C/1000)/(t/60/60) 'sat speed in km/hr  
-
   duration_2ndSat = Math.Ceiling(t/60)
-
   
-
   altitude = MEO_Alt * scale * 1000 
-
   DurationRatioFormula()
-
   durationRatio_MEO = (SRP/60) / (t/60)
-
   speed_3rdSat = (C/1000)/(t/60/60) 'sat speed in km/hr 
-
   duration_3rdSat = Math.Ceiling(t/60)
-
   
-
   altitude = GEO_Alt * scale * 1000
-
   DurationRatioFormula()
-
   speed_4thSat = (C/1000)/(t/60/60) 'sat speed in km/hr  
-
   duration_4thSat = Math.Ceiling(t/60)
-
 EndSub
-
-
 
 Sub DurationRatioFormula
-
   C = 2 * Math.Pi * (eRadius + altitude)'r
-
   t = C / Math.SquareRoot(G * M / (eRadius + altitude))
-
 EndSub
-
-
 
 Sub Label
-
   GraphicsWindow.PenColor = "white"
-
   GraphicsWindow.PenWidth = 1/2
-
   line1 = Shapes.AddLine(0,0,340,0)
-
   line2 = Shapes.AddLine(0,0,340-175,0)
-
   line4 = Shapes.AddLine(0,0,340-175-75,0)
-
   
-
   Shapes.Move(line1, Xorg, Yorg-ER-6)
-
   Shapes.Move(line2, Xorg+175, Yorg-ER+80)
-
   Shapes.Move(line4, Xorg+175+75, Yorg-ER-86)
-
   
-
   line1_txt = Shapes.AddText("ELEO zone: (200-2,000 km) above Earth")
-
   line1_txt1 = Shapes.AddText("1st Satellite Speed: " + Math.Round(speed_1stSat) + " km/h")  
-
   line1_txt2 = Shapes.AddText("Duration: " + duration_1stSat + " min")
-
   line1_txt3 = Shapes.AddText("Altitude: " + Math.Round(LEO_Alt * scale) + " km")
-
   
-
   line2_txt = Shapes.AddText("EMEO zone: (2,000-"+Math.Round(GEO_Alt*scale)+ " km) above Earth")
-
   line2_txt1 = Shapes.AddText("2nd Satellite Speed: " + Math.Round(speed_2ndSat) + " km/h")  
-
   line2_txt2 = Shapes.AddText("Duration: " + duration_2ndSat + " min")
-
   line2_txt3 = Shapes.AddText("Altitude: " + Math.Round(MEO1_Alt * scale) + " km")
-
   
-
   line4_txt = Shapes.AddText("GEO zone: ("+Math.Round(GEO_Alt*scale)+ " km) above Earth")
-
   line4_txt1 = Shapes.AddText("4th Satellite Speed: " + Math.Round(speed_4thSat) + " km/h")  
-
   line4_txt2 = Shapes.AddText("Duration: " + duration_4thSat + " min")
-
   line4_txt3 = Shapes.AddText("Altitude: " + Math.Round(GEO_Alt * scale) + " km")
-
   
-
   Shapes.Move(line1_txt, Xorg+345, Yorg-ER-13)
-
   Shapes.Move(line1_txt1, Xorg+345, Yorg-ER+2)
-
   Shapes.Move(line1_txt2, Xorg+345, Yorg-ER+17)
-
   Shapes.Move(line1_txt3, Xorg+345, Yorg-ER+32)
-
   
-
   Shapes.Move(line2_txt, Xorg+345, Yorg-ER-13+80)
-
   Shapes.Move(line2_txt1, Xorg+345, Yorg-ER+2+80)
-
   Shapes.Move(line2_txt2, Xorg+345, Yorg-ER+17+80)
-
   Shapes.Move(line2_txt3, Xorg+345, Yorg-ER+32+80) 
-
   
-
   Shapes.Move(line4_txt, Xorg+345, Yorg-ER-13-86)
-
   Shapes.Move(line4_txt1, Xorg+345, Yorg-ER+2-86)
-
   Shapes.Move(line4_txt2, Xorg+345, Yorg-ER+17-86)
-
   Shapes.Move(line4_txt3, Xorg+345, Yorg-ER+32-86)
-
 EndSub
-
-
 
 Sub DefineGW  
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.CanResize = 0
-
   GraphicsWindow.Title = "Equatorial Earth Orbit Alitudes and Durations"
-
   GraphicsWindow.Left = (Desktop.Width - gw) / 2
-
   GraphicsWindow.Top = 10
-
   GraphicsWindow.BackgroundColor = "black"
-
   GraphicsWindow.FontSize = 12
-
 EndSub
-
-

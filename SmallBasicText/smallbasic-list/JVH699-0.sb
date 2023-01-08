@@ -1,307 +1,153 @@
 ' Piano Recorder 0.4b
-
 ' Copyright (c) 2010- 2014 Nonki Takahshi.  MIT License.
-
 '
-
 ' History :
-
 '  0.4b 2014-06-16 Enabled Play button. (JVH699-0)
-
 '  0.3a 2014-06-15 Created from Piano. (JVH699)
-
 '  0.2 2012-12-29 Removed while loop. (ZWF718-2)
-
 '  0.1 2012-08-07 Title and background color added. (ZWF718-1)
-
 '  0.0 2010-07-21 Created for the 25 line challange in Small Basic Forum. (ZWF718)
-
 '
-
 GraphicsWindow.Title = "Piano Recorder 0.4b"
-
 gw = 598
-
 gh = 428
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.BackgroundColor = "#222222"
-
 sKey = "AWSEDFTGYHUJKOLPOemPlus"
-
 sSharp = "## ### ## "
-
 sWhite = "ASDFGHJKL;"
-
 sBlack = "WE TYU OP "
-
 sMML = "O4C O4C#O4D O4D#O4E O4F O4F#O4G O4G#O4A O4A#O4B O5C O5C#O5D O5D#O5E "
-
 nL = 64 ' tone length for Play
-
 GraphicsWindow.BrushColor = "White"
-
 GraphicsWindow.FillRectangle(107, 110, 400, 200)
-
 For i = 1 To 10
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawRectangle(67 + i * 40, 110, 40, 200)
-
   GraphicsWindow.DrawText(70 + i * 40, 290, Text.GetSubText(sWhite, i, 1))
-
   If Text.GetSubText(sSharp, i, 1) = "#" Then
-
     GraphicsWindow.FillRectangle(91 + i * 40, 110, 32, 140)
-
     GraphicsWindow.BrushColor = "White"
-
     GraphicsWindow.DrawText(94 + i * 40, 230, Text.GetSubText(sBlack, i, 1))
-
   EndIf  
-
 EndFor
-
 playing = "False"
-
 recording = "False"
-
 GraphicsWindow.PenWidth = 0
-
 GraphicsWindow.BrushColor = "Black"
-
 lamp = Shapes.AddEllipse(12, 12)
-
 Shapes.Move(lamp, 209, 353)
-
 on = 0
-
 off = 80
-
 Shapes.SetOpacity(lamp, off)
-
 GraphicsWindow.BrushColor = "Red"
-
 GraphicsWindow.FillEllipse(210, 354, 10, 10)
-
 btnRec = Controls.AddButton("REC", 230, 340)
-
 Controls.SetSize(btnRec, 40, 40) 
-
 GraphicsWindow.BrushColor = "Black"
-
-btnPlay = Controls.AddButton("?–¶", 280, 340)
-
+btnPlay = Controls.AddButton("â–¶", 280, 340)
 Controls.SetSize(btnPlay, 40, 40) 
-
-btnStop = Controls.AddButton("?– ", 330, 340)
-
+btnStop = Controls.AddButton("â– ", 330, 340)
 Controls.SetSize(btnStop, 40, 40)
-
 tbox = Controls.AddMultiLineTextBox(10, 10)
-
 Controls.SetSize(tbox, gw - 20, 40)
-
 Sound.PlayMusic("C4E4G4O5C4O4G4E4C4")
-
 Controls.ButtonClicked = OnButtonClicked
-
 tempo = 150
-
 Timer.Interval = 60000 / tempo / 2
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 While "True"
-
   If recording Then
-
     nRec = 0
-
     beat = 1
-
     Timer.Tick = OnTick
-
     While recording
-
       If keydown Then
-
         If sNote <> "" Then
-
           nRec = nRec + 1
-
           rec[nRec]["note"] = sNote
-
           rec[nRec]["ems"] = ems
-
         EndIf
-
         keydown = "False"
-
       Else
-
         Program.Delay(40)
-
       EndIf
-
     EndWhile
-
     Shapes.SetOpacity(lamp, off)
-
     Timer.Tick = DoNothing
-
   EndIf
-
   If playing Then
-
     RecToMML()
-
     i = 1
-
     While playing And (i <= nRec)
-
       Sound.PlayMusic(mml[i])
-
       i = i + 1
-
     EndWhile
-
     playing = "False"
-
   EndIf
-
 EndWhile
-
 Sub DoNothing
-
 EndSub
-
 Sub OnButtonClicked
-
   If Controls.LastClickedButton = btnPlay Then
-
     recording = "False"
-
     playing = "True"
-
   ElseIf Controls.LastClickedButton = btnRec Then
-
     recording = "True"
-
     playing = "False"
-
   Else
-
     recording = "Falsee"
-
     playing = "False"
-
   EndIf
-
 EndSub
-
 Sub OnKeyDown
-
   ems = Clock.ElapsedMilliseconds
-
   sLast = GraphicsWindow.LastKey
-
   sNote = Text.GetSubText(sMML, (Text.GetIndexOf(sKey, sLast) - 1) * 4 + 1, 4)
-
   If Text.EndsWith(sNote, " ") Then
-
     sNote = Text.GetSubText(sNote, 1, 3)
-
   EndIf
-
   keydown = "True"
-
   Sound.PlayMusic(sNote + nL)
-
 EndSub
-
 Sub OnTick
-
   If beat = 1 Then
-
     Sound.PlayClick()
-
   EndIf
-
   If Math.Remainder(beat, 2) = 1 Then
-
     Shapes.SetOpacity(lamp, on)
-
   Else
-
     Shapes.SetOpacity(lamp, off)
-
   EndIf
-
   beat = beat + 1
-
   If 8 < beat Then
-
     beat = 1
-
   EndIf
-
 EndSub
-
 Sub RecToMML
-
   ' param rec - array for record
-
   ' retrun mml - array for MML
-
   buf = ""
-
   For i = 1 To nRec
-
     mml[i] = rec[i]["note"]
-
     If i < nRec Then
-
       dt = rec[i + 1]["ems"] - rec[i]["ems"]
-
       If 1600 < dt Then
-
         r4 = Math.Floor(dt / 1600)
-
         dt = Math.Remainder(dt, 1600)
-
       Else
-
         r4 = 0
-
       EndIf 
-
       f = Math.Max(Math.Round(1600 / dt), 1)
-
       mml[i] = mml[i] + f
-
       If 0 < r4 Then
-
         mml[i] = mml[i] + "R" + r4
-
       EndIf
-
     Else
-
       mml[i] = mml[i] + 4
-
     EndIf
-
     buf = buf + mml[i]
-
     Controls.SetTextBoxText(tbox, buf)
-
   EndFor
-
 EndSub
-
-

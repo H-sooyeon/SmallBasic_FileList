@@ -1,850 +1,424 @@
 ' Setup Game Window
-
 GraphicsWindow.BackgroundColor = "SteelBlue"
-
 GraphicsWindow.Title = "Big Guns"
-
 GraphicsWindow.Width = 600
-
 GraphicsWindow.Height = 400
-
 GraphicsWindow.BrushColor = "SteelBlue"
-
 GraphicsWindow.FillRectangle(0, 0, GraphicsWindow.Width, GraphicsWindow.Height)
-
 GraphicsWindow.BrushColor = "Black"
-
 GraphicsWindow.CanResize = 0
-
 GraphicsWindow.KeyDown = HandleKey
 
-
-
 ' Game Details
-
 turnNumber = 0                     ' Even turn numbers are player 1, Odd are player 2
-
 gravity = .005                     ' Increasing this will increase the gravity in the game
-
 firelock = 0                       ' When this is set to 1 then the only keyboard command looked at will be quit game (ESC)
-
 gameover = 0                       ' When this is set to 1 then the game is over and you can only exit the game (ESC)
-
 lowestElevation = 345              ' This is the lowest elevation in the game
-
 groundLevel = lowestElevation - 5  ' The ground level is slightly above the lowest level
-
 player1Position = 20               ' Player 1 X coordinates
-
 player2Position = 540              ' Player 2 X coordinates
-
 playerElevation = groundLevel      ' Players start at Ground Level
-
 maxAngle = 90                      ' The Maximum Angle a gun can have
-
 minAngle = 0                       ' The Minimum Angle a gun can have
-
 maxPower = 250                     ' The Maximum Power a gun can have
-
 minPower = 5                       ' The Minimum Power a gun can have
-
 player1Angle = 45                  ' Player 1 starting angle
-
 player1Power = 50                  ' Player 1 starting power
-
 player2Angle = 45                  ' Player 2 starting angle
-
 player2Power = 50                  ' Player 2 starting power
-
 windPower = Math.GetRandomNumber(20)  ' The power of the Wind
-
 windDirection = Math.GetRandomNumber(2)  'One is left, Two is right
 
-
-
 ' Draw Ground
-
 DrawGround()
 
-
-
 ' Draw Players
-
 DrawPlayers()
-
 DrawInstructions()
-
 UpdateDetails()
 
-
-
 ' Draws the ground with a Random Mountain
-
 Sub DrawGround
-
   ' the groundElevation Array keeps track of the elevation of the ground for each X coordinate
-
   
-
   ' Set the elevation to groundlevel
-
   For a = 1 to 600
-
     groundElevation[a] = groundLevel
-
   EndFor
-
   
-
   ' From left to right randomly assign the elevation of the mountain rising
-
   lastElevation = 0
-
   For a = 100 to 270
-
     lastElevation = 2 - Math.GetRandomNumber(5) + lastElevation
-
     groundElevation[a] = groundLevel + lastElevation
-
   EndFor
-
-
 
   ' From left to right randomly assign the elevation of the mountain going back to ground level
-
   For a = 270 to 500
-
     If lastElevation = 0 Then
-
       groundElevation[a] = groundLevel
-
     Else
-
       lastElevation = lastElevation - (2 - Math.GetRandomNumber(5))
-
       If lastElevation + groundLevel > groundLevel Then
-
         lastElevation = 0
-
       EndIf
-
       groundElevation[a] = groundLevel + lastElevation
-
     EndIf
-
   EndFor
-
   
-
   ' Draw the entire ground level with mountain
-
   GraphicsWindow.BrushColor = "Brown"
-
   For a = 1 to 600
-
     GraphicsWindow.FillRectangle(a, groundElevation[a], 1, lowestElevation - groundElevation[a])
-
   EndFor
-
   GraphicsWindow.BrushColor = "Black"
-
 EndSub
-
-
 
 ' Draw the player guns and turrets
-
 Sub DrawPlayers
-
   ' Draw Player 1
-
   player1 = Shapes.AddTriangle(player1Position, playerElevation, player1Position +5, playerElevation -5, player1Position +10, playerElevation)
-
   player1Turret = Shapes.AddLine(0, 0, -15, 0)
-
   Shapes.Move(player1Turret, player1Position +5, groundLevel - 5)
-
   Shapes.Rotate(player1Turret, Math.Abs(player1Angle - 180))  ' We have to adjust the angle to point to the right instead of the left
-
   
-
   ' Draw Player 2
-
   player2 = Shapes.AddTriangle(player2Position, playerElevation, player2Position +5, playerElevation -5, player2Position +10, playerElevation)
-
   player2Turret = Shapes.AddLine(0, 0, -15, 0)
-
   Shapes.Move(player2Turret, player2Position +5, groundLevel - 5)
-
   Shapes.Rotate(player2Turret, player2Angle)
-
 EndSub
-
-
 
 Sub DrawInstructions
-
   
-
   GraphicsWindow.PenWidth = 4
-
   GraphicsWindow.BrushColor = "Green"
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.FillRectangle(140, 350, 115, 50)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawRectangle(140, 350, 115, 50)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(145, 355, "Wind")
-
   GraphicsWindow.DrawText(145, 367, "Direction:")
-
   If windDirection = 1 Then
-
     windText = "Left"
-
   Else
-
     windText = "Right"
-
   EndIf
-
   GraphicsWindow.DrawText(210, 367, Text.Append(Text.GetSubText( "00000000", 0, 8 - Text.GetLength( windText ) ), windText))
-
   GraphicsWindow.DrawText(145, 379, "Power:")
-
   GraphicsWindow.DrawText(210, 379, Text.Append(Text.GetSubText( "00000000", 0, 8 - Text.GetLength( windPower ) ), windPower))
-
   
-
     GraphicsWindow.PenWidth = 4
-
   GraphicsWindow.BrushColor = "Green"
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.FillRectangle(280, 350, 170, 50)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawRectangle(280, 350, 170, 50)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(285, 355, "Adjust Angle: LEFT/RIGHT")
-
   GraphicsWindow.DrawText(285, 367, "Adjust Power: UP/DOWN")
-
   GraphicsWindow.DrawText(285, 379, "Fire: ENTER")
 
-
-
 EndSub
-
-
 
 ' Draw the player details boxes
-
 Sub UpdateDetails
-
   
-
   GraphicsWindow.PenWidth = 4
-
   GraphicsWindow.BrushColor = "Green"
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.FillRectangle(10, 350, 70, 50)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawRectangle(10, 350, 70, 50)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(15, 355, "Player 1")
-
   GraphicsWindow.DrawText(15, 367, "Angle:")
-
   GraphicsWindow.DrawText(55, 367, Text.Append(Text.GetSubText( "00000000", 0, 8 - Text.GetLength( player1Angle ) ), player1Angle))
-
   GraphicsWindow.DrawText(15, 379, "Power:")
-
   GraphicsWindow.DrawText(55, 379, Text.Append(Text.GetSubText( "00000000", 0, 8 - Text.GetLength( player1Power ) ), player1Power))
-
   
-
   GraphicsWindow.BrushColor = "Green"
-
   GraphicsWindow.FillRectangle(510, 350, 70, 50)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawRectangle(510, 350, 70, 50)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(515, 355, "Player 2")
-
   GraphicsWindow.DrawText(515, 367, "Angle:")
-
   GraphicsWindow.DrawText(555, 367, Text.Append(Text.GetSubText( "00000000", 0, 8 - Text.GetLength( player2Angle ) ), player2Angle))
-
   GraphicsWindow.DrawText(515, 379, "Power:")
-
   GraphicsWindow.DrawText(555, 379, Text.Append(Text.GetSubText( "00000000", 0, 8 - Text.GetLength( player2Power ) ), player2Power))
-
   GraphicsWindow.PenWidth = 1
 
-
-
 EndSub
-
-
 
 ' This gets called when a uers presses a key
-
 Sub HandleKey
 
-
-
   ' Stop game
-
   If GraphicsWindow.LastKey = "Escape" Then
-
     Program.End()
-
   EndIf
-
   
-
   ' Only continue if the game is not over
-
   If gameover = 0 Then
-
     ' Only continue if no fires are currently being processed
-
     If firelock = 0 Then
-
       ' Execute the player command
-
       ExecutePlayerCommand()
-
     EndIf
-
   EndIf     
 
-
-
 EndSub
-
-
 
 Sub ExecutePlayerCommand
-
   
-
   ' Detemine which player's turn we on (Even Numbers are player 1, Odd Numbers are player 2)
-
   playerTurn = Math.Remainder(turnNumber, 2)
-
     
-
   If GraphicsWindow.LastKey = "Left" Then
-
     MoveTurretLeft()
-
   ElseIf GraphicsWindow.LastKey = "Right" Then
-
     MoveTurretRight()
-
   ElseIf GraphicsWindow.LastKey = "Up" Then
-
     MoveTurretUp()
-
   ElseIf GraphicsWindow.LastKey = "Down" Then
-
     MoveTurretDown()
-
   ElseIf GraphicsWindow.LastKey = "Return" Then
-
     FireTurret()
-
   EndIf
-
   UpdateDetails()
-
   
-
   
-
 EndSub
-
-
 
 Sub MoveTurretLeft
-
   
-
   If playerTurn = 0 Then
-
     If player1Angle < maxAngle Then
-
       player1Angle = player1Angle + 1
-
       Shapes.Rotate(player1Turret, Math.Abs(player1Angle - 180))  ' We have to adjust the angle to point to the right instead of the left
-
     Endif
-
   Else
-
     If player2Angle > minAngle Then
-
       player2Angle = player2Angle - 1
-
       Shapes.Rotate(player2Turret, player2Angle)
-
     Endif
-
   EndIf
-
 EndSub
-
-
 
 Sub MoveTurretRight
-
   
-
   If playerTurn = 0 Then
-
     If player1Angle > minAngle Then
-
       player1Angle = player1Angle - 1
-
       Shapes.Rotate(player1Turret, Math.Abs(player1Angle - 180))  ' We have to adjust the angle to point to the right instead of the left    Endif
-
     EndIf
-
   Else
-
     If player2Angle < maxAngle Then
-
       player2Angle = player2Angle + 1
-
       Shapes.Rotate(player2Turret, player2Angle)
-
     Endif
-
   EndIf
-
 EndSub
-
-
 
 Sub MoveTurretUp
-
   
-
   If playerTurn = 0 Then
-
     If player1Power < maxPower Then
-
       player1Power = player1Power + 1
-
     Endif
-
   Else
-
     If player2Power < maxPower Then
-
       player2Power = player2Power + 1
-
     Endif
-
   EndIf
-
 EndSub
-
-
 
 Sub MoveTurretDown
 
-
-
   If playerTurn = 0 Then
-
     If player1Power > minPower Then
-
       player1Power = player1Power - 1
-
     Endif
-
   Else
-
     If player2Power > minPower Then
-
       player2Power = player2Power - 1
-
     Endif
-
   EndIf
-
 EndSub
-
-
 
 Sub FireTurret
-
  
-
   ' Stop the player from firing until this is done
-
   firelock = 1
-
   
-
   ' Adjust the power to to a reasonable level & get starting postition/Angle for bullet
-
   If playerTurn = 0 Then
-
     x = player1Position + 5
-
     gunRadian = Math.GetRadians(player1Angle)
-
     finalPower = player1Power / 5
-
   Else
-
     x = player2Position + 5
-
     gunRadian = Math.GetRadians(player2Angle)
-
     finalPower = player2Power / 5
-
   EndIf
-
   y = playerElevation - 5
-
   finalWindPower = windPower / 10000
-
   If windDirection = 1 Then
-
     finalWindPower = finalWindPower * -1
-
   EndIf
-
   
-
   ' Calculate Trajectory
-
   upVelocity = finalPower * Math.Sin(gunRadian)
-
   verticleSpeed = Math.SquareRoot(Math.Power(finalPower, 2) - Math.Power(upVelocity, 2))
-
   If playerTurn = 1 Then
-
     verticleSpeed = verticleSpeed * -1
-
   EndIf
-
   
-
   ' Draw Bullet
-
   GraphicsWindow.BrushColor = "Pink"
-
   bullet = Shapes.AddEllipse(5, 5)
-
   Shapes.Move(bullet, x, y) 
-
   
-
   ' Move bullet until it hits something
-
   fireInProcess = 0
-
   While fireInProcess = 0
-
     x = x + (verticleSpeed / 100)
-
     y = y - (upVelocity / 100)
-
     Shapes.Move(bullet, x, y)
-
     Program.Delay(2)
-
     ' Apply Wind
-
     verticleSpeed = verticleSpeed + finalWindPower
-
     
-
     ' Apply Gravity
-
     upVelocity = upVelocity - gravity
-
     PerformCollisionDetection()
-
   EndWhile
-
   
-
   ' Remove Bullet
-
   Shapes.Remove(bullet)
-
   
-
   ' Update Turn Number and allow another fire
-
   turnNumber = turnNumber + 1
-
   firelock = 0
 
-
-
   
-
 EndSub
-
-
 
 ' Detect if the bullet hit anything
-
 Sub PerformCollisionDetection
-
   
-
   DetectOverTheEdgeOfTheMap()
-
   DetectPlayerHit()
-
   DetectMountainHit()
 
-
-
 EndSub
-
-
 
 ' Detect if the bullet is over the edge of the map
-
 Sub DetectOverTheEdgeOfTheMap
-
   If x < 5 Then
-
     fireInProcess = 1
-
   ElseIf x > GraphicsWindow.Width - 15 Then
-
     fireInProcess = 1
-
   ElseIf y > lowestElevation - 1 Then
-
     fireInProcess = 1
-
   EndIf
-
 EndSub
-
-
 
 ' Detect if one of the players got hit
-
 Sub DetectPlayerHit
-
   If fireInProcess = 0 Then
-
     
-
     If playerTurn = 0 Then
-
       If x > player2Position Then
-
         If x < player2Position + 10 then
-
           If y < playerElevation then
-
             If y > playerElevation - 10 then
-
               DrawExplosion()
-
               GraphicsWindow.ShowMessage("Player 1 Wins!", "Game Over")
-
               gameover = 1
-
               fireInProcess = 1
-
             EndIf
-
           EndIf      
-
         Endif
-
       EndIf
-
     Else
-
       If x > player1Position Then
-
         If x < player1Position + 10 then
-
           If y < playerElevation then
-
             If y > playerElevation - 10 then
-
               DrawExplosion()
-
               GraphicsWindow.ShowMessage("Player 2 Wins!", "Game Over")
-
               gameover = 1
-
               fireInProcess = 1
-
             EndIf
-
           EndIf      
-
         Endif
-
       EndIf
-
-
 
     EndIf
-
     
-
   EndIf
-
 EndSub
-
-
 
 ' Determine if we hit a mountain
-
 Sub DetectMountainHit
-
   
-
   ' Only continue if we didn't hit anything else
-
   If fireInProcess = 0 Then
-
     
-
     ' find the nearest x cordinate to where the bullet is now
-
     nearestX = Math.Round(x)
-
     
-
     ' See if wehit the ground
-
     If groundElevation[nearestX] < y Then
-
       
-
       ' Erase the ground near where we hit
-
       GraphicsWindow.BrushColor = "SteelBlue"
-
       GraphicsWindow.FillRectangle(nearestX - 10, 0, 20, lowestElevation)
-
       
-
       ' Lower the elevation near where we hit
-
       For a = nearestX - 10 to nearestX + 10
-
         If groundElevation[a] < y Then
-
           groundElevation[a] = groundElevation[a] + 10
-
           If lowestElevation - groundElevation[a] < 0 Then
-
             groundElevation[a] = lowestElevation
-
           EndIf
-
         Endif
-
         
-
         ' Draw the new terrain
-
         GraphicsWindow.BrushColor = "Brown"
-
         GraphicsWindow.FillRectangle(a, groundElevation[a], 1, Math.Max(lowestElevation - groundElevation[a], 1))
-
       EndFor
-
       
-
       ' Mark that the firing is over
-
       fireInProcess = 1
-
     EndIf
-
   Endif
-
 EndSub
-
-
 
 Sub DrawExplosion
-
   
-
   If playerTurn = 0 Then
-
     Shapes.Remove(player2)
-
     Shapes.Remove(player2Turret)
-
     explosionPosition = player2Position
-
   Else
-
     Shapes.Remove(player1)
-
     Shapes.Remove(player1Turret)
-
     explosionPosition = player1Position
-
   EndIf
-
   Shapes.Remove(bullet)
-
   
-
   For i = 1 to 140
-
     GraphicsWindow.PenColor = GraphicsWindow.GetRandomColor()
-
     explodeShape[i] = Shapes.AddTriangle(explosionPosition + 4, playerElevation, explosionPosition + 6, playerElevation - 2, explosionPosition + 8, playerElevation)
-
     Shapes.Animate(explodeShape[i], Math.GetRandomNumber(100) - 20, -500, 4000)
-
     Program.Delay(15)
-
   EndFor
-
 EndSub
-
-
-
-
-
-
 
 
 

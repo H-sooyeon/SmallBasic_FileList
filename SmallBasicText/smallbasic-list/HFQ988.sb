@@ -1,1241 +1,620 @@
 '###############################################################
-
 '############## A CURLING PROGRAM FOR SMALL BASIC #################
-
 '###############################################################
 
-
-
 '===============================================================
-
 'Initial TextWindow screen to select player colours and show instructions
-
 '===============================================================
-
 Colors[1] = "Red"
-
 Colors[2] = "Blue"
-
 Colors[3] = "Green"
-
 Colors[4] = "Cyan"
-
 Colors[5] = "Purple"
-
 Colors[6] = "Orange"
-
 Colors[7] = "Yellow"
-
 TextWindow.Title = "Curling"
-
 For i = 1 To 7
-
   TextWindow.WriteLine(i+" : "+Colors[i])
-
 EndFor
-
 TextWindow.WriteLine("")
-
 TextWindow.ForegroundColor = "Yellow"
-
 'This is rather fussy code to ensure only allowed number data is entered to select player colours
-
 While (Color[1] = "")
-
   TextWindow.CursorTop = 8
-
   TextWindow.WriteLine("                                                  ")
-
   TextWindow.CursorTop = 8
-
   TextWindow.Write("Player 1 Select Colour: ")
-
   Color[1] = Colors[TextWindow.ReadNumber()]
-
 EndWhile
-
 While (Color[2] = "" Or Color[1] = Color[2])
-
   TextWindow.CursorTop = 9
-
   TextWindow.WriteLine("                                                  ")
-
   TextWindow.CursorTop = 9
-
   TextWindow.Write("Player 2 Select Colour: ")
-
   Color[2] = Colors[TextWindow.ReadNumber()]
-
 EndWhile
-
 TextWindow.ForegroundColor = "White"
-
 TextWindow.WriteLine("")
-
 TextWindow.WriteLine("Screen reloution of 1280x800 is best.")
-
 TextWindow.WriteLine("")
-
 TextWindow.WriteLine("Use the mouse click to first direct the stone, then set the curl.")
-
 TextWindow.WriteLine("The stone will run roughly double the initial set direction.")
-
 TextWindow.WriteLine("Waggle the mouse just in front of the stone to sweep it further.")
-
 TextWindow.WriteLine("Sweeping to one side will also alter its path slightly.")
-
 TextWindow.WriteLine("")
-
 TextWindow.WriteLine("See the code to see what what else is happening - that's what its for.")
-
 TextWindow.WriteLine("")
-
 TextWindow.Write("Press ")
-
 TextWindow.ForegroundColor = "Red"
-
 TextWindow.Write("ENTER")
-
 TextWindow.ForegroundColor = "White"
-
 TextWindow.Write(" to play.")
 
-
-
 '===============================================================
-
 'Load the images (with the player colours) while waiting for an ENTER, then get rid of the TextWindow
-
 '===============================================================
-
-
 
 'dir = Program.Directory
-
 dir = "http://litdev.hostoi.com/curling"
-
 For i = 1 To 2
-
   stoneImage[i] = ImageList.LoadImage(dir+"\stone"+Color[i]+".png")
-
   brushImage[i] = ImageList.LoadImage(dir+"\brush"+Color[i]+".png")
-
 EndFor
-
 rad = ImageList.GetWidthOfImage(stoneImage[1])/2
-
 brushW = ImageList.GetWidthOfImage(brushImage[1])/2
-
 brushH = ImageList.GetHeightOfImage(brushImage[1])*7/8
-
 TextWindow.Read()
-
 TextWindow.Hide()
 
-
-
 'Download the sweeping sound - works OK just using it directly
-
 'sweepSound = Network.DownloadFile("http://litdev.web.officelive.com/Documents/sweep.wma")
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' The following line could be harmful and has been automatically commented.
-
 ' ' ' 'File.CopyFile(sweepSound,Program.Directory+"\sweep.wma") 'must be named wma, not tmp
-
 'sweepSound = Program.Directory+"\sweep.wma"
-
 sweepSound = "http://litdev.hostoi.com/curling/sweep.wma"
-
 'Can't fix the sound conflict issues (sometimes crashes game) so flag to turn off sound effects (0-Off : 1-On)
-
 USESOUND = 0
 
-
-
 '===============================================================
-
 'Set the GraphicsWindow up, including the background colour 'bg'
-
 '===============================================================
-
-
 
 gw = 1250
-
 gh = 400
-
 GraphicsWindow.CanResize = "False"
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.Left = (Desktop.Width-gw)/2
-
 GraphicsWindow.Top = (Desktop.Height-gh)/2
-
 GraphicsWindow.Title = "Curling"
-
 bg = "#ddeeff"
-
 GraphicsWindow.BackgroundColor = bg
-
 Mouse.HideCursor()
-
 Mouse.MouseX = GraphicsWindow.Left+gw/2
-
 Mouse.MouseY = GraphicsWindow.Top+gh/2
-
 CL = 0.85*gw 'Centre line of scoring zone
 
-
-
 '===============================================================
-
 'Draw the rink with SHAPES - they always lie on top of the background pane used for play direction and curl arrows
-
 'The Order of adding the shapes is important - they lay on top of each other - rink, then brushes, then stones
-
 '===============================================================
-
-
 
 GraphicsWindow.PenColor = "Blue"
-
 GraphicsWindow.BrushColor = "Blue"
-
 size = 9
-
 Shapes.Move(Shapes.AddEllipse(size*rad,size*rad),CL-size/2*rad,gh/2-size/2*rad)
-
 GraphicsWindow.PenColor = bg
-
 GraphicsWindow.BrushColor = bg
-
 size = 6.5
-
 Shapes.Move(Shapes.AddEllipse(size*rad,size*rad),CL-size/2*rad,gh/2-size/2*rad)
-
 GraphicsWindow.PenColor = "Red"
-
 GraphicsWindow.BrushColor = "Red"
-
 size = 4
-
 Shapes.Move(Shapes.AddEllipse(size*rad,size*rad),CL-size/2*rad,gh/2-size/2*rad)
-
 GraphicsWindow.PenColor = bg
-
 GraphicsWindow.BrushColor = bg
-
 size = 1.5
-
 Shapes.Move(Shapes.AddEllipse(size*rad,size*rad),CL-size/2*rad,gh/2-size/2*rad)
-
 'Some game play lines (hog line, centre lines)
-
 GraphicsWindow.PenColor = "DarkGray"
-
 GraphicsWindow.BrushColor = GraphicsWindow.PenColor
-
 Shapes.Move(Shapes.AddRectangle(2,gh),CL-1,0)
-
 Shapes.Move(Shapes.AddRectangle(gw,2),0,gh/2-1)
-
 GraphicsWindow.PenColor = "Black"
-
 GraphicsWindow.BrushColor = GraphicsWindow.PenColor
-
 Shapes.Move(Shapes.AddRectangle(4,gh),gw/2-2,0)
-
 'Back foot stop
-
 Shapes.Move(Shapes.AddRectangle(8,15),0,gh/2-25)
-
 Shapes.Move(Shapes.AddRectangle(8,15),0,gh/2+10)
-
 Shapes.Move(Shapes.AddRectangle(4,50),0,gh/2-25)
-
 'Speckles on the ice
-
 GraphicsWindow.PenColor = "#ddccccff"
-
 GraphicsWindow.BrushColor = GraphicsWindow.PenColor
-
 For i = 1 To 1000
-
   Shapes.Move(Shapes.AddEllipse(2,2),Math.GetRandomNumber(gw)-1,Math.GetRandomNumber(gh)-1)
-
 EndFor
-
 'Brushes
-
 For i = 1 To 2
-
   brush[i] = Shapes.AddImage(brushImage[i])
-
   Shapes.HideShape(brush[i])
-
 EndFor
 
-
-
 '===============================================================
-
 'Start events and set some game parameters
-
 'hammer is the order of play hammer[1] = 2 means player 2 goes first
-
 '===============================================================
-
-
 
 GraphicsWindow.MouseMove = OnMouseMove
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.MouseUp = OnMouseUp
-
 MouseMove = 0
-
 mouseDown = 0
-
 mouseUp = 0
 
-
-
 pi = Math.Pi
-
 deg2rad = pi/180
-
 friction = 0.05 ' Stone friction
-
 elastic = 0.8 'Elasticity of collisions
-
 dt = 0.1 'Speed of game play (time-step size)
-
 soundDelay = 500 'Delay (ms) between trying to play sounds - the shortest that works OK for PlayClick()
-
 nStone = 16
 
-
-
 '===============================================================
-
 'Main game play - 10 ends
-
 '===============================================================
-
-
 
 START:
 
-
-
 hammer[1] = 1
-
 hammer[2] = 3-hammer[1]
-
 For game = 1 To 10
-
   For i = 1 To 2
-
     Score[game][i] = 0
-
   EndFor
-
 EndFor
-
-
 
 For game = 1 To 10
-
   DrawScore() 'Update the score graphic - this is on the background layer and can be messed by the game shot direction arrows 
-
   stone = "" 'Reset the active stones
-
   For i = 1 To 4 'Player
-
     For k = 1 To 2 'Stone
-
       For j = 1 To 2 'Team
-
         'iNext is the stone to add, depends on player order (hammer)
-
         iNext = 4*(i-1)+2*(k-1)+j
-
         'Add the stone and move to the starting area
-
         Shapes.Remove(stones[iNext])
-
         stones[iNext] = Shapes.AddImage(stoneImage[hammer[j]])
-
         Shapes.Move(stones[iNext],(4-i)*2*rad,(j-1)*(gh-4*rad)+(k-1)*2*rad)
-
       EndFor
-
     EndFor
-
   EndFor
-
   'Now the game starts
-
   For i = 1 To 4 'Player
-
     For k = 1 To 2 'Stone
-
       For j = 1 To 2 'Team
-
         'Select the current player stone
-
         iNext = 4*(i-1)+2*(k-1)+j
-
         'Throw the stone
-
         throwStones()
-
         'Update the score graphics - again it can be messed by the shot direction arrows
-
         DrawScore()
-
       EndFor
-
     EndFor
-
   EndFor
-
   UpdateScore()
-
   Program.Delay(1000)
-
 EndFor
 
-
-
 '===============================================================
-
 'Game finished - Find and report eport the winner
-
 '===============================================================
-
-
 
 'Remove the stone shapes for tidyness or in case we want to restart
-
 For i = 1 To nStone
-
   Shapes.Remove(stones[i])
-
 EndFor
-
 stones = ""
 
-
-
 For i = 1 To 2
-
   Total[i] = 0
-
   For j = 1 To 10
-
     Total[i] = Total[i] + Score[j][i]
-
   EndFor
-
 EndFor
 
-
-
 GraphicsWindow.BrushColor = "DarkGray"
-
 GraphicsWindow.FontSize = 70
-
 If (Total[1] > Total[2]) Then
-
   GraphicsWindow.DrawText(100,100,"Player 1 is the WINNER")
-
 ElseIf (Total[2] > Total[1]) Then
-
   GraphicsWindow.DrawText(100,100,"Player 2 is the WINNER")
-
 Else
-
   GraphicsWindow.DrawText(100,100,"The game is a DRAW")
-
 EndIf
 
-
-
 'Finish here - we could ask the user to restart and then GoTo START
-
 Program.Delay(5000)
-
 Program.End()
 
-
-
 '===============================================================
-
 'SUBROUTINES FOR GAME
-
 '===============================================================
 
-
-
 '===============================================================
-
 'Calculate the Score - nearest sones within the scoring zone
-
 '===============================================================
-
-
 
 Sub UpdateScore
-
   For iStone = 1 To nStone
-
     dist[iStone] = Math.SquareRoot((stoneX[iStone]-CL)*(stoneX[iStone]-CL) + (stoneY[iStone]-gh/2)*(stoneY[iStone]-gh/2))
-
     rank[iStone] = 0
-
     If (dist[iStone] < 5.5*rad) Then
-
       If (iStone/2 = Math.Floor(iStone/2)) Then
-
         rank[iStone] = 2
-
       Else
-
         rank[iStone] = 1
-
       EndIf
-
     EndIf
-
   EndFor
-
   For iStone = 1 To nStone-1
-
     For jStone = iStone To nStone
-
       If (dist[jStone] < dist[iStone]) Then
-
         temp = dist[iStone]
-
         dist[iStone] = dist[jStone]
-
         dist[jStone] = temp
-
         temp = rank[iStone]
-
         rank[iStone] = rank[jStone]
-
         rank[jStone] = temp
-
       EndIf
-
     EndFor
-
   EndFor
-
   winner = rank[1]
-
   If (winner > 0) Then
-
     i = 1
-
     While (rank[i] = winner)
-
       Score[game][hammer[winner]] = Score[game][hammer[winner]] + 1
-
       i = i+1
-
     EndWhile
-
     'Next end the winner goes first - advantage to go last (have the hammer)
-
     hammer[1] = hammer[winner]
-
     hammer[2] = 3-hammer[1]
-
   EndIf
-
   DrawScore()
-
 EndSub
 
-
-
 '===============================================================
-
 'Draw the score graphics as required
-
 '===============================================================
-
-
 
 Sub DrawScore
-
   GraphicsWindow.PenColor = bg
-
   GraphicsWindow.BrushColor = bg
-
   GraphicsWindow.FillRectangle(250,0,300,60)
-
   GraphicsWindow.BrushColor = "Yellow"
-
   GraphicsWindow.FillRectangle(320,20,200,40)
-
   GraphicsWindow.BrushColor = "LightGray"
-
   GraphicsWindow.FillRectangle(320+20*(game-1),2,20,16)
-
   GraphicsWindow.BrushColor = Color[1]
-
   GraphicsWindow.DrawText(250,20,"Player 1")
-
   GraphicsWindow.BrushColor = Color[2]
-
   GraphicsWindow.DrawText(250,40,"Player 2")
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(250,0,"End")
-
   For iX = 1 To 10 'i and j variables used in main loop
-
     GraphicsWindow.DrawText(320+20*(iX-1),0,iX)
-
     For jX = 1 To 2
-
       GraphicsWindow.DrawText(320+20*(iX-1),20*jX,Score[iX][jX])
-
     EndFor
-
   EndFor
-
 EndSub
 
-
-
 '===============================================================
-
 'Throw the stones - the PHYSICS part
-
 '===============================================================
-
-
 
 Sub throwStones
-
   'Set the next active (stone) from the list of availables stones (stones)
-
   stone[iNext] = stones[iNext]
-
   If (iNext/2 = Math.Floor(iNext/2)) Then
-
     iPlayer = hammer[2]
-
   Else
-
     iPlayer = hammer[1]
-
   EndIf
-
   
-
   'Do the initial direction, velocity and curl
-
   startStone()
-
   
-
   'Run while stones are active (moving)
-
   active = 1
-
   mouseMove = 0
-
   While (active = 1)
-
     'Add the player brush image (note it is centred on the middle of the brush, not the middle of the image)
-
     Shapes.ShowShape(brush[iPlayer])
-
     xM = GraphicsWindow.MouseX
-
     yM = GraphicsWindow.MouseY
-
     Shapes.Move(brush[iPlayer],xM-brushW,yM-brushH)
-
     
-
     'Process each active stone (each stone in the playiong area)
-
     active = 0
-
     For iStone = 1 To Array.GetItemCount(stone)
-
       If (stoneX[iStone] > 0) Then ' Only consider moving stones for the position update
-
         'iPlayerStone is the the player corresponding to the current stone - we can't sweep opponent stone untill it is past the score zone centre
-
         If (iStone/2 = Math.Floor(iStone/2)) Then
-
           iPlayerStone = hammer[2]
-
         Else
-
           iPlayerStone = hammer[1]
-
         EndIf
-
         
-
         'Get the current stone path angle
-
         If (stoneU[iStone] = 0) Then
-
           ang = pi/2
-
         Else
-
           ang = Math.ArcTan(stoneV[iStone]/stoneU[iStone])
-
         EndIf
-
         If (stoneU[iStone] < 0) Then
-
           ang = ang+pi
-
         EndIf
-
         
-
         'Check if the stone is being swept
-
         'Are we just in front of the stone, is it our stone or are we past the score zone centre
-
         'Is the stone moving and is the mouse moving (sweeping)
-
         'We check 2 overlapping circles the size of the stone infront of its path direction
-
         sweep = 0
-
         If ((iPlayerStone = iPlayer Or stoneX[iStone] > CL) And Math.Abs(stoneU[iStone]) > 0 And mouseMove = 1) Then
-
           centreX = stoneX[iStone]+2*rad*Math.Cos(ang)
-
           centreY = stoneY[iStone]+2*rad*Math.Sin(ang)
-
           dist = Math.SquareRoot((centreX-xM)*(centreX-xM)+(centreY-yM)*(centreY-yM))
-
           If (dist < rad) Then
-
             sweep = 1
-
           EndIf
-
           centreX = stoneX[iStone]+3*rad*Math.Cos(ang)
-
           centreY = stoneY[iStone]+3*rad*Math.Sin(ang)
-
           dist = Math.SquareRoot((centreX-xM)*(centreX-xM)+(centreY-yM)*(centreY-yM))
-
           If (dist < rad) Then
-
             sweep = 1
-
           EndIf
-
           mouseMove = 0
-
         EndIf
-
         
-
         'Give a swept stone an opacity change to see it is being swept
-
         If (sweep = 1) Then
-
           Shapes.SetOpacity(stone[iStone],50)
-
           'Add your own sweeping sound here -  otherwise uses a downloaded file
-
           If (USESOUND = 1) Then
-
             ms = Clock.ElapsedMilliseconds
-
             If (ms-lastSound > soundDelay) Then 
-
               lastSound = ms
-
               Sound.Stop(sweepSound)
-
               Sound.Play(sweepSound)
-
             EndIf
-
           EndIf
-
         Else
-
           Shapes.SetOpacity(stone[iStone],100)
-
         EndIf
-
         
-
         'Update the velocity and rotation speed for friction, accounting for reduced friction with sweep
-
         stoneU[iStone] = (1-friction*(1-0.2*sweep)*dt)*stoneU[iStone]
-
         stoneV[iStone] = (1-friction*(1-0.2*sweep)*dt)*stoneV[iStone]
-
         stoneRotate[iStone] = (1-0.5*friction*(1-0.2*sweep)*dt)*stoneRotate[iStone]
-
         
-
         'Average velocity and the velocity of the left and right edges affected by the curl
-
         'The curl is generated by differenbt velocities and hence friction on the spinning stone
-
         vel = Math.SquareRoot(stoneU[iStone]*stoneU[iStone]+stoneV[iStone]*stoneV[iStone])
-
         dvel = stoneRotate[iStone]*deg2rad*rad
-
         vel1 = vel+dvel
-
         vel2 = vel-dvel
-
         
-
         'This is a fudge to estimate a deviation based on the velocities of the stone wrt to the ice on either side of the spinning stone
-
         deviation = 0.0002*(vel1-vel2)
-
         'stoneRotate > 0 (clockwise) increases stoneV (down) and  deviation > 0 => vel1>vel2, hence bush below (yM>stoneY) swings stone up (reduces deviation)
-
         'Sweep also affects the deviation - the trig (tan) is just accounting for the fact that the stone may not be moving just in the X direction
-
         If (sweep = 1) Then
-
           If (yM > stoneY[iStone]+(xM-stoneX[iStone])*Math.Tan(ang)) Then
-
             deviation = deviation-0.001*Math.Abs(dvel)
-
           Else
-
             deviation = deviation+0.001*Math.Abs(dvel)
-
           EndIf
-
         EndIf
-
         
-
         'Update velocity - deviate from current path due to curl
-
         stoneU[iStone] = stoneU[iStone]-Math.Sin(ang)*deviation
-
         stoneV[iStone] = stoneV[iStone]+Math.Cos(ang)*deviation
-
         
-
         'Update position and rotation
-
         stoneAngle[iStone] = stoneAngle[iStone]+stoneRotate[iStone]*dt
-
         stoneX[iStone] = stoneX[iStone]+stoneU[iStone]*dt
-
         stoneY[iStone] = stoneY[iStone]+stoneV[iStone]*dt
-
         
-
         'Do any collisions
-
         Collision()
-
         
-
         'Check for stopped stones
-
         If (vel > 1) Then
-
           active = 1
-
         Else
-
           stoneU[iStone] = 0
-
           stoneV[iStone] = 0
-
           stoneRotate[iStone] = 0
-
           'A stone that doesn't reach the half way point is dead
-
           If (stoneX[iStone] < gw/2) Then
-
             stoneX[iStone] = -1000
-
             stoneY[iStone] = -1000
-
             playClick()
-
           EndIf 
-
         EndIf
-
         
-
         'Remove and dead stones that hit the end or top /botton edges
-
         If (stoneX[iStone] > gw-rad Or stoneY[iStone] < rad Or stoneY[iStone] > gh-rad) Then
-
           stoneX[iStone] = -1000
-
           stoneY[iStone] = -1000
-
           stoneU[iStone] = 0
-
           stoneV[iStone] = 0
-
           playClick()
-
         EndIf
-
         
-
         'Finally rotate and move the stone image shape
-
         Shapes.Rotate(stone[iStone],stoneAngle[iStone])
-
         Shapes.Move(stone[iStone],stoneX[iStone]-rad,stoneY[iStone]-rad)
-
       EndIf
-
     EndFor
-
     
-
     Program.Delay(10)
-
     
-
   EndWhile
-
   'Ensure all stones at the end of the delivery are fully opaque and hide the brush ans stop any remaining sweeping sound
-
   For iStone = 1 To Array.GetItemCount(stone)
-
     Shapes.SetOpacity(stone[iStone],100)
-
   EndFor
-
   Shapes.HideShape(brush[iPlayer])
-
   Sound.Stop(sweepSound)
-
 EndSub
 
-
-
 '===============================================================
-
 'Check for collisions of active stones in the play area
-
 '===============================================================
-
-
 
 Sub Collision
-
   'Consider the current stone and all other stones in play (array stone) 
-
   For jStone = 1 To Array.GetItemCount(stone)
-
     If (iStone <> jStone) Then
-
       dx = stoneX[jStone]-stoneX[iStone]
-
       dy = stoneY[jStone]-stoneY[iStone]
-
       dist = Math.SquareRoot(dx*dx+dy*dy)
-
       If (dist < 1.9*rad) Then 'Images are slightly bigger than stone diameter
-
         'Calculate average velocity vector
-
         U = (stoneU[iStone]+stoneU[jStone])/2
-
         V = (stoneV[iStone]+stoneV[jStone])/2
-
         
-
         'This is the centre of momentun velocities - the collisions are easiest in this reference frame
-
         'This is because each stone then effectively just rebounds as if it hit a wall
-
         'Just like two balls with equal speed hitting head on - the centre of momentum there is stationary
-
         stoneU[iStone] = stoneU[iStone]-U
-
         stoneV[iStone] = stoneV[iStone]-V
-
         stoneU[jStone] = stoneU[jStone]-U
-
         stoneV[jStone] = stoneV[jStone]-V
-
         
-
         'This is the normal unit vector from the centre of stone iStone to the centre of jStone
-
         normX = dx/dist
-
         normY = dy/dist
-
         
-
         'This is not obvious, but I think it is the easiest way to calculate the collision reasonably without lots of trig and angles
-
         'Basically it just uses vectors - hard to explain without a drawing, but with a drawing it should make sense
-
         'u is the incident stone vector
-
         'u* is its reflection direction vector
-
         'n is the unit vector from stone i to stone j
-
         'u.n is a dot product (the distance of u in the direction n)
-
         
-
         'u -u* = 2u.n n
-
         dotProduct = normX*stoneU[iStone] + normY*stoneV[iStone]
-
         If (dotProduct > 0) Then ' Only collide stones that are impacting - but not if it is inside the collision radius and moving away (could happen with long time-steps)
-
           stoneU[iStone] = stoneU[iStone] - 2*normX*dotProduct
-
           stoneV[iStone] = stoneV[iStone] - 2*normY*dotProduct
-
         EndIf
-
         
-
         'u*-u = -2u.n n
-
         dotProduct = normX*stoneU[jStone] + normY*stoneV[jStone]
-
         If (dotProduct < 0) Then
-
           stoneU[jStone] = stoneU[jStone] - 2*normX*dotProduct
-
           stoneV[jStone] = stoneV[jStone] - 2*normY*dotProduct
-
         EndIf
-
         
-
         'Convert back from centre of momentun frame to true frame, with a little energy loss (elastic < 1) - this runs a stone on a little after it hits a target stone
-
         stoneU[iStone] = elastic*stoneU[iStone]+U
-
         stoneV[iStone] = elastic*stoneV[iStone]+V
-
         stoneU[jStone] = elastic*stoneU[jStone]+U
-
         stoneV[jStone] = elastic*stoneV[jStone]+V
-
         
-
         'Play an impact sound
-
         playClick()
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndSub
 
-
-
 '===============================================================
-
 'Initialise a stone throw - all the arrow starting for direction, power and curl
-
 '===============================================================
-
-
 
 Sub startStone
-
   'The starting point - rotation is just to align the handle in the X direction
-
   stoneX[iNext] = 50
-
   stoneY[iNext] = gh/2
-
   stoneAngle[iNext] = -68
-
   Shapes.Rotate(stone[iNext],stoneAngle[iNext])
-
   Shapes.Move(stone[iNext],stoneX[iNext]-rad,stoneY[iNext]-rad)
-
   
-
   'Draw the arrow for speed and direction - most of the effor here is the overdraw to prevent shaddow images remaining as we move the arrow with the mouse
-
   mouseUp = 0
-
   While (mouseUp = 0)
-
     If (mouseMove = 1) Then
-
       xM = GraphicsWindow.MouseX
-
       yM = GraphicsWindow.MouseY
-
       GraphicsWindow.PenColor = Color[iPlayer]
-
       GraphicsWindow.PenWidth = 2
-
       Shapes.Remove(line)
-
       line=shapes.AddLine(stoneX[iNext]+22,stoneY[iNext],xM,yM)
-
       mouseMove = 0
-
     EndIf
-
   EndWhile
-
   Shapes.Remove(line)
-
   
-
   'Set intial velocity vector - we could add some randomness here
-
   stoneU[iNext] = (xM-stoneX[iNext])/10
-
   stoneV[iNext] = (yM-stoneY[iNext])/10
-
   
-
   'Draw the arrow for curl
-
   xStart = xM
-
   mouseUp = 0
-
   While (mouseUp = 0)
-
     If (mouseMove = 1) Then
-
       xM = GraphicsWindow.MouseX
-
       yM = GraphicsWindow.MouseY
-
       GraphicsWindow.PenColor = Color[iPlayer]
-
       GraphicsWindow.PenWidth = 2
-
       Shapes.Remove(line)
-
       line=shapes.AddLine(xStart,stoneY[iNext],xStart,yM)
-
       mouseMove = 0
-
     EndIf
-
   EndWhile
-
   Shapes.Remove(line)
-
   
-
   'Set intial curl rotation - again some randomness is possible, but I thought the game was best without
-
   stoneRotate[iNext] = (yM-gh/2)/2
-
 EndSub
 
-
-
 '===============================================================
-
 'Play a click - try to prevent sound clashing - the time check is to make sure it is finished the last before starting the next sound
-
 '===============================================================
-
-
 
 Sub playClick
-
   If (USESOUND = 1) Then
-
     ms = Clock.ElapsedMilliseconds
-
     If (ms-lastSound > soundDelay) Then
-
       lastSound = ms
-
       Sound.Stop(sweepSound)
-
       Sound.PlayClick()
-
     EndIf
-
   EndIf
-
 EndSub
 
-
-
 '===============================================================
-
 'The events - just set flags as required
-
 '===============================================================
-
-
 
 Sub OnMouseMove
-
   mouseMove = 1
-
   'TextWindow.WriteLine(Clock.ElapsedMilliseconds) 'Interesting effect - this event is triggered when a shape moves over the mouse - could be useful (not here though)
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   mouseDown = 1
-
   mouseUp = 0
-
 EndSub
-
-
 
 Sub OnMouseUp
-
   mouseDown = 0
-
   mouseUp = 1
-
 EndSub
-
   
-
-

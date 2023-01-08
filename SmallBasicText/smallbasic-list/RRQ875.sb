@@ -1,2359 +1,1179 @@
 ' 1942 like Game ID: KJW676 
-
 'most of Game artwork created by Dagam Demisee
-
 ' and others grabed from free web sprites
 
-
-
 '-------------------------
-
 'replace by your directory path
-
 'Path ="file://C:/Users/Laurent/Desktop/small basic/images1942/"
-
 Path= "http://imode.free.fr/images1942/"
-
 'replace by your directory path
-
 '-------------------------
-
-
-
 
 
 ' Game area controls
-
 gameWidth  = 640
-
 gameHeight = 480
-
 fps = 50
-
 bgs = 2 'backgroundspeed
-
 Player_Lives = 10
 
 
 
-
-
-
-
 nbrisland = 5 'nomber of island images
-
 islandcount = 5 'nomber of island in the wall field
 
-
-
 ' Window title
-
 gameTitle = "1942, Score: "
 
-
-
 GraphicsWindow.Hide()
-
 GraphicsWindow.Title = gameTitle + "0"
-
 GraphicsWindow.CanResize = "False"
-
 GraphicsWindow.Width = gameWidth
-
 GraphicsWindow.Height = gameHeight
 
-
-
 'Presentation
-
    ' todo
 
-
-
 ' Start game
-
 Init()
-
 define_paths()
-
 TimePlay = 0
-
 pathNBR = 1
-
 'create_enemies1()
-
 Play()
 
 
-
-
-
 ' Setup world
-
 Sub Init
-
    GraphicsWindow.Hide()
 
-
-
    Mouse.HideCursor()
-
    ' addImage in the right order is needed to define the shapes depth
 
-
-
 island4= ImageList.LoadImage(Path + "island4.png")
-
 island1= ImageList.LoadImage(Path + "island1.png")
-
 island2= ImageList.LoadImage(Path + "island2.png")
-
 island3= ImageList.LoadImage(Path + "island3.png")
-
 island5= ImageList.LoadImage(Path + "island5.png")
-
 player0 = ImageList.LoadImage(Path + "myplane1.png")
-
 background = ImageList.LoadImage(Path + "fond.png")
-
 bullet0 = ImageList.LoadImage(Path + "bullet.png")
-
 enemy= ImageList.LoadImage(Path + "enemy1.png")
-
 enemy2 = ImageList.LoadImage(Path + "enemy2.png")
-
 enemy_expl1=ImageList.LoadImage(Path + "explo1.png")
-
 enemy_expl2=ImageList.LoadImage(Path + "explo2.png")
-
 player_expl=ImageList.LoadImage(Path + "explo2.png")
-
 Enemy_bullet=ImageList.LoadImage(Path + "E_bullet.png")
-
 end = ImageList.LoadImage(Path + "End.png")
 
 
 
-
-
-
-
 enemy_Array = "EnemyArray" 'Array that contain all the enemies
-
 ' every enemy in tha array has 5 informations
-
 ' TimeLine: each enemy has its own timeline
-
 ' PathNBR: the precalculated path defineing the movement
-
 ' the movement is decomposed in LineNbr differents lines
-
 ' each line is define in the enemy_path table with rotation, deltaY and deltaY
-
 ' PositonX, PositonY: position in space
-
 '
-
 '
-
 enemy_TimeLine = "EnemyTimeLine"
-
 enemy_line = "enemyLineNbr"
-
 enemy_PosX = "enemyPositonX"
-
 enemy_PosY = "enemyPositonY"
-
 enemy_PathNBR="enemy_PathNBR"
 
-
-
 enemy_Nbr = 6
-
 enemy_Count = 0
-
 enemy_speed = 4
-
 'enemy_NextRemove = 1
-
 enemy_Life = 10
-
 player_size= 65
-
 enemy_size = 32
-
 enemy_ammo_size = 8
-
 player_bullet_size = 32
 
-
-
 island_Array = "Island array"
-
 IslandsPosition()
-
 create_level1()
 
-
-
 fond= Shapes.AddImage(background)
-
 Array.SetValue(island_Array,1,Shapes.AddImage(island1))
-
 Array.SetValue(island_Array,2,Shapes.AddImage(island2))
-
 Array.SetValue(island_Array,3,Shapes.AddImage(island3))
-
 Array.SetValue(island_Array,4,Shapes.AddImage(island4))
-
 Array.SetValue(island_Array,5,Shapes.AddImage(island5))
-
 For i = 6 to  islandcount
-
   Array.SetValue(island_Array,i,Array.getValue(island_Array,Math.Remainder(i,4)))
-
 Endfor
 
 
-
-
-
 player = Shapes.AddImage(player0)
-
 GraphicsWindow.FontSize = 20
-
 GraphicsWindow.BackgroundColor = "Grey"
-
 GraphicsWindow.PenColor = "Yellow"
 
-
-
 Player_Ammo = "Player_AmmoArray"
-
 Player_AmmoAge = "Player_AmmoAge"
-
 Player_AmmoMax = 50
-
 Player_AmmoCount = 0
-
 Player_Ammospeed = bgs +4
-
 Player_AmmoLife = 100
 
-
-
 Enemy_Ammo = "Enemy_AmmoArray"
-
 Enemy_AmmoAge = "Enemy_AmmoAge"
-
 Enemy_Ammo_Angle="Enemy_Ammo_Angle"
-
 Enemy_AmmoMax = 30
-
 Enemy_AmmoCount = 0
-
 Enemy_Ammospeed = bgs +4
-
 Enemy_AmmoLife = 50
-
 Enemy_Agresivity = 200
-
 score = 0
-
 EndSub
 
-
-
 ' Main gane routine
-
 Sub Play
-
    GraphicsWindow.Show()
 
-
-
    ' Main loop
-
    play = 1
-
    pause = 0
-
    incx =0   ' X-axis increment for background
-
    incy = 0  ' Y-axis increment for background
-
    incbx = 0  'increment for bullets and all objects on X
-
    incby = 0 'increment for bullets and all objects on Y
-
    squadron = 1
-
 ' Island initial position 
-
 j= 0
 
 
-
-
-
    For i= 1 To islandcount
-
      j=Math.Remainder(i,6)
-
      posy[i]= islandPos[j][2]
-
      posx[i]= islandPos[j][3]
-
      incislandx[i] = 0
-
      incislandy[i] = 0
-
    EndFor
-
    TimePlay = 0
-
    Shapes.Move(player, gameWidth/2 , gameHeight -80 )
-
    While(play = 1)
-
      Program.Delay(1000/fps)
-
      TimePlay = TimePlay +1
 
-
-
      If (pause = 0) Then
-
        If (TimePlay = level1[squadron][1]) then
 
-
-
          pathNBR = level1[squadron][2]
-
          enemyPosX1 = level1[squadron][3]  'X position
-
          enemyPosY1 = level1[squadron][4]  'Y position
-
          enemy_Nbr = level1[squadron][6]
-
          enemy_type = level1[squadron][7]
-
          if (level1[squadron][5]=1) then
-
            create_enemies_left()
-
          Else
-
            create_enemies_right()
-
          endif
-
          squadron = squadron + 1
-
        endif
-
        If (TimePlay > 4000) then
-
          Shapes.Move(Shapes.addImage(end), 230,200)
-
          Program.Delay(5000)
-
          Program.End()
-
        Endif
-
        moveall()
 
-
-
        GraphicsWindow.MouseMove = OnMouseMove
-
        GraphicsWindow.MouseDown = OnMouseDown
-
-
 
        AgePlayer_Ammo()
 
-
-
      EndIf
-
    EndWhile
 
-
-
 EndSub
-
-
-
 
 
 Sub OnMouseMove
-
    paddleX = GraphicsWindow.MouseX - player_size/2
-
    paddleY = GraphicsWindow.MouseY- player_size
 
-
-
 If (paddleX < 0) then
-
    paddleX = 0
-
 endif
-
    Shapes.Move(player, paddleX , paddleY )
-
 EndSub
-
 Sub OnMouseDown
-
    ShootX = GraphicsWindow.MouseX - 15 ' in order to be from the neck of the plane
-
    ShootY = GraphicsWindow.MouseY - 80
-
    Fire()
-
 EndSub
-
-
 
 Sub moveall
-
    incbx = 0
-
    incby =0
-
    GraphicsWindow.Title = gameTitle + score +" Lives:"+Player_Lives
 
 
-
-
-
    If (paddleX >(gameWidth-62) ) Then
-
      incx = incx - bgs
-
      incbx = incbx - bgs
-
      For i= 1 To islandcount
-
        incislandx[i] = incislandx[i] - bgs
-
      EndFor
-
           If (incx = -32 ) Then
-
             incx =0
-
           Endif
-
    Endif
-
    If (paddleX < 64 ) Then
-
      incx = incx + bgs
-
      incbx = incbx + bgs
-
           For i= 1 To islandcount
-
              incislandx[i] = incislandx[i] + bgs
-
           EndFor
-
           If (incx = 32 ) Then
-
             incx =0
-
           Endif
-
     Endif
-
     Shapes.Move(fond,incx -32 ,incy - 32)
 
-
-
     For i= 1 To islandcount
-
       islx = posx[i]+incislandx[i]
-
       isly = posy[i]+incislandy[i]
-
           Shapes.Move(Array.GetValue(island_Array,i),islx,isly)
-
     EndFor
-
-
 
       incy = incy + bgs
-
       incby = incby+ bgs
-
     For i= 1 To islandcount
-
              incislandy[i] = incislandy[i] + bgs
-
     EndFor
 
-
-
     If (incy = 32) Then
-
       incy =0
-
     Endif
 
-
-
     For i= 1 To islandcount
-
        If ((posy[i]+incislandy[i]) > (gameHeight+15)) Then 'relaunch island if no more visible
-
          R= Math.Round(Math.GetRandomNumber(nbrisland))
-
          AA = Math.Remainder(TimePlay,6)
-
          'give new coordinates
-
          posx[i]= islandPos[AA][2]
-
          posy[i]= islandPos[AA][3]
-
          Shapes.move(Array.GetValue(island_Array,R),posx[i],posy[i])
-
          incislandy[i]=0
-
          incislandx[i]=0
-
        EndIf
-
     ENDFOR
-
      ' Move playerammo
-
    For i = 1 To Player_AmmoCount
-
      Player_Ammox = Shapes.GetLeft(Array.GetValue(Player_Ammo, i)) +incbx
-
      Player_Ammoy = Shapes.GetTop(Array.GetValue(Player_Ammo, i)) - Player_Ammospeed
-
      Shapes.Move(Array.GetValue(Player_Ammo, i), Player_Ammox, Player_Ammoy)
-
      Array.SetValue(Player_AmmoAge, i, Array.GetValue(Player_AmmoAge, i) + 1)
-
    EndFor
-
      ' Move Enemy ammo
-
      For iea = 1 To Enemy_AmmoCount
-
        dx =(Math.Sin((Array.GetValue(Enemy_Ammo_Angle, iea) )) * Enemy_Ammospeed)
-
        dy =(Math.Cos((Array.GetValue(Enemy_Ammo_Angle, iea) ))* Enemy_Ammospeed)
-
      Enemy_Ammox = Shapes.GetLeft(Array.GetValue(Enemy_Ammo, iea)) +dx+incbx
-
      Enemy_Ammoy = Shapes.GetTop(Array.GetValue(Enemy_Ammo, iea)) +dy+incby*0.1
-
      Shapes.Move(Array.GetValue(Enemy_Ammo, iea), Enemy_Ammox, Enemy_Ammoy)
-
      Array.SetValue(Enemy_AmmoAge, iea, Array.GetValue(Enemy_AmmoAge, iea) + 1)
-
    EndFor
-
-
-
 
 
    ' move ennemies
-
    For i=1 To enemy_Count
-
    ' move as TimeLine and Path say
-
    eNBR= Array.GetValue(enemy_PathNBR,i)
-
    uu =Array.GetValue(enemy_line,i)
-
    Time= Array.GetValue(enemy_TimeLine, i)
-
    etl=enemyPath[eNBR][1][uu]  'enemy own timeLine
-
    IF (Time=etl) Then  'it's time to rotate enemy
-
      rr = enemyPath[eNBR][2][uu+1]
-
      Shapes.Rotate(Array.GetValue(enemy_Array,i),rr)
-
    EndIf
-
    IF (Time > etl)  Then
-
      uu = uu+1
-
      Array.SetValue(enemy_line,i,uu)    ' next line for enemy move
-
    EndIf
-
    xx1=Array.GetValue(enemy_PosX,i)
-
    yy1= Array.GetValue(enemy_PosY,i)
-
      xx = xx1+enemyPath[eNBR][3][uu]+incbx
-
      yy = yy1+enemyPath[eNBR][4][uu]+incby*0.1
-
      ' Randomly fire-enemy
-
      If (Math.GetRandomNumber(Enemy_Agresivity)=1) Then
-
        Enemy_ShootX = xx1 + 16
-
        Enemy_ShootY = yy1 + 4
-
        If (yy1 > 0 AND xx1 > 0 And yy1< gameHeight And xx1 < gameWidth) then
-
          'this avoid enemy fire from outside the screen
-
          fire_Enemy()
-
        Endif
-
      EndIf
 
-
-
      Shapes.Move(Array.GetValue(enemy_Array,i),xx,yy)
-
      Array.SetValue(enemy_PosX,i,xx)
-
      Array.SetValue(enemy_PosY,i,yy)
-
      Array.SetValue(enemy_TimeLine, i, Time + 1)
-
     If ((uu > enemyPath[eNBR][0][0]) And (Time > etl)) Then ' if last timelife remove the enemy sprite 
-
        next_enemy_remove = i
-
        remove_enemy()
-
     endif
-
        Collision_pbe()
-
        Collision_ep()
-
 EndFor
 
 
-
-
-
 EndSub
-
-
-
 
 
 Sub RemovePlayer_Ammo
-
 Shapes.Remove(Array.GetValue(Player_Ammo, Player_Ammo_nextRemove))
-
 For iz = Player_Ammo_nextRemove To Player_AmmoCount - 1
-
     Array.SetValue(Player_Ammo, iz, Array.GetValue(Player_Ammo, iz+1))
-
     Array.SetValue(Player_AmmoAge, iz, Array.GetValue(Player_AmmoAge, iz+1))
-
    EndFor
-
    Array.RemoveValue(Player_Ammo, Player_AmmoCount)
-
    Array.RemoveValue(Player_AmmoAge, Player_AmmoCount)
-
    Player_AmmoCount = Player_AmmoCount - 1
-
 EndSub
-
-
 
 Sub RemoveEnemy_Ammo
-
 Shapes.Remove(Array.GetValue(Enemy_Ammo, Enemy_Ammo_nextRemove))
-
 For irea = Enemy_Ammo_nextRemove To Enemy_AmmoCount - 1
-
     Array.SetValue(Enemy_Ammo, irea, Array.GetValue(Enemy_Ammo, irea+1))
-
     Array.SetValue(Enemy_AmmoAge, irea, Array.GetValue(Enemy_AmmoAge, irea+1))
-
     Array.SetValue(Enemy_Ammo_Angle, irea, Array.GetValue(Enemy_Ammo_Angle,irea+1))
 
-
-
    EndFor
-
    Array.RemoveValue(Enemy_Ammo, Enemy_AmmoCount)
-
    Array.RemoveValue(Enemy_AmmoAge, Enemy_AmmoCount)
-
    Array.RemoveValue(Enemy_Ammo_Angle,Enemy_AmmoCount)
-
    Enemy_AmmoCount = Enemy_AmmoCount - 1
-
 EndSub
 
-
-
 Sub fire
-
    ' Remove additional player Ammo
-
    While(Player_AmmoCount > Player_AmmoMax )
-
      Player_Ammo_nextRemove = 1
-
      RemovePlayer_Ammo()
-
    EndWhile
-
-
 
    ' Add the player Ammo
 
-
-
    Player_AmmoCount = Player_AmmoCount + 1
-
    Array.SetValue(Player_Ammo, Player_AmmoCount, Shapes.AddImage(bullet0))
-
    Shapes.Move(Array.GetValue(Player_Ammo, Player_AmmoCount), ShootX, ShootY)
-
 EndSub
 
-
-
 Sub fire_Enemy
-
    ' Remove additional Enemy Ammo
-
    While(Enemy_AmmoCount > (Enemy_AmmoMax - 1))
-
      Enemy_Ammo_nextRemove = 1
-
      RemoveEnemy_Ammo()
-
    EndWhile
-
-
 
    ' Add the Enemy Ammo
 
-
-
    Enemy_AmmoCount = Enemy_AmmoCount + 1
-
    Array.SetValue(Enemy_Ammo, Enemy_AmmoCount, Shapes.AddImage(Enemy_bullet))
-
    Array.SetValue(Enemy_Ammo_Angle, Enemy_AmmoCount,Math.ArcTan((paddleX- Enemy_ShootX+player_size/2)/(paddleY-Enemy_ShootY)))
-
    Shapes.Move(Array.GetValue(Enemy_Ammo, Enemy_AmmoCount), Enemy_ShootX, Enemy_ShootY)
-
 EndSub
-
-
-
 
 
 'Check playerammo age
-
 Sub AgePlayer_Ammo
-
     While (Array.GetValue(Player_AmmoAge, 1) > Player_AmmoLife)
-
      Player_Ammo_nextRemove = 1
-
      RemovePlayer_Ammo()
-
    EndWhile
-
 EndSub
-
 'Check enemy ammo age
-
 Sub AgeEnemy_Ammo
-
    While (Array.GetValue(Enemy_AmmoAge, 1) > Enemy_AmmoLife)
-
      Enemy_Ammo_nextRemove = 1
-
      RemoveEnemy_Ammo()
-
    EndWhile
-
 EndSub
-
-
 
 Sub remove_enemy
-
     Shapes.remove(Array.GetValue(enemy_Array,next_enemy_remove))
-
     ' Remove all references from the arrays
-
     For ii = next_enemy_remove To enemy_Count - 1
-
      Array.SetValue(enemy_Array, ii, Array.GetValue(enemy_Array, ii+1))
-
      Array.SetValue(enemy_line, ii, Array.GetValue(enemy_line, ii+1))
-
      Array.SetValue(enemy_PosX, ii, Array.GetValue(enemy_PosX, ii+1))
-
      Array.SetValue(enemy_PosY, ii, Array.GetValue(enemy_PosY, ii+1))
-
      Array.SetValue(enemy_TimeLine, ii, Array.GetValue(enemy_TimeLine, ii+1))
-
      Array.SetValue(enemy_PathNBR, ii , Array.GetValue(enemy_PathNBR, ii+1))
-
     EndFor
-
      Array.RemoveValue(enemy_Array, enemy_Count)
-
      Array.RemoveValue(enemy_line, enemy_Count)
-
      Array.RemoveValue(enemy_PosX, enemy_Count)
-
      Array.RemoveValue(enemy_PosY, enemy_Count)
-
      Array.RemoveValue(enemy_TimeLine, enemy_Count)
-
      Array.RemoveValue(enemy_PathNBR,enemy_Count)
-
      enemy_Count = enemy_Count - 1
-
 EndSub
-
-
 
 Sub create_enemies_left
 
-
-
      TimeLine1 =0
-
      For i=1 To enemy_Nbr
-
        enemy_Count= enemy_Count + 1
-
        Array.SetValue(enemy_PathNBR,enemy_Count,pathNBR)
-
        If (enemy_type = 2) Then
-
          Array.SetValue(enemy_Array, enemy_Count,Shapes.AddImage(enemy2))
-
          Else
-
            Array.SetValue(enemy_Array, enemy_Count,Shapes.AddImage(enemy))
-
          EndIf
-
        Array.SetValue(enemy_line,enemy_Count,1)
-
        Array.SetValue(enemy_PosX, enemy_Count,enemyPosX1)
-
        Array.SetValue(enemy_PosY, enemy_Count,enemyPosY1)
-
        Array.SetValue(enemy_TimeLine, enemy_Count, TimeLine1)
-
-
 
        enemyPosX1 = enemyPosX1 - 64 'distance between ennemies
-
        TimeLine1 = TimeLine1 - 64 / enemy_speed
-
     EndFor
-
     For i=(enemy_Count-enemy_Nbr+1) To enemy_Count
-
       xxx=Array.GetValue(enemy_PosX,i)
-
       yyy= Array.GetValue(enemy_PosY,i)
-
     Shapes.Move(Array.GetValue(enemy_Array,i),xxx,yyy)
-
     EndFor
-
   EndSub
-
   Sub create_enemies_right
 
-
-
      TimeLine1 =0
-
      For i=1 To enemy_Nbr
-
        enemy_Count= enemy_Count + 1
-
        Array.SetValue(enemy_PathNBR,enemy_Count,pathNBR)
-
        Array.SetValue(enemy_Array, enemy_Count,Shapes.AddImage(enemy))
-
        Array.SetValue(enemy_line,enemy_Count,1)
-
        Array.SetValue(enemy_PosX, enemy_Count,enemyPosX1)
-
        Array.SetValue(enemy_PosY, enemy_Count,enemyPosY1)
-
        Array.SetValue(enemy_TimeLine, enemy_Count, TimeLine1)
 
-
-
        enemyPosX1 = enemyPosX1 + 64 'distance between ennemies
-
        TimeLine1 = TimeLine1 - 64 / enemy_speed
-
     EndFor
-
     For i=(enemy_Count-enemy_Nbr+1) To enemy_Count
-
       xxx=Array.GetValue(enemy_PosX,i)
-
       yyy= Array.GetValue(enemy_PosY,i)
-
     Shapes.Move(Array.GetValue(enemy_Array,i),xxx,yyy)
-
     EndFor
-
   EndSub
-
   Sub Collision_pbe   'for player-bullet and enemies
 
-
-
     For i1 = 1 To Player_AmmoCount
-
     ' player bullet position
-
      Player_Ammox = Shapes.GetLeft(Array.GetValue(Player_Ammo, i1))
-
      Player_Ammoy = Shapes.GetTop(Array.GetValue(Player_Ammo, i1))
-
      px1=Player_Ammox+player_bullet_size/3   'in order to have a more precise collison than the bullet image size
-
      py1=Player_Ammoy+player_bullet_size/3
-
      px2=px1+2*player_bullet_size/3
-
      py2=py1+2*player_bullet_size/3
 
-
-
         For i2 = 1 to enemy_Count
-
          ' enemy position 
 
-
-
          ax1=Array.GetValue(enemy_PosX,i2)+enemy_size/4
-
          ay1=Array.GetValue(enemy_PosY,i2)+enemy_size/4
 
-
-
          ax2=ax1+3*enemy_size/4
-
          ay2=ay1+3*enemy_size/4
 
 
-
-
-
          If ( (ax1 < px1 And ax2 > px1) Or (ax1 < px2 And ax2 > px2) ) Then
-
           If ( (ay1 < py1 And ay2 > py1) Or (ay1 < py2 And ay2 > py2) ) Then
-
          ' collision between enemy nbr i2 and player bullet i
-
          ' remove bullet i and animate explosion and remove enemy i2
-
          Player_Ammo_nextRemove = i1
-
          RemovePlayer_Ammo()
-
          next_enemy_remove = i2
-
          remove_enemy()
-
          ' begin animation for explosion at coordinate ax1, ay1
-
          toto= Shapes.AddImage(enemy_expl1)
-
          Shapes.move(toto,ax1,ay1)
-
          Program.Delay(30)
-
          Shapes.Remove(toto)
-
          toto= Shapes.AddImage(enemy_expl2)
-
          Shapes.move(toto,ax1,ay1)
-
          Program.Delay(30)
-
          Shapes.Remove(toto)
-
          score = score +100
-
           EndIf
-
          EndIf
-
         EndFor
-
-
 
      Endfor
 
-
-
   EndSub
-
-
-
 
 
   Sub Collision_ep   'for enemies and player 
-
     px1 = Shapes.GetLeft(player)
-
     py1 = Shapes.GetTop(player)
-
     px2 = px1 + player_size
-
     py2 = py1 + player_size
 
 
-
-
-
     'Shapes.Move(Shapes.AddRectangle(px2-px1 ,py2-py1), px1, py1)
-
     For i2 = 1 to enemy_Count
-
          ' enemy position 
-
-
 
          ax1=Array.GetValue(enemy_PosX,i2)
-
          ay1=Array.GetValue(enemy_PosY,i2)
 
-
-
          ax2=ax1+enemy_size
-
          ay2=ay1+enemy_size
-
           'Shapes.Move(Shapes.AddRectangle(ax2-ax1 ,ay2-ay1), ax1, ay1) 
 
-
-
          If ( (px1 < ax1 And px2 > ax1) Or (px1 < ax2 And px2 > ax2) ) Then
-
           If ( (py1 < ay1 And py2 > ay1) Or (py1 < ay2 And py2 > ay2) ) Then
-
          ' collision between enemy nbr i2 and player 
-
          ' animate explosion and decrease lives
-
          next_enemy_remove = i2
-
          remove_enemy()
-
          ' begin animation for explosion at coordinate ax1, ay1
-
          toto= Shapes.AddImage(enemy_expl1)
-
          Shapes.move(toto,ax1,ay1)
-
          Program.Delay(30)
-
          Shapes.Remove(toto)
-
          toto= Shapes.AddImage(player_expl)
-
          Shapes.move(toto,ax1,ay1)
-
          Program.Delay(300)
-
          Shapes.Remove(toto)
-
          Player_Lives = Player_Lives -1
-
          If (Player_Lives = 0) THEN
-
            Program.End()
-
          EndIf
-
         EndIf
-
        EndIf
-
      EndFor
-
     px1 = paddleX
-
     py1 = paddleY
-
     px2 = px1 + player_size
-
     py2 = py1 + player_size
-
     'Shapes.Move(Shapes.AddRectangle(px2-px1 ,py2-py1), px1, py1)
-
      For i3 = 1 to Enemy_AmmoCount
-
          ' enemy position 
 
-
-
          ax1=Shapes.GetLeft(Array.GetValue(enemy_Ammo,i3))
-
          ay1=Shapes.GetTop(Array.GetValue(enemy_Ammo,i3))
 
-
-
          ax2=ax1+enemy_ammo_size
-
          ay2=ay1+enemy_ammo_size
-
          'Shapes.Move(Shapes.AddRectangle(ax2-ax1 ,ay2-ay1), ax1, ay1) 
 
-
-
          If ( (px1 < ax1 And px2 > ax1) Or (px1 < ax2 And px2 > ax2) ) Then
-
           If ( (py1 < ay1 And py2 > ay1) Or (py1 < ay2 And py2 > ay2) ) Then
-
          ' collision between enemy ammo nbr i3 and player 
-
          ' animate explosion and decrease lives
-
          Enemy_Ammo_nextRemove = i3
-
          RemoveEnemy_Ammo()
 
-
-
          ' begin animation for explosion at coordinate ax1, ay1
-
          toto= Shapes.AddImage(enemy_expl1)
-
          Shapes.move(toto,paddleX+ player_size/2,paddleY+ player_size/2)
-
          Program.Delay(30)
-
          Shapes.Remove(toto)
-
          toto= Shapes.AddImage(player_expl)
-
          Shapes.move(toto,paddleX+ player_size/2,paddleY+ player_size/2)
-
          Program.Delay(300)
-
          Shapes.Remove(toto)
-
          Player_Lives = Player_Lives -1
-
          If (Player_Lives = 0) THEN
-
            Program.End()
-
          EndIf
-
         EndIf
-
        EndIf
-
       EndFor
-
-
 
   EndSub
 
 
-
-
-
 Sub IslandsPosition
-
    ' island positions, avoid randomGeneration and islands overlap 
-
    islandPos[0][1]=1
-
    islandPos[0][2]=0
-
    islandPos[0][3]=-150
 
-
-
    islandPos[1][1]=1
-
    islandPos[1][2]=-Math.Round(gameWidth/2)
-
    islandPos[1][3]=-150
 
-
-
    islandPos[2][1]=2
-
    islandPos[2][2]=-2*Math.Round(gameWidth/3)
-
    islandPos[2][3]=-150
 
-
-
    islandPos[3][1]=1
-
    islandPos[3][2]=2*Math.Round(gameWidth/3)
-
    islandPos[3][3]=-150
 
-
-
    islandPos[4][1]=2
-
    islandPos[4][2]=gameWidth
-
    islandPos[4][3]=-150
 
-
-
    islandPos[5][1]=3
-
    islandPos[5][2]=Math.Round(gameWidth/3)
-
    islandPos[5][3]=-150
 
-
-
    islandPos[6][1]=3
-
    islandPos[6][2]=-gameWidth
-
    islandPos[6][3]=-150
-
 EndSub
 
 
-
-
-
   Sub define_paths
-
      enemyPath[0][0][0] = 3  'nbr of strait lines of path
-
      enemyPath[0][1][1] = 30  'from 0 to this in timeline
-
      enemyPath[0][1][2] = 100 ' from this to next in timeline
-
      enemyPath[0][1][3] = 400   'sprite goes up
 
-
-
      enemyPath[0][2][1] = 0 'first line rotation = 0
-
      enemyPath[0][2][2] = 45 ' second line rotation = 45
-
      enemyPath[0][2][3] = 45
 
-
-
      enemyPath[0][3][1] = enemy_speed ' first line x movment
-
      enemyPath[0][3][2] = enemy_speed 'second line x movment
-
      enemyPath[0][3][3] = enemy_speed ' third line ...
 
-
-
      enemyPath[0][4][1] = 0 ' first line y movment
-
      enemyPath[0][4][2] = enemy_speed
-
      enemyPath[0][4][3] = enemy_speed
-
     '---------- second path
-
      enemyPath[1][0][0] = 4
-
      enemyPath[1][1][1] = 1
-
      enemyPath[1][1][2] = 1
-
      enemyPath[1][1][3] = 100
-
      enemyPath[1][1][4] = 400
 
-
-
      enemyPath[1][2][1] = 180
-
      enemyPath[1][2][2] = 135
-
      enemyPath[1][2][3] = 135
-
      enemyPath[1][2][4] = 90
 
-
-
      enemyPath[1][3][1] = -enemy_speed
-
      enemyPath[1][3][2] = -enemy_speed
-
      enemyPath[1][3][3] = -enemy_speed
-
      enemyPath[1][3][4] = 0
 
-
-
      enemyPath[1][4][1] = 0
-
      enemyPath[1][4][2] = 0
-
      enemyPath[1][4][3] = enemy_speed
-
      enemyPath[1][4][4] = enemy_speed
-
     'round r=5
-
 enemyPath[2][0][0]=21
-
 enemyPath[2][1][1]=50
-
 enemyPath[2][1][2]=55
-
 enemyPath[2][1][3]=60
-
 enemyPath[2][1][4]=65
-
 enemyPath[2][1][5]=70
-
 enemyPath[2][1][6]=75
-
 enemyPath[2][1][7]=80
-
 enemyPath[2][1][8]=85
-
 enemyPath[2][1][9]=90
-
 enemyPath[2][1][10]=95
-
 enemyPath[2][1][11]=100
-
 enemyPath[2][1][12]=105
-
 enemyPath[2][1][13]=110
-
 enemyPath[2][1][14]=115
-
 enemyPath[2][1][15]=120
-
 enemyPath[2][1][16]=125
-
 enemyPath[2][1][17]=130
-
 enemyPath[2][1][18]=135
-
 enemyPath[2][1][19]=140
-
 enemyPath[2][1][20]=145
-
 enemyPath[2][1][21]=350
-
 enemyPath[2][2][1]=0
-
 enemyPath[2][2][2]=18
-
 enemyPath[2][2][3]=36
-
 enemyPath[2][2][4]=54
-
 enemyPath[2][2][5]=72
-
 enemyPath[2][2][6]=90
-
 enemyPath[2][2][7]=108
-
 enemyPath[2][2][8]=126
-
 enemyPath[2][2][9]=144
-
 enemyPath[2][2][10]=162
-
 enemyPath[2][2][11]=180
-
 enemyPath[2][2][12]=198
-
 enemyPath[2][2][13]=216
-
 enemyPath[2][2][14]=234
-
 enemyPath[2][2][15]=252
-
 enemyPath[2][2][16]=-90
-
 enemyPath[2][2][17]=-72
-
 enemyPath[2][2][18]=-54
-
 enemyPath[2][2][19]=-36
-
 enemyPath[2][2][20]=-18
-
 enemyPath[2][2][21]=0
-
 enemyPath[2][3][1]=enemy_speed
-
 enemyPath[2][3][2]=0.95*enemy_speed
-
 enemyPath[2][3][3]=0.81*enemy_speed
-
 enemyPath[2][3][4]=0.59*enemy_speed
-
 enemyPath[2][3][5]=0.31*enemy_speed
-
 enemyPath[2][3][6]=0
-
 enemyPath[2][3][7]=-0.31*enemy_speed
-
 enemyPath[2][3][8]=-0.59*enemy_speed
-
 enemyPath[2][3][9]=-0.81*enemy_speed
-
 enemyPath[2][3][10]=-0.95*enemy_speed
-
 enemyPath[2][3][11]=-enemy_speed
-
 enemyPath[2][3][12]=-0.95*enemy_speed
-
 enemyPath[2][3][13]=-0.81*enemy_speed
-
 enemyPath[2][3][14]=-0.59*enemy_speed
-
 enemyPath[2][3][15]=-0.31*enemy_speed
-
 enemyPath[2][3][16]=0
-
 enemyPath[2][3][17]=0.31*enemy_speed
-
 enemyPath[2][3][18]=0.59*enemy_speed
-
 enemyPath[2][3][19]=0.81*enemy_speed
-
 enemyPath[2][3][20]=0.95*enemy_speed
-
 enemyPath[2][3][21]=enemy_speed
-
 enemyPath[2][4][1]=0
-
 enemyPath[2][4][2]=0.31*enemy_speed
-
 enemyPath[2][4][3]=0.59*enemy_speed
-
 enemyPath[2][4][4]=0.81*enemy_speed
-
 enemyPath[2][4][5]=0.95*enemy_speed
-
 enemyPath[2][4][6]=enemy_speed
-
 enemyPath[2][4][7]=0.95*enemy_speed
-
 enemyPath[2][4][8]=0.81*enemy_speed
-
 enemyPath[2][4][9]=0.59*enemy_speed
-
 enemyPath[2][4][10]=0.31*enemy_speed
-
 enemyPath[2][4][11]=0
-
 enemyPath[2][4][12]=-0.31*enemy_speed
-
 enemyPath[2][4][13]=-0.59*enemy_speed
-
 enemyPath[2][4][14]=-0.81*enemy_speed
-
 enemyPath[2][4][15]=-0.95*enemy_speed
-
 enemyPath[2][4][16]=-enemy_speed
-
 enemyPath[2][4][17]=-0.95*enemy_speed
-
 enemyPath[2][4][18]=-0.81*enemy_speed
-
 enemyPath[2][4][19]=-0.59*enemy_speed
-
 enemyPath[2][4][20]=-0.31*enemy_speed
-
 enemyPath[2][4][21]=0
-
      'round r=20
-
 enemyPath[3][0][0]=21
-
 enemyPath[3][1][1]=120
-
 enemyPath[3][1][2]=140
-
 enemyPath[3][1][3]=160
-
 enemyPath[3][1][4]=180
-
 enemyPath[3][1][5]=200
-
 enemyPath[3][1][6]=220
-
 enemyPath[3][1][7]=240
-
 enemyPath[3][1][8]=260
-
 enemyPath[3][1][9]=280
-
 enemyPath[3][1][10]=300
-
 enemyPath[3][1][11]=320
-
 enemyPath[3][1][12]=340
-
 enemyPath[3][1][13]=360
-
 enemyPath[3][1][14]=380
-
 enemyPath[3][1][15]=400
-
 enemyPath[3][1][16]=420
-
 enemyPath[3][1][17]=440
-
 enemyPath[3][1][18]=460
-
 enemyPath[3][1][19]=480
-
 enemyPath[3][1][20]=500
-
 enemyPath[3][1][21]=600
-
 enemyPath[3][2][1]=0
-
 enemyPath[3][2][2]=18
-
 enemyPath[3][2][3]=36
-
 enemyPath[3][2][4]=54
-
 enemyPath[3][2][5]=72
-
 enemyPath[3][2][6]=90
-
 enemyPath[3][2][7]=108
-
 enemyPath[3][2][8]=126
-
 enemyPath[3][2][9]=144
-
 enemyPath[3][2][10]=162
-
 enemyPath[3][2][11]=180
-
 enemyPath[3][2][12]=198
-
 enemyPath[3][2][13]=216
-
 enemyPath[3][2][14]=234
-
 enemyPath[3][2][15]=252
-
 enemyPath[3][2][16]=-90
-
 enemyPath[3][2][17]=-72
-
 enemyPath[3][2][18]=-54
-
 enemyPath[3][2][19]=-36
-
 enemyPath[3][2][20]=-18
-
 enemyPath[3][2][21]=0
-
 enemyPath[3][3][1]=enemy_speed
-
 enemyPath[3][3][2]=0.95*enemy_speed
-
 enemyPath[3][3][3]=0.81*enemy_speed
-
 enemyPath[3][3][4]=0.59*enemy_speed
-
 enemyPath[3][3][5]=0.31*enemy_speed
-
 enemyPath[3][3][6]=0
-
 enemyPath[3][3][7]=-0.31*enemy_speed
-
 enemyPath[3][3][8]=-0.59*enemy_speed
-
 enemyPath[3][3][9]=-0.81*enemy_speed
-
 enemyPath[3][3][10]=-0.95*enemy_speed
-
 enemyPath[3][3][11]=-enemy_speed
-
 enemyPath[3][3][12]=-0.95*enemy_speed
-
 enemyPath[3][3][13]=-0.81*enemy_speed
-
 enemyPath[3][3][14]=-0.59*enemy_speed
-
 enemyPath[3][3][15]=-0.31*enemy_speed
-
 enemyPath[3][3][16]=0
-
 enemyPath[3][3][17]=0.31*enemy_speed
-
 enemyPath[3][3][18]=0.59*enemy_speed
-
 enemyPath[3][3][19]=0.81*enemy_speed
-
 enemyPath[3][3][20]=0.95*enemy_speed
-
 enemyPath[3][3][21]=enemy_speed
-
 enemyPath[3][4][1]=0
-
 enemyPath[3][4][2]=0.31*enemy_speed
-
 enemyPath[3][4][3]=0.59*enemy_speed
-
 enemyPath[3][4][4]=0.81*enemy_speed
-
 enemyPath[3][4][5]=0.95*enemy_speed
-
 enemyPath[3][4][6]=enemy_speed
-
 enemyPath[3][4][7]=0.95*enemy_speed
-
 enemyPath[3][4][8]=0.81*enemy_speed
-
 enemyPath[3][4][9]=0.59*enemy_speed
-
 enemyPath[3][4][10]=0.31*enemy_speed
-
 enemyPath[3][4][11]=0
-
 enemyPath[3][4][12]=-0.31*enemy_speed
-
 enemyPath[3][4][13]=-0.59*enemy_speed
-
 enemyPath[3][4][14]=-0.81*enemy_speed
-
 enemyPath[3][4][15]=-0.95*enemy_speed
-
 enemyPath[3][4][16]=-enemy_speed
-
 enemyPath[3][4][17]=-0.95*enemy_speed
-
 enemyPath[3][4][18]=-0.81*enemy_speed
-
 enemyPath[3][4][19]=-0.59*enemy_speed
-
 enemyPath[3][4][20]=-0.31*enemy_speed
-
 enemyPath[3][4][21]=0
 
-
-
 'round r=10
-
 enemyPath[4][0][0]=21
-
 enemyPath[4][1][1]=110
-
 enemyPath[4][1][2]=120
-
 enemyPath[4][1][3]=130
-
 enemyPath[4][1][4]=140
-
 enemyPath[4][1][5]=150
-
 enemyPath[4][1][6]=160
-
 enemyPath[4][1][7]=170
-
 enemyPath[4][1][8]=180
-
 enemyPath[4][1][9]=190
-
 enemyPath[4][1][10]=200
-
 enemyPath[4][1][11]=210
-
 enemyPath[4][1][12]=220
-
 enemyPath[4][1][13]=230
-
 enemyPath[4][1][14]=240
-
 enemyPath[4][1][15]=250
-
 enemyPath[4][1][16]=260
-
 enemyPath[4][1][17]=270
-
 enemyPath[4][1][18]=280
-
 enemyPath[4][1][19]=290
-
 enemyPath[4][1][20]=300
-
 enemyPath[4][1][21]=500
-
 enemyPath[4][2][1]=0
-
 enemyPath[4][2][2]=18
-
 enemyPath[4][2][3]=36
-
 enemyPath[4][2][4]=54
-
 enemyPath[4][2][5]=72
-
 enemyPath[4][2][6]=90
-
 enemyPath[4][2][7]=108
-
 enemyPath[4][2][8]=126
-
 enemyPath[4][2][9]=144
-
 enemyPath[4][2][10]=162
-
 enemyPath[4][2][11]=180
-
 enemyPath[4][2][12]=198
-
 enemyPath[4][2][13]=216
-
 enemyPath[4][2][14]=234
-
 enemyPath[4][2][15]=252
-
 enemyPath[4][2][16]=-90
-
 enemyPath[4][2][17]=-72
-
 enemyPath[4][2][18]=-54
-
 enemyPath[4][2][19]=-36
-
 enemyPath[4][2][20]=-18
-
 enemyPath[4][2][21]=0
-
 enemyPath[4][3][1]=enemy_speed
-
 enemyPath[4][3][2]=0.95*enemy_speed
-
 enemyPath[4][3][3]=0.81*enemy_speed
-
 enemyPath[4][3][4]=0.59*enemy_speed
-
 enemyPath[4][3][5]=0.31*enemy_speed
-
 enemyPath[4][3][6]=0
-
 enemyPath[4][3][7]=-0.31*enemy_speed
-
 enemyPath[4][3][8]=-0.59*enemy_speed
-
 enemyPath[4][3][9]=-0.81*enemy_speed
-
 enemyPath[4][3][10]=-0.95*enemy_speed
-
 enemyPath[4][3][11]=-enemy_speed
-
 enemyPath[4][3][12]=-0.95*enemy_speed
-
 enemyPath[4][3][13]=-0.81*enemy_speed
-
 enemyPath[4][3][14]=-0.59*enemy_speed
-
 enemyPath[4][3][15]=-0.31*enemy_speed
-
 enemyPath[4][3][16]=0
-
 enemyPath[4][3][17]=0.31*enemy_speed
-
 enemyPath[4][3][18]=0.59*enemy_speed
-
 enemyPath[4][3][19]=0.81*enemy_speed
-
 enemyPath[4][3][20]=0.95*enemy_speed
-
 enemyPath[4][3][21]=enemy_speed
-
 enemyPath[4][4][1]=0
-
 enemyPath[4][4][2]=0.31*enemy_speed
-
 enemyPath[4][4][3]=0.59*enemy_speed
-
 enemyPath[4][4][4]=0.81*enemy_speed
-
 enemyPath[4][4][5]=0.95*enemy_speed
-
 enemyPath[4][4][6]=enemy_speed
-
 enemyPath[4][4][7]=0.95*enemy_speed
-
 enemyPath[4][4][8]=0.81*enemy_speed
-
 enemyPath[4][4][9]=0.59*enemy_speed
-
 enemyPath[4][4][10]=0.31*enemy_speed
-
 enemyPath[4][4][11]=0
-
 enemyPath[4][4][12]=-0.31*enemy_speed
-
 enemyPath[4][4][13]=-0.59*enemy_speed
-
 enemyPath[4][4][14]=-0.81*enemy_speed
-
 enemyPath[4][4][15]=-0.95*enemy_speed
-
 enemyPath[4][4][16]=-enemy_speed
-
 enemyPath[4][4][17]=-0.95*enemy_speed
-
 enemyPath[4][4][18]=-0.81*enemy_speed
-
 enemyPath[4][4][19]=-0.59*enemy_speed
-
 enemyPath[4][4][20]=-0.31*enemy_speed
-
 enemyPath[4][4][21]=0
 
-
-
     'round r=15 + exit down
-
 enemyPath[5][0][0]=27
-
 enemyPath[5][1][1]=120
-
 enemyPath[5][1][2]=125
-
 enemyPath[5][1][3]=150
-
 enemyPath[5][1][4]=165
-
 enemyPath[5][1][5]=180
-
 enemyPath[5][1][6]=195
-
 enemyPath[5][1][7]=210
-
 enemyPath[5][1][8]=225
-
 enemyPath[5][1][9]=240
-
 enemyPath[5][1][10]=255
-
 enemyPath[5][1][11]=270
-
 enemyPath[5][1][12]=285
-
 enemyPath[5][1][13]=300
-
 enemyPath[5][1][14]=315
-
 enemyPath[5][1][15]=330
-
 enemyPath[5][1][16]=345
-
 enemyPath[5][1][17]=360
-
 enemyPath[5][1][18]=375
-
 enemyPath[5][1][19]=390
-
 enemyPath[5][1][20]=405
-
 enemyPath[5][1][21]=600
-
 enemyPath[5][1][22]=615
-
 enemyPath[5][1][23]=630
-
 enemyPath[5][1][24]=645
-
 enemyPath[5][1][254]=660
-
 enemyPath[5][1][26]=675
-
 enemyPath[5][1][27]=800
 
-
-
 enemyPath[5][2][1]=0
-
 enemyPath[5][2][2]=18
-
 enemyPath[5][2][3]=36
-
 enemyPath[5][2][4]=54
-
 enemyPath[5][2][5]=72
-
 enemyPath[5][2][6]=90
-
 enemyPath[5][2][7]=108
-
 enemyPath[5][2][8]=126
-
 enemyPath[5][2][9]=144
-
 enemyPath[5][2][10]=162
-
 enemyPath[5][2][11]=180
-
 enemyPath[5][2][12]=198
-
 enemyPath[5][2][13]=216
-
 enemyPath[5][2][14]=234
-
 enemyPath[5][2][15]=252
-
 enemyPath[5][2][16]=-90
-
 enemyPath[5][2][17]=-72
-
 enemyPath[5][2][18]=-54
-
 enemyPath[5][2][19]=-36
-
 enemyPath[5][2][20]=-18
-
 enemyPath[5][2][21]=0
 
-
-
 enemyPath[5][2][22]=18
-
 enemyPath[5][2][23]=36
-
 enemyPath[5][2][24]=54
-
 enemyPath[5][2][25]=72
-
 enemyPath[5][2][26]=90
-
 enemyPath[5][2][27]=90
 
 
-
-
-
 enemyPath[5][3][1]=enemy_speed
-
 enemyPath[5][3][2]=0.95*enemy_speed
-
 enemyPath[5][3][3]=0.81*enemy_speed
-
 enemyPath[5][3][4]=0.59*enemy_speed
-
 enemyPath[5][3][5]=0.31*enemy_speed
-
 enemyPath[5][3][6]=0
-
 enemyPath[5][3][7]=-0.31*enemy_speed
-
 enemyPath[5][3][8]=-0.59*enemy_speed
-
 enemyPath[5][3][9]=-0.81*enemy_speed
-
 enemyPath[5][3][10]=-0.95*enemy_speed
-
 enemyPath[5][3][11]=-enemy_speed
-
 enemyPath[5][3][12]=-0.95*enemy_speed
-
 enemyPath[5][3][13]=-0.81*enemy_speed
-
 enemyPath[5][3][14]=-0.59*enemy_speed
-
 enemyPath[5][3][15]=-0.31*enemy_speed
-
 enemyPath[5][3][16]=0
-
 enemyPath[5][3][17]=0.31*enemy_speed
-
 enemyPath[5][3][18]=0.59*enemy_speed
-
 enemyPath[5][3][19]=0.81*enemy_speed
-
 enemyPath[5][3][20]=0.95*enemy_speed
-
 enemyPath[5][3][21]=enemy_speed
-
 enemyPath[5][3][22]=0.95*enemy_speed
-
 enemyPath[5][3][23]=0.81*enemy_speed
-
 enemyPath[5][3][24]=0.59*enemy_speed
-
 enemyPath[5][3][25]=0.31*enemy_speed
-
 enemyPath[5][3][26]=0
-
 enemyPath[5][3][27]=0
 
 
 
-
-
-
-
 enemyPath[5][4][1]=0
-
 enemyPath[5][4][2]=0.31*enemy_speed
-
 enemyPath[5][4][3]=0.59*enemy_speed
-
 enemyPath[5][4][4]=0.81*enemy_speed
-
 enemyPath[5][4][5]=0.95*enemy_speed
-
 enemyPath[5][4][6]=enemy_speed
-
 enemyPath[5][4][7]=0.95*enemy_speed
-
 enemyPath[5][4][8]=0.81*enemy_speed
-
 enemyPath[5][4][9]=0.59*enemy_speed
-
 enemyPath[5][4][10]=0.31*enemy_speed
-
 enemyPath[5][4][11]=0
-
 enemyPath[5][4][12]=-0.31*enemy_speed
-
 enemyPath[5][4][13]=-0.59*enemy_speed
-
 enemyPath[5][4][14]=-0.81*enemy_speed
-
 enemyPath[5][4][15]=-0.95*enemy_speed
-
 enemyPath[5][4][16]=-enemy_speed
-
 enemyPath[5][4][17]=-0.95*enemy_speed
-
 enemyPath[5][4][18]=-0.81*enemy_speed
-
 enemyPath[5][4][19]=-0.59*enemy_speed
-
 enemyPath[5][4][20]=-0.31*enemy_speed
-
 enemyPath[5][4][21]=0
-
 enemyPath[5][4][22]=0.31*enemy_speed
-
 enemyPath[5][4][23]=0.59*enemy_speed
-
 enemyPath[5][4][24]=0.81*enemy_speed
-
 enemyPath[5][4][25]=0.95*enemy_speed
-
 enemyPath[5][4][26]=enemy_speed
-
 enemyPath[5][4][27]=enemy_speed
 
-
-
 enemyPath[6][0][0]=3
-
 enemyPath[6][1][1]=1
-
 enemyPath[6][1][2]=80
-
 enemyPath[6][1][3]=200
-
 enemyPath[6][2][1]=0
-
 enemyPath[6][2][2]=90
-
 enemyPath[6][2][3]=-90
-
 enemyPath[6][3][1]=0
-
 enemyPath[6][3][2]=0
-
 enemyPath[6][3][3]=0
-
 enemyPath[6][4][1]=0
-
 enemyPath[6][4][2]=enemy_speed
-
 enemyPath[6][4][3]=-enemy_speed
-
 EndSub
 
-
-
 Sub create_level1   'this define the behavior of the différent squadron along the time play for level 1
-
    level1[1][1]=20    'when timeplay=level1[1][1]
-
    level1[1][2]= 2     ' lauch enemy with Path level1[1][2]
-
    level1[1][3]= -10   ' at x coordinate level1[1][3]
-
    level1[1][4] = 0      ' at y coordinate level1[1][4]
-
    level1[1][5] = 1      ' 1 for create enemy at the left side; 2 for the right side of screen
-
    level1[1][6] = 4      'level[1][6] is the number of enemies
-
    level1[1][7] = 1      'type of enemy
 
-
-
    level1[2][1]= 80
-
    level1[2][2]= 6
-
    level1[2][3]= gameWidth/2
-
    level1[2][4] = -500
-
    level1[2][5] = 1
-
    level1[2][6] = 3
-
    level1[2][7] = 1
 
-
-
    level1[3][1]= 150
-
    level1[3][2]= 0
-
    level1[3][3]= -10
-
    level1[3][4] = 0
-
    level1[3][5] = 1
-
    level1[3][6] = 6
-
    level1[3][7] = 2
 
-
-
    level1[4][1]= 280
-
    level1[4][2]= 4
-
    level1[4][3]= -10
-
    level1[4][4] = 0
-
    level1[4][5] = 1
-
    level1[4][6] = 3
-
    level1[4][7] = 2
 
 
 
-
-
-
-
    level1[5][1]= 410
-
    level1[5][2]= 6
-
    level1[5][3]= gameWidth/3
-
    level1[5][4] = -50
-
    level1[5][5] = 1
-
    level1[5][6] = 3
-
    level1[5][7] = 1
 
-
-
    level1[6][1]= 430
-
    level1[6][2]= 6
-
    level1[6][3]= 2*gameWidth/3
-
    level1[6][4] = -50
-
    level1[6][5] = 2
-
    level1[6][6] = 3
-
    level1[6][7] = 1
 
-
-
    level1[5][1]= 500
-
    level1[5][2]= 6
-
    level1[5][3]= gameWidth/3
-
    level1[5][4] = -50
-
    level1[5][5] = 1
-
    level1[5][6] = 6
-
    level1[5][7] = 2
 
-
-
    level1[6][1]= 590
-
    level1[6][2]= 5
-
    level1[6][3]= 100
-
    level1[6][4] = -80
-
    level1[6][5] = 1
-
    level1[6][6] = 3
-
    level1[6][7] = 3
 
-
-
    level1[7][1]= 690
-
    level1[7][2]= 6
-
    level1[7][3]= gameWidth/3
-
    level1[7][4] = -50
-
    level1[7][5] = 2
-
    level1[7][6] = 3
-
    level1[7][7] = 2
-
    For i= 1 To 10
-
      Level1[7+i][1]=700+50*i
-
      level1[7+i][2]= 6
-
      level1[7+i][3]=  math.GetrandomNumber(gameWidth)
-
      level1[7+i][4] = -50 +i
-
      level1[7+i][5] = math.GetrandomNumber(2)
-
      level1[7+i][6] = math.GetrandomNumber(3)
-
      level1[7+i][7] = math.GetrandomNumber(2)
-
      EndFor
-
    level1[18][1]= 1300
-
    level1[18][2]= 1
-
    level1[18][3]= gameWidth
-
    level1[18][4] = -10
-
    level1[18][5] = 2
-
    level1[18][6] = 6
-
    level1[18][7] = 2
 
-
-
    For i= 1 To 10
-
      Level1[18+i][1]=1330+50*i
-
      level1[18+i][2]= 4+math.GetrandomNumber(2)
-
      level1[18+i][3]=  math.GetrandomNumber(50)
-
      level1[18+i][4] = i
-
      level1[18+i][5] = 1
-
      level1[18+i][6] = math.GetrandomNumber(3)
-
      level1[18+i][7] = math.GetrandomNumber(2)
-
    EndFor
-
    For i= 1 To 10
-
      Level1[28+i][1]=1900+50*i
-
      level1[28+i][2]= 4+math.GetrandomNumber(2)
-
      level1[28+i][3]=  -math.GetrandomNumber(50)
-
      level1[28+i][4] = i
-
      level1[28+i][5] = 1
-
      level1[28+i][6] = math.GetrandomNumber(3)
-
      level1[28+i][7] = math.GetrandomNumber(2)
-
    EndFor
-
     For i= 1 To 10
-
      Level1[38+i][1]=2450+100*i
-
      level1[38+i][2]= 6
-
      level1[38+i][3]=  math.GetrandomNumber(gameWidth)
-
      level1[38+i][4] = -50 +i
-
      level1[38+i][5] = math.GetrandomNumber(2)
-
      level1[38+i][6] = math.GetrandomNumber(5)
-
      level1[38+i][7] = math.GetrandomNumber(2)
-
      EndFor
-
-
-
 
 
 EndSub
-
-

@@ -1,2589 +1,1294 @@
 '***************************************************
-
 ' Chomper (SBC) Release 2 - online version
-
 ' Pacman-style game (BETA)
-
 'Version 2.5.23.2013
-
 '
-
 'Tony's Home-Made Software 2013
-
 '
-
 ' Designed & coded in BASIC by Anthony Yarrell (QBasicLover in the SB forums)
-
 ' Designed for Microsoft Small Basic 1.0
-
 ' March 2013
-
 '
-
 'Sprites created using Microsoft Paint
-
 'Maze designed using Microsoft Excel
-
 '
-
 '***************************************************
 
-
-
 'These variables control game play:
-
 BRAND_NEW_GAME  = 0
-
 PLAY_LEVEL      = 1
-
 ADVANCE_LEVEL   = 2
-
 REPLAY_LEVEL    = 3
-
 GAME_OVER       = 4
-
 DIAGNOSTIC      = 5
-
 gameState       = BRAND_NEW_GAME
-
-
 
 'Initialization:
 
-
-
 gameSpeed        = 40   'Decrease if game runs too slowly 
-
 mazeScale        = 12   'Size of maze and distance between invisibele maze tiles.
-
 gameScreenHeight = 380
-
 gamescreenWidth  = 335
-
 globalCycleCtr   = 0        'Used for syncronization. Updated once per game loop cycle.
-
 initialCountDownTime = 80 'Amount of time (cycles) the monsters stay "frightened"
-
 gameScore      = 0
-
 gameLevel      = 0
-
 hasEatenEnergizer = "FALSE"
-
 hasEatenPellet = "FALSE"
-
 isTouching = "FALSE"
-
 ModeSwitchTime = 0
-
 GraphicsWindow.KeyDown = keyboardHandler
-
-
 
 'Game loop
 
-
-
 While (gameState <> GAME_OVER)
 
-
-
 start = Clock.ElapsedMilliseconds
-
 globalCycleCtr = globalCycleCtr + 1
 
-
-
 If (gameState = BRAND_NEW_GAME) Then
-
  InitializeLookupTables()
-
  SetupGraphicsWindow()
-
  LoadBitmaps()
-
  InitializeSprites()
-
  SpriteArray[SBC][Lives] = 3
-
  gameState = ADVANCE_LEVEL
 
-
-
 ElseIf (gameState = ADVANCE_LEVEL) Then
-
  SmallDelay()
-
  ModeSwitchCounter      = 0
-
  globalCycleCtr         = 0
-
  monstersEatenPerLevel  = 0
-
  selectedRotation       = 0     'SBC goes through 4 max rotations.
-
  UpdateLevelState()             'Changes color of maze, sprite speed, etc.
-
  ConstructGameElements()
-
  splashTextColor        = "white"
-
  splashText             = "L E V E L : "+ gameLevel
-
  DisplayLevelSplash()
-
  SpriteArray[SBC][State] = NORMAL
-
  SmallDelay()
-
  gameState = PLAY_LEVEL
-
  sbcDirection = Dir_R
-
-
 
 ElseIf (gameState = PLAY_LEVEL) Then
 
-
-
  LeaveMonsterPenOneByOne()
 
-
-
   'Each sprite has a counter that it uses to track when it reaches a tile while moving though the maze.
-
   'When this counter reaches mazeScale, the sprite updates it info and draws. 
-
   'Each sprite also has a spritespeed variable that it uses to set its movement speed. For example,
-
   'if spritespeed = 1 then updates will be done on each tick of the global counter. If spritespeed = 2 then
-
   'updates will be done on every 2nd tick, which will slow down that sprite, etc.
 
-
-
  For Sprites = firstSprite to lastSprite
-
    IF Math.Remainder(globalCycleCtr,SpriteArray[Sprites][spriteSpeed])=0 Then
-
      Update()
-
      Draw()
-
   EndIf
-
  Endfor
 
-
-
 ElseIf (gameState = REPLAY_LEVEL) Then
-
  SmallDelay()
-
  ClearSpritesFromaze()
-
  InitializeSprites()
-
  PositionSpritesInMaze()
-
  ModeSwitchCounter = 0
-
  globalCycleCtr = 0
-
  selectedRotation=0
-
  SpriteArray[SBC][Lives] = SpriteArray[sbc][Lives] - 1
-
  gameState = PLAY_LEVEL
-
  sbcDirection = DIR_R          'SBC moves to the right when level starts.
-
  SmallDelay()
-
-
 
  If (SpriteArray[SBC][Lives] = 0) Then
-
   gameState   = GAME_OVER
-
   splashText  = "Game Over"
-
   DisplayLevelSplash()
-
   SmallDelay()
-
   Program.End()
-
  Endif
-
-
 
 EndIf 'End of state machine If/ElseIf ladder
 
-
-
 'Controls overall game speed:
-
  delay = gameSpeed - (Clock.ElapsedMilliseconds-start)
-
  If (delay > 0) Then
-
   Program.Delay(delay)
-
  EndIf
 
-
-
 EndWhile 'End of game loop
-
 '***********************************************************************************
-
 Sub SmallDelay
-
  Program.Delay(250)
-
 EndSub
-
 '*******************************************************************************************
-
 'Updates various games elements (eg maze color, game speed, etc) as the player advances to a new level:
-
 '- gameSpeed: Overall speed of game. Game gets faster on each level.
-
 '- initialCountDownTime: amount of time that monsters stay afraid. Decreases on each level.
 
-
-
 Sub UpdateLevelState
-
   If math.Remainder(gameLevel,4) = 1 Then
-
     mazeBorderColor = "Cyan"
-
   ElseIf math.Remainder(gameLevel,4) = 2 then
-
     mazeBorderColor = "Red"
-
   Elseif math.Remainder(gameLevel,4) = 3 then
-
     mazeBorderColor  = "midnightblue"
-
   Elseif math.Remainder(gameLevel,4) = 0 then
-
     mazeBorderColor = "magenta"
-
   EndIf
-
-
 
   gameLevel = gameLevel + 1
-
   gameSpeed = gameSpeed - 2
 
-
-
   If (gameSpeed <= 0) Then
-
      gameSpeed = 0
-
   EndIf
-
-
 
   'Give the player a new life on levels 4 and 8:
-
   If (gameLevel = 4 Or gameLevel = 8) Then
-
      SpriteArray[sbc][Lives]=SpriteArray[sbc][Lives] + 1
-
   EndIf
-
-
 
   'Reduce the amount of time that the monsters stay "Frightened" as game progresses.
-
   'At much higher levels, the monsters won't stay frighened at all:
-
   initialCountDownTime = initialCountDownTime - 2
-
   If initialCountDownTime <= 0 Then
-
     initialCountDownTime = 0
-
   EndIf
-
 EndSub
-
 '*******************************************************************************************
-
 'Dsplays a splash screen at the start of each level:
 
-
-
 Sub DisplayLevelSplash
-
   GraphicsWindow.FontSize   = 16
-
   GraphicsWindow.FontBold="true"
-
   GraphicsWindow.BrushColor =  "white"
-
   l=Shapes.AddText(splashText)
-
   Shapes.Move(l,-200,210)
-
   Shapes.Animate(l,125,210,1000)
-
   For a = 1 To 6
-
     SmallDelay()
-
   endfor  
-
   Shapes.Animate(l,-200,210,1000)
-
 EndSub
-
 '*******************************************************************************************
-
 'The variables Dir_L, Dir_U, Dir_R, Dir_D are used as indexes into the xModifier and yModifier lookup tables.
-
 'For example, xModifier[L] & yModifier[L] produces -1 and 0 respectively. When added to XY or RC values this will cause 
-
 'the sprite to go left, etc:
 
-
-
 Sub KeyboardHandler
-
   keyPressed = GraphicsWindow.LastKey
-
   Dir_L = 1
-
   Dir_U = 2
-
   Dir_R = 3
-
   Dir_D = 4
 
-
-
   If (keyPressed = "Left") Then
-
     sbcDirection = Dir_L
-
   Elseif (keyPressed = "Right") Then
-
     sbcDirection = Dir_R
-
   Elseif (keyPressed = "Up") Then
-
     sbcDirection = Dir_U
-
   Elseif (keyPressed = "Down") Then
-
     sbcDirection = Dir_D
-
   Elseif (keyPressed = "Escape") Then
-
     gameState = GAME_OVER
-
   Endif
-
   
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 Sub MoveSBC
-
 'This routine moves SBC around the screen and causes SBC to stop at borders.It checks the maze 
-
 'locations adjacent to SBC's current location aganist the direction chosen by an arrow key press.
-
 'If the new direction is possible (eg no borders in the way) SBC will go in the new direction. If 
-
 'the new direction is not possible, but the previous direction is, SBC will continue traveling in the
-
 'direction it was moving in prior to the arrow key press. If neither direction is possible, SBC
-
 'will stop moving:
 
 
-
-
-
 If Sprites=SBC Then
-
 canMoveInOldDirection="False"
-
 canMoveInNewDirection="False"
 
-
-
 'Get maze data ahead of SBC:
-
 aheadDirX = SpriteArray[SBC][mazeCol] + SpriteArray[SBC][DX]
-
 aheadDirY = SpriteArray[SBC][mazeRow] + SpriteArray[SBC][DY]
-
 aheadDirData = Maze[aheadDirY][aheadDirX]
 
-
-
 'Get maze data at location based on arrow key press:
-
 newDirX = SpriteArray[SBC][mazeCol] + xModifier[SbcDirection]
-
 newDirY = SpriteArray[SBC][mazeRow] + yModifier[SbcDirection]
-
 newDirData = Maze[newDirY][newDirX]
-
-
 
 'The mazeTokens array holds data that represent ares that are NOT blocked by borders.
 
-
-
 For a = firstToken To lastToken
-
  If (mazeTokens[a] = newDirData) Then
-
    canMoveInNewDirection = "True"
-
    Goto _XIT_4Loop_Early
-
  EndIf
-
  If (mazeTokens[a] =  aheadDirData) Then
-
    canMoveInOldDirection = "True"
-
  EndIf
-
 EndFor
-
 _XIT_4Loop_Early:
 
-
-
 'If the new direction is possible, go in new direction:
-
 If (canMoveInNewDirection = "True") Then
-
   SpriteArray[SBC][DX] = xModifier[sbcDirection]
-
   SpriteArray[SBC][DY] = yModifier[sbcDirection]
-
   selectedRotation = rotationLookupTable[sbcDirection]
-
   
-
 EndIf
-
-
 
 'If neither old nor new directions are possible, come to a stop:
-
 If (canMoveInNewDirection = "False" And canMoveInOldDirection = "False") Then
-
    SpriteArray[SBC][DX] = 0
-
    SpriteArray[SBC][DY] = 0
-
 EndIf
-
-
 
 SpriteArray[SBC][mazeCol] = SpriteArray[SBC][mazeCol] +  SpriteArray[SBC][DX]
-
 SpriteArray[SBC][mazeRow] = SpriteArray[SBC][mazeRow] +  SpriteArray[SBC][DY]
 
-
-
 EatPellet()
-
 EndIf
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 Sub MoveMonstersTowardTarget
-
 'This routine moves the monsters toward a target while allowing them to navigate around the maze
-
 'borders. LL is a temporary array:
 
-
-
 INVALID = 9999 '9999 is used as an invalid flag because the total distance across the maze is 
-
 'much lower than 9999 pixels. Later, when the code calculates the distance
-
 'between source to target, anything marked 9999 won't be considered.
-
-
 
 If (Sprites <> SBC) Then '<--SBC has his own movement routine (see MoveSBC)
 
-
-
  For a = 1 To 4 'step through XY/RC modifier table:
-
   SourceX = SpriteArray[Sprites][mazeCol] + xModifier[a]
-
   SourceY = SpriteArray[Sprites][mazeRow] + yModifier[a]
-
   targetX = SpriteArray[Sprites][targetCol]
-
   targetY = SpriteArray[Sprites][targetRow]
-
-
 
   For b = firstToken To lastToken
 
-
-
    'If the maze area being examined is not a border then calculate the distance from that maze area
-
    ' to the target using the Manhattan Distance formula (SourceX-targetCol)+(SourceY-targetRow)...
-
    If mazeTokens[b]=Maze[SpriteArray[Sprites][mazeRow] + yModifier[a]][SpriteArray[Sprites][mazeCol]+ xModifier[a]] Then
-
     LL[a] = 1+(math.Abs(Sourcex-targetx) + math.Abs(Sourcey-targety))
-
     Goto _XIT4
 
-
-
    '...otherwise mark it as invalid because it's a border :
-
    Else
-
     LL[a] = INVALID
-
    EndIf
 
-
-
   EndFor
-
   _XIT4:
-
  EndFor
-
-
 
   'For each maze area stored in the LL array, check to see if that was visited by the monster during previous 
-
   'game loop cycle. If so mark it INVALID, then save the monster's current maze location
-
   'in VX, VY. These two steps will force the monster to travel in forward directions only (no reversing direction):
-
   For c = 1 To 4
-
     If SpriteArray[Sprites][mazeCol] + xModifier[c] = SpriteArray[Sprites][VX] Then
-
       If SpriteArray[Sprites][mazeRow] + yModifier[c] = SpriteArray[Sprites][VY] Then
-
         LL[c] = INVALID
-
       EndIf
-
     EndIf
-
   EndFor
 
-
-
   SpriteArray[Sprites][VX] = SpriteArray[Sprites][mazeCol]
-
   SpriteArray[Sprites][VY] = SpriteArray[Sprites][mazeRow]
 
-
-
   'Get the smallest number in temporary LL array, which will represent the direction to move in
-
   '1 = go left, 2 = go up, 3 = to right, 4 = go down:
-
   initialValue = LL[1]
-
   For ictr = 1 TO 4
-
    If initialValue >= LL[ictr] THEN
-
     initialValue = LL[ictr]
-
     elementfound = ictr
-
    EndIf
-
  EndFor
-
   'Set the movement direction. The xModifier/yModifier lookup tables eliminate the need for If/Then tests here:
-
   SpriteArray[Sprites][DX] = xModifier[elementfound]
-
   SpriteArray[Sprites][DY] = yModifier[elementfound]
 
-
-
   '** There is at least one circumstance where the monster finds a dead end - when the monster is in the 
-
   'monster pen at level start. In this instance, the monster's L, D, & R adjacent areas will be invalid
-
   'due to being blocked by visible and invisible borders, and U is blocked because it will be added to the
-
   'VX/VY variables after the first game cycle. When this happens the VX/VY variables must be deleted
-
   'and on the next game cycle the monster will move out of dead end.
-
   '
-
  if LL[elementfound] = INVALID Then
-
   SpriteArray[Sprites][DX] = 0
-
   SpriteArray[Sprites][DY] = 0
-
   SpriteArray[Sprites][VX] = 0
-
   SpriteArray[Sprites][VY] = 0
-
  EndIf
-
-
 
   'Finally, move toward target:
-
   SpriteArray[Sprites][mazeCol] = (SpriteArray[Sprites][mazeCol] + SpriteArray[Sprites][dx])
-
   SpriteArray[Sprites][mazeRow] = (SpriteArray[Sprites][mazeRow] + SpriteArray[Sprites][dy])
 
-
-
 EndIf
-
-
 
 Endsub
-
 '*******************************************************************************************
-
 'Detects when sprites touch each other and when sprites enter special areas of the maze:
-
 Sub CollisionDetect
 
-
-
 If Sprites <> SBC Then
-
 CheckRectangles() 'sets isTouching value to true if SBC is touching a monster.
 
-
-
  If (isTouching = "True") Then
-
   
-
   'Monster dies if touching SBC while fightened and then monster returns to the monster pen:
-
   If (SpriteArray[Sprites][State] = FRIGHT) then
-
     ShowEatSplash()
-
     SpriteArray[Sprites][State] = DIE
-
     hasEatenMonster = "TRUE"
 
-
-
   'SBC dies if touching monster when energizer is not active:
-
   ElseIf (SpriteArray[Sprites][State] = CHASE) or (SpriteArray[Sprites][State] = SCATTER)then
-
     gameState = REPLAY_LEVEL
-
   EndIf
-
   isTouching = "False"
-
  EndIf
-
-
 
  'When monster reaches monster pen, get body back and leave:
-
  If SpriteArray[Sprites][mazeCol] = MonsterPenX and SpriteArray[Sprites][mazeRow]= MonsterPenY Then
-
   If SpriteArray[Sprites][State] = DIE then
-
      SpriteArray[Sprites][State]  = EMERGE
-
   EndIf
-
  EndIf
 
-
-
  'When monster has left monster pen, go back to chasing SBC:
-
  If SpriteArray[Sprites][mazeCol] = emergeX and SpriteArray[Sprites][mazeRow] = emergeY Then
-
   If SpriteArray[Sprites][State] = EMERGE then
-
      SpriteArray[Sprites][State]  = CHASE
-
   EndIf
-
 EndIf
 
-
-
 EndIf
-
  
-
 EndSub
-
 '*******************************************************************************************
-
 'Sets the targets that the monsters will move towards:
-
 Sub SetupMonsterTargets
-
-
 
 IF (Sprites <>SBC) then
 
-
-
  'Sets ghosts to meander around the screen after SBC eats a power pellet:
-
  If SpriteArray[Sprites][State]  = FRIGHT Then
-
     SpriteArray[Sprites][targetRow] = math.GetRandomNumber(maxMazeRows)
-
     SpriteArray[Sprites][targetCol] = math.GetRandomNumber(maxMazeCols)
 
-
-
  'Sends the monsters back to monster pen after being eaten by SBC:
-
  ElseIf SpriteArray[Sprites][State] = DIE Then
-
     SpriteArray[Sprites][targetCol] = MonsterPenX
-
     SpriteArray[Sprites][targetRow] = MonsterPenY
 
-
-
  'Makes the monsters leave the monster pen once inside:
-
  ElseIf SpriteArray[Sprites][State] = EMERGE Then
-
     SpriteArray[Sprites][targetCol] = emergeX
-
     SpriteArray[Sprites][targetRow] = emergeY
-
     
-
  'If the monsters are scattering, each one goes to a different corner of the maze:
-
 Elseif (SpriteArray[Sprites][State] = SCATTER) Then
-
    If (Sprites       =  RedMonster) Then
-
      SpriteArray[RedMonster][targetCol] = 1
-
      SpriteArray[RedMonster][targetRow] = 1
-
    ElseIf (Sprites       =  PinkMonster) Then
-
      SpriteArray[PinkMonster][targetCol] = 100
-
      SpriteArray[PinkMonster][targetRow] = 1
-
    ElseIf (Sprites       =  BlueMonster) Then
-
      SpriteArray[BlueMonster][targetCol] = 1
-
      SpriteArray[BlueMonster][targetRow] = 100
-
    ElseIf (Sprites       =  OrangeMonster) Then
-
      SpriteArray[OrangeMonster][targetCol] = 100
-
      SpriteArray[OrangeMonster][targetRow] = 100  
-
    EndIf 
-
     
-
  'If the monsters are chasing, each one uses a different technique for targeting or menencing SBC:
-
  Elseif (SpriteArray[Sprites][State] = CHASE) Then
-
     If (Sprites       =  RedMonster) Then
-
      'Red monster pursues SBC directly:
-
      SpriteArray[RedMonster][targetCol] = SpriteArray[SBC][mazeCol]
-
      SpriteArray[RedMonster][targetRow] = SpriteArray[SBC][mazeRow]
 
-
-
     ElseIf (Sprites   =  PinkMonster) Then
-
       'Pink monster tries to ambush/cut off SBC (***TO DO: needs to be enhanced***):
-
       SpriteArray[PinkMonster][targetCol] = SpriteArray[SBC][mazeCol] + (SpriteArray[SBC][DX]-1)
-
       SpriteArray[PinkMonster][targetRow] = SpriteArray[SBC][mazeRow] + (SpriteArray[SBC][DY]-1)
 
-
-
     ElseIf (Sprites   =  OrangeMonster) Then
-
       'Orange monster wanders around the maze and is often just in the way (blocking):
-
       SpriteArray[OrangeMonster][targetCol] = math.GetRandomNumber(maxMazeCols)
-
       SpriteArray[OrangeMonster][targetRow] = math.GetRandomNumber(maxMazeRows)
 
-
-
     ElseIf (Sprites   =  BlueMonster) Then
-
       'Blue monster considers red monster's coordinates and SBC's coordinates when determining how to move:
-
       'Although the blue monster doesn't pursue directly, he causes inconvenience to SBC:
-
       'TO DO: needs to be enhanced.
-
       SpriteArray[BlueMonster][targetCol] = math.abs(SpriteArray[SBC][mazeCol] + SpriteArray[RedMonster][mazeCol])
-
       SpriteArray[BlueMonster][targetRow] = math.abs(SpriteArray[SBC][mazeRow] + SpriteArray[RedMonster][mazeRow])
-
     EndIf
 
-
-
 EndIf
-
-
 
 ENDIF
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 'Animation manager. The animation frames are stored in the ImageArray 2D array. This routine
-
 'sets the indexes into that array. FrameCtr + Offset is used as the index into ImageArray.
-
 'When Offset = zero all sprites go through the normal 4-cycle animation sequence. When 
-
 'offset = 5, the monsters turn purple (Fright Mode), and when the offset = 6 the monsters turn dark gray
-
 '(Die Mode).
-
-
 
 Sub SetupAnimationSequence
 
-
-
 SpriteArray[SBC][LastFrame]   = 4
-
 SpriteArray[SBC][FirstFrame]  = 1
-
 SpriteArray[SBC][offset]      = 0
 
-
-
 If (Sprites <> SBC) Then
-
   If SpriteArray[Sprites][State]      = CHASE Then
-
      SpriteArray[Sprites][offset]     = 0
-
      SpriteArray[Sprites][LastFrame]  = 4
-
      SpriteArray[Sprites][FirstFrame] = 1
-
      
-
   ElseIf SpriteArray[Sprites][State]      = SCATTER Then
-
      SpriteArray[Sprites][offset]     = 0
-
      SpriteArray[Sprites][LastFrame]  = 4
-
      SpriteArray[Sprites][FirstFrame] = 1
-
-
 
   ElseIf SpriteArray[Sprites][State]  = FRIGHT Then
-
      SpriteArray[Sprites][offset]      = 5
-
      SpriteArray[Sprites][LastFrame]   = 5
-
      SpriteArray[Sprites][FirstFrame]  = 5
 
-
-
    ElseIf SpriteArray[Sprites][State] = DIE Then
-
     SpriteArray[Sprites][offset]      = 6
-
     SpriteArray[Sprites][LastFrame]   = 6
-
     SpriteArray[Sprites][FirstFrame]  = 6
 
-
-
    ElseIf SpriteArray[Sprites][State] = EMERGE Then
-
     SpriteArray[Sprites][offset]      = 0
-
     SpriteArray[Sprites][LastFrame]   = 4
-
     SpriteArray[Sprites][FirstFrame]  = 1
-
    Endif
-
  EndIf
-
  FlashMonsters()
-
 EndSub
-
 '*******************************************************************************************
-
 Sub EatPellet
 
-
-
 erasePelletFromScreen = "FALSE"
-
 hasEatenPellet = "FALSE"
-
 hasEatenEnergizer = "FALSE"
-
 mazeData = Maze[(SpriteArray[SBC][mazeRow])][(SpriteArray[SBC][mazeCol])]
 
-
-
 'Pellet = mazeToken[1]. Energizer = mazeToken[2]:
-
 If (mazeData = mazeTokens[1] Or mazeData = mazeTokens[2]) Then
-
   Maze[(SpriteArray[SBC][mazeRow])][(SpriteArray[SBC][mazeCol])]=mazeTokens[0] 'empty this maze location
-
   pelletCount = pelletCount - 1
-
   erasePelletFromScreen = "True"
 
-
-
   If (mazeData = mazeTokens[1]) Then
-
     hasEatenPellet = "TRUE"
-
   ElseIf (mazeData = mazeTokens[2]) then
-
     hasEatenEnergizer = "TRUE"
-
     monsterEatenCtr = 0
-
     SetMonstersToFrightState()
-
     energizerTimer = ACTIVE
-
     energizerTime = initialCountDownTime
-
   EndIf
-
-
 
   If pelletCount <= 0 Then
-
     gameState = ADVANCE_LEVEL
-
   EndIf
-
-
 
 EndIf
 
-
-
 DoEnergizerTimer()
-
 EndSub
-
 '*******************************************************************************************
-
 'Sets all monsters to FRIGHT state. VY & VX are zeroed out so that the monsters can switch
-
 'directions. (MoveMonstersTowardTarget( ) normally restricts the monsters to forward-only movements):
-
 Sub SetMonstersToFrightState
-
   
-
 For ee = firstMonster to lastMonster
-
  if SpriteArray[ee][State] <> DIE then
-
   SpriteArray[ee][State] = FRIGHT
-
   shapes.SetOpacity(ImageArray[ee][5],100)
-
   SpriteArray[ee][VY] = 0
-
   SpriteArray[ee][VX] = 0
-
  EndIf
-
 Endfor
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 'Manages the count down timer that determines how long an energizer lasts.
-
 Sub DoEnergizerTimer
-
 If (energizerTimer = ACTIVE) Then
-
  If (energizerTime <> 0) Then
-
    energizerTime = energizerTime -1
-
  Else
-
   energizerTimer = INACTIVE
-
   monsterEatenCtr=0
-
    For mc = firstMonster to lastMonster
-
      If SpriteArray[mc][State] =FRIGHT then
-
        SpriteArray[mc][State] = CHASE
-
      EndIf
-
    Endfor
 
-
-
  Endif
-
 Endif
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 'Dispatch routine for erasing pellets/energizers from the screen:
-
 Sub ErasePellet
-
   pelletColor = GraphicsWindow.GetColorFromRGB(0,0,64)
-
   pelletX = SpriteArray[SBC][screenX]
-
   pelletY = SpriteArray[SBC][screenY]
-
   DrawEnergizer()
-
 EndSub
-
 '*******************************************************************************************
-
 'Draws/erases an energizer
-
 Sub DrawEnergizer
-
   pelletSize = 10
-
   xOffset    = 2 + mazeScale/2
-
   yOffset    = 2 + mazeScale/2
-
   DP()
-
 Endsub
-
 '*******************************************************************************************
-
 'Draws/erases a pellet
-
 Sub DrawPellet
-
   pelletSize = 4
-
   xOffset    = 3 + mazeScale/2
-
   yOffset    = 3 + mazeScale/2
-
   DP()
-
 EndSub
-
 '*******************************************************************************************
-
 Sub DP
-
   GraphicsWindow.BrushColor = pelletColor
-
   GraphicsWindow.FillEllipse(pelletX+xOffset, pelletY+yOffset, pelletSize, pelletSize)
-
 EndSub
-
 '*******************************************************************************************
-
 'Removes sprites from the maze
-
 Sub ClearSpritesFromaze
-
 For r=firstSprite To lastSprite
-
   For t = 1 To 6
-
     Shapes.move(ImageArray[r][t],-100,-100)
-
   EndFor
-
 EndFor
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 'Draws sprites on screen while advancing through the animation sequence setup by SetupAnimationSequence().
-
-
 
 Sub DrawSprites
 
-
-
 'To reduce flicker only draw sprites that are moving (SBC sometimes stops)
-
 If SpriteArray[Sprites][dx]<>0 Or SpriteArray[Sprites][dy]<>0 Then
 
-
-
   'Get a reference to the current animation frame. We will hide it later: 
-
   oldFrameCtr=SpriteArray[Sprites][FrameCtr]
-
   SpriteArray[Sprites][frameCtr]=SpriteArray[Sprites][frameCtr]+1+SpriteArray[Sprites][offset]
 
-
-
   'Advance to next frame and check to see if all frames have been displayed:
-
   If SpriteArray[Sprites][frameCtr]>SpriteArray[Sprites][lastFrame] then
-
     SpriteArray[Sprites][frameCtr]=SpriteArray[Sprites][firstFrame]
-
   Endif
 
-
-
   'Update screen coordinates: 
-
   SpriteArray[Sprites][screenX]= SpriteArray[Sprites][screenX]+ SpriteArray[Sprites][DX] * 3
-
   SpriteArray[Sprites][screenY]= SpriteArray[Sprites][screenY]+ SpriteArray[Sprites][DY] * 3
 
-
-
   'Get reference to new animation frame and apply rotation (for SBC):
-
   newFrameCtr=SpriteArray[Sprites][frameCtr]
-
   if Sprites = SBC Then
-
     Shapes.Rotate(ImageArray[Sprites][newFrameCtr], selectedRotation)
-
   EndIf
-
-
 
   'Finally, hide previous frame and show new animation frame:
-
   shapes.Move(ImageArray[Sprites][oldFrameCtr],-20,-20)
-
   Shapes.Move(ImageArray[Sprites][newFrameCtr], SpriteArray[Sprites][screenX], SpriteArray[Sprites][screenY])
-
-
 
   EndIf
 
-
-
 If erasePelletFromScreen = "True" Then
-
  ErasePellet()
-
 EndIf
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 'This routine intializes general purpose global lookup tables. 
-
-
 
 Sub InitializeLookupTables
 
-
-
 'The xModifier & yModifier arrays are used to modify the XY screen coordinates and RC maze coordinates:
-
 xModifier[0] = 0 'Stop moving
-
 xModifier[1] =-1 'Move Left (when added to X)
-
 xModifier[2] = 0  '
-
 xModifier[3] = 1 'Move Right (when added to X)
-
 xModifier[4] = 0
 
-
-
 yModifier[0] = 0 'Stop moving
-
 yModifier[1] = 0  '
-
 yModifier[2] =-1 'Move Up (when added to Y)
-
 yModifier[3] = 0  '
-
 yModifier[4] = 1  'Move Down (when added to Y)
 
-
-
 'rotationLookupTable holds the rotation angles for SBC. SbcDirection is used as an index: 
-
 rotationLookupTable[1] = 180
-
 rotationLookupTable[2] = 270
-
 rotationLookupTable[3] = 0
-
 rotationLookupTable[4] = 90
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 'Sets up sprite data structure and establishes related variables:
-
-
 
 Sub InitializeSprites
 
-
-
 'State variables for sprites:
-
 DIE     = 0
-
 NORMAL  = 1
-
 CHASE   = 2
-
 SCATTER = 3
-
 FRIGHT  = 4
-
 EMERGE  = 5
 
-
-
 'State variables for energizer timer:
-
 ACTIVE       = 1
-
 INACTIVE     = 0
 
-
-
 'The sprite data structure is a 2D array. These variables are indexes into the 2nd dimension of that array.
-
 '(Dimension#1 slects the sprite, dimension #2 sets/gets properties of the particular sprite:
 
-
-
 firstSprite  = SBC
-
 lastSprite   = PinkMonster
-
 firstMonster = RedMonster
-
 lastMonster  = PinkMonster
 
-
-
 'Variables for dimension #2:
-
 screenX  = 1  'screen x coordinate
-
 screenY  = 2  'screen y coordinate
-
 mazeCol  = 3  'maze col
-
 mazeRow  = 4  'maze row
-
 DX       = 5  'x/col modifier
-
 DY       = 6  'y/row modifier
-
 targetCol= 7  'maze target col
-
 targetRow= 8  'maze target row
-
 VX       = 9  'visited maze col
-
 VY       = 10 'visited maze row
-
 State    = 11
-
 Lives    = 12
-
 FrameCtr = 13 'Index into ImageArray[ ][ ]
-
 Offset   = 14
-
 FirstFrame = 15
-
 LastFrame  = 16
-
 cycleCounter= 17
-
 spriteSpeed= 18
 
-
-
 'Initialize:
-
 For spriteCtr = firstSprite To lastSprite
-
  SpriteArray[spriteCtr][FirstFrame] = 1
-
  SpriteArray[spriteCtr][LastFrame]  = 4
-
  SpriteArray[spriteCtr][FrameCtr]   = 1
-
  SpriteArray[spriteCtr][offset]     = 4
-
  SpriteArray[spriteCtr][DX]         = 0
-
  SpriteArray[spriteCtr][DY]         = 0
-
  SpriteArray[spriteCtr][VX]         = 0
-
  SpriteArray[spriteCtr][VY]         = 0
-
  SpriteArray[spriteCtr][targetCol]  = 0
-
  SpriteArray[spriteCtr][targetRow]  = 0
-
  SpriteArray[spriteCtr][State]      = CHASE
-
  SpriteArray[spriteCtr][spriteSpeed] = 1
-
  SpriteArray[spriteCtr][cycleCounter] = 1
-
 Endfor
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 Sub PositionSpritesInMaze
 
-
-
 'Position SBC two tiles underneath Monster pen:
-
 SpriteArray[SBC][mazeCol]             = 15
-
 SpriteArray[SBC][mazeRow]             = 24
 
-
-
 'Position Red Monster outside & above Monster pen:
-
 SpriteArray[RedMonster][mazeCol]      = 12
-
 SpriteArray[RedMonster][mazeRow]      = 12
 
-
-
 'Position Blue, Orange and Pink Monsters inside Monster pen:
-
 SpriteArray[BlueMonster][mazeCol]     = 12
-
 SpriteArray[BlueMonster][mazeRow]     = 15
-
 SpriteArray[OrangeMonster][mazeCol]   = 14
-
 SpriteArray[OrangeMonster][mazeRow]   = 16
-
 SpriteArray[PinkMonster][mazeCol]     = 16
-
 SpriteArray[PinkMonster][mazeRow]     = 15
 
-
-
 'Set correct screen positions:
-
 For Sprites = firstSprite to lastSprite
-
   AdjustScreenCoords()
-
 EndFor
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 'Using maze RC values, calculate screen XYs:
-
 Sub AdjustScreenCoords
-
   SpriteArray[Sprites][screenX] = (SpriteArray[Sprites][mazeCol]) * mazeScale-12
-
   SpriteArray[Sprites][screenY] = (SpriteArray[Sprites][mazeRow]) * mazeScale-4
-
 EndSub
-
 '*******************************************************************************************
-
 Sub LoadBitmaps
-
 'The sprite data structure is a 2D array. These variables are indexes into the 2nd dimension of that array.
-
 '(Dimension#1 slects the sprite, dimension #2 sets/gets properties of the particular sprite.
 
-
-
 'Variables to select the sprites (dimension #1 of SpriteArray):
-
 SBC           = 1
-
 RedMonster    = 2
-
 BlueMonster   = 3
-
 OrangeMonster = 4
-
 PinkMonster   = 5
-
  
-
 sWidth  = mazeScale * 2
-
 sHeight = mazeScale * 2
 
-
-
 'ImageArray is a 2D array that holds references to the bitmaps used by the sprites. Dimension #1 is used
-
 'to select the sprite, dimension #2 is used to select the bitmap.
 
-
-
 'Load bitmaps for normal animation sequence:
-
 filePath = Program.Directory +"\"
 
-
-
 'SBC animation frames
-
 ImageArray[SBC][1]=shapes.addimage("http://farm6.staticflickr.com/5470/8780993667_258f752378_o.jpg")
-
 ImageArray[SBC][2]=shapes.addimage("http://farm9.staticflickr.com/8534/8787570838_a74bbcb81e_o.jpg")
-
 ImageArray[SBC][3]=shapes.addimage("http://farm4.staticflickr.com/3744/8787570834_9f08ee0bd8_o.jpg")
-
 ImageArray[SBC][4]=shapes.addimage("http://farm9.staticflickr.com/8534/8787570838_a74bbcb81e_o.jpg")
 
-
-
 'Red Monster animation frames
-
 ImageArray[RedMonster][1]=shapes.addimage("http://farm9.staticflickr.com/8120/8787570894_ef9a060cce_o.jpg")
-
 ImageArray[RedMonster][2]=shapes.addimage("http://farm9.staticflickr.com/8120/8787570894_ef9a060cce_o.jpg")
-
 ImageArray[RedMonster][3]=shapes.addimage("http://farm9.staticflickr.com/8120/8787570894_ef9a060cce_o.jpg")
-
 ImageArray[RedMonster][4]=shapes.addimage("http://farm9.staticflickr.com/8120/8787570894_ef9a060cce_o.jpg")
 
-
-
 'Blue Monster animation frames
-
 ImageArray[BlueMonster][1]=shapes.addimage("http://farm8.staticflickr.com/7438/8787570752_1b3f0d62f4_o.jpg")
-
 ImageArray[BlueMonster][2]=shapes.addimage("http://farm8.staticflickr.com/7438/8787570752_1b3f0d62f4_o.jpg")
-
 ImageArray[BlueMonster][3]=shapes.addimage("http://farm8.staticflickr.com/7438/8787570752_1b3f0d62f4_o.jpg")
-
 ImageArray[BlueMonster][4]=shapes.addimage("http://farm8.staticflickr.com/7438/8787570752_1b3f0d62f4_o.jpg")
 
-
-
 'Orange Monster animation frames
-
 ImageArray[OrangeMonster][1]=shapes.addimage("http://farm4.staticflickr.com/3746/8781438627_4a98b9b02e_o.jpg")
-
 ImageArray[OrangeMonster][2]=shapes.addimage("http://farm4.staticflickr.com/3746/8781438627_4a98b9b02e_o.jpg")
-
 ImageArray[OrangeMonster][3]=shapes.addimage("http://farm4.staticflickr.com/3746/8781438627_4a98b9b02e_o.jpg")
-
 ImageArray[OrangeMonster][4]=shapes.addimage("http://farm4.staticflickr.com/3746/8781438627_4a98b9b02e_o.jpg")
 
-
-
 'Pink Monster animation frames
-
 ImageArray[PinkMonster][1]=shapes.addimage("http://farm4.staticflickr.com/3783/8780993729_113597c60e_o.jpg")
-
 ImageArray[PinkMonster][2]=shapes.addimage("http://farm4.staticflickr.com/3783/8780993729_113597c60e_o.jpg")
-
 ImageArray[PinkMonster][3]=shapes.addimage("http://farm4.staticflickr.com/3783/8780993729_113597c60e_o.jpg")
-
 ImageArray[PinkMonster][4]=shapes.addimage("http://farm4.staticflickr.com/3783/8780993729_113597c60e_o.jpg")
 
-
-
 For s= 1 to 5
-
   
-
 'Load bitmaps for FRIGHT Mode:
-
 ImageArray[s][5]=shapes.addimage("http://farm4.staticflickr.com/3816/8781443919_e9d35b6318_o.jpg")
 
-
-
 'Load bitmaps for DIE mode:  
-
 ImageArray[s][6]=shapes.addimage("http://farm8.staticflickr.com/7356/8788021974_accb126e3f_o.jpg")
-
 Shapes.SetOpacity(ImageArray[s][6],75)
-
    
-
  Endfor
-
 ClearSpritesFromaze()
 
-
-
 EndSub
-
-
 
 ''*******************************************************************************************
-
 'Loads maze pattern into maze array, counts the number of pellets added to maze, and gets the
-
 'maze XY coordinates for special areas. Also creates and populates the mazeToken[ ] lookup table:
-
 '
-
 Sub LoadMaze
 
-
-
  M[1] =  "oooooooooooooooooooooooooooo"
-
  M[2] =  "o............oo............o"
-
  M[3] =  "o.oooo.ooooo.oo.ooooo.oooo.o"
-
  M[4] =  "o*oooo.ooooo.oo.ooooo.oooo*o"
-
  M[5] =  "o.oooo.ooooo.oo.ooooo.oooo.o"
-
  M[6] =  "o..........................o"
-
  M[7] =  "o.oooo.oo.oooooooo.oo.oooo.o"
-
  M[8] =  "o.oooo.oo.oooooooo.oo.oooo.o"
-
  M[9] =  "o......oo...+oo+...oo......o"
-
  M[10] = "oooooo.ooooo+oo+ooooo.oooooo"
-
  M[11] = "oooooo.ooooo+oo+ooooo.oooooo"
-
  M[12] = "++++oo.oo++++E+++++oo.oo++++"
-
  M[13] = "oooooo.oo+oooA!ooo+oo.oooooo"
-
  M[14] = "oooooo.oo+o+BMC+#o+oo.oooooo"
-
  M[15] = "LTTTTT.+++o+#+#+#o+++.SSSSSR"
-
  M[16] = "oooooo.oo+o+#+#+#o+oo.oooooo"
-
  M[17] = "oooooo.oo+oooooooo+oo.oooooo"
-
  M[18] = "++++oo.oo++++++++++oo.oo++++"
-
  M[19] = "oooooo.oo+oooooooo+oo.oooooo"
-
  M[20] = "oooooo.oo+oooooooo+oo.oooooo"
-
  M[21] = "o............oo............o"
-
  M[22] = "o.oooo.ooooo.oo.ooooo.oooo.o"
-
  M[23] = "o.oooo.ooooo.oo.ooooo.oooo.o"
-
  M[24] = "o*..oo................oo..*o"
-
  M[25] = "ooo.oo.oo.oooooooo.oo.oo.ooo"
-
  M[26] = "ooo.oo.oo.oooooooo.oo.oo.ooo"
-
  M[27] = "o......oo....oo....oo......o"
-
  M[28] = "o.oooooooooo.oo.oooooooooo.o"
-
  M[29] = "o.oooooooooo.oo.oooooooooo.o"
-
  M[30] = "o..........................o"
-
  M[31] = "oooooooooooooooooooooooooooo"
 
-
-
 maxMazeRows = Array.GetItemCount(M)
-
 maxMazeCols = Text.GetLength(M[1])
 
-
-
 'mazeTokens[ ] hold tokens that represent walkable space in the maze:
-
 firstToken = 0
-
 lastToken  = 5
 
-
-
 mazeTokens[0]= "+"
-
 mazeTokens[1]= "."
-
 mazeTokens[2]= "*"
-
 mazeTokens[3] = "Z"  'Place holder for top door token (A)
-
 mazeTokens[4] = "Z"  'Place holder for left door token (B)
-
 mazeTokens[5] = "Z"  'Place holder for right door token (C)
 
-
-
 'Load the maze pattern into the maze[ ] [ ] array:
-
 For rows = 1 To maxMazeRows
-
   For cols = 1 To maxMazeCols
-
     maze[rows][cols] = Text.GetSubText(M[rows], cols, 1)
-
     If maze[rows][cols] = mazeTokens[1] Or maze[rows][cols] = mazeTokens[2] Then
-
       pelletCount = pelletCount + 1
-
     EndIf
-
-
 
     'Special areas:
-
     If Maze[rows][cols] ="M" Then  'DIE mode target Monster Pen tile
-
        Maze[rows][cols] = mazeTokens[0]
-
        monsterpenX = cols
-
        MonsterPenY = rows
-
     ElseIf Maze[rows][cols] ="E" Then 'Emerge mode target tile
-
        Maze[rows][cols] = mazeTokens[0]
-
        emergeX = cols
-
        emergeY = rows
-
     ElseIf Maze[rows][cols] ="L" Then 'Left tunnel tile
-
        Maze[rows][cols] = mazeTokens[0]
-
        leftTunnelX = cols
-
        leftTunnelY = rows
-
     ElseIf Maze[rows][cols] ="R" Then 'Right tunnel tile
-
        Maze[rows][cols] = mazeTokens[0]
-
        rightTunnelX = cols
-
        rightTunnelY = rows
-
     ElseIf Maze[rows][cols] ="S" Then 'Right slow-down tunnel tile
-
        Maze[rows][cols] = mazeTokens[0]
-
        sld1X = cols
-
        sld1Y = rows
-
     ElseIf Maze[rows][cols] ="T" Then 'Left slow-down tunnel tile
-
        Maze[rows][cols] = mazeTokens[0]
-
        sld2X = cols
-
        sld2Y = rows
-
     EndIf
 
-
-
   EndFor
-
 EndFor
-
-
 
 'Delete the temporary array holding the maze structure:
-
 M=""
-
 EndSub
-
 '*******************************************************************************************
-
 'Steps through maze[ ] [ ] and draws the pattern on screen:
-
 '<--TO DO: Change x and y to MazeScreenX and MazeScreenY
 
-
-
 Sub DrawMaze
-
 x       = 0
-
 y       = 8
-
 GraphicsWindow.BackgroundColor=mazeBorderColor
-
 bordersize = 10
 
-
-
 For rows = 1 To maxMazeRows
-
   For cols = 1 To maxMazeCols
-
     mazeData = Maze[rows][cols]
-
     
-
     if mazeData<>"o"  Then
-
       GraphicsWindow.BrushColor=GraphicsWindow.GetColorFromRGB(0,0,64)
-
       GraphicsWindow.FillRectangle(x,y,mazeScale+bordersize,mazeScale+bordersize)  
-
     EndIf
-
     if mazeData="A" Or mazeData="!"  Then
-
       GraphicsWindow.PenColor="white"
-
       GraphicsWindow.PenWidth=4
-
       GraphicsWindow.drawline(x,y+mazeScale,x+mazeScale+bordersize,y+mazeScale)
-
     Endif
-
        
-
     x=x + mazeScale
-
   EndFor
-
   x=0
-
   y = y + mazeScale
-
   
-
 EndFor
-
 'Draw pellets:
-
 '<---TO DO: Put into seperate routine
-
 x       = 0
-
 y       = 8
-
 For rows = 1 To maxMazeRows
-
   For cols = 1 To maxMazeCols
-
     mazeData = Maze[rows][cols]
-
     
-
     If mazeData="." Then
-
       pelletColor         = "white"
-
       pelletX=x
-
       pelletY=y
-
       DrawPellet()
-
     elseIf mazeData="*" Then
-
       pelletColor         = "white"
-
       pelletX=x
-
       pelletY=y
-
       DrawEnergizer()
-
     EndIf    
-
     
-
     x=x + mazeScale
-
   EndFor
-
   x=0
-
   y = y + mazeScale
-
   
-
 EndFor
 
 
-
-
-
 EndSub
-
 '*******************************************************************************************
-
 'There are three invisible borders that keep the blue, pink and orange ghosts in the monster pen
-
 'and also keeps the monsters from getting back in unless they are in EMERGE or DIE modes.
-
 'The doors are "opened" by adding their tokens to the mazeToken[ ] array and extending the lastToken pointer.
-
 'The doors are "closed" by resetting the lastToken pointer:
-
 Sub CloseDoors
-
   mazeTokens[3] = "Z"
-
   mazeTokens[4] = "Z"
-
   mazeTokens[5] = "Z"
-
 EndSub
-
 '******************************************************************************************* 
-
 Sub OpenLeftDoor
-
     mazeTokens[4] = "B"
-
 EndSub
-
 '*******************************************************************************************
-
 Sub OpenRightDoor
-
     mazeTokens[5] = "C"
-
 EndSub
-
 '******************************************************************************************* 
-
 Sub OpenTopDoor
-
     mazeTokens[3] = "A"
-
 EndSub
-
 '*******************************************************************************************
-
 'This routines causes the monsters to leave the monster pen one-by-one after a certain number of 
-
 'cycles have past. This done at game start, on each new level and when a level is replayed . 
-
 'There are 3 invisivle "doors" that keep the monsters caged in. Whenever a monster enteres
-
 'DIE or EMERGE modes, the doors open to let the monster enter or exit the pen.
-
 'The doors remain closed for any monster in CHASE, FRIGHT, or SCATTER modes to keep them 
-
 'from re-entering the case prematurely. The same holds for Chomper's NORMAL mode.
-
 '
-
 'See OpenCloseDoors() for additional info.
 
-
-
 Sub LeaveMonsterPenOneByOne
-
  
-
 If globalCycleCtr = 150 then
-
   SpriteArray[OrangeMonster][state] = EMERGE
-
 ElseIf globalCycleCtr = 300 Then
-
   SpriteArray[PinkMonster][state] = EMERGE
-
 Elseif globalCycleCtr = 450 Then
-
   SpriteArray[BlueMonster][state] = EMERGE
-
 EndIf
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 'Dispatches update-related routines:
-
 Sub Update
-
   SpriteArray[Sprites][cycleCounter]=SpriteArray[Sprites][cycleCounter]+3
 
-
-
   'Do updates when a sprite reaches a new tile. Distance between tiles is set by MazeScale:
-
   if (SpriteArray[Sprites][cycleCounter] > mazeScale) Then
-
      MoveSBC()
-
      SetupMonsterTargets()
-
      DoChaseScatterFrightCycles()
-
      SetupSpriteSpeed()
-
      OpenCloseDoors()
-
      MoveMonstersTowardTarget()
-
      CheckGoThroughTunnels()
-
      SpriteArray[Sprites][cycleCounter]=1
-
      ScoreAndBonusManager() 
-
    EndIf
-
 Endsub
-
 '*******************************************************************************************
-
 'Displaches draw-related routines:
-
 Sub Draw
-
  SetupAnimationSequence()
-
  DrawSprites()
-
  CollisionDetect()
-
  CheckGoThroughTunnels() 
-
 Endsub
-
 '*******************************************************************************************
-
 'Ensures that sprites are moving at correct speed:
-
 Sub SetupSpriteSpeed
 
-
-
   If SpriteArray[Sprites][state] = CHASE Then
-
      SpriteArray[Sprites][spriteSpeed] = 1
-
   ElseIf SpriteArray[Sprites][state] = FRIGHT Then
-
      SpriteArray[Sprites][spriteSpeed] = 2
-
   ElseIf SpriteArray[Sprites][state] = NORMAL Then
-
      SpriteArray[Sprites][spriteSpeed] = 1
-
   ElseIf SpriteArray[Sprites][state] = DIE Then
-
     SpriteArray[Sprites][spriteSpeed] = 1
-
   ElseIf SpriteArray[Sprites][state] = SCATTER Then
-
     SpriteArray[Sprites][spriteSpeed] = 1
-
   ElseIf SpriteArray[Sprites][state] = EMERGE Then
-
     SpriteArray[Sprites][spriteSpeed] = 3
-
   EndIf
 
-
-
 EndSub
-
 '*******************************************************************************************
-
 'Can't speed up maze drawing, so black out the game screen and then construct maze and position
-
 'bitmaps underneath the black cover:
-
 Sub ConstructGameElements
-
  BlackOutGameScreen()
-
   LoadMaze()
-
   DrawMaze()
-
   ClearSpritesFromaze()
-
   InitializeSprites()
-
   PositionSpritesInMaze()
-
  RemoveBlackScreen()
-
 EndSub
-
 '******************************************************************************************* 
-
 'Causes the monsters to flash briefly as a warning to the player that the monsters are about
-
 'to swtich from Fright to Chase states:
-
 '***BUG ??: This routine doesn't work well with Silverlight***
-
-
 
 Sub FlashMonsters
 
-
-
 If (energizerTimer = ACTIVE) And (SpriteArray[Sprites][State] = FRIGHT) Then
-
   If (energizerTime < 20) Then
-
     If (Math.Remainder(energizerTime,3)=0) Then
-
       shapes.SetOpacity(ImageArray[sprites][5],100) 'Visible
-
     Else
-
       shapes.SetOpacity(ImageArray[sprites][5],10) 'Faint
-
     EndIf
-
   EndIf
-
 EndIf
-
 EndSub
-
 '*********************************************************************************
-
 'Allows game to cage in or release monsters from monsters from the monster pen based
-
 'on state. Monsters should not be allowed to re-enter the pen unless they have been
-
 'eaten by SBC (DIE state) or emerging from the monster pen during level start/restart
-
 'or after being eating by SBC (EMERGE state).
-
 '
-
 'SBC should not be allowed to enter the monster pen ever (NORMAL state):
 
-
-
 Sub OpenCloseDoors
-
   If SpriteArray[Sprites][State] = CHASE Or SpriteArray[Sprites][State] = FRIGHT Or SpriteArray[Sprites][State] = NORMAL Then
-
     CloseDoors()
-
     'bug fix below to prevent monsters from getting stuck in the monster pen:
-
     if SpriteArray[Sprites][mazeCol]=MonsterPenX And SpriteArray[Sprites][mazeRow]=MonsterPenY Then
-
       OpenTopDoor()
-
     EndIf
-
   ElseIf SpriteArray[Sprites][State] = DIE Then
-
     CloseDoors()
-
     OpenTopDoor()
-
   ElseIf SpriteArray[Sprites][State] = EMERGE Then
-
     CloseDoors()
-
     OpenTopDoor()
-
     OpenLeftDoor()
-
     OpenRightDoor()
-
   EndIf
-
   
-
   
-
   
-
 EndSub
-
 '******************************************************************************* 
-
 'Bounding Box collision detection routine from "Beginning Microsoft Small Basic", 9-30
-
 Sub CheckRectangles
-
-
 
 isTouching = "False"
 
-
-
 Object1X=SpriteArray[sbc][screenX]
-
 Object1Y=SpriteArray[sbc][screenY]
-
 Object2X=SpriteArray[Sprites][screenX]
-
 Object2Y=SpriteArray[Sprites][screenY]
 
-
-
 If ((Object1X + 12 +sWidth - 12) > Object2X +12) Then
-
  If (Object1X +12 < (Object2X+12 + sWidth - 12)) Then
-
   If ((Object1Y+12 + sHeight - 12) > Object2Y+12) Then
-
    If (Object1Y+12 < (Object2Y+12 + sHeight - 12)) Then
-
      isTouching = "True"
-
    EndIf
-
   EndIf
-
  EndIf
-
 EndIf
 
-
-
 EndSub
-
 '************************************************************************
-
 'Allows sprites to travel through tunnels and causes the monsters to slow down at tunnel entrances:
-
 sub CheckGoThroughTunnels
 
-
-
 If Sprites <> SBC Then
-
  if (SpriteArray[Sprites][mazecol]=sld1X And SpriteArray[Sprites][mazeRow]=sld2Y) or (SpriteArray[Sprites][mazecol]=sld2X And SpriteArray[Sprites][mazeRow]=sld2Y) Then
-
   SpriteArray[Sprites][spriteSpeed]=4
-
  EndIf
-
 endif
 
-
-
 If SpriteArray[Sprites][mazeCol] = rightTunnelX and SpriteArray[Sprites][mazeRow] = rightTunnelY Then
-
   SpriteArray[Sprites][mazeCol] = leftTunnelX
-
   SpriteArray[Sprites][mazeRow] = leftTunnelY
-
   AdjustScreenCoords()
-
-
 
 ElseIf SpriteArray[Sprites][mazeCol] = leftTunnelX and SpriteArray[Sprites][mazeRow] = leftTunnelY Then
-
   SpriteArray[Sprites][mazeCol] = rightTunnelX
-
   SpriteArray[Sprites][mazeRow] = rightTunnelY
-
   AdjustScreenCoords()
-
 EndIf
 
-
-
 EndSub
-
 '********************************************************************
-
 'Shows the per-monster points at the location where the monster was eaten:
-
 Sub ShowEatSplash
-
   GraphicsWindow.BrushColor="white"
-
   GraphicsWindow.FontName="Arial"
-
   o=shapes.AddText(monsterPts +(monsterEatenCtr * monsterPts))
-
   osx = SpriteArray[Sprites][screenX] - sWidth
-
   osy = SpriteArray[Sprites][screenY] + sHeight
-
   Shapes.Move(o,osx,osy)
-
   SmallDelay()
-
   Shapes.Remove(o)
-
 EndSub
-
  '*******************************************************************************************
-
 sub SetupGraphicsWindow
-
     GraphicsWindow.Title="Small Basic Chomper"
-
     GraphicsWindow.Width= gamescreenWidth
-
     GraphicsWindow.Height=gameScreenHeight+10
-
     GraphicsWindow.BackgroundColor="black"
-
     GraphicsWindow.CanResize="false" 
-
     
-
     GraphicsWindow.FontSize = 13
-
     GraphicsWindow.BrushColor="black"
-
     GraphicsWindow.FillRectangle(0,gameScreenHeight+5,gamescreenWidth+10,30)
-
     GraphicsWindow.FillRectangle(0,0,gamescreenWidth+10,15)
-
     
-
     GraphicsWindow.FontBold = "true"
-
     GraphicsWindow.BrushColor="white"
-
     GraphicsWindow.DrawText(1,0,"SCORE: ")
-
     GraphicsWindow.DrawText(125,0,"LEVEL: ")
-
     GraphicsWindow.DrawText(250,0,"LIVES: ")
-
     
-
     GraphicsWindow.BrushColor="white"
-
     GraphicsWindow.DrawText(0,gameScreenHeight+4, "Small Basic CHOMPER Release 2 - by Anthony Yarrell")
-
     scoreShape=Shapes.AddText(gameScore)
-
     livesShape=Shapes.AddText(SpriteArray[sbc][Lives])
-
     levelShape=Shapes.AddText(gameLevel)
-
     Shapes.Move(scoreShape,60,0)
-
     Shapes.Move(levelShape,180,0)
-
     Shapes.Move(livesShape,320,0)
-
   endsub
-
 '*******************************************************************************************
-
 Sub DisplayScore
-
   Shapes.SetText(scoreShape,gamescore)
-
 EndSub
-
 '*******************************************************************************************
-
 Sub DisplayLives
-
   Shapes.SetText(livesShape,SpriteArray[sbc][lives])
-
 EndSub
-
 '*******************************************************************************************
-
 Sub DisplayLevel
-
   Shapes.SetText(levelShape,gameLevel)
-
 EndSub
-
 '*******************************************************************************************
-
 Sub BlackoutGameScreen
-
   GraphicsWindow.BrushColor="black"
-
   blkScreen = Shapes.AddRectangle(gamescreenWidth+10, gameScreenHeight+10)
-
 Endsub
-
 '*******************************************************************************************
-
 Sub RemoveBlackScreen
-
   Shapes.Remove(blkScreen)
-
 EndSub
-
 '************************************************************************** 
-
 Sub ScoreAndBonusManager
-
   
-
 monsterBonusPts = 1000   'Points given to player for eating 4 monsters in succession.
-
 monsterPts      = 200    'Points player gets when he/she eats a monster.'
-
 monsterPtsMuliplier = 2  'Causes player to get bonus points when monsters are eaten in succession.
-
 pelletScore    = 25     'Points player gets for eating a normal pellet.
-
 energizerScore = 100    'Points player gets for eating a power pellet
 
-
-
 'Calculate score for pellets or energizers that were eaten:
-
 If hasEatenEnergizer = "TRUE" Then
-
    gameScore = gameScore + energizerScore
-
    hasEatenEnergizer = "FALSE"
-
 ElseIf hasEatenPellet = "TRUE" then
-
    gameScore = gameScore + pelletScore
-
    hasEatenPellet = "FALSE"
-
  EndIf
-
  
-
 'Count monsters eaten per level:
-
 If energizerTimer = ACTIVE Then
-
   If hasEatenMonster="True" Then
-
      monsterEatenCtr = monsterEatenCtr + 1
-
      monstersEatenPerLevel = monstersEatenPerLevel + 1
-
      hasEatenMonster="False"
-
   EndIf
-
 Else
-
     monsterEatenCtr=0
-
 EndIf
-
   
-
 'Update score based on number of monsters eaten:
-
 If monsterEatenCtr = 4 Then
-
   gameScore = gameScore + monsterBonusPts
-
   monsterEatenCtr=0
-
 EndIf
-
   
-
 If monstersEatenPerLevel = 16 Then
-
    SpriteArray[sbc][Lives] = SpriteArray[sbc][Lives] + 1
-
    monstersEatenPerLevel = 0
-
    gameScore = gameScore + (monsterEatenCtr * monsterPts)
-
 EndIf  
 
 
-
-
-
 DisplayLevel()
-
 DisplayLives()
-
 DisplayScore()
 
-
-
 EndSub
-
 '*************************************************************
-
 'This routines causes to the monsters to alternate between
-
 'Chase and Scatter modes after a number of cycles have passed.
-
 'The timing is generated randomly to make it difficult for the 
-
 'player to determine when the mode switch will happen.
-
 'This makes it harder for SBC to avoid the monsters or reach the
-
 'energizers.
-
 'See SetMonsterTargets() to see what corners each monster goes
-
 'to during SCATTER mode.
 
-
-
 Sub DoChaseScatterFrightCycles
-
   
-
 ModeSwitchCounter=ModeSwitchCounter+1
 
-
-
 If (ModeSwitchCounter > ModeSwitchTime) Then
-
   If SpriteArray[sprites][state] = CHASE then
-
      SpriteArray[sprites][state] = SCATTER
-
    EndIf
-
 EndIf
-
  
-
 If (ModeSwitchCounter > (ModeSwitchTime + 200)) Then
-
   If SpriteArray[sprites][state] = SCATTER Then
-
      SpriteArray[sprites][state] = CHASE
-
    EndIf
-
 EndIf
-
   
-
 If ModeSwitchCounter > (ModeSwitchTime + 250) Then
-
    ModeSwitchCounter=0
-
    ModeSwitchTime = Math.GetRandomNumber(100)
-
  EndIf
 
-
-
 EndSub 
-
-

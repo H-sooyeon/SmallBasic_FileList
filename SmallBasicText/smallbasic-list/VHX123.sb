@@ -1,503 +1,251 @@
 'Key Stroke Recorder ver. 0.1 by Ezra94
-
 GraphicsWindow.Title = "Key Stroke Recorder 0.1"
-
 GraphicsWindow.CanResize = "False"
-
 gw = 600
-
 gh = 400
-
 GraphicsWindow.Width = gw 
-
 GraphicsWindow.Height = gh 
-
 GraphicsWindow.Left = (Desktop.Width - gw)*0.50
-
 GraphicsWindow.Top = (Desktop.Height - gh)*0.25
-
 Controls.TextTyped = onTextInput  
-
 Controls.ButtonClicked = onButtonClick 
 
-
-
 pre = Program.Directory 
-
 ext = ".txt"
 
-
-
 'main text box
-
 mbw = gw
-
 mbh = gh*0.71
-
 mbx = (gw - mbw)*0.50 
-
 mby = (gh - mbh)*0.50 
 
-
-
 'buttons (Index:0-3)
-
 bw = gw*0.15 
-
 bh = gh*0.08 
-
 bx = (gw - bw) 
-
 by = (gh - bh)*0.07  
 
-
-
 'save/open (saving) textbox 
-
 sbw = gw*0.30
-
 sbh = gh*0.06
-
 sbx = (gw - sbw)*0.98
-
 sby = (gh - sbh)*0.08
 
-
-
 'save/open (file) button
-
 fbw = sbw/2 
-
 fbx = (gw - sbw)*0.76
 
-
-
 'back button
-
 bbx = (gw - sbw)*0.54
 
-
-
 buttonName = "0=Record;1=Play;2=Open;3=Save;4=Back;5=Stop" 
-
 status = "1=Recording;2=Playing;3=Opening File;4=Saving File"'text displaying current action of recorder
-
 nameOfData = "1=(Number of Keys Strokes);2=(Key Stroke Intervals);3=(Content of Recording)"'names of ea. indice of dataType
 
-
-
 setMess = "Status: " 
-
 mess = Shapes.AddText(setMess)
-
 Shapes.SetText(mess,setMess) 
 
-
-
 initValues()
-
 createGUI() 
 
-
-
 While "True"
-
   mainControls()
-
   recordText() 
-
   playRecording() 
-
   'data() 'Please remove comment tag to save
-
 EndWhile
 
-
-
 Sub initValues 
-
   sec = 0 
-
   min = Text.Append("0",0) 
-
   dataIndex = 0 
-
   
-
   playRecord = "False"
-
   recording = "False"
-
   run = "False" 
-
   start = "True" 
-
   inputText = "False"
-
   clicked = "False" 
-
   handleFiles = "False" 
-
   seekInput = "True" 
-
   
-
   textIndex = 0 
-
   mess = Shapes.AddText(setMess)
-
 EndSub
-
-
 
 Sub createGUI
-
   mainTextBox = Controls.AddMultiLineTextBox(mbx,mby) 
-
   Controls.SetSize(mainTextBox,mbw,mbh)
-
   
-
   For i = 3 To 0 Step -1 
-
     button[i] = Controls.AddButton(buttonName[i], bx-(bw*i),by)
-
     Controls.SetSize(button[i],bw,bh)
-
   EndFor
-
 EndSub 
-
-
 
 Sub mainControls 
-
   While seekInput = "True" 
-
     If (clicked = "True") Then ' "True" when any button is pressed
-
       If (lastClicked = "Record") Then 
-
         recording = "True" 
-
         deleteTempData() 
-
         textIndex = 1
-
       ElseIf (lastClicked = "Play") Then
-
         playRecord = "True" 
-
         textIndex = 2
-
       ElseIf (lastClicked = "Open") Then 
-
         buttonIndex = 2
-
         textIndex = 3
-
       ElseIf (lastClicked = "Save") Then 
-
         buttonIndex = 3
-
         textIndex = 4
-
       EndIf
-
       removeButton() 
-
       Shapes.SetText(mess,setMess + status[textIndex])
-
       clicked = "False" 
-
       seekInput = "False" 
-
     EndIf 
-
     Program.Delay(250) 'delay allows buttons be more responsive but doesn't interfer with mainTimer()
-
   EndWhile
-
 EndSub 
-
-
 
 Sub removeButton 
-
   For i = 3 To 0 Step -1
-
     Controls.Remove(button[i])
-
   EndFor 
-
   
-
   If (recording = "True" Or playRecord ="True") Then 
-
     button[5] = Controls.AddButton(buttonName[5],bx,by) 
-
     Controls.SetSize(button[5],bw,bh)
-
   Else 
-
     fileBox = Controls.AddTextBox(sbx,sby)
-
     Controls.SetSize(FileBox,sbw,sbh)
-
     
-
     button[buttonIndex] = Controls.AddButton(buttonName[buttonIndex],fbx,sby)
-
     Controls.SetSize(button[buttonIndex],fbw,sbh)
-
     button[4] = Controls.AddButton(buttonName[4],bbx,sby)
-
     Controls.SetSize(button[4],fbw,sbh)
-
     handleFiles = "True" 
-
   EndIf 
-
 EndSub
-
-
 
 Sub recordText 'all data is recorded after pressing record button & until stop button pressed
-
   While recording = "True" 
-
     mainTimer()
-
     If (inputText = "True" And run = "True") Then  
-
       'time is stored as 0232345, not 02:32:345, in dataType[2] (allows accurate comparision look at line 168)
-
       recordKeyStrokeInterval = Text.Append(min,sec) 
-
       recordKeyStrokeInterval = Text.Append(recordKeyStrokeInterval,milliSec) 
-
       dataType[2][dataIndex] = recordKeyStrokeInterval 'dataType[2] = record key stroke interval
-
       dataType[3][dataIndex] = Controls.GetTextBoxText(mainTextBox) 'dataType[3] = record content inputted in textbox 
-
       dataIndex = dataIndex + 1 
-
       dataType[1] = Array.GetItemCount(dataType[3]) 'dataType[1] = record number of key strokes
-
       inputText = "False"
-
     ElseIf (lastClicked = "Stop") Then
-
       GraphicsWindow.Clear() 
-
       createGUI() 
-
       initValues()
-
     EndIf  
-
   EndWhile
-
 EndSub
-
-
 
 Sub deleteTempData 'delete temporary data & prepares arrays for next recording
-
   For i = 0 To dataType[1] 
-
     dataType[2][i] = "" 
-
     dataType[3][i] = "" 
-
   EndFor 
-
 EndSub
-
-
 
 Sub playRecording
-
   While playRecord = "True" 
-
     mainTimer()
-
     If (run = "True") Then 
-
       'curTime updated ea. loop & only temporary unlike recordKeyStrokeInterval which is stored & used later
-
       curTime = Text.Append(sec,milliSec) 
-
       curTime = Text.Append(min,curTime) 
-
       
-
       If (curTime = dataType[2][dataIndex]) Then 
-
         Controls.SetTextBoxText(mainTextBox,dataType[3][dataIndex]) 
-
         dataIndex = dataIndex + 1 
-
       EndIf
-
       
-
       If (dataIndex >= dataType[1]) Then 
-
         Shapes.SetText(mess,setMess + "Done Playing") 
-
       EndIf
-
       
-
       If (lastClicked = "Stop") Then 
-
         GraphicsWindow.Clear() 
-
         createGUI() 
-
         initValues()
-
       EndIf 
-
     EndIf 
-
   EndWhile
-
 EndSub
-
-
 
 'recreate timer by tracking PC's current millisecond--creates sec & min
-
 Sub mainTimer 'Every time record/play pressed milSec must be 0 before timer starts can compare more accurately (look at line 168)
-
   'Timer starts under 3 conditions: 1)record/play button pressed 2)when pressed start = "True"3) pc's milSec is 0
-
   If (Clock.Millisecond = 0 And start = "True") Then 
-
     run = "True" 
-
     start  = "False"
-
   EndIf 
-
   If (run = "True") Then 'store & update milliSec ea. loop
-
     milliSec = Clock.Millisecond 
-
   EndIf 
-
   
-
   If (milliSec >= 999) Then
-
     sec = sec + 1
-
     If (sec < 10) Then 
-
       sec = Text.Append("0",sec)
-
     EndIf  
-
     Program.Delay(1) 'allows program to flow & record by 1 milSec
-
   EndIf  
-
   If (sec > 59) Then 
-
     sec = Text.Append("0",0) 
-
     min = min + 1
-
     If (min < 10) Then 
-
       min = Text.Append("0",min)
-
     EndIf
-
   EndIf 
-
 EndSub 'record up to 59 min 59 sec 999 milSec max
 
-
-
 Sub data 
-
   While (handleFiles = "True")
-
     If (clicked = "True") Then ' "True" when any button is pressed
-
       retrieveFileName = Controls.GetTextBoxText(fileBox) 
-
       fileName = Text.Append("\",retrieveFileName) 'main name of all 3 indices of dataType
-
       
-
       If (lastClicked = "Save") Then 
-
         For i = 3 To 1 Step -1 
-
           'file subname of ea. indice of dataType [1] # of key strokes; [2] key stroke intervals; [3] content of key strokes
-
           fileSubName[i] = Text.Append(fileName,nameOfData[i])
-
 ' The following line could be harmful and has been automatically commented.
-
 '           File.WriteContents(pre+fileSubName[i]+ext,dataType[i]) 
-
         EndFor 
-
       ElseIf (lastClicked = "Open") Then
-
         For i = 3 To 1 Step -1
-
           fileSubName[i] = Text.Append(fileName,nameOfData[i])
-
 ' The following line could be harmful and has been automatically commented.
-
 '           dataType[i] = File.ReadContents(pre+fileSubName[i]+ext) 
-
         EndFor
-
       EndIf  
-
       
-
       clicked = "False" 
-
       handleFiles = "False" 
-
       GraphicsWindow.Clear()
-
       initValues()
-
       createGUI()
-
     EndIf 
-
     Program.Delay(250) 'delay allows buttons be more responsive but doesn't interfer w/ mainTimer()
-
   EndWhile
-
 EndSub 
 
-
-
 Sub onTextInput 
-
   inputText = "True"
-
 EndSub
-
-
 
 Sub onButtonClick 
-
   lastClicked = Controls.GetButtonCaption(Controls.LastClickedButton) 
-
   clicked = "True" 
-
 EndSub
-
-

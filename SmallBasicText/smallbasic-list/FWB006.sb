@@ -1,2085 +1,1042 @@
 ' SNAKEBITE-SB
-
 ' by Davey~Wavey, v1 Nov. 2009
-
 ' Written for SmallBasic v0.7
-
 '
-
 ' Inspired by the ZX81 game SNAKEBITE.
-
 '
-
 ' Eat the snake by chewing off it's tail.  Eat all tail segments to progress to next level.
-
 ' Watch out though, you may just make it angry!
-
 '
-
 ' Use the cursor keys to move around.  (You can press any other key to stop moving!)
 
-
-
 ' NOTE: If it crashes a lot, try commenting out the 'Sound.PlayChimes()' line. SB doesn't like sound!
-
 '
-
 ' I've laid the code out so that all the normal routines used in a game are present. If you're
-
 ' learning to write your own game, a similar setup should work well for you. Have fun!
 
-
-
 ' set up the permanent loop (Q key terminates when on intro screen)
-
 While 1=1
-
   
-
   ' initialise game environment
-
   environment()
-
   
-
   ' show intro
-
   introScreen()
-
   
-
   While lives > 0
-
     ' INITIALISE LEVEL
-
     
-
     ' Next line won't play anything if we have already played the intro screen music!?!?!?!!!
-
     ' It also seems to cause the prog to crash more often when enabled.
-
     'Sound.Play (progDir + "\muzak.mid")
-
     
-
     levelConfig()           ' level maps can be found at end of program listing below - have fun designing some
-
     paintLevel()
-
     snakeSetup()
-
     playerSetup()
-
     
-
     
-
     ' MAIN LOOP
-
     While (snakeSize > 2) And lives > 0
-
       
-
       ' if snake 'change direction' delay has expired, try to change snake direction
-
       If snakeMoveDelay = 0 Then
-
         snakeDirection()          ' will only change direction at random times
-
         
-
         moveSnake() 
-
       EndIf
-
       
-
       ' alternative method to check for key press - also delays movement of player
-
       If playerMoveDelay = 0 Then
-
         checkKeys()
-
         
-
         movePlayer()
-
         
-
         ' Check for PLAYER COLLISIONS
-
         playerCollisions()
-
       EndIf
-
       
-
       
-
       
-
       ' ADJUST (or reset) DELAYS
-
       ' I admit this isn't the best way to do this.
-
       ' To get accurate speed, you should be calculating the
-
       ' frames-per-second and using that to slow various elements down.
-
       If snakeMoveDelay > 0 Then
-
         snakeMoveDelay = snakeMoveDelay-1
-
       Else
-
         snakeMoveDelay = level[thisLevel]["snakeDelay"]
-
       EndIf  
-
       
-
       If playerMoveDelay > 0 Then
-
         playerMoveDelay = playerMoveDelay-1
-
       Else
-
         playerMoveDelay = playerDelay
-
       EndIf
-
       
-
       
-
       ' test snake length increase - NOT CURRENTLY USED
-
       'If Mouse.IsLeftButtonDown="True" AND processing=0 Then
-
       '  addSegment()
-
       'ElseIf Mouse.IsLeftButtonDown="False" And processing=1 Then
-
       '  mUp()
-
       'EndIf
-
       
-
     EndWhile  ' main level (or lives) loop
-
     
-
     
-
     
-
     ' next line is irrellevant as the Sound.Play command above doesn't work!
-
     'Sound.Stop (progDir + "\muzak.mid")
-
     
-
     
-
     
-
     ' if we still have some lives, then we must have eaten all the snake
-
     If lives > 0 Then
-
       
-
       moveSnake()   ' update tail position since snake length just decreased
-
       
-
       GraphicsWindow.ShowMessage("YEAH, YOU BEAT THIS SNAKE!!!", "WHOOPIE!")
-
       
-
       ' move to next level
-
       thisLevel=thisLevel+1
-
       
-
       ' go back to level 1 if we've completed them all
-
       If thisLevel>levels Then
-
         thisLevel=1
-
       EndIf
-
       
-
       ' increase player speed (by decreasing the delay) - player gets a slight advantage for each level cleared :-)
-
       If playerDelay > 20 Then
-
         playerDelay = playerDelay - 10
-
       EndIf
-
       
-
       GraphicsWindow.Clear()
-
     EndIf
-
     
-
     
-
   EndWhile  ' lives > 0
-
   
-
   ' DEAD MEAT!
-
   
-
   ' next line doesn't work!
-
   'Sound.Play (progDir + "\gameover.mid")
-
   
-
   GraphicsWindow.ShowMessage("THAT PUNKY SNAKE BEAT YOU THIS TIME!!!   You scored: "+score, "EATEN!!!")
-
   
-
   ' next line is irrellevant as the Play command above doesn't work!
-
   'Sound.Stop (progDir + "\gameover.mid")
-
   
-
 EndWhile
 
 
 
 
 
-
-
-
-
-
-
 ' =====================================================================
-
 ' =====================================================================
-
 ' ======================   S U B R O U T I N E S   ==============================
-
 ' =====================================================================
-
 ' =====================================================================
-
-
-
-
-
-
 
 
 
 
 
 Sub environment
-
   ' initialise the game environment
-
   
-
   ' progDir               = Program.Directory + "\assets"      ' this is used to locate the graphics and music used in the game
-
   progDir = "http://smallbasic.com/drop/snakebite"
-
   
-
   GraphicsWindow.Title  = "~S~N~A~K~E~B~I~T~E~ v1 for SmallBasic by Davey~Wavey, Nov 2009"
-
   GraphicsWindow.BackgroundColor = "Black"
-
   GraphicsWindow.Width  = 800       ' grass sprite is 128 x 128
-
   GraphicsWindow.Height = 600       ' 4 x 128 plus status area
-
   GraphicsWindow.Left   = desktop.Width/2-(GraphicsWindow.Width/2)  ' 800
-
   GraphicsWindow.Top    = desktop.Height/2-(GraphicsWindow.Height/2)-100   '50
-
   
-
   gwTop     = 18                                                 ' set game window top offset
-
   gwBottom  = gwTop+(4*128)
-
   gwLeft    = (GraphicsWindow.Width/2)-(3*128)                  ' set game window left offset
-
   gwRight   = gwLeft+(6*128)
-
   
-
   ' initialise game environment
-
   thisLevel       = 1
-
   score           = 0
-
   lives           = 5
-
   playerDelay     = 500   ' speed of player movement - lower value = faster player = easier (unless you go too fast!)
-
   snakeMoveDelay  = 0     ' this gets set by each level and is the speed of the snake - lower = faster
-
   
-
   angrySnake      = -1    ' a counter.  if >0 it indicates that snake is angry (makes snake faster)
-
   digestionDelay  = 0     ' delay to prevent multiple tail pieces being eaten at once.
-
   processing      = 0     ' a flag used in sub processes to prevent multiple runs
-
   
-
   player          = ""    ' blank player array
-
   snake           = ""    ' blank snake array
-
   
-
   'Timer.Interval = 2                     ' set interval to check for key presses
-
   'Timer.Tick = checkKeys
-
   
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub introScreen
-
   ' display the game intro screen and wait for Space to be pressed
-
   
-
   GraphicsWindow.Clear()
-
   
-
   ' this Play command works, but then prevents any other music playing!?!?!
-
   Sound.Play (progDir + "\intro.mid")
-
   
-
   ' show intro graphic
-
   img = ImageList.LoadImage(progDir + "\titleScreen_800x600.jpg")
-
   GraphicsWindow.DrawImage(img, 0,0 )
-
   
-
   ' wait for keypress
-
   lastkey = ""
-
   While lastkey <> "Space"
-
     lastkey = GraphicsWindow.LastKey
-
     
-
     If lastkey = "Q" Then 
-
       Program.End()
-
     EndIf
-
   EndWhile
-
   
-
   Sound.Stop (progDir + "\intro.mid")
-
   Program.Delay(500)
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub paintLevel
-
   ' draw the level objects at the start of each level
-
   
-
   
-
   ' create a black rectangle over the whole graphics window so we can create a fade effect after the level has been drawn
-
   GraphicsWindow.BrushColor   = "Black"
-
   bbox                        = Shapes.AddRectangle( 800, 600 )
-
   Shapes.SetOpacity           (bbox, 100)
-
   
-
   
-
   ' draw dirt
-
   img = ImageList.LoadImage(progDir + "\status_800x70.png")
-
   For y = 0 to 600 Step 70
-
     GraphicsWindow.DrawImage (img, 0, y)
-
   EndFor
-
   
-
   
-
   ' draw the grass
-
   img = ImageList.LoadImage(progDir + "\grass_128d.png")
-
   For x = 0 To 5
-
     For y = 0 To 3
-
       GraphicsWindow.DrawImage (img, (x*128)+gwLeft, (y*128)+gwTop)
-
     EndFor
-
   EndFor
-
   
-
   
-
   ' draw the flowers
-
   img = ImageList.LoadImage(progDir + "\flower1_32.png")
-
   Shapes.SetOpacity(img, 20)
-
   For x = 1 To 20
-
     GraphicsWindow.DrawImage (img, ((Math.GetRandomNumber(24)-1)*32)+gwLeft, ((Math.GetRandomNumber(16)-1)*32)+gwTop )
-
   EndFor
-
   img = ImageList.LoadImage(progDir + "\flower2_32.png")
-
   Shapes.SetOpacity(img, 20)
-
   For x = 1 To 10
-
     GraphicsWindow.DrawImage (img, ((Math.GetRandomNumber(24)-1)*32)+gwLeft, ((Math.GetRandomNumber(16)-1)*32)+gwTop )
-
   EndFor
-
   
-
   
-
   ' draw the level blocks    
-
   img = ImageList.LoadImage(progDir + "\wall_32.png")
-
   For my = 1 To 16
-
     For mx = 1 To 24
-
       block = text.GetSubText( level[thisLevel][my], mx, 1 )
-
       
-
       ' position WALLS
-
       If block = "W" Then
-
         GraphicsWindow.DrawImage (img, ((mx-1)*32)+gwLeft, ((my-1)*32)+gwTop) ' DrawRectangle( (mx-1)*32, (my-1)*32, 32, 32 )
-
       EndIf
-
       
-
       ' position PLAYER 
-
       If block = "P" Then
-
         player["x"] = ((mx-1)*32+12)+gwLeft    ' calculate x,y from 32 x 32 level grid blocks
-
         player["startX"] = player["x"]         ' remember start position for when player dies
-
         player["y"] = ((my-1)*32+12)+gwTop
-
         player["startY"] = player["y"]
-
       EndIf
-
       
-
       ' position SNAKE  
-
       If block = "S" Then
-
         level[thisLevel]["snakeX"] = ((mx-1)*32+16)+gwLeft
-
         level[thisLevel]["snakeY"] = ((my-1)*32+16)+gwTop
-
       EndIf
-
       
-
     EndFor
-
   EndFor
-
   
-
   
-
   ' draw the border (using the snake body part)
-
   img = ImageList.LoadImage(progDir + "\body_18.png")
-
   For y = 0 To 600 Step 530 
-
     For x=5 to 790 Step 18
-
       ' draw top and bottom border
-
       GraphicsWindow.DrawImage ( img, x, y)
-
     EndFor
-
   EndFor
-
   For x = 0 To 800 Step 784 
-
     For y = 15 to 530 Step 18
-
       ' draw left and right border
-
       GraphicsWindow.DrawImage ( img, x, y)
-
     EndFor
-
   EndFor
-
   
-
   
-
   ' show status bar
-
   status()  
-
   
-
   
-
   ' fade the screen in
-
   Shapes.Move (bbox, 0, 0)
-
   For lwp = 100 To 0 Step -1
-
     Shapes.SetOpacity(bbox, lwp)
-
     Program.Delay(20)
-
   EndFor
-
   
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub snakeSetup
-
   ' create the snake array and display snake in starting position
-
   
-
   headPart    = ImageList.LoadImage(progDir + "\head_24.png")
-
   headAngryPart = ImageList.LoadImage(progDir + "\headAngry_24.png")
-
   headSize    = 22 '24         ' radius of head
-
   headOffset  = 11
-
   
-
   bodyPart    = ImageList.LoadImage(progDir + "\body_18.png")
-
   bodySize    = 18 '18
-
   bodyOffset  = 9
-
   
-
   tailPart    = ImageList.LoadImage(progDir + "\tail_16.png")
-
   tailSize    = 16 '32 '16
-
   tailOffset  = 8
-
   
-
   snake = ""
-
   snake[0]["happySnake"] = Shapes.AddImage(headPart)
-
   snake[0]["angrySnake"] = Shapes.AddImage(headAngryPart)
-
   Shapes.Zoom(snake[0]["happySnake"],2.1,2.1)         ' bug in Small Basic means we have to resize our image
-
   Shapes.Zoom(snake[0]["angrySnake"],2.1,2.1)         ' bug in Small Basic means we have to resize our image
-
   
-
   snakeSize = level[thisLevel]["snakeSize"]   ' this value will change during game as snake eats/is eaten
-
   
-
   ' remember current pen width
-
   'pw = GraphicsWindow.PenWidth
-
   'GraphicsWindow.PenWidth = 0
-
   
-
   For snakePart = 1 to snakeSize
-
     
-
     ' create the snake segments
-
     If snakePart = 1 Then
-
       'GraphicsWindow.BrushColor="Brown"
-
       snake[snakePart]["sprite"] = snake[0]["happySnake"]   'Shapes.AddEllipse(headSize,headSize) ' head
-
       ' Zoom for this shape has been done above
-
       
-
     ElseIf snakePart <> snakeSize Then
-
       'GraphicsWindow.BrushColor="Chocolate"
-
       snake[snakePart]["sprite"] = Shapes.AddImage(bodyPart)  'Shapes.AddEllipse(bodySize,bodySize) ' body
-
       Shapes.Zoom(snake[snakePart]["sprite"],2.1,2.1)       ' bug in Small Basic means we have to resize our image
-
       
-
     Else
-
       'GraphicsWindow.BrushColor="SandyBrown"
-
       snake[snakePart]["sprite"] = Shapes.AddImage(tailPart)    'Shapes.AddEllipse(tailSize,tailSize) ' tail
-
       Shapes.Zoom(snake[snakePart]["sprite"],2.1,2.1)         ' bug in Small Basic means we have to resize our image
-
     EndIf
-
     
-
     ' locate snake on screen - probably needs to be part of each level config
-
     snake[snakePart]["x"] = level[thisLevel]["snakeX"]
-
     snake[snakePart]["y"] = level[thisLevel]["snakeY"]
-
     
-
     ' as all segments start at the same x,y we must increment the initial delay for each successive segment
-
     If snakePart > 2 Then
-
       snake[snakePart]["delay"] = ((snakePart-1)*(bodySize-4))+4
-
     Else
-
       snake[2]["delay"] = bodySize '18
-
     EndIf
-
     
-
   EndFor
-
   
-
   ' set initial direction
-
   snake[1]["moves"] = level[thisLevel]["snakeDir"]
-
   snake[1]["delay"] = "0"   ' need to initialise delay for snake head - used to determine delay before direction change
-
   
-
   ' reinstate previous pen width
-
   'GraphicsWindow.PenWidth=pw
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub playerSetup
-
   ' create the player and display at start position
-
   
-
   'GraphicsWindow.BrushColor="Lime"
-
   img = ImageList.LoadImage(progDir + "\player2_24.png")    ' from www.freeicons.dk
-
   player["sprite"] = Shapes.AddImage(img)    'Shapes.AddRectangle( 20,20 )
-
   Shapes.Move( player["sprite"], player["x"]-11, player["y"]-11 )     ' -11 offset instead of -12 works better!?!?!
-
   
-
   playerMoveDelay  = playerDelay                     ' initialise player movement speed (delay)
-
   
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub snakeDirection   
-
   ' check if snake is ready for a CHANGE of DIRECTION
-
   
-
   ' using the 'delay' element of the snake head (snake[1]) as a counter for the change direction delay
-
   ' this delay gets decreased in the moveSnake sub
-
   If snake[1]["delay"] = 0  Then
-
     
-
     ' reset change direction delay
-
     snake[1]["delay"] = level[thisLevel]["dirDelay"]
-
     
-
     ' yes, time for a direction change, but only 25% chance of changing   
-
     If Math.GetRandomNumber(4) <> 3 Then
-
       
-
       ' not yet - leave the snake going the same way and delay another direction change for a while
-
       snake[1]["delay"] = level[thisLevel]["dirDelay"]
-
       
-
     Else
-
       ' yep, let's change direction
-
       dir = Math.GetRandomNumber(4)
-
       
-
       ' EDGE BOUNCE - if snake is heading into window edge, force a direction change
-
       'If (dir = 1 And snake[1]["y"] < 20) Then 
-
       '  dir = 3 ' go S
-
       'EndIf
-
       'If (dir = 3 And snake[1]["y"] > GraphicsWindow.Height-(20)) Then
-
       '  dir = 1 ' go N
-
       'EndIf
-
       'If (dir = 4 And snake[1]["x"] < 20) Then
-
       '  dir = 2 ' go E
-
       'EndIf
-
       'If (dir = 2 And snake[1]["x"] > GraphicsWindow.Width-(8+20)) Then
-
       '  dir = 4 ' go W
-
       'EndIf  
-
       
-
       ' point snake head in appropriate direction
-
       snake[1]["moves"] = dir
-
       
-
       ' reset delay until next direction change
-
       snake[1]["delay"] = level[thisLevel]["dirDelay"]
-
       
-
     EndIf
-
     
-
     
-
     
-
     ' ANGRY SNAKE calculation
-
     ' to slow this effect down, we're only trying to instigate 'angry mode'  at each direction change
-
     If (level[thisLevel]["getAngry"] = 1) Then
-
       
-
       ' only try to instigate angry mode in snake is currently happy
-
       If angrySnake < 0 Then
-
         'GraphicsWindow.Title="HAPPY SNAKE {:-)"
-
         
-
         rn = Math.GetRandomNumber(100)
-
         If (rn = 7) Then
-
           angrySnake = Math.GetRandomNumber(50)+20
-
           level[thisLevel]["snakeDelay"] = level[thisLevel]["snakeDelay"]/2
-
         EndIf
-
         
-
         ' if angrySnake counter has reached zero, reset snake speed back to normal
-
       ElseIf angrySnake = 0 Then
-
         level[thisLevel]["snakeDelay"] = level[thisLevel]["snakeDelay"]*2      ' set snake delay back to level setting
-
         
-
       EndIf
-
       
-
       If angrySnake > -1 Then
-
         angrySnake = angrySnake-1     ' decrease angry snake counter
-
         'GraphicsWindow.Title="ANGRY SNAKE }:-/"
-
       EndIf  
-
       
-
     EndIf    
-
     
-
   EndIf   ' change direction delay=0
-
   
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub moveSnake
-
   ' move snake segments
-
   
-
   For snakePart = 1 To snakeSize
-
     
-
     ' find out which direction we're moving in
-
     dir = text.GetSubText(snake[snakePart]["moves"], 1, 1)
-
     
-
     
-
     ' check if head is about to collide with a wall
-
     If snakePart = 1 Then
-
       shapes.Rotate(snake[1]["sprite"], ((dir-1)*90) )    ' point snake head in correct direction
-
       
-
       snakeCollisions()
-
     EndIf
-
     
-
     
-
     
-
     '  only move snakepart if it's delay is zero - or this is the head, which always gets moved
-
     If snakePart = 1 Or snake[snakePart]["delay"] = 0 Then
-
       
-
       
-
       ' take direction off moves list for this snake part
-
       If snakePart > 1 Then
-
         snake[snakePart]["moves"] = Text.GetSubTextToEnd(snake[snakePart]["moves"], 2)
-
       EndIf
-
       
-
       ' add this movement onto next snake part's movement list
-
       If snakePart < snakeSize Then
-
         snake[snakepart+1]["moves"] = text.Append(snake[snakepart+1]["moves"],dir)
-
       EndIf
-
       
-
       ' update x,y co-ordinates of snake part
-
       If dir = 1 Then
-
         snake[snakePart]["y"] = snake[snakePart]["y"]-1      ' moving N
-
         
-
       ElseIf dir = 2 Then
-
         snake[snakePart]["x"] = snake[snakePart]["x"]+1      ' moving E
-
         
-
       ElseIf dir = 3 Then
-
         snake[snakePart]["y"] = snake[snakePart]["y"]+1      ' moving S
-
         
-
       ElseIf dir = 4 Then
-
         snake[snakePart]["x"] = snake[snakePart]["x"]-1      ' moving W
-
       EndIf
-
       
-
       
-
       ' wrap snake at window edge
-
       If snake[snakePart]["x"] < gwLeft Then
-
         snake[snakePart]["x"] = gwRight
-
       ElseIf snake[snakePart]["x"] > gwRight Then
-
         snake[snakePart]["x"] = gwLeft
-
       ElseIf snake[snakePart]["y"] < gwTop Then
-
         snake[snakePart]["y"] = gwBottom-8
-
       ElseIf snake[snakePart]["y"] > gwBottom-8 Then
-
         snake[snakePart]["y"] = gwTop
-
       EndIf
-
       
-
     EndIf
-
     
-
     
-
     ' The offsets allow for the various snake segment sizes
-
     If snakePart = 1 Then
-
       offset=headOffset
-
     ElseIf snakePart<>snakeSize Then
-
       offset = bodyOffset
-
     Else
-
       offset = tailOffset
-
     EndIf
-
     
-
     ' DRAW SNAKE PART in new position
-
     shapes.Move(snake[snakePart]["sprite"], snake[snakePart]["x"]-offset, snake[snakePart]["y"]-offset )
-
     
-
     
-
     ' Check for ANGRY SNAKE    
-
     If angrySnake = -1 Then
-
       ' show happy snake
-
       snake[1]["sprite"] = snake[0]["happySnake"]
-
       shapes.showShape( snake[0]["happySnake"] )
-
       shapes.HideShape( snake[0]["angrySnake"] )
-
       
-
     Else
-
       ' show angry snake
-
       snake[1]["sprite"] = snake[0]["angrySnake"]
-
       shapes.showShape( snake[0]["angrySnake"] )
-
       shapes.HideShape( snake[0]["happySnake"] )
-
       
-
     EndIf    
-
     
-
     ' DECREASE SNAKE PART DELAY
-
     If snake[snakePart]["delay"] > 0 Then
-
       snake[snakePart]["delay"] = snake[snakePart]["delay"] - 1
-
     EndIf  
-
     
-
   EndFor
-
   
-
   
-
   ' as snake gets shorter, processing speed increases, so we need to add a delay
-
   If snakeSize < 7 Then   'level[thisLevel]["snakeSize"] Then
-
     'For snakePart = snakeSize To level[thisLevel]["snakeSize"]
-
       Program.Delay (0.2*(level[thisLevel]["snakeSize"]-snakeSize))
-
     'EndFor
-
   EndIf
-
   
-
 EndSub    
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub snakeCollisions
-
   ' this is a recursive function
-
   ' it checks for a snake collision with a level object (i.e. a wall) in the current snake direction
-
   ' if it finds one, it chooses a new direction, then calls itself to check it for a collision
-
   ' after completing, 'dir' will have a direction that does not cause a collision
-
   
-
   ' Up
-
   If dir = 1 Then
-
     sx = math.Floor((snake[1]["x"]-gwLeft)/32)+1
-
     sy = math.Floor(((snake[1]["y"]-gwTop)-(headSize/2))/32)+1
-
     
-
     If Text.GetSubText( level[thisLevel][sy], sx, 1) = "W" Then
-
       ' choose a new direction then check it for collisions by recursing this sub    
-
       dir = Math.GetRandomNumber(4)
-
       snakeCollisions()
-
     EndIf
-
     
-
     ' Down  
-
   ElseIf dir = 3 Then
-
     sx = math.Floor((snake[1]["x"]-gwLeft)/32)+1
-
     sy = math.Floor(((snake[1]["y"]-gwTop)+(headSize/2))/32)+1
-
     
-
     If Text.GetSubText( level[thisLevel][sy], sx, 1) = "W" Then
-
       ' choose a new direction then check it for collisions by recursing this sub    
-
       dir = Math.GetRandomNumber(4)
-
       snakeCollisions()
-
     EndIf
-
     
-
     ' Right
-
   ElseIf dir = 2 Then
-
     sx = math.Floor(((snake[1]["x"]-gwLeft)+(headSize/2))/32)+1
-
     sy = math.Floor((snake[1]["y"]-gwTop)/32)+1
-
     
-
     If Text.GetSubText( level[thisLevel][sy], sx, 1) = "W" Then
-
       ' choose a new direction then check it for collisions by recursing this sub    
-
       dir = Math.GetRandomNumber(4)
-
       snakeCollisions()
-
     EndIf
-
     
-
     ' Left
-
   ElseIf dir = 4 Then
-
     sx = math.Floor(((snake[1]["x"]-gwLeft)-(headSize/2))/32)+1
-
     sy = math.Floor((snake[1]["y"]-gwTop)/32)+1
-
     
-
     If Text.GetSubText( level[thisLevel][sy], sx, 1) = "W" Then
-
       ' choose a new direction then check it for collisions by recursing this sub    
-
       dir = Math.GetRandomNumber(4)
-
       snakeCollisions()
-
     EndIf
-
   EndIf
-
   
-
   ' set snake in new safe direction
-
   snake[1]["moves"] = dir
-
   
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub checkKeys
-
   
-
   ' indicate if player is to move
-
   keyPress = GraphicsWindow.LastKey
-
   
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub movePlayer
-
   ' depending on the key pressed, move the player in the required direction
-
   ' unless we hit the edge of the screen, or a wall
-
   
-
   If keyPress <> "" Then    ' only process if a key was pressed
-
     
-
     move = 0  '  initially prevent any movement
-
     
-
     ' CHECK LEFT
-
     If keyPress = "Left" Then
-
       px = math.Floor(((player["x"]-13)-gwLeft)/32)+1     ' subtract 13 from x to allow for half sprite width offset
-
       py = math.Floor(((player["y"]-gwTop))/32)+1
-
       
-
       ' hit edge of screen?
-
       If player["x"]-13 > gwLeft Then
-
         move = 1
-
       EndIf
-
       
-
       ' hit a wall?
-
       If Text.GetSubText( level[thisLevel][py], px, 1) = "W" Then
-
         move = 0
-
       EndIf
-
     EndIf
-
     
-
     ' CHECK RIGHT
-
     If keyPress = "Right" Then
-
       px = math.Floor(((player["x"]+13)-gwLeft)/32)+1
-
       py = math.Floor((player["y"]-gwTop)/32)+1
-
       
-
       ' hit edge of screen?
-
       If player["x"]+13 < gwRight Then
-
         move = 1
-
       EndIf
-
       
-
       ' hit a wall?
-
       If Text.GetSubText( level[thisLevel][py], px, 1) = "W" Then
-
         move = 0
-
       EndIf
-
     EndIf
-
     
-
     ' CHECK UP
-
     If keyPress = "Up"  Then
-
       px = math.Floor(((player["x"])-gwLeft)/32)+1
-
       py = math.Floor(((player["y"]-13)-gwTop)/32)+1
-
       
-
       ' hit edge of screen?
-
       If player["y"]-13 > gwTop Then
-
         move = 1
-
       EndIf
-
       
-
       ' hit a wall?
-
       If Text.GetSubText( level[thisLevel][py], px, 1) = "W" Then
-
         move = 0
-
       EndIf
-
     EndIf
-
     
-
     ' CHECK DOWN
-
     If keyPress = "Down" Then
-
       px = math.Floor(((player["x"])-gwLeft)/32)+1
-
       py = math.Floor(((player["y"]+13)-gwTop)/32)+1
-
       
-
       ' hit edge of screen?
-
       If player["y"]+13 < gwBottom Then
-
         move = 1
-
       EndIf
-
       
-
       ' hit a wall?
-
       If Text.GetSubText( level[thisLevel][py], px, 1) = "W" Then
-
         move = 0
-
       EndIf
-
     EndIf
-
     
-
     
-
     ' ADJUST PLAYER LOCATION and rotate player to point the correct direction
-
     If keyPress = "Left" Then
-
       player["x"] = player["x"] - move
-
       Shapes.Rotate(player["sprite"], 270)
-
     EndIf
-
     If keyPress = "Right" Then
-
       player["x"] = player["x"] + move
-
       Shapes.Rotate(player["sprite"], 90)
-
     EndIf
-
     If keyPress = "Up"  Then
-
       player["y"] = player["y"] - move
-
       Shapes.Rotate(player["sprite"], 0)
-
     EndIf
-
     If keyPress = "Down"  Then
-
       player["y"] = player["y"] + move
-
       Shapes.Rotate(player["sprite"], 180)
-
     EndIf
-
     
-
     
-
     ' MOVE PLAYER SPRITE
-
     Shapes.Move( player["sprite"], player["x"]-11, player["y"]-11 )
-
     keyPress = ""
-
   EndIf
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub playerCollisions
-
   ' detect player colliding with various things
-
   
-
   ' detect player/snake tail collision
-
   If (digestionDelay <= 0) Then
-
     
-
     ' have no idea why I have to subtract  4 from the tailOffset calculations here!!
-
     If (math.Abs(player["x"] - (snake[snakeSize]["x"]-tailOffset)-4) < 10) And (Math.Abs(player["y"] - (snake[snakeSize]["y"]-tailOffset)-4) < 10) AND snake[snakeSize]["delay"] = 0 Then
-
       digestionDelay = 60         ' don't allow another piece to be eaten for a while
-
       
-
       ' decrease snake length
-
       snakeSize = snakeSize - 1     
-
       shapes.Remove(snake[snakeSize]["sprite"])
-
       snake[snakeSize]["sprite"] = snake[snakeSize+1]["sprite"]
-
       
-
       'level[thisLevel]["snakeDelay"] = level[thisLevel]["snakeDelay"] - (2*thisLevel)    ' make snake faster each level - now set in level settings, therefore redundant here
-
       
-
       Sound.PlayChimes()
-
       score = score + 10        ' increase player score
-
       status()                ' update status area
-
     EndIf
-
   Else
-
     digestionDelay = digestionDelay-1   ' just decrease the delay
-
   EndIf
-
   
-
   ' detect player/snake head collision
-
   If (math.Abs(player["x"] - (snake[1]["x"]-headOffset)) < 16) And (Math.Abs(player["y"] - (snake[1]["y"]-headOffset)) < 16) Then
-
     playerEaten()
-
   EndIf
-
   
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub playerEaten
-
   ' when eaten, animate the player sprite for a while 
-
   
-
   Sound.PlayBellRing()
-
   lives = lives - 1
-
   status()              ' update status area
-
   
-
   ' set player back to their start location
-
   player["x"] = player["startX"]
-
   player["y"] = player["startY"]
-
   
-
   ' if player was eaten at player start location, move player to snake start location to prevent continuous death
-
   If (math.Abs(player["x"] - (snake[1]["x"]-headOffset)) < 36) And (Math.Abs(player["y"] - (snake[1]["y"]-headOffset)) < 36) Then
-
     player["x"] = level[thisLevel]["snakeX"]
-
     player["y"] = level[thisLevel]["snakeY"]
-
   EndIf
-
   
-
   ' you spin me right round baby, right round, like a record....
-
   For x = 1 to 3
-
     For y = 0 To 360
-
       Shapes.Rotate( player["sprite"], y )
-
       Shapes.SetOpacity( player["sprite"], y/2 )
-
       Program.Delay(2)
-
     EndFor
-
   EndFor
-
   
-
   If lives > 0 Then
-
     Shapes.Animate( player["sprite"], player["x"]-11, player["y"]-11, 500 )  
-
     For lwp = 1 to 1000000
-
     EndFor
-
   EndIf
-
   
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub addSegment
-
   '  NOT USING THIS AT PRESENT - USEFUL IF FOOD IS ADDED FOR SNAKE TO EAT
-
   ' this code hasn't been updated since snake was changed from Ellipse shapes to graphic shapes, so needs some work if used!
-
   
-
   processing = 1  ' flag that we're working on it!
-
   
-
   ' increase snake size and delay movement of new tail
-
   snakeSize = snakeSize + 1
-
   snake[snakeSize]["delay"] = snake[snakeSize-1]["delay"]+12
-
   
-
   ' need to remove old tail due to Small Basic's layering of graphic shapes
-
   Shapes.Remove(snake[snakeSize-1]["sprite"])
-
   
-
   ' add a new body part
-
   GraphicsWindow.BrushColor = "Chocolate"
-
   snake[snakeSize-1]["sprite"] = Shapes.AddEllipse(bodySize, bodySize)
-
   Shapes.Move(snake[snakeSize-1]["sprite"], snake[snakeSize-1]["x"], snake[snakeSize-1]["y"])
-
   
-
   ' add new tail 
-
   snake[snakeSize]["x"] = snake[snakeSize-1]["x"]
-
   snake[snakeSize]["y"] = snake[snakeSize-1]["y"]
-
   GraphicsWindow.BrushColor = "SandyBrown"
-
   snake[snakeSize]["sprite"] = Shapes.AddEllipse(tailSize, tailSize)
-
   Shapes.Move(snake[snakeSize]["sprite"], snake[snakeSize]["x"], snake[snakeSize]["y"]) 
-
 EndSub
-
-
 
 Sub mUp
-
   ' NOT USED AT PRESENT - put here to handle mouse button presses
-
   ' used in conjunction with AddSegment subroutine above
-
   processing = 0  ' cancel the mousedown action - have to do this 'cos the 'puter is much faster than our likkle fingers
-
 EndSub
-
-
-
 
 
 ' =====================================================================
-
-
-
 
 
 Sub status
-
   ' show the various game values in status area
-
   
-
   GraphicsWindow.BrushColor    = "White"
-
   GraphicsWindow.PenColor      = "White"
-
   GraphicsWindow.FontSize      = 32
-
   
-
   GraphicsWindow.DrawText      ( 20, 550, "Round:              Lives:               Score:")
-
   GraphicsWindow.FillRectangle ( 140,555, 80, 32 )
-
   GraphicsWindow.FillRectangle ( 370,555, 80, 32 )
-
   GraphicsWindow.FillRectangle ( 610,555, 160, 32 )
-
   
-
   GraphicsWindow.BrushColor    = "Black"
-
   GraphicsWindow.DrawText      ( 170, 550, thisLevel )
-
   GraphicsWindow.DrawText      ( 400, 550, lives )
-
   GraphicsWindow.DrawText      ( 640, 550, score )
-
 EndSub
-
-
-
 
 
 ' =====================================================================
 
 
-
-
-
 Sub levelConfig
-
   ' configuration settings for each of the levels
-
   '
-
   ' to add new levels, simply duplicate the last one below, change it's level number, make a new layout,
-
   ' then increase the 'levels' value below.  To test your new level without playing all the earlier ones, change
-
   ' the 'thisLevel' variable (at the beginning of the program code above).
-
   
-
   
-
   levels = 5
-
   
-
   
-
   level[1]["snakeDir"]  = Math.GetRandomNumber(4)  ' start snake off in a random direction: 1=N, 2=E, 3=S, 4=W
-
   level[1]["snakeSize"] = 12      ' length of snake
-
   level[1]["snakeDelay"]= 700    ' speed of snake (higher = slower)
-
   level[1]["dirDelay"]  = 50      ' delay (moves) before snake can change direction (lower = more jittery snake)
-
   level[1]["getAngry"]  = 1      ' flag indicating if the snake can switch to angry mode (=1) or not (=0)
-
   
-
   
-
   ' W = wall segment
-
   ' S = Snake start location
-
   ' P = Player start location
-
   
-
   level[0][0]=  ".........1.........2...."    ' just a ruler
-
   level[1][1]=  "W                      W"
-
   level[1][2]=  "                        "
-
   level[1][3]=  "     WWWWWWWWWWWWWW     "
-
   level[1][4]=  "                        "
-
   level[1][5]=  "                        "
-
   level[1][6]=  "           S            "
-
   level[1][7]=  "                        "
-
   level[1][8]=  "                        "
-
   level[1][9]=  "                        "
-
   level[1][10]= "                        "
-
   level[1][11]= "                        "
-
   level[1][12]= "           P            "
-
   level[1][13]= "                        "
-
   level[1][14]= "     WWWWWWWWWWWWWW     "
-
   level[1][15]= "                        "
-
   level[1][16]= "W                      W"
-
   
-
   
-
   level[2]["snakeDir"]  = Math.GetRandomNumber(4)  ' start snake off in a random direction: 1=N, 2=E, 3=S, 4=W
-
   level[2]["snakeSize"] = 14      ' length of snake
-
   level[2]["snakeDelay"]= 1100    ' speed of snake (higher = slower)
-
   level[2]["dirDelay"]  = 50      ' delay (moves) before snake can change direction (lower = more jittery snake
-
   level[2]["getAngry"]  = 1      ' flag indicating if the snake can switch to angry mode (=1) or not (=0)
-
   
-
   level[0][0]=  ".........1.........2...."    ' just a ruler
-
   level[2][1]=  "                        "
-
   level[2][2]=  "   WWWWWWWWWWWWWWWW     "
-
   level[2][3]=  "  W                W    "
-
   level[2][4]=  "  W  WWWWWWWWWWWWW  W   "
-
   level[2][5]=  "  W WW    WWW    WW  W  "
-
   level[2][6]=  "  W  WWWWWWWWWWWWW   W  "
-
   level[2][7]=  "  W     P WW S      W   "
-
   level[2][8]=  "   WWWWW   W  WWWWWW    "
-
   level[2][9]=  "        WW W        W   "
-
   level[2][10]= "         W WWWWWWW   W  "
-
   level[2][11]= "  WWW    W WW    WW  W  "
-
   level[2][12]= "  W  WWWW  WWWWWWW  W   "
-
   level[2][13]= "  W                W    "
-
   level[2][14]= "   WWWWWWWWWWWWWWWW     "
-
   level[2][15]= "                        "
-
   level[2][16]= "                        "
-
   
-
   
-
   level[3]["snakeDir"]  = 1  'Math.GetRandomNumber(4)  ' start snake off in a random direction: 1=N, 2=E, 3=S, 4=W
-
   level[3]["snakeSize"] = 16      ' length of snake
-
   level[3]["snakeDelay"]= 600    ' speed of snake (higher = slower)
-
   level[3]["dirDelay"]  = 30      ' delay (moves) before snake can change direction (lower = more jittery snake
-
   level[3]["getAngry"]  = 1      ' flag indicating if the snake can switch to angry mode (=1) or not (=0)
-
   
-
   level[0][0]=  ".........1.........2...."    ' just a ruler
-
   level[3][1]=  "                        "
-
   level[3][2]=  "      WWWW   WWWW       "
-
   level[3][3]=  "    WW    W W    WWW    "
-
   level[3][4]=  "   WW      W       WW   "
-
   level[3][5]=  "   W  WWW      WWW  W   "
-
   level[3][6]=  "   W W            W W   "
-
   level[3][7]=  "  WW  WWWWW WWWWWW  WW  "
-
   level[3][8]=  " W         P          W "
-
   level[3][9]=  "  WW  WWWWW WWWWWW  WW  "
-
   level[3][10]= "   W WW   W W    WW W   "
-
   level[3][11]= "   W   WWWW WWWWW   W   "
-
   level[3][12]= "   WW     W W      WW   "
-
   level[3][13]= "    WWWWWWW WWWWWWWW    "
-
   level[3][14]= "          WSW           "
-
   level[3][15]= "           W            "
-
   level[3][16]= "                        "
-
   
-
   
-
   level[4]["snakeDir"]  = 3  'Math.GetRandomNumber(4)  ' start snake off in a random direction: 1=N, 2=E, 3=S, 4=W
-
   level[4]["snakeSize"] = 18      ' length of snake
-
   level[4]["snakeDelay"]= 500    ' speed of snake (higher = slower)
-
   level[4]["dirDelay"]  = 20      ' delay (moves) before snake can change direction (lower = more jittery snake
-
   level[4]["getAngry"]  = 0      ' flag indicating if the snake can switch to angry mode (=1) or not (=0)
-
   
-
   level[0][0]=  ".........1.........2...."    ' just a ruler
-
   level[4][1]=  "            W           "
-
   level[4][2]=  "           WSW          "
-
   level[4][3]=  "           W W          "
-
   level[4][4]=  "           W W          "
-
   level[4][5]=  "           W W          "
-
   level[4][6]=  "           W WW         "
-
   level[4][7]=  "           W  WW        "
-
   level[4][8]=  "           W WW         "
-
   level[4][9]=  "          WW W          "
-
   level[4][10]= "         WW  W          "
-
   level[4][11]= "          WW W          "
-
   level[4][12]= "           W W          "
-
   level[4][13]= "           W W          "
-
   level[4][14]= "           W W          "
-
   level[4][15]= "           WPW          "
-
   level[4][16]= "            W           "  
-
   
-
   
-
   
-
   level[5]["snakeDir"]  = 3  'Math.GetRandomNumber(4)  ' start snake off in a random direction: 1=N, 2=E, 3=S, 4=W
-
   level[5]["snakeSize"] = 20      ' length of snake
-
   level[5]["snakeDelay"]= 300    ' speed of snake (higher = slower)
-
   level[5]["dirDelay"]  = 20      ' delay (moves) before snake can change direction (lower = more jittery snake
-
   level[5]["getAngry"]  = 0      ' flag indicating if the snake can switch to angry mode (=1) or not (=0)
-
   
-
   level[0][0]=  ".........1.........2...."    ' just a ruler
-
   level[5][1]=  "WW                    WW"
-
   level[5][2]=  "W  P                   W"
-
   level[5][3]=  "     WWWWWWWWWWWWWW     "
-
   level[5][4]=  "WWWWWW            WWW WW"
-
   level[5][5]=  "                        "
-
   level[5][6]=  "     WWWWWWWWWWWWWWW    "
-
   level[5][7]=  "WW WWW             WWWWW"
-
   level[5][8]=  "                        "
-
   level[5][9]=  "WW WWW            WWW WW"
-
   level[5][10]= "     WWWWWWWWWWWWWW     "
-
   level[5][11]= "                        "
-
   level[5][12]= "WWWWWW            WWW WW"
-
   level[5][13]= "     WWWWWWWWWWWWWW     "
-
   level[5][14]= "                        "
-
   level[5][15]= "W     WWWWW  WWWWW     W"
-
   level[5][16]= "WW          S         WW"  
-
   
-
 EndSub
-
-
-
 

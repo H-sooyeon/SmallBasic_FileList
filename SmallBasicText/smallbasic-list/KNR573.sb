@@ -1,2733 +1,1366 @@
 '**************************************************************************************
-
 '*       EM_Chess (new version of "Chess")
-
 '*       Author of the idea - Evgeniy Mishin (Ukraine. Dnepropetrovsk sity), 01.01.2015
-
 '*       Version 0.5 (August 2015)
-
 '*
-
 '**************************************************************************************
 
 
-
-
-
 ' -----  OBJECTS INITIALIZATION  -----
-
 GraphicsWindow.Hide()
 
 
-
-
-
 ' Variables List (without Chess Pieces)
-
 '============================
-
 m_userPlayByWhite = 1
-
 m_userTurn = 1
-
 m_useInternet = 0
-
 m_continueGameMode = 0
 
-
-
 ' m_chessBoardArray[][]
-
 ' m_chessPiecesNames[][][]
-
 ' m_chessPiecesVisible[][][]
-
 m_chessPieceIsSelected = 0
-
 m_currentPosition = "Start.White"
-
 m_desktopWidth = Desktop.Width
-
 m_desktopHeight = Desktop.Height
-
 m_doLoop = 0
-
 m_errorMessage = ""
-
 m_filePathOfThisSavedGame = ""
-
 m_flashIsOn = 0
-
 m_gameName = "Test_EM_Chess"
-
 ' m_gameNetData[]
-
 ' m_imgChessBoard
-
 m_mouseIsUp = 0
-
 m_mouseX = 0
-
 m_mouseY = 0
-
 m_n1 = 0
-
 m_n2 = 0
-
 m_n3 = 0
-
 ' m_oldFont
-
 m_pathResources = ""
-
 m_pathSavedGames = ""
-
 ' m_row[]
-
 m_selectedColumn = 0
-
 m_selectedRow = 0
-
 m_shapeEventOccurred = 0
-
 m_someButtonIsClicked = 0
-
 m_windowWidth = 940
-
 m_windowHeight = 480
-
 m_whoseTurn = "White Turn"
-
 m_x0_OfChessBoard = 40
-
 m_y0_OfChessBoard = 40
-
 ' m_Xarray[]
-
 m_Xsim = ""
-
 m_X = 0
-
 m_Y = 0
-
 m_Z = 0
 
 
-
-
-
 ' Objects List (without Chess Pieces)
-
 '==========================
-
 ' m_Button1
-
 ' m_FlashRectangle
-
 ' m_StartPanel
-
 ' m_Text1
-
 ' m_TextBox
-
 ' m_Text_WhoseTurn
 
 
-
-
-
 ' Subroutines List
-
 '==========================
-
 ' ms_ApplyingSavedGameData
-
 ' ms_CheckingPieceSelection
-
 ' ms_ChessPiecesInitialization
-
 ' ms_ChessPiecesPlacing
-
 ' ms_ChessBoardArrayFilling
-
 ' ms_ChessBoardArrayInit
-
 ' ms_CounterUp
-
 ' ms_GameNameGeneration
-
 ' ms_GameSelection
-
 ' ms_HideAllChessPieces
-
 ' ms_MainPanelInitialization
-
 ' ms_OnButtonClicked
-
 ' ms_OnChessBoardClicked
-
 ' ms_OnMouseUp
-
 ' ms_OnShapeEvent
-
 ' ms_OnTimerTick
-
 ' ms_ShowAllChessPieces
-
 ' ms_WaitingForGameActivation
-
 ' ms_WhoseTurnTrigger
-
 ' ms_WindowInitialization
 
 
-
-
-
 If (m_desktopWidth < 1024) Or (m_desktopHeight < 600) Then '                               ---------     check desktop size
-
   GraphicsWindow.Show()
-
   GraphicsWindow.ShowMessage("The size of your screen smaller than 1024x600. The program will be closed.", "Attention!")
-
   Program.End()
-
   
-
 EndIf
 
-
-
 m_pathSavedGames = Program.Directory + "\SavedGames"
-
 m_pathResources = Program.Directory + "\Resources"
-
-
 
 m_imgChessBoard = ImageList.LoadImage(m_pathResources + "\MenuBackground2.jpg")
 
-
-
 GraphicsWindow.MouseUp = ms_OnMouseUp
-
 Controls.ButtonClicked = ms_OnButtonClicked
-
 Timer.Tick = ms_OnTimerTick
-
 LDShapes.ShapeEvent = ms_OnShapeEvent
 
-
-
 Timer.Interval = 500
-
 Timer.Pause()
 
-
-
 ms_ChessPiecesInitialization()
-
 ms_StartWindow_Show()
-
 ms_GameSelection()
-
 ms_WindowInitialization()
-
 ms_MainPanelInitialization()
 
 
-
-
-
 '=========    Game Loop   ===========
-
 MainLoop:
-
 Shapes.SetText(m_Text_WhoseTurn, m_whoseTurn)
 
-
-
 If (m_whoseTurn = "White Turn") And (m_userPlayByWhite = 1) Then
-
   m_userTurn = 1
-
   
-
 ElseIf (m_whoseTurn = "Black Turn") And (m_userPlayByWhite = 0) Then
-
   m_userTurn = 1
-
   
-
 Else
-
   m_userTurn = 0
-
   
-
 EndIf
-
-
 
 If (m_useInternet = 1) And (m_userTurn = 0) Then '                                        ---------     wait for opponent's move
-
   m_gameNetData = LDNetwork.GetGameData(m_gameName)
-
   
-
   If m_gameNetData[15][3] = m_chessBoardArray[15][3] Then ' no move
-
     GraphicsWindow.Title = Text.Append("EM_Chess ", Clock.Time)
-
     Program.Delay(1000)
-
     
-
     Goto MainLoop
-
     
-
   Else ' on opponent move
-
     ms_ApplyingSavedGameData()
-
     
-
     If m_gameNetData[15][1] = "kill" Then
-
       m_n1 = Text.GetSubText(m_gameNetData[15][2], 1, 1) + 0
-
       m_n2 = Text.GetSubText(m_gameNetData[15][2], 2, 1) + 0
-
       m_n3 = Text.GetSubText(m_gameNetData[15][2], 3, 2) + 0
-
       Shapes.HideShape(m_chessPiecesNames[m_n1][m_n2][m_n3])
-
       m_chessPiecesVisible[m_n1][m_n2][m_n3] = "false"
-
       
-
     EndIf
-
     
-
     ms_WhoseTurnTrigger()
-
     GraphicsWindow.Title = "EM_Chess"
-
     
-
   EndIf
-
   
-
 Else
-
   m_mouseIsUp = 0
-
   While m_mouseIsUp = 0
-
     Program.Delay(100)
-
     
-
   EndWhile
-
   
-
   If (m_mouseX > 0) And (m_mouseX < 15) Then
-
     If (m_mouseY > 0) And (m_mouseY < 11) Then
-
       ms_OnChessBoardClicked()
-
       
-
     EndIf
-
     
-
   EndIf
-
   
-
 EndIf
-
-
 
 Goto MainLoop
 
 
 
-
-
-
-
 '*******************       SUBROUTINES       ********************
-
 Sub ms_OnMouseUp
-
   m_mouseIsUp = 1
-
   m_mouseX = Math.Floor(LDGraphicsWindow.MouseX / 40)
-
   m_mouseY = Math.Floor(LDGraphicsWindow.MouseY / 40)
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_OnButtonClicked
-
   m_someButtonIsClicked = 1
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_GameSelection
-
   If m_continueGameMode = 0 Then '                                                        ---------     IF  selected "New game" mode
-
     
-
     If m_userPlayByWhite = 0 Then '                                                       ---------     IF user has selected "Black"
-
       '   m_continueGameMode = 0                                                          ---------     to play NEW game
-
       
-
       If m_useInternet = 1 Then '                                                         ---------     IF use Internet
-
         '   m_continueGameMode  = 0                                                       ---------     to play NEW game 
-
         '   m_userPlayByWhite   = 0                                                       ---------     by BLACK chess pieces
-
         
-
         If m_gameName = "Test_EM_Chess" Then ' this is debugging condition                ---------     request the Name of the game
-
           LDGraphicsWindow.PauseUpdates()
-
           
-
           m_imgChessBoard = ImageList.LoadImage(m_pathResources + "\NameEnterPanel.jpg")
-
           GraphicsWindow.DrawImage(m_imgChessBoard, 0, 0)
-
           
-
           m_X = 582
-
           m_Y = 10
-
           
-
           GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(255, 255, 130)
-
           GraphicsWindow.FontSize = 24
-
           GraphicsWindow.FontItalic = "true"
-
           m_Text2 = Shapes.AddText("Enter the name of the game") '                        ---------     create object "Text2"
-
           Shapes.Move(m_Text2, m_X, m_Y + 10)
-
           GraphicsWindow.FontItalic = "false"
-
           
-
           GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(100, 0, 0)
-
           m_oldFont = GraphicsWindow.FontName
-
           GraphicsWindow.FontName = "Arial"
-
           GraphicsWindow.FontSize = 18
-
           
-
           m_Button1 = Controls.AddButton("Enter", m_X + 73, m_Y + 100) '                   ---------     create "Button2"
-
           Controls.SetSize(m_Button1, 150, 35)
-
           
-
           GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(0, 0, 50)
-
           GraphicsWindow.FontBold = "false"
-
           GraphicsWindow.FontSize = 14
-
           m_TextBox = Controls.AddTextBox(m_X + 34, m_Y + 50) '                            ---------     create Text Box
-
           Controls.SetSize(m_TextBox, 270, 25)
-
           GraphicsWindow.FontBold = "true"
-
           
-
           LDGraphicsWindow.ResumeUpdates()
-
           
-
           m_someButtonIsClicked = 0 '                                                     ---------     wait for button clicked
-
           While m_someButtonIsClicked = 0
-
             Program.Delay(100)
-
             
-
           EndWhile
-
           
-
           m_gameName = Controls.GetTextBoxText(m_TextBox)
-
           
-
         EndIf
-
       
-
         LDGraphicsWindow.PauseUpdates()
-
         
-
         Shapes.Remove(m_Text2)
-
         Controls.Remove(m_Button1)
-
         Controls.Remove(m_TextBox)
-
         
-
         LDGraphicsWindow.ResumeUpdates()
-
         
-
       Else '                                                                              ---------     do not USE Internet
-
         '   m_continueGameMode  = 0                                                       ---------     to play NEW game 
-
         '   m_userPlayByWhite   = 0                                                       ---------     by BLACK chess pieces
-
         
-
         ms_GameNameGeneration()
-
         
-
         LDClipboard.SetText(m_gameName)
-
       
-
         m_Xsim = "The Name of your Game is" + Text.GetCharacter(10) + Text.GetCharacter(10) + Text.GetCharacter(13)
-
         m_Xsim = m_Xsim + m_gameName + Text.GetCharacter(10) + Text.GetCharacter(10) + Text.GetCharacter(13)
-
         m_Xsim = m_Xsim + "The Name is copied to the Clipboard." + Text.GetCharacter(10) + Text.GetCharacter(13)
-
         m_Xsim = m_Xsim + "Please remember this name."
-
         
-
         GraphicsWindow.ShowMessage(m_Xsim, "The Name of your Game")
-
         
-
       EndIf
-
       
-
       m_imgChessBoard = ImageList.LoadImage(m_pathResources + "\ChessBoard2.jpg")
-
       GraphicsWindow.DrawImage(m_imgChessBoard, 0, 0)
-
       ms_ShowAllChessPieces()
-
       
-
       m_currentPosition = "Start.Black"
-
       ms_ChessBoardArrayInit()
-
       
-
       m_filePathOfThisSavedGame = m_pathSavedGames + "\" + m_gameName + ".sbsg"
-
       
-
       If m_userPlayByWhite = 1 Then
-
         m_chessBoardArray[15][4] = "createdByWhite"
-
         
-
       Else
-
         m_chessBoardArray[15][4] = "createdByBlack"
-
         
-
       EndIf
-
       
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.WriteLine(m_filePathOfThisSavedGame, 1, m_chessBoardArray)
-
       
-
     Else
-
       '   m_userPlayByWhite   = 1                                                         ---------     user has selected "White"
-
       '   m_continueGameMode  = 0                                                         ---------     to play NEW game 
-
       
-
       m_imgChessBoard = ImageList.LoadImage(m_pathResources + "\ChessBoard.jpg")
-
       m_currentPosition = "Start.White"
-
       ms_ChessBoardArrayInit()
-
       ms_ShowAllChessPieces()
-
       ms_GameNameGeneration()
-
       
-
       m_filePathOfThisSavedGame = m_pathSavedGames + "\" + m_gameName + ".sbsg"
-
       
-
       If m_userPlayByWhite = 1 Then
-
         m_chessBoardArray[15][4] = "createdByWhite"
-
         
-
       Else
-
         m_chessBoardArray[15][4] = "createdByBlack"
-
         
-
       EndIf
-
       
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.WriteLine(m_filePathOfThisSavedGame, 1, m_chessBoardArray)
-
       LDClipboard.SetText(m_gameName)
-
       
-
       If m_useInternet = 1 Then '                                                         ---------     IF use Internet and
-
         '   m_userPlayByWhite   = 1                                                       ---------     play by WHITE chess pieces
-
         '   m_continueGameMode  = 0                                                       ---------     a NEW game
-
         
-
         m_Xsim = "The Name of your Game is" + Text.GetCharacter(10) + Text.GetCharacter(10) + Text.GetCharacter(13)
-
         m_Xsim = m_Xsim + m_gameName + Text.GetCharacter(10) + Text.GetCharacter(10) + Text.GetCharacter(13)
-
         m_Xsim = m_Xsim + "The Name is copied to the Clipboard." + Text.GetCharacter(10) + Text.GetCharacter(13)
-
         m_Xsim = m_Xsim + "Please let know this name to second player."
-
         
-
         GraphicsWindow.ShowMessage(m_Xsim, "The Name of your Game")
-
         
-
         LDNetwork.SetGameData(m_gameName, m_chessBoardArray)
-
         
-
       Else
-
         '   m_useInternet       = 0                                                       ---------     do not USE Internet and
-
         '   m_userPlayByWhite   = 1                                                       ---------     play by WHITE chess pieces
-
         '   m_continueGameMode  = 0                                                       ---------     a NEW game
-
         
-
         m_Xsim = "The Name of your Game is" + Text.GetCharacter(10) + Text.GetCharacter(10) + Text.GetCharacter(13)
-
         m_Xsim = m_Xsim + m_gameName + Text.GetCharacter(10) + Text.GetCharacter(10) + Text.GetCharacter(13)
-
         m_Xsim = m_Xsim + "The Name is copied to the Clipboard." + Text.GetCharacter(10) + Text.GetCharacter(13)
-
         m_Xsim = m_Xsim + "Please remember this name."
-
         
-
         GraphicsWindow.ShowMessage(m_Xsim, "The Name of your Game")
-
         
-
       EndIf
-
       
-
     EndIf
-
     
-
   Else
-
     '   m_continueGameMode = 1                                                            ---------     CONTINUE a SAVED game
-
     
-
     m_Xsim = LDDialogs.OpenFile("sbsg", m_pathSavedGames)
-
     m_filePathOfThisSavedGame = m_Xsim
-
     
-
     m_Xarray = LDText.FindAll(m_Xsim, "\")
-
     m_X = m_Xarray[Array.GetItemCount(m_Xarray)] + 1
-
     m_Xsim = Text.GetSubTextToEnd(m_Xsim, m_X)
-
     m_gameName = Text.GetSubText(m_Xsim, 1, Text.GetLength(m_Xsim) - 5) '                 ---------     get game Name
-
     
-
     m_imgChessBoard = ImageList.LoadImage(m_pathResources + "\ChessBoard.jpg")
-
     
-
     If m_userPlayByWhite = 0 Then '                                                       ---------     IF user has selected "Black"
-
       '   m_continueGameMode = 1                                                          ---------     to CONTINUE a SAVED game
-
       
-
       m_imgChessBoard = ImageList.LoadImage(m_pathResources + "\ChessBoard2.jpg")
-
       
-
     EndIf
-
     
-
     GraphicsWindow.DrawImage(m_imgChessBoard, 0, 0)
-
     
-
     If Text.EndsWith(m_gameName, "local") Then
-
       '   m_useInternet      = 0                                                          ---------     do NOT USE Internet and
-
       '   m_continueGameMode = 1                                                          ---------     CONTINUE a SAVED game
-
       
-
 ' The following line could be harmful and has been automatically commented.
-
 '       m_gameNetData = File.ReadLine(m_filePathOfThisSavedGame, 1)
-
       
-
       ms_ApplyingSavedGameData()
-
       
-
     Else
-
       '   m_useInternet      = 1                                                          ---------     IF USE Internet and
-
       '   m_continueGameMode = 1                                                          ---------     CONTINUE a SAVED game
-
       
-
       ms_WaitingForGameActivation()
-
       
-
       If m_errorMessage = "Game is not active" Then
-
         GraphicsWindow.ShowMessage("The game does not exist or web hoster not available", "Error!")
-
         Program.End()
-
         
-
       EndIf
-
       
-
       ms_ApplyingSavedGameData()
-
       
-
     EndIf
-
     
-
     ms_ShowAllChessPieces()
-
     ms_WhoseTurnTrigger()
-
     
-
   EndIf
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_ApplyingSavedGameData
-
   m_Xsim = m_gameNetData[15][4]
-
   m_X = Math.Remainder(Math.Abs(m_gameNetData[15][3]), 2)
-
   
-
   If m_X = 0 Then
-
     m_whoseTurn = "White Turn"
-
     
-
   Else
-
     m_whoseTurn = "Black Turn"
-
     
-
   EndIf
-
   
-
   If ((m_Xsim = "createdByBlack") And (m_userPlayByWhite = 1)) Or ((m_Xsim = "createdByWhite") And (m_userPlayByWhite = 0)) Then ' saved opponent turn
-
     For m_Y = 1 To 10
-
       For m_X = 1 To 14
-
         m_chessBoardArray[m_X][m_Y] = m_gameNetData[15 - m_X][11 - m_Y]
-
         
-
       EndFor
-
       
-
     EndFor
-
     
-
   Else ' saved user turn
-
     For m_Y = 1 To 10
-
       For m_X = 1 To 14
-
         m_chessBoardArray[m_X][m_Y] = m_gameNetData[m_X][m_Y]
-
         
-
       EndFor
-
       
-
     EndFor
-
     
-
   EndIf
-
   
-
   m_chessBoardArray[15][1] = m_gameNetData[15][1]
-
   m_chessBoardArray[15][2] = m_gameNetData[15][2]
-
   m_chessBoardArray[15][3] = m_gameNetData[15][3]
-
   m_chessBoardArray[15][4] = m_gameNetData[15][4]
-
   
-
   ms_ChessPiecesPlacing()
 
-
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_WaitingForGameActivation
-
   m_errorMessage = ""
-
   
-
   For m_Y = 1 To 20
-
     Program.Delay(1000)
-
     
-
     m_gameNetData = LDNetwork.GetGameData(m_gameName)
-
     m_X = Array.GetItemCount(m_gameNetData)
-
     
-
     If m_X < 14 Then ' the Game is not active
-
       m_errorMessage = "Game is not active"
-
       
-
     Else
-
       m_errorMessage = ""
-
       m_Y = 20
-
       
-
     EndIf
-
     
-
   EndFor
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_ChessBoardArrayInit
-
 ' WhitePawn = 11xx
-
 ' WhiteKnight = 12xx
-
 ' WhiteBishop = 13xx
-
 ' WhiteRook = 14xx
-
 ' WhiteQueen = 15xx
-
 ' WhiteKing = 16xx
 
-
-
 ' BlackPawn = 21xx
-
 ' BlackKnight = 22xx
-
 ' BlackBishop = 23xx
-
 ' BlackRook = 24xx
-
 ' BlackQueen = 25xx
-
 ' BlackKing = 26xx
 
-
-
   If m_currentPosition = "Start.Black" Then
-
     m_row[10] = "1401.1201.1301.1402.1202.1302.1501.1601.1303.1203.1403.1304.1204.1404"
-
     m_row[ 9] = "1101.1102.1103.1104.1105.1106.1107.1108.1109.1110.1111.1112.1113.1114"
-
     m_row[ 8] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 7] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 6] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 5] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 4] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 3] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 2] = "2101.2102.2103.2104.2105.2106.2107.2108.2109.2110.2111.2112.2113.2114"
-
     m_row[ 1] = "2401.2201.2301.2402.2202.2302.2501.2601.2303.2203.2403.2304.2204.2404"
-
     
-
   ElseIf m_currentPosition = "Start.White" Then
-
     m_row[10] = "2401.2201.2301.2402.2202.2302.2601.2501.2303.2203.2403.2304.2204.2404"
-
     m_row[ 9] = "2101.2102.2103.2104.2105.2106.2107.2108.2109.2110.2111.2112.2113.2114"
-
     m_row[ 8] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 7] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 6] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 5] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 4] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 3] = "0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000.0000"
-
     m_row[ 2] = "1101.1102.1103.1104.1105.1106.1107.1108.1109.1110.1111.1112.1113.1114"
-
     m_row[ 1] = "1401.1201.1301.1402.1202.1302.1601.1501.1303.1203.1403.1304.1204.1404"
-
     
-
   EndIf
-
   
-
   ms_ChessBoardArrayFilling()
-
   ms_ChessPiecesPlacing()
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_ChessBoardArrayFilling
-
   For m_Y = 1 To 10
-
     For m_X = 1 To 14
-
       m_chessBoardArray[m_X][m_Y] = Text.GetSubText(m_row[m_Y], (m_X-1)*5+1, 4)
-
       
-
     EndFor
-
     
-
   EndFor
-
   
-
   m_chessBoardArray[15][1] = " "
-
   m_chessBoardArray[15][2] = " "
-
   m_chessBoardArray[15][3] = "0"
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_ChessPiecesPlacing
-
   For m_Y = 1 To 10
-
     For m_X = 1 To 14
-
       If m_chessBoardArray[m_X][m_Y] <> "0000" Then
-
         m_n1 = Text.GetSubText(m_chessBoardArray[m_X][m_Y], 1, 1) + 0
-
         m_n2 = Text.GetSubText(m_chessBoardArray[m_X][m_Y], 2, 1) + 0
-
         m_n3 = Text.GetSubText(m_chessBoardArray[m_X][m_Y], 3, 2) + 0
-
         
-
         Shapes.Move(m_chessPiecesNames[m_n1][m_n2][m_n3], m_X * 40, (11 - m_Y) * 40)
-
         
-
       EndIf
-
       
-
     EndFor
-
     
-
   EndFor
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_OnTimerTick
-
   If m_chessPieceIsSelected = 1 Then
-
     If m_flashIsOn = 0 Then
-
       Shapes.ShowShape(m_FlashRectangle)
-
       m_flashIsOn = 1
-
       
-
     Else
-
       Shapes.HideShape(m_FlashRectangle)
-
       m_flashIsOn = 0
-
       
-
     EndIf
-
     
-
   EndIf
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_OnChessBoardClicked
-
   If m_chessPieceIsSelected = 0 Then
-
     ms_CheckingPieceSelection()
-
     
-
   Else
-
     If m_chessBoardArray[m_mouseX][11 - m_mouseY] = "0000" Then '                         ---------     IF a cell is empty
-
       m_Xsim = m_chessBoardArray[m_mouseX][11 - m_mouseY] '                               ---------     replace Piece Code
-
       
-
       m_chessBoardArray[m_mouseX][11 - m_mouseY] = m_chessBoardArray[m_selectedColumn][m_selectedRow]
-
       m_chessBoardArray[m_selectedColumn][m_selectedRow] = m_Xsim
-
       
-
       ms_ChessPiecesPlacing()
-
       ms_CounterUp()
-
       
-
       m_filePathOfThisSavedGame = m_pathSavedGames + "\" + m_gameName + ".sbsg"
-
       
-
       If m_userPlayByWhite = 1 Then
-
         m_chessBoardArray[15][4] = "createdByWhite"
-
         
-
       Else
-
         m_chessBoardArray[15][4] = "createdByBlack"
-
         
-
       EndIf
-
       
-
 ' The following line could be harmful and has been automatically commented.
-
 '       File.WriteLine(m_filePathOfThisSavedGame, 1, m_chessBoardArray)
-
       
-
       m_chessPieceIsSelected = 0
-
       Shapes.HideShape(m_FlashRectangle)
-
       m_flashIsOn = 0
-
       Timer.Pause()
-
       
-
       ms_WhoseTurnTrigger()
-
       
-
       If m_useInternet = 1 Then
-
         m_chessBoardArray[15][1] = " "
-
         m_chessBoardArray[15][2] = " "
-
         
-
         LDNetwork.SetGameData(m_gameName, m_chessBoardArray)
-
         
-
       EndIf
-
       
-
     Else '                                                                                ---------     IF a cell is not empty
-
       m_X = 1 '                                                                           ---------     check color of the chess piece
-
       m_Xsim = Text.GetSubText(m_chessBoardArray[m_mouseX][11 - m_mouseY], 1, 1)
-
       
-
       If (m_whoseTurn = "White Turn") And (m_Xsim = "1") Then
-
         m_X = 0
-
         
-
       ElseIf (m_whoseTurn = "Black Turn") And (m_Xsim = "2") Then
-
         m_X = 0
-
         
-
       EndIf
-
       
-
       If m_X = 1 Then
-
         m_chessBoardArray[15][1] = "kill"
-
         m_chessBoardArray[15][2] = m_chessBoardArray[m_mouseX][11 - m_mouseY]
-
         
-
         m_n1 = Text.GetSubText(m_chessBoardArray[m_mouseX][11 - m_mouseY], 1, 1) + 0
-
         m_n2 = Text.GetSubText(m_chessBoardArray[m_mouseX][11 - m_mouseY], 2, 1) + 0
-
         m_n3 = Text.GetSubText(m_chessBoardArray[m_mouseX][11 - m_mouseY], 3, 2) + 0
-
         Shapes.HideShape(m_chessPiecesNames[m_n1][m_n2][m_n3])
-
         m_chessPiecesVisible[m_n1][m_n2][m_n3] = "false"
-
         
-
         m_chessBoardArray[m_mouseX][11 - m_mouseY] = m_chessBoardArray[m_selectedColumn][m_selectedRow] ' replace Piece Code
-
         m_chessBoardArray[m_selectedColumn][m_selectedRow] = "0000"
-
         
-
         ms_ChessPiecesPlacing()
-
         ms_CounterUp()
-
         
-
         m_filePathOfThisSavedGame = m_pathSavedGames + "\" + m_gameName + ".sbsg"
-
         
-
         If m_userPlayByWhite = 1 Then
-
           m_chessBoardArray[15][4] = "createdByWhite"
-
           
-
         Else
-
           m_chessBoardArray[15][4] = "createdByBlack"
-
           
-
         EndIf
-
         
-
 ' The following line could be harmful and has been automatically commented.
-
 '         File.WriteLine(m_filePathOfThisSavedGame, 1, m_chessBoardArray)
-
         
-
         m_chessPieceIsSelected = 0
-
         Shapes.HideShape(m_FlashRectangle)
-
         m_flashIsOn = 0
-
         Timer.Pause()
-
         
-
         ms_WhoseTurnTrigger()
-
         
-
         If m_useInternet = 1 Then
-
           LDNetwork.SetGameData(m_gameName, m_chessBoardArray)
-
           
-
         EndIf
-
         
-
       EndIf
-
       
-
     EndIf
-
     
-
     'm_userTurn = 0
-
     
-
   EndIf
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_WhoseTurnTrigger
-
   m_X = Math.Remainder(Math.Abs(m_chessBoardArray[15][3]), 2)
-
   
-
   If m_X = 0 Then
-
     m_whoseTurn = "White Turn"
-
     
-
   Else
-
     m_whoseTurn = "Black Turn"
-
     
-
   EndIf
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_CheckingPieceSelection
-
   If m_chessBoardArray[m_mouseX][11 - m_mouseY] <> "0000" Then '                          ---------     if a Piece is clicked
-
     ' check color conformity
-
     m_X = 0
-
     m_Xsim = Text.GetSubText(m_chessBoardArray[m_mouseX][11 - m_mouseY], 1, 1)
-
     
-
     If (m_whoseTurn = "White Turn") And (m_Xsim = "1") Then
-
       m_X = 1
-
       
-
     ElseIf (m_whoseTurn = "Black Turn") And (m_Xsim = "2") Then
-
       m_X = 1
-
       
-
     EndIf
-
     
-
     If m_X = 1 Then
-
       m_selectedColumn = m_mouseX
-
       m_selectedRow = 11 - m_mouseY
-
       
-
       Shapes.Move(m_FlashRectangle, m_mouseX * 40, m_mouseY * 40)
-
       
-
       m_chessPieceIsSelected = 1
-
       Shapes.ShowShape(m_FlashRectangle)
-
       m_flashIsOn = 1
-
       Timer.Resume()
-
       
-
     EndIf
-
     
-
   EndIf
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_MainPanelInitialization
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(50, 0, 0)
-
   GraphicsWindow.FillRectangle(640, 0, 300, 480)
-
   
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(255, 255, 130)
-
   GraphicsWindow.FontSize = 46
-
   GraphicsWindow.DrawText(672, 9, "EM_Chess")
-
   
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(180, 255, 255)
-
   GraphicsWindow.FontSize = 24
-
   GraphicsWindow.DrawText(695, 120, "GAME RECORD:")
-
   
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(70, 10, 0)
-
   GraphicsWindow.FillRectangle(650, 152, 280, 318)
-
   GraphicsWindow.PenColor = GraphicsWindow.GetColorFromRGB(100, 80, 80)
-
   GraphicsWindow.DrawRectangle(650, 152, 280, 318)
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_ChessPiecesInitialization
-
   LDGraphicsWindow.PauseUpdates()
-
   
-
   m_imgBlackBishop = ImageList.LoadImage(m_pathResources + "\Black bishop.png")
-
   m_BlackBishop_1 = Shapes.AddImage(m_imgBlackBishop)
-
   LDShapes.SetSize(m_BlackBishop_1, 40, 40)
-
   Shapes.Move(m_BlackBishop_1, 3*40, 40)
-
   
-
   m_BlackBishop_2 = Shapes.AddImage(m_imgBlackBishop)
-
   LDShapes.SetSize(m_BlackBishop_2, 40, 40)
-
   Shapes.Move(m_BlackBishop_2, 6*40, 40)
-
   
-
   m_BlackBishop_3 = Shapes.AddImage(m_imgBlackBishop)
-
   LDShapes.SetSize(m_BlackBishop_3, 40, 40)
-
   Shapes.Move(m_BlackBishop_3, 9*40, 40)
-
   
-
   m_BlackBishop_4 = Shapes.AddImage(m_imgBlackBishop)
-
   LDShapes.SetSize(m_BlackBishop_4, 40, 40)
-
   Shapes.Move(m_BlackBishop_4, 12*40, 40)
-
   
-
   m_imgBlackKnight = ImageList.LoadImage(m_pathResources + "\Black knight.png")
-
   m_BlackKnight_1 = Shapes.AddImage(m_imgBlackKnight)
-
   LDShapes.SetSize(m_BlackKnight_1, 40, 40)
-
   Shapes.Move(m_BlackKnight_1, 2*40, 40)
-
   
-
   m_BlackKnight_2 = Shapes.AddImage(m_imgBlackKnight)
-
   LDShapes.SetSize(m_BlackKnight_2, 40, 40)
-
   Shapes.Move(m_BlackKnight_2, 5*40, 40)
-
   
-
   m_BlackKnight_3 = Shapes.AddImage(m_imgBlackKnight)
-
   LDShapes.SetSize(m_BlackKnight_3, 40, 40)
-
   Shapes.Move(m_BlackKnight_3, 10*40, 40)
-
   
-
   m_BlackKnight_4 = Shapes.AddImage(m_imgBlackKnight)
-
   LDShapes.SetSize(m_BlackKnight_4, 40, 40)
-
   Shapes.Move(m_BlackKnight_4, 13*40, 40)
-
   
-
   m_imgBlackRook = ImageList.LoadImage(m_pathResources + "\Black rook.png")
-
   m_BlackRook_1 = Shapes.AddImage(m_imgBlackRook)
-
   LDShapes.SetSize(m_BlackRook_1, 40, 40)
-
   Shapes.Move(m_BlackRook_1, 1*40, 40)
-
   
-
   m_BlackRook_2 = Shapes.AddImage(m_imgBlackRook)
-
   LDShapes.SetSize(m_BlackRook_2, 40, 40)
-
   Shapes.Move(m_BlackRook_2, 4*40, 40)
-
   
-
   m_BlackRook_3 = Shapes.AddImage(m_imgBlackRook)
-
   LDShapes.SetSize(m_BlackRook_3, 40, 40)
-
   Shapes.Move(m_BlackRook_3, 11*40, 40)
-
   
-
   m_BlackRook_4 = Shapes.AddImage(m_imgBlackRook)
-
   LDShapes.SetSize(m_BlackRook_4, 40, 40)
-
   Shapes.Move(m_BlackRook_4, 14*40, 40)
-
   
-
   m_imgBlackQueen = ImageList.LoadImage(m_pathResources + "\Black queen.png")
-
   m_BlackQueen_1 = Shapes.AddImage(m_imgBlackQueen)
-
   LDShapes.SetSize(m_BlackQueen_1, 40, 40)
-
   Shapes.Move(m_BlackQueen_1, 8*40, 40)
-
   
-
   m_imgBlackKing = ImageList.LoadImage(m_pathResources + "\Black king.png")
-
   m_BlackKing_1 = Shapes.AddImage(m_imgBlackKing)
-
   LDShapes.SetSize(m_BlackKing_1, 40, 40)
-
   Shapes.Move(m_BlackKing_1, 7*40, 40)
-
   
-
   m_imgBlackPawn = ImageList.LoadImage(m_pathResources + "\Black pawn.png")
-
   m_BlackPawn_1 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_1, 40, 40)
-
   Shapes.Move(m_BlackPawn_1, 1*40, 80)
-
   
-
   m_BlackPawn_2 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_2, 40, 40)
-
   Shapes.Move(m_BlackPawn_2, 2*40, 80)
-
   
-
   m_BlackPawn_3 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_3, 40, 40)
-
   Shapes.Move(m_BlackPawn_3, 3*40, 80)
-
   
-
   m_BlackPawn_4 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_4, 40, 40)
-
   Shapes.Move(m_BlackPawn_4, 4*40, 80)
-
   
-
   m_BlackPawn_5 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_5, 40, 40)
-
   Shapes.Move(m_BlackPawn_5, 5*40, 80)
-
   
-
   m_BlackPawn_6 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_6, 40, 40)
-
   Shapes.Move(m_BlackPawn_6, 6*40, 80)
-
   
-
   m_BlackPawn_7 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_7, 40, 40)
-
   Shapes.Move(m_BlackPawn_7, 7*40, 80)
-
   
-
   m_BlackPawn_8 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_8, 40, 40)
-
   Shapes.Move(m_BlackPawn_8, 8*40, 80)
-
   
-
   m_BlackPawn_9 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_9, 40, 40)
-
   Shapes.Move(m_BlackPawn_9, 9*40, 80)
-
   
-
   m_BlackPawn_10 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_10, 40, 40)
-
   Shapes.Move(m_BlackPawn_10, 10*40, 80)
-
   
-
   m_BlackPawn_11 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_11, 40, 40)
-
   Shapes.Move(m_BlackPawn_11, 11*40, 80)
-
   
-
   m_BlackPawn_12 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_12, 40, 40)
-
   Shapes.Move(m_BlackPawn_12, 12*40, 80)
-
   
-
   m_BlackPawn_13 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_13, 40, 40)
-
   Shapes.Move(m_BlackPawn_13, 13*40, 80)
-
   
-
   m_BlackPawn_14 = Shapes.AddImage(m_imgBlackPawn)
-
   LDShapes.SetSize(m_BlackPawn_14, 40, 40)
-
   Shapes.Move(m_BlackPawn_14, 14*40, 80)
-
   
-
   m_imgWhiteBishop = ImageList.LoadImage(m_pathResources + "\White bishop.png")
-
   m_WhiteBishop_1 = Shapes.AddImage(m_imgWhiteBishop)
-
   LDShapes.SetSize(m_WhiteBishop_1, 40, 40)
-
   Shapes.Move(m_WhiteBishop_1, 3*40, 400)
-
   
-
   m_WhiteBishop_2 = Shapes.AddImage(m_imgWhiteBishop)
-
   LDShapes.SetSize(m_WhiteBishop_2, 40, 40)
-
   Shapes.Move(m_WhiteBishop_2, 6*40, 400)
-
   
-
   m_WhiteBishop_3 = Shapes.AddImage(m_imgWhiteBishop)
-
   LDShapes.SetSize(m_WhiteBishop_3, 40, 40)
-
   Shapes.Move(m_WhiteBishop_3, 9*40, 400)
-
   
-
   m_WhiteBishop_4 = Shapes.AddImage(m_imgWhiteBishop)
-
   LDShapes.SetSize(m_WhiteBishop_4, 40, 40)
-
   Shapes.Move(m_WhiteBishop_4, 12*40, 400)
-
   
-
   m_imgWhiteKnight = ImageList.LoadImage(m_pathResources + "\White knight.png")
-
   m_WhiteKnight_1 = Shapes.AddImage(m_imgWhiteKnight)
-
   LDShapes.SetSize(m_WhiteKnight_1, 40, 40)
-
   Shapes.Move(m_WhiteKnight_1, 2*40, 400)
-
   
-
   m_WhiteKnight_2 = Shapes.AddImage(m_imgWhiteKnight)
-
   LDShapes.SetSize(m_WhiteKnight_2, 40, 40)
-
   Shapes.Move(m_WhiteKnight_2, 5*40, 400)
-
   
-
   m_WhiteKnight_3 = Shapes.AddImage(m_imgWhiteKnight)
-
   LDShapes.SetSize(m_WhiteKnight_3, 40, 40)
-
   Shapes.Move(m_WhiteKnight_3, 10*40, 400)
-
   
-
   m_WhiteKnight_4 = Shapes.AddImage(m_imgWhiteKnight)
-
   LDShapes.SetSize(m_WhiteKnight_4, 40, 40)
-
   Shapes.Move(m_WhiteKnight_4, 13*40, 400)
-
   
-
   m_imgWhiteRook = ImageList.LoadImage(m_pathResources + "\White rook.png")
-
   m_WhiteRook_1 = Shapes.AddImage(m_imgWhiteRook)
-
   LDShapes.SetSize(m_WhiteRook_1, 40, 40)
-
   Shapes.Move(m_WhiteRook_1, 1*40, 400)
-
   
-
   m_WhiteRook_2 = Shapes.AddImage(m_imgWhiteRook)
-
   LDShapes.SetSize(m_WhiteRook_2, 40, 40)
-
   Shapes.Move(m_WhiteRook_2, 4*40, 400)
-
   
-
   m_WhiteRook_3 = Shapes.AddImage(m_imgWhiteRook)
-
   LDShapes.SetSize(m_WhiteRook_3, 40, 40)
-
   Shapes.Move(m_WhiteRook_3, 11*40, 400)
-
   
-
   m_WhiteRook_4 = Shapes.AddImage(m_imgWhiteRook)
-
   LDShapes.SetSize(m_WhiteRook_4, 40, 40)
-
   Shapes.Move(m_WhiteRook_4, 14*40, 400)
-
   
-
   m_imgWhiteQueen = ImageList.LoadImage(m_pathResources + "\White queen.png")
-
   m_WhiteQueen_1 = Shapes.AddImage(m_imgWhiteQueen)
-
   LDShapes.SetSize(m_WhiteQueen_1, 40, 40)
-
   Shapes.Move(m_WhiteQueen_1, 8*40, 400)
-
   
-
   m_imgWhiteKing = ImageList.LoadImage(m_pathResources + "\White king.png")
-
   m_WhiteKing_1 = Shapes.AddImage(m_imgWhiteKing)
-
   LDShapes.SetSize(m_WhiteKing_1, 40, 40)
-
   Shapes.Move(m_WhiteKing_1, 7*40, 400)
-
   
-
   m_imgWhitePawn = ImageList.LoadImage(m_pathResources + "\White pawn.png")
-
   m_WhitePawn_1 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_1, 40, 40)
-
   Shapes.Move(m_WhitePawn_1, 1*40, 360)
-
   
-
   m_WhitePawn_2 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_2, 40, 40)
-
   Shapes.Move(m_WhitePawn_2, 2*40, 360)
-
   
-
   m_WhitePawn_3 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_3, 40, 40)
-
   Shapes.Move(m_WhitePawn_3, 3*40, 360)
-
   
-
   m_WhitePawn_4 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_4, 40, 40)
-
   Shapes.Move(m_WhitePawn_4, 4*40, 360)
-
   
-
   m_WhitePawn_5 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_5, 40, 40)
-
   Shapes.Move(m_WhitePawn_5, 5*40, 360)
-
   
-
   m_WhitePawn_6 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_6, 40, 40)
-
   Shapes.Move(m_WhitePawn_6, 6*40, 360)
-
   
-
   m_WhitePawn_7 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_7, 40, 40)
-
   Shapes.Move(m_WhitePawn_7, 7*40, 360)
-
   
-
   m_WhitePawn_8 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_8, 40, 40)
-
   Shapes.Move(m_WhitePawn_8, 8*40, 360)
-
   
-
   m_WhitePawn_9 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_9, 40, 40)
-
   Shapes.Move(m_WhitePawn_9, 9*40, 360)
-
   
-
   m_WhitePawn_10 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_10, 40, 40)
-
   Shapes.Move(m_WhitePawn_10, 10*40, 360)
-
   
-
   m_WhitePawn_11 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_11, 40, 40)
-
   Shapes.Move(m_WhitePawn_11, 11*40, 360)
-
   
-
   m_WhitePawn_12 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_12, 40, 40)
-
   Shapes.Move(m_WhitePawn_12, 12*40, 360)
-
   
-
   m_WhitePawn_13 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_13, 40, 40)
-
   Shapes.Move(m_WhitePawn_13, 13*40, 360)
-
   
-
   m_WhitePawn_14 = Shapes.AddImage(m_imgWhitePawn)
-
   LDShapes.SetSize(m_WhitePawn_14, 40, 40)
-
   Shapes.Move(m_WhitePawn_14, 14*40, 360)
-
   
-
   m_chessPiecesNames[1][1][1] = m_WhitePawn_1
-
   m_chessPiecesNames[1][1][2] = m_WhitePawn_2
-
   m_chessPiecesNames[1][1][3] = m_WhitePawn_3
-
   m_chessPiecesNames[1][1][4] = m_WhitePawn_4
-
   m_chessPiecesNames[1][1][5] = m_WhitePawn_5
-
   m_chessPiecesNames[1][1][6] = m_WhitePawn_6
-
   m_chessPiecesNames[1][1][7] = m_WhitePawn_7
-
   m_chessPiecesNames[1][1][8] = m_WhitePawn_8
-
   m_chessPiecesNames[1][1][9] = m_WhitePawn_9
-
   m_chessPiecesNames[1][1][10] = m_WhitePawn_10
-
   m_chessPiecesNames[1][1][11] = m_WhitePawn_11
-
   m_chessPiecesNames[1][1][12] = m_WhitePawn_12
-
   m_chessPiecesNames[1][1][13] = m_WhitePawn_13
-
   m_chessPiecesNames[1][1][14] = m_WhitePawn_14
-
   
-
   m_chessPiecesNames[1][2][1] = m_WhiteKnight_1
-
   m_chessPiecesNames[1][2][2] = m_WhiteKnight_2
-
   m_chessPiecesNames[1][2][3] = m_WhiteKnight_3
-
   m_chessPiecesNames[1][2][4] = m_WhiteKnight_4
-
   
-
   m_chessPiecesNames[1][3][1] = m_WhiteBishop_1
-
   m_chessPiecesNames[1][3][2] = m_WhiteBishop_2
-
   m_chessPiecesNames[1][3][3] = m_WhiteBishop_3
-
   m_chessPiecesNames[1][3][4] = m_WhiteBishop_4
-
   
-
   m_chessPiecesNames[1][4][1] = m_WhiteRook_1
-
   m_chessPiecesNames[1][4][2] = m_WhiteRook_2
-
   m_chessPiecesNames[1][4][3] = m_WhiteRook_3
-
   m_chessPiecesNames[1][4][4] = m_WhiteRook_4
-
   
-
   m_chessPiecesNames[1][5][1] = m_WhiteQueen_1
-
   m_chessPiecesNames[1][6][1] = m_WhiteKing_1
-
   
-
   m_chessPiecesNames[2][1][1] = m_BlackPawn_1
-
   m_chessPiecesNames[2][1][2] = m_BlackPawn_2
-
   m_chessPiecesNames[2][1][3] = m_BlackPawn_3
-
   m_chessPiecesNames[2][1][4] = m_BlackPawn_4
-
   m_chessPiecesNames[2][1][5] = m_BlackPawn_5
-
   m_chessPiecesNames[2][1][6] = m_BlackPawn_6
-
   m_chessPiecesNames[2][1][7] = m_BlackPawn_7
-
   m_chessPiecesNames[2][1][8] = m_BlackPawn_8
-
   m_chessPiecesNames[2][1][9] = m_BlackPawn_9
-
   m_chessPiecesNames[2][1][10] = m_BlackPawn_10
-
   m_chessPiecesNames[2][1][11] = m_BlackPawn_11
-
   m_chessPiecesNames[2][1][12] = m_BlackPawn_12
-
   m_chessPiecesNames[2][1][13] = m_BlackPawn_13
-
   m_chessPiecesNames[2][1][14] = m_BlackPawn_14
-
   
-
   m_chessPiecesNames[2][2][1] = m_BlackKnight_1
-
   m_chessPiecesNames[2][2][2] = m_BlackKnight_2
-
   m_chessPiecesNames[2][2][3] = m_BlackKnight_3
-
   m_chessPiecesNames[2][2][4] = m_BlackKnight_4
-
   
-
   m_chessPiecesNames[2][3][1] = m_BlackBishop_1
-
   m_chessPiecesNames[2][3][2] = m_BlackBishop_2
-
   m_chessPiecesNames[2][3][3] = m_BlackBishop_3
-
   m_chessPiecesNames[2][3][4] = m_BlackBishop_4
-
   
-
   m_chessPiecesNames[2][4][1] = m_BlackRook_1
-
   m_chessPiecesNames[2][4][2] = m_BlackRook_2
-
   m_chessPiecesNames[2][4][3] = m_BlackRook_3
-
   m_chessPiecesNames[2][4][4] = m_BlackRook_4
-
   
-
   m_chessPiecesNames[2][5][1] = m_BlackQueen_1
-
   m_chessPiecesNames[2][6][1] = m_BlackKing_1
-
   
-
   For m_X = 1 To 2
-
     For m_Y = 1 To 6
-
       For m_Z = 1 To 14
-
         If m_Y = 1 Then
-
           m_chessPiecesVisible[m_X][m_Y][m_Z] = "true"
-
           
-
         ElseIf (m_Y > 1) And (m_Y < 5) And (m_Z < 5) Then
-
           m_chessPiecesVisible[m_X][m_Y][m_Z] = "true"
-
           
-
         ElseIf (m_Y > 4) And (m_Z = 1) Then
-
           m_chessPiecesVisible[m_X][m_Y][m_Z] = "true"
-
           
-
         EndIf
-
         
-
       EndFor
-
       
-
     EndFor
-
     
-
   EndFor
-
   
-
   ms_HideAllChessPieces()
-
   
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(255, 0, 0)
-
   GraphicsWindow.PenColor = GraphicsWindow.GetColorFromRGB(255, 0, 0)
-
   
-
   m_FlashRectangle = Shapes.AddRectangle(40, 40)
-
   Shapes.HideShape(m_FlashRectangle)
-
   Shapes.SetOpacity(m_FlashRectangle, 40)
-
   Shapes.Move(m_FlashRectangle, 40, 40)
-
   
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(50, 200, 50)
-
   GraphicsWindow.FontSize = 44
-
   GraphicsWindow.FontItalic = "true"
-
   m_Text_WhoseTurn = Shapes.AddText(" ")
-
   Shapes.Move(m_Text_WhoseTurn, 660, 65)
-
   
-
   LDGraphicsWindow.ResumeUpdates()
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_HideAllChessPieces
-
   For m_X = 1 To 2
-
     For m_Y = 1 To 6
-
       For m_Z = 1 To 14
-
         If m_Y = 1 Then
-
           Shapes.HideShape(m_chessPiecesNames[m_X][m_Y][m_Z])
-
           
-
         ElseIf (m_Y > 1) And (m_Y < 5) And (m_Z < 5) Then
-
           Shapes.HideShape(m_chessPiecesNames[m_X][m_Y][m_Z])
-
           
-
         ElseIf (m_Y > 4) And (m_Z = 1) Then
-
           Shapes.HideShape(m_chessPiecesNames[m_X][m_Y][m_Z])
-
           
-
         EndIf
-
         
-
       EndFor
-
       
-
     EndFor
-
     
-
   EndFor
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_ShowAllChessPieces
-
   For m_X = 1 To 2
-
     For m_Y = 1 To 6
-
       For m_Z = 1 To 14
-
         If m_Y = 1 Then
-
           Shapes.ShowShape(m_chessPiecesNames[m_X][m_Y][m_Z])
-
           
-
         ElseIf (m_Y > 1) And (m_Y < 5) And (m_Z < 5) Then
-
           Shapes.ShowShape(m_chessPiecesNames[m_X][m_Y][m_Z])
-
           
-
         ElseIf (m_Y > 4) And (m_Z = 1) Then
-
           Shapes.ShowShape(m_chessPiecesNames[m_X][m_Y][m_Z])
-
           
-
         EndIf
-
         
-
       EndFor
-
       
-
     EndFor
-
     
-
   EndFor
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_CounterUp
-
   m_X = Math.Abs(m_chessBoardArray[15][3]) + 1
-
   m_chessBoardArray[15][3] = Text.Append(m_X, ".0")
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_StartWindow_Show
-
   ' initialization of the window
-
   GraphicsWindow.BackgroundColor = GraphicsWindow.GetColorFromRGB(0, 0, 0)
-
   GraphicsWindow.Width = m_windowWidth - 2
-
   GraphicsWindow.Height = m_windowHeight
-
   GraphicsWindow.Left = Math.Floor((m_desktopWidth - m_windowWidth)/2) - 8
-
   GraphicsWindow.Top = Math.Floor((m_desktopHeight - m_windowHeight)/2) - 25
-
   GraphicsWindow.Title = "EM_Chess"
-
   GraphicsWindow.DrawImage(m_imgChessBoard, 0, 0)
-
   GraphicsWindow.CanResize = 0
-
   
-
   GraphicsWindow.Show()
-
   
-
   For m_Y = 0 To 10 '                                                                     ---------     resize window to background image
-
     m_X = GraphicsWindow.GetPixel(20, GraphicsWindow.Height)
-
     m_Z = Text.GetSubText(m_X, 2, 6)
-
     
-
     If m_Z = "000000" Then
-
       GraphicsWindow.Height = m_windowHeight - m_Y
-
       
-
     Else
-
       m_Y = 10
-
       
-
     EndIf
-
     
-
   EndFor
-
   
-
   LDGraphicsWindow.PauseUpdates()
-
   
-
   m_imgLED_On = ImageList.LoadImage(m_pathResources + "\LED On.png") '                    ---------     LED placement
-
   m_imgLED_Off = ImageList.LoadImage(m_pathResources + "\LED Off.png")
-
   m_imgCheckBoxOff = ImageList.LoadImage(m_pathResources + "\CheckBox Off.png")
-
   
-
   m_LED_On_1 = Shapes.AddImage(m_imgLED_On)
-
   Shapes.Move(m_LED_On_1, 668, 167)
-
   m_LED_Off_1 = Shapes.AddImage(m_imgLED_Off)
-
   LDShapes.SetShapeEvent(m_LED_Off_1)
-
   Shapes.Move(m_LED_Off_1, 668, 144)
-
   
-
   m_LED_On_2 = Shapes.AddImage(m_imgLED_On)
-
   Shapes.Move(m_LED_On_2, 668, 209)
-
   m_LED_Off_2 = Shapes.AddImage(m_imgLED_Off)
-
   LDShapes.SetShapeEvent(m_LED_Off_2)
-
   Shapes.Move(m_LED_Off_2, 668, 232)
-
   
-
   m_LED_On_3 = Shapes.AddImage(m_imgLED_On)
-
   Shapes.Move(m_LED_On_3, 668, 274)
-
   m_LED_Off_3 = Shapes.AddImage(m_imgLED_Off)
-
   LDShapes.SetShapeEvent(m_LED_Off_3)
-
   Shapes.Move(m_LED_Off_3, 668, 297)
-
   
-
   m_CheckBoxOff = Shapes.AddImage(m_imgCheckBoxOff)
-
   LDShapes.SetShapeEvent(m_CheckBoxOff)
-
   Shapes.Move(m_CheckBoxOff, 665, 337)
-
   
-
   LDGraphicsWindow.ResumeUpdates()
-
   
-
   m_shapeEventOccurred = 0 '                                                              ---------     wait for Event
-
   m_mouseIsUp = 0
-
   m_doLoop = 1
-
   
-
   While m_doLoop = 1
-
     If (m_shapeEventOccurred = 1) And (LDShapes.LastEventType = "MouseUp") Then
-
     
-
       m_shapeEventOccurred = 0  '                                                         ---------     IF RadioButton is clicked
-
       m_mouseIsUp = 0
-
       m_X = LDShapes.LastEventShape
-
       
-
       If m_X = m_LED_Off_1 Then
-
         If Shapes.GetTop(m_LED_Off_1) = 144 Then
-
           Shapes.Move(m_LED_Off_1, 668, 167)
-
           Shapes.Move(m_LED_On_1, 668, 144)
-
           
-
           m_useInternet = 1
-
           
-
         Else
-
           Shapes.Move(m_LED_Off_1, 668, 144)
-
           Shapes.Move(m_LED_On_1, 668, 167)
-
           
-
           m_useInternet = 0
-
           
-
         EndIf
-
         
-
       ElseIf m_X = m_LED_Off_2 Then
-
         If Shapes.GetTop(m_LED_Off_2) = 232 Then
-
           Shapes.Move(m_LED_Off_2, 668, 209)
-
           Shapes.Move(m_LED_On_2, 668, 232)
-
           
-
           m_continueGameMode = 1
-
           
-
         Else
-
           Shapes.Move(m_LED_Off_2, 668, 232)
-
           Shapes.Move(m_LED_On_2, 668, 209)
-
           
-
           m_continueGameMode = 0
-
           
-
         EndIf
-
         
-
       ElseIf m_X = m_LED_Off_3 Then
-
         If Shapes.GetTop(m_LED_Off_3) = 297 Then
-
           Shapes.Move(m_LED_Off_3, 668, 274)
-
           Shapes.Move(m_LED_On_3, 668, 297)
-
           
-
           m_userPlayByWhite = 0
-
           
-
         Else
-
           Shapes.Move(m_LED_Off_3, 668, 297)
-
           Shapes.Move(m_LED_On_3, 668, 274)
-
           
-
           m_userPlayByWhite = 1
-
           
-
         EndIf
-
         
-
       Else '                                                                              ---------     CheckBox clicked
-
         If LDShapes.GetOpacity(m_CheckBoxOff) = 100 Then
-
           ' Shapes.SetOpacity(m_CheckBoxOff, 0)
-
           
-
         Else
-
           Shapes.SetOpacity(m_CheckBoxOff, 100)
-
           
-
         EndIf
-
         
-
       EndIf
-
       
-
     ElseIf m_mouseIsUp = 1 Then '                                                         ---------     Go!..
-
       '  790,  435
-
       m_X = Math.Power(LDGraphicsWindow.MouseX - 790, 2)
-
       m_Y = Math.Power(LDGraphicsWindow.MouseY - 435, 2)
-
       m_Z = Math.SquareRoot(m_X + m_Y)
-
       
-
       If m_Z < 20 Then
-
         m_doLoop = 0
-
         
-
       Else
-
         m_mouseIsUp = 0
-
           
-
       EndIf
-
       
-
     Else
-
       Program.Delay(100)
-
       
-
     EndIf
-
     
-
   EndWhile
-
   
-
   Shapes.Remove(m_LED_On_1)
-
   Shapes.Remove(m_LED_Off_1)
-
   Shapes.Remove(m_LED_On_2)
-
   Shapes.Remove(m_LED_Off_2)
-
   Shapes.Remove(m_LED_On_3)
-
   Shapes.Remove(m_LED_Off_3)
-
   Shapes.Remove(m_CheckBoxOff)
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_OnShapeEvent
-
   m_shapeEventOccurred = 1
-
   
-
 EndSub
 
 
-
-
-
 '**************************************************************
-
 Sub ms_GameNameGeneration
-
   m_gameName = Text.Append("EM_Chess_", Clock.Day)
-
   m_gameName = Text.Append(m_gameName + "_", Clock.Time)
-
   
-
   If m_useInternet = 1 Then '                                                             ---------     IF use Internet
-
     m_gameName = Text.Append(m_gameName + "_", Math.GetRandomNumber(999))
-
     
-
   Else
-
     m_gameName = Text.Append(m_gameName, "_local")
-
     
-
   EndIf
-
   
-
   m_gameName = LDText.Replace(m_gameName, ":", "_")
-
   
-
 EndSub
-
-
-
 
 
 '**************************************************************
-
 Sub ms_WindowInitialization
-
   GraphicsWindow.BackgroundColor = GraphicsWindow.GetColorFromRGB(0, 0, 0)
-
   GraphicsWindow.Width = m_windowWidth - 2
-
   GraphicsWindow.Height = m_windowHeight
-
   GraphicsWindow.Left = Math.Floor((m_desktopWidth - m_windowWidth)/2) - 8
-
   GraphicsWindow.Top = Math.Floor((m_desktopHeight - m_windowHeight)/2) - 25
-
   GraphicsWindow.Title = "EM_Chess"
-
   GraphicsWindow.DrawImage(m_imgChessBoard, 0, 0)
-
   GraphicsWindow.CanResize = 0
-
   
-
   GraphicsWindow.Show()
-
   
-
   For m_Y = 0 To 10
-
     m_X = GraphicsWindow.GetPixel(30, GraphicsWindow.Height)
-
     m_Z = Text.GetSubText(m_X, 2, 6)
-
     
-
     If m_Z = "000000" Then
-
       GraphicsWindow.Height = m_windowHeight - m_Y
-
       
-
     Else
-
       m_Y = 10
-
       
-
     EndIf
-
     
-
   EndFor
-
   
-
 EndSub
-
-

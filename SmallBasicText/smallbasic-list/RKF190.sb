@@ -1,1609 +1,804 @@
 '**************************************************************
-
 ' Yet Another Maze Program - Author " Kensig " (J.K.Sigsworth)
-
 '**************************************************************
-
 'This Small Basic program  generates a "Simple" random maze
-
 'i.e One which has 1 Entry point and 1 Exit point and only 1 possible
-
 'path through with lots of Dead Ends but easy to find path through.
-
 'Once the Maze has been generated, the user can then guide the Turtle
-
 'through the Maze using EITHER the Keyboard or the Mouse.
 
-
-
 'I created this program purely as an exercise to "ease" myself back
-
 'into basic programming after quite a long absence. Also to try and
-
 'stop my tired old brain turning to "mush" ;)
 
-
-
 'The program itself does not present much of a challenge as a Game
-
 'but can be quite interesting to watch as the maze is being generated
-
 'especially when the generation is slowed down.
 
-
-
 'The default settings provide a maze of 23 rows by 35 columns  (805 cells)
-
 'at a cell size of 25 pix with no delay (taking around 0.5 secs)
 
-
-
 'The "Control Panel" allows the user to switch between Keyboard and Mouse
-
 'for controlling the turtle and displays the time taken to navigate the Maze
-
 'as well as the number of times the Turtle hits a wall.
-
 'The time really is a bit pointless as every Maze is random so time taken can vary
-
 'by quite a lot. 
-
 'When the maze has been navigated through, the user can change either or both,
-
 'the size of maze and also speed of generation.
 
-
-
 'NOTE: Due to the "Turtle Bug" I have replaced the Turtle with a "Blob"
-
 'Also, this has been created using the "vanilla" SB program i.e No extensions.
 
-
-
 '****************************************************************************
-
 'First run entry point
-
 '****************************************************************************
-
-
 
 dosplash()
-
 Program.Delay(1000)
-
 firstrun = "true"
-
 Turtle.Speed = 8
-
 Turtle.Hide()
-
 setmazedata()    'This sets the 6 predefined maze sizes & speed delays.
 
-
-
 '*********************************************
-
 'Restart point after a maze has been navigated
-
 '**********************************************
-
 restart:
-
 initwindow()
-
 If firstrun = "true" then
-
   defaults()
-
 Else
-
   defaults2()
-
 EndIf
 
-
-
 '**********************************************
-
 'Main setup section
-
 '**********************************************
-
 initindex()
-
 start()
-
 '**********************************************
-
 ' Setup events handlers
-
 '**********************************************
-
 Controls.ButtonClicked = onbutton
-
 GraphicsWindow.KeyUp = onkey
-
 timer.Interval = 1000
-
 timer.Tick = dotime
-
 Timer.Pause()
-
 setcontrols()
 
-
-
 '*********************************************
-
 'Wait in this loop until the user has navigated
-
 'through the maze.
-
 '*********************************************
-
 While exitflag = "false"
-
 'Wait for navigation to finish
-
 Endwhile
 
-
-
 Timer.Pause()  ' Finished so stop Timer
-
 Sound.PlayChimeAndWait()
-
 firstrun = "false"
 
-
-
 Program.Delay(2000)
-
 GraphicsWindow.ShowMessage("Close this messagebox & choose new Maze size.","New Maze")
-
 doptions()
-
 GraphicsWindow.ShowMessage("Are you Ready to play the New Maze?","New Maze")
-
 Goto restart
 
-
-
 '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
 'Subroutines below Here
-
 '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
 Sub dotime
-
    seconds = seconds + 1
-
    Shapes.SetText(navtime,seconds + " Secs")
-
 EndSub
-
-
 
 Sub dowallhit
-
    whits = whits + 1
-
    Shapes.SetText(wallhits,whits)
-
 EndSub
 
-
-
 '===============================================
-
 'Set up Initial Window
-
 '===============================================
-
 Sub initwindow
-
    dww = Desktop.Width
-
    gww = 920 'My Window Width
-
    gwh = 710  'My Window Height
-
    GraphicsWindow.Clear()
-
    GraphicsWindow.CanResize = "False"
-
    GraphicsWindow.Width = gww
-
    GraphicsWindow.Height = gwh
-
    GraphicsWindow.Left = (dww /2) - (gww / 2)
-
    GraphicsWindow.Top = 20
-
    GraphicsWindow.BackgroundColor = "limegreen"
-
    GraphicsWindow.PenWidth = 5
-
    GraphicsWindow.DrawLine(0,gwh - 105,gww,gwh - 105)
-
    gwtitle = "Yet Another Maze Program (v 1.0)  Maze Size = "
-
    GraphicsWindow.Title = gwtitle
-
    GraphicsWindow.PenWidth = 2
-
    exitflag = "false"
-
 EndSub
 
-
-
 '============================================
-
 'Set index reference point for cell creation and to sync with turtle
-
 '============================================
-
 Sub initindex
-
    x = (gww - (columns * size)) / 2 - size
-
    y = ((gwh - 100) - (rows * size)) / 2 - size
-
    txpos = x  + (size / 2)
-
    typos = y  + (size / 2)
-
    Turtle.X = txpos + (1 * size)
-
    Turtle.Y = typos + (1 * size)
-
 EndSub
 
-
-
 '============================================
-
 'First run defaults for maze size and generation speed
-
 '============================================
-
 Sub defaults
-
    speed = mazedata[7][1]
-
    rows = mazedata[3][2]
-
    columns = mazedata[3][3]
-
    size = mazedata[3][1]
-
    tspeed = speed
-
    trows = rows
-
    tcols = columns
-
    tsize = size
-
 EndSub
 
-
-
 '===========================================
-
 'Reflects user changes
-
 '===========================================
-
 Sub defaults2
-
    rows = trows
-
    columns = tcols
-
    size = tsize
-
    speed = tspeed
-
 EndSub
 
-
-
 '=============================================
-
 'The main maze creation entry point.
-
 '=============================================
-
 Sub start
-
    GraphicsWindow.Title = gwtitle + "Rows " + rows + "  Columns " + columns + " Cells " + rows * columns
-
    dogrid()
-
    mode = 0
-
    dostartposition()  'Maze Entry Point
-
    'startime = Clock.ElapsedMilliseconds  
-
    mainmaze()
-
    'endtime = Clock.ElapsedMilliseconds
-
    'lapsedtime = (endtime - startime) / 1000
-
    'GraphicsWindow.DrawText(10, 620,lapsedtime) 'Time taken to generate the maze for checking.
-
 EndSub
 
 
-
-
-
 '======================================
-
 'Maze generation entry point
-
 '======================================
-
 Sub mainmaze
-
   finishflag = "false"
-
   While finishflag = "false"
-
     trytomove()
-
     If stuckflag = "true" then
-
       findourway()
-
       If tryflag = "false" then
-
         dobacktrack()
-
       EndIf
-
     EndIf
-
   EndWhile
-
   mode = 1
-
   dostartposition()  'Exit point
-
 EndSub
-
-
 
 Sub trytomove
-
   movecount = 0
-
   While movecount < 4
-
     stuckflag = "true"
-
     getdirection()
-
     If boxes[rowpos2][colpos2][1] = 9 Then   'Good, we can move
-
       domove()
-
       stuckflag = "false"
-
       movecount = 4
-
     Else
-
       movecount = movecount + 1
-
     EndIf
-
   EndWhile
-
 EndSub
 
-
-
 '=============================================
-
 ' We are stuck so try to find a way out
-
 '=============================================
-
 Sub findourway
-
   trywest()
-
   If tryflag = "true" Then
-
     domove()
-
   Else
-
     trynorth()
-
     If tryflag = "true" Then
-
       domove()
-
     Else
-
       trysouth()
-
       If tryflag = "true" Then
-
         domove()
-
       Else
-
         tryeast()
-
         If tryflag = "true" Then
-
           domove()
-
         EndIf
-
       EndIf
-
     EndIf
-
   EndIf
-
 EndSub
 
-
-
 '============================================
-
 'Routines to test For a valid move in specIfic direction
-
 '============================================
-
 Sub trynorth
-
   tryflag = "false"
-
   direction = 1
-
   checkbounds()
-
   If bflag = "true" Then
-
     If boxes[rowpos2][colpos2][1] = 9 Then
-
       tryflag = "true"
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub tryeast
-
   tryflag = "false"
-
   direction = 2
-
   checkbounds()
-
   If bflag = "true" Then
-
     If boxes[rowpos2][colpos2][1] = 9 Then
-
       tryflag = "true"
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub trysouth
-
   tryflag = "false"
-
   direction = 4
-
   checkbounds()
-
   If bflag = "true" Then
-
     If boxes[rowpos2][colpos2][1] = 9 Then
-
       tryflag = "true"
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub trywest
-
   tryflag = "false"
-
   direction = 3
-
   checkbounds()
-
   If bflag = "true" Then
-
     If boxes[rowpos2][colpos2][1] = 9 Then
-
       tryflag = "true"
-
     EndIf
-
   EndIf
-
 EndSub
 
-
-
 '================================================
-
 ' Down a blind alley so backtrack
-
 '================================================
-
 Sub dobacktrack
-
   backtrackloop:
-
   direction = boxes[rowpos][colpos][1]
-
   If direction = 8 Then
-
     finishflag = "true"
-
   Else
-
     boxes[rowpos][colpos][1] = 0  'Sweep up Breadcrumbs
-
     checkbounds()
-
     domove2()
-
     findourway()
-
     If tryflag = "false" Then
-
       Goto backtrackloop
-
     EndIf
-
   EndIf
-
 EndSub
 
-
-
 '===================================================
-
 ' Used by backtrack routine to follow "Breadcrumbs"
-
 '===================================================
-
 Sub domove2
-
   If direction = 1 Then
-
     rowpos = rowpos - 2
-
   ElseIf direction = 2 then
-
     colpos = colpos + 2
-
   ElseIf direction = 3 then
-
     colpos = colpos - 2
-
   ElseIf direction = 4 then
-
     rowpos = rowpos + 2
-
   EndIf
-
   rowpos2 = rowpos
-
   colpos2 = colpos
-
 EndSub
-
-
 
 ' ==================================================
-
 ' Can only come here If we can make a valid move so make path.
-
 '==================================================
-
 Sub domove
-
   Shapes.HideShape(boxes[rowpos2][colpos2][0])
-
   boxes[rowpos2][colpos2][1] = 5 - direction    'Drop our "Breadcrumbs"
-
   If direction = 1 Then
-
     Shapes.HideShape(boxes[rowpos2 + 1][colpos2][0])
-
     boxes[rowpos2 + 1][colpos2][1] = 0
-
   ElseIf direction = 2 then
-
     Shapes.HideShape(boxes[rowpos2][colpos2 - 1][0])
-
     boxes[rowpos2][colpos2 - 1][1] = 0
-
   ElseIf direction = 3 then
-
     Shapes.HideShape(boxes[rowpos2][colpos2 + 1][0])
-
     boxes[rowpos2][colpos2 + 1][1] = 0
-
   ElseIf direction = 4 then
-
     Shapes.HideShape(boxes[rowpos2 - 1][colpos2][0])
-
     boxes[rowpos2 - 1][colpos2][1] = 0
-
   EndIf
-
   rowpos = rowpos2
-
   colpos = colpos2
-
   Program.Delay(speed)
-
 EndSub
 
-
-
 '==================================================
-
 'Get a Random direction and check bounds
-
 '==================================================
-
 Sub getdirection
-
   checkloop:
-
   direction = Math.GetRandomNumber(4)
-
   checkbounds()
-
   If bflag = "false" Then   'No good - Go back and try again.
-
     goto checkloop
-
   EndIf
-
 EndSub
 
-
-
 '==============================================
-
 'Check that the direction of a move will still be within main area
-
 '==============================================
-
 Sub checkbounds
-
   bflag = "false"
-
   If direction = 1 And rowpos >= 4 Then  'North
-
     bflag = "true"
-
     rowpos2 = rowpos - 2
-
     colpos2 = colpos
-
   ElseIf direction = 2 and colpos <= (columns - 3) then   'East
-
     bflag = "true"
-
     colpos2 = colpos + 2
-
     rowpos2 = rowpos
-
   ElseIf direction = 4 and rowpos <= (rows - 3) then   'South
-
     bflag = "true"
-
     rowpos2 = rowpos + 2
-
     colpos2 = colpos
-
   ElseIf direction = 3 and colpos >= 4 then   'West
-
     bflag = "true"
-
     colpos2 = colpos - 2
-
     rowpos2 = rowpos
-
   EndIf
-
 EndSub
 
-
-
 '==============================================
-
 'Get a random start position (Mode 0 )on left side of grid
-
 'and exit position (Mode 1) on right side of grid
-
 ' Has got to be on an even row number
-
 '==============================================
-
 Sub dostartposition
-
   temp = Math.GetRandomNumber((rows-2) + 1)
-
   remainder = Math.Remainder(temp,2)
-
   'If not an even number make it so
-
   If remainder <> 0 Then
-
     temp = temp + 1
-
   EndIf
-
   If mode = 0 Then
-
     startrow = temp
-
     startcol = 1
-
     Shapes.HideShape(boxes[startrow][startcol][0])
-
     Shapes.HideShape(boxes[startrow][startcol + 1][0])
-
     boxes[startrow][startcol + 1][1] = 8
-
     rowpos = startrow
-
     colpos = startcol + 1
-
   ElseIf mode = 1 then
-
     endrow = temp
-
     endcol = columns
-
     Shapes.HideShape(boxes[endrow][endcol][0])
-
     boxes[endrow][endcol][1] = 7
-
   EndIf
-
 EndSub
 
-
-
 '===============================================
-
 'Create the grid on screen
-
 '===============================================
-
 Sub dogrid
-
   GraphicsWindow.PenWidth = .5
-
   GraphicsWindow.PenColor = "black"
-
   For r = 1 To rows
-
     For c = 1 To columns
-
       If r = 1 Or r = rows Or c = 1 Or c = columns Then
-
         GraphicsWindow.BrushColor = "Red"   'Boundry Walls
-
       Else
-
         GraphicsWindow.BrushColor = "gray"   'Main Grid Area
-
       EndIf
-
       boxes[r][c][0] = Shapes.AddRectangle(size, size)
-
       boxes[r][c][1] = 9   'Not visited Code
-
       Shapes.Move(boxes[r][c][0], x + c * size, y + r * size)
-
     EndFor
-
   EndFor
-
 EndSub
 
-
-
 '================================================
-
 'Set up and position Turtle in the right place.
-
 'Included a "Blob" to solve the dissappearing Turtle Bug.
-
 '================================================
-
 Sub doturtle
-
   GraphicsWindow.PenColor = "Red"
-
   GraphicsWindow.PenWidth = 4
-
   Turtle.Angle = 90
-
   Turtle.X = txpos + (startcol * size)
-
   turtlecol = startcol
-
   Turtle.Y = typos + (startrow * size)
-
   turtlerow = startrow
-
   Turtle.Move(size)
-
   turtlecol = turtlecol + 1
-
   GraphicsWindow.PenColor = "black"
-
   GraphicsWindow.PenWidth = 1
-
   myblob = Shapes.AddEllipse(size * .6,size * .6)
-
   GraphicsWindow.PenColor = "red"
-
   GraphicsWindow.BrushColor = "red"
-
   GraphicsWindow.PenWidth = 4
-
   Shapes.Move(myblob,Turtle.X - (size / 4),Turtle.y - (size / 4))
-
   whits = -1
-
   turtleburp()
-
   pulseblob()
-
   seconds = 0
-
   Timer.Resume()
-
   'showstatus() =======For Debug purposes
-
 EndSub
-
-
-
 
 
 Sub pulseblob
-
   For z = 1 To 4 Step .1
-
     Shapes.Zoom(myblob,z,z)
-
     Program.Delay(20)
-
   EndFor
-
   For z= 4 To 1 Step -.1
-
     Shapes.Zoom(myblob,z,z)
-
     Program.Delay(20)
-
   EndFor
-
 EndSub
 
-
-
 '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
 Sub turtleburp
-
   dowallhit()
-
   Sound.PlayMusic("O6 F16 C16")
-
   'Sound.PlayBellRing()
-
 EndSub
-
-
 
 '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
 Sub setcontrols
-
   GraphicsWindow.PenColor = "Red"
-
   GraphicsWindow.PenWidth = 2
-
   GraphicsWindow.BrushColor = "red"
-
   GraphicsWindow.FontSize = 14
-
   buttonright = Controls.AddButton("Right", 840,gwh - 70)
-
   buttonleft = Controls.AddButton("Left", 710,gwh - 70)
-
   buttonup = Controls.AddButton("Up", 775,gwh - 95)
-
   buttondown = Controls.AddButton("Down", 775,gwh - 50)
-
   buttonmode = Controls.AddButton("Keyboard", 585,gwh - 65)
-
   Controls.SetSize(buttonmode,80,40)
-
   Controls.SetSize(buttonright, 60,40)
-
   Controls.SetSize(buttonleft, 60,40)
-
   Controls.SetSize(buttonup, 60,40)
-
   Controls.SetSize(buttondown, 60,40)
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.DrawText(gww - 345,gwh - 90,"Turtle Control")
-
   GraphicsWindow.DrawText(gww - 840,gwh - 90,"Maze Size")
-
   GraphicsWindow.DrawText(gww - 640,gwh - 90,"Generation Delay")
-
   GraphicsWindow.PenWidth = 4
-
   GraphicsWindow.BrushColor = "red"
-
   GraphicsWindow.DrawRectangle(gww - 230,gwh - 100,230,100)
-
   GraphicsWindow.DrawRectangle(gww - 360,gwh - 100,130,100)
-
   GraphicsWindow.DrawRectangle(gww - gww,gwh - 100,230,100)
-
   GraphicsWindow.DrawRectangle(gww - 690,gwh - 100,230,100)
-
   GraphicsWindow.DrawRectangle(gww - 460,gwh - 100,100,100)
-
   GraphicsWindow.DrawLine(gww - 460,gwh - 50,gww - 360,gwh - 50)
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.DrawText(gww - 450,gwh - 95,"Time(Secs)")
-
   GraphicsWindow.DrawText(gww - 440,gwh - 45,"Wall Hits")
-
   navtime = Shapes.AddText("0")
-
   Shapes.Move(navtime,gww - 430,635)
-
   wallhits = Shapes.AddText("0 ")
-
   Shapes.Move(wallhits,gww - 420,685)
-
   GraphicsWindow.BrushColor = "red"
-
   Controls.AddButton(mazedata[8][1],10,645)
-
   Controls.AddButton(mazedata[8][2],10,675)
-
   Controls.AddButton(mazedata[8][3],80,645)
-
   Controls.AddButton(mazedata[8][4],80,675)
-
   Controls.AddButton(mazedata[8][5],150,645)
-
   Controls.AddButton(mazedata[8][6],150,675)
-
   Controls.AddButton(mazedata[9][1],240,645)
-
   Controls.AddButton(mazedata[9][2],240,675)
-
   Controls.AddButton(mazedata[9][3],310,645)
-
   Controls.AddButton(mazedata[9][4],310,675)
-
   Controls.AddButton(mazedata[9][5],380,645)
-
   Controls.AddButton(mazedata[9][6],380,675)
-
   cover = Shapes.AddRectangle(240,100)
-
   cover2 = Shapes.AddRectangle(230,100)
-
   cover3 = Shapes.AddRectangle(230,100)
-
   Shapes.SetOpacity(cover,60)
-
   Shapes.SetOpacity(cover2,60)
-
   Shapes.SetOpacity(cover3,60)
-
   Shapes.Move(cover,gww - 230,gwh - 100)
-
   Shapes.Move(cover2,0,gwh - 100)
-
   Shapes.Move(cover3,230,gwh - 100)
-
   coverflag = "Closed"
-
   coverflag2 = "Closed"
-
   coverflag3 = "Closed"
-
   doturtle()
-
 EndSub
 
-
-
 '==================================================
-
 'Button Handler
-
 '==================================================
-
 Sub onbutton
-
   If Controls.LastClickedButton = buttonmode Then
-
     If Controls.GetButtonCaption(buttonmode) = "Mouse" Then
-
       Controls.SetButtonCaption(buttonmode, "Keyboard")
-
       docover()
-
     Else
-
       Controls.SetButtonCaption(buttonmode, "Mouse")
-
       docover()
-
     EndIf
-
     Goto onbuttonexit
-
   Else
-
     If Controls.LastClickedButton = buttonup Then
-
       Turtle.Angle = 0
-
     ElseIf Controls.LastClickedButton = buttondown Then
-
       Turtle.Angle = 180
-
     ElseIf Controls.LastClickedButton = buttonleft Then
-
       Turtle.Angle = 270
-
     ElseIf  Controls.LastClickedButton = buttonright Then
-
       Turtle.Angle = 90
-
     EndIf
-
     'TextWindow.WriteLine(" Button = " +  Controls.LastClickedButton) '=======For Debug purposes
-
     checkmoveturtle()
-
   EndIf
-
   onbuttonexit:
-
 EndSub
-
-
-
-
 
 
 
 Sub onkey
-
   If Controls.GetButtonCaption(buttonmode) = "Keyboard" Then
-
     navkey = GraphicsWindow.LastKey
-
     If navkey = "Up" Or navkey = "Down" Or navkey = "Left" Or navkey = "Right" Then
-
       onkey2()
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub onkey2
-
   If GraphicsWindow.LastKey = "Up" Then
-
     Turtle.Angle = 0
-
   ElseIf GraphicsWindow.LastKey = "Down" Then
-
     Turtle.Angle = 180
-
   ElseIf GraphicsWindow.LastKey = "Left" Then
-
     Turtle.Angle = 270
-
   ElseIf  GraphicsWindow.LastKey = "Right" Then
-
     Turtle.Angle = 90
-
   EndIf
-
   checkmoveturtle()
-
 EndSub
-
-
-
 
 
 Sub checkmoveturtle
-
   'showstatus() =======For Debug purposes
-
   moveflag = "False"
-
   If Turtle.Angle = 0 And boxes[turtlerow - 1][turtlecol][1] <> 9 Then
-
     moveflag = "true"
-
     turtlerow = turtlerow - 2
-
   ElseIf Turtle.Angle = 90 And boxes[turtlerow][turtlecol + 1][1] <> 9 Then
-
     moveflag = "true"
-
     turtlecol = turtlecol + 2
-
   ElseIf Turtle.Angle = 180 And boxes[turtlerow + 1][turtlecol][1] <> 9 Then
-
     moveflag = "true"
-
     turtlerow = turtlerow + 2
-
   ElseIf Turtle.Angle = 270 And boxes[turtlerow][turtlecol - 1][1] <> 9 Then
-
     moveflag = "true"
-
     turtlecol = turtlecol - 2
-
   EndIf
-
   If moveflag = "true" Then
-
     Turtle.Move(size * 2)
-
     Shapes.Move(myblob,Turtle.X - (size /4),Turtle.y - (size /4))
-
     If turtle.Angle = 90 And boxes[turtlerow][turtlecol - 1][1] = 7 Then
-
       exitflag = "true"
-
       'showstatus() =====For Debug purposes
-
     EndIf
-
   Else
-
     turtleburp()
-
   EndIf
-
 EndSub
 
 
-
-
-
 '=========================================================
-
 'Routine to open and close covers over  Control Buttons
-
 '=========================================================
-
 Sub docover
-
   If coverflag = "Closed" Then
-
     Shapes.Animate(cover, gww - 10,gwh - 100,1500)
-
     coverflag = "Open"
-
   Else
-
     Shapes.Animate(cover, gww - 230,gwh - 100,1500)
-
     coverflag = "Closed"
-
   EndIf
-
 EndSub
-
-
 
 Sub docover2
-
   If coverflag2 = "Closed" Then
-
     Shapes.Animate(cover2, 0,gwh - 5,1500)
-
     coverflag2 = "Open"
-
   Else
-
     Shapes.Animate(cover2, 0,gwh - 100,1500)
-
     coverflag2 = "Closed"
-
   EndIf
-
 EndSub
-
-
 
 Sub docover3
-
   If coverflag3 = "Closed" Then
-
     Shapes.Animate(cover3, 230,gwh - 5,1500)
-
     coverflag3 = "Open"
-
   Else
-
     Shapes.Animate(cover3, 230,gwh - 100,1500)
-
     coverflag3 = "Closed"
-
   EndIf
-
 EndSub
-
-
 
 '
-
 '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
 ' Just a debug routine for the Turtle movement.
-
 '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
-
 Sub showstatus
-
    TextWindow.BackgroundColor = "cyan"
-
    TextWindow.ForegroundColor = "black"
-
    TextWindow.Clear()
-
    TextWindow.WriteLine("Row = " + turtlerow + " Col = " + turtlecol)
-
    TextWindow.WriteLine("")
-
    TextWindow.WriteLine("North = " + boxes[turtlerow - 1][turtlecol][1])
-
    TextWindow.WriteLine("South = " + boxes[turtlerow + 1][turtlecol][1])
-
    TextWindow.WriteLine("East = " + boxes[turtlerow][turtlecol + 1][1])
-
    TextWindow.WriteLine("West = " + boxes[turtlerow][turtlecol - 1][1])
-
    TextWindow.WriteLine("")
-
 EndSub
-
 '$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
-
-
 '===========================================================
-
 'The Startup Splash Screen Routine
-
 '===========================================================
-
 Sub dosplash
-
   dtw = Desktop.Width
-
   dth = Desktop.Height
-
   GraphicsWindow.FontSize = 36
-
   GraphicsWindow.BrushColor = "red"
-
   titletext = "YAMP"
-
   GraphicsWindow.Left = ((dtw - GraphicsWindow.Width) / 2)
-
   GraphicsWindow.Top = ((dth - GraphicsWindow.Height) / 2)
-
   GraphicsWindow.BackgroundColor = "Lime"
-
   GraphicsWindow.Title = "Y.A.M.P. v1.0  Author Kensig"
-
   GraphicsWindow.CanResize = "false"
-
   GraphicsWindow.Show()
-
   
-
   For x = 1 to 4
-
     titlechar[x] = Shapes.AddText(text.GetSubText(titletext,x,1))
-
     y = 20
-
     If x = 4 Then
-
       y = 28
-
     EndIf
-
     Shapes.Move(titlechar[x],(200 + (x * 30) + y),20)
-
     Program.Delay(1000)
-
   endfor
-
   Program.Delay(2000)
-
   GraphicsWindow.BrushColor = "blue"
-
   GraphicsWindow.FontSize = 24
-
   GraphicsWindow.DrawText(150,112," et     nother      aze      rogram.")
-
   Program.Delay(1000)
-
   shapespos()
-
   yp = Stack.PopValue("ms")
-
   For x = 1 To 4
-
     xp = Stack.PopValue("ms")
-
     Shapes.Animate(titlechar[x],xp,yp,1000)
-
     Program.Delay(1000)
-
   EndFor
-
   prompt = Shapes.AddText("Please take your pick")
-
   Shapes.Move(prompt,180,290)
-
   Program.Delay(500)
-
   Controls.AddButton("EXIT",220,338)
-
   Controls.AddButton("Start",320,338)
-
   buttonclicked = "false"
-
   promptflag = "true"
-
   While buttonclicked = "false"
-
     clicked = Controls.LastClickedButton
-
     If clicked = "Button1" Then
-
       Program.End()
-
     Else
-
       If clicked = "Button2" Then
-
         Sound.PlayChimeAndWait()
-
         buttonclicked = "true"
-
       EndIf
-
     EndIf
-
     
-
     Program.Delay(500)
-
     If promptflag = "true" Then
-
       Shapes.HideShape(prompt)
-
       promptflag = "false"
-
     Else
-
       Shapes.ShowShape(prompt)
-
       promptflag = "true"
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
 
 Sub shapespos
-
    Stack.PushValue("ms",400)
-
    Stack.PushValue("ms",305)
-
    Stack.PushValue("ms",190)
-
    Stack.PushValue("ms",135)
-
    Stack.PushValue("ms",100)
-
 EndSub
 
-
-
 '=======================================================
-
 'Had to do this lot because of problems (bugs?) I was having with Textwindow
-
 'trying to use it to input options crashed the program.
-
 '=======================================================
-
 Sub setmazedata
-
   mdata = "401321301929252335202943153757105787000010025050100200"
-
   mdata2 = "13 x 2119 x 2923 x 3529 x 4337 x 5757 x 87"
-
   mdata3 = "000 ms010 ms025 ms050 ms100 ms200 ms"
-
   For j = 1 To 6
-
     For k = 1 To 3
-
       mazedata[j][k] = Text.GetSubText(mdata,(j * 6) + (k * 2) - 7,2)
-
     EndFor
-
   EndFor
-
    
-
   For k = 1 To 6
-
     mazedata[7][k] = Text.GetSubText(mdata,(37 + (k * 3)) - 3,3)
-
   EndFor
-
   
-
   For k = 1 To 6
-
     mazedata[8][k] = Text.GetSubText(mdata2,(k * 7) - 6,7)
-
   EndFor
-
   
-
   For k = 1 To 6
-
     mazedata[9][k] = Text.GetSubText(mdata3,(k * 6) - 5,6)
-
   EndFor
-
 EndSub
 
 
-
-
-
 '===========================================
-
 'Get options from the user for maze size and generation speed
-
 '===========================================
-
 Sub doptions
-
   docover2()
-
   j1 = 8
-
   getoptions()
-
   option1 = option
-
   docover2()
-
   GraphicsWindow.ShowMessage("Close this messagebox & choose new Speed.","New Maze")
-
   docover3()
-
   j1 = 9
-
   getoptions()
-
   option2 = option
-
   docover3()
-
   tspeed = mazedata[7][option2]
-
   trows = mazedata[option1][2]
-
   tcols = mazedata[option1][3]
-
   tsize = mazedata[option1][1]
-
 EndSub
-
-
 
 sub getoptions
-
   selectflag = "false"
-
   while selectflag = "false"
-
     clicked = Controls.LastClickedButton
-
     For j = 1 To 6
-
       If Controls.GetButtonCaption(clicked) = mazedata[j1][j] Then
-
         option = j
-
         selectflag = "true"
-
       EndIf
-
     EndFor
-
   EndWhile
-
 EndSub
 
-
-
   
-
-

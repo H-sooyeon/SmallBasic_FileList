@@ -1,499 +1,249 @@
 'Drive This -- JKrueg 2012
 
-
-
 '     Use the mouse to steer
-
 '     Left click for gas
-
 '     Right click for brake
-
 '     Escape if the boss walks in
 
-
-
 GraphicsWindow.Hide()
-
 GraphicsWindow.Top = 5
-
 GraphicsWindow.Left = 5
-
 WindowWidth = 600
-
 WindowHeight = 600
-
 GraphicsWindow.Width = WindowWidth
-
 GraphicsWindow.Height = WindowHeight
-
 GraphicsWindow.BackgroundColor = "Black"
-
 path = "http://www.krueg.com/sb/"
-
 'Path = "file://C:/Users/krueg/Documents/SmallBasic/MyProjects/DriveThis/"
-
 BlueCone = ImageList.LoadImage(path + "bluecone.png")
-
 RaceCar = ImageList.LoadImage(path + "car.png")
-
 DriveThisPic = ImageList.LoadImage(Path + "DriveThis.png")
-
 InstructionsPic = ImageList.LoadImage(Path + "Instructions.png")
-
 GameOverPic = ImageList.LoadImage(Path + "GameOver.png")
-
 Car = Shapes.AddImage(racecar)
-
 Shapes.Move(Car,300,500)
-
 GraphicsWindow.Show()
-
 GraphicsWindow.KeyDown = OnKeyboardPress
-
 LetsPlay = 0
-
 Intro()
 
-
-
 debug = "on"                        'Turn debug window on by taking out the space from "o n"
-
 If debug = "on" Then                'Display text window if debug is "on"
-
   debug1()
-
 EndIf
-
 Reset:
-
 Mouse.HideCursor()
-
 CarX = 300                          'Start car here
-
 CarY = 500
-
 Mouse.MouseX = CarX                 'Move mouse here
-
 Mouse.MouseY = CarY
-
 GraphicsWindow.MouseMove = OnMousePosition
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 GraphicsWindow.MouseUp = OnMouseUp
-
 Score = 0
-
 Speed = 0
-
 IncSpeed = 0
-
 ConeRows = 10
-
 SetupCones()
-
 SetClock()
 
-
-
 While TimeLeft > -1                 'The main game loop
-
   If debug = "on" Then              'Show variables in text window if  debug is "on"
-
     debug2()
-
   EndIf
-
   SetSpeed()
-
   AdvanceCones()
-
   GraphicsWindow.Title = "Drive This -- Score - " + Score + "        Time - " + TimeLeft + "         Krueg 2012"
-
   Program.Delay(50)
-
   TimeLeft = Math.Round((EndClock - Clock.ElapsedMilliseconds)/1000)
-
 EndWhile
-
 GraphicsWindow.MouseMove = Disable
-
 GraphicsWindow.MouseDown = Disable
-
 GraphicsWindow.MouseUp = Disable
-
 Mouse.ShowCursor()
-
 GameOver = Shapes.AddImage(GameOverPic)
-
 Shapes.Move(GameOver,128,12)
-
 Program.Delay(2000)
-
 Ready = Controls.AddButton("You Gonna Try Again?",400,450)
-
 Controls.SetSize(Ready,160,30)
-
 Quit = Controls.AddButton("Quit",460,500)
-
 Controls.SetSize(Quit,60,30)
-
 Controls.ButtonClicked = OnButtonPress
-
 TryAgain:
-
 If LetsPlay = 0 Then
-
   Goto TryAgain
-
 EndIf
-
 LetsPlay = 0
-
 Shapes.Remove(GameOver)
-
 Controls.Remove(Ready)
-
 Controls.Remove(Quit)
-
 For i = 1 To  ConeRows              'Count through the rows of cones
-
   Shapes.Remove(ConeLeftPic[i])     'Remove left cone shape
-
   Shapes.Remove(ConeRightPic[i])    'Remove right cone shape
-
 EndFor
-
 Program.Delay(2000)
-
 Goto Reset
-
   
-
 Sub OnMousePosition                 'Move car to mouse's X position
-
   Carx = GraphicsWindow.MouseX
-
   Shapes.Rotate(Car,(CarX - LastCarX)*5)    'Turn car in direction of mouse movement
-
   Shapes.Move(Car,CarX,CarY)
-
   LastCarX = CarX                   'Remember where the car is for next mouse movement
-
 EndSub
-
-
 
 Sub OnMouseUp                       'Player has let off the gas and brake
-
   IncSpeed = -.05                   'Slow down when off the gas
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   If Mouse.IsLeftButtonDown Then    'Player is pressing left mouse button for gas
-
     IncSpeed = .5                   'Set acceleration here
-
   EndIf
-
   If Mouse.IsRightButtonDown Then   'Payer is pressing right mouse button for brakes
-
     IncSpeed = -1                   'Set brakes here
-
   EndIf
-
 EndSub
-
-
 
 Sub SetSpeed
-
   Speed = Speed + IncSpeed          'Adjust speed depending on mouse buttons being pressed
-
   If Speed > 30 Then
-
     Speed = 30                      'Set max speed here
-
   ElseIf Speed < 0 then
-
     Speed = 0                       'Minimum speed is stopped, no reverse
-
   EndIf
-
 EndSub
-
-
 
 Sub AdvanceCones
-
   For i = 1 To ConeRows                                   'Step through all the rows of cones
-
     If ConeY[i] > 470 And CarX < ConeLeftX[i] + 25 Then   'Check if car hits left cone
-
       Bump = 1                                            'Turn on bump flag
-
       Mouse.MouseX = CarX + TrackWidth/2                  'Push car to the right
-
     EndIf
-
     If ConeY[i] > 470 And CarX > ConeRightX[i] -37 Then   'Check if car hits right cone
-
       Bump = 1                                            'Turn on bump flag
-
       Mouse.MouseX = CarX - TrackWidth/2                  'Push car to the left
-
     EndIf
-
     ConeY[i] = ConeY[i] + Math.Round(Speed)               'Move cones down the screen
-
     If ConeY[i] > WindowHeight Then                       'Did cone go off the bottom of the screen?
-
       ConeY[i] = ConeY[i] - WindowHeight                  'Move cone to the top of the screen
-
       Turn = Turn + TurnStep
-
       If Math.Abs(Turn) > Math.Abs(TurnMax) Then          'Here's the turning problem                        ++++++++++++++
-
         Turn = TurnMax
-
       EndIf
-
       TrackXPath = TrackXPath + Turn                      'Add amount of turn to track centerline
-
       ConeLeftX[i] = TrackXPath - TrackWidth              'Position of left cone from track centerline
-
       ConeRightX[i] = TrackXPath + TrackWidth             'Position of right cone from track centerline
-
     EndIf
-
     Shapes.Move(ConeLeftPic[i],ConeLeftX[i],ConeY[i])     'Move left cone image into position
-
     Shapes.Move(ConeRightPic[i],ConeRightX[i],ConeY[i])   'Move right cone image into position
-
   EndFor
-
   If Bump = 1 Then                                        'Did car hit a cone on line 82 or 86
-
     Speed = Math.Round(Speed * .5)                        'Cut the car's speed in half
-
     Bump = 0                                              'We delt with the bump so turn bump flag off
-
   EndIf
-
   If NextXPath - TrackXPath < 20 And NextXPath - TrackXPath > -20 Then        'Is track X close to close to, next X position
-
     NextXPath = Math.GetRandomNumber(WindowWidth - TrackWidth * 2) + TrackWidth     'Track will turn to this, next X position
-
     TurnMax = Math.Round((NextXPath - TrackXPath) / 10)                      'This is the max increment of, turn, to get to, next X postition
-
     TurnStep = Math.Round((NextXPath - TrackXPath) / 50)                     'This is the amount to add to, turn
-
   EndIf
-
   Score = Score + Math.Round(Speed/2)                     'It's not a real game without a score
-
 EndSub
-
-
 
 Sub SetClock
-
   EndClock = Clock.ElapsedMilliseconds + 60000
-
   TimeLeft = Math.Round((EndClock - Clock.ElapsedMilliseconds)/1000)
-
 EndSub
-
-
 
 Sub SetupCones                                            'Setup game variables and cone array
-
   TrackXPath = 300                                        'Track centerline
-
   NextXPath = 300                                         'Position the track heads to
-
   TrackWidth = 100                                        'Width of track from centerline
-
   For i = 1 To  ConeRows                                  'Count through the rows of cones
-
     ConeLeftX[i] = TrackXPath - TrackWidth                'Left cone X position from centerline
-
     ConeY[i] = WindowHeight / ConeRows * i                'Left cone and right cone Y position
-
     ConeLeftPic[i] = Shapes.AddImage(BlueCone)            'Add left cone picture
-
     Shapes.Move(ConeLeftPic[i],ConeLeftX[i],ConeY[i])     'Move left cone shape into position
-
     ConeRightX[i] = TrackXPath + TrackWidth               'Right cone X position from centerline
-
     ConeRightPic[i] = Shapes.AddImage(BlueCone)           'All right cone picture
-
     Shapes.Move(ConeRightPic[i],ConeRightX[i],ConeY[i])   'Move right cone shape into position
-
   EndFor
-
 EndSub
-
-
 
 Sub Disable
-
             'Disable a mouse event
-
 EndSub
-
-
 
 Sub Intro
-
   DriveThis = Shapes.AddImage(DriveThisPic)
-
   For i = 128 To 1 Step -1
-
     izoom = 1/i+.2
-
     Shapes.Zoom(DriveThis,izoom,izoom)
-
     Shapes.Rotate(DriveThis,i*15)
-
     Shapes.Move(DriveThis,128-i,12-i)
-
     Program.Delay(15)
-
   EndFor
-
   Shapes.Zoom(DriveThis,1,1)
-
   Shapes.Rotate(DriveThis,0)
-
   Instructions = Shapes.AddImage(InstructionsPic)
-
   Shapes.Move(Instructions,20,400)
-
   Program.Delay(2000)
-
   GraphicsWindow.FontSize = 12
-
   GraphicsWindow.BrushColor = "Black"
-
   Ready = Controls.AddButton("You Think Your Ready?",400,450)
-
   Controls.SetSize(Ready,160,30)
-
   Quit = Controls.AddButton("Quit",460,500)
-
   Controls.SetSize(Quit,60,30)
-
   Controls.ButtonClicked = OnButtonPress
-
   Wait:
-
   If LetsPlay = 0 Then
-
     Goto Wait
-
   EndIf
-
   LetsPlay = 0
-
   Controls.Remove(Ready)
-
   Controls.Remove(Quit)
-
   For i = 100 To 15 Step -.02
-
     Shapes.SetOpacity(DriveThis,i)
-
     Shapes.SetOpacity(Instructions,i)
-
   EndFor
-
   Shapes.Remove(Instructions)
-
 EndSub  
 
-
-
 Sub OnKeyboardPress
-
   If GraphicsWindow.LastKey = "Escape" Then
-
     Program.End()                   'Press ESCAPE to quit game
-
   EndIf
-
 EndSub
-
-
 
 Sub OnButtonPress
-
   If Controls.LastClickedButton = Ready Then
-
     LetsPlay = 1
-
   EndIf
-
   If Controls.LastClickedButton = Quit Then
-
     Program.End()
-
   EndIf
-
 EndSub
-
-
-
-
-
 
 
 
 
 Sub debug1                          'Debug widow setup
-
   TextWindow.Top = 5
-
   TextWindow.Left = 620
-
   TextWindow.BackgroundColor = "Black"
-
 EndSub
-
 Sub debug2                          'Debug window show values
-
   TextWindow.Clear()  
-
   TextWindow.WriteLine("Car X           = " + CarX)
-
   TextWindow.WriteLine("Car Y           = " + CarY)
-
   TextWindow.WriteLine("Speed           = " + Speed)
-
   TextWindow.WriteLine("Clock.ElpsMS    = " + Clock.ElapsedMilliseconds)
-
   TextWindow.WriteLine("Time Left       = " + TimeLeft)
-
   TextWindow.WriteLine("")
-
   TextWindow.WriteLine("Track X Path    = " + TrackXPath)
-
   TextWindow.WriteLine("Next X Path     = " + NextXPath)
-
   TextWindow.WriteLine("Turn            = " + Turn)
-
   TextWindow.WriteLine("")
-
   TextWindow.WriteLine("Cone Left X     = " + ConeLeftX)
-
   TextWindow.WriteLine("Cone Right X    = " + ConeRightX)
-
   TextWindow.WriteLine("Cone Y          = " + ConeY)
-
 EndSub
-
-

@@ -1,1777 +1,888 @@
 ' BatailleNavale v:1.0 - Yanos - PMD822-0
-
 version = "1.0"
 
-
-
 ' Règles :
-
 ' - Deux joueurs possèdent une liste de bateaux, et doivent détruire les bateaux de leur adversaire
-
 ' - Chaque joueur défini son champ de bataille (tableau) en plaçant ces bateaux dans une grille de 10x10 cases
-
 ' - Un bateau ne peut se trouver à côté d'un autre bateau
-
 ' - A chaque tour, le joueur lance une bombe dans champ de l'adversaire
-
 '  + S'il y a un bateau, le joueur peut lancer une autre bombe
-
 '  + S'il n'y a pas de bateau, c'est à l'adversaire de jouer
 
-
-
 ' Initialisation du jeu
-
 InitializeGame()
 
-
-
 ' Boucle principale
-
 While gameState<>"" 
-
   GameLoop()
-
 EndWhile
-
 Program.End()
 
-
-
 ' Initialisation du jeu
-
 Sub InitializeGame
-
   ' Préparation des variables
-
   gameState = ""
-
   drawBoardCellSize = 32
-
   gw = 800
-
   gh = 480
-
   not = "False=True;True=False"
-
   lastKey = ""
-
   lastMouseButtons = ""
-
   error = ""
-
   errorTimeline = 0
-
   printShips = ""
-
   BuildShips()
-
   ' Initialisation de la fenêtre graphique
-
   GraphicsWindow.Show()
-
   GraphicsWindow.Title = "Small Basic - Bataille Navale - " + version
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.CanResize = "False"
-
   GraphicsWindow.KeyDown = HandleKeyPress
-
   GraphicsWindow.MouseDown = HandleMouseDownUp
-
   GraphicsWindow.MouseUp = HandleMouseDownUp
-
   ' On se rend à l'écran d'introduction
-
   GotoIntroScreen()
-
 EndSub
-
-
 
 ' Boucle du jeu
-
 Sub GameLoop
-
   ' En fonction de l'état du jeu
-
   If gameState = "intro" Then
-
     GameIntroLoop()
-
   ElseIf gameState = "createboard" Then
-
     GameCreateboardLoop()
-
   ElseIf gameState = "play" Then
-
     GamePlayLoop()
-
   ElseIf gameState = "end" Then
-
     GameEndLoop()
-
   EndIf
-
   ' Repose l'ordinateur
-
   Program.Delay(50)
-
 EndSub
-
 ' Boucle de l'écran d'introduction
-
 Sub GameIntroLoop
-
   If lastKey = "Escape" Then
-
     gameState = ""
-
   ElseIf lastKey = "Enter" Or lastKey = "Return" Or lastKey = "Space" Or lastMouseButtons <> "" Then
-
     GotoCreateboardScreen()
-
   EndIf
-
   lastKey = ""
-
   lastMouseButtons = ""
-
 EndSub
-
 ' Boucle de l'écran de création du tableau du joueur
-
 Sub GameCreateboardLoop
-
   moveShip = "False"
-
   ' Si currentship = 0 alors nous commençons par utiliser le premier bateau
-
   If currentShip = 0 Then
-
     currentShip = 1
-
     moveShip = "True"
-
   EndIf
-
   ship = ships[currentShip]
-
   
-
   ' Gestion de la souris
-
   x = drawBoardCellSize + (((gw / 2) - (11 * drawBoardCellSize)) / 2)
-
   y = drawBoardCellSize + 120
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   If mx >= x And mx <= x + (10 * drawBoardCellSize) And my >= y And my <= y + (10 * drawBoardCellSize) Then
-
     ' Calcul la position avec les limites du tableau
-
     currentCursor["x"] = Math.Floor((mx - x) / drawBoardCellSize) + 1
-
     max = 10
-
     If ship["dir"]="r" Then
-
       max = 11 - ship["size"]
-
     EndIf
-
     If currentCursor["x"] > max Then
-
       currentCursor["x"] = max
-
     EndIf
-
     currentCursor["y"] = Math.Floor((my - y) / drawBoardCellSize) + 1
-
     max = 10
-
     If ship["dir"]="d" Then
-
       max = 11 - ship["size"]
-
     EndIf
-
     If currentCursor["y"] > max Then
-
       currentCursor["y"] = max
-
     EndIf
-
     ' On "déplace" le bateau
-
     moveShip = "True"
-
   Else
-
     ' Annule les clics souris car elle est en dehors du tableau
-
     lastMouseButtons = ""
-
   EndIf
-
   
-
   ' Gestion du clavier
-
   If lastKey = "Escape" Then
-
     GotoIntroScreen()
-
   ElseIf lastKey = "Up" Then
-
     ' Déplace le bateau en cours vers le haut si on peut
-
     If currentCursor["y"] > 1 Then
-
       currentCursor["y"] = currentCursor["y"] - 1
-
       moveShip = "True"
-
     EndIf
-
   ElseIf lastKey = "Down" Then
-
     ' Déplace le bateau en cours vers le bas si on peut
-
     max = 10
-
     If ship["dir"]="d" Then
-
       max = 11 - ship["size"]
-
     EndIf
-
     If currentCursor["y"] < max Then
-
       currentCursor["y"] = currentCursor["y"] + 1
-
       moveShip = "True"
-
     EndIf
-
   ElseIf lastKey = "Left" Then
-
     ' Déplace le bateau en cours vers la gauche si on peut
-
     If currentCursor["x"] > 1 Then
-
       currentCursor["x"] = currentCursor["x"] - 1
-
       moveShip = "True"
-
     EndIf
-
   ElseIf lastKey = "Right" Then
-
     ' Déplace le bateau en cours vers la droite si on peut
-
     max = 10
-
     If ship["dir"]="r" Then
-
       max = 11 - ship["size"]
-
     EndIf
-
     If currentCursor["x"] < max Then
-
       currentCursor["x"] = currentCursor["x"] + 1
-
       moveShip = "True"
-
     EndIf
-
   ElseIf lastKey = "Space" Or lastMouseButtons = "Right" Then
-
     ' Modification de la direction : 'r'ight (gauche) <-> 'd'own (bas)
-
     If ship["dir"] = "r" Then
-
       ship["dir"] = "d"
-
       ' Redimensionne le bateau
-
       SetShipShapeProperties()
-
       Shapes.Remove(ship["shape"])
-
       ship["shape"] = Shapes.AddRectangle(drawBoardCellSize, ship["size"] * drawBoardCellSize)
-
       ' Si le bateau est en dehors du tableau on recalcul la position du curseur
-
       max = 11 - ship["size"]
-
       If currentCursor["y"] >= max Then
-
         currentCursor["y"] = max
-
       EndIf
-
       moveShip = "True"
-
     Else
-
       ship["dir"] = "r"
-
       ' Redimensionne le bateau
-
       SetShipShapeProperties()
-
       Shapes.Remove(ship["shape"])
-
       ship["shape"] = Shapes.AddRectangle(ship["size"] * drawBoardCellSize, drawBoardCellSize)
-
       ' Si le bateau est en dehors du tableau on recalcul la position du curseur
-
       max = 11 - ship["size"]
-
       If currentCursor["x"] >= max Then
-
         currentCursor["x"] = max
-
       EndIf
-
       moveShip = "True"
-
     EndIf    
-
     ships[currentShip] = ship
-
   ElseIf lastKey = "Enter" Or lastKey = "Return" Or lastMouseButtons = "Left" Then
-
     ' Validation du bateau en cours
-
     validShip = currentShip
-
     validPosX = currentCursor["x"]
-
     validPosY = currentCursor["y"]
-
     validDir = ship["dir"]
-
     validShipList = ships
-
     ValidateShip()    
-
     ' Si la position du bateau est valide, nous sauvegardons le bateau
-
     If shipIsValid = "True" Then
-
       ' Enregistre la position du bateau
-
       ship["x"] = currentCursor["x"]
-
       ship["y"] = currentCursor["y"]
-
       
-
       ' Enregistre les modifications du bateau
-
       ships[currentShip] = ship
-
       
-
       ' Dessine les informations montrants les cellules qu'on ne peut pas utiliser
-
       GraphicsWindow.BrushColor = "#FF8888"
-
       mx = (ship["x"] - 2) * drawBoardCellSize
-
       my = (ship["y"] - 2) * drawBoardCellSize
-
       If ship["dir"] = "r" Then
-
         x2 = ship["x"] + ship["size"]
-
         y2 = ship["y"] + 1
-
         w = (ship["size"] + 2) * drawBoardCellSize
-
         h = 3 * drawBoardCellSize
-
       Else
-
         x2 = ship["x"] + 1
-
         y2 = ship["y"] + ship["size"]
-
         w = 3 * drawBoardCellSize        
-
         h = (ship["size"] + 2) * drawBoardCellSize
-
       EndIf
-
       
-
       ' Corrige les dimensions si elle sortent du tableau
-
       If ship["x"] < 2 Then
-
         mx = mx + drawBoardCellSize
-
         w = w - drawBoardCellSize
-
       EndIf
-
       If x2 > 10 Then
-
         w = w - drawBoardCellSize
-
       EndIf
-
       If ship["y"] < 2 Then
-
         my = my + drawBoardCellSize
-
         h = h - drawBoardCellSize
-
       EndIf
-
       If y2 > 10 Then
-
         h = h - drawBoardCellSize
-
       EndIf
-
       GraphicsWindow.FillRectangle(x + mx, y + my, w, h)
-
       
-
       ' On se déplace vers le prochain bateau à traiter
-
       currentShip = currentShip + 1
-
       moveShip = "True"
-
       
-
       '  Si nous n'avons plus de bateaux, on commence la partie
-
       If currentShip > 5 Then
-
         GotoBuildComputerShipsScreen()
-
         Goto EndGameCreateboardLoop
-
       EndIf
-
     Else
-
       ' TODO Afficher un message
-
     EndIf
-
     
-
   EndIf
-
   
-
   ' Déplace le bateau en cours là où se trouve le curseur
-
   If moveShip = "True" Then
-
     x = ((gw / 2) - (11 * drawBoardCellSize)) / 2
-
     y = 120
-
     x = x + (currentCursor["x"] * drawBoardCellSize)
-
     y = y + (currentCursor["y"] * drawBoardCellSize)
-
     Shapes.Move(ships[currentShip]["shape"], x, y)
-
   EndIf 
-
 EndGameCreateboardLoop:
-
   ' On efface les touches claviers et état souris
-
   lastKey = ""
-
   lastMouseButtons = ""
-
 EndSub
-
 '  Boucle de jeu
-
 Sub GamePlayLoop
-
   '  C'est à l'ordinateur de jouer ?
-
   If currentPlayer = "computer" Then
-
     Shapes.SetOpacity(moveCursor, 0)
-
     Shapes.SetText(playProcessCaption, "L'ordinateur réfléchit ...")
-
     ' Calcul le prochain mouvement de l'ordinateur
-
     ComputeNextMove()
-
   Else 
-
     '  Attends une action du joueur
-
     Shapes.SetOpacity(moveCursor, 100)
-
     Shapes.SetText(playProcessCaption, "Choisir votre prochain coup, et appuyer sur Espace ou Entrée pour valider ...")
-
     cursorMoved = "False"
-
     
-
     ' Gestion de la souris
-
     x = drawBoardCellSize + (gw / 2) + (((gw / 2) - (11 * drawBoardCellSize)) / 2)
-
     y = drawBoardCellSize + 120
-
     mx = GraphicsWindow.MouseX
-
     my = GraphicsWindow.MouseY
-
     If mx >= x And mx <= x + (10 * drawBoardCellSize) And my >= y And my <= y + (10 * drawBoardCellSize) Then
-
       currentCursor["x"] = Math.Floor((mx - x) / drawBoardCellSize) + 1
-
       currentCursor["y"] = Math.Floor((my - y) / drawBoardCellSize) + 1
-
     Else
-
       ' Annule les clics souris car elle est en dehors du tableau
-
       lastMouseButtons = ""
-
     EndIf
-
         
-
     ' Gestion du clavier
-
     If lastKey = "Escape" Then
-
       GotoIntroScreen()
-
     ElseIf lastKey = "Up" Then
-
       ' Déplace le curseur vers le haut si on peut
-
       If currentCursor["y"] > 1 Then
-
         currentCursor["y"] = currentCursor["y"] - 1
-
         cursorMoved = "True"
-
       EndIf
-
     ElseIf lastKey = "Down" Then
-
       ' Déplace le curseur vers le bas si on peut
-
       max = 10
-
       If currentCursor["y"] < max Then
-
         currentCursor["y"] = currentCursor["y"] + 1
-
         cursorMoved = "True"
-
       EndIf
-
     ElseIf lastKey = "Left" Then
-
       ' Déplace le curseur vers la gauche si on peut
-
       If currentCursor["x"] > 1 Then
-
         currentCursor["x"] = currentCursor["x"] - 1
-
         cursorMoved = "True"
-
       EndIf
-
     ElseIf lastKey = "Right" Then
-
       ' Déplace le curseur vers la droite si on peut
-
       max = 10
-
       If currentCursor["x"] < max Then
-
         currentCursor["x"] = currentCursor["x"] + 1
-
         cursorMoved = "True"
-
       EndIf
-
     ElseIf lastKey = "Space" Or lastKey = "Return" Or lastKey = "Enter" Or lastMouseButtons = "Left" Then
-
       ' Détermine si ce coup à déjà été tué
-
       If Array.ContainsIndex(playerGameState["moves"], currentCursor) = "False" Then
-
         ' Recherche si on est tombé sur un bateau 
-
         findShip = "."
-
         For i = 1 To Array.GetItemCount(computerShips)
-
           If findShip = "." Then
-
             sx1 = computerShips[i]["x"]
-
             sy1 = computerShips[i]["y"]
-
             If computerShips[i]["dir"] = "r" Then
-
               sx2 = sx1 + computerShips[i]["size"] - 1
-
               sy2 = sy1
-
             Else
-
               sx2 = sx1
-
               sy2 = sy1 + computerShips[i]["size"] - 1
-
             EndIf 
-
             If currentCursor["x"] >= sx1 And currentCursor["x"] <= sx2 and currentCursor["y"] >= sy1 And currentCursor["y"] <= sy2 Then
-
               findShip = i
-
             EndIf
-
           EndIf
-
         EndFor
-
         ' Enregistre le coup
-
         playerGameState["moves"][currentCursor] = findShip
-
         playerGameState["movecount"] = playerGameState["movecount"] + 1
-
         ' Prochain tour
-
         scores["turn"]["current"] = scores["turn"]["current"] + 1
-
         UpdateScores()
-
         ' Calcul la position du curseur
-
         x = (gw / 2) + (((gw / 2) - (11 * drawBoardCellSize)) / 2)
-
         y = 120
-
         x = x + (currentCursor["x"] * drawBoardCellSize)
-
         y = y + (currentCursor["y"] * drawBoardCellSize)
-
         ' On a trouvé un bateau ?
-
         If findShip = "." Then
-
           ' Dessine une information d'un coup dans l'eau
-
           GraphicsWindow.BrushColor = "Black"
-
           GraphicsWindow.FillEllipse(x + ((drawBoardCellSize - 4)/2),y+ ((drawBoardCellSize - 4)/2), 4,4)
-
           ' Prochain joueur
-
           currentPlayer = "computer"
-
         Else
-
           ' Dessine une information d'un bateau touché
-
           GraphicsWindow.BrushColor = "Red"
-
           GraphicsWindow.FillRectangle(x + 2,y + 2, drawBoardCellSize - 4, drawBoardCellSize - 4)
-
           ' Augmente le score
-
           scores["player"]["score"] = scores["player"]["score"] + 1
-
           UpdateScores()
-
           ' Le joueur à gagné ?
-
           If scores["player"]["score"] >= scores["player"]["total"] Then
-
             GotoEndGame()
-
             Goto EndGamePlayLoop
-
           EndIf
-
         EndIf
-
       EndIf 
-
       
-
     EndIf
-
     
-
     ' Déplace le curseur
-
     x = (gw / 2) + (((gw / 2) - (11 * drawBoardCellSize)) / 2)
-
     y = 120
-
     x = x + (currentCursor["x"] * drawBoardCellSize)
-
     y = y + (currentCursor["y"] * drawBoardCellSize)
-
     Shapes.Move(moveCursor, x, y)
-
       
-
     ' On efface les informations clavier et souris
-
     lastKey = ""
-
     lastMouseButtons = ""
-
   EndIf
-
 EndGamePlayLoop:  
-
 EndSub
-
 '  Boucle de fin de partie
-
 Sub GameEndLoop
-
   If lastKey="Escape" Or lastKey="Space" Or lastKey="Enter" Or lastKey="Return" Or lastMouseButtons <> "" Then
-
     GotoIntroScreen()
-
   EndIf
-
   lastKey = ""
-
   lastMouseButtons = ""
-
 EndSub
-
-
 
 ' Calcul le prochain coup de l'ordinateur
-
 Sub ComputeNextMove
-
   ' Cet ordinateur n'est pas très intelligent : 
-
   '  - Fait des coups aléatoirement
-
   ' - S'il trouve un bateau alors réduit les possibilité en excluant les prochains coups impossibles
-
   
-
   ' Calcul une position aléatoire dans la liste des "cellules disponibles"
-
   pos = Math.GetRandomNumber(100 - Array.GetItemCount(computerGameState["moves"])) - 1
-
   
-
   ' On cherche la bonne cellule depuis la position
-
   i = 1
-
   While pos > 0
-
     move["x"] = 1 + Math.Remainder(i, 10)
-
     move["y"] = 1 + Math.Floor(i / 10)
-
     If Array.ContainsIndex(computerGameState["moves"], move) = "False" Then
-
       pos = pos - 1
-
     EndIf
-
     i = i + 1
-
   EndWhile
-
   
-
   ' Détermine si on a trouvé un bateau
-
   findShip = "."
-
   For i = 1 To Array.GetItemCount(ships)
-
     If findShip = "." Then
-
       sx1 = ships[i]["x"]
-
       sy1 = ships[i]["y"]
-
       If ships[i]["dir"] = "r" Then
-
         sx2 = sx1 + ships[i]["size"] - 1
-
         sy2 = sy1
-
       Else
-
         sx2 = sx1
-
         sy2 = sy1 + ships[i]["size"] - 1
-
       EndIf 
-
       If move["x"] >= sx1 And move["x"] <= sx2 and move["y"] >= sy1 And move["y"] <= sy2 Then
-
         findShip = i
-
       EndIf
-
     EndIf
-
   EndFor
-
   
-
   ' Enregistre le coup
-
   computerGameState["moves"][move] = findShip
-
   computerGameState["movecount"] = computerGameState["movecount"] + 1
-
   
-
   ' Prochain tour
-
   scores["turn"]["current"] = scores["turn"]["current"] + 1
-
   UpdateScores()
-
   
-
   ' Calcul la position du curseur
-
   x = ((gw / 2) - (11 * drawBoardCellSize)) / 2
-
   y = 120
-
   dx = x + (move["x"] * drawBoardCellSize)
-
   dy = y + (move["y"] * drawBoardCellSize)
-
   ' On a trouvé un bateau ?
-
   If findShip = "." Then
-
     ' Dessine une information de coup dans l'eau
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.FillEllipse(dx + ((drawBoardCellSize - 4)/2),dy+ ((drawBoardCellSize - 4)/2), 4,4)
-
     ' Prochain joueur
-
     currentPlayer = "player"
-
   Else
-
     ' Dessine une information d'un bateau trouvé
-
     GraphicsWindow.BrushColor = "Red"
-
     GraphicsWindow.FillRectangle(dx + 2,dy + 2, drawBoardCellSize - 4, drawBoardCellSize - 4)
-
     GraphicsWindow.BrushColor = "Black"
-
     ' Exclusions des prochains impossible en les ajoutants dans la liste des coups joués
-
     If move["x"] > 1 And move["y"] > 1 Then
-
       exclude["x"] = move["x"] - 1
-
       exclude["y"] = move["y"] - 1
-
       dx = x + (exclude["x"] * drawBoardCellSize)
-
       dy = y + (exclude["y"] * drawBoardCellSize)
-
       computerGameState["moves"][exclude] = "."
-
       GraphicsWindow.FillEllipse(dx + ((drawBoardCellSize - 4)/2),dy + ((drawBoardCellSize - 4)/2), 4,4)
-
     EndIf
-
     If move["x"] < 10 And move["y"] > 1 Then
-
       exclude["x"] = move["x"] + 1
-
       exclude["y"] = move["y"] - 1
-
       dx = x + (exclude["x"] * drawBoardCellSize)
-
       dy = y + (exclude["y"] * drawBoardCellSize)
-
       computerGameState["moves"][exclude] = "."
-
       GraphicsWindow.FillEllipse(dx + ((drawBoardCellSize - 4)/2),dy + ((drawBoardCellSize - 4)/2), 4,4)
-
     EndIf
-
     If move["x"] > 1 And move["y"] < 10 Then
-
       exclude["x"] = move["x"] - 1
-
       exclude["y"] = move["y"] + 1
-
       dx = x + (exclude["x"] * drawBoardCellSize)
-
       dy = y + (exclude["y"] * drawBoardCellSize)
-
       computerGameState["moves"][exclude] = "."
-
       GraphicsWindow.FillEllipse(dx + ((drawBoardCellSize - 4)/2),dy + ((drawBoardCellSize - 4)/2), 4,4)
-
     EndIf
-
     If move["x"] < 10 And move["y"] < 10 Then
-
       exclude["x"] = move["x"] + 1
-
       exclude["y"] = move["y"] + 1
-
       dx = x + (exclude["x"] * drawBoardCellSize)
-
       dy = y + (exclude["y"] * drawBoardCellSize)
-
       computerGameState["moves"][exclude] = "."
-
       GraphicsWindow.FillEllipse(dx + ((drawBoardCellSize - 4)/2),dy + ((drawBoardCellSize - 4)/2), 4,4)
-
     EndIf
-
     '  Augmente le score
-
     scores["computer"]["score"] = scores["computer"]["score"] + 1
-
     UpdateScores()
-
     ' L'ordinateur à gagné ?
-
     If scores["computer"]["score"] >= scores["computer"]["total"] Then
-
       GotoEndGame()
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 ' On se rend à l'écran d'introduction
-
 Sub GotoIntroScreen
-
   ' Efface tout
-
   GraphicsWindow.Clear()
-
   ' Construit l'écran
-
   DrawTitle()
-
   
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontName = "Arial"
-
   GraphicsWindow.FontSize = 18
-
   GraphicsWindow.FontBold = "False"
-
   GraphicsWindow.DrawText(80, 160, "Appuyer sur 'Espace' ou cliquer sur la souris pour commencer une nouvelle partie")
-
   GraphicsWindow.DrawText(80, 200, "Appuyer sur 'Echap' pour quitter le jeu")
 
-
-
   ' Change l'état du jeu
-
   gameState = "intro"
-
 EndSub
-
-
 
 ' Se rend à l'écran de création du tableau du joueur
-
 Sub GotoCreateboardScreen
-
   ' Efface tout
-
   GraphicsWindow.Clear()
-
   ' Construit l'écran
-
   DrawTitle()
-
   ' Dessine le tableau du joueur
-
   drawBoardX = ((gw / 2) - (11 * drawBoardCellSize)) / 2
-
   drawBoardY = 120
-
   DrawBoard() 
-
   
-
   ' Création des bateaux du joueur
-
   BuildShips()
-
   
-
   SetShipShapeProperties()
-
   For i= 1 To Array.GetItemCount(ships)
-
     ships[i]["shape"] = Shapes.AddRectangle(ships[i]["size"] * drawBoardCellSize, drawBoardCellSize)
-
     ships[i]["x"]=-1
-
     ships[i]["y"]=-1
-
     ships[i]["dir"]="r"
-
     Shapes.Move(ships[i]["shape"], 432, 120 + ((i-1) * (drawBoardCellSize + 8)) )
-
   EndFor
-
   
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontSize = 14
-
   GraphicsWindow.FontBold = "False"
-
   GraphicsWindow.DrawText(432, 400, "Appuyer sur 'Espace' ou clic droit pour tourner le bateau")
-
   GraphicsWindow.DrawText(432, 416, "Appuyer sur les flêches pour déplacer le bateau")
-
   GraphicsWindow.DrawText(432, 432, "Appuyer sur 'Entrée' or clic gauche pour poser le bateau")
-
   
-
   currentShip = 0
-
   
-
   currentCursor = "x=1;y=1"
-
   
-
   ' Change l'état du jeu
-
   gameState = "createboard"
-
 EndSub
-
-
 
 ' Se rend dans l'écran de calcul des bateaux de l'ordinateur
-
 Sub GotoBuildComputerShipsScreen
-
   ' Efface tout
-
   GraphicsWindow.Clear()
-
   ' Construit l'écran
-
   DrawTitle()
-
   ' Dessine le message d'attente
-
   GraphicsWindow.BrushColor = "Maroon"
-
   GraphicsWindow.FontName = "Tahoma"
-
   GraphicsWindow.FontSize = 22
-
   GraphicsWindow.FontBold = "True"
-
   GraphicsWindow.DrawText(120, 240, "Veuillez patienter le temps que l'ordinateur place ces bateaux ...")
-
   
-
   computerShips=""
-
   '  Récupère les mêmes bateaux que le joueur
-
   For i= 1 To Array.GetItemCount(ships)
-
     computerShips[i]["name"] = ships[i]["name"]
-
     computerShips[i]["size"] = ships[i]["size"]
-
     computerships[i]["shape"] = ""
-
     ' Recherche une position alératoire
-
     shipIsValid = ""
-
     While shipIsValid <> "True"
-
       '  Place le bateau aléatoirement
-
       validShip = i
-
       validPosX = Math.GetRandomNumber(10)
-
       validPosY = Math.GetRandomNumber(10)
-
       If Math.Remainder(Math.GetRandomNumber(100), 2) = 1 Then
-
         validDir = "r"
-
       Else
-
         validDir = "d"
-
       EndIf
-
       ' Valide la position du bateau
-
       validShipList = computerShips
-
       ValidateShip()
-
       ' Ce bateau est valide ?
-
       If shipIsValid = "True" Then
-
         ' Il est valide donc on sauvegarde la position
-
         computerships[i]["x"] = validPosX
-
         computerships[i]["y"] = validPosY
-
         computerships[i]["dir"] = validDir
-
       EndIf
-
     EndWhile
-
   EndFor
-
   
-
   ' On se rend à l'écran de la partie
-
   GotoPlayScreen()
-
 EndSub
-
-
 
 ' On se rend à l'écran de la partie
-
 Sub GotoPlayScreen
-
   ' Prépare la partie
-
   totalScore = 0
-
   For i = 1 To Array.GetItemCount(ships)
-
     totalScore = totalScore + ships[i]["size"]
-
   EndFor
-
   scores["player"]["score"] = 0
-
   scores["player"]["total"] = totalScore
-
   scores["computer"]["score"] = 0
-
   scores["computer"]["total"] = totalScore
-
   scores["turn"]["current"] = 1
-
   ' Efface tout
-
   GraphicsWindow.Clear()
-
   ' Construit l'écran
-
   DrawTitle()
-
   ' Dessine le tableau du joueur
-
   drawBoardX = ((gw / 2) - (11 * drawBoardCellSize)) / 2
-
   drawBoardY = 120
-
   DrawBoard() 
-
   scorePlayer1 = Shapes.AddText("Score du joueur : " + scores["player"]["score"] + " / " + scores["player"]["total"])
-
   Shapes.Move(scorePlayer1,drawBoardX + 10, 88)
-
   scores["player"]["shape"] = scorePlayer1
-
   ' Dessine les informations du tour en cours
-
   scores["turn"]["shape"] = Shapes.AddText("Tour : " + scores["turn"]["current"])
-
   Shapes.Move(scores["turn"]["shape"], drawBoardX, 48)
-
   ' Dessine le message du traitement enc ours
-
   playProcessCaption = Shapes.AddText("Préparation de la partie ...")
-
   Shapes.Move(playProcessCaption,drawBoardX + 80, 48)
-
   ' Dessine le tableau de l'adversaire (l'ordinateur)
-
   drawBoardX = (gw / 2) + (((gw / 2) - (11 * drawBoardCellSize)) / 2)
-
   drawBoardY = 120
-
   DrawBoard() 
-
   scorePlayer2 = Shapes.AddText("Score de l'ordinateur : " + scores["computer"]["score"] + " / " + scores["computer"]["total"])
-
   Shapes.Move(scorePlayer2,drawBoardX + 10, 88)
-
   scores["computer"]["shape"] = scorePlayer2
-
   
-
   ' Création des bateaux
-
   SetShipShapeProperties()
-
   For i= 1 To 5
-
     x = ((gw / 2) - (11 * drawBoardCellSize)) / 2
-
     y = 120
-
     x = x + (ships[i]["x"] * drawBoardCellSize)
-
     y = y + (ships[i]["y"] * drawBoardCellSize)
-
     If ships[i]["dir"] = "r" Then
-
       ships[i]["shape"] = Shapes.AddRectangle(ships[i]["size"] * drawBoardCellSize, drawBoardCellSize)
-
     Else
-
       ships[i]["shape"] = Shapes.AddRectangle(drawBoardCellSize, ships[i]["size"] * drawBoardCellSize)
-
     EndIf
-
     Shapes.Move(ships[i]["shape"], x, y)    
-
   EndFor
-
   
-
   ' Determine au hasard qui commence la partie
-
   If Math.GetRandomNumber(2) = 1 Then
-
     currentPlayer = "player"
-
   Else
-
     currentPlayer = "computer"
-
   EndIf
-
   
-
   ' Prépare les éléments du joueur
-
   currentCursor = "x=1;y=1"
-
   GraphicsWindow.BrushColor = "#4400FF00"
-
   GraphicsWindow.PenColor = "Green"
-
   GraphicsWindow.PenWidth = 1
-
   moveCursor = Shapes.AddRectangle(drawBoardCellSize, drawBoardCellSize)
-
   Shapes.SetOpacity(moveCursor, 0)  
-
   Shapes.Move(moveCursor, drawBoardX, drawBoardY)
-
   playerGameState = ""
-
   playerGameState = "movecount=0;"
-
   
-
   ' Préparer les éléments de l'ordinateur
-
   computerGameState = "movecount=0;"
-
   
-
   ' Change l'état du jeu
-
   gameState = "play"
-
 EndSub
-
-
 
 ' Se rend à l'écran de fin de partie
-
 Sub GotoEndGame
-
   ' Efface certaines informations
-
   scores["player"]["shape"] = ""
-
   scores["computer"]["shape"] = ""
-
   ' Efface tout
-
   GraphicsWindow.Clear()
-
   ' Construit l'écran
-
   DrawTitle()
-
   
-
   ' Qui a gagné ?
-
   If scores["player"]["score"] >= scores["player"]["total"] Then
-
     winner = "Vous avez gagné"
-
     moves = playerGameState["movecount"]
-
   Else
-
     winner = "L'ordinateur à gagné"
-
     moves = computerGameState["movecount"]
-
   EndIf
-
   
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontBold = "False"
-
   GraphicsWindow.FontSize = 18
-
   GraphicsWindow.DrawText(42, 240, winner + " la partie en " + moves + " coups")
-
   
-
   lastKey = ""
-
   lastMouseButtons = ""
-
   
-
   ' Change l'état du jeu
-
   gameState = "end"
-
 EndSub
-
-
 
 '  Dessine un tableau
-
 ' - drawBoardX : offset X pour dessiner
-
 ' - drawBoardY : offset Y pour dessiner
-
 Sub DrawBoard
-
   GraphicsWindow.BrushColor = "#EEEEEE"
-
   GraphicsWindow.FillRectangle(drawBoardX, drawBoardY, drawBoardCellSize, 11 * drawBoardCellSize)
-
   GraphicsWindow.FillRectangle(drawBoardX, drawBoardY, 11 * drawBoardCellSize, drawBoardCellSize)
-
   
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.PenWidth = 0.5
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontName = "Arial"
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.FontBold = "True"
-
   For i = 0 To 11
-
     GraphicsWindow.DrawLine(drawBoardX, drawBoardY + (i * drawBoardCellSize), drawBoardX + (11 * drawBoardCellSize), drawBoardY + (i * drawBoardCellSize))
-
     GraphicsWindow.DrawLine(drawBoardX + (i * drawBoardCellSize), drawBoardY, drawBoardX + (i * drawBoardCellSize), drawBoardY + (11 * drawBoardCellSize))
-
     If i >= 1 And i < 10 Then
-
       GraphicsWindow.DrawText(drawBoardX + 14, drawBoardY + (i * drawBoardCellSize) + 8, i)
-
       GraphicsWindow.DrawText(drawBoardX + (i * drawBoardCellSize) + 11, drawBoardY + 8, Text.GetCharacter( 64 + i ) )
-
     elseIf i = 10 Then
-
       GraphicsWindow.DrawText(drawBoardX + 6, drawBoardY + (i * drawBoardCellSize) + 8, i)
-
       GraphicsWindow.DrawText(drawBoardX + (i * drawBoardCellSize) + 11, drawBoardY + 8, Text.GetCharacter( 64 + i ) )
-
     Endif
-
   EndFor
-
 EndSub
-
-
 
 ' Met à jour les libellés des scores
-
 Sub UpdateScores
-
   If scores["player"]["shape"] <> "" Then
-
     Shapes.SetText(scores["player"]["shape"], "Score du Joueur: " + scores["player"]["score"] + " / " + scores["player"]["total"])  
-
   EndIf
-
   If scores["computer"]["shape"] <> "" Then
-
     Shapes.SetText(scores["computer"]["shape"], "Score de l'Ordinateur : " + scores["computer"]["score"] + " / " + scores["computer"]["total"])  
-
   EndIf
-
   If scores["turn"]["shape"] <> "" Then
-
     Shapes.SetText(scores["turn"]["shape"], "Tour : " + scores["turn"]["current"])
-
   EndIf
-
 EndSub
-
-
 
 ' Gestion de l'appui des touches
-
 Sub HandleKeyPress
-
   lastKey = GraphicsWindow.LastKey
-
 EndSub
-
 ' Gestion de l'appui est relachement des boutons de la souris
-
 Sub HandleMouseDownUp
-
   lastMouseButtons = ""
-
   If Mouse.IsLeftButtonDown Then
-
     lastMouseButtons = "Left"
-
   EndIf
-
   If Mouse.IsRightButtonDown Then
-
     If lastMouseButtons = "" Then
-
       lastMouseButtons = "Right"
-
     Else
-
       lastMouseButtons = "Left+Right"
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 ' Valide la position d'un bateau dans un champ de bataille
-
 ' validShipList : liste des bateaux qui constituent le champ le bataille
-
 ' validShip : numéro du bateau à valider dans la liste des bateaux
-
 ' validPosX : position x où nous voulons placer le bateau
-
 ' validPosY : position y où nous voulons placer le bateau
-
 ' validDir : direction vers laquelle nous voulons placer le bateau
-
 ' shipIsValid : retourné par cette sous-routine : "True", "OutOfBoard" or "OnAnotherShip"
-
 Sub ValidateShip
-
   shipIsValid = "True"
-
   vShip = validShipList[validShip]
-
   ' Calcul les limites du bateau
-
   sx1 = validPosX
-
   sy1 = validPosY
-
   If validDir = "r" Then
-
     sx2 = sx1 - 1 + vShip["size"]
-
     sy2 = sy1
-
   Else
-
     sx2 = sx1
-
     sy2 = sy1 - 1 + vShip["size"]
-
   EndIf
-
-
 
   '  Détermine si le bateau est en dehors du tableau
-
   If sx1 < 1 Or sy1 < 1 Or sx2 >10 Or sy2 > 10 Then
-
     shipIsValid = "OutOfBoard"
-
     Goto EndValidShip
-
   EndIf
-
   
-
   ' Boucle sur la liste des bateaux a vérifier
-
   For vi = 1 To Array.GetItemCount(validShipList)
-
     ' Récupére la position du bateau à tester
-
     ix1 = validShipList[vi]["x"]
-
     iy1 = validShipList[vi]["y"]
-
     ' Si le bateau est placé dans le champs de bataille
-
     If vi <> validShip And ix1 > 0 And iy1 > 0 Then
-
       ' Calcul les limites du bateau pour les tests
-
       If validShipList[vi]["dir"] = "r" Then
-
         ix2 = ix1 - 1 + validShipList[vi]["size"]
-
         iy2 = iy1
-
       Else
-
         ix2 = ix1
-
         iy2 = iy1 - 1 + validShipList[vi]["size"]
-
       EndIf
-
       ' Détermine si les deux bateaux se croient
-
       ' La méthode la plus simple est de calculer si les bateaux ne se touchent pas, car nous n'avons que quatre conditions à faire
-
       If (sx2 < (ix1 - 1)) Or (sx1 > (ix2 + 1)) Or (sy2 < (iy1 - 1)) Or (sy1 > (iy2 + 1)) Then
-
         '  On ne fait rien dans ce cas
-
       Else
-
         shipIsValid = "OnAnotherShip"
-
         Goto EndValidShip
-
       EndIf
-
     EndIf
-
   EndFor
-
   
-
 EndValidShip:
-
 EndSub
-
-
 
 ' Construction de la liste des bateaux du jeu
-
 Sub BuildShips
-
   ' Création des bateaux
-
   ships=""
-
   ships[1]["size"]=5
-
   ships[1]["name"]="Aircraft Carrier"
-
   
-
   ships[2]["size"]=4
-
   ships[2]["name"]="Battleship"
-
   
-
   ships[3]["size"]=3
-
   ships[3]["name"]="Cruiser"
-
   
-
   ships[4]["size"]=3
-
   ships[4]["name"]="Submarine"
-
   
-
   ships[5]["size"]=2
-
   ships[5]["name"]="Destroyer"  
-
 EndSub
-
-
 
 '  Affiche un champ de bataille, utilitaire pour le débuggage
-
 ' printShips : liste des bateaux à afficher
-
 Sub PrintBattlefield
-
   printBF=""
-
   For i=1 To 10
-
     For j=1 To 10
-
       printBF[i][j]=" "
-
     EndFor
-
   EndFor
-
   For i = 1 To Array.GetItemCount(printShips)
-
     sx = printShips[i]["x"]
-
     sy = printShips[i]["y"]
-
     If printShips[i]["dir"] = "r" Then
-
       For j = 1 To printShips[i]["size"]
-
         printBF[sx + j - 1][sy] = "X"
-
       EndFor
-
     Else
-
       For j = 1 To printShips[i]["size"]
-
         printBF[sx][sy + j - 1] = "X"
-
       EndFor
-
     EndIf
-
   EndFor
-
   TextWindow.WriteLine("+----------+")
-
   For i=1 To 10
-
     TextWindow.Write("|")
-
     For j=1 To 10
-
       TextWindow.Write(printBF[i][j])
-
     EndFor
-
     TextWindow.WriteLine("|")
-
   EndFor
-
   TextWindow.WriteLine("+----------+")
-
 EndSub
-
-
 
 ' Utilitaires
-
 Sub DrawTitle
-
   GraphicsWindow.BrushColor = "Violet"
-
   GraphicsWindow.FontName = "Verdana"
-
   GraphicsWindow.FontSize = 24
-
   GraphicsWindow.FontBold = "True"
-
   GraphicsWindow.DrawText(240, 10, "Small Basic - Bataille Navale")
-
 EndSub
-
 Sub SetShipShapeProperties
-
   GraphicsWindow.BrushColor = "#440000FF"
-
   GraphicsWindow.PenColor = "Blue"
-
   GraphicsWindow.PenWidth = 1
-
 EndSub
-
   
-
-

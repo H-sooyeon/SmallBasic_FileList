@@ -1,743 +1,371 @@
 ' Football 0.4
-
 ' Copyright (c) 2013 Nonki Takahashi.  All rights reserved.
-
 '
-
 ' History:
-
 '  0.4 2013/03/06 VRAM array removed. (ZLV057-2)
-
 '  0.3b 2013/03/05 Enabled to play and added semaphore. (ZVL057-1)
-
 '  0.2a 2013/03/05 Enabled score and paddle. (ZVL057-0)
-
 '  0.1a 2013/03/05 Graphics created. (ZVL057)
-
 '
-
 GraphicsWindow.Title = "Football 0.4"
-
 GraphicsWindow.BackgroundColor = "#222222"
-
 Sound_Init()  ' preload sounds
-
 Num_Init()
-
 Court_Init()
-
 Paddle_Init()
-
 Score_Init()
-
 player = 1
-
 Ball_Init()
-
 Timer.Interval = 10
-
 Timer.Tick = OnTick
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 While "True"
-
   If beep Then
-
     Sound.PlayAndWait(urlBeep)
-
     beep = "False"
-
   EndIF
-
   If ping Then
-
     Sound.Stop(urlPing)
-
     Sound.Play(urlPing)
-
     ping = "False"
-
   EndIF
-
   Program.Delay(10)
-
 EndWhile
-
 Sub OnKeyDown
-
   If semaphore Then
-
     Goto okd_exit
-
   Else
-
     semaphore = "True"
-
   EndIf
-
   key = GraphicsWindow.LastKey
-
   If key = "S" Then     ' player 1 paddle up
-
     player = 1
-
     Paddle_Up()
-
   ElseIf key = "D" Then ' player 1 paddle down
-
     player = 1
-
     Paddle_Down()
-
   ElseIf key = "K" Then ' player 2 paddle up
-
     player = 2
-
     Paddle_Up()
-
   ElseIf key = "L" Then ' player 2 paddle down
-
     player = 2
-
     Paddle_Down()
-
   EndIf
-
   semaphore = "False"
-
   okd_exit:
-
 EndSub
-
 Sub OnTick
-
   If semaphore Then
-
     Goto ot_exit
-
   Else
-
     semaphore = "True"
-
   EndIf
-
   Ball_Update()
-
   semaphore = "False"
-
   ot_exit:
-
 EndSub
-
 Sub Ball_Init
-
   ' param player - 1 or 2
-
   ballX = x0 + (centerCol - 1) * sizeX
-
   ballY = y0 + (centerRow - 1) * sizeY
-
   If ball = "" Then
-
     ball = Shapes.AddRectangle(sizeX, sizeY)
-
   EndIf
-
   Shapes.Move(ball, ballX, ballY)
-
   If player = 1 Then
-
     vx = 4
-
     vy = (Math.GetRandomNumber(10) - 5.5) / 2
-
   ElseIf player = 2 Then
-
     vx = -4
-
     vy = (Math.GetRandomNumber(10) - 5.5) / 2
-
   EndIf
-
 EndSub  
-
 Sub Ball_Update
-
   ' param ballY, ballX - ball position
-
   ' param vx, vy - velocity of ball [pixel/tick]
-
   ballX = ballX + vx
-
   ballY = ballY + vy
-
   Shapes.Move(ball, ballX, ballY)
-
   If 0 < vy Then
-
     If bottomY - sizeY <= ballY Then
-
       vy = -vy
-
       ping = "True"
-
     EndIf
-
   ElseIf vy < 0 Then
-
     If ballY <= topY + sizeY Then
-
       vy = -vy
-
       ping = "True"
-
     EndIf
-
   EndIf
-
   If ballX < goalX[1] Then
-
     player = 2
-
     s = score[player]["score"] + 1
-
     Score_Set()
-
     beep = "True"
-
     Program.Delay(2000)
-
     player = 1
-
     Ball_Init()
-
   ElseIf goalX[2] < ballX Then
-
     player = 1
-
     s = score[player]["score"] + 1
-
     Score_Set()
-
     beep = "True"
-
     Program.Delay(2000)
-
     player = 2
-
     Ball_Init()
-
   ElseIf 0 < vx Then
-
     If Math.Abs(paddleX[2][1] - sizeX - ballX) <= Math.Abs(vx) And paddleY[2] - sizeY <= ballY And ballY <= paddleY[2] + 5 * sizeY Then
-
       vx = -vx
-
       ping = "True"
-
     ElseIf Math.Abs(paddleX[1][2] - sizeX - ballX) <= Math.Abs(vx) And paddleY[1] - sizeY <= ballY And ballY <= paddleY[1] + 5 * sizeY Then
-
       vx = -vx
-
       ping = "True"
-
     ElseIf Math.Abs(paddleX[2][2] - sizeX - ballX) <= Math.Abs(vx) And paddleY[2] - sizeY <= ballY And ballY <= paddleY[2] + 5 * sizeY Then
-
       vx = -vx
-
       ping = "True"
-
     ElseIf Math.Abs(goalX[2] - sizeX - ballX) <= Math.Abs(vx) And topY + sizeY <= ballY And ballY <= goalUpY Then
-
       vx = -vx
-
       ping = "True"
-
     ElseIf Math.Abs(goalX[2] - sizeX - ballX) <= Math.Abs(vx) And goalLowY <= ballY And ballY <= bottomY Then
-
       vx = -vx
-
       ping = "True"
-
     EndIf
-
   ElseIf vx < 0 Then
-
     If Math.Abs(paddleX[1][1] + sizeX - ballX) <= Math.Abs(vx) And paddleY[1] - sizeY <= ballY And ballY <= paddleY[1] + 5 * sizeY Then
-
       vx = -vx
-
       ping = "True"
-
     ElseIf Math.Abs(paddleX[2][1] + sizeX - ballX) <= Math.Abs(vx) And paddleY[2] - sizeY <= ballY And ballY <= paddleY[2] + 5 * sizeY Then
-
       vx = -vx
-
       ping = "True"
-
     ElseIf Math.Abs(paddleX[1][2] + sizeX - ballX) <= Math.Abs(vx) And paddleY[1] - sizeY <= ballY And ballY <= paddleY[1] + 5 * sizeY Then
-
       vx = -vx
-
       ping = "True"
-
     ElseIf Math.Abs(goalX[1] + sizeX - ballX) <= Math.Abs(vx) And topY + sizeY <= ballY And ballY <= goalUpY Then
-
       vx = -vx
-
       ping = "True"
-
     ElseIf Math.Abs(goalX[1] + sizeX - ballX) <= Math.Abs(vx) And goalLowY <= ballY And ballY <= bottomY Then
-
       vx = -vx
-
       ping = "True"
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub Court_Init
-
   init[0]  = "----+----1----+----2----+----3----+----4----+----5----+----6"
-
   init[1]  = " *********************************************************  "
-
   init[2]  = " *                                                       *  "
-
   init[3]  = " *                           *                           *  "
-
   init[4]  = " *                                                       *  "
-
   init[5]  = " *                           *                           *  "
-
   init[6]  = " *                                                       *  "
-
   init[7]  = " *                           *                           *  "
-
   init[8]  = " *                                                       *  "
-
   init[9]  = "                             *                              "
-
   init[10] = "                                                            "
-
   init[11] = "                             *                              "
-
   init[12] = "                                                            "
-
   init[13] = "                             *                              "
-
   init[14] = "                                                            "
-
   init[15] = "                             *                              "
-
   init[16] = "                                                            "
-
   init[17] = "                             *                              "
-
   init[18] = "                                                            "
-
   init[19] = "                             *                              "
-
   init[20] = "                                                            "
-
   init[21] = "                             *                              "
-
   init[22] = " *                                                       *  "
-
   init[23] = " *                           *                           *  "
-
   init[24] = " *                                                       *  "
-
   init[25] = " *                           *                           *  "
-
   init[26] = " *                                                       *  "
-
   init[27] = " *                           *                           *  "
-
   init[28] = " *                                                       *  "
-
   init[29] = " *********************************************************  "
-
   init[30] = "                                                            "
-
   nCols = Text.GetLength(init[0])
-
   nRows = 30
-
   centerCol = nCols /2
-
   centerRow = nRows / 2
-
   sizeX = 10
-
   sizeY = 14
-
   x0 = Math.Floor((GraphicsWindow.Width - sizeX * nCols) / 2)
-
   y0 = Math.Floor((GraphicsWindow.Height - sizeY * nRows) / 2)
-
   goalCol[1] = 2         ' left end
-
   goalX[1] = x0 + (goalCol[1] - 1) * sizeX
-
   goalCol[2] = nCols - 2 ' right end
-
   goalX[2] = x0 + (goalCol[2] - 1) * sizeX
-
   topRow = 1             ' top end
-
   topY = y0 + (topRow - 1) * sizeY
-
   bottomRow = nRows - 1  ' bottom end
-
   bottomY = y0 + (bottomRow - 1) * sizeY
-
   goalUpRow = 9          ' upper row of goal
-
   goalUpY = y0 + (goalUpRow - 1) * sizeY
-
   goalLowRow = nRows - 9 ' lower row of goal
-
   goalLowY = y0 + (goalLowRow - 1) * sizeY
-
   GraphicsWindow.PenWidth = 2
-
   GraphicsWindow.PenColor = "LightGray"
-
   GraphicsWindow.BrushColor = "LightGray"
-
   For row = 1 To nRows
-
     y = y0 + (row - 1) * sizeY
-
     For col = 1 To nCols
-
       i = (row - 1) * nCols + col
-
       x = x0 + (col - 1) * sizeX
-
       If Text.GetSubText(init[row], col, 1) <> " " Then
-
         GraphicsWindow.FillRectangle(x, y, sizeX, sizeY)
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub Num_Init
-
   num[0][1] = "***"
-
   num[0][2] = "* *"
-
   num[0][3] = "* *"
-
   num[0][4] = "* *"
-
   num[0][5] = "***"
-
   num[1][1] = "  *"
-
   num[1][2] = "  *"
-
   num[1][3] = "  *"
-
   num[1][4] = "  *"
-
   num[1][5] = "  *"
-
   num[2][1] = "***"
-
   num[2][2] = "  *"
-
   num[2][3] = "***"
-
   num[2][4] = "*  "
-
   num[2][5] = "***"
-
   num[3][1] = "***"
-
   num[3][2] = "  *"
-
   num[3][3] = "***"
-
   num[3][4] = "  *"
-
   num[3][5] = "***"
-
   num[4][1] = "* *"
-
   num[4][2] = "* *"
-
   num[4][3] = "***"
-
   num[4][4] = "  *"
-
   num[4][5] = "  *"
-
   num[5][1] = "***"
-
   num[5][2] = "*  "
-
   num[5][3] = "***"
-
   num[5][4] = "  *"
-
   num[5][5] = "***"
-
   num[6][1] = "***"
-
   num[6][2] = "*  "
-
   num[6][3] = "***"
-
   num[6][4] = "* *"
-
   num[6][5] = "***"
-
   num[7][1] = "***"
-
   num[7][2] = "  *"
-
   num[7][3] = "  *"
-
   num[7][4] = "  *"
-
   num[7][5] = "  *"
-
   num[8][1] = "***"
-
   num[8][2] = "* *"
-
   num[8][3] = "***"
-
   num[8][4] = "* *"
-
   num[8][5] = "***"
-
   num[9][1] = "***"
-
   num[9][2] = "* *"
-
   num[9][3] = "***"
-
   num[9][4] = "  *"
-
   num[9][5] = "***"
-
   num[" "][1] = "   "
-
   num[" "][2] = "   "
-
   num[" "][3] = "   "
-
   num[" "][4] = "   "
-
   num[" "][5] = "   "
-
 EndSub
-
 Sub Paddle_Init
-
   upRow = topRow + 2          ' upper end for paddle
-
   upY = y0 + (upRow - 1) * sizeY
-
   lowRow = bottomRow - 6      ' lower end for paddle
-
   lowY = y0 + (lowRow - 1) * sizeY
-
   paddleX[1][1] = goalX[1] + 2 * sizeX
-
   paddleX[1][2] = goalX[2] - (nCols / 4) * sizeX
-
   paddleY[1] = y0 + (centerRow - 3) * sizeY
-
   paddleX[2][1] = goalX[1] + (nCols / 4) * sizeX
-
   paddleX[2][2] = goalX[2] - 2 * sizeX
-
   paddleY[2] = y0 + (centerRow - 3) * sizeY
-
   For player = 1 To 2
-
     y = paddleY[player]
-
     For i = 1 To 2
-
       paddle[player][i] = Shapes.AddRectangle(sizeX, sizeY * 5)
-
       x = paddleX[player][i]
-
       Shapes.Move(paddle[player][i], x, y)
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub Paddle_Down
-
   ' param player - 1 or 2
-
   If paddleY[player] < lowY Then
-
     paddleY[player] = paddleY[player] + sizeY
-
     y = paddleY[player]
-
     For i = 1 To 2
-
       x = paddleX[player][i]
-
       Shapes.Move(paddle[player][i], x, y)
-
     EndFor
-
   EndIf
-
 EndSub
-
 Sub Paddle_Up
-
   ' param player - 1 or 2
-
   If upY < paddleY[player] Then
-
     paddleY[player] = paddleY[player] - sizeY
-
     y = paddleY[player]
-
     For i = 1 To 2
-
       x = paddleX[player][i]
-
       Shapes.Move(paddle[player][i], x, y)
-
     EndFor
-
   EndIf
-
 EndSub
-
 Sub Score_Init
-
   For player = 1 To 2
-
     score[player]["score"] = 0
-
     s = score[player]["score"]
-
     len = Text.GetLength(s)
-
     If len = 1 Then
-
       s = " " + s
-
     EndIf
-
     For o = 2 To 1 Step -1
-
       d = Text.GetSubText(s, 3 - o, 1)
-
       For i = 1 To 15
-
         j = (o - 1) * 15 + i
-
         col = Math.Remainder(i - 1, 3) + 1
-
         row = Math.Floor((i - 1) / 3) + 1
-
         x = x0 + sizeX * (centerCol - 10 + 12 * (player - 1) + 4 * (2 - o) + col - 1)
-
         y = y0 + sizeY * (2 + row - 1)
-
         obj = Shapes.AddRectangle(sizeX, sizeY + 1)
-
         score[player]["obj" + j] = obj
-
         Shapes.Move(obj, x, y)
-
         If Text.GetSubText(num[d][row], col, 1) = " " Then
-
           Shapes.SetOpacity(obj, 0)
-
         EndIf
-
       EndFor
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub Score_Set
-
   ' param player - 1 or 2
-
   ' param s - score
-
   score[player]["score"] = s
-
   len = Text.GetLength(s)
-
   If len = 1 Then
-
     s = " " + s
-
   EndIf
-
   For o = 2 To 1 Step -1
-
     d = Text.GetSubText(s, 3 - o, 1)
-
     For i = 1 To 15
-
       j = (o - 1) * 15 + i
-
       col = Math.Remainder(i - 1, 3) + 1
-
       row = Math.Floor((i - 1) / 3) + 1
-
       obj = score[player]["obj" + j]
-
       If Text.GetSubText(num[d][row], col, 1) = " " Then
-
         Shapes.SetOpacity(obj, 0)
-
       Else
-
         Shapes.SetOpacity(obj, 100)
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub Sound_Init
-
   urlPing = "http://www.nonkit.com/smallbasic.files/se_sad05.wav"
-
   Sound.PlayAndWait(urlPing)  ' test for preload
-
   urlBeep = "http://www.nonkit.com/smallbasic.files/se_sad08.wav"
-
   Sound.PlayAndWait(urlBeep)  ' test for preload
-
 EndSub
-
-

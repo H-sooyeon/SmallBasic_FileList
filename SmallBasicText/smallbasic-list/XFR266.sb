@@ -1,487 +1,243 @@
 GraphicsWindow.Show()
-
 IO_ini()
-
 Grafikfenster()
-
 Nprog=10  ''number of programs, max = 5
-
 Timer.Interval = 100 'Check for delayed actions every 1/10 sec
-
 Timer.Tick = OnTick
 
-
-
 '==========================================
-
 'Create Windows
-
 '==========================================
-
-
 
 GraphicsWindow.Left = 15 + GraphicsWindow.Width/2
-
 GraphicsWindow.Top = 60+GraphicsWindow.Height
-
 Controls.ButtonClicked = OnButtonClicked
-
 StartAll = Controls.AddButton("Start All",30,100) 
-
 datafile = Program.Directory+"\IOWarroir.txt"
-
 ReadData()
-
 list = Array.GetAllIndices(AllData)
-
 list = LDSort.ByValue(list)
-
 comboBox = LDControls.AddComboBox(list,120,100)
-
 Shapes.Move(comboBox,10,140)
-
 LDControls.ComboBoxItemChanged = OnComboBoxItemChanged
-
 AddProgram = Controls.AddButton("Add Program",110,100) 
-
 DeleteProgram = Controls.AddButton("Delete Program",220,100) 
-
 ProgramName = Controls.AddTextBox(140,140)
-
 Controls.SetTextBoxText(ProgramName,"Program 1")
 
-
-
 Win[1] = LDWindows.Create()
-
 GraphicsWindow.Title = "Fenster 1"
-
 Fenster()
-
 Win[2] = LDWindows.Create()
-
 GraphicsWindow.Title = "Fenster 2"
-
 Fenster()
-
-
 
 LDWindows.Active = 0
-
 label = list[1]
-
 ProgramData = AllData[label]
-
 SetData()
 
-
-
 '==========================================
-
 'Initialisation
-
 '==========================================
-
-
 
 Sub IO_ini
-
   c = LDIOWarrior.Initialise()
-
   a = LDIOWarrior.GetSerialNumber(1)
-
   d = LDIOWarrior.GetSerialNumber(2)
-
   b = LDIOWarrior.GetName(1)
-
 EndSub
-
-
 
 Sub Grafikfenster
-
   GraphicsWindow.Title =  "1.Warriorprogramm"
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawBoundText(420,20,200,c + " Geräte angeschlossen")
-
   GraphicsWindow.DrawBoundText(10,20,200,"Seriennummer: " + a)
-
   GraphicsWindow.DrawBoundText(10,50,200,"Seriennummer: " + d)
-
   GraphicsWindow.DrawBoundText(220,20,200,"Gerätename: " + b)
-
 EndSub
 
-
-
 '==========================================
-
 'Additional Windows
-
 '==========================================
-
-
 
 Sub Fenster
-
   LDControls.CheckBoxChanged = OnCheckBoxChanged
-
   WinId = LDWindows.CurrentID
-
   GraphicsWindow.Left = 10 + (WinId-1) * (20+GraphicsWindow.Width)
-
   GraphicsWindow.Top = 10
-
   LDScrollBars.Add(400,550)
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawBoundText(530,60,50,"Zeit in s")
-
   For P = 1 To Nprog
-
     GraphicsWindow.DrawBoundText(20,50*P+25,50,"Prog " + P)
-
     Wert[WinId][P]=255
-
   EndFor
-
   For S = 1 To 8
-
     GraphicsWindow.DrawBoundText(50*S+65,60,250,"Rel " + S)
-
   EndFor
-
   
-
   For P = 1 To Nprog
-
     For N = 1 To 8
-
       pro[WinId][P][N] = LDControls.AddCheckBox("")
-
       Controls.Move(pro[WinId][P][N],50*N + 70,50*P+25)
-
     EndFor
-
     Zeitbox[WinId][P] = Controls.AddTextBox(530,50*P+25)
-
     Controls.SetSize(Zeitbox[WinId][P], 35,20) 
-
   EndFor 
-
 EndSub  
 
-
-
 '==========================================
-
 'Update Checkbox status
-
 '==========================================
-
-
 
 Sub OnCheckBoxChanged 'We use different local variable names here to not clash with other subroutines
-
   Timer.Pause()
-
   CBNam = LDControls.LastCheckBox
-
   For __Id = 1 To Array.GetItemCount(Win)
-
     __WinId = Win[__Id]
-
     For __P = 1 To Nprog
-
       For __N = 1 To 8
-
         If pro[__WinId][__P][__N] = CBNam Then   
-
           If LDControls.LastCheckBoxState = "True" Then
-
             Wert[__WinId][__P] = Wert[__WinId][__P] - Math.Power(2,__N-1)   
-
           Else
-
             Wert[__WinId][__P] = Wert[__WinId][__P] + Math.Power(2,__N-1)   
-
           EndIf
-
         EndIf
-
       EndFor
-
     EndFor
-
   EndFor
-
   Timer.Resume()
-
 EndSub
 
-
-
 '==========================================
-
 'Main Button Event
-
 '==========================================
-
-
 
 Sub OnButtonClicked
-
   Timer.Pause()
-
   button = Controls.LastClickedButton
-
   If (button = StartAll) Then
-
     For Id = 1 To Array.GetItemCount(Win) 'Id is the IO-Warrior number
-
       WinId = Win[Id] 'The corresponding Window Id used to label controls
-
       startTime = Clock.ElapsedMilliseconds
-
       For P = 1 To Nprog
-
         'Check if we do this control
-
         ZeitSek = Controls.GetTextBoxText(Zeitbox[WinId][P])
-
         Queue[WinId][P] = "" 'Unset initially
-
         If ZeitSek > 0 Then
-
           'Delay this action to occur in ZeitSek seconds time
-
           Queue[WinId][P] = startTime 'start of function     
-
           startTime = startTime + 1000 * ZeitSek 'Start of next action
-
         EndIf
-
       EndFor
-
     EndFor
-
   ElseIf (button = AddProgram) Then
-
     GetData()
-
     label = Controls.GetTextBoxText(ProgramName)
-
     'Make sure label doesn't exist, otherwise we would overwrite it!
-
     While (Array.ContainsIndex(AllData,label))
-
       label = label+"A"
-
     EndWhile
-
     AllData[label] = ProgramData
-
     list = Array.GetAllIndices(AllData)
-
     list = LDSort.ByValue(list)
-
     LDControls.ComboBoxContent(comboBox,list)
-
     LDControls.ComboBoxSelect(comboBox,Array.GetItemCount(list))
-
     SetData()
-
     WriteData()
-
   ElseIf (button = DeleteProgram) Then
-
     AllData[label] = ""
-
     list = Array.GetAllIndices(AllData)
-
     list = LDSort.ByValue(list)
-
     label = list[1]
-
     LDControls.ComboBoxContent(comboBox,list)
-
     LDControls.ComboBoxSelect(comboBox,1)
-
     ProgramData = AllData[label]
-
     SetData()
-
     WriteData()
-
   EndIf
-
   Timer.Resume()
-
 EndSub
 
-
-
 '==========================================
-
 'Check for delayed settings
-
 '==========================================
-
-
 
 Sub OnTick 'We use different local variable names here to not clash with other event subroutines
-
   For _Id = 1 To Array.GetItemCount(Win) 'Id is the IO-Warrior number
-
     _WinId = Win[_Id] 'The corresponding Window Id used to label controls
-
     For _P = 1 To Nprog
-
       If (Queue[_WinId][_P] > 0 And Clock.ElapsedMilliseconds > Queue[_WinId][_P]) Then
-
         'Set Binary value for checkboxes
-
         _N[1] = 0
-
         _N[2] = Wert[_WinId][_P]
-
         _N[3] = 255
-
         TextWindow.WriteLine("Id = "+_Id+" N[2] = "+_N[2])
-
         LDIOWarrior.Write(_Id,0,_N)
-
         Queue[_Id][_P] = 0 'Close queued action
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
 
-
-
 '==========================================
-
 'Data store subroutines
-
 '==========================================
-
-
 
 Sub ReadData
-
 ' The following line could be harmful and has been automatically commented.
-
 '   AllData = File.ReadContents(datafile)
-
 EndSub
-
-
 
 Sub WriteData
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.WriteContents(datafile,AllData)
-
 EndSub
-
-
 
 Sub SetData 'Uses ProgramData
-
   Timer.Pause()
-
   If (ProgramData <> "") Then
-
     Controls.SetTextBoxText(ProgramName,label)
-
     For Id = 1 To Array.GetItemCount(Win) 'Id is the IO-Warrior number
-
       WinId = Win[Id] 'The corresponding Window Id used to label controls
-
       For P = 1 To Nprog
-
         binary = LDHID.GetBits(ProgramData[WinId][P][1])
-
         For N = 1 To 8
-
           If (binary[N] = 1) Then
-
             LDControls.CheckBoxState(pro[WinId][P][N],"False")
-
           Else
-
             LDControls.CheckBoxState(pro[WinId][P][N],"True")
-
           EndIf
-
         EndFor
-
         Controls.SetTextBoxText(Zeitbox[WinId][P],ProgramData[WinId][P][2])
-
       EndFor
-
     EndFor
-
     'Reset Wert since the checkbox events may mess with them - a small delay to make sure they are all finished
-
     Program.Delay(10)
-
     For Id = 1 To Array.GetItemCount(Win)
-
       WinId = Win[Id]
-
       For P = 1 To Nprog
-
         Wert[WinId][P] = ProgramData[WinId][P][1] 'Set this after setting checkboxes (the latter calls events that modifies Wert)
-
       EndFor
-
     EndFor
-
   EndIf
-
   Timer.Resume()
-
 EndSub
-
-
 
 Sub GetData 'Sets ProgramData
-
   For Id = 1 To Array.GetItemCount(Win) 'Id is the IO-Warrior number
-
     WinId = Win[Id] 'The corresponding Window Id used to label controls
-
     For P = 1 To Nprog
-
       ProgramData[WinId][P][1] = Wert[WinId][P]
-
       ProgramData[WinId][P][2] = Controls.GetTextBoxText(Zeitbox[WinId][P])
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub OnComboBoxItemChanged
-
   label = list[LDControls.LastComboBoxIndex]
-
   ProgramData = AllData[label]
-
   SetData()
-
 EndSub
-
-

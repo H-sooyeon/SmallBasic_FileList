@@ -1,487 +1,243 @@
 ' Missile Command Demo 0.3a
-
 ' Original Copyright (c) 1980 ATARI
-
 ' Ported to Small Basic by Nonki Takahashi
-
 '
-
 ' History:
-
 '  0.1a 2013-09-25 Created. (VHH620)
-
 '  0.2a 2013-09-26 End credit and concurrent bomb added. (PVH974)
-
 '  0.3a 2013-09-26 Demo screen added. (VHH620-0)
-
 '
-
 Init()
-
 GraphicsWindow.FontName = "Consolas"
-
 While "True"
-
   Caption()
-
   Demo()
-
   HighScores()
-
   GameEnd()
-
 EndWhile
-
 Sub Init
-
   GraphicsWindow.Title = "Missile Command Demo 0.3a"
-
   gw = 640
-
   gh = 480
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   colors["background"] = "Black"
-
   colors["caption"] = "Red"
-
   colors["fire"] = "White"
-
   colors["normal"] = "Blue"
-
   colors["bold"] = "Red"
-
   colors["ground"] = "Peru"
-
   colors["city"] = "DarkCyan"
-
   colors["launcher"] = "Blue"
-
   colors["enemy"] = "Red"
-
   GraphicsWindow.BackgroundColor = colors["background"]
-
 EndSub
-
 Sub Caption
-
   GraphicsWindow.BrushColor = "Black"
-
   mask = Shapes.AddRectangle(gw, gh)
-
   Shapes.SetOpacity(mask, 0)
-
   GraphicsWindow.BrushColor = colors["caption"]
-
   GraphicsWindow.FontSize = 150
-
   GraphicsWindow.DrawBoundText(30, 50, 600, "MISSILE COMMAND")
-
   Program.Delay(1000)
-
   x = ""  ' center of bomb
-
   y = ""  ' center of bomb
-
   t = ""  ' current time
-
   t1 = "" ' middle time
-
   t2 = "" ' end time
-
   Timer.Interval = 20
-
   Timer.Tick = OnTick
-
   For i = 1 To 50
-
     x[i] = Math.GetRandomNumber(gw)
-
     y[i] = Math.GetRandomNumber(gh)
-
     r = 30 ' (Math.GetRandomNumber(3) + 2) * 10
-
     t1[i] = Math.Floor(r / 5)
-
     t2[i] = t1[i] * 2 + 1
-
     t[i] = 1
-
     Shapes.SetOpacity(mask, i * 1.5)
-
     Program.Delay(100)
-
   EndFor
-
   Program.Delay(1000)
-
   Timer.Pause()
-
   Timer.Tick = DoNothing
-
 EndSub
-
 Sub OnTick
-
   For _i = 1 To 50
-
     If (0 < t[_i]) And (t[_i] <= t2[_i]) Then
-
       Bomb()
-
     EndIf
-
   EndFor
-
 EndSub
-
 Sub Bomb
-
   ' param _i - bomb index
-
   ' param x, y - center of fire
-
   Timer.Pause()
-
   If t[_i] <= t1[_i] Then
-
     GraphicsWindow.BrushColor = colors["fire"]
-
     r1 = 5 + (t[_i] - 1) * 5 
-
     GraphicsWindow.FillEllipse(x[_i] - r1, y[_i] - r1, 2 * r1, 2 * r1)
-
     t[_i] = t[_i] + 1
-
   ElseIf t[_i] <= t2[_i] Then
-
     r1 = 5 + (t2[_i] - t[_i]) * 5 
-
     GraphicsWindow.BrushColor = colors["background"]
-
     r2 = r1 + 1
-
     GraphicsWindow.FillEllipse(x[_i] - r2, y[_i] - r2, 2 * r2, 2 * r2)
-
     If t[_i] < t2[_i] Then
-
       r3 = r1 - 5
-
       r4 = r1 * 5
-
       GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(r4, r4, r4)
-
       GraphicsWindow.FillEllipse(x[_i] - r3, y[_i] - r3, 2 * r3, 2 * r3)
-
     EndIf
-
     t[_i] = t[_i] + 1
-
   EndIf
-
   Timer.Resume()
-
 EndSub
-
 Sub Demo
-
   City_Init()
-
   GraphicsWindow.BrushColor = colors["ground"]
-
   GraphicsWindow.FillRectangle(0, city["y"], gw, gh - city["y"])
-
   For i = 1 To city["num"]
-
     x = (i - 1) * 70 + 10
-
     city["x"][i] = x + 30
-
     y = city["y"]
-
     If i = 1 Or i = 5 Or i = 9 Then
-
       GraphicsWindow.BrushColor = colors["ground"]
-
       GraphicsWindow.FillEllipse(x - 5, y - 15, 70, 70)
-
     Else
-
       City_Draw()
-
     EndIf
-
   EndFor
-
   mx = "" ' missile position
-
   my = "" ' missile position
-
   ma = "" ' missile angle
-
   mt = "" ' current time
-
   Timer.Interval = 20
-
   Timer.Tick = OnTickMissile
-
   For j = 1 To 10
-
     mx[j] = Math.GetRandomNumber(gw)
-
     my[j] = 0
-
     target = Math.GetRandomNumber(city["num"])
-
     x = city["x"][target] - mx[j]
-
     y = city["y"] - my[j]
-
     Math_CartesianToPolar()
-
     ma[j] = a
-
     mt[j] = 1
-
     Program.Delay(300)
-
   EndFor
-
   Program.Delay(3000)
-
   Timer.Pause()
-
   Timer.Tick = DoNothing
-
 EndSub
-
 Sub DoNothing
-
 EndSub
-
 Sub OnTickMissile
-
   For _j = 1 To 10
-
     If 0 < mt[_j] Then
-
       Missile_Move()
-
     EndIf
-
   EndFor
-
 EndSub
-
 Sub Missile_Move
-
   ' param _j - missile index
-
   ' param mx,my - missile position
-
   ' param ma - missile angle
-
   Timer.Pause()
-
   _a = Math.GetRadians(ma[_j])
-
   _x = mx[_j] + 4 * Math.Cos(_a)
-
   _y = my[_j] + 4 * Math.Sin(_a)
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = colors["enemy"]
-
   GraphicsWindow.SetPixel(mx[_j], my[_j], colors["enemy"])
-
   GraphicsWindow.DrawLine(mx[_j], my[_j], _x, _y)
-
   GraphicsWindow.SetPixel(_x, _y, "Yellow")
-
   mx[_j] = _x
-
   my[_j] = _y
-
   Timer.Resume()
-
 EndSub
-
 Sub City_Init
-
   GraphicsWindow.Clear()
-
   bldg["num"] = 12
-
   bldg["width"] = 5
-
   bldg["height"] = "1=10;2=30;3=25;4=25;5=10;6=40;7=20;8=30;9=35;10=15;11=5;12=10;"
-
   city["y"] = gh - 30
-
   city["num"] = 9
-
 EndSub
-
 Sub City_Draw
-
   Stack.PushValue("local", i)
-
   GraphicsWindow.BrushColor = colors["city"]
-
   _x = x
-
   For i = 1 To bldg["num"]
-
     _y = y - bldg["height"][i]
-
     GraphicsWindow.FillRectangle(_x, _y, bldg["width"], bldg["height"][i])
-
     _x = _x + bldg["width"]
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
 Sub HighScores
-
 EndSub
-
 Sub GameEnd
-
   GraphicsWindow.BackgroundColor = "Red"
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.BrushColor = "Red"
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.FontSize = 120
-
   theEnd = Shapes.AddText("THE END")
-
   Shapes.Move(theEnd, 90, 160)
-
   Shapes.SetOpacity(theEnd, 0)
-
   x1 = 400  '356
-
   y1 = 1200 '2400
-
   x2 = 1600 '3200
-
   y2 = 300  '267
-
   t1 = Shapes.AddTriangle(0, 0, x1, 0, 0, y1)
-
   t2 = Shapes.AddTriangle(0, gh, x1, gh, 0, gh - y1)
-
   t3 = Shapes.AddTriangle(gw, 0, gw - x1, 0, gw, y1)
-
   t4 = Shapes.AddTriangle(gw, gh, gw - x1, gh, gw, gh - y1)
-
   t5 = Shapes.AddTriangle(0, 0, x2, 0, 0, y2)
-
   t6 = Shapes.AddTriangle(0, gh, x2, gh, 0, gh - y2)
-
   t7 = Shapes.AddTriangle(gw, 0, gw - x2, 0, gw, y2)
-
   t8 = Shapes.AddTriangle(gw, gh, gw - x2, gh, gw, gh - y2)
-
   imax = 20
-
   For i = 0 To imax - 1
-
     SizeOctagon()
-
   EndFor
-
   Shapes.SetOpacity(theEnd, 100)
-
   For i = imax - 1 To 0 Step -1
-
     SizeOctagon()
-
   EndFor
-
   GraphicsWindow.BackgroundColor = colors["background"]
-
   GraphicsWindow.Clear()
-
 EndSub
-
 Sub SizeOctagon
-
   If Math.Remainder(i, 2) = 0 Then
-
     GraphicsWindow.BackgroundColor = "White"
-
   Else
-
     GraphicsWindow.BackgroundColor = "Blue"
-
   EndIf
-
   Shapes.Move(t1, -i * gw / 2 / imax, 0)
-
   Shapes.Move(t2, -i * gw / 2 / imax, 0)
-
   Shapes.Move(t3, i * gw / 2 / imax, 0)
-
   Shapes.Move(t4, i * gw / 2 / imax, 0)
-
   Shapes.Move(t5, 0, -i * gh / 2 / imax)
-
   Shapes.Move(t6, 0, i * gh / 2 / imax)
-
   Shapes.Move(t7, 0, -i * gh / 2 / imax)
-
   Shapes.Move(t8, 0, i * gh / 2 / imax)
-
   Program.Delay(200)
-
 EndSub
-
 Sub Math_CartesianToPolar
-
   ' Math | convert cartesian coodinate to polar coordinate
-
   ' param x, y - cartesian coordinate
-
   ' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
-

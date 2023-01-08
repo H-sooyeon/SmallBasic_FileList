@@ -1,2367 +1,1183 @@
 ' Lyra / April  Lyrids
-
 ' Version 0.1
-
-' ?Åì?Å® / ?Åì?Å®Â∫ßÊµÅ?òüÁæ?
-
+' „Åì„Å® / „Åì„Å®Â∫ßÊµÅÊòüÁæ§
 ' Copyright ¬© 2017 Nonki Takahashi.  The MIT License.
-
 ' Update 2017-04-17
-
 '
-
 ' Reference:
-
 '  http://en.wikipedia.org/wiki/List_of_stars_in_Lyra
-
 '
-
 title = "April Lyrids"
-
 Init()
-
 ' initialize shapes
-
 Shapes_Init()
-
 ' add shapes
-
 scale = 0.8
-
 angle = 17
-
 iMin = 1
-
 iMax = 445
-
 Shapes_Add()
-
 Shapes_Rotate()
-
 r = 800     ' [px]
-
 delay = 100 ' [ms]
-
 Cal_Init()
-
 InitStars()
-
 ra = radiant["ra"]
-
 dec = radiant["dec"]
-
 Mapping()
-
 rot = ra
-
 tilt = dec
-
 GraphicsWindow.Title = title + " | RA=" + (Math.Round(ra * 100) / 100) + "h Dec=" + dec + "¬∞"
-
 DrawRA()
-
 DrawDec()
-
 DrawStars()
-
 DrawCalendar()
-
 DrawMeteorShower()
-
 While "True"
-
   If keyDown Then
-
     If key = "Right" Then
-
       rot = rot + 0.25
-
       If 24 <= rot Then
-
         rot = rot - 24
-
       EndIf
-
     ElseIf key = "Left" Then
-
       rot = rot - 0.25
-
       If rot < 0 Then
-
         rot = rot + 24
-
       EndIf
-
     ElseIf key = "Up" Then
-
       If tilt <= 85 Then
-
         tilt = tilt + 5
-
       EndIf
-
     ElseIf key = "Down" Then
-
       If -85 <= tilt Then
-
         tilt = tilt - 5
-
       EndIf
-
     ElseIf key = "Add" Then
-
       r = r * 1.2
-
     ElseIf key = "Subtract" Then
-
       r = r / 1.2
-
     EndIf
-
     GraphicsWindow.Title = title + " RA=" + rot + "h Dec=" + tilt + "¬∞"
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.FillRectangle(0, 0, gw, gh)
-
     DrawRA()
-
     DrawDec()
-
     DrawStars()
-
     keyDown = "False"
-
   EndIf
-
   Program.Delay(delay)
-
 EndWhile
 
-
-
 Sub DrawDec
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "#666666"
-
   For dec = -80 To 80 Step 10
-
     For ra = 0 To 24 Step 0.2
-
       Mapping()
-
       If 0 < ra Then
-
         DrawLine()
-
       EndIf
-
       xLast = x
-
       yLast = y
-
       zLast = z
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub DrawRA
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "#666666"
-
   For ra = 0 To 23
-
     For dec = -90 To 90 Step 5
-
       Mapping()
-
       If -90 < dec Then
-
         DrawLine()
-
       EndIf
-
       xLast = x
-
       yLast = y
-
       zLast = z
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub DrawCalendar
-
   GraphicsWindow.BrushColor = "White"
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 30
-
   txt = Shapes.AddText(months[month])
-
   Shapes.Move(txt, monthX, monthY)
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 40
-
   txt = Shapes.AddText(year)
-
   Shapes.Move(txt, monthX, monthY + 30)
-
   sBuf = year + "," + month
-
   Command_GetArgs()
-
   iYear = sArg[1]
-
   if iYear = "" Then
-
     Goto lEnd
-
   Endif
-
   If Math.Remainder(iYear, 4) = 0 And Math.Remainder(iYear, 100) > 0 Or Math.Remainder(iYear, 400) = 0 Then
-
     iDoM[2] = iDoM[2] + 1
-
   Endif
-
   iNoL = Math.Floor((iYear - 1) / 4) - Math.Floor((iYear - 1) / 100) + Math.Floor((iYear - 1) / 400)  ' number of leap year
-
   iWoY = Math.Remainder((iYear + iNoL), 7)  ' week of year
-
   iMonth = sArg[2]
-
   If iMonth = "" Then
-
     iM0 = 1
-
     iM1 = 12
-
   Else
-
     iM0 = iMonth
-
     iM1 = iMonth
-
   Endif
-
   iDoY = 0  ' days of year
-
   iNoM = 1  ' number of month
-
   For iM = iM0 To iM1
-
     While iNoM < iM
-
       iDoY = iDoY + iDoM[iNoM]
-
       iNoM = iNoM + 1
-
     EndWhile
-
     Cal_DrawMonth()
-
   EndFor  
-
   lEnd:
-
 EndSub
-
-
 
 Sub DrawLine
-
   visible = "False"
-
   If 0 <= z And 0 <= zLast Then
-
     If 0 <= x And x < gw And 0 <= y And y < gh Then
-
       visible = "True"
-
     ElseIf 0 <= xLast And xLast < gw And 0 <= yLast And yLast < gh Then
-
       visible = "True"
-
     EndIf
-
   EndIf
-
   If visible Then
-
     GraphicsWindow.DrawLine(xLast, yLast, x, y)
-
   EndIf
-
 EndSub
-
-
 
 Sub DrawMeteorShower
-
   ra = radiant["RA"]
-
   dec = radiant["Dec"]
-
   Mapping()
-
   rx = x
-
   ry = y
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "White"
-
   While "True"
-
     Program.Delay(2000)
-
     angle = Math.GetRandomNumber(360)
-
     _a = Math.GetRadians(angle)
-
     r1 = Math.GetRandomNumber(100) + 50
-
     r2 = r1 * 2.5
-
     x1 = rx + r1 * Math.Sin(_a)
-
     y1 = ry - r1 * Math.Cos(_a)
-
     x2 = rx + r2 * Math.Sin(_a)
-
     y2 = ry - r2 * Math.Cos(_a)
-
     meteor = Shapes.AddLine(x1, y1, x2, y2)
-
     For op = 100 To 0 Step -5
-
       Shapes.SetOpacity(meteor, op)
-
       Program.Delay(50)
-
     EndFor
-
     Shapes.Remove(meteor)
-
   EndWhile
-
 EndSub
-
-
 
 Sub DrawStars
-
   GraphicsWindow.PenWidth = 1
-
   GraphicsWindow.PenColor = "MidnightBlue"
-
   n = Array.GetItemCount(edge)
-
   index = Array.GetAllIndices(edge)
-
   For i = 1 To n
-
     e = edge[index[i]]
-
     m = Text.GetIndexOf(e, "-")
-
     ra = star[Text.GetSubText(e, 1, m - 1)]["RA"]
-
     dec = star[Text.GetSubText(e, 1, m - 1)]["Dec"]
-
     Mapping()
-
     x1 = x
-
     y1 = y
-
     z1 = z
-
     ra = star[Text.GetSubTextToEnd(e, m + 1)]["RA"]
-
     dec = star[Text.GetSubTextToEnd(e, m + 1)]["Dec"]
-
     Mapping()
-
     x2 = x
-
     y2 = y
-
     z2 = z
-
     If connect[index[i]] <> "" Then
-
       Shapes.Remove(connect[index[i]])
-
       connect[index[i]] = ""
-
     EndIf
-
     visible = "False"
-
     If 0 <= z1 And 0 <= z2 Then
-
       If 0 <= x1 And x1 <= gw And 0 <= y1 And y1 <= gh Then
-
         visible = "True"
-
       ElseIf 0 <= x2 And x2 <= gw And 0 <= y2 And y2 <= gh Then
-
         visible = "True"
-
       EndIf
-
       If visible Then
-
         connect[index[i]] = Shapes.AddLine(x1, y1, x2, y2)
-
       EndIf
-
     EndIf
-
   EndFor
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "White"
-
   n = Array.GetItemCount(star)
-
   index = Array.GetAllIndices(star)
-
   For i = 1 To n
-
     ra = star[index[i]]["ra"]
-
     dec = star[index[i]]["dec"]
-
     Mapping()
-
     If ell[index[i]] <> "" Then
-
       Shapes.Remove(ell[index[i]])
-
       ell[index[i]] = ""
-
     EndIf
-
     If 0 <= z Then
-
       mag = star[index[i]]["mag"]
-
       d = 16 / mag
-
       If 10 < d Then
-
         d = 10
-
       EndIf
-
       ell[index[i]] = Shapes.AddEllipse(d, d)
-
       Shapes.Move(ell[index[i]], x - d / 2, y - d / 2)
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub Init
-
   gw = 598
-
   gh = 428
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.BackgroundColor = "Black"
-
   ox = gw / 2
-
   oy = gh * 0.4
-
   rot = 0     ' rotation
-
   tilt = 0
-
   monthX = 40
-
   monthY = gh - 150
-
   calendarX = gw - 270
-
   calendarY = gh - 150
-
   year = 2017
-
   month = 4
-
   GraphicsWindow.KeyDown = OnKeyDown
-
 EndSub
-
-
 
 Sub InitStars
-
   ' Initialize stars in Lyra
-
   ' index: Flamsteed designation
-
   ' RA (Right ascension), Dec (Declination), Mag (Apparent magnitude)
-
   star["Vega"] = "ra=18 36 56.19;dec=+38 46 58.8;mag=0.03;fd=3;"
-
   star["Œ≥ Lyr"] = "ra=18 58 56.62;dec=+32 41 22.4;mag=3.25;fd=14;"
-
   star["Œ≤ Lyr A"] = "ra=18 50 04.79;dec=+33 21 45.6;mag=3.52;fd=10;"
-
   star["R Lyr"] = "ra=18 55 20.09;dec=+43 56 45.2;mag=4.08;fd=13;"
-
   star["Œ¥2 Lyr"] = "ra=18 54 30.29;dec=+36 53 55.0;mag=4.22;fd=12;"
-
   star["Œ∫ Lyr"] = "ra=18 19 51.72;dec=+36 03 52.0;mag=4.33;fd=1;"
-
   star["Œ∂1 Lyr"] = "ra=18 44 46.34;dec=+37 36 18.2;mag=4.34;fd=6;"
-
   star["Œ∏ Lyr"] = "ra=19 16 22.10;dec=+38 08 01.4;mag=4.35;fd=21;"
-
   star["Œ∑ Lyr"] = "ra=19 13 45.49;dec=+39 08 45.5;mag=4.43;fd=20;"
-
   star["Œµ2 Lyr A"] = "ra=18 44 22.78;dec=+39 36 45.3;mag=4.60;fd=5;"
-
   star["Œµ1 Lyr A"] = "ra=18 44 20.34;dec=+39 40 11.9;mag=4.67;fd=4;"
-
   star["HD 173780"] = "ra=18 46 04.47;dec=+26 39 43.5;mag=4.83;"
-
   star["Œª Lyr"] = "ra=19 00 00.82;dec=+32 08 43.8;mag=4.94;fd=15;"
-
   star["16 Lyr"] = "ra=19 01 26.36;dec=+46 56 06.1;mag=5.00;fd=16;"
-
   star["Œº Lyr"] = "ra=18 24 13.80;dec=+39 30 26.1;mag=5.11;fd=2;"
-
   star["HD 176051"] = "ra=18 57 01.47;dec=+32 54 05.8;mag=5.20;"
-
   star["17 Lyr"] = "ra=19 07 25.50;dec=+32 30 06.0;mag=5.20;fd=17;"
-
   star["ŒΩ Lyr"] = "ra=18 49 52.92;dec=+32 33 03.9;mag=5.22;fd=9;"
-
   star["Œπ Lyr"] = "ra=19 07 18.13;dec=+36 06 00.6;mag=5.25;fd=18;"
-
   star["HD 176527"] = "ra=18 59 45.43;dec=+26 13 49.6;mag=5.26;"
-
   star["Œµ2 Lyr B"] = "ra=18 44 22.90;dec=+39 36 46.0;mag=5.37;fd=5;"
-
   star["HD 172044"] = "ra=18 36 37.35;dec=+33 28 08.5;mag=5.41;"
-
   star["HD 175740"] = "ra=18 54 52.18;dec=+41 36 09.8;mag=5.46;"
-
   star["HD 171301"] = "ra=18 32 49.95;dec=+30 33 15.1;mag=5.47;"
-
   star["HD 178233"] = "ra=19 06 37.68;dec=+28 37 42.2;mag=5.53;"
-
   star["HD 167965"] = "ra=18 15 38.78;dec=+42 09 33.6;mag=5.56;"
-
   star["Œ¥1 Lyr"] = "ra=18 53 43.56;dec=+36 58 18.2;mag=5.58;fd=11;"
-
   star["HD 177808"] = "ra=19 04 57.82;dec=+31 44 39.3;mag=5.63;"
-
   star["HD 175443"] = "ra=18 54 13.25;dec=+27 54 34.9;mag=5.64;"
-
   star["HD 173417"] = "ra=18 43 51.61;dec=+31 55 36.9;mag=5.68;"
-
   star["HD 176871"] = "ra=19 01 17.36;dec=+26 17 29.2;mag=5.69;"
-
   star["Œ∂2 Lyr"] = "ra=18 44 48.19;dec=+37 35 40.4;mag=5.73;fd=7;"
-
   star["HD 182694"] = "ra=19 23 56.49;dec=+43 23 17.7;mag=5.85;"
-
   star["HD 180450"] = "ra=19 15 24.84;dec=+30 31 35.2;mag=5.88;"
-
   star["V542 Lyr"] = "ra=18 58 01.90;dec=+38 15 58.3;mag=5.89;"
-
   star["ŒΩ1 Lyr"] = "ra=18 49 45.91;dec=+32 48 46.2;mag=5.93;fd=8;"
-
   star["19 Lyr"] = "ra=19 11 46.01;dec=+31 17 00.5;mag=5.93;fd=19;"
-
   star["HD 175635"] = "ra=18 54 52.52;dec=+33 58 06.9;mag=5.99;"
-
   star["XY Lyr"] = "ra=18 38 06.47;dec=+39 40 05.9;mag=6.02;"
-
   star["Œµ1 Lyr B"] = "ra=18 44 20.30;dec=+39 40 16.0;mag=6.02;fd=4;"
-
   star["HD 176896"] = "ra=19 00 55.20;dec=+33 48 07.7;mag=6.04;"
-
   star["HD 173416"] = "ra=18 43 36.11;dec=+36 33 23.8;mag=6.06;"
-
   star["HD 173936"] = "ra=18 46 13.01;dec=+41 26 30.5;mag=6.06;"
-
   star["HD 174179"] = "ra=18 47 57.37;dec=+31 45 24.6;mag=6.06;"
-
   star["HD 177809"] = "ra=19 04 58.27;dec=+30 44 00.4;mag=6.07;"
-
   star["HD 182272"] = "ra=19 22 33.35;dec=+33 31 05.6;mag=6.09;"
-
   star["HD 171780"] = "ra=18 35 13.50;dec=+34 27 28.8;mag=6.10;"
-
   star["HD 174959"] = "ra=18 51 36.52;dec=+36 32 20.8;mag=6.10;"
-
   star["HD 168322"] = "ra=18 17 06.95;dec=+40 56 11.7;mag=6.12;"
-
   star["V473 Lyr"] = "ra=19 15 59.49;dec=+27 55 34.7;mag=6.18;"
-
   star["V543 Lyr"] = "ra=18 58 46.59;dec=+40 40 45.1;mag=6.20;"
-
   star["HD 179583"] = "ra=19 11 23.16;dec=+40 25 45.0;mag=6.20;"
-
   star["V533 Lyr"] = "ra=18 36 45.53;dec=+43 13 18.6;mag=6.21;"
-
   star["HD 174881"] = "ra=18 51 35.89;dec=+28 47 01.2;mag=6.22;"
-
   star["HD 172671"] = "ra=18 39 33.03;dec=+40 56 06.2;mag=6.25;"
-
   star["HD 181470"] = "ra=19 19 01.15;dec=+37 26 43.1;mag=6.25;"
-
   star["HD 175132"] = "ra=18 52 07.25;dec=+41 22 59.7;mag=6.28;"
-
   star["HD 181655"] = "ra=19 19 39.04;dec=+37 19 51.5;mag=6.29;"
-
   star["HD 168009"] = "ra=18 15 32.53;dec=+45 12 34.5;mag=6.30;"
-
   star["HD 181828"] = "ra=19 20 33.05;dec=+35 11 09.4;mag=6.30;"
-
   star["HR 7403"] = "ra=19 27 36.40;dec=+37 56 28.3;mag=6.30;"
-
   star["HD 178003"] = "ra=19 05 47.13;dec=+29 55 18.1;mag=6.32;"
-
   star["HD 179422"] = "ra=19 11 30.96;dec=+26 44 09.4;mag=6.35;"
-
   star["Gliese 758"] = "ra=19 23 34.01;dec=+33 13 19.1;mag=6.37;"
-
   star["HD 177109"] = "ra=19 01 48.37;dec=+33 37 16.5;mag=6.39;"
-
   star["HD 169646"] = "ra=18 23 57.27;dec=+38 44 21.0;mag=6.41;"
-
   star["HD 172958"] = "ra=18 41 41.31;dec=+31 37 03.3;mag=6.41;"
-
   star["HD 172631"] = "ra=18 40 01.93;dec=+30 50 57.8;mag=6.43;"
-
   star["HD 176582"] = "ra=18 59 12.29;dec=+39 13 02.4;mag=6.43;"
-
   star["HD 182635"] = "ra=19 24 06.05;dec=+36 27 06.9;mag=6.44;"
-
   star["HD 172741"] = "ra=18 40 12.19;dec=+38 22 01.8;mag=6.45;"
-
   star["HD 173383"] = "ra=18 43 16.57;dec=+39 18 00.3;mag=6.45;"
-
   star["V550 Lyr"] = "ra=19 06 17.00;dec=+41 24 50.0;mag=6.49;"
-
   star["HD 173087"] = "ra=18 42 08.09;dec=+34 44 46.7;mag=6.49;"
-
   star["HD 180314"] = "ra=19 14 50.21;dec=+31 51 37.3;mag=6.61;"
-
   star["HD 178911"] = "ra=19 09 04.38;dec=+34 36 01.6;mag=6.74;"
-
   edge = "1=Vega-Œ∂1 Lyr;2=Œ∂1 Lyr-Œ≤ Lyr A;3=Œ≤ Lyr A-Œ≥ Lyr;4=Œ≥ Lyr-Œ¥2 Lyr;"
-
   edge = edge + "5=Œ¥2 Lyr-Œ∂1 Lyr;"
-
   radiant = "ra=18 08 00.00;dec=+32 00 00.0;"
-
 EndSub
-
-
 
 Sub Mapping
-
   ' param ra - right asension [h]
-
   ' param rot - rotation [h]
-
   ' param dec - declination [deg]
-
   ' param tilt - tilt [deg]
-
   ' param r - radius [px]
-
   ' return x, y - position in the graphics window [px]
-
   ' return z - visible if 0 <= z
-
   If Text.IsSubText(ra, " ") Then
-
     _ra = Text.GetSubText(ra, 1, 2)
-
     _ra = _ra + Text.GetSubText(ra, 4, 2) / 60
-
     _ra = _ra + Text.GetSubText(ra, 7, 5) / 3600
-
     ra = _ra
-
   EndIf
-
   If Text.IsSubText(dec, " ") Then
-
     _dec = Text.GetSubText(dec, 2, 2)
-
     _dec = _dec + Text.GetSubText(dec, 5, 2) / 60
-
     _dec = _dec + Text.GetSubText(dec, 8, 5) / 3600
-
     _dec = _dec * Text.Append(Text.GetSubText(dec, 1, 1), "1")
-
     dec = _dec
-
   EndIf
-
-  ?? = Math.GetRadians((ra - rot) * 15)
-
+  œÜ = Math.GetRadians((ra - rot) * 15)
   Œ∏ = Math.GetRadians(dec)
-
-  x = ox - r * Math.Sin(??) * Math.Cos(Œ∏)
-
+  x = ox - r * Math.Sin(œÜ) * Math.Cos(Œ∏)
   y = oy - r * Math.Sin(Œ∏)
-
-  z = r * Math.Cos(??) * Math.Cos(Œ∏)
-
+  z = r * Math.Cos(œÜ) * Math.Cos(Œ∏)
   If tilt <> 0 Then
-
     _z = z
-
     _y = y - oy
-
-    ?? = Math.GetRadians(tilt)
-
-    z = Math.Cos(??) * _z - Math.Sin(??) * _y
-
-    y = oy + Math.Sin(??) * _z + Math.Cos(??) * _y
-
+    œÑ = Math.GetRadians(tilt)
+    z = Math.Cos(œÑ) * _z - Math.Sin(œÑ) * _y
+    y = oy + Math.Sin(œÑ) * _z + Math.Cos(œÑ) * _y
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   keyDown = "True"
-
   key = GraphicsWindow.LastKey
-
 EndSub
-
-
 
 Sub Cal_Init
-
   ' Calendar | Initialize days of month
-
   WQ = Text.GetCharacter(34)
-
   CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
-
   iDoM = "1=31;2=28;3=31;4=30;5=31;6=30;7=31;8=31;9=30;10=31;11=30;12=31;"
-
   months = "1=January;2=February;3=March;4=April;5=May;6=June;7=July;"
-
   months = months + "8=August;9=September;10=October;11=November;12=December;"
-
-  symbols = "1=?ôë;2=?ôí;3=?ôì;4=?ôà;5=?ôâ;6=?ôä;7=?ôã;8=?ôå;9=?ôç;10=?ôé;11=?ôè;12=?ôê;"
-
+  symbols = "1=‚ôë;2=‚ôí;3=‚ôì;4=‚ôà;5=‚ôâ;6=‚ôä;7=‚ôã;8=‚ôå;9=‚ôç;10=‚ôé;11=‚ôè;12=‚ôê;"
 EndSub
-
-
 
 Sub Cal_DrawMonth
-
   ' Calendar | Print month
-
   ' param iM - month
-
   ' param iDoY - days of year
-
   ' param iWoY - week of year
-
   If silverlight Then
-
     Program.Delay(msWait)
-
   EndIf
-
   GraphicsWindow.FontSize = 16
-
   GraphicsWindow.FontName = "Consolas"
-
   iW = Math.Remainder((iDoY + iWoY), 7)
-
   line = "SUN MON TUE WED THU FRI SAT" + CRLF
-
   iWoM = 0
-
   While iWoM < iW
-
     line = line + "    "
-
     iWoM = iWoM + 1
-
   EndWhile
-
   For iD = 1 To iDoM[iM]
-
     If iD < 10 Then
-
       line = line + "  " + iD + " "
-
     Else
-
       line = line + " " + iD + " "
-
     EndIf
-
     If Math.Remainder(iWoM, 7) = 6 Then
-
       line = line + CRLF
-
     EndIf
-
     iWoM = iWoM + 1
-
   EndFor
-
   If Math.Remainder(iWoM, 7) > 0 Then
-
     line = line + CRLF
-
   EndIf
-
   cal = Shapes.AddText(line)
-
   Shapes.Move(cal, calendarX, calendarY)
-
 EndSub
-
-
 
 Sub Command_GetArgs
-
   ' Command line | Get arguments
-
   ' param sBuf - input buffer
-
   ' return sArg[] - arguments
-
   ' return iN - number of arguments
-
   iP = 1  ' buffer pointer
-
   iN = 1  ' number of args
-
   iC = Text.GetIndexOf(sBuf, ",")   ' index of comma
-
   While iC > iP
-
     sArg[iN] = Text.GetSubText(sBuf, iP, iC - iP)
-
     iP = iC + 1
-
     iN = iN + 1
-
     iC = Text.GetIndexOf(sBuf, ",")
-
   EndWhile
-
   iE = Text.GetLength(sBuf) + 1     ' end of buffer
-
   sArg[iN] = Text.GetSubText(sBuf, iP, iE - iP)  
-
 EndSub
-
-
 
 Sub Math_CartesianToPolar
-
   ' Math | convert cartesian coodinate to polar coordinate
-
   ' param x, y - cartesian coordinate
-
   ' return r, a - polar coordinate
-
   r = Math.SquareRoot(x * x + y * y)
-
   If x = 0 And y > 0 Then
-
     a = 90 ' [degree]
-
   ElseIf x = 0 And y < 0 Then
-
     a = -90
-
   ElseIf x = 0 Then
-
     a = 0
-
   Else
-
     a = Math.ArcTan(y / x) * 180 / Math.Pi
-
   EndIf
-
   If x < 0 Then
-
     a = a + 180
-
   ElseIf x > 0 And y < 0 Then
-
     a = a + 360
-
   EndIf
-
 EndSub
-
-
 
 Sub SB_RotateWorkaround
-
   ' Small Basic | Rotate workaround for Silverlight
-
   ' param shp - current shape
-
   ' param x, y - original coordinate
-
   ' param alpha - angle [radian]
-
   ' returns x, y - workaround coordinate
-
   If shp["func"] = "tri" Then
-
     x1 = -Math.Floor(shp["x3"] / 2)
-
     y1 = -Math.Floor(shp["y3"] / 2)
-
   ElseIf shp["func"] = "line" Then
-
     x1 = -Math.Floor(Math.Abs(shp["x1"] - shp["x2"]) / 2)
-
     y1 = -Math.Floor(Math.Abs(shp["y1"] - shp["y2"]) / 2)
-
   EndIf
-
   ox = x - x1
-
   oy = y - y1
-
   x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
   y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
 EndSub
-
-
 
 Sub SB_Workaround
-
   ' Small Basic | Workaround for Silverlight
-
   ' returns silverlight - "True" if in remote
-
   color = GraphicsWindow.GetPixel(0, 0)
-
   If Text.GetLength(color) > 7 Then
-
     silverlight = "True"
-
     msWait = 300
-
   Else
-
     silverlight = "False"
-
   EndIf
-
 EndSub
-
-
 
 Sub Shapes_Init
-
   ' Shapes | Initialize shapes data
-
   ' return shX, shY - current position of shapes
-
   ' return shape - array of shapes
-
   shX = 130 ' x offset
-
   shY = 40  ' y offset
-
   shape = ""
-
   shape[1] = "func=ell;x=33;y=161;width=45;height=11;bc=#B05E11;pw=0;"
-
   shape[2] = "func=ell;x=48;y=174;width=16;height=17;bc=#B05E11;pw=0;"
-
   shape[3] = "func=tri;x=49;y=185;x1=7;y1=0;x2=0;y2=12;x3=14;y3=12;angle=178;bc=#B05E11;pw=0;width=14;height=12;"
-
   shape[4] = "func=ell;x=42;y=170;width=28;height=10;bc=#B05E11;pw=0;"
-
   shape[5] = "func=rect;x=43;y=168;width=27;height=9;bc=#B05E11;pw=0;"
-
   shape[6] = "func=rect;x=33;y=160;width=45;height=8;bc=#B05E11;pw=0;"
-
   shape[7] = "func=ell;x=33;y=155;width=45;height=11;bc=#82460D;pw=0;"
-
   shape[8] = "func=rect;x=33;y=60;width=45;height=8;bc=#B05E11;pw=0;"
-
   shape[9] = "func=ell;x=33;y=63;width=46;height=12;bc=#B05E11;pw=0;"
-
   shape[10] = "func=ell;x=33;y=55;width=45;height=11;bc=#82460D;pw=0;"
-
   shape[11] = "func=line;x=55;y=74;x1=0;y1=0;x2=1;y2=88;pc=#949494;pw=1;"
-
   shape[12] = "func=line;x=62;y=74;x1=0;y1=0;x2=1;y2=88;pc=#949494;pw=1;"
-
   shape[13] = "func=line;x=69;y=72;x1=0;y1=0;x2=1;y2=88;pc=#949494;pw=1;"
-
   shape[14] = "func=line;x=48;y=74;x1=0;y1=0;x2=1;y2=88;pc=#949494;pw=1;"
-
   shape[15] = "func=line;x=41;y=73;x1=0;y1=0;x2=1;y2=88;pc=#949494;pw=1;"
-
   shape[16] = "func=ell;x=42;y=53;width=28;height=10;bc=#B05E11;pw=0;"
-
   shape[17] = "func=rect;x=41;y=34;width=29;height=23;bc=#B05E11;pw=0;"
-
   shape[18] = "func=ell;x=42;y=31;width=28;height=8;bc=#82460D;pw=0;"
-
   shape[19] = "func=ell;x=46;y=28;width=20;height=7;bc=#B05E11;pw=0;"
-
   shape[20] = "func=rect;x=45;y=22;width=21;height=10;bc=#B05E11;pw=0;"
-
   shape[21] = "func=ell;x=42;y=18;width=28;height=10;bc=#B05E11;pw=0;"
-
   shape[22] = "func=rect;x=42;y=14;width=28;height=10;bc=#B05E11;pw=0;"
-
   shape[23] = "func=ell;x=33;y=7;width=45;height=11;bc=#B05E11;pw=0;"
-
   shape[24] = "func=rect;x=33;y=5;width=46;height=7;bc=#B05E11;pw=0;"
-
   shape[25] = "func=ell;x=34;y=0;width=45;height=11;bc=#82460D;pw=0;"
-
   shape[26] = "func=rect;x=0;y=100;width=12;height=22;bc=#B05E11;pw=0;"
-
   shape[27] = "func=ell;x=-2.01;y=100.45;width=10.2;height=10.2;bc=#B05E11;pw=0;"
-
   shape[28] = "func=ell;x=-4.88;y=96.53;width=10.4;height=10.4;bc=#B05E11;pw=0;"
-
   shape[29] = "func=ell;x=-7.4;y=92.56;width=10.61;height=10.61;bc=#B05E11;pw=0;"
-
   shape[30] = "func=ell;x=-9.57;y=88.57;width=10.82;height=10.82;bc=#B05E11;pw=0;"
-
   shape[31] = "func=ell;x=-11.4;y=84.59;width=11.04;height=11.04;bc=#B05E11;pw=0;"
-
   shape[32] = "func=ell;x=-12.91;y=80.63;width=11.26;height=11.26;bc=#B05E11;pw=0;"
-
   shape[33] = "func=ell;x=-14.1;y=76.72;width=11.48;height=11.48;bc=#B05E11;pw=0;"
-
   shape[34] = "func=ell;x=-15.01;y=72.88;width=11.71;height=11.71;bc=#B05E11;pw=0;"
-
   shape[35] = "func=ell;x=-15.64;y=69.12;width=11.95;height=11.95;bc=#B05E11;pw=0;"
-
   shape[36] = "func=ell;x=-16;y=65.46;width=12.18;height=12.18;bc=#B05E11;pw=0;"
-
   shape[37] = "func=ell;x=-16.12;y=61.92;width=12.43;height=12.43;bc=#B05E11;pw=0;"
-
   shape[38] = "func=ell;x=-16.02;y=58.5;width=12.68;height=12.68;bc=#B05E11;pw=0;"
-
   shape[39] = "func=ell;x=-15.7;y=55.21;width=12.93;height=12.93;bc=#B05E11;pw=0;"
-
   shape[40] = "func=ell;x=-15.19;y=52.07;width=13.19;height=13.19;bc=#B05E11;pw=0;"
-
   shape[41] = "func=ell;x=-14.5;y=49.09;width=13.45;height=13.45;bc=#B05E11;pw=0;"
-
   shape[42] = "func=ell;x=-13.65;y=46.26;width=13.72;height=13.72;bc=#B05E11;pw=0;"
-
   shape[43] = "func=ell;x=-12.66;y=43.6;width=14;height=14;bc=#B05E11;pw=0;"
-
   shape[44] = "func=ell;x=-11.55;y=41.1;width=14.28;height=14.28;bc=#B05E11;pw=0;"
-
   shape[45] = "func=ell;x=-10.33;y=38.78;width=14.56;height=14.56;bc=#B05E11;pw=0;"
-
   shape[46] = "func=ell;x=-9.01;y=36.62;width=14.85;height=14.85;bc=#B05E11;pw=0;"
-
   shape[47] = "func=ell;x=-7.62;y=34.64;width=15.15;height=15.15;bc=#B05E11;pw=0;"
-
   shape[48] = "func=ell;x=-6.16;y=32.82;width=15.45;height=15.45;bc=#B05E11;pw=0;"
-
   shape[49] = "func=ell;x=-4.66;y=31.17;width=15.76;height=15.76;bc=#B05E11;pw=0;"
-
   shape[50] = "func=ell;x=-3.11;y=29.69;width=16.08;height=16.08;bc=#B05E11;pw=0;"
-
   shape[51] = "func=ell;x=-1.55;y=28.37;width=16.4;height=16.4;bc=#B05E11;pw=0;"
-
   shape[52] = "func=ell;x=0.02;y=27.2;width=16.73;height=16.73;bc=#B05E11;pw=0;"
-
   shape[53] = "func=ell;x=1.6;y=26.18;width=17.06;height=17.06;bc=#B05E11;pw=0;"
-
   shape[54] = "func=ell;x=3.41;y=25.57;width=16.89;height=16.89;bc=#B05E11;pw=0;"
-
   shape[55] = "func=ell;x=5.21;y=25.1;width=16.73;height=16.73;bc=#B05E11;pw=0;"
-
   shape[56] = "func=ell;x=6.98;y=24.76;width=16.56;height=16.56;bc=#B05E11;pw=0;"
-
   shape[57] = "func=ell;x=8.72;y=24.55;width=16.4;height=16.4;bc=#B05E11;pw=0;"
-
   shape[58] = "func=ell;x=10.41;y=24.46;width=16.24;height=16.24;bc=#B05E11;pw=0;"
-
   shape[59] = "func=ell;x=12.06;y=24.49;width=16.07;height=16.07;bc=#B05E11;pw=0;"
-
   shape[60] = "func=ell;x=13.64;y=24.62;width=15.92;height=15.92;bc=#B05E11;pw=0;"
-
   shape[61] = "func=ell;x=15.17;y=24.85;width=15.76;height=15.76;bc=#B05E11;pw=0;"
-
   shape[62] = "func=ell;x=16.63;y=25.18;width=15.6;height=15.6;bc=#B05E11;pw=0;"
-
   shape[63] = "func=ell;x=18.03;y=25.58;width=15.45;height=15.45;bc=#B05E11;pw=0;"
-
   shape[64] = "func=ell;x=19.35;y=26.06;width=15.29;height=15.29;bc=#B05E11;pw=0;"
-
   shape[65] = "func=ell;x=20.59;y=26.61;width=15.14;height=15.14;bc=#B05E11;pw=0;"
-
   shape[66] = "func=ell;x=21.76;y=27.22;width=14.99;height=14.99;bc=#B05E11;pw=0;"
-
   shape[67] = "func=ell;x=22.86;y=27.89;width=14.84;height=14.84;bc=#B05E11;pw=0;"
-
   shape[68] = "func=ell;x=23.87;y=28.59;width=14.7;height=14.7;bc=#B05E11;pw=0;"
-
   shape[69] = "func=ell;x=24.8;y=29.34;width=14.55;height=14.55;bc=#B05E11;pw=0;"
-
   shape[70] = "func=ell;x=25.66;y=30.12;width=14.41;height=14.41;bc=#B05E11;pw=0;"
-
   shape[71] = "func=ell;x=26.44;y=30.93;width=14.26;height=14.26;bc=#B05E11;pw=0;"
-
   shape[72] = "func=ell;x=27.14;y=31.75;width=14.12;height=14.12;bc=#B05E11;pw=0;"
-
   shape[73] = "func=ell;x=27.77;y=32.59;width=13.98;height=13.98;bc=#B05E11;pw=0;"
-
   shape[74] = "func=ell;x=28.33;y=33.44;width=13.85;height=13.85;bc=#B05E11;pw=0;"
-
   shape[75] = "func=ell;x=28.81;y=34.29;width=13.71;height=13.71;bc=#B05E11;pw=0;"
-
   shape[76] = "func=ell;x=29.22;y=35.13;width=13.57;height=13.57;bc=#B05E11;pw=0;"
-
   shape[77] = "func=ell;x=29.57;y=35.97;width=13.44;height=13.44;bc=#B05E11;pw=0;"
-
   shape[78] = "func=ell;x=29.86;y=36.8;width=13.3;height=13.3;bc=#B05E11;pw=0;"
-
   shape[79] = "func=ell;x=30.08;y=37.62;width=13.17;height=13.17;bc=#B05E11;pw=0;"
-
   shape[80] = "func=ell;x=30.25;y=38.42;width=13.04;height=13.04;bc=#B05E11;pw=0;"
-
   shape[81] = "func=ell;x=30.36;y=39.2;width=12.91;height=12.91;bc=#B05E11;pw=0;"
-
   shape[82] = "func=ell;x=30.43;y=39.95;width=12.79;height=12.79;bc=#B05E11;pw=0;"
-
   shape[83] = "func=ell;x=30.45;y=40.68;width=12.66;height=12.66;bc=#B05E11;pw=0;"
-
   shape[84] = "func=ell;x=30.42;y=41.37;width=12.53;height=12.53;bc=#B05E11;pw=0;"
-
   shape[85] = "func=ell;x=30.35;y=42.04;width=12.41;height=12.41;bc=#B05E11;pw=0;"
-
   shape[86] = "func=ell;x=30.25;y=42.68;width=12.29;height=12.29;bc=#B05E11;pw=0;"
-
   shape[87] = "func=ell;x=30.11;y=43.28;width=12.16;height=12.16;bc=#B05E11;pw=0;"
-
   shape[88] = "func=ell;x=29.95;y=43.85;width=12.04;height=12.04;bc=#B05E11;pw=0;"
-
   shape[89] = "func=ell;x=29.75;y=44.38;width=11.92;height=11.92;bc=#B05E11;pw=0;"
-
   shape[90] = "func=ell;x=29.54;y=44.88;width=11.81;height=11.81;bc=#B05E11;pw=0;"
-
   shape[91] = "func=ell;x=29.3;y=45.34;width=11.69;height=11.69;bc=#B05E11;pw=0;"
-
   shape[92] = "func=ell;x=29.05;y=45.77;width=11.57;height=11.57;bc=#B05E11;pw=0;"
-
   shape[93] = "func=ell;x=28.78;y=46.16;width=11.46;height=11.46;bc=#B05E11;pw=0;"
-
   shape[94] = "func=ell;x=28.5;y=46.52;width=11.35;height=11.35;bc=#B05E11;pw=0;"
-
   shape[95] = "func=ell;x=28.22;y=46.84;width=11.23;height=11.23;bc=#B05E11;pw=0;"
-
   shape[96] = "func=ell;x=27.93;y=47.13;width=11.12;height=11.12;bc=#B05E11;pw=0;"
-
   shape[97] = "func=ell;x=27.63;y=47.39;width=11.01;height=11.01;bc=#B05E11;pw=0;"
-
   shape[98] = "func=ell;x=27.34;y=47.62;width=10.9;height=10.9;bc=#B05E11;pw=0;"
-
   shape[99] = "func=ell;x=27.04;y=47.81;width=10.79;height=10.79;bc=#B05E11;pw=0;"
-
   shape[100] = "func=ell;x=26.75;y=47.98;width=10.69;height=10.69;bc=#B05E11;pw=0;"
-
   shape[101] = "func=ell;x=26.46;y=48.11;width=10.58;height=10.58;bc=#B05E11;pw=0;"
-
   shape[102] = "func=ell;x=26.18;y=48.22;width=10.48;height=10.48;bc=#B05E11;pw=0;"
-
   shape[103] = "func=ell;x=25.91;y=48.31;width=10.37;height=10.37;bc=#B05E11;pw=0;"
-
   shape[104] = "func=ell;x=25.65;y=48.37;width=10.27;height=10.27;bc=#B05E11;pw=0;"
-
   shape[105] = "func=ell;x=25.4;y=48.41;width=10.17;height=10.17;bc=#B05E11;pw=0;"
-
   shape[106] = "func=ell;x=25.15;y=48.43;width=10.07;height=10.07;bc=#B05E11;pw=0;"
-
   shape[107] = "func=ell;x=24.93;y=48.43;width=9.97;height=9.97;bc=#B05E11;pw=0;"
-
   shape[108] = "func=ell;x=24.71;y=48.42;width=9.87;height=9.87;bc=#B05E11;pw=0;"
-
   shape[109] = "func=ell;x=24.51;y=48.38;width=9.77;height=9.77;bc=#B05E11;pw=0;"
-
   shape[110] = "func=ell;x=24.32;y=48.34;width=9.68;height=9.68;bc=#B05E11;pw=0;"
-
   shape[111] = "func=ell;x=24.15;y=48.28;width=9.58;height=9.58;bc=#B05E11;pw=0;"
-
   shape[112] = "func=ell;x=23.99;y=48.21;width=9.48;height=9.48;bc=#B05E11;pw=0;"
-
   shape[113] = "func=ell;x=23.85;y=48.12;width=9.39;height=9.39;bc=#B05E11;pw=0;"
-
   shape[114] = "func=ell;x=23.72;y=48.04;width=9.3;height=9.3;bc=#B05E11;pw=0;"
-
   shape[115] = "func=ell;x=23.61;y=47.94;width=9.21;height=9.21;bc=#B05E11;pw=0;"
-
   shape[116] = "func=ell;x=23.51;y=47.84;width=9.11;height=9.11;bc=#B05E11;pw=0;"
-
   shape[117] = "func=ell;x=23.43;y=47.73;width=9.02;height=9.02;bc=#B05E11;pw=0;"
-
   shape[118] = "func=ell;x=23.36;y=47.62;width=8.93;height=8.93;bc=#B05E11;pw=0;"
-
   shape[119] = "func=ell;x=23.31;y=47.51;width=8.85;height=8.85;bc=#B05E11;pw=0;"
-
   shape[120] = "func=ell;x=23.27;y=47.39;width=8.76;height=8.76;bc=#B05E11;pw=0;"
-
   shape[121] = "func=ell;x=23.24;y=47.28;width=8.67;height=8.67;bc=#B05E11;pw=0;"
-
   shape[122] = "func=ell;x=23.23;y=47.17;width=8.59;height=8.59;bc=#B05E11;pw=0;"
-
   shape[123] = "func=ell;x=7.94;y=111.02;width=10.1;height=10.1;bc=#B05E11;pw=0;"
-
   shape[124] = "func=ell;x=10.89;y=113.1;width=10.2;height=10.2;bc=#B05E11;pw=0;"
-
   shape[125] = "func=ell;x=13.55;y=115.27;width=10.3;height=10.3;bc=#B05E11;pw=0;"
-
   shape[126] = "func=ell;x=15.93;y=117.52;width=10.4;height=10.4;bc=#B05E11;pw=0;"
-
   shape[127] = "func=ell;x=18.04;y=119.82;width=10.51;height=10.51;bc=#B05E11;pw=0;"
-
   shape[128] = "func=ell;x=19.89;y=122.16;width=10.61;height=10.61;bc=#B05E11;pw=0;"
-
   shape[129] = "func=ell;x=21.5;y=124.5;width=10.72;height=10.72;bc=#B05E11;pw=0;"
-
   shape[130] = "func=ell;x=22.86;y=126.85;width=10.82;height=10.82;bc=#B05E11;pw=0;"
-
   shape[131] = "func=ell;x=24;y=129.17;width=10.93;height=10.93;bc=#B05E11;pw=0;"
-
   shape[132] = "func=ell;x=24.92;y=131.46;width=11.04;height=11.04;bc=#B05E11;pw=0;"
-
   shape[133] = "func=ell;x=25.64;y=133.7;width=11.15;height=11.15;bc=#B05E11;pw=0;"
-
   shape[134] = "func=ell;x=26.17;y=135.89;width=11.26;height=11.26;bc=#B05E11;pw=0;"
-
   shape[135] = "func=ell;x=26.52;y=138.01;width=11.38;height=11.38;bc=#B05E11;pw=0;"
-
   shape[136] = "func=ell;x=26.7;y=140.05;width=11.49;height=11.49;bc=#B05E11;pw=0;"
-
   shape[137] = "func=ell;x=26.74;y=142.01;width=11.6;height=11.6;bc=#B05E11;pw=0;"
-
   shape[138] = "func=ell;x=26.63;y=143.87;width=11.72;height=11.72;bc=#B05E11;pw=0;"
-
   shape[139] = "func=ell;x=26.4;y=145.65;width=11.84;height=11.84;bc=#B05E11;pw=0;"
-
   shape[140] = "func=ell;x=26.05;y=147.32;width=11.96;height=11.96;bc=#B05E11;pw=0;"
-
   shape[141] = "func=ell;x=25.61;y=148.89;width=12.08;height=12.08;bc=#B05E11;pw=0;"
-
   shape[142] = "func=ell;x=25.19;y=150.48;width=11.96;height=11.96;bc=#B05E11;pw=0;"
-
   shape[143] = "func=ell;x=24.69;y=151.97;width=11.84;height=11.84;bc=#B05E11;pw=0;"
-
   shape[144] = "func=ell;x=24.12;y=153.35;width=11.72;height=11.72;bc=#B05E11;pw=0;"
-
   shape[145] = "func=ell;x=23.49;y=154.62;width=11.6;height=11.6;bc=#B05E11;pw=0;"
-
   shape[146] = "func=ell;x=22.82;y=155.79;width=11.49;height=11.49;bc=#B05E11;pw=0;"
-
   shape[147] = "func=ell;x=22.1;y=156.86;width=11.38;height=11.38;bc=#B05E11;pw=0;"
-
   shape[148] = "func=ell;x=21.35;y=157.83;width=11.26;height=11.26;bc=#B05E11;pw=0;"
-
   shape[149] = "func=ell;x=20.58;y=158.7;width=11.15;height=11.15;bc=#B05E11;pw=0;"
-
   shape[150] = "func=ell;x=19.8;y=159.48;width=11.04;height=11.04;bc=#B05E11;pw=0;"
-
   shape[151] = "func=ell;x=19;y=160.16;width=10.93;height=10.93;bc=#B05E11;pw=0;"
-
   shape[152] = "func=ell;x=18.2;y=160.76;width=10.82;height=10.82;bc=#B05E11;pw=0;"
-
   shape[153] = "func=ell;x=17.41;y=161.28;width=10.72;height=10.72;bc=#B05E11;pw=0;"
-
   shape[154] = "func=ell;x=16.62;y=161.71;width=10.61;height=10.61;bc=#B05E11;pw=0;"
-
   shape[155] = "func=ell;x=15.85;y=162.08;width=10.51;height=10.51;bc=#B05E11;pw=0;"
-
   shape[156] = "func=ell;x=15.1;y=162.37;width=10.4;height=10.4;bc=#B05E11;pw=0;"
-
   shape[157] = "func=ell;x=14.36;y=162.6;width=10.3;height=10.3;bc=#B05E11;pw=0;"
-
   shape[158] = "func=ell;x=13.66;y=162.76;width=10.2;height=10.2;bc=#B05E11;pw=0;"
-
   shape[159] = "func=ell;x=12.98;y=162.87;width=10.1;height=10.1;bc=#B05E11;pw=0;"
-
   shape[160] = "func=ell;x=12.33;y=162.93;width=10;height=10;bc=#B05E11;pw=0;"
-
   shape[161] = "func=ell;x=11.71;y=162.94;width=9.9;height=9.9;bc=#B05E11;pw=0;"
-
   shape[162] = "func=ell;x=11.13;y=162.91;width=9.8;height=9.8;bc=#B05E11;pw=0;"
-
   shape[163] = "func=ell;x=10.58;y=162.83;width=9.7;height=9.7;bc=#B05E11;pw=0;"
-
   shape[164] = "func=ell;x=10.06;y=162.73;width=9.6;height=9.6;bc=#B05E11;pw=0;"
-
   shape[165] = "func=ell;x=9.59;y=162.59;width=9.51;height=9.51;bc=#B05E11;pw=0;"
-
   shape[166] = "func=ell;x=9.15;y=162.43;width=9.42;height=9.42;bc=#B05E11;pw=0;"
-
   shape[167] = "func=ell;x=8.74;y=162.24;width=9.32;height=9.32;bc=#B05E11;pw=0;"
-
   shape[168] = "func=ell;x=8.38;y=162.03;width=9.23;height=9.23;bc=#B05E11;pw=0;"
-
   shape[169] = "func=ell;x=8.05;y=161.81;width=9.14;height=9.14;bc=#B05E11;pw=0;"
-
   shape[170] = "func=ell;x=7.75;y=161.58;width=9.05;height=9.05;bc=#B05E11;pw=0;"
-
   shape[171] = "func=ell;x=7.49;y=161.33;width=8.96;height=8.96;bc=#B05E11;pw=0;"
-
   shape[172] = "func=ell;x=7.26;y=161.08;width=8.87;height=8.87;bc=#B05E11;pw=0;"
-
   shape[173] = "func=ell;x=7.06;y=160.82;width=8.78;height=8.78;bc=#B05E11;pw=0;"
-
   shape[174] = "func=ell;x=6.9;y=160.57;width=8.69;height=8.69;bc=#B05E11;pw=0;"
-
   shape[175] = "func=ell;x=6.76;y=160.31;width=8.61;height=8.61;bc=#B05E11;pw=0;"
-
   shape[176] = "func=ell;x=6.66;y=160.05;width=8.52;height=8.52;bc=#B05E11;pw=0;"
-
   shape[177] = "func=ell;x=6.58;y=159.8;width=8.44;height=8.44;bc=#B05E11;pw=0;"
-
   shape[178] = "func=ell;x=6.52;y=159.55;width=8.36;height=8.36;bc=#B05E11;pw=0;"
-
   shape[179] = "func=ell;x=6.49;y=159.31;width=8.27;height=8.27;bc=#B05E11;pw=0;"
-
   shape[180] = "func=ell;x=6.48;y=159.08;width=8.19;height=8.19;bc=#B05E11;pw=0;"
-
   shape[181] = "func=ell;x=6.49;y=158.85;width=8.11;height=8.11;bc=#B05E11;pw=0;"
-
   shape[182] = "func=ell;x=6.52;y=158.64;width=8.03;height=8.03;bc=#B05E11;pw=0;"
-
   shape[183] = "func=ell;x=6.56;y=158.44;width=7.95;height=7.95;bc=#B05E11;pw=0;"
-
   shape[184] = "func=ell;x=6.62;y=158.24;width=7.87;height=7.87;bc=#B05E11;pw=0;"
-
   shape[185] = "func=ell;x=6.7;y=158.06;width=7.79;height=7.79;bc=#B05E11;pw=0;"
-
   shape[186] = "func=ell;x=6.79;y=157.9;width=7.72;height=7.72;bc=#B05E11;pw=0;"
-
   shape[187] = "func=ell;x=6.88;y=157.74;width=7.64;height=7.64;bc=#B05E11;pw=0;"
-
   shape[188] = "func=ell;x=6.99;y=157.6;width=7.56;height=7.56;bc=#B05E11;pw=0;"
-
   shape[189] = "func=ell;x=7.11;y=157.47;width=7.49;height=7.49;bc=#B05E11;pw=0;"
-
   shape[190] = "func=ell;x=7.23;y=157.36;width=7.41;height=7.41;bc=#B05E11;pw=0;"
-
   shape[191] = "func=ell;x=7.36;y=157.25;width=7.34;height=7.34;bc=#B05E11;pw=0;"
-
   shape[192] = "func=ell;x=7.5;y=157.16;width=7.27;height=7.27;bc=#B05E11;pw=0;"
-
   shape[193] = "func=ell;x=7.63;y=157.08;width=7.2;height=7.2;bc=#B05E11;pw=0;"
-
   shape[194] = "func=ell;x=7.77;y=157.02;width=7.12;height=7.12;bc=#B05E11;pw=0;"
-
   shape[195] = "func=ell;x=7.91;y=156.96;width=7.05;height=7.05;bc=#B05E11;pw=0;"
-
   shape[196] = "func=ell;x=8.06;y=156.92;width=6.98;height=6.98;bc=#B05E11;pw=0;"
-
   shape[197] = "func=ell;x=8.2;y=156.88;width=6.92;height=6.92;bc=#B05E11;pw=0;"
-
   shape[198] = "func=ell;x=8.34;y=156.86;width=6.85;height=6.85;bc=#B05E11;pw=0;"
-
   shape[199] = "func=ell;x=8.48;y=156.84;width=6.78;height=6.78;bc=#B05E11;pw=0;"
-
   shape[200] = "func=ell;x=8.62;y=156.84;width=6.71;height=6.71;bc=#B05E11;pw=0;"
-
   shape[201] = "func=ell;x=8.75;y=156.84;width=6.65;height=6.65;bc=#B05E11;pw=0;"
-
   shape[202] = "func=ell;x=8.88;y=156.85;width=6.58;height=6.58;bc=#B05E11;pw=0;"
-
   shape[203] = "func=ell;x=9.01;y=156.87;width=6.51;height=6.51;bc=#B05E11;pw=0;"
-
   shape[204] = "func=ell;x=9.13;y=156.9;width=6.45;height=6.45;bc=#B05E11;pw=0;"
-
   shape[205] = "func=ell;x=9.25;y=156.93;width=6.39;height=6.39;bc=#B05E11;pw=0;"
-
   shape[206] = "func=ell;x=9.37;y=156.96;width=6.32;height=6.32;bc=#B05E11;pw=0;"
-
   shape[207] = "func=ell;x=9.48;y=157;width=6.26;height=6.26;bc=#B05E11;pw=0;"
-
   shape[208] = "func=ell;x=9.59;y=157.05;width=6.2;height=6.2;bc=#B05E11;pw=0;"
-
   shape[209] = "func=ell;x=9.69;y=157.1;width=6.14;height=6.14;bc=#B05E11;pw=0;"
-
   shape[210] = "func=ell;x=9.78;y=157.15;width=6.08;height=6.08;bc=#B05E11;pw=0;"
-
   shape[211] = "func=ell;x=9.88;y=157.21;width=6.02;height=6.02;bc=#B05E11;pw=0;"
-
   shape[212] = "func=ell;x=9.96;y=157.27;width=5.96;height=5.96;bc=#B05E11;pw=0;"
-
   shape[213] = "func=ell;x=10.04;y=157.33;width=5.9;height=5.9;bc=#B05E11;pw=0;"
-
   shape[214] = "func=ell;x=10.12;y=157.39;width=5.84;height=5.84;bc=#B05E11;pw=0;"
-
   shape[215] = "func=ell;x=10.19;y=157.46;width=5.78;height=5.78;bc=#B05E11;pw=0;"
-
   shape[216] = "func=ell;x=10.26;y=157.52;width=5.72;height=5.72;bc=#B05E11;pw=0;"
-
   shape[217] = "func=ell;x=10.32;y=157.59;width=5.67;height=5.67;bc=#B05E11;pw=0;"
-
   shape[218] = "func=ell;x=10.38;y=157.66;width=5.61;height=5.61;bc=#B05E11;pw=0;"
-
   shape[219] = "func=ell;x=10.44;y=157.72;width=5.55;height=5.55;bc=#B05E11;pw=0;"
-
   shape[220] = "func=ell;x=10.49;y=157.79;width=5.5;height=5.5;bc=#B05E11;pw=0;"
-
   shape[221] = "func=ell;x=10.53;y=157.85;width=5.44;height=5.44;bc=#B05E11;pw=0;"
-
   shape[222] = "func=ell;x=10.57;y=157.92;width=5.39;height=5.39;bc=#B05E11;pw=0;"
-
   shape[223] = "func=ell;x=10.61;y=157.98;width=5.34;height=5.34;bc=#B05E11;pw=0;"
-
   shape[224] = "func=ell;x=10.65;y=158.04;width=5.28;height=5.28;bc=#B05E11;pw=0;"
-
   shape[225] = "func=ell;x=10.68;y=158.1;width=5.23;height=5.23;bc=#B05E11;pw=0;"
-
   shape[226] = "func=ell;x=10.71;y=158.16;width=5.18;height=5.18;bc=#B05E11;pw=0;"
-
   shape[227] = "func=ell;x=10.74;y=158.22;width=5.13;height=5.13;bc=#B05E11;pw=0;"
-
   shape[228] = "func=ell;x=10.76;y=158.27;width=5.08;height=5.08;bc=#B05E11;pw=0;"
-
   shape[229] = "func=ell;x=10.79;y=158.33;width=5.03;height=5.03;bc=#B05E11;pw=0;"
-
   shape[230] = "func=ell;x=10.81;y=158.38;width=4.98;height=4.98;bc=#B05E11;pw=0;"
-
   shape[231] = "func=ell;x=10.82;y=158.43;width=4.93;height=4.93;bc=#B05E11;pw=0;"
-
   shape[232] = "func=ell;x=10.84;y=158.48;width=4.88;height=4.88;bc=#B05E11;pw=0;"
-
   shape[233] = "func=ell;x=10.86;y=158.53;width=4.83;height=4.83;bc=#B05E11;pw=0;"
-
   shape[234] = "func=ell;x=10.87;y=158.57;width=4.78;height=4.78;bc=#B05E11;pw=0;"
-
   shape[235] = "func=ell;x=10.88;y=158.62;width=4.74;height=4.74;bc=#B05E11;pw=0;"
-
   shape[236] = "func=rect;x=100;y=100;width=12;height=22;bc=#B05E11;pw=0;"
-
   shape[237] = "func=ell;x=104.71;y=100.45;width=10.2;height=10.2;bc=#B05E11;pw=0;"
-
   shape[238] = "func=ell;x=107.28;y=96.53;width=10.4;height=10.4;bc=#B05E11;pw=0;"
-
   shape[239] = "func=ell;x=109.48;y=92.56;width=10.61;height=10.61;bc=#B05E11;pw=0;"
-
   shape[240] = "func=ell;x=111.34;y=88.57;width=10.82;height=10.82;bc=#B05E11;pw=0;"
-
   shape[241] = "func=ell;x=112.84;y=84.59;width=11.04;height=11.04;bc=#B05E11;pw=0;"
-
   shape[242] = "func=ell;x=114.02;y=80.63;width=11.26;height=11.26;bc=#B05E11;pw=0;"
-
   shape[243] = "func=ell;x=114.88;y=76.72;width=11.48;height=11.48;bc=#B05E11;pw=0;"
-
   shape[244] = "func=ell;x=115.44;y=72.88;width=11.71;height=11.71;bc=#B05E11;pw=0;"
-
   shape[245] = "func=ell;x=115.71;y=69.12;width=11.95;height=11.95;bc=#B05E11;pw=0;"
-
   shape[246] = "func=ell;x=115.73;y=65.46;width=12.18;height=12.18;bc=#B05E11;pw=0;"
-
   shape[247] = "func=ell;x=115.47;y=61.92;width=12.43;height=12.43;bc=#B05E11;pw=0;"
-
   shape[248] = "func=ell;x=115;y=58.5;width=12.68;height=12.68;bc=#B05E11;pw=0;"
-
   shape[249] = "func=ell;x=114.3;y=55.21;width=12.93;height=12.93;bc=#B05E11;pw=0;"
-
   shape[250] = "func=ell;x=113.4;y=52.07;width=13.19;height=13.19;bc=#B05E11;pw=0;"
-
   shape[251] = "func=ell;x=112.32;y=49.09;width=13.45;height=13.45;bc=#B05E11;pw=0;"
-
   shape[252] = "func=ell;x=111.07;y=46.26;width=13.72;height=13.72;bc=#B05E11;pw=0;"
-
   shape[253] = "func=ell;x=109.66;y=43.6;width=14;height=14;bc=#B05E11;pw=0;"
-
   shape[254] = "func=ell;x=108.13;y=41.1;width=14.28;height=14.28;bc=#B05E11;pw=0;"
-
   shape[255] = "func=ell;x=106.49;y=38.78;width=14.56;height=14.56;bc=#B05E11;pw=0;"
-
   shape[256] = "func=ell;x=104.73;y=36.62;width=14.85;height=14.85;bc=#B05E11;pw=0;"
-
   shape[257] = "func=ell;x=102.89;y=34.64;width=15.15;height=15.15;bc=#B05E11;pw=0;"
-
   shape[258] = "func=ell;x=100.98;y=32.82;width=15.45;height=15.45;bc=#B05E11;pw=0;"
-
   shape[259] = "func=ell;x=99.02;y=31.17;width=15.76;height=15.76;bc=#B05E11;pw=0;"
-
   shape[260] = "func=ell;x=96.99;y=29.69;width=16.08;height=16.08;bc=#B05E11;pw=0;"
-
   shape[261] = "func=ell;x=94.95;y=28.37;width=16.4;height=16.4;bc=#B05E11;pw=0;"
-
   shape[262] = "func=ell;x=92.88;y=27.2;width=16.73;height=16.73;bc=#B05E11;pw=0;"
-
   shape[263] = "func=ell;x=90.81;y=26.18;width=17.06;height=17.06;bc=#B05E11;pw=0;"
-
   shape[264] = "func=ell;x=89.25;y=25.57;width=16.89;height=16.89;bc=#B05E11;pw=0;"
-
   shape[265] = "func=ell;x=87.69;y=25.1;width=16.73;height=16.73;bc=#B05E11;pw=0;"
-
   shape[266] = "func=ell;x=86.18;y=24.76;width=16.56;height=16.56;bc=#B05E11;pw=0;"
-
   shape[267] = "func=ell;x=84.68;y=24.55;width=16.4;height=16.4;bc=#B05E11;pw=0;"
-
   shape[268] = "func=ell;x=83.23;y=24.46;width=16.24;height=16.24;bc=#B05E11;pw=0;"
-
   shape[269] = "func=ell;x=81.83;y=24.49;width=16.07;height=16.07;bc=#B05E11;pw=0;"
-
   shape[270] = "func=ell;x=80.48;y=24.62;width=15.92;height=15.92;bc=#B05E11;pw=0;"
-
   shape[271] = "func=ell;x=79.19;y=24.85;width=15.76;height=15.76;bc=#B05E11;pw=0;"
-
   shape[272] = "func=ell;x=77.97;y=25.18;width=15.6;height=15.6;bc=#B05E11;pw=0;"
-
   shape[273] = "func=ell;x=76.79;y=25.58;width=15.45;height=15.45;bc=#B05E11;pw=0;"
-
   shape[274] = "func=ell;x=75.71;y=26.06;width=15.29;height=15.29;bc=#B05E11;pw=0;"
-
   shape[275] = "func=ell;x=74.7;y=26.61;width=15.14;height=15.14;bc=#B05E11;pw=0;"
-
   shape[276] = "func=ell;x=73.75;y=27.22;width=14.99;height=14.99;bc=#B05E11;pw=0;"
-
   shape[277] = "func=ell;x=72.88;y=27.89;width=14.84;height=14.84;bc=#B05E11;pw=0;"
-
   shape[278] = "func=ell;x=72.08;y=28.59;width=14.7;height=14.7;bc=#B05E11;pw=0;"
-
   shape[279] = "func=ell;x=71.37;y=29.34;width=14.55;height=14.55;bc=#B05E11;pw=0;"
-
   shape[280] = "func=ell;x=70.72;y=30.12;width=14.41;height=14.41;bc=#B05E11;pw=0;"
-
   shape[281] = "func=ell;x=70.17;y=30.93;width=14.26;height=14.26;bc=#B05E11;pw=0;"
-
   shape[282] = "func=ell;x=69.68;y=31.75;width=14.12;height=14.12;bc=#B05E11;pw=0;"
-
   shape[283] = "func=ell;x=69.26;y=32.59;width=13.98;height=13.98;bc=#B05E11;pw=0;"
-
   shape[284] = "func=ell;x=68.89;y=33.44;width=13.85;height=13.85;bc=#B05E11;pw=0;"
-
   shape[285] = "func=ell;x=68.62;y=34.29;width=13.71;height=13.71;bc=#B05E11;pw=0;"
-
   shape[286] = "func=ell;x=68.42;y=35.13;width=13.57;height=13.57;bc=#B05E11;pw=0;"
-
   shape[287] = "func=ell;x=68.27;y=35.97;width=13.44;height=13.44;bc=#B05E11;pw=0;"
-
   shape[288] = "func=ell;x=68.19;y=36.8;width=13.3;height=13.3;bc=#B05E11;pw=0;"
-
   shape[289] = "func=ell;x=68.16;y=37.62;width=13.17;height=13.17;bc=#B05E11;pw=0;"
-
   shape[290] = "func=ell;x=68.19;y=38.42;width=13.04;height=13.04;bc=#B05E11;pw=0;"
-
   shape[291] = "func=ell;x=68.27;y=39.2;width=12.91;height=12.91;bc=#B05E11;pw=0;"
-
   shape[292] = "func=ell;x=68.38;y=39.95;width=12.79;height=12.79;bc=#B05E11;pw=0;"
-
   shape[293] = "func=ell;x=68.56;y=40.68;width=12.66;height=12.66;bc=#B05E11;pw=0;"
-
   shape[294] = "func=ell;x=68.78;y=41.37;width=12.53;height=12.53;bc=#B05E11;pw=0;"
-
   shape[295] = "func=ell;x=69.03;y=42.04;width=12.41;height=12.41;bc=#B05E11;pw=0;"
-
   shape[296] = "func=ell;x=69.31;y=42.68;width=12.29;height=12.29;bc=#B05E11;pw=0;"
-
   shape[297] = "func=ell;x=69.65;y=43.28;width=12.16;height=12.16;bc=#B05E11;pw=0;"
-
   shape[298] = "func=ell;x=69.99;y=43.85;width=12.04;height=12.04;bc=#B05E11;pw=0;"
-
   shape[299] = "func=ell;x=70.37;y=44.38;width=11.92;height=11.92;bc=#B05E11;pw=0;"
-
   shape[300] = "func=ell;x=70.74;y=44.88;width=11.81;height=11.81;bc=#B05E11;pw=0;"
-
   shape[301] = "func=ell;x=71.16;y=45.34;width=11.69;height=11.69;bc=#B05E11;pw=0;"
-
   shape[302] = "func=ell;x=71.59;y=45.77;width=11.57;height=11.57;bc=#B05E11;pw=0;"
-
   shape[303] = "func=ell;x=72.03;y=46.16;width=11.46;height=11.46;bc=#B05E11;pw=0;"
-
   shape[304] = "func=ell;x=72.47;y=46.52;width=11.35;height=11.35;bc=#B05E11;pw=0;"
-
   shape[305] = "func=ell;x=72.93;y=46.84;width=11.23;height=11.23;bc=#B05E11;pw=0;"
-
   shape[306] = "func=ell;x=73.39;y=47.13;width=11.12;height=11.12;bc=#B05E11;pw=0;"
-
   shape[307] = "func=ell;x=73.85;y=47.39;width=11.01;height=11.01;bc=#B05E11;pw=0;"
-
   shape[308] = "func=ell;x=74.31;y=47.62;width=10.9;height=10.9;bc=#B05E11;pw=0;"
-
   shape[309] = "func=ell;x=74.77;y=47.81;width=10.79;height=10.79;bc=#B05E11;pw=0;"
-
   shape[310] = "func=ell;x=75.21;y=47.98;width=10.69;height=10.69;bc=#B05E11;pw=0;"
-
   shape[311] = "func=ell;x=75.67;y=48.11;width=10.58;height=10.58;bc=#B05E11;pw=0;"
-
   shape[312] = "func=ell;x=76.1;y=48.22;width=10.48;height=10.48;bc=#B05E11;pw=0;"
-
   shape[313] = "func=ell;x=76.53;y=48.31;width=10.37;height=10.37;bc=#B05E11;pw=0;"
-
   shape[314] = "func=ell;x=76.94;y=48.37;width=10.27;height=10.27;bc=#B05E11;pw=0;"
-
   shape[315] = "func=ell;x=77.34;y=48.41;width=10.17;height=10.17;bc=#B05E11;pw=0;"
-
   shape[316] = "func=ell;x=77.74;y=48.43;width=10.07;height=10.07;bc=#B05E11;pw=0;"
-
   shape[317] = "func=ell;x=78.11;y=48.43;width=9.97;height=9.97;bc=#B05E11;pw=0;"
-
   shape[318] = "func=ell;x=78.48;y=48.42;width=9.87;height=9.87;bc=#B05E11;pw=0;"
-
   shape[319] = "func=ell;x=78.83;y=48.38;width=9.77;height=9.77;bc=#B05E11;pw=0;"
-
   shape[320] = "func=ell;x=79.16;y=48.34;width=9.68;height=9.68;bc=#B05E11;pw=0;"
-
   shape[321] = "func=ell;x=79.48;y=48.28;width=9.58;height=9.58;bc=#B05E11;pw=0;"
-
   shape[322] = "func=ell;x=79.79;y=48.21;width=9.48;height=9.48;bc=#B05E11;pw=0;"
-
   shape[323] = "func=ell;x=80.06;y=48.12;width=9.39;height=9.39;bc=#B05E11;pw=0;"
-
   shape[324] = "func=ell;x=80.33;y=48.04;width=9.3;height=9.3;bc=#B05E11;pw=0;"
-
   shape[325] = "func=ell;x=80.57;y=47.94;width=9.21;height=9.21;bc=#B05E11;pw=0;"
-
   shape[326] = "func=ell;x=80.82;y=47.84;width=9.11;height=9.11;bc=#B05E11;pw=0;"
-
   shape[327] = "func=ell;x=81.04;y=47.73;width=9.02;height=9.02;bc=#B05E11;pw=0;"
-
   shape[328] = "func=ell;x=81.24;y=47.62;width=8.93;height=8.93;bc=#B05E11;pw=0;"
-
   shape[329] = "func=ell;x=81.41;y=47.51;width=8.85;height=8.85;bc=#B05E11;pw=0;"
-
   shape[330] = "func=ell;x=81.59;y=47.39;width=8.76;height=8.76;bc=#B05E11;pw=0;"
-
   shape[331] = "func=ell;x=81.75;y=47.28;width=8.67;height=8.67;bc=#B05E11;pw=0;"
-
   shape[332] = "func=ell;x=81.88;y=47.17;width=8.59;height=8.59;bc=#B05E11;pw=0;"
-
   shape[333] = "func=ell;x=94.91;y=111.02;width=10.1;height=10.1;bc=#B05E11;pw=0;"
-
   shape[334] = "func=ell;x=91.81;y=113.1;width=10.2;height=10.2;bc=#B05E11;pw=0;"
-
   shape[335] = "func=ell;x=89;y=115.27;width=10.3;height=10.3;bc=#B05E11;pw=0;"
-
   shape[336] = "func=ell;x=86.47;y=117.52;width=10.4;height=10.4;bc=#B05E11;pw=0;"
-
   shape[337] = "func=ell;x=84.19;y=119.82;width=10.51;height=10.51;bc=#B05E11;pw=0;"
-
   shape[338] = "func=ell;x=82.19;y=122.16;width=10.61;height=10.61;bc=#B05E11;pw=0;"
-
   shape[339] = "func=ell;x=80.42;y=124.5;width=10.72;height=10.72;bc=#B05E11;pw=0;"
-
   shape[340] = "func=ell;x=78.91;y=126.85;width=10.82;height=10.82;bc=#B05E11;pw=0;"
-
   shape[341] = "func=ell;x=77.6;y=129.17;width=10.93;height=10.93;bc=#B05E11;pw=0;"
-
   shape[342] = "func=ell;x=76.52;y=131.46;width=11.04;height=11.04;bc=#B05E11;pw=0;"
-
   shape[343] = "func=ell;x=75.63;y=133.7;width=11.15;height=11.15;bc=#B05E11;pw=0;"
-
   shape[344] = "func=ell;x=74.94;y=135.89;width=11.26;height=11.26;bc=#B05E11;pw=0;"
-
   shape[345] = "func=ell;x=74.41;y=138.01;width=11.38;height=11.38;bc=#B05E11;pw=0;"
-
   shape[346] = "func=ell;x=74.06;y=140.05;width=11.49;height=11.49;bc=#B05E11;pw=0;"
-
   shape[347] = "func=ell;x=73.86;y=142.01;width=11.6;height=11.6;bc=#B05E11;pw=0;"
-
   shape[348] = "func=ell;x=73.79;y=143.87;width=11.72;height=11.72;bc=#B05E11;pw=0;"
-
   shape[349] = "func=ell;x=73.84;y=145.65;width=11.84;height=11.84;bc=#B05E11;pw=0;"
-
   shape[350] = "func=ell;x=74.01;y=147.32;width=11.96;height=11.96;bc=#B05E11;pw=0;"
-
   shape[351] = "func=ell;x=74.27;y=148.89;width=12.08;height=12.08;bc=#B05E11;pw=0;"
-
   shape[352] = "func=ell;x=74.87;y=150.48;width=11.96;height=11.96;bc=#B05E11;pw=0;"
-
   shape[353] = "func=ell;x=75.55;y=151.97;width=11.84;height=11.84;bc=#B05E11;pw=0;"
-
   shape[354] = "func=ell;x=76.3;y=153.35;width=11.72;height=11.72;bc=#B05E11;pw=0;"
-
   shape[355] = "func=ell;x=77.11;y=154.62;width=11.6;height=11.6;bc=#B05E11;pw=0;"
-
   shape[356] = "func=ell;x=77.94;y=155.79;width=11.49;height=11.49;bc=#B05E11;pw=0;"
-
   shape[357] = "func=ell;x=78.83;y=156.86;width=11.38;height=11.38;bc=#B05E11;pw=0;"
-
   shape[358] = "func=ell;x=79.76;y=157.83;width=11.26;height=11.26;bc=#B05E11;pw=0;"
-
   shape[359] = "func=ell;x=80.69;y=158.7;width=11.15;height=11.15;bc=#B05E11;pw=0;"
-
   shape[360] = "func=ell;x=81.64;y=159.48;width=11.04;height=11.04;bc=#B05E11;pw=0;"
-
   shape[361] = "func=ell;x=82.6;y=160.16;width=10.93;height=10.93;bc=#B05E11;pw=0;"
-
   shape[362] = "func=ell;x=83.57;y=160.76;width=10.82;height=10.82;bc=#B05E11;pw=0;"
-
   shape[363] = "func=ell;x=84.51;y=161.28;width=10.72;height=10.72;bc=#B05E11;pw=0;"
-
   shape[364] = "func=ell;x=85.46;y=161.71;width=10.61;height=10.61;bc=#B05E11;pw=0;"
-
   shape[365] = "func=ell;x=86.38;y=162.08;width=10.51;height=10.51;bc=#B05E11;pw=0;"
-
   shape[366] = "func=ell;x=87.3;y=162.37;width=10.4;height=10.4;bc=#B05E11;pw=0;"
-
   shape[367] = "func=ell;x=88.19;y=162.6;width=10.3;height=10.3;bc=#B05E11;pw=0;"
-
   shape[368] = "func=ell;x=89.04;y=162.76;width=10.2;height=10.2;bc=#B05E11;pw=0;"
-
   shape[369] = "func=ell;x=89.87;y=162.87;width=10.1;height=10.1;bc=#B05E11;pw=0;"
-
   shape[370] = "func=ell;x=90.67;y=162.93;width=10;height=10;bc=#B05E11;pw=0;"
-
   shape[371] = "func=ell;x=91.44;y=162.94;width=9.9;height=9.9;bc=#B05E11;pw=0;"
-
   shape[372] = "func=ell;x=92.17;y=162.91;width=9.8;height=9.8;bc=#B05E11;pw=0;"
-
   shape[373] = "func=ell;x=92.87;y=162.83;width=9.7;height=9.7;bc=#B05E11;pw=0;"
-
   shape[374] = "func=ell;x=93.54;y=162.73;width=9.6;height=9.6;bc=#B05E11;pw=0;"
-
   shape[375] = "func=ell;x=94.14;y=162.59;width=9.51;height=9.51;bc=#B05E11;pw=0;"
-
   shape[376] = "func=ell;x=94.72;y=162.43;width=9.42;height=9.42;bc=#B05E11;pw=0;"
-
   shape[377] = "func=ell;x=95.28;y=162.24;width=9.32;height=9.32;bc=#B05E11;pw=0;"
-
   shape[378] = "func=ell;x=95.77;y=162.03;width=9.23;height=9.23;bc=#B05E11;pw=0;"
-
   shape[379] = "func=ell;x=96.24;y=161.81;width=9.14;height=9.14;bc=#B05E11;pw=0;"
-
   shape[380] = "func=ell;x=96.67;y=161.58;width=9.05;height=9.05;bc=#B05E11;pw=0;"
-
   shape[381] = "func=ell;x=97.07;y=161.33;width=8.96;height=8.96;bc=#B05E11;pw=0;"
-
   shape[382] = "func=ell;x=97.43;y=161.08;width=8.87;height=8.87;bc=#B05E11;pw=0;"
-
   shape[383] = "func=ell;x=97.77;y=160.82;width=8.78;height=8.78;bc=#B05E11;pw=0;"
-
   shape[384] = "func=ell;x=98.06;y=160.57;width=8.69;height=8.69;bc=#B05E11;pw=0;"
-
   shape[385] = "func=ell;x=98.32;y=160.31;width=8.61;height=8.61;bc=#B05E11;pw=0;"
-
   shape[386] = "func=ell;x=98.56;y=160.05;width=8.52;height=8.52;bc=#B05E11;pw=0;"
-
   shape[387] = "func=ell;x=98.76;y=159.8;width=8.44;height=8.44;bc=#B05E11;pw=0;"
-
   shape[388] = "func=ell;x=98.94;y=159.55;width=8.36;height=8.36;bc=#B05E11;pw=0;"
-
   shape[389] = "func=ell;x=99.1;y=159.31;width=8.27;height=8.27;bc=#B05E11;pw=0;"
-
   shape[390] = "func=ell;x=99.23;y=159.08;width=8.19;height=8.19;bc=#B05E11;pw=0;"
-
   shape[391] = "func=ell;x=99.34;y=158.85;width=8.11;height=8.11;bc=#B05E11;pw=0;"
-
   shape[392] = "func=ell;x=99.43;y=158.64;width=8.03;height=8.03;bc=#B05E11;pw=0;"
-
   shape[393] = "func=ell;x=99.51;y=158.44;width=7.95;height=7.95;bc=#B05E11;pw=0;"
-
   shape[394] = "func=ell;x=99.57;y=158.24;width=7.87;height=7.87;bc=#B05E11;pw=0;"
-
   shape[395] = "func=ell;x=99.61;y=158.06;width=7.79;height=7.79;bc=#B05E11;pw=0;"
-
   shape[396] = "func=ell;x=99.63;y=157.9;width=7.72;height=7.72;bc=#B05E11;pw=0;"
-
   shape[397] = "func=ell;x=99.66;y=157.74;width=7.64;height=7.64;bc=#B05E11;pw=0;"
-
   shape[398] = "func=ell;x=99.67;y=157.6;width=7.56;height=7.56;bc=#B05E11;pw=0;"
-
   shape[399] = "func=ell;x=99.65;y=157.47;width=7.49;height=7.49;bc=#B05E11;pw=0;"
-
   shape[400] = "func=ell;x=99.65;y=157.36;width=7.41;height=7.41;bc=#B05E11;pw=0;"
-
   shape[401] = "func=ell;x=99.63;y=157.25;width=7.34;height=7.34;bc=#B05E11;pw=0;"
-
   shape[402] = "func=ell;x=99.59;y=157.16;width=7.27;height=7.27;bc=#B05E11;pw=0;"
-
   shape[403] = "func=ell;x=99.57;y=157.08;width=7.2;height=7.2;bc=#B05E11;pw=0;"
-
   shape[404] = "func=ell;x=99.55;y=157.02;width=7.12;height=7.12;bc=#B05E11;pw=0;"
-
   shape[405] = "func=ell;x=99.51;y=156.96;width=7.05;height=7.05;bc=#B05E11;pw=0;"
-
   shape[406] = "func=ell;x=99.47;y=156.92;width=6.98;height=6.98;bc=#B05E11;pw=0;"
-
   shape[407] = "func=ell;x=99.42;y=156.88;width=6.92;height=6.92;bc=#B05E11;pw=0;"
-
   shape[408] = "func=ell;x=99.38;y=156.86;width=6.85;height=6.85;bc=#B05E11;pw=0;"
-
   shape[409] = "func=ell;x=99.35;y=156.84;width=6.78;height=6.78;bc=#B05E11;pw=0;"
-
   shape[410] = "func=ell;x=99.31;y=156.84;width=6.71;height=6.71;bc=#B05E11;pw=0;"
-
   shape[411] = "func=ell;x=99.27;y=156.84;width=6.65;height=6.65;bc=#B05E11;pw=0;"
-
   shape[412] = "func=ell;x=99.25;y=156.85;width=6.58;height=6.58;bc=#B05E11;pw=0;"
-
   shape[413] = "func=ell;x=99.22;y=156.87;width=6.51;height=6.51;bc=#B05E11;pw=0;"
-
   shape[414] = "func=ell;x=99.19;y=156.9;width=6.45;height=6.45;bc=#B05E11;pw=0;"
-
   shape[415] = "func=ell;x=99.16;y=156.93;width=6.39;height=6.39;bc=#B05E11;pw=0;"
-
   shape[416] = "func=ell;x=99.15;y=156.96;width=6.32;height=6.32;bc=#B05E11;pw=0;"
-
   shape[417] = "func=ell;x=99.13;y=157;width=6.26;height=6.26;bc=#B05E11;pw=0;"
-
   shape[418] = "func=ell;x=99.11;y=157.05;width=6.2;height=6.2;bc=#B05E11;pw=0;"
-
   shape[419] = "func=ell;x=99.1;y=157.1;width=6.14;height=6.14;bc=#B05E11;pw=0;"
-
   shape[420] = "func=ell;x=99.1;y=157.15;width=6.08;height=6.08;bc=#B05E11;pw=0;"
-
   shape[421] = "func=ell;x=99.09;y=157.21;width=6.02;height=6.02;bc=#B05E11;pw=0;"
-
   shape[422] = "func=ell;x=99.1;y=157.27;width=5.96;height=5.96;bc=#B05E11;pw=0;"
-
   shape[423] = "func=ell;x=99.11;y=157.33;width=5.9;height=5.9;bc=#B05E11;pw=0;"
-
   shape[424] = "func=ell;x=99.12;y=157.39;width=5.84;height=5.84;bc=#B05E11;pw=0;"
-
   shape[425] = "func=ell;x=99.14;y=157.46;width=5.78;height=5.78;bc=#B05E11;pw=0;"
-
   shape[426] = "func=ell;x=99.16;y=157.52;width=5.72;height=5.72;bc=#B05E11;pw=0;"
-
   shape[427] = "func=ell;x=99.17;y=157.59;width=5.67;height=5.67;bc=#B05E11;pw=0;"
-
   shape[428] = "func=ell;x=99.2;y=157.66;width=5.61;height=5.61;bc=#B05E11;pw=0;"
-
   shape[429] = "func=ell;x=99.23;y=157.72;width=5.55;height=5.55;bc=#B05E11;pw=0;"
-
   shape[430] = "func=ell;x=99.26;y=157.79;width=5.5;height=5.5;bc=#B05E11;pw=0;"
-
   shape[431] = "func=ell;x=99.31;y=157.85;width=5.44;height=5.44;bc=#B05E11;pw=0;"
-
   shape[432] = "func=ell;x=99.34;y=157.92;width=5.39;height=5.39;bc=#B05E11;pw=0;"
-
   shape[433] = "func=ell;x=99.38;y=157.98;width=5.34;height=5.34;bc=#B05E11;pw=0;"
-
   shape[434] = "func=ell;x=99.43;y=158.04;width=5.28;height=5.28;bc=#B05E11;pw=0;"
-
   shape[435] = "func=ell;x=99.47;y=158.1;width=5.23;height=5.23;bc=#B05E11;pw=0;"
-
   shape[436] = "func=ell;x=99.52;y=158.16;width=5.18;height=5.18;bc=#B05E11;pw=0;"
-
   shape[437] = "func=ell;x=99.56;y=158.22;width=5.13;height=5.13;bc=#B05E11;pw=0;"
-
   shape[438] = "func=ell;x=99.62;y=158.27;width=5.08;height=5.08;bc=#B05E11;pw=0;"
-
   shape[439] = "func=ell;x=99.66;y=158.33;width=5.03;height=5.03;bc=#B05E11;pw=0;"
-
   shape[440] = "func=ell;x=99.72;y=158.38;width=4.98;height=4.98;bc=#B05E11;pw=0;"
-
   shape[441] = "func=ell;x=99.78;y=158.43;width=4.93;height=4.93;bc=#B05E11;pw=0;"
-
   shape[442] = "func=ell;x=99.84;y=158.48;width=4.88;height=4.88;bc=#B05E11;pw=0;"
-
   shape[443] = "func=ell;x=99.89;y=158.53;width=4.83;height=4.83;bc=#B05E11;pw=0;"
-
   shape[444] = "func=ell;x=99.96;y=158.57;width=4.78;height=4.78;bc=#B05E11;pw=0;"
-
   shape[445] = "func=ell;x=100.01;y=158.62;width=4.74;height=4.74;bc=#B05E11;pw=0;"
-
 EndSub
-
-
 
 Sub Shapes_Add
-
   ' Shapes | add shapes as shapes data
-
   ' param iMin, iMax - shape indices to add
-
   ' param shape - array of shapes
-
   ' param scale - 1 if same scale
-
   ' return shWidth, shHeight - total size of shapes
-
   ' return shAngle - current angle of shapes
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   Shapes_CalcWidthAndHeight()
-
   s = scale
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     GraphicsWindow.PenWidth = shp["pw"] * s
-
     If shp["pw"] > 0 Then
-
       GraphicsWindow.PenColor = shp["pc"]
-
     EndIf
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) Then
-
       GraphicsWindow.BrushColor = shp["bc"]
-
     EndIf
-
     If shp["func"] = "rect" Then
-
       shp["obj"] = Shapes.AddRectangle(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "ell" Then
-
       shp["obj"] = Shapes.AddEllipse(shp["width"] * s, shp["height"] * s)
-
     ElseIf shp["func"] = "tri" Then
-
       shp["obj"] = Shapes.AddTriangle(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s, shp["x3"] * s, shp["y3"] * s)
-
     ElseIf shp["func"] = "line" Then
-
       shp["obj"] = Shapes.AddLine(shp["x1"] * s, shp["y1"] * s, shp["x2"] * s, shp["y2"] * s)
-
     ElseIf shp["func"] = "text" Then
-
       If silverlight Then
-
         fs = Math.Floor(shp["fs"] * 0.9)
-
       Else
-
         fs = shp["fs"]
-
       EndIf
-
       GraphicsWindow.FontSize = fs * s
-
       GraphicsWindow.FontName = shp["fn"]
-
       shp["obj"] = Shapes.AddText(shp["text"])
-
     EndIf
-
     x = shp["x"]
-
     y = shp["y"]
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(shp["angle"])
-
       SB_RotateWorkaround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     If Text.IsSubText("rect|ell|tri|text", shp["func"]) And (shp["angle"] <> 0) And (shp["angle"] <> "") Then
-
       Shapes.Rotate(shp["obj"], shp["angle"])
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
   shAngle = 0
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Shapes_CalcRotatePos
-
   ' Shapes | Calculate position for rotated shape
-
   ' param["x"], param["y"] - position of a shape
-
   ' param["width"], param["height"] - size of a shape
-
   ' param ["cx"], param["cy"] - center of rotation
-
   ' param ["angle"] - rotate angle
-
   ' return x, y - rotated position of a shape
-
   _cx = param["x"] + param["width"] / 2
-
   _cy = param["y"] + param["height"] / 2
-
   x = _cx - param["cx"]
-
   y = _cy - param["cy"]
-
   Math_CartesianToPolar()
-
   a = a + param["angle"]
-
   x = r * Math.Cos(a * Math.Pi / 180)
-
   y = r * Math.Sin(a * Math.Pi / 180)
-
   _cx = x + param["cx"]
-
   _cy = y + param["cy"]
-
   x = _cx - param["width"] / 2
-
   y = _cy - param["height"] / 2
-
 EndSub
-
-
 
 Sub Shapes_CalcWidthAndHeight
-
   ' Shapes | Calculate total width and height of shapes
-
   ' param iMin, iMax - shape indices to add
-
   ' return shWidth, shHeight - total size of shapes
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If shp["func"] = "tri" Or shp["func"] = "line" Then
-
       xmin = shp["x1"]
-
       xmax = shp["x1"]
-
       ymin = shp["y1"]
-
       ymax = shp["y1"]
-
       If shp["x2"] < xmin Then
-
         xmin = shp["x2"]
-
       EndIf
-
       If xmax < shp["x2"] Then
-
         xmax = shp["x2"]
-
       EndIf
-
       If shp["y2"] < ymin Then
-
         ymin = shp["y2"]
-
       EndIf
-
       If ymax < shp["y2"] Then
-
         ymax = shp["y2"]
-
       EndIf
-
       If shp["func"] = "tri" Then
-
         If shp["x3"] < xmin Then
-
           xmin = shp["x3"]
-
         EndIf
-
         If xmax < shp["x3"] Then
-
           xmax = shp["x3"]
-
         EndIf
-
         If shp["y3"] < ymin Then
-
           ymin = shp["y3"]
-
         EndIf
-
         If ymax < shp["y3"] Then
-
           ymax = shp["y3"]
-
         EndIf
-
       EndIf
-
       shp["width"] = xmax - xmin
-
       shp["height"] = ymax - ymin
-
     EndIf
-
     If i = 1 Then
-
       shWidth = shp["x"] + shp["width"]
-
       shHeight = shp["y"] + shp["height"]
-
     Else
-
       If shWidth < shp["x"] + shp["width"] Then
-
         shWidth = shp["x"] + shp["width"]
-
       EndIf
-
       If shHeight < shp["y"] + shp["height"] Then
-
         shHeight = shp["y"] + shp["height"]
-
       EndIf
-
     EndIf
-
     shape[i] = shp
-
   EndFor
-
 EndSub
-
-
 
 Sub Shapes_Move
-
   ' Shapes | Move shapes
-
   ' param iMin, iMax - shape indices to add
-
   ' param shape - array of shapes
-
   ' param scale - to zoom
-
   ' param x, y - position to move
-
   ' return shX, shY - new position of shapes
-
   Stack.PushValue("local", i)
-
   s = scale
-
   shX = x
-
   shY = y
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       _x = shp["wx"]
-
       _y = shp["wy"]
-
     Else
-
       _x = shp["rx"]
-
       _y = shp["ry"]
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + _x * s, shY + _y * s)
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Shapes_Remove
-
   ' Shapes | Remove shapes
-
   ' param iMin, iMax - shapes indices to remove
-
   ' param shape - array of shapes
-
   Stack.PushValue("local", i)
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     Shapes.Remove(shp["obj"])
-
   EndFor
-
   i = Stack.PopValue("local")
-
 EndSub
-
-
 
 Sub Shapes_Rotate
-
   ' Shapes | Rotate shapes
-
   ' param iMin, iMax - shapes indices to rotate
-
   ' param shape - array of shapes
-
   ' param cx, cy - rotation center
-
   ' param scale - to zoom
-
   ' param angle - to rotate
-
   Stack.PushValue("local", i)
-
   Stack.PushValue("local", x)
-
   Stack.PushValue("local", y)
-
   s = scale
-
   param["angle"] = angle
-
   If cx <> "" Then
-
     param["cx"] = cx
-
   Else
-
     cx = ""   ' to avoid syntax error
-
     param["cx"] = shWidth / 2
-
   EndIf
-
   If cy <> "" Then
-
     param["cy"] = cy
-
   Else
-
     cy = ""   ' to avoid syntax error
-
     param["cy"] = shHeight / 2
-
   EndIf
-
   For i = iMin To iMax
-
     shp = shape[i]
-
     param["x"] = shp["x"]
-
     param["y"] = shp["y"]
-
     param["width"] = shp["width"]
-
     param["height"] = shp["height"]
-
     Shapes_CalcRotatePos()
-
     shp["rx"] = x
-
     shp["ry"] = y
-
     If silverlight And Text.IsSubText("tri|line", shp["func"]) Then
-
       alpha = Math.GetRadians(angle + shp["angle"])
-
       SB_RotateWorkAround()
-
       shp["wx"] = x
-
       shp["wy"] = y
-
     EndIf
-
     Shapes.Move(shp["obj"], shX + x * s, shY + y * s)
-
     Shapes.Rotate(shp["obj"], angle + shp["angle"])
-
     shape[i] = shp
-
   EndFor
-
   y = Stack.PopValue("local")
-
   x = Stack.PopValue("local")
-
   i = Stack.PopValue("local")
-
 EndSub
-
-

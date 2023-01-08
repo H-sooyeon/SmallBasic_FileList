@@ -1,509 +1,254 @@
 'Muna püüdja V.7.1
-
 'Koostas Veronika Bondar
-
 'Disainis Kert Perli
 
-
-
 path="C:\Users\Nika\Desktop" ' läparist võtab otse kausta
-
 karp=ImageList.LoadImage(Path + "/karp.png")
-
 pilv=ImageList.LoadImage(Path + "/pilv.png")
-
-
 
 GraphicsWindow.ShowMessage("Sul on 5 elu, hunnik MUNE. Iga 10 muna kukkumise järel kiirus tõuseb, isegi kui sa 1 mööda kukutad, püüa nii palju kui võimalikult.","Reeglid, loe tähelepanelikult!")
 
-
-
 'Võib kasutada hiirt või klaviatuuri. Kui kasutad hiirt, siis klaviatuuri blokib ära, vaikimisi pandud klaviatuur peale, Noolte kasutamine.
-
 MorK = "K"
 
-
-
 Main()
-
 Sub Main
-
   'Teeb mängu
-
   CreateGame()
-
   Sound.PlayChimes()
-
   'MainLoop
-
   While (lives > 0)
-
     DefaultSpeed = DefaultSpeed + "0.1"
-
   While (droppedBalls < EggsMax And lives > 0)
-
     Shapes.Move(dropper, dropperX, 80)
-
     Program.Delay(10)
 
-
-
     'Kuri pilv
-
     If (Math.GetRandomNumber(100) > 98) Then
-
       Stack.PushValue("p", dropperX + 30)
-
       DropEgg()
-
       droppedBalls = droppedBalls + 1
-
     EndIf
-
 MoveBucketUsingKeyboard()
-
     SetIncrement()
-
     dropperX = dropperX + incrementX
-
   EndWhile
-
   
-
   'Resetib iga leveliga pallida viskamise
-
   droppedBalls = 0
-
   level = level + 1
-
 EndWhile
-
   
-
   Sound.PlayChimes()
-
   GraphicsWindow.Hide()
-
   GraphicsWindow.ShowMessage("Praegune level on sul "+Level+", kokku korjasid "+CatchedEggs+" mune.","Game Over")
-
   GraphicsWindow.Hide()
-
   Program.End()
-
 EndSub
-
-
 
 Sub CreateGame
-
   CreateWindow()
-
   CreateCatcher()
-
   CreateDropper()
-
   Scores = 0
-
   Lives = 5
-
   Level = 1
-
   EggsMax = 10
-
   LevelTarget = 100
-
   DefaultSpeed = 20
-
   CatchedEggs = 0
-
   KeyMovement = 16.5
-
   MovingRight = "false"
-
   MovingLeft = "false"
-
   Shapes.Move(dropper, 1, 80)
-
   Shapes.Move(bucket,1, GraphicsWindow.Height - 20)
-
   droppedBalls = 0
-
   dropperX = 1
-
   DrawPanel()
-
 EndSub
-
-
 
 Sub CreateWindow
-
   'Loob ekraani
-
   GraphicsWindow.Show()
-
   GraphicsWindow.BackgroundColor = "WhiteSmoke"
-
   GraphicsWindow.Width = 800
-
   GraphicsWindow.Height = 400
-
   GraphicsWindow.Title = "Munapüüdja vol 6.1"
-
   GraphicsWindow.Left = Desktop.Width/2-GraphicsWindow.Width/2
-
   GraphicsWindow.Top = Desktop.Height/2-GraphicsWindow.Height/2
-
   GraphicsWindow.CanResize = "false"
-
   GraphicsWindow.FontSize = 24
-
   MouseIsHidden = "true"
-
   Mouse.HideCursor()
-
   'Evendid
-
   GraphicsWindow.MouseMove = MoveBucket
-
   GraphicsWindow.MouseDown = Exit
-
   GraphicsWindow.KeyDown = KeyDown
-
   GraphicsWindow.KeyUp = KeyUp
-
 EndSub
-
-
 
 Sub SetIncrement
-
   incr = Math.GetRandomNumber(30)
-
   If ((dropperX + 80) > GraphicsWindow.Width) Then
-
     incrementX = -incr
-
   EndIf
-
   If (dropperX <= 1) Then
-
     incrementX = incr
-
   EndIf
-
 EndSub
-
-
 
 Sub MoveBucket
-
   'Peidab hiirt kui mouseY on > 70
-
   If MouseIsHidden = "false" And GraphicsWindow.MouseY > 70 Then
-
     Mouse.HideCursor()
-
     MouseIsHidden = "true"
-
   EndIf
-
   If MouseIsHidden = "true" And GraphicsWindow.MouseY < 70 Then
-
     Mouse.ShowCursor()
-
     MouseIsHidden = "false"
-
   EndIf
-
   'Kui hiirt kaotad = "true" liigutab kastikest
-
   If MouseIsHidden = "true" And MorK = "M" Then
-
     bucketX = GraphicsWindow.MouseX - 25
-
     Shapes.Move(bucket, bucketX, GraphicsWindow.Height - 20)
-
   EndIf
-
 EndSub
-
-
 
 Sub DropEgg
-
   'pallikese kordinaadid
-
   ThereIsEgg = "true"
-
   ThisEggFails = "false"
-
   ballX = Stack.PopValue("p")
-
   ballY = 90
-
   'munade liigutamine õigetesse kohtadesse
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "Khaki"
-
   ball = Shapes.AddEllipse(20, 30)
-
   Shapes.Move(ball, ballX, ballY)
-
   dropSpeed = DefaultSpeed + Math.GetRandomNumber(1)
 
-
-
   While (ballY - 20 < GraphicsWindow.Height)
-
     Shapes.Move(ball, ballX, ballY)
-
     Program.Delay(dropSpeed)
-
     'Test munade kukkumisel
-
     TestForBallInBucket()
-
     MoveBucketUsingKeyboard()
-
     ballY = ballY + 5
-
   EndWhile
-
 EndSub
-
-
 
 Sub TestForBallInBucket
-
   If ThereIsEgg = "true" Then
-
     If ((ballY + 20) = GraphicsWindow.Height - 30) Or ((ballY + 20) > GraphicsWindow.Height - 30) Then
-
       If (ballX < (bucketX + 50)) And (ballX = bucketX-15) Or (ballX < (bucketX + 50)) And (ballX > bucketX-15) And ThisEggFails = "false" Then
-
         Scores = Scores + 1
-
         CatchedEggs = CatchedEggs + 1
-
         'Play Click
-
         Sound.PlayClick()
-
         'Updatib paneeli
-
         DrawPanel()
-
         'Kaotab muna ära ekraanilt
-
         Shapes.Remove(ball)
-
         ThereIsEgg = "false"
-
       ElseIf ThisEggFails = "false" Then
-
         Lives = Lives - 1
-
         DrawPanel()
-
         ThisEggFails = "true"
-
       EndIf
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub DrawPanel
-
   'Joonistab paneeli
-
   GraphicsWindow.BrushColor = "DarkMagenta"
-
   GraphicsWindow.FillRectangle(0, 0, GraphicsWindow.Width, 75)
-
   GraphicsWindow.PenWidth = 2
-
   GraphicsWindow.PenColor = GraphicsWindow.GetRandomColor()
-
   GraphicsWindow.DrawRectangle(1,1,GraphicsWindow.Width-1,75)
-
   GraphicsWindow.DrawLine(GraphicsWindow.Width-1,0,GraphicsWindow.Width-1,75)
-
   GraphicsWindow.BrushColor = "White"
-
   'Joonistab paneeli ja kontrol
-
   GraphicsWindow.FontSize = 18
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.DrawText(5,20,"Munad:")
-
   GraphicsWindow.DrawText(105,20, Scores)
-
   GraphicsWindow.DrawText(150,20,"Level:")
-
   GraphicsWindow.DrawText(225,20,Level)
-
   GraphicsWindow.DrawText(275,20,"Elud:")
-
   GraphicsWindow.DrawText(345,20,Lives)
-
   'Joonistab exit
-
   GraphicsWindow.DrawText(GraphicsWindow.Width-55,5,"Exit")
-
 EndSub
-
-
 
 Sub CreateCatcher
-
   'Muna püüdja joonistamine
-
   GraphicsWindow.PenColor = "Red"
-
   GraphicsWindow.BrushColor = "Brown"
-
   bucket = Shapes.AddImage("http://www.upload.ee/image/618971/karp.png")
-
 EndSub
-
-
 
 Sub CreateDropper
-
   'Muna viskaja
-
   GraphicsWindow.PenWidth = 2
-
   GraphicsWindow.PenColor = "silver"
-
   GraphicsWindow.BrushColor = "Black"
-
   dropper = Shapes.AddImage("http://www.upload.ee/image/618974/pilveke.PNG")
-
 EndSub
-
-
-
-
 
 
 
 'Väljapäesu vajutamine
-
 Sub Exit
-
   If MouseIsHidden = "false" And GraphicsWindow.MouseX > GraphicsWindow.Width-55 And Mouse.IsLeftButtonDown = "True" And Mouse.IsRightButtonDown = "False" Then
-
     Program.End()
-
   EndIf
-
 EndSub
-
-
-
 
 
 'Klahvid
-
 Sub KeyUp
-
   Key = GraphicsWindow.LastKey
-
   If Key = "Right" Then
-
     MovingRight = "false"
-
   EndIf
-
   If Key = "Left" Then
-
     MovingLeft = "false"
-
   EndIf
-
 EndSub
-
-
 
 Sub KeyDown
-
   Key = GraphicsWindow.LastKey
-
   If Key = "Right" Then
-
     MovingRight = "true"
-
   EndIf
-
   If Key = "Left" Then
-
     MovingLeft = "true"
-
   EndIf
-
 EndSub
-
-
-
 
 
 'Klaviatuuri kasutamine
-
 Sub MoveBucketUsingKeyboard
-
   If MorK = "K" Then
-
   If MovingRight = "true" Then
-
     bucketX = bucketX + KeyMovement
-
   EndIf
-
   If MovingLeft = "true" Then
-
     bucketX = bucketX - KeyMovement
-
   EndIf
-
   SetLimits()
-
   Shapes.Move(bucket, bucketX, GraphicsWindow.Height - 20)
-
   EndIf
-
 EndSub
-
-
 
 'Et üleääre ei sõidaks kast.
-
 Sub SetLimits
-
   If bucketX < 1 Then
-
     bucketX = 1
-
   EndIf
-
   If bucketX > GraphicsWindow.Width-51 Then
-
     bucketX = GraphicsWindow.Width-51
-
   EndIf
-
 EndSub
-
 Mouse.ShowCursor()
-
-

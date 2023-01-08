@@ -1,441 +1,220 @@
 defaultColor = GraphicsWindow.BrushColor
-
 'Window setup
-
 'setting up the bricks
-
 'Set up the colors first
-
 rowBrushColor[1] = "Yellow"
-
 rowBrushColor[2] = "Aqua"
-
 brickLength = 200
-
 brickThickness = 20
-
 numberOfBricksPerRow = 5
-
 numberOfBrickRows = 2
-
 'Window Set up
-
 windowHeight = 500
-
 windowWidth = numberOfBricksPerRow * brickLength
-
 GraphicsWindow.Top = 0
-
 GraphicsWindow.Height = windowHeight
-
 GraphicsWindow.Width = windowWidth
-
-
 
 GraphicsWindow.CanResize = "False"
 
-
-
 '===================================================================================================================
-
 'create the bricks
-
 For i = 1 To numberOfBrickRows * numberOfBricksPerRow
-
   If i <= numberOfBricksPerRow Then
-
     tempY = 0
-
     tempX = (i-1) * brickLength
-
     j = 1
-
   ElseIf i <= 2*numberOfBricksPerRow Then
-
     tempY = 3 * brickThickness
-
     tempX = (i - (numberOfBricksPerRow + 1)) * brickLength
-
     j = 2
-
   EndIf
-
   
-
   GraphicsWindow.BrushColor = rowBrushColor[j]
-
   brick[i] = Shapes.AddRectangle(brickLength, brickThickness)
-
   brickVisible[i] = "True"
-
   brickX[i] = tempX
-
   brickY[i] = tempY
-
   Shapes.Move(brick[i], brickX[i], brickY[i])
-
 EndFor
 
-
-
 '===================================================================================================================
-
-
 
 'Events
-
 'Timer Event
-
 'Timer.Tick = moveBall
-
 'Timer.Interval = 10
-
 timerSwitch = "Off"
-
 'Timer.Pause()
-
 '===============================================================================================================
-
 'Mouse Event
-
 GraphicsWindow.MouseDown = pauseUnpause
-
 'Keyboard Event
-
 GraphicsWindow.KeyDown = movePaddle
 
-
-
 '===================================================================================================================
-
 'Object parameters
-
 'Circle/Ball
-
 GraphicsWindow.BrushColor = defaultColor
-
 diameter = 50
-
 circle = Shapes.AddEllipse(diameter, diameter)
-
 circleX = Math.GetRandomNumber(windowWidth + 1 - diameter) - 1
-
 circleY = 5* brickThickness
-
 speedX = 1
-
 speedY = 1
-
 speedIncreaseFactor = 1.1
-
 maxSpeed = 25
-
 Shapes.Move(circle, circleX, circleY)
-
 'Ball direction
-
 ballDirectionX = 1
-
 ballDirectionY = 1
 
-
-
 '===================================================================================================================
-
 'Paddle
-
 paddleLength = 100
-
 paddleThickness = 20
-
 paddle = Shapes.AddRectangle(paddleLength, paddleThickness)
-
 paddleX = windowWidth/2 - paddleLength/2
-
 paddleY = windowHeight - 50
-
 paddleSpeed = 25
-
 Shapes.Move(paddle, paddleX, paddleY)
-
 '===================================================================================================================
-
-
 
 'Do all work on main UI thread in a game loop
-
 While ("True")
-
   start = Clock.ElapsedMilliseconds
-
   
-
   If (timerSwitch = "On") Then 'If not paused update the game
-
     moveBall()
-
   EndIf
-
   
-
   delay = 10-(start-Clock.ElapsedMilliseconds)
-
   If (delay > 0) Then
-
     Program.Delay(delay)
-
   EndIf
-
 EndWhile
 
-
-
 'Movement of the ball
-
 Sub moveBall
-
   Shapes.Move(circle, circleX, circleY)
-
   circleX = circleX + speedX * ballDirectionX
-
   circleY = circleY + speedY * ballDirectionY
-
   wallHitCheck()
-
   paddleHitCheck()
-
   brickHitCheck()
-
 EndSub
-
 '===================================================================================================================
-
 'checks If the ball hit a brick 
-
 Sub BrickHitCheck
-
   'brickCollision = "False"
-
   If (circleY < brickY[numberOfBrickRows * numberOfBricksPerRow] + brickThickness) Then 'Only check If ball is near top of screen
-
     For i = 1 To numberOfBrickRows * numberOfBricksPerRow
-
       If (brickVisible[i]) Then 'Only check visible remainig bricks
-
         If circleX + diameter > brickX[i] And circleX < brickX[i] + brickLength Then
-
           If circleY + diameter > brickY[i] And circleY < brickY[i] + brickThickness Then
-
             'brickCollision = "True"
-
             brickVisible[i] = "False"
-
             Shapes.Remove(brick[i]) 
-
             'BrickHit = i
-
             ballDirectionY = -ballDirectionY
-
             i = numberOfBrickRows * numberOfBricksPerRow
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndIf
-
   
-
   'Sub doesnt work properly
-
   'If brickCollision = "True" Then
-
   'If ballDirectionY = 1 Then 'Coming from above, moving down
-
   'If ballDirectionX = 1 Then 'coming from the left moving right
-
   'If circleY + diameter - brickY[brickhit] > circleX + diameter - brickX[BrickHit] Then 'If the ball is farther down on the paddle than right
-
   'ballDirectionX = -1
-
   'Else
-
   'ballDirectionY = 1
-
   'EndIf
-
   
-
   'Else ' coming from the right moving left
-
   'If circleY - brickY[brickhit] + brickThickness  > brickX[BrickHit] + brickLength[BrickHit] - circleX Then
-
   'ballDirectionX = 1
-
   'Else
-
   'ballDirectionY = 1
-
   'EndIf
-
   'EndIf
-
   'Else ' Coming from below, moving up
-
   'Try fixing the condtions above first
-
   'EndIf
-
   'EndIf
-
   
-
 EndSub
 
-
-
 '===================================================================================================================
-
 'Checks If paddle was hit
-
 Sub paddleHitCheck
-
   'paddleCollision = "False"
-
   If circleX + diameter > paddleX And circleX < paddleX + paddleLength Then
-
     If circleY + diameter > paddleY And circleY < paddleY + paddleThickness Then
-
       'paddleCollision = "True"
-
       ballDirectionY = -ballDirectionY
-
       If speedX < maxSpeed Then
-
         speedX = speedX * speedIncreaseFactor
-
         speedY = speedY * speedIncreaseFactor
-
       EndIf      
-
     EndIf
-
   EndIf  
-
   'If paddleCollision = "True" Then
-
   'If ballDirectionX = 1 Then 'coming from the left moving right
-
   'If circleY + diameter - paddleY > circleX + diameter - paddleX Then 'If the ball is farther down on the paddle than right
-
   'ballDirectionX = -1
-
   'Else
-
   'ballDirectionY = -1
-
   'EndIf     
-
   'Else ' coming from the right moving left
-
   'If circleY + diameter - paddleY > paddleX + paddleLength - circleX Then
-
   'ballDirectionX = 1
-
   'Else
-
   'ballDirectionY = -1
-
   'EndIf
-
   'EndIf
-
   'EndIf
-
 EndSub
-
 '===================================================================================================================
-
 'Moves paddle
-
 Sub movePaddle
-
   lastKey = GraphicsWindow.LastKey
-
   If lastKey = "Left" Then    
-
     paddleX = paddleX - paddleSpeed
-
     If paddleX < 0 Then
-
       paddleX = 0
-
     EndIf   
-
   ElseIf lastKey = "Right" Then
-
     paddleX = paddleX + paddleSpeed
-
     If paddleX + paddleLength > windowWidth + 10 Then
-
       paddleX = windowWidth - paddleLength + 10
-
     EndIf
-
   EndIf
-
   Shapes.Move(paddle, paddleX, paddleY)  
-
 EndSub
-
 '===================================================================================================================
-
-
 
 Sub pauseUnpause
-
   If timerSwitch = "Off" Then
-
     'Timer.Resume()
-
     timerSwitch = "On"
-
   Else
-
     'Timer.Pause()
-
     timerSwitch = "Off"
-
   EndIf
-
 EndSub
-
-
 
 Sub wallHitCheck
-
   If circleY + diameter > windowHeight + 10 Then
-
     'Timer.Pause()
-
     timerSwitch = "Off"
-
     GraphicsWindow.ShowMessage("You lose!", "Game Over")   
-
   ElseIf circleY < 0 Then
-
     ballDirectionY = -ballDirectionY    
-
   ElseIf circleX < 0 Or circleX + diameter > windowWidth Then
-
     ballDirectionX = -ballDirectionX    
-
   EndIf  
-
 EndSub
-
-

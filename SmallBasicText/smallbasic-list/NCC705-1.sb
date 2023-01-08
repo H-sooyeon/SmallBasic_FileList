@@ -1,371 +1,185 @@
 ' Type Speed 0.3 - Measure your type speed
-
 ' Copyright (C) 2012 Nonki Takahashi.  All rights reserved
-
 '
-
 ' History :
-
 '  0.3 2012/08/13 Changed to use GraphicsWindow.  (NCC705-1)
-
 '  0.2 2012/08/13 Changed to use TextWindow.ReadKey().  (NCC705-0)
-
 '  0.1 2012/08/13 Created.  Used TextWindow.Read().  (NCC705)
-
 '
-
 ' Known bugs :
-
 '  (1) Word count becomes incorrect by pushing many backspace keys.
-
 '
-
 BS = Text.GetCharacter(08)
-
 CR = Text.GetCharacter(13)
-
 WQ = Text.GetCharacter(34)
-
 NA = "N/A"  ' no assigned key for this program
-
 DELIM = " .,?!;:()[]{}" + WQ  ' delimiters
-
 ch = 14     ' character height
-
 cw = 8      ' character width
-
 x0 = 10
-
 y0 = 10
-
 width = GraphicsWindow.Width - x0 * 2
-
 height = GraphicsWindow.Height - y0 * 2
-
 GraphicsWindow.Title = "Type Speed 0.3"
-
 GraphicsWindow.FontName = "Courier New"
-
 GraphicsWindow.BrushColor = "Gray"
-
 GraphicsWindow.DrawText(x0, y0, "Type any text to measure your type speed.")
-
 InitKeys()
-
 'DumpKeys()
-
 in = 0    ' for fifo (first in first out)
-
 out = 0   ' for fifo (first in first out)
-
 words = 0
-
 inWord = "False"
-
 GraphicsWindow.DrawText(x0, y0 + ch, "Press any key to start...")
-
 GraphicsWindow.KeyUp = OnKeyUp
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 ReadKey()
-
 GraphicsWindow.BrushColor = "White"
-
 GraphicsWindow.FillRectangle(x0, y0, width, height)
-
 GraphicsWindow.PenColor = "Black"
-
 oCursor = Shapes.AddLine(0, 0, 0, ch)
-
 nChars = 0
-
 nLines = 2
-
 Shapes.Move(oCursor, x0 + nChars * cw, y0 + nLines * ch)
-
 show = "True"
-
 Timer.Interval = 1000
-
 Timer.Tick = OnTick
-
 typing = "True"
-
 t0 = Clock.ElapsedMilliseconds
-
 While typing
-
   ReadKey()
-
   If c = CR Then
-
     nLines = nLines + 1
-
     nChars = 0
-
     Shapes.Move(oCursor, x0 + nChars * cw, y0 + nLines * ch)
-
     inWord = "False"
-
   ElseIf c = BS Then
-
     If nChars > 0 Then
-
       nChars = nChars - 1
-
       GraphicsWindow.BrushColor = "LightGray"
-
       GraphicsWindow.FillRectangle(x0 + nChars * cw, y0 + nLines * ch, cw, ch)
-
       Shapes.Move(oCursor, x0 + nChars * cw, y0 + nLines * ch)
-
     EndIf
-
   ElseIF c <> "N/A" Then
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.DrawText(x0 + nChars * cw, y0 + nLines * ch, c)
-
     nChars = nChars + 1
-
     If (nChars + 1) * cw > width Then
-
       nChars = 0
-
       nLines = nLines + 1
-
     EndIf
-
     Shapes.Move(oCursor, x0 + nChars * cw, y0 + nLines * ch)
-
     If Text.GetIndexOf(DELIM, c) = 0 Then ' c isn't a delimiter
-
       If inWord = "False" Then
-
         words = words + 1
-
         inWord = "True"
-
       EndIf
-
     Else  '  c is a delimiter  
-
       inWord = "False"
-
       t1 = Clock.ElapsedMilliseconds
-
       sec = Math.Floor((t1 - t0) / 1000)
-
       wpm = Math.Floor(words / sec * 60)
-
       GraphicsWindow.BrushColor = "White"
-
       GraphicsWindow.FillRectangle(x0, y0, width, ch)
-
       GraphicsWindow.BrushColor = "Gray"
-
       GraphicsWindow.DrawText(x0, y0, "speed = " + wpm + "[WPM] (" + words + "[word] / " + sec + "[sec])")
-
     EndIf
-
   EndIf
-
 EndWhile
 
-
-
 Sub OnTick
-
   If show Then
-
     Shapes.HideShape(oCursor)
-
     show = "False"
-
   Else
-
     Shapes.ShowShape(oCursor)
-
     show = "True"
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   If key = "LeftShift" Or key = "RightShift" Then
-
     sh = "+"
-
   Else
-
     in = in + 1
-
     fifo[in] = key
-
   EndIf
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   If key = "LeftShift" Or key = "RightShift" Then
-
     sh = ""
-
   EndIf
-
 EndSub
-
-
 
 Sub ReadKey
-
   ' return c
-
   c = ""
-
   While c = ""
-
     Program.Delay(100)
-
     If in > out Then
-
       out = out + 1
-
       c = fifo[out]
-
       fifo[out] = ""
-
     EndIf
-
   EndWhile
-
   If Text.GetLength(c) > 1 Then
-
     If Array.ContainsIndex(keys, c) Then
-
       c = keys[sh + c]
-
     Else
-
       c = "N/A"
-
     EndIf
-
   Else
-
     If sh = "" Then
-
       c = Text.ConvertToLowerCase(c)
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 Sub DumpKeys
-
   index = Array.GetAllIndices(keys)
-
   num = Array.GetItemCount(keys)
-
   For i = 1 To num
-
     TextWindow.WriteLine("keys[" + WQ + index[i] + WQ + "] = " + WQ + keys[index[i]] + WQ)
-
   EndFor
-
 EndSub
-
-
 
 Sub InitKeys
-
   ' for 106 / 109 (Japanese) keyboard 
-
   keys = "D0=0;D1=1;D2=2;D3=3;D4=4;D5=5;D6=6;D7=7;D8=8;D9=9;"
-
   keys = keys + "+D1=!;+D2="+ WQ +";+D3=#;+D4=$;+D5=%;+D6=&;+D7=';+D8=(;+D9=);"
-
   keys["Space"] = " "
-
   keys["Back"] = BS
-
   keys["Return"] = CR
-
   keys["Tab"] = NA
-
   keys["OemPeriod"] = "."
-
   Keys["OemComma"] = ","
-
   Keys["OemPlus"] = ";"
-
   Keys["OemMinus"] = "-"
-
   Keys["OemQuotes"] = "^"
-
   Keys["Oem5"] = "\"
-
   Keys["Oem3"] ="@"
-
   Keys["OemOpenBrackets"] = "["
-
   Keys["Oem1"] = ":"
-
   Keys["Oem6"] = "]"
-
   Keys["OemQuestion"] = "/"
-
   Keys["OemBackslash"] = "\"
-
   keys["+Space"] = " "
-
   keys["+Back"] = BS
-
   keys["+Return"] = CR
-
   keys["+Tab"] = NA
-
   keys["+OemPeriod"] = ">"
-
   Keys["+OemComma"] = "<"
-
   Keys["+OemPlus"] = "+"
-
   Keys["+OemMinus"] = "="
-
   Keys["+OemQuotes"] = "~"
-
   Keys["+Oem5"] = "|"
-
   Keys["+Oem3"] ="`"
-
   Keys["+OemOpenBrackets"] = "{"
-
   Keys["+Oem1"] = "*"
-
   Keys["+Oem6"] = "}"
-
   Keys["+OemQuestion"] = "?"
-
   Keys["+OemBackslash"] = "_"
-
 EndSub
-
-

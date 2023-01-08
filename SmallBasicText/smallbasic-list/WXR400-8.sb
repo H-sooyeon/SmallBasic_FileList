@@ -1,1017 +1,508 @@
 '**********************
-
 ' Nyan, the Blasterzoid
-
 ' by GAniman
-
 ' remixed by GoToLoop
-
 '**********************
 
-
-
 ' ===============================================================================
-
 ' Initialization
-
 ' ===============================================================================
-
-
 
 Path= Program.Directory + "/
-
 Path= "http://ximages.net/images/
-
 gw= 600
-
 gh= 400
-
 GraphicsWindow.Width=  gw
-
 GraphicsWindow.Height= gh
-
 GraphicsWindow.Left= (Desktop.Width  - gw)/2
-
 GraphicsWindow.Top=  (Desktop.Height - gh)/2
-
 GraphicsWindow.CanResize= "False
-
 'GraphicsWindow.CanResize= "True
-
 GraphicsWindow.BackgroundColor= "Cyan
-
 GraphicsWindow.PenWidth= 3
-
 GraphicsWindow.Title= "Nyan, the Blasterzoid
 
-
-
 skip=  1              ' Nyan's Motion Steps
-
 skipH= skip*.7        ' Enemy's Horizontal Motion Steps
-
 skipV= skip*.9        ' Enemy's Vertical      Motion Steps
-
 delay= skip* 3
 
-
-
 szBlast=  8           ' Nyan's Weapon Size
-
 szHBlast= szBlast/2
-
 BlastSp=  3           ' Nyan's Weapon Speed
-
 ammoMax=  5           ' Max Shots to Store
-
 potency=  1           ' How Powerful Blaster is
-
 hpMax=    5           ' Max Robustness Enemy Can Spawn
 
-
-
 szBonus=  18          ' Bonus Pill's Size
-
 szHBonus= szBonus/2
-
 TmBonus=  10          ' Max Time (in Seconds) Bonus Pill is Available (Zero for Infinite)
 
-
-
 szFoe=  40            ' Enemy's Size
-
 szHFoe= szFoe/2
-
 szQFoe= szFoe/4
-
 szDFoe= szFoe*2
 
-
-
 CreateShapes()
-
 Reset()
-
 GraphicsWindow.KeyDown= Keyboard
-
 Timer.Interval= 1000   ' = 1 second
-
 Timer.Tick= Elapse
 
-
-
 ' ===============================================================================
-
 ' Main Loop
-
 ' ===============================================================================
-
-
 
 Loop:
 
-
-
 'gw= GraphicsWindow.Width
-
 'gh= GraphicsWindow.Height
 
-
-
 If Running Then
-
   x= x + delX
-
   y= y + delY
-
   MoveEnemy()
-
   MoveBlaster()
-
 EndIf
-
-
 
 If RainBow Then
-
   GraphicsWindow.PenColor= GraphicsWindow.GetRandomColor()
-
   GraphicsWindow.DrawEllipse(x + sizeH,y + sizeQ, 2,2)
-
 EndIf
 
-
-
 CheckBorders()
-
 MoveSprites()
-
 InspectFoodsPlusAmmo()
-
 CreateSuperFood()
-
 GenerateEnemy()
-
 Program.Delay(delay)
-
-
 
 Goto Loop
 
-
-
 ' ===============================================================================
-
 ' Subroutines
-
 ' ===============================================================================
-
-
 
 Sub CreateShapes
-
   
-
   Nyan1=  ImageList.LoadImage(Path + "28930020147868715423.png")
-
   Nyan2=  ImageList.LoadImage(Path + "74412177564379571315.png")
-
   Pill=   ImageList.LoadImage(Path + "03515726579119112960.png")
-
   size=   ImageList.GetWidthOfImage(Nyan1)
-
   szFood= ImageList.GetWidthOfImage(Pill )
-
   
-
   If size   < 8 Then
-
     size=   32
-
   EndIf
-
   If szFood < 4 Then
-
     szFood= 20
-
   EndIf
-
   
-
   sizeH=   size/2
-
   sizeQ=   size/4
-
   szHFood= szFood/2
-
   
-
   Sprite[1]= Shapes.AddImage(Nyan1)         ' Left
-
   Sprite[2]= Shapes.AddImage(Nyan2)         ' Right
-
   Sprite[3]= Shapes.AddImage(Nyan1)         ' Down (same image as left)
-
   Sprite[4]= Shapes.AddImage(Nyan2)         ' Up      (same image as right)
-
   Shapes.Rotate(Sprite[3],270)              ' Pre-rotate it downwards
-
   Shapes.Rotate(Sprite[4],270)              ' Pre-rotate it upwards
-
   
-
   food= Shapes.AddImage(Pill)               ' Rainbow Food Pill
-
   
-
   GraphicsWindow.BrushColor= GraphicsWindow.BackgroundColor
-
   GraphicsWindow.PenColor= "WhiteSmoke
-
   blast= Shapes.AddEllipse(szBlast,szBlast) ' Nyan's Blaster
-
   
-
   GraphicsWindow.PenColor=   "Black
-
   danger= Shapes.AddEllipse(szFoe,szFoe)    ' Enemy
-
   GraphicsWindow.FontSize= Math.Round(szFoe*.75)
-
   GraphicsWindow.BrushColor= "DarkBlue
-
   tough=  Shapes.AddText("0")               ' Its toughness
-
   
-
   GraphicsWindow.FontSize=   15
-
   GraphicsWindow.BrushColor= "LimeGreen
-
   display= Shapes.AddText("0")              ' Score
-
   Shapes.Move(display, gw/2,      25)
-
   destroy= Shapes.AddText("0")              ' Kills
-
   Shapes.Move(destroy, gw/2 +  75,25)
-
   weapon=  Shapes.AddText("0")              ' Shots
-
   Shapes.Move(weapon,  gw/2 + 135,25)
-
   
-
   GraphicsWindow.BrushColor= "Red
-
   time= Shapes.AddText("0s")                ' Time Elapsed
-
   Shapes.Move(time, 20,5)
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub Reset
-
   
-
   score=  0
-
   kills=  0
-
   health= 0
-
   ammo=   0
-
   timing= -1
-
   x= gw/2         ' Nyan's X Position
-
   y= gh/2         ' Nyan's Y Position
-
   delX= skip      ' Nyan's Horizontal Deslocation Movement
-
   delY= 0         ' Nyan's Vertical      Deslocation Movement
-
   Direction= 2    ' Nyan's Movement Direction   (Left=1, Right=2, Down=3, Up=4)
-
   Running= "True
-
   
-
   EraseSuperFood()
-
   
-
   Shapes.SetText(display, score)
-
   Shapes.SetText(destroy, kills)
-
   Shapes.HideShape(danger)
-
   Shapes.HideShape(tough )
-
   Shapes.HideShape(blast )
-
   
-
   Clear()
-
   GenerateFood()
-
   Elapse()
-
   Timer.Resume()
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub Clear
-
   
-
   GraphicsWindow.BrushColor= GraphicsWindow.BackgroundColor
-
   GraphicsWindow.FillRectangle(0,0, gw+size,gh+size)
-
   
-
   GraphicsWindow.FontSize=   15
-
   GraphicsWindow.BrushColor= "DarkGreen
-
   GraphicsWindow.DrawText(gw/2,      5,"points")
-
   GraphicsWindow.DrawText(gw/2 + 75, 5,"kills" )
-
   GraphicsWindow.DrawText(gw/2 + 135,5,"ammo"  )
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub Billboard
-
   
-
   record= Math.Max(record, score)
-
   murder= Math.Max(murder, kills)
-
   
-
   board= "Record:  " +record+ " nutrition      Killing Spree:  " +murder+ " voidzoids
-
   GraphicsWindow.Title= board
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub HideSprites
-
   
-
   For index= 1 To 4
-
     Shapes.HideShape(Sprite[index])
-
   EndFor
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub MoveSprites
-
   
-
   If LastDirection <> Direction Then
-
     HideSprites()
-
     Shapes.ShowShape(Sprite[Direction])
-
     LastDirection= Direction
-
   EndIf
-
   
-
   'Shapes.Move(Sprite[Direction], x,y)
-
   For index= 1 To 4
-
     Shapes.Move(Sprite[index], x,y)
-
   EndFor
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub CheckBorders
-
   
-
   If x < -sizeH Then
-
     x= gw - sizeH
-
     LastDirection= 0
-
   EndIf
-
   If x > gw - sizeH Then
-
     x= -sizeH
-
     LastDirection= 0
-
   EndIf
-
   If y < -sizeH Then
-
     y= gh - sizeH
-
     LastDirection= 0
-
   EndIf
-
   If y > gh + sizeH Then
-
     y= -sizeH
-
     LastDirection= 0
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub GenerateEnemy
-
   
-
   If health <= 0 And score > 0 And Math.Remainder(score, 3) = 0 Then
-
     health= Math.GetRandomNumber(hpMax)
-
     bx= Math.GetRandomNumber(gw)    ' Enemy's X position
-
     by= Math.GetRandomNumber(gh)    ' Enemy's Y position
-
     Shapes.Move(danger, bx,by)
-
     Shapes.Move(tough,  bx,by)
-
     Shapes.SetText(tough, health)
-
     Shapes.ShowShape(danger)
-
     Shapes.ShowShape(tough )
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub MoveEnemy
-
   
-
   If health > 0 Then
-
     ChaseYou()
-
     bx= bx + belX
-
     by= by + belY
-
     LimitEnemy()
-
     Shapes.Move(danger, bx,       by)
-
     Shapes.Move(tough,  bx+szQFoe,by)
-
     LethalCollision()
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub ChaseYou
-
   
-
   If bx < x Then
-
     belX= skipH
-
   Else
-
     belX= -skipH
-
   EndIf
-
   If by < y Then
-
     belY= skipV
-
   Else
-
     belY= -skipV
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub LimitEnemy
-
   
-
   If bx < szHFoe Then
-
     bx=   szHFoe
-
   EndIf
-
   If bx > gw - szFoe Then
-
     bx=   gw - szFoe
-
   EndIf
-
   If by < szQFoe Then
-
     by=   szQFoe
-
   EndIf
-
   If by > gh - szFoe Then
-
     by=   gh - szFoe
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub LethalCollision
-
   
-
   If x+size >= bx And x <= bx+szHFoe And y+sizeH >= by And y <= by+szHFoe Then
-
     Timer.Pause()
-
     Sound.PlayMusic("T180 O2P2P8 L8GGG L2E- P24P8 L8FFF L2D R")
-
     GraphicsWindow.ShowMessage("Game Over","Here lies NyanCat!")
-
     Billboard()
-
     Reset()
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub GenerateBlaster
-
   
-
   If ammo > 0 Then
-
     cx=    x + sizeH     ' BlasterShot has the same coordinates and direction as Nyan's
-
     cy=    y + sizeQ
-
     celX=  delX*BlastSp  ' Deslocation is 'BlastSp' faster than Nyan's
-
     celY=  delY*BlastSp
-
     Shapes.Move(blast, cx,cy)
-
     Shapes.ShowShape(blast)
-
     Sound.PlayClick()
-
     ammo=  ammo - 1
-
     Fired= "True
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub MoveBlaster
-
   
-
   If Fired Then
-
     cx= cx + celX
-
     cy= cy + celY
-
     OuttaRange()
-
     Shapes.Move(blast, cx,cy)
-
     CheckImpact()
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub OuttaRange
-
   
-
   If cx < 0 Or cx > gw Or cy < 0 Or cy > gh Then
-
     ClearBlaster()
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub ClearBlaster
-
   
-
   Shapes.HideShape(blast)
-
   Fired= "False
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub CheckImpact
-
   
-
   If cx+szBlast >= bx And cx <= bx+szHFoe And cy+szHBlast >= by And cy <= by+szHFoe Then
-
     ClearBlaster()
-
     health= health - potency
-
     Shapes.SetText(tough, Math.Round(health))
-
     CheckAnnihilation()
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub CheckAnnihilation
-
   
-
   If health <= 0 Then
-
     kills= kills + 1
-
     Sound.PlayMusic("T160 O1 L30 GF# FE# D# DC# D# DFE# R")
-
     Shapes.SetText(destroy, kills)
-
     Shapes.HideShape(danger)
-
     Shapes.HideShape(tough )
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub GenerateFood
-
   
-
   foodX= Math.GetRandomNumber(gw - szFood)
-
   foodY= Math.GetRandomNumber(gh - szFood)
-
   Shapes.Move(food, foodX,foodY)
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub CreateSuperFood
-
   
-
   If BonusFood <> "True" And score > 0 And Math.Remainder(score, 5) = 0 Then
-
     GraphicsWindow.PenColor=   GraphicsWindow.GetRandomColor()
-
     GraphicsWindow.BrushColor= GraphicsWindow.GetRandomColor()
-
     foodXX= Math.GetRandomNumber(gw -  szBonus)
-
     foodYY= Math.GetRandomNumber(gh -  szBonus)
-
     bonus=  Shapes.AddEllipse(szBonus, szBonus)
-
     Shapes.Move(bonus, foodXX,foodYY)
-
     tmLimit= timing + TmBonus
-
     BonusFood= "True
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub EraseSuperFood
-
   
-
   If BonusFood Then
-
     BonusFood= "False
-
     Shapes.Remove(bonus)
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub InspectFoodsPlusAmmo
-
   
-
   'If Math.Abs(x-foodX) <= szFood And Math.Abs(y-foodY) <= szFood Then
-
   If x+size >= foodX And x <= foodX+szHFood And y+sizeH >= foodY And y <= foodY+szHFood Then
-
     score= score + 1
-
     ammo=  ammo  + 1
-
     Sound.PlayChimesAndWait()
-
     GenerateFood()
-
     Shapes.SetText(display, score)
-
   EndIf
-
   
-
   If BonusFood Then
-
     If x+size >= foodXX And x <= foodXX+szHBonus And y+sizeH >= foodYY And y <= foodYY+szHBonus Then
-
       score= score + 3
-
       ammo=  ammo  + 2
-
       Sound.PlayBellRingAndWait()
-
       EraseSuperFood()
-
       Shapes.SetText(display, score)
-
     EndIf
-
   EndIf
-
   
-
   If TmBonus > 0 And timing > tmLimit Then
-
     EraseSuperFood()
-
   EndIf
-
   
-
   If ammo > ammoMax Then
-
     ammo = ammoMax
-
   EndIf
-
   
-
   Shapes.SetText(weapon,  ammo )
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub Keyboard
-
   
-
   Key= GraphicsWindow.LastKey
-
   
-
   If Key = "Left"  Or Key = "A" Then
-
     Direction= 1
-
     delX= -skip
-
     delY= 0
-
   EndIf
-
   
-
   If Key = "Right" Or Key = "D" Then
-
     Direction= 2
-
     delX= skip
-
     delY= 0
-
   EndIf
-
   
-
   If Key = "Down"  Or Key = "S" Then
-
     Direction= 3
-
     delX= 0
-
     delY= skip
-
   EndIf
-
   
-
   If Key = "Up"    Or Key = "W" Then
-
     Direction= 4
-
     delX= 0
-
     delY= -skip
-
   EndIf
-
   
-
   If Key = "Space" Or Key = "J" Then
-
     GenerateBlaster()
-
   EndIf
-
   
-
   If Key = "Escape" Then
-
     Sound.PlayChimeAndWait()
-
     Program.End()
-
   EndIf
-
   
-
   If Key = "Home" Or Key = "Delete" Then
-
     Clear()
-
   EndIf
-
   
-
   If Key = "Back" Then
-
     If RainBow Then
-
       RainBow= "False
-
     Else
-
       RainBow= "True
-
     EndIf
-
   EndIf
-
   
-
   If Key = "Return" Then
-
     If Running Then
-
       Running= "False
-
       Timer.Pause()
-
     Else
-
       Running= "True
-
       Elapse()
-
       Timer.Resume()
-
     EndIf
-
   EndIf
-
   
-
 EndSub
-
 ' ----------------------------------------------------------------------------------------------------------------------------------------
-
 Sub Elapse
-
   
-
   timing= timing + 1
-
   Shapes.SetText(time, timing+"s")
-
   
-
 EndSub
-
-
 
 ' ===============================================================================
-
-

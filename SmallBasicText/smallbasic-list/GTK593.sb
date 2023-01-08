@@ -1,2741 +1,1370 @@
 '  SpaceWars
-
 '
-
 '  Version info
-
 version = "version 0.1 - 10/29/09 - Abram"
-
 'Though most of this code is unique, I did "borrow" some code from StarGates
-
 'namely the CalibrateDelay, ShowHighScores and GetHighScores subs
 
 
-
-
-
 GraphicsWindow.CanResize  = "false"
-
 windowHeight = Desktop.Height - 100
-
 windowWidth = Desktop.Width - 10
-
 centerX = windowWidth/2
-
 centerY = windowHeight/2
-
 GraphicsWindow.Width = windowWidth
-
 GraphicsWindow.Height = windowHeight
-
 GraphicsWindow.Title = "Abram's Astroids"
-
 GraphicsWindow.Left = (Desktop.Width - windowWidth) / 2
-
 GraphicsWindow.Top  = 10 '((Desktop.Height - windowHeight) / 2) - 20
-
 GraphicsWindow.BackgroundColor = "black"
-
 GraphicsWindow.Show()
 
-
-
 'Setup event handlers
-
 GraphicsWindow.KeyDown = onKeyDown 
-
 GraphicsWindow.KeyUp = onKeyUp 
 
 
-
-
-
 ' Key controls
-
 leftKey  = "Left"
-
 rightKey = "Right"
-
 upKey = "Up"
-
 downKey = "Down"
-
 fireKey = "Space"
-
 pauseKey = "P"
-
 quitKey = "Escape"
-
 hyperspaceKey = "RightCtrl"
-
 changeWeaponKey = "G"
 
-
-
 leftKeyPressed = false
-
 rightKeyPressed = false
-
 upKeyPressed = false
-
 downKeyPressed = false
-
 fireKeyPressed = false 
-
 hyperspaceKeyPressed = false 
-
 changeWeaponKeyPressed = false 
 
-
-
 leftRightPriority = rightKey
-
 upDownPriority = upKey
 
 
-
-
-
 ' Dec2Hex conversion string
-
 hexaDecimal = "0123456789ABCDEF"
-
-
 
 imagePath = Program.Directory + "\images\"
 
-
-
 'Load images
-
 initImages() 
 
-
-
 ' Determine speed of computer
-
 CalibrateDelay()
 
 
-
-
-
 'Some constants used for array indecies
-
 _size = 1
-
 _x = 2
-
 _y = 3
-
 _shape = 4
-
 _isVisible = 5
-
 _angle = 6
-
 _speed = 7
-
 _maxSpeed = 8
-
 _startPos = 9
-
 _width = 10
-
 _height = 11
-
 _hits = 12
-
 _direction = 13
-
 _totalHits = 14
-
 _maxSpritePoints = 15
-
 _completePoints = 16
-
 _shots = 17
-
 _hasWeapons = 18
-
 _shotTicker = 19
-
 'level constants
-
 _maxSprites = 1
-
 _spritesToLevelUp = 2
-
 _pointWorth = 3
-
 _minSpriteSpeed = 4
-
 _maxSpriteSpeed = 5
-
 _shotInterval = 6
-
 _backgroundImages = 7
-
 _objectImages = 8
-
 _enemyImages = 9
-
 _EnemyRatio = 10
-
 _maxHits = 11
-
 _hasBoss = 12
-
 'Some other constants
-
 true = 1
-
 false = 0
-
 play = true
-
 pause = false
-
 alive = true 
-
 gameEnd = false 
 
-
-
 ' Desired frames per second (but will be lower on slower computers)
-
 fpsTarget = 30
 
-
-
 initGame()
-
 initLevels()
-
 LoadSounds()
-
 GetHighScores()
-
 initBackground()
-
 intro() 
-
 drawPanel()
-
 updateScoreBoard()
-
 initBackground()
-
 initSprites()
-
 initExplosion()
-
 initShip() 
-
 initWeapons() 
 
-
-
 ' The game loop
-
 MainLoop() 
 
-
-
 ' Exit game
-
 Program.End()
 
 
-
-
-
 Sub initGame
-
   'Setup Game
-
   play = 1
-
   level = 1  
-
   maxLevels = 10
-
   score = 0
-
   lives = 5
-
   curPoints = 0
-
   pointsForOneUp = 0
-
   
-
   curX = centerX 
-
   curY = windowHeight - shipHeight
 
-
-
   'Setup Sprites
-
   spritesOnScreen = 0
-
   currentSprite = 1
-
   spritesDestroyed = 0
-
   
-
   
-
   
-
 EndSub
-
-
 
 Sub intro 
-
   GraphicsWindow.FontName = "courier"
-
   GraphicsWindow.FontSize = 70
-
   
-
   ' Animate intro color from white to red - hex conversion technique borrowed from Rushworks "Gorillas"
-
   For i = 15 to 1 Step -1 
-
     temp = Text.Append(Text.GetSubText(hexaDecimal, i, 1), "0")
-
     temp2 = Text.Append("#FF", temp)
-
     temp2 = Text.Append(temp2, temp)
 
-
-
     GraphicsWindow.BrushColor = temp2
-
     GraphicsWindow.DrawText(windowWidth / 2 - 70 * 3, windowHeight / 2.4, "SPACE WARS")
-
     Program.Delay(150)
-
   endfor 
-
   ShowHighScores()
-
  
-
 endSub 
 
-
-
 Sub initImages
-
   bg = ImageList.LoadImage(imagePath+"background.jpg") 
-
   menuBg = ImageList.LoadImage(imagePath+"menu-background.jpg") 
-
   gameOverBg = ImageList.LoadImage(imagePath+"gameover.jpg") 
-
   warpbg = ImageList.LoadImage(imagePath+"warp.jpg") 
-
   fireBallImage  = ImageList.LoadImage(imagePath+"fireball.png") 
-
   fireBallSmallImage  = ImageList.LoadImage(imagePath+"fireball-small.png") 
-
   blueFireBallImage  = ImageList.LoadImage(imagePath+"blue-fireball.png") 
-
   blueFireBallSmallImage  = ImageList.LoadImage(imagePath+"blue-fireball-small.png")   
-
   
-
 EndSub 
-
 ' Preload all sounds in game by loading then immediately stopping them.
-
 ' Makes it quick to play later since retained in memory.
-
 Sub LoadSounds
-
   ' All sounds were custom made for this game mainly using 80's style synthesizers
-
   Sound.Play(Program.Directory + "\audio\scores.mp3")
-
   Sound.Stop(Program.Directory + "\audio\scores.mp3")
-
   Sound.Play(Program.Directory + "\audio\score_entered.mp3")
-
   Sound.Stop(Program.Directory + "\audio\score_entered.mp3")
-
   
-
   ' Play and wait for a quiet sound to finish.  When done
-
   ' all sounds are loaded & ready to go
-
   Sound.PlayAndWait(Program.Directory + "\audio\quiet.mp3")
-
 endsub 
 
-
-
 Sub initLevels
-
   
-
   For level_count = 1 To maxLevels
-
     'Grab the images for this level
-
 ' The following line could be harmful and has been automatically commented.
-
 '     levelBGImages = File.GetFiles(Program.Directory + "\images\levels\"+level_count+"\background\")
-
 ' The following line could be harmful and has been automatically commented.
-
 '     levelObjectImages = File.GetFiles(Program.Directory + "\images\levels\"+level_count+"\objects\")
-
 ' The following line could be harmful and has been automatically commented.
-
 '     levelEnemyImages = File.GetFiles(Program.Directory + "\images\levels\"+level_count+"\enemies\") 
-
     
-
     levels[level_count][_maxSprites] = 3+Math.Ceiling((level_count/2))*1.5 ' number of sprites at a time
-
     levels[level_count][_spritesToLevelUp] = 5+Math.Round(.7*level_count) ' number of sprites needed to beat level
-
     levels[level_count][_maxSpriteSpeed] = level_count*3 ' max speed of sprites
-
     levels[level_count][_minSpriteSpeed] = levels[level_count][_maxSpriteSpeed]/2  ' min speed of sprites
-
     levels[level_count][_pointWorth] = level_count*55 ' point value for sprite
-
     levels[level_count][_completePoints] = level_count*1000 'bonus points for completing a level
-
     levels[level_count][_shotInterval] = (maxLevels - (level_count + 2)) * 3
-
     levels[level_count][_enemyImages] = levelEnemyImages
-
     levels[level_count][_objectImages] = levelObjectImages
-
     levels[level_count][_backgroundImages] = levelBGImages
-
     levels[level_count][_EnemyRatio] = .01 * level_count
-
     levels[level_count][_maxHits] = Math.Round(level_count/2)
-
     levels[level_count][_hasBoss] = Math.Remainder(level_count,5)
-
   endFor 
-
   
-
 EndSub
-
-
 
 Sub initSprites
-
   'setup sprites 
-
   For i = 1 to Array.GetItemCount(levels[level][_objectImages])
-
     spriteImage[i] = levels[level][_objectImages][i]
-
   endFor
-
   
-
   'spriteImage[1] = imagePath + "sprite1.gif"
-
   For i = 1 to Array.GetItemCount(levels[level][_enemyImages])
-
     enemyImage[i] = levels[level][_enemyImages][i]
-
   EndFor
-
   
-
 EndSub
-
-
-
-
 
 
 
 Sub initStars
-
   
-
   ' draw stars
-
   starCount = Math.GetRandomNumber(500)
-
   starColors[1] = "white"
-
   starColors[2] = "red"
-
   starColors[3] = "LightCyan"
-
   stars = ""
-
   For i = 1 To starCount
-
     GraphicsWindow.PenColor = starColors[Math.GetRandomNumber(3)]
-
     GraphicsWindow.BrushColor = GraphicsWindow.PenColor
-
     starSize = Math.GetRandomNumber(3)
-
     starX = Math.GetRandomNumber(Desktop.Width)
-
     starY = Math.GetRandomNumber(windowHeight)
-
     'GraphicsWindow.FillEllipse(starX,starY,starSize,starSize) 
-
     stars[Array.GetItemCount(stars)+1] = Shapes.AddEllipse(starSize,starSize)
-
     Shapes.Move(stars[Array.GetItemCount(stars)],starX,starY)
-
   EndFor
-
   
-
 EndSub
-
-
 
 Sub initBackground
-
   bgImage = ImageList.LoadImage(levels[level][_backgroundImages][1])
-
   GraphicsWindow.DrawResizedImage(bgImage,0,0,windowWidth,windowHeight)
-
 EndSub
-
-
-
 
 
 Sub initShip
-
   'Load ship 
-
   EastWest = ""
-
   NorthSouth = ""
-
   curShipName = "ship"
-
   shipImages[1][1] = ImageList.LoadImage(imagePath+"ship.png")
-
   shipImages[1][2] = "ship"
-
   shipImages[2][1] = ImageList.LoadImage(imagePath+"ship-north.png")
-
   shipImages[2][2] = "ship-north"
-
   shipImages[3][1] = ImageList.LoadImage(imagePath+"ship-east.png")
-
   shipImages[3][2] = "ship-east"  
-
   shipImages[4][1] = ImageList.LoadImage(imagePath+"ship-south.png")
-
   shipImages[4][2] = "ship-south"
-
   shipImages[5][1] = ImageList.LoadImage(imagePath+"ship-west.png")
-
   shipImages[5][2] = "ship-west"
-
   shipImages[6][1] = ImageList.LoadImage(imagePath+"ship-north-east.png")
-
   shipImages[6][2] = "ship-north-east"
-
   shipImages[7][1] = ImageList.LoadImage(imagePath+"ship-north-west.png")
-
   shipImages[7][2] = "ship-north-west"  
-
   shipImages[8][1] = ImageList.LoadImage(imagePath+"ship-south-east.png")
-
   shipImages[8][2] = "ship-south-east"
-
   shipImages[9][1] = ImageList.LoadImage(imagePath+"ship-south-west.png")
-
   shipImages[9][2] = "ship-south-west"
-
   
-
   shipWidth = ImageList.GetWidthOfImage(shipImages[1][1])
-
   shipHeight = ImageList.GetHeightOfImage(shipImages[1][1]) 
-
   ship = Shapes.AddImage(shipImages[1][1])
-
   shipLeft = curX
-
   shipRight = curX + shipWidth 
-
   shipTop = curY ' - shipHeight 
-
   shipBottom = curY + shipHeight 
-
   
-
   Shapes.Move(ship,shipLeft,shipTop)
-
   
-
 endSub 
 
-
-
 sub initWeapons
-
   possibleBulletsOnScreen = 5
-
   bulletColor = "red"
-
   bulletSpeed = 10
-
   bulletWidth = 5
-
   bulletHeight = 10
-
   bulletShape = "rectangle"
-
   bulletStrength = 1
-
 endsub 
-
-
 
 ' Create explosion pieces
-
 sub initExplosion
-
   
-
   explodeImage[1] = ImageList.LoadImage(imagePath+"explode-small1.png")
-
   explodeImage[2] = ImageList.LoadImage(imagePath+"explode-small1.png")
-
   explodeImage[3] = ImageList.LoadImage(imagePath+"explode-small1.png")
-
   explodeImage[4] = ImageList.LoadImage(imagePath+"explode-small1.png") 
-
   
-
   explodeImage[5] = ImageList.LoadImage(imagePath+"explode-medium1.png")
-
   explodeImage[6] = ImageList.LoadImage(imagePath+"explode-medium1.png")
-
   explodeImage[7] = ImageList.LoadImage(imagePath+"explode-medium1.png")
-
   explodeImage[8] = ImageList.LoadImage(imagePath+"explode-medium1.png")
-
   
-
   explodeImage[9] = ImageList.LoadImage(imagePath+"explode-large1.png")
-
   explodeImage[10] = ImageList.LoadImage(imagePath+"explode-large1.png")
-
   explodeImage[11] = ImageList.LoadImage(imagePath+"explode-large1.png")
-
   explodeImage[12] = ImageList.LoadImage(imagePath+"explode-large1.png") 
-
   
-
   ' Create small explosion pieces that are permanently available
-
   For explosion_i = 1 to Array.GetItemCount(explodeImage)
-
     temp = Shapes.AddImage(explodeImage[explosion_i])
-
     
-
     ' Move it immediately off screen so it isn't ever seen
-
     Shapes.Move(temp, 0, -100)
-
     
-
     ' Save in array 
-
     explosion[explosion_i] = temp
-
   endfor 
-
   
-
   ' Center of explosion
-
   explosionX = 0
-
   explosionY = 0
-
   explosionSpread = 0
-
   explosionAlpha = 100 
-
   exploding = false 
-
   explosionSize = 0
-
 endsub 
 
-
-
 Sub MainLoop
-
   
-
   While(play = true)
-
     
-
     
-
     If (pause = false) Then 
-
       
-
       If alive = true AND gameEnd = false then  
-
         doKeys()
-
         addSprites()
-
         updateScoreBoard()
-
         
-
         
-
       else
-
         
-
         removeAllSprites()
-
       EndIf 
-
       Explode()
-
       Move()
-
       
-
       
-
       ' Smooth estimate of time elapsed between frames
-
       tNow = Clock.Millisecond
-
       dT = tNow  - tLast
-
       tLast = tNow    
-
       
-
       ' Handle millisecond rollover at 1 second marks
-
       If (dT < 0) Then 
-
         dT = dT + 1000
-
       EndIf 
-
       
-
       k = 0.1 '  1 = no smoothing, values less than 1 smooths.  0.1 default
-
       dTLossy = dTLossy * (1 - k) + dT * k 
-
       
-
       ' Figure out how long we need to wait to achieve desired average frame rate
-
       waitLoops = 1000 / fpsTarget - dTLossy
-
       waitLoops = waitLoops * loopsPerMilliSec
-
       For i = 1 to waitLoops
-
         i=i 
-
       endfor
-
       
-
     EndIf
-
   EndWhile
-
   
-
 EndSub 
-
-
-
 
 
 'One sub to move them all, one sub to bind them, one sub to...
-
 Sub Move
-
   'move ship
-
   If alive = true then 
-
     GraphicsWindow.BackgroundColor = "black"
-
     moveShip()
-
   Else 
-
     alive = alive + 1
-
   endif 
-
   
-
   
-
   'move all active bullets
-
   tmpBullets = Array.GetItemCount(bullets)
-
   For protected_b = 1 To tmpBullets 
-
     Shapes.Move(bullets[protected_b],Shapes.GetLeft(bullets[protected_b]),Shapes.GetTop(bullets[protected_b])-20)  
-
     If Shapes.GetTop(bullets[protected_b]) < -10 Then
-
       shotRemoveIndex = protected_b
-
       RemoveShot()
-
     EndIf
-
     tmpBullets = Array.GetItemCount(bullets)
-
   EndFor 
-
   
-
   
-
   'Move enemy Bullets
-
   For protected_e = 0 To Array.GetItemCount(enemyBullets)
-
     'If array.GetItemCount(enemyBullets[temp_a]) >= 0 Then
-
     'For protected_e = 0 To Array.GetItemCount(enemyBullets[temp_a])
-
     Shapes.Move(enemyBullets[protected_e][1],Shapes.GetLeft(enemyBullets[protected_e][1]),Shapes.GetTop(enemyBullets[protected_e][1])+20)          
-
     If Shapes.GetTop(enemyBullets[protected_e][1]) > windowHeight Then
-
       enemyShotRemoveIndex = protected_e
-
       'enemyShotRemoveSpriteIndex = temp_a
-
       RemoveEnemyShot()
-
     EndIf
-
     'EndFor
-
     'EndIf  
-
   EndFor
-
   
-
   'Move all active sprites
-
   tmpSprites = Array.GetItemCount(sprites)
-
   For protected_a = 1 to Array.GetItemCount(sprites) 
-
     curSprite = protected_a   
-
     
-
     If sprites[protected_a][_direction] = "left" Then 
-
       newLeft = Shapes.GetLeft(sprites[protected_a][_shape]) - sprites[protected_a][_x]
-
     Else
-
       newLeft = Shapes.GetLeft(sprites[protected_a][_shape]) + sprites[protected_a][_x]
-
     EndIf 
-
     newTop = Shapes.GetTop(sprites[protected_a][_shape]) - sprites[protected_a][_y]
-
     
-
     Shapes.Move(sprites[protected_a][_shape],newLeft ,newTop )
-
     
-
     isSpriteVisible()
-
     If sprites[curSprite][_isVisible] = 0 Then 
-
       If sprites[curSprite][_hasWeapons] = true then 
-
         'If this sprite is an enemy, bounce him off the wall
-
         If newTop < windowHeight - sprites[curSprite][_height] then
-
           If sprites[curSprite][_direction] = "right" then 
-
             sprites[curSprite][_x] = -sprites[curSprite][_x]
-
             sprites[curSprite][_direction] = "left"
-
           Else 
-
             sprites[curSprite][_x] = Math.Abs(sprites[curSprite][_x])
-
             sprites[curSprite][_direction] = "right"
-
           EndIf 
-
         Else
-
           spriteRemoveIndex = curSprite 
-
           removeSprite()
-
         EndIf
-
       Else 
-
         spriteRemoveIndex = curSprite 
-
         removeSprite()
-
       EndIf 
-
     ElseIf sprites[protected_a][_hasWeapons] = 1 And shapes.GetTop(sprites[protected_a][_shape]) < curY And Shapes.GetLeft(sprites[protected_a][_shape]) > curX - 100 And Shapes.GetLeft(sprites[protected_a][_shape])+sprites[protected_a][_width] < curX + shipWidth + 100 then
-
       
-
       If sprites[curSprite][_shots] <= 10 And sprites[curSprite][_shotTicker] >= levels[level][_shotInterval] then 
-
         sprites[curSprite][_shotTicker] = 0
-
         enemyShoot()
-
       EndIf
-
       sprites[curSprite][_shotTicker] = sprites[curSprite][_shotTicker] + 1
-
     EndIf  
-
   EndFor
-
   
-
   anyHits()
-
   
-
 EndSub
 
-
-
 Sub moveShip
-
   shipLeft = curX 
-
   shipRight = curX + shipWidth 
-
   shipName = "ship" 
-
   If NorthSouth <> "" then
-
     shipName = shipName+"-"+NorthSouth
-
   endif 
-
   If EastWest <> "" then
-
     shipName = shipName+"-"+EastWest
-
   endif 
-
   
-
   If curShipName <> shipName then
-
     For s = 1 To Array.GetItemCount(shipImages) 
-
       If shipImages[s][2] = shipName Then 
-
         Shapes.Remove(ship)
-
         ship = Shapes.AddImage(shipImages[s][1])
-
         s = 10000
-
       EndIf
-
     EndFor
-
     
-
   endif 
-
   curShipName = shipName 
-
   Shapes.Move(ship,curX,curY)
-
 endSub
 
-
-
 Sub anyHits
-
   For a = 1 To Array.GetItemCount(sprites)
-
     spriteLeft = Shapes.GetLeft(sprites[a][_shape])
-
     spriteTop = Shapes.GetTop(sprites[a][_shape])
-
     spriteSize = sprites[a][_width]
-
     spriteBottom = spriteTop + spriteSize
-
     For b = 1 To Array.GetItemCount(bullets) 
-
       bulletLeft = Shapes.GetLeft(bullets[b])
-
       bulletTop =  Shapes.GetTop(bullets[b])
-
       
-
       
-
       ' Did we shoot the sprite
-
       If bulletTop > 0 Then
-
         
-
         If ((bulletLeft >= spriteLeft) And (bulletLeft <= spriteLeft+spriteSize)) And (bulletTop < spriteBottom And bulletTop > spriteTop)  then
-
           curSprite = a
-
           shotRemoveIndex = b
-
           RemoveShot()
-
           tmpHits =  sprites[a][_hits] 
-
           sprites[a][_hits] = sprites[a][_hits] - bulletStrength 
-
           
-
           If sprites[a][_hits] <= 0 then
-
             explosionX = Shapes.GetLeft(sprites[a][_shape])
-
             explosionY = Shapes.GetTop(sprites[a][_shape])
-
             explosionSpread = sprites[a][_width]/2
-
             exploding = true
-
             curPoints = sprites[a][_maxSpritePoints]*tmpHits 
-
             If sprites[a][_hasWeapons] = true then 
-
               spritesDestroyed = spritesDestroyed + 1
-
             endIf 
-
             spriteRemoveIndex = a
-
             removeSprite()
-
             
-
           Else
-
             'hit but not destroyed
-
             If sprites[a][_hasWeapons] = 0 Then 
-
               sprites[a][_width] = sprites[a][_width] * 0.75
-
               sprites[a][_height] = sprites[a][_height] * 0.75
-
               If sprites[a][_height] <= 10 then
-
                 sprites[a][_height] = 10
-
               EndIf
-
               If sprites[a][_width] <= 10 then
-
                 sprites[a][_width] = 10
-
               EndIf
-
               Shapes.Zoom(sprites[a][_shape],sprites[a][_width]*.01,sprites[a][_height]*.01)  
-
             endIf 
-
             curPoints = sprites[a][_maxSpritePoints] / sprites[a][_totalHits]
-
             spriteLeft = Shapes.GetLeft(sprites[a][_shape])
-
             spriteTop = Shapes.GetTop(sprites[a][_shape])
-
             spriteRight = spriteLeft + sprites[a][_width]
-
             spriteSize = sprites[a][_width]
-
             spriteBottom = spriteTop + spriteSize   
-
             'change direction
-
             If sprites[a][_direction] = "left" then
-
               sprites[a][_direction] ="right"
-
             else
-
               sprites[a][_direction] ="left"
-
             endif              
-
           endIf
-
           
-
           updateScore()
-
           a = Array.GetItemCount(sprites) + 100
-
           ' endif
-
           
-
         endIf
-
       endif
-
       
-
     EndFor
-
     'Did our ship collide with an sprite or enemy?
-
     If alive = true Then         
-
       spriteLeft = Shapes.GetLeft(sprites[a][_shape])
-
       spriteTop = Shapes.GetTop(sprites[a][_shape])
-
       spriteRight = spriteLeft + sprites[a][_width]
-
       spriteSize = sprites[a][_width]
-
       spriteBottom = spriteTop + spriteSize         
-
       If shapes.GetTop(sprites[a][_shape]) + sprites[a][_height] >= curY And spriteTop <= shipBottom Then 
-
         If shipLeft >= spriteLeft AND shipRight <= spriteRight Then 
-
           'we got hit
-
           removeLife()
-
           spriteRemoveIndex = a 
-
           removeSprite()
-
           'force exiting out of the loops
-
           a = 100000
-
           b = 100000
-
         EndIf 
-
       endIf  
-
     EndIf   
-
   EndFor
-
   'Did we get shot?
-
   For e = 1 to Array.GetItemCount(enemyBullets)
-
     
-
     If shapes.GetTop(enemyBullets[e][1]) + 9 >= curY And Shapes.GetTop(enemyBullets[e][1]) <= shipBottom Then         
-
       If shipLeft <= Shapes.GetLeft(enemyBullets[e][1]) AND shipRight >= Shapes.GetLeft(enemyBullets[e][1]) Then 
-
         
-
         'we got hit
-
         removeLife()
-
         enemyShotRemoveIndex = e 
-
         RemoveEnemyShot()
-
         'force exiting out of the loop
-
         e = 100000
-
       EndIf 
-
     endIf  
-
   EndFor       
-
   
-
 EndSub 
-
-
-
-
-
-
 
 
 
 
 
 Sub addSprites
-
   
-
   while spritesOnScreen < levels[level][_maxSprites]
-
     'add as many sprites as neccessary to fulfill the maxSprites for this level
-
     For addingSpriteIndex = levels[level][_maxSprites] - spritesOnScreen To levels[level][_maxSprites]
-
       
-
       protected_sprite = Array.GetItemCount(sprites)+1
-
       sprites[protected_sprite][_size] = Math.GetRandomNumber(2) ' size
-
       sprites[protected_sprite][_startpos] = Math.GetRandomNumber(windowWidth+100) 'X
-
       speedX = Math.GetRandomNumber(levels[level][_maxSpriteSpeed])
-
       speedY = Math.GetRandomNumber(levels[level][_maxSpriteSpeed])
-
       
-
       'Quick random logic to determine if the sprite is an object or a enemy (enemy has weapons, objects don't)
-
       sprites[protected_sprite][_hasWeapons] = Math.Remainder(Math.GetRandomNumber(2),2)
-
       If sprites[protected_sprite][_hasWeapons] = 0 Then 
-
         tmpSpriteImage = ImageList.LoadImage(spriteImage[Math.GetRandomNumber(Array.GetItemCount(spriteImage))]) 'Image
-
       Else 
-
         tmpSpriteImage = ImageList.LoadImage(enemyImage[Math.GetRandomNumber(Array.GetItemCount(enemyImage))]) 'Image
-
         speedX = speedX*1.5
-
         speedY = speedY*1.5
-
       EndIf
-
       
-
       If speedX < levels[level][_minSpriteSpeed] then
-
         speedX = levels[level][_minSpriteSpeed]
-
       endIf 
-
       
-
       If speedY < levels[level][_minSpriteSpeed] then
-
         speedY = levels[level][_minSpriteSpeed]
-
       endIf 
-
       
-
       If speedX = 0 Then
-
         speedX = levels[level][_maxSpriteSpeed]*.5 
-
       endif
-
       
-
       If speedY = 0 then
-
         speedY = levels[level][_maxSpriteSpeed]*.5 
-
       endif      
-
       'Setup the direction and speed for this Sprite
-
       If sprites[protected_sprite][_startpos] > centerX Then
-
         'came from the right, move toward the left        
-
         sprites[protected_sprite][_x] = speedX 
-
         sprites[protected_sprite][_direction] = "left"        
-
       Else
-
         'came from the left, move toward the right
-
         sprites[protected_sprite][_x] = speedX
-
         sprites[protected_sprite][_direction] = "right"
-
       endif
-
       sprites[protected_sprite][_y] = -speedY 
-
       
-
       'Add the sprite image to the sprites array
-
       sprites[protected_sprite][_shape] = Shapes.AddImage(tmpSpriteImage)
-
       If sprites[protected_sprite][_hasWeapons] = 0 Then 
-
         Shapes.Zoom(sprites[protected_sprite][_shape],sprites[protected_sprite][_size],sprites[protected_sprite][_size])
-
       endIf 
-
       'Grab the exact width and height of the sprite
-
       sprites[protected_sprite][_width] = ImageList.GetWidthOfImage(tmpSpriteImage)
-
       sprites[protected_sprite][_height] = ImageList.GetHeightOfImage(tmpSpriteImage)      
-
       sprites[protected_sprite][_speed] = speedX 
-
       sprites[protected_sprite][_isVisible] = 1
-
       sprites[protected_sprite][_shots] = 0 ' Keeps running total of shots fired by this enemy
-
       sprites[protected_sprite][_shotTicker] =  1
-
       'Enemy sprites hits depends on level
-
       If sprites[protected_sprite][_hasWeapons] = true Then
-
         sprites[protected_sprite][_hits] = Math.GetRandomNumber(levels[level][_maxHits]) 'This will decrease each time it is hit, once zero the sprite will explode
-
         'Asteroid sprites have different hits based on zoom size
-
       else
-
         sprites[protected_sprite][_hits] = Math.Ceiling(sprites[protected_sprite][_size] * 1.5) 'This will decrease each time it is hit, once zero the asteroid will explode
-
       endif
-
       
-
       sprites[protected_sprite][_totalHits] = sprites[protected_sprite][_hits] 'This will remember how many hits it took for score calculations
-
       sprites[protected_sprite][_maxSpritePoints] = Math.GetRandomNumber(levels[level][_pointWorth])
-
       'Move the sprite to it's initial position
-
       Shapes.Move(sprites[protected_sprite][_shape], sprites[protected_sprite][_startpos],-200)
-
       'Update the count of Sprites on the screen
-
       spritesOnScreen = Array.GetItemCount(sprites)
-
       curSprite = protected_sprite
-
       
-
       
-
     EndFor  
-
     
-
     
-
   endWhile
-
   
-
   
-
 EndSub
-
-
 
 Sub isSpriteVisible 
-
   
-
   If sprites[curSprite][_direction] = "left" AND (Shapes.GetLeft(sprites[curSprite][_shape]) <= -sprites[curSprite][_width]) Then
-
     sprites[curSprite][_isVisible] = false
-
   ElseIf sprites[curSprite][_direction] = "right" AND (Shapes.GetLeft(sprites[curSprite][_shape]) > windowWidth+sprites[curSprite][_width]) then
-
     sprites[curSprite][_isVisible] = true
-
   EndIf
-
   
-
   If Shapes.GetTop(sprites[curSprite][_shape]) > windowHeight then
-
     sprites[curSprite][_isVisible] = false
-
     
-
   endif 
-
   If sprites[curSprite][_isVisible] = false Then 
-
     ' GraphicsWindow.ShowMessage("sprite " + curSprite + "moving: " + sprites[curSprite][_direction] +" is not visible. X:" + Shapes.GetLeft(sprites[curSprite][_shape]) + " Y:" + Shapes.GetTop(sprites[curSprite][_shape]) + " VS window width:" + windowWidth + " height:" + windowHeight ,"test")
-
   endif 
-
 EndSub
-
-
-
 
 
 Sub removeAllSprites
-
   
-
   For spriteRemoveIndex = 1 to Array.GetItemCount(sprites)
-
     spritesOnScreen = 0
-
     removeSprite()
-
   EndFor 
-
 endSub 
-
-
 
 Sub removeSprite
-
   
-
   
-
   ' Remove graphic 
-
   Shapes.Remove(sprites[spriteRemoveIndex][_shape])
-
   
-
   ' Pack down the arrays to have a continuous index (don't leave holes)
-
   For remove_i = spriteRemoveIndex To (Array.GetItemCount(sprites) - 1)
-
     sprites[remove_i] = sprites[remove_i +1]
-
   EndFor
-
   
-
   ' Remove item at end of list, it's either the one requested or a duplicate from packing above
-
   sprites[Array.GetItemCount(sprites)] = ""
-
   
-
   spritesOnScreen = Array.GetItemCount(sprites) 'spritesOnScreen - 1
-
   
-
   
-
 EndSub
-
-
 
 Sub updateScore
-
   score = Math.Floor(score + curPoints)
-
   If spritesDestroyed >= levels[level][_spritesToLevelUp] Then 
-
     levelUp() 
-
     GraphicsWindow.BackgroundColor = "black"
-
   endIf 
-
   'Add a new life everytime the player earns 10000 points
-
   pointsForOneUp = pointsForOneUp + curPoints  
-
   If pointsForOneUp >= 10000 then
-
     oneUp() 
-
     pointsForOneUp = 0
-
   EndIf
-
   updateScoreBoard()
-
 EndSub
-
-
 
 Sub oneUp
-
   lives = lives + 1 
-
   GraphicsWindow.ShowMessage("One Up!!!","One up!")
-
   
-
 EndSub 
-
-
 
 Sub drawPanel 
-
   'GraphicsWindow.DrawResizedImage(bg,1,1,windowWidth,windowHeight)
-
   'GraphicsWindow.BrushColor = "DimGray"
-
   'Panel = Shapes.AddRectangle(440,100)
-
  ' Shapes.Move(Panel,1,1)
-
   'Shapes.SetOpacity(Panel,50) 
-
   GraphicsWindow.DrawResizedImage(menuBg, 1,1,440,100)
-
   GraphicsWindow.DrawRectangle(1,1,440,100)
-
 EndSub 
-
-
 
 Sub updateScoreBoard
-
   GraphicsWindow.PenColor = "white"
-
   GraphicsWindow.FontName = "COMIC SANS MS"
-
   GraphicsWindow.FontSize = 25
-
   
-
   'GraphicsWindow.DrawResizedImage(bg,1,1,440,100)
-
   'Shapes.Remove(Panel) 
-
   drawPanel() 
-
   
-
   GraphicsWindow.BrushColor = "white"
-
   GraphicsWindow.DrawText(5,1,"Score: " + score)
-
   GraphicsWindow.DrawText(200,1,"Level: " + level)
-
   GraphicsWindow.DrawText(5,30,"Lives: " + lives)
-
   GraphicsWindow.DrawText(160,30,"Destroyed: " + spritesDestroyed)
-
   'GraphicsWindow.DrawText(5,50,"shipLeft: " + shipLeft + " shipRight: " + shipRight)
-
   'GraphicsWindow.DrawText(5,60,"bullets: " + bulletCount)
-
 EndSub
-
-
 
 Sub removeLife
-
   GraphicsWindow.BackgroundColor = "DimGray"
-
   explosionX = curX 
-
   explosionY = curY 
-
   explosionSize = 4
-
   exploding = true 
-
   Shapes.Move(ship,centerX, windowHeight + 100)
-
   Explode()
-
   Program.Delay(1000)
-
   lives = lives - 1
-
   alive = -40
-
   
-
   removeAllShots()
-
   removeAllEnemyShots()
-
   
-
-
 
   curX = centerX 
-
   curY = windowHeight - shipHeight
-
   GraphicsWindow.Clear() 
-
   initShip()
-
   initBackGround()
-
   initWeapons()
-
   initExplosion()
-
   initSprites()
-
   'If we've spent all of our lives, end the game
-
   If lives < 0 Then
-
     gameOver()
-
   EndIf 
-
   
-
 EndSub
-
-
 
 Sub levelUp
-
   GraphicsWindow.Clear() 
-
   'Clear astroids off of screen
-
   removeAllSprites()
-
  
-
   'Clear all shots off the screen
-
   removeAllShots()
-
   bullets = "" 
-
   bulletCount = 0
-
   GraphicsWindow.FontSize = 30
-
   GraphicsWindow.DrawResizedImage(menuBg,centerX-250,centerY-100,500,200)
-
   GraphicsWindow.DrawRectangle(centerX-250,centerY-100,500,200)
-
   GraphicsWindow.BrushColor = "white"     
-
   GraphicsWindow.PenColor = "white"
-
   GraphicsWindow.DrawText(centerX-150,centerY-100,"LEVEL " + level + " COMPLETE!") 
-
   GraphicsWindow.FontSize = 20
-
   GraphicsWindow.DrawText(centerX-150,centerY-50,"Score: " + score)
-
   GraphicsWindow.DrawText(centerX-150,centerY,"Enemies Destroyed: " + spritesDestroyed)  
-
   'Reset destroyed astroid count
-
   spritesDestroyed = 0 
-
   Program.Delay(1000) 
-
   score = score + levels[level][_completePoints]
-
   level = level + 1
-
   
-
   'warp speed to next level
-
   warp() 
-
   'Program.Delay(1000)
-
   GraphicsWindow.Clear()
-
   initBackground()
-
   initExplosion()
-
   initShip() 
-
   initWeapons()
-
   initSprites()
-
   If level >= maxLevels then
-
     GraphicsWindow.Clear()
-
     GraphicsWindow.BackgroundColor = "MidnightBlue"
-
     youWin()
-
   endif 
-
 EndSub 
-
 Sub warp 
-
   'GraphicsWindow.BackgroundColor = "DimGray"
-
   GraphicsWindow.DrawResizedImage(warpbg,1,1,windowWidth,windowHeight)
-
   
-
   For s = 1 To Array.GetItemCount(stars) 
-
     Shapes.Rotate(warpbg,s * 5)
-
     'GraphicsWindow.FillEllipse(starX,starY,starSize,starSize) 
-
     Shapes.Zoom(stars[s],5,5)
-
     'newY = Shapes.GetTop(stars[s]) + 250
-
     Shapes.Move(stars[s],centerX, centerY)
-
     newY = Math.GetRandomNumber(windowHeight*2)
-
     newX = Math.GetRandomNumber(windowWidth*2) 
-
     GraphicsWindow.PenColor = "white"   
-
     Shapes.Animate(stars[s],newX ,newY ,500)
-
     Shapes.Zoom(stars[s],0,0)
-
     If s = 100 then 
-
       s = Array.GetItemCount(stars)+1 
-
     EndIf 
-
   EndFor
-
   Program.Delay(1000)
-
 endSub 
-
 Sub gameOver
-
   play = true 
-
   pause = false 
-
   alive = false 
-
   gameEnd = true 
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.FontBold = 1
-
   GraphicsWindow.BrushColor = "DimGray"
-
   GraphicsWindow.FontSize = 120
-
   GraphicsWindow.DrawResizedImage(gameOverBg,0,0,windowWidth,windowHeight)
-
   GraphicsWindow.DrawText(centerX-350,1,"GAME OVER")
-
   
-
   'Restart game
-
   RestartGame()
-
   
-
   
-
 EndSub
-
-
-
 
 
 Sub youWin
-
   removeAllSprites()
-
   play = true
-
   pause = true
-
   gameEnd = true 
-
   alive = false 
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.FontBold = 1
-
   GraphicsWindow.FontSize = 120
-
   GraphicsWindow.BrushColor = "white"     
-
   GraphicsWindow.DrawText(centerX-350,10,"YOU WIN!")   
-
   
-
   'Restart game
-
   RestartGame()
-
   
-
 EndSub
-
-
-
 
 
 Sub doKeys 
-
   EastWest = ""
-
   NorthSouth = ""
-
   If rightKeyPressed = true And leftKeyPressed = true then
-
     ' Figure out which direction based on last pressed or released
-
     If leftRightPriority = rightKey Then 
-
       curX = curX + 20
-
       EastWest = "east"
-
     Else 
-
       curX = curX - 20
-
       EastWest = "west"
-
     EndIf 
-
   Else
-
     If rightKeyPressed = true Then
-
       curX = curX + 20
-
       EastWest = "east"
-
     ElseIf leftKeyPressed = true Then
-
       curX = curX - 20
-
       EastWest = "west"
-
     EndIf 
-
   endif 
-
   
-
   If curX + shipWidth > windowWidth then
-
     curX = windowWidth - shipWidth
-
   endif
-
   
-
   If curX <= 0 then
-
     curX = 0 'shipWidth
-
   endif
-
   
-
   If upKeyPressed = true then
-
     curY = curY - 20
-
     NorthSouth = "north"
-
   EndIf
-
   
-
   If downKeyPressed = true then
-
     curY = curY + 20
-
     NorthSouth = "south"
-
   EndIf
-
   
-
   If curY > windowHeight - shipHeight then 
-
     curY = windowHeight - shipHeight
-
   ElseIf curY < 0 then
-
     curY = 0
-
   endif
-
   shipTop = curY - shipHeight 
-
   shipBottom = curY
-
   
-
 EndSub 
 
-
-
 Sub changeWeapon 
-
   'removeAllShots()
-
   If bulletColor = "red" then 
-
     possibleBulletsOnScreen = 10
-
     bulletColor = "purple"
-
     bulletSpeed = 20
-
     bulletWidth = 60
-
     bulletHeight = 40
-
     bulletShape = "circle"
-
     bulletStrength = 5
-
     bulletCount = 0
-
   Else
-
     possibleBulletsOnScreen = 5
-
     bulletColor = "red"
-
     bulletSpeed = 10
-
     bulletWidth = 5
-
     bulletHeight = 10
-
     bulletShape = "rectangle"
-
     bulletStrength = 1
-
   endif 
-
 endSub 
-
-
 
 Sub shoot
-
   
-
   'GraphicsWindow.PenColor = bulletColor
-
   bulletCount = Array.GetItemCount(bullets)+1
-
   
-
   If bulletCount <= possibleBulletsOnScreen And alive = true And gameEnd = false then 
-
     If bulletShape = "circle" then
-
       'bullets[bulletCount] = Shapes.AddEllipse(bulletWidth,bulletHeight)
-
       
-
       bullets[bulletCount] = Shapes.AddImage(fireBallImage)
-
       bulletWidth = ImageList.GetWidthOfImage(fireBallImage)
-
       
-
     else 
-
       'bullets[bulletCount] = Shapes.AddRectangle(bulletWidth,bulletHeight)
-
       bullets[bulletCount] = Shapes.AddImage(blueFireBallSmallImage)
-
       bulletWidth = ImageList.GetWidthOfImage(blueFireBallSmallImage)
-
     endif 
-
     Shapes.Move(bullets[bulletCount],curX ,curY-(shipHeight+(bulletHeight/2)))
-
   endIf
-
 endSub
 
-
-
 Sub enemyShoot 
-
   GraphicsWindow.PenColor = "orange"
-
   enemyBullets[Array.GetItemCount(enemyBullets)+1][1] = Shapes.AddRectangle(5,9)
-
   enemyBullets[Array.GetItemCount(enemyBullets)][2] = curSprite ' used for tracking
-
   sprites[curSprite][_shots] = sprites[curSprite][_shots] + 1
-
   Shapes.Move(enemyBullets[Array.GetItemCount(enemyBullets)][1],Shapes.GetLeft(sprites[curSprite][_shape])+(sprites[curSprite][_width]/2),Shapes.GetTop(sprites[curSprite][_shape])+sprites[curSprite][_height])
-
 endSub 
-
-
 
 Sub removeAllShots
-
   tmpBulletCount = Array.GetItemCount(bullets)
-
   For shotRemoveIndex = 1 to tmpBulletCount
-
     
-
     RemoveShot()
-
     
-
   EndFor 
-
   
-
   bullets = ""
-
   
-
 endSub 
 
-
-
 Sub RemoveShot
-
   ' Remove graphic shot
-
   Shapes.Remove(bullets[shotRemoveIndex])
-
   
-
   ' Pack down the arrays to have a continuous index (don't leave holes)
-
   For i = shotRemoveIndex To (Array.GetItemCount(bullets) - 1)
-
     bullets[i] = bullets[i+1]
-
   EndFor
-
   
-
   ' Remove item at end of list, it's either the one requested or a duplicate from packing above
-
   bullets[Array.GetItemCount(bullets)] = ""
-
   
-
 EndSub
-
-
-
 
 
 Sub removeAllEnemyShots
-
   tmpBulletCount = Array.GetItemCount(enemyBullets)
-
   For enemyShotRemoveIndex = 1 to tmpBulletCount
-
     
-
     RemoveEnemyShot()
-
     
-
   EndFor 
-
   
-
   enemyBullets = ""
-
   
-
 endSub 
-
 sub RemoveEnemyShot
-
   ' Remove graphic shot
-
   Shapes.Remove(enemyBullets[enemyShotRemoveIndex][1])
-
   sprites[enemyBullets[enemyShotRemoveIndex][2]][_shots] = sprites[enemyBullets[enemyShotRemoveIndex][2]][_shots] - 1
-
   ' Pack down the arrays to have a continuous index (don't leave holes)
-
   For i = enemyShotRemoveIndex To (Array.GetItemCount(enemyBullets) - 1)
-
     enemyBullets[i] = enemyBullets[i+1]
-
   EndFor
-
   
-
   ' Remove item at end of list, it's either the one requested or a duplicate from packing above
-
   enemyBullets[Array.GetItemCount(enemyBullets)] = ""
-
   
-
 EndSub
-
-
 
 Sub CalibrateDelay
-
   ' Figure out dummy wait loops per millisecond
-
   ' Used instead of Program.Delay()'s coarse resolution of 16 ms
-
   tLast = Clock.Millisecond
-
   For ci = 1 to 20000
-
     ci = ci 
-
   endfor
-
   tNow = Clock.Millisecond
-
   dT = tNow - tLast
-
   If (dT < 0) Then 
-
     dT = dT + 1000
-
   EndIf 
-
   loopsPerMilliSec = 20000 / dT 
-
 endsub 
 
-
-
 ' Read key event
-
 ' Note that key priority is remembered in case both up/down pressed 
-
 ' we will do what the last key press indicates.
-
 ' Also note that this is an event handler, so key presses can
-
 ' interrupt code running elsewhere at any time, must be careful not to 
-
 ' change variables etc that could affect code undesireably.
-
 Sub OnKeyDown
-
   
-
   If(GraphicsWindow.LastKey = rightKey) Then
-
     rightKeyPressed = true 
-
     
-
     ' If both left & right pressed, this has higher priority since pressed last
-
     leftRightPriority = rightKey 
-
   endif 
-
   
-
   If(GraphicsWindow.LastKey = leftKey) Then
-
     leftKeyPressed = true
-
     leftRightPriority = leftKey
-
   EndIf 
-
   
-
   If(GraphicsWindow.LastKey = upKey) Then
-
     upKeyPressed = true
-
     upDownPriority = upKey
-
   EndIf 
-
   
-
   If(GraphicsWindow.LastKey = downKey) Then
-
     downKeyPressed = true 
-
     upDownPriority = downKey
-
   EndIf 
-
   
-
   If(GraphicsWindow.LastKey = fireKey) Then
-
     fireKeyPressed = true 
-
   endif
-
   
-
   If(GraphicsWindow.LastKey = pauseKey) Then
-
     if (pause = true) then
-
       pause = false
-
     else
-
       pause = true
-
     endif 
-
   elseif(GraphicsWindow.LastKey = quitKey) Then 
-
     play = false 
-
   EndIf
-
   
-
   If GraphicsWindow.LastKey = hyperspaceKey Then
-
     hyperspaceKeyPressed = true
-
   Endif 
-
   
-
   If GraphicsWindow.LastKey = changeWeaponKey Then    
-
     changeWeaponKeyPressed = true
-
   Endif 
-
   
-
   ' Save letters for high score input
-
   highScoreLetter = GraphicsWindow.LastKey
-
   
-
   ' Show keypress text if we want to know what they all are
-
   'dText = GraphicsWindow.LastKey
-
   'Debug()
-
   
-
 EndSub
 
-
-
 ' Run on key release, see note above
-
 Sub OnKeyUp
-
   
-
   if GraphicsWindow.LastKey = rightKey Then
-
     rightKeyPressed = false
-
   EndIf 
-
   
-
   if GraphicsWindow.LastKey = leftKey Then
-
     leftKeyPressed = false
-
   EndIf 
-
   
-
   if GraphicsWindow.LastKey = upKey Then
-
     upKeyPressed = false
-
   EndIf 
-
   
-
   if GraphicsWindow.LastKey = downKey Then
-
     downKeyPressed = false
-
   EndIf 
-
   
-
   If(GraphicsWindow.LastKey = fireKey) Then
-
     ' Only allow one shot per key press
-
     shoot()
-
     fireKeyPressed = false  
-
   endif 
-
   
-
   If GraphicsWindow.LastKey = hyperspaceKey Then
-
     hyperspaceKeyPressed = false 
-
   Endif 
-
   
-
   If GraphicsWindow.LastKey = changeWeaponKey Then
-
     changeWeapon()
-
     changeWeaponKeyPressed = false 
-
   Endif 
-
   
-
 EndSub 
-
-
-
 
 
 Sub Explode
-
   
-
   ' Animate exploding stuff (only 1 thing can explode at a time)
-
   If exploding = true then
-
     ' Move along with ground
-
     explosionX = explosionX
-
     explosionSpread = explosionSpread + 4
-
     explosionAlpha = explosionAlpha-10
-
     offset = explosionSize 
-
     If explosionSpread > 40 then
-
       exploding = false
-
       explosionSpread = 0
-
       
-
       ' Move parts off screen
-
       Shapes.Move(explosion[offset+1], 0, -50)
-
       Shapes.Move(explosion[offset+2], 0, -50)
-
       Shapes.Move(explosion[offset+3], 0, -50)
-
       Shapes.Move(explosion[offset+4], 0, -50)
-
       explosionAlpha = 110
-
     else 
-
       
-
       ' Move all pieces of explosion in four directions
-
       Shapes.Move(explosion[offset+1], explosionX + explosionSpread, explosionY + explosionSpread)      
-
       Shapes.Move(explosion[offset+2], explosionX + explosionSpread, explosionY - explosionSpread)
-
       Shapes.Move(explosion[offset+3], explosionX - explosionSpread, explosionY + explosionSpread)
-
       Shapes.Move(explosion[offset+4], explosionX - explosionSpread, explosionY - explosionSpread)
-
       
-
     endif  
-
     'fade explosion
-
     For i = 1 To 4
-
       Shapes.SetOpacity(explosion[offset+i],explosionAlpha)
-
     EndFor 
-
   endif
-
   
-
 EndSub 
 
 
-
-
-
 ' Pull in scores from file
-
 Sub GetHighScores
-
   
-
   ' Read in 5 scores, name then below it is score
-
   For z = 1 to 5
-
 ' The following line could be harmful and has been automatically commented.
-
 '     highScoreName[z] = File.ReadLine (Program.Directory + "\scores.txt", z * 2 - 1)
-
 ' The following line could be harmful and has been automatically commented.
-
 '     highScoreValue[z] = File.ReadLine (Program.Directory + "\scores.txt", z * 2)
-
   Endfor 
 
-
-
 EndSub
-
-
 
 ' Get players score if higher than scoreboard, show scoreboard.
-
 ' Show high scores with nice graphic effect - it's their only reward
-
 Sub ShowHighScores
 
-
-
   ' Look through all scores and see if player beat one, starting with highest score
-
   For i = 1 To Array.GetItemCount(highScoreName)
-
     If score > highScoreValue[i] Then 
-
       ' We beat a score, play tune
-
       Sound.Stop(Program.Directory + "\audio\scores.mp3")
-
       Sound.Play(Program.Directory + "\audio\scores.mp3")
 
-
-
       ' Shift all scores down 1 slot
-
       For j = Array.GetItemCount(highScoreName)-1 to i Step -1
-
         highScoreName[j+1] = highScoreName[j]
-
         highScoreValue[j+1] = highScoreValue[j]
-
       EndFor 
-
       
-
       ' Get players name
-
       GraphicsWindow.BrushColor = "DimGray"
-
       GraphicsWindow.FontName = "courier"
-
       GraphicsWindow.FontSize = 40
-
       GraphicsWindow.DrawText(centerX-150, 140, "YOU MADE THE TOP 5!")
-
       GraphicsWindow.FontSize = 30
-
       GraphicsWindow.DrawText(centerX-150, 180, "ENTER INITIALS: ")
-
       
-
       k = 0 ' no letters entered yet
-
       temp2 = ""
-
       While k < 3 
-
         ' Only allow typical characters (may need tweak for other languages)
-
         ' Get copy of entered key in uppercase, changes in event handler
-
         temp = Text.ConvertToUpperCase(highScoreLetter)
 
-
-
         If Text.GetLength(temp) = 1 And Text.GetCharacterCode(temp) >= 64 And Text.GetCharacterCode(temp) <= 95 Then
-
           ' Show letter entered
-
           GraphicsWindow.BrushColor = "DimGray"
-
           GraphicsWindow.FontName = "courier"
-
           GraphicsWindow.FontSize = 30
-
           GraphicsWindow.DrawText(centerX-100 * (1.5 - k), 200, temp)
-
           
-
           ' Build name string
-
           temp2 = Text.Append(temp2, temp)
-
           
-
           k = k + 1
-
           
-
           Program.Delay(200)
-
           highScoreLetter = ""
 
-
-
         EndIf 
-
         
-
       EndWhile 
-
       
-
       Sound.Stop(Program.Directory + "\audio\score_entered.mp3")    
-
       Sound.Play(Program.Directory + "\audio\score_entered.mp3")
-
   
-
       Program.Delay(2000)
-
       
-
       ' Save name/score to array
-
       highScoreName[i] = temp2
-
       highScoreValue[i] = score
-
       
-
       ' Save score to file.  Write 5 scores, name then below it is the score
-
       For z = 1 to Array.GetItemCount(highScoreName)
-
 ' The following line could be harmful and has been automatically commented.
-
 '         File.WriteLine(Program.Directory + "\scores.txt", z * 2 - 1, highScoreName[z])
-
 ' The following line could be harmful and has been automatically commented.
-
 '         File.WriteLine(Program.Directory + "\scores.txt", z * 2, highScoreValue[z])
-
       Endfor 
-
       
-
       ' exit for 
-
       i = 100
-
     EndIf 
-
   endfor 
-
   
-
   ' Clear drawn graphics
-
   GraphicsWindow.PenColor = "black"
-
   GraphicsWindow.BrushColor = "black"
-
   
-
   ' Display list of scores
-
   GraphicsWindow.FontName = "courier"
-
   GraphicsWindow.FontSize = 30
-
   GraphicsWindow.BrushColor = "DimGray"
-
   GraphicsWindow.DrawText(centerX-100, centerY+50 , "HIGH SCORES")
-
   
-
   GraphicsWindow.BrushColor = "FireBrick"
-
  
-
   ' If no list of high scores, probably had file error reading them in, or file I/O remarked out
-
   If Array.GetItemCount(highScoreName) = 0 Then
-
     GraphicsWindow.FontSize = 10
-
 ' The following line could be harmful and has been automatically commented.
-
 '     GraphicsWindow.DrawText(windowWidth / 2 - 10 * 25, windowHeight / 4, "Error Reading High Scores, Ensure 'File.' Uncommented In Source Code!")
-
   Else
-
     highScoreLetter = ""
-
     
-
     ' Create sinewave of color intensity to give score reflection look,
-
     ' and wait for player to press key to start another game
-
     GraphicsWindow.DrawText(centerX-200, windowHeight-50, "PRESS ANY KEY TO START")
-
     i = 6.28  ' 2 * pi
-
     While highScoreLetter = ""
-
       i = i - 0.15
-
       If i < 0 Then
-
         i = 6.28
-
       EndIf 
 
-
-
       For j = 1 to Array.GetItemCount(highScoreName)
-
         ' Each name in score has slightly different phase offset to give rolling reflection look
-
         k = Math.Floor(7.5 + 7.4 * Math.Sin(Math.Remainder(i + j * 0.6, 6.28)))
-
         temp = Text.Append(Text.GetSubText(hexaDecimal, k, 1), "0")
-
         temp2 = Text.Append("#FF", temp)
-
         temp2 = Text.Append(temp2, temp)
-
     
-
         GraphicsWindow.BrushColor = temp2
-
         
-
         temp = Text.Append(highScoreName[j] + "  -  ", highScoreValue[j])
-
   
-
         GraphicsWindow.DrawText(centerX-100, centerY + 50 + j * 35, temp)
-
       Endfor 
-
       Program.Delay(33)
-
       
-
     EndWhile 
-
   Endif
-
   
-
  
-
 EndSub
 
-
-
 ' Restart entire game over
-
 Sub RestartGame
 
-
-
  
-
   ' Get name if high score, show scoreboard
-
   ShowHighScores()  
-
   
-
   Program.Delay(1000)
-
         
-
 Endsub 
-
-

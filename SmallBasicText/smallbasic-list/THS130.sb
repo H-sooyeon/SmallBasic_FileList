@@ -1,351 +1,175 @@
 'Key Stroke Recorder ver 0.1 by Ezra94 & Yan Grenier
-
 GraphicsWindow.Title = "Key Stroke Recorder 0.1"
-
 GraphicsWindow.CanResize = "False"
-
 graphWinWidth = 600
-
 graphWinHeight = 400 
-
 GraphicsWindow.Width = graphWinWidth
-
 GraphicsWindow.Height = graphWinHeight
-
 GraphicsWindow.Left = (Desktop.Width - graphWinWidth)*0.50 
-
 GraphicsWindow.Top = (Desktop.Height - graphWinHeight)*0.25 
-
 Controls.ButtonClicked = onButtonClicked
-
 Controls.TextTyped = onTextTypedInTextBox
-
 pre = Program.Directory
-
 ext = ".txt"
 
-
-
 mainMenuTextBoxWidth = graphWinWidth
-
 mainMenuTextBoxHeight = graphWinHeight*0.71
-
 mainMenuTextBoxX = (graphWinWidth - mainMenuTextBoxWidth)*0.50
-
 mainMenuTextBoxY = (graphWinHeight - mainMenuTextBoxHeight)*0.50
 
-
-
 mainMenuButtonsWidth = graphWinWidth*0.15
-
 mainMenuButtonsHeight = graphWinHeight*0.08
-
 mainMenuButtonsX = (graphWinWidth - mainMenuButtonsWidth)
-
 mainMenuButtonsY = (graphWinHeight - mainMenuButtonsHeight)*0.07
 
-
-
 subMenuFileTextBoxWidth = graphWinWidth*0.30
-
 subMenuFileTextBoxHeight = graphWinHeight*0.06 
-
 subMenuFileTextBoxX = (graphWinWidth - subMenuFileTextBoxWidth)*0.56 
-
 subMenuFileTextBoxY = (graphWinHeight - subMenuFileTextBoxHeight)*0.08 
 
-
-
 buttonName = "0=Record;1=Play;2=Save;3=Open;4=Back;5=Stop" 
-
 textDisplayOfPlayState = "recording=Recording Text;playing=Play Recording;saving=Saving File;opening=Opening File;done=Done Playing"
-
 setMess = "Status: " 
-
-
 
 createMainMenu()
 
-
-
 While "True" 
-
   selectButtonInMainMenu()
-
   recordContent()
-
   playRecording()
-
   recordData()
-
   returnToMainMenu() 'Placement: Always have means return to main menu 
-
   Program.Delay(50) 'Sleep 
-
 EndWhile 
 
-
-
 Sub createMainMenu
-
   GraphicsWindow.Clear()
-
   
-
   currentState = "none" 
-
   nextRecord = 0
-
   
-
   mainMenuTextBox = Controls.AddMultiLineTextBox(mainMenuTextBoxX,mainMenuTextBoxY)
-
   Controls.SetSize(mainMenuTextBox,mainMenuTextBoxWidth,mainMenuTextBoxHeight)
-
   
-
   For i = 3 To 0 Step -1 
-
     button[i] = Controls.AddButton(buttonName[i],mainMenuButtonsX-(mainMenuButtonsWidth*i),mainMenuButtonsY)
-
     Controls.SetSize(button[i],mainMenuButtonsWidth,mainMenuButtonsHeight)
-
   EndFor
-
   
-
   mess = Shapes.AddText(setMess)
-
   Shapes.SetText(mess,setMess + textDisplayOfPlayState[currentState]) 
-
 EndSub
-
-
 
 Sub selectButtonInMainMenu
-
   While currentState = "none"
-
     If (lastClicked = "Record") Then 
-
       record = "" 'Delete Temporary Data
-
       currentState = "recording" 
-
       removeMainMenuButtons()
-
     ElseIf (lastClicked = "Play") Then 
-
       currentState = "playing" 
-
       removeMainMenuButtons()
-
     ElseIf (lastClicked = "Save") Then 
-
       buttonIndex = 2
-
       currentState = "saving" 
-
       removeMainMenuButtons()
-
     ElseIf (lastClicked = "Open") Then
-
       buttonIndex = 3
-
       currentState = "opening" 
-
       removeMainMenuButtons()
-
     EndIf
-
     lastClicked = "" 'Prevent button clicked from repeating 
-
     Program.Delay(50) 'Sleep
-
   EndWhile 
-
 EndSub 
-
-
 
 Sub removeMainMenuButtons
-
   For i = 3 To 0 Step -1
-
     Controls.Remove(button[i])
-
   EndFor
-
   
-
   If(currentState = "saving" Or currentState = "opening") Then 
-
     subMenuFileTextBox = Controls.AddTextBox(subMenuFileTextBoxX,subMenuFileTextBoxY)
-
     Controls.SetSize(subMenuFileTextBox,subMenuFileTextBoxWidth,subMenuFileTextBoxHeight)
-
     
-
     button[buttonIndex] = Controls.AddButton(buttonName[buttonIndex],mainMenuButtonsX*0.825,mainMenuButtonsY) 
-
     Controls.SetSize(button[buttonIndex],mainMenuButtonsWidth,mainMenuButtonsHeight) 
-
     
-
     buttonIndex = 4 
-
   Else
-
     buttonIndex = 5 
-
   EndIf 
-
   
-
   button[buttonIndex] = Controls.AddButton(buttonName[buttonIndex],mainMenuButtonsX,mainMenuButtonsY)
-
   Controls.SetSize(button[buttonIndex],mainMenuButtonsWidth,mainMenuButtonsHeight)
-
   Shapes.SetText(mess,setMess + textDisplayOfPlayState[currentState])
-
 EndSub 
-
-
 
 Sub recordContent 
-
   inputTextInTextBox = "False" 'Prevents statement on line 112 from becoming true w/out user input
-
   startRecording = Clock.ElapsedMilliSeconds 'For accuracy, must be placed immediately before recording begins 
-
   While currentState = "recording" 
-
     If (inputTextInTextBox = "True") Then 
-
       record[nextRecord]["time"] = Clock.ElapsedMilliseconds - startRecording
-
       record[nextRecord]["text"] = Controls.GetTextBoxText(mainMenuTextBox)
-
       nextRecord = nextRecord + 1
-
       inputTextInTextBox = "False" 'Prevent code block from repeating
-
     EndIf 
-
     returnToMainMenu()
-
     lastClicked = "" 'returnToMainMenu() sub in main loop becomes false & prevent minor flicker
-
     Program.Delay(20) 'Sleep
-
   EndWhile 
-
 EndSub 
-
-
 
 Sub playRecording 
-
   recordCount = Array.GetItemCount(record) 'length of recording
-
   startReplay = Clock.ElapsedMilliseconds 'For accuracy, must be placed immediately before recording starts
-
   While nextRecord < recordCount And currentstate = "playing" 'playing prevent infinite loop 
-
     elapsed = Clock.ElapsedMilliseconds - startReplay 
-
     While record[nextRecord]["time"] <= elapsed And currentState = "playing" 'playing prevent infinite loop
-
       Controls.SetTextBoxText(mainMenuTextBox,record[nextRecord]["text"])
-
       nextRecord = nextRecord + 1
-
       If (nextRecord >= recordCount) Then 
-
         currentState = "done" 
-
         Shapes.SetText(mess,setMess + textDisplayOfPlayState[currentState])
-
       EndIf 
-
       returnToMainMenu() 'Can exit loop prematurely
-
     EndWhile
-
     returnToMainMenu() 'Can exit loop prematurely
-
     Program.Delay(50) 'Sleep & recreate key stroke interval w/ a difference of 50 milSec or less
-
   EndWhile
-
 EndSub 
-
-
 
 Sub recordData
-
   While currentState = "saving" Or currentState = "opening"
-
     If (lastClicked = "Save" Or lastClicked = "Open") Then 
-
       retrieveRecordFileName = Controls.GetTextBoxText(subMenuFileTextBox)
-
       recordFileName = Text.Append("\",retrieveRecordFileName)
-
       If (lastClicked = "Save") Then
-
 ' The following line could be harmful and has been automatically commented.
-
 '         File.WriteContents(pre+recordFileName+ext,record) 'Saved same location as small basic programs
-
       ElseIf (lastClicked = "Open") Then 
-
 ' The following line could be harmful and has been automatically commented.
-
 '         record = File.ReadContents(pre+recordFileName+ext) 
-
       EndIf 
-
       lastClicked = "Back"
-
     EndIf 
-
     returnToMainMenu() 
-
     lastClicked = "" 'returnToMainMenu() sub in main loop becomes false & prevent minor flicker 
-
     Program.Delay(50) 'Sleep
-
   EndWhile 
-
 EndSub 
-
-
 
 Sub returnToMainMenu
-
   If (lastClicked = "Back" Or lastClicked = "Stop") Then 
-
     createMainMenu()
-
   EndIf 
-
 EndSub 
-
-
 
 Sub onButtonClicked 
-
   lastClicked = Controls.GetButtonCaption(Controls.LastClickedButton)
-
 EndSub
 
-
-
 Sub onTextTypedInTextBox
-
   inputTextInTextBox = "True" 
-
 EndSub 
-
-

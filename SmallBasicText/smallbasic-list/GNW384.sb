@@ -1,599 +1,299 @@
 'Minesweeper
-
 'By Simon Archer
-
 'osimonbinladen@gmail.com
 
-
-
 'Colors:
-
 BackColor = "White"
-
 TextColor = "CornflowerBlue"
-
 UnclickedSquare = "Blue"
-
 SquareText = "White"
-
 ClickedSquare = "LightBlue"
-
 FlaggedSquare = "Silver"
-
 BombSquare = "Red"
-
 BombText = "White"
 
-
-
 'Game Variables
-
 rows = 16
-
 cols = 30
-
 mines = 99
 
-
-
 'If you want to enable cheats: (For Debug Purposes)
-
 GraphicsWindow.KeyUp = Cheat
 
-
-
 InGame = "false"
-
 InitScreen()
 
-
-
 Sub InitScreen
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.BackgroundColor = BackColor
-
   GraphicsWindow.Title = "Minesweeper"
-
   GraphicsWindow.CanResize = False
-
   GraphicsWindow.Height = 22 + (rows * 15)
-
   GraphicsWindow.Width = 10 + (cols * 15)
-
   GraphicsWindow.BrushColor = TextColor
-
   GraphicsWindow.DrawText(10, 5, "Time:")
-
   GraphicsWindow.BrushColor = UnclickedSquare
-
   For r = 1 To rows
-
     For c = 1 To cols
-
       GraphicsWindow.FillRectangle(((c - 1)*15 + 5), ((r - 1)*15 + 22), 12, 12)
-
     EndFor
-
   EndFor
-
   GraphicsWindow.MouseDown = Click
-
 EndSub
-
-
 
 Sub StartGame
-
   squares = rows * cols  
-
   If mines + 10 > squares Then
-
     mines = mines - 10
-
   EndIf
-
   minesleft = mines
-
   clicked = 0
-
   cheated = ""
-
   time = 0
-
   Timer.Interval = 1000
-
   Timer.Tick = UpdateTime
-
   For i = 1 To mines
-
     spot = Math.GetRandomNumber(squares)
-
     While Array.GetValue("spots", spot) = 1 Or spot = ((ny * cols) + nx)
-
       spot = Math.GetRandomNumber(squares)
-
     EndWhile
-
     Array.SetValue("spots", spot, 1)
-
   EndFor
-
   For i = 1 To squares
-
     Array.SetValue("map", i, "")
-
   EndFor
-
   InGame = "true"
-
   UpdateTime()
-
   UpdateMines()
-
 EndSub
-
-
 
 Sub UpdateTime
-
   time = time + 1
-
   If time < 1000 Then
-
     GraphicsWindow.BrushColor = BackColor
-
     GraphicsWindow.FillRectangle(50, 5, 30, 12)
-
     GraphicsWindow.BrushColor = TextColor
-
     GraphicsWindow.DrawText(50, 5, time)
-
   EndIf
-
 EndSub
-
-
 
 Sub UpdateMines
-
   GraphicsWindow.BrushColor = BackColor
-
   GraphicsWindow.FillRectangle(GraphicsWindow.Width - 60, 5, 60, 15)
-
   GraphicsWindow.BrushColor = TextColor
-
   GraphicsWindow.DrawText(GraphicsWindow.Width - 60, 5, minesleft + "/" + mines)
-
 EndSub
-
-
 
 Sub Click
-
   x = GraphicsWindow.MouseX
-
   y = GraphicsWindow.MouseY
-
   If x > 5 And x < GraphicsWindow.Width - 9 And y > 22 And y < GraphicsWindow.Height - 5 Then  
-
     mod = x' - 5
-
     While mod > 15
-
       mod = mod - 15
-
     EndWhile
-
     x = ((x - mod) / 15) + 1
-
     mod = y' - 22
-
     While mod > 15
-
       mod = mod - 15
-
     EndWhile
-
     y = ((y - mod) / 15) - 1
-
     
-
     If InGame = "false" Then
-
       nx = x
-
       ny = y
-
       InitScreen()
-
       StartGame()
-
     EndIf
-
     
-
     If Mouse.IsRightButtondown And minesleft > 0 And InGame = "true" Then
-
       If Array.GetValue("map", ((y * cols) + x)) = "" Then
-
         Array.SetValue("map", ((y * cols) + x), "X")
-
         minesleft = minesleft - 1
-
       ElseIf Array.GetValue("map", ((y * cols) + x)) = "X" Then
-
         Array.SetValue("map", ((y * cols) + x), "?")
-
         minesleft = minesleft + 1
-
       ElseIf Array.GetValue("map", ((y * cols) + x)) = "?" Then
-
         Array.SetValue("map", ((y * cols) + x), "")
-
       EndIf 
-
       Value = Array.GetValue("map", ((y * cols) + x))
-
       If Value = "X" Or Value = "?" Then
-
         GraphicsWindow.BrushColor = FlaggedSquare
-
       ElseIf Value = "" Then
-
         GraphicsWindow.BrushColor = UnclickedSquare
-
       Else
-
         GraphicsWindow.BrushColor = ClickSquare
-
       EndIf
-
       GraphicsWindow.FillRectangle(((x - 1) * 15 + 5), (y * 15 + 22), 12, 12)
-
       GraphicsWindow.BrushColor = SquareText
-
       GraphicsWindow.DrawText(((x - 1) * 15 + 7), (y * 15 + 21), Array.GetValue("map", ((y * cols) + x)))
-
     ElseIf Mouse.IsLeftButtonDown And InGame = "true" Then
-
       If Array.GetValue("spots", ((y * cols) + x)) = 1 And Array.GetValue("map", ((y * cols) + x)) = "" Then
-
         EndGame()
-
         GraphicsWindow.ShowMessage("Game Over~!", "Minesweeper"+cheated)
-
       ElseIf Array.GetValue("map", ((y * cols) + x)) = "" Then
-
         mx = x
-
         my = y
-
         CountMines()
-
         Array.SetValue("map", (y * cols) + x, NoOfMines)       
-
         GraphicsWindow.BrushColor = ClickedSquare
-
         GraphicsWindow.FillRectangle(((x - 1) * 15 + 5), (y * 15 + 22), 12, 12)
-
         GraphicsWindow.BrushColor = SquareText
-
         If NoOfMines = 0 Then
-
           'Set a stack with the current no-mine neighbour and call NoMines() to clear all adjacent no-mine neighbours 
-
           Stack.PushValue("sx",mx)
-
           Stack.PushValue("sy",my)
-
           NoMines()
-
         Else
-
           GraphicsWindow.DrawText(((x - 1) * 15 + 7), (y * 15 + 21), NoOfMines)
-
         EndIf
-
         clicked = clicked + 1
-
       EndIf
-
     EndIf
-
   EndIf
-
   UpdateMines()
-
   CheckWin()
-
 EndSub
-
-
 
 Sub EndGame
-
   ShowMines()
-
   Timer.Pause()
-
   InGame = "false"
-
   ClearMines()
-
 EndSub
-
   
-
 Sub ShowMines
-
   For i = 1 To squares
-
     If Array.ContainsIndex("spots", i) Then
-
       mod = i
-
       While mod > cols
-
         mod = mod - cols
-
       EndWhile
-
       x = mod
-
       y = ((i - mod) / cols)
-
       GraphicsWindow.BrushColor = BombSquare
-
       GraphicsWindow.FillRectangle(((x - 1) * 15 + 5), (y * 15 + 22), 12, 12)
-
       GraphicsWindow.BrushColor = BombText
-
       GraphicsWindow.DrawText(((x - 1) * 15 + 7), (y * 15 + 21), "*")
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub ClearMines
-
   For i = 1 To squares
-
     If Array.ContainsIndex("spots", i) Then
-
       Array.RemoveValue("spots", i)
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub CountMines
-
   tmpy = mx
-
   tmpx = my
-
   NoOfMines = 0
-
   If Array.GetValue("spots", ((my - 1) * cols) + (mx - 1)) = 1 And mx > 1 Then
-
     NoOfMines = NoOfMines + 1
-
   EndIf
-
   If Array.GetValue("spots", ((my - 1) * cols) + (mx)) = 1 Then
-
     NoOfMines = NoOfMines + 1
-
   EndIf
-
   If Array.GetValue("spots", ((my - 1) * cols) + (mx + 1)) = 1 And mx < cols Then
-
     NoOfMines = NoOfMines + 1
-
   EndIf
-
   If Array.GetValue("spots", ((my) * cols) + (mx - 1)) = 1 And mx > 1 Then
-
     NoOfMines = NoOfMines + 1
-
   EndIf
-
   If Array.GetValue("spots", ((my) * cols) + (mx + 1)) = 1 And mx < cols Then
-
     NoOfMines = NoOfMines + 1
-
   EndIf
-
   If Array.GetValue("spots", ((my + 1) * cols) + (mx - 1)) = 1 And mx > 1 Then
-
     NoOfMines = NoOfMines + 1
-
   EndIf
-
   If Array.GetValue("spots", ((my + 1) * cols) + (mx)) = 1 Then
-
     NoOfMines = NoOfMines + 1
-
   EndIf
-
   If Array.GetValue("spots", ((my + 1) * cols) + (mx + 1)) = 1 And mx < cols Then
-
     NoOfMines = NoOfMines + 1
-
   EndIf
-
 EndSub
-
-
 
 Sub CheckWin
-
   win = "true"
-
   i = 0
-
   While win = "true" And i <> squares
-
     i = i + 1
-
     check = Array.GetValue("map", i)
-
     If check = "" Then
-
       win = "false"
-
     EndIf
-
   EndWhile
-
   If clicked = squares - mines Then
-
     win = "true"
-
   EndIf
-
   If win = "true" Then
-
     EndGame()
-
     GraphicsWindow.ShowMessage("You managed to win in "+time+" seconds~!", "Minesweeper"+cheated)
-
   EndIf
-
 EndSub 
 
-
-
 Sub Cheat
-
   cheated = " [CHEATED]"
-
   'Cheats for "debug purposes"
-
   If GraphicsWindow.LastKey = "LeftShift" Or GraphicsWindow.LastKey = "RightShift" Then
-
     If code = "WINZ" Then
-
       EndGame()
-
       GraphicsWindow.ShowMessage("You managed to win in "+time+" seconds~!", "Minesweeper"+cheated)
-
     ElseIf code = "LOOZE" Then
-
       EndGame()
-
       GraphicsWindow.ShowMessage("Game over~!", "Minesweeper"+cheated)
-
     ElseIf code = "PEEKABOO" Then
-
       ShowMines()
-
     EndIf
-
     code = ""
-
   Else
-
     code = code + GraphicsWindow.LastKey
-
   EndIf
-
 EndSub
-
-
 
 'Clear all adjacent neighbours for a click with no neighbour mines
-
 Sub NoMines
-
   ' Loop while there are no-neighbour-bomb cells in the stack
-
   While (Stack.GetCount("sx") > 0 And Stack.GetCount("sy") > 0)
-
     'Get the most recent cell with no mine neighbours from the stack - this removes it from the stack so we may have to put it back if adjacent cells have no mine neighbours
-
     cellx = Stack.PopValue("sx")
-
     celly = Stack.PopValue("sy")
-
     ' Set a flag to completed for the current cell
-
     ' If we find neighbours with no mines, then we will add these to the stack to check first, later returning to the current cell as the stack unwinds
-
     complete = 1
-
     'Check all neighbours of cell (cellx,celly) - only cells within the grid, hence the min-max limits
-
     'A bit confusing that x runs from 1 to cols and y runs from 0 to rows-1 : a bit of effort to trace this!
-
     'Use mx,my from here since this is the variable used by CountMines()
-
     For mx = Math.Max(1,cellx-1) To Math.Min(cols,cellx+1)
-
       For my = Math.Max(0,celly-1) To Math.Min(rows-1,celly+1)
-
         'If we have not checked the current cell (mx,my) then check it and set the cell (cellx,celly) as unfinished - there may be other no-bomb neighbours
-
         If (Array.GetValue("map", (my * cols) + mx) = "") Then
-
           complete = 0
-
           'Get the number of mine neigbours
-
           'If is is zero then add to stack to be checked later, otherwise show neighbour-mine count
-
           CountMines()
-
           Array.SetValue("map", (my * cols) + mx, NoOfMines)       
-
           GraphicsWindow.BrushColor = ClickedSquare
-
           GraphicsWindow.FillRectangle(((mx - 1) * 15 + 5), (my * 15 + 22), 12, 12)
-
           If (NoOfMines = 0) Then
-
             Stack.PushValue("sx",mx)
-
             Stack.PushValue("sy",my)
-
           Else
-
             GraphicsWindow.BrushColor = SquareText
-
             GraphicsWindow.DrawText(((mx - 1) * 15 + 7), (my * 15 + 21), NoOfMines)
-
           EndIf
-
         EndIf
-
       EndFor
-
     EndFor
-
     'If the current cell (cellx,celly) has not been completely checked (some no-mine neighbours) then return it to the stack to be checked again
-
     If (complete = 0) Then
-
       Stack.PushValue("sx",cellx)
-
       Stack.PushValue("sy",celly)
-
     EndIf
-
   EndWhile
-
 EndSub
-
-
-
 

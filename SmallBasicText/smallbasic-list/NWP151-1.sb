@@ -1,541 +1,270 @@
 ' Platform Game Sample
-
 ' Copyright © 2015 Nonki Takahashi.  The MIT License.
-
 ' Subroutine CollisionCheck is written by litdev.
-
 ' Program ID NWP151-1
-
 '
-
 GraphicsWindow.Title = "Platform Game Sample"
-
 randomtest = "True"
-
 WQ = Text.GetCharacter(34)
-
 Not = "False=True;True=False;"
-
 textures = "1=dirt;2=stone;3=green;4=wood;5=water;6=coal;7=ore;8=sand;9=sandstone;"
-
 rowMax = 16
-
 colMax = 27
-
 scenMax = 5
-
 scale = 0.5
-
 size = 60
-
 unit = scale * size
-
 If randomtest Then
-
   e = 0.5
-
 Else
-
   e = 0.2
-
 EndIf
-
 gw = colMax * unit
-
 gh = rowMax * unit
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.BackgroundColor = "LightBlue"
-
 offset["x"] = 0
-
 offset["y"] = 0
-
 i = 0
-
 ShowScene()
-
 fps = 20      ' [frame/s]
-
 dt = 1 / fps  ' [s]
-
 g = 300       ' acceleratioon of gravity [pixel/s^2]
-
 AddCharacter()
-
 keyDown = "False"
-
 jumping = "True"
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 While "True"
-
   t1 = Clock.ElapsedMilliseconds
-
   Jump()
-
   Gravity()
-
   ObstacleCheck()
-
   CollisionCheck()
-
   MoveObjects()
-
   t2 = Clock.ElapsedMilliseconds
-
   Program.Delay(Math.Max(1000 * dt - (t2 - t1), 0))
-
 EndWhile
-
 Sub Jump
-
   If keyDown Then
-
     key = GraphicsWindow.LastKey
-
     If Not[jumping] And ((key = "Up") Or (key = "NumPad8")) Then
-
       Ball_vY[1] = Ball_vY[1] - 200
-
       running = "True"
-
       jumping = "True"
-
     EndIf
-
     If Not[running] And ((key = "Left") Or (key = "NumPad4")) Then
-
       Ball_vY[1] = Ball_vY[1] - 100
-
       Ball_vX[1] = Ball_vX[1] - 50
-
       running = "True"
-
     ElseIf Not[running] And ((key = "Right") Or (key = "NumPad6")) Then
-
       Ball_vY[1] = Ball_vY[1] - 100
-
       Ball_vX[1] = Ball_vX[1] + 50
-
       running = "True"
-
     EndIf
-
     keyDown = "False"
-
   EndIf
-
 EndSub
-
 Sub OnKeyDown
-
   keyDown = "True"
-
 EndSub
-
 Sub ShowScene
-
   ' param i - scene index (0..4)
-
   ' param offset["x"], offset["y"] - offset in GW [pixel]
-
   ' param unit - zooming scale * size of cell [pixel]
-
   pathS = Program.Directory + "/Scenery/scen" + i + ".bb"
-
   pathT = Program.Directory + "/Textures/"
-
   line = 0
-
   For row = 0 To rowMax - 1
-
     y = offset["y"] + row * unit
-
     obs = ""
-
     colLastObs = -2
-
     For col = 0 To colMax - 1
-
       x = offset["x"] + col * unit
-
       line = line + 1
-
 ' The following line could be harmful and has been automatically commented.
-
 '       j = File.ReadLine(pathS, line)
-
       cell[row][col] = j
-
       isObstacle = "False"
-
       If 0 < j Then
-
         GraphicsWindow.DrawResizedImage(pathT + textures[j] + ".png", x, y, unit, unit)
-
         If (textures[j] <> "green") And (textures[j] <> "water") Then
-
           isObstacle = "True"
-
           If obs = "" Then
-
             obs["x"] = x
-
             obs["y"] = y
-
             obs["height"] = unit
-
           EndIf
-
           obs["width"] = obs["width"] + unit
-
           colLastObs = col
-
         EndIf
-
       EndIf
-
       If ((col = colMax - 1) Or Not[isObstacle]) And (obs <> "") Then
-
         Obstacle_Number = Obstacle_Number + 1
-
         obstacle[Obstacle_Number] = obs
-
         obs = ""
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub AddCharacter
-
   If randomtest Then
-
     Ball_Number = 20
-
     GraphicsWindow.FontSize = size
-
   Else
-
     Ball_Number = 1
-
   EndIf
-
   Ball_Diameter = unit
-
   r = Ball_Diameter / 2
-
   offset = size / 2
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "DimGray"
-
   For i = 1 To Ball_Number
-
     If randomtest Then
-
       GraphicsWindow.BrushColor = GraphicsWindow.GetRandomColor()
-
       Ball_Obj[i] = Shapes.AddText(i)
-
       Ball_X[i] = Math.GetRandomNumber(gw - Ball_Diameter) + r
-
       Ball_Y[i] = Math.GetRandomNumber(Ball_Diameter * 2) + r
-
     Else
-
       Ball_Obj[i] = Shapes.AddImage(pathT + "player_l.png")
-
       Ball_X[i] = unit * 3.5
-
       Ball_Y[i] = unit * 3.5
-
     EndIf
-
     Shapes.Move(Ball_Obj[i], Ball_X[i] - offset, Ball_Y[i] - offset)
-
     Shapes.Zoom(Ball_Obj[i], scale, scale)
-
   EndFor
-
 EndSub
-
 Sub MoveObjects
-
   For i = 1 To Ball_Number
-
     Shapes.Move(Ball_Obj[i], Ball_X[i] - offset, Ball_Y[i] - offset)
-
   EndFor
-
 EndSub
-
 Sub Gravity
-
   For i = 1 To Ball_Number
-
     ' ax = 0
-
     ay = g
-
     vy = Ball_vY[i]
-
     Ball_vY[i] = vy + dt * ay
-
     Ball_X[i] = Ball_X[i] + Ball_vX[i] * dt
-
     Ball_Y[i] = Ball_Y[i] + (vy + Ball_vY[i]) * dt / 2
-
   EndFor
-
 EndSub
-
 Sub DumpObstacle
-
   For i = 1 To Obstacle_Number
-
     TextWindow.WriteLine("obstacle[" + i + "]=" + WQ + obstacle[i] + WQ)
-
   EndFor
-
   TextWindow.Pause()
-
 EndSub
-
 Sub ObstacleCheck
-
   For i = 1 To Ball_Number
-
     x = Ball_X[i]
-
     y = Ball_Y[i]
-
     For j = 1 To Obstacle_Number
-
       obs = obstacle[j]
-
       x1 = obs["x"]
-
       x2 = obs["x"] + obs["width"]
-
       y1 = obs["y"]
-
       y2 = obs["y"] + obs["height"]
-
       If ((x1 - r) < x) And (x < (x2 + r)) And ((y1 - r) < y) And (y < (y2 + r)) Then
-
         found = "False"
-
         ' find a point (px, py) of the collision
-
         If Not[found] And (0 < Ball_vX[i]) Then
-
           ' find the point in left edge of the wall
-
           dx = x - (x1 - r)
-
           dy = dx / Math.Abs(Ball_vX[i]) * Ball_vY[i]
-
           py = y - dy
-
           If ((y1 - r) < py) And (py < (y2 + r)) Then
-
             px = x1
-
             x = x - ((x + r) - x1) * (1 + e * e)
-
             Ball_X[i] = x
-
             Ball_vX[i] = -Ball_vX[i] * e  ' e: coefficent of restitution
-
             Ball_vY[i] = 0
-
             found = "True"
-
           EndIf
-
         EndIf
-
         If Not[found] And (Ball_vX[i] < 0) Then
-
           ' find the point in right edge of the wall
-
           dx = (x2 + r) - x
-
           dy = dx / Math.Abs(Ball_vX[i]) * Ball_vY[i]
-
           py = y - dy
-
           If ((y1 - r) < py) And (py < (y2 + r)) Then
-
             px = x2
-
             x = x + (x2 - (x - r)) * (1 + e * e)
-
             Ball_X[i] = x
-
             Ball_vX[i] = -Ball_vX[i] * e  ' e: coefficent of restitution
-
             Ball_vY[i] = 0
-
             found = "True"
-
           EndIf
-
         EndIf
-
         If Not[found] And (0 < Ball_vY[i]) Then
-
           ' find the point in top edge of the wall
-
           dy = y - (y1 - r)
-
           dx = dy / Math.Abs(Ball_vY[i]) * Ball_vX[i]
-
           px = x - dx
-
           If ((x1 - r) < px) And (px < (x2 + r)) Then
-
             py = y1
-
             y = y - ((y + r) - y1) * (1 + e * e)
-
             Ball_Y[i] = y
-
             Ball_vY[i] = -Ball_vY[i] * e  ' e: coefficent of restitution
-
             Ball_vX[i] = 0
-
             jumping = "False"
-
             running = "False"
-
             found = "True"
-
           EndIf
-
         EndIf
-
         If Not[found] And (Ball_vY[i] < 0) Then
-
           ' find the point in bottom edge of the wall
-
           dy = (y2 + r) - y
-
           dx = dy / Math.Abs(Ball_vY[i]) * Ball_vX[i]
-
           px = x - dx
-
           If ((x1 - r) < px) And (px < (x2 + r)) Then
-
             py = y2
-
             y = y + (y2 - (y - r)) * (1 + e * e)
-
             Ball_Y[i] = y
-
             Ball_vY[i] = -Ball_vY[i] * e  ' e: coefficent of restitution
-
             Ball_vX[i] = 0
-
             found = "True"
-
           EndIf
-
         EndIf
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
 Sub CollisionCheck
-
   ' This subroutine is published by litdev in a TechNet Wiki article Small Basic: Dynamic Graphics.
-
   ' http://social.technet.microsoft.com/wiki/contents/articles/20865.small-basic-dynamic-graphics.aspx
-
   For i = 1 To Ball_Number - 1
-
     For j = i + 1 To Ball_Number
-
       dx = Ball_X[i] - Ball_X[j]
-
       dy = Ball_Y[i] - Ball_Y[j]
-
       Distance = Math.SquareRoot(dx * dx  + dy * dy)
-
       If Distance < Ball_Diameter Then
-
         Cx = (Ball_vX[i] + ball_vX[j]) / 2
-
         Cy = (Ball_vY[i] + ball_vY[j]) / 2
-
         Relative_vX[i] = Ball_vX[i] - Cx
-
         Relative_vY[i] = Ball_vY[i] - Cy
-
         Relative_vX[j] = Ball_vX[j] - Cx
-
         Relative_vY[j] = Ball_vY[j] - Cy
-
         Nx = dx / Distance
-
         Ny = dy / Distance
-
         L[i] = Nx * Relative_vX[i] + Ny * Relative_vY[i]
-
         L[j] = Nx * Relative_vX[j] + Ny * Relative_vY[j]
-
         
-
         Relative_vX[i] = Relative_vX[i] - (2 * L[i] * Nx)
-
         Relative_vY[i] = Relative_vY[i] - (2 * L[i] * Ny)
-
         Relative_vX[j] = Relative_vX[j] - (2 * L[j] * Nx)
-
         Relative_vY[j] = Relative_vY[j] - (2 * L[j] * Ny)
-
         
-
         Ball_vX[i] = (Relative_vX[i] + Cx)
-
         Ball_vY[i] = (Relative_vY[i] + Cy)
-
         Ball_vX[j] = (Relative_vX[j] + Cx)
-
         Ball_vY[j] = (Relative_vY[j] + Cy)  
-
         
-
         Ball_X[i] = Ball_X[i] + Nx * (Ball_Diameter - Distance)
-
         Ball_Y[i] = Ball_Y[i] + Ny * (Ball_Diameter - Distance)
-
         Ball_X[j] = Ball_X[j] - Nx * (Ball_Diameter - Distance)
-
         Ball_Y[j] = Ball_Y[j] - Ny * (Ball_Diameter - Distance)
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-

@@ -1,3175 +1,1587 @@
 '3D_Math_Plot by cvmarus program in the works
-
 LDGraphicsWindow.State = 2
-
 var()
-
 GraphicsWindow.BackgroundColor=sc
-
 'VIEW PORT
-
 view3d = LD3DView.AddView(gw,gh,"False")  ''display view
-
 LD3DView.AddAmbientLight(view3d,"#555555")
-
 LD3DView.AddDirectionalLight(view3d,"#FFFFFF",-1,-1,-1)
-
 'LDEvents.MouseDoubleClick = onmousedoubleclick
-
 LDControls.TreeViewItemChanged = ontreeviewchange
-
 LDEvents.MouseWheel = onmousewheel
-
 GraphicsWindow.MouseMove = onmousemove
-
 'GraphicsWindow.KeyDown = onkey
-
 GraphicsWindow.KeyUp = upkey
-
 GraphicsWindow.MouseDown = onmousedown
-
 'LDControls.RadioButtonClicked = onradioclick
-
 'LD3DView.RotationCompleted = onanimaterotatecomplete
-
 Controls.ButtonClicked = onbuttonclick
-
 LD3DView.CameraProperties(view3d,.125,-1,camviewang)
-
 'LD3DView.MoveCamera(view3d,0,0,0,-100)
-
 setpresets()
-
 buildcontrols()
-
 setupcolorpicker()
-
 hidecolorpicker()
-
 setrgbspheres()
-
 setarrows()
-
 buildfuncimages()
-
 buildgrid()
-
 'setgridmapimage()
-
 rectgeom()
-
 LDCall.Function("setview","1,-1,1")
-
 scalegrid()
-
 'setgridmap()
-
 'resetcam()
-
 LDShapes.Centre(fimg,gwc,gh*.9)
-
 Shapes.ShowShape(fimg)
-
 Controls.HideControl(waitbar)
-
 hidepanel()
-
 showpanel()
-
 While "True"
-
   If but1=gobut Then
-
     but="
-
     but1 = ""
-
     Shapes.HideShape(fimg1)
-
     Shapes.HideShape(fimg)
-
     Shapes.HideShape(fimg2)
-
     rectgeom()
-
     LDShapes.Centre(fimg,gwc,gh*.9)
-
     Shapes.ShowShape(fimg)
-
     fimg1 = ""
-
   EndIf
-
   If LDUtilities.KeyDown("W") Then
-
     LD3DView.MoveCamera(view3d,0,0,0,.002)
-
   EndIf
-
   If LDUtilities.KeyDown("S") Then
-
     LD3DView.MoveCamera(view3d,0,0,0,-.002)
-
   EndIf
-
   If LDUtilities.KeyDown("P") Then
-
     pos = LD3DView.BoundingBox(view3d,face)
-
     For i = 1 To 3
-
       pos1[i] = pos[i+3]
-
       pos2[i] = pos[i+3]+pos[i]
-
     EndFor
-
     facepos = LD3DView.GetPosition(view3d,face)
-
     crds = "Current Position"+crlf
-
     crds = crds + LDMath.FixDecimal(facepos[1],3)+" , "+LDMath.FixDecimal(facepos[2],3)+" , "+LDMath.FixDecimal(facepos[3],3)+crlf
-
     crds = crds + "Bounding Box"+crlf
-
     crds = crds +LDMath.FixDecimal(pos2[1],3)+" , "+LDMath.FixDecimal(pos2[2],3)+" , "+LDMath.FixDecimal(pos2[3],3)+crlf
-
     crds = crds + LDMath.FixDecimal(pos1[1],3)+" , "+LDMath.FixDecimal(pos1[2],3)+" , "+LDMath.FixDecimal(pos1[3],3)
-
     GraphicsWindow.ShowMessage(crds,"Boundingbox Box Coordinates")
-
   EndIf
-
   Program.Delay(2)
-
 EndWhile
-
 Sub snailspiral            
-
   fimg = funcsnailspiral
-
   LDCall.Function2("snailshellcoordinate",ang1,aa)  'returns
-
   startvector = LDVector.Multiply(LDVector.Normalise(loberadiuscentervector),loberadius)
-
   rotatevec = lobecircleaxis
-
 EndSub
-
 Sub distorted_cubic
-
   fimg = funcdistorted_cubic
-
   xx = ang1*freq
-
   startvector[2] = amp* Math.SquareRoot(1-Math.Power(xx,nn)/(1+aa*xx))
-
 EndSub
-
 Sub dampened_sine
-
   fimg = funcdampened_sine
-
   startvector[2] = amp*LDMath.Sin(ang1*freq)/(ang1*freq)
-
 EndSub
-
 Sub trial   'now
-
   fimg = functrial
-
   xx = ang1*freq
-
   startvector[2] = amp* Math.SquareRoot((Math.Power(xx,2)-1)*(xx-aa))
-
 EndSub
-
 Sub cubic
-
   fimg = funccubic
-
   xx = ang1 * freq
-
   startvector[2] = Math.SquareRoot((Math.Power(xx,nn) +aa * Math.Power(xx,mm) + bb * math.Power(xx,pp) + cc)) * amp
-
 EndSub
-
 Sub catastrophic_sine
-
   fimg = funccatastrophic_sine
-
   startvector[2] = (ang1*freq+aa)*LDMath.Sin(ang1*freq)*amp
-
 EndSub
-
 Sub secant
-
   fimg = funcsecant
-
   startvector[2] = (one / LDMath.cos(ang1*freq) * amp)+cc
-
 EndSub
-
 Sub sphere
-
   fimg = funcsphere
-
   startvector = LDVector.Rotate(LDVector.Multiply(vx,aa),vz,ang1*freq)
-
 EndSub
-
 Sub torus  'a=ring radius   b=radius
-
   fimg = functorus
-
   startvector = LDVector.Add(LDVector.Multiply(vx,aa),LDVector.Rotate(LDVector.Multiply(vx,bb),vz,ang1*freq))
-
 EndSub
-
 Sub asinPnbcosPm
-
   fimg = funcasinPnbcosPm
-
   startvector[2] = (aa*math.Power(LDMath.sin(ang1*freq),nn) +bb*math.Power(LDMath.Cos(ang1*freq),mm)) * amp
-
 EndSub
-
 Sub quad
-
   fimg = funcquad
-
   xx = ang1 * freq
-
   startvector[2] = ((aa * Math.Power(xx,nn)) + (bb * math.Power(xx,mm)) + cc) * amp
-
 EndSub
-
 Sub cosang
-
   fimg = funccosang
-
   startvector[2] = math.Power(LDMath.cos(ang1*freq),ang1*freq) * amp
-
 EndSub
-
 Sub sinang
-
   fimg = funcsinang
-
   startvector[2] = math.Power(LDMath.sin(ang1*freq),ang1*freq) * amp
-
 EndSub
-
 Sub sqr
-
   fimg = funcsqr
-
   startvector[2] = amp * Math.Power(ang1*freq,2)
-
 EndSub
-
 Sub natlog
-
   fimg = funcnlog
-
   startvector[2] = Math.NaturalLog(ang1*freq) * amp
-
 EndSub
-
 Sub log
-
   fimg = funclog
-
   startvector[2] = Math.Log(ang1*freq) * amp
-
 EndSub
-
 Sub sinh
-
   fimg = funcsinh
-
   startvector[2] = LDMath.sinh(rad*freq) * amp
-
 EndSub
-
 Sub cosh
-
   fimg = funccosh
-
   startvector[2] = LDMath.cosh(rad*freq) * amp
-
 EndSub
-
 Sub tanh
-
   fimg = functanh
-
   startvector[2] = LDMath.tanh(rad*freq) * amp
-
 EndSub
-
 Sub sin
-
   fimg = funcsin
-
   startvector[2] = LDMath.sin(ang1*freq) * amp
-
 EndSub
-
 Sub cos
-
   fimg = funccos
-
   startvector[2] = LDMath.cos(ang1*freq) * amp
-
 EndSub
-
 Sub tan
-
   fimg = functan
-
   startvector[2] = LDMath.tan(ang1*freq) * amp
-
 EndSub
-
 Sub rectgeom ''now2
-
   Controls.ShowControl(waitbar)
-
   stp = 360/sectors
-
   pointnum = 1
-
   belt = 0
-
   r = 40
-
   rotatevec = vy
-
   GraphicsWindow.Title = gosub
-
   For ang1 = frombelt To tobelt Step (tobelt-frombelt)/beltamt
-
     LDControls.ProgressBarValue(waitbar, 65*ang1/tobelt)
-
     belt = belt  + one
-
     rad = ang1 * piang
-
     startvector = LDVector.Multiply(vx,360-ang1)
-
     callmessage = LDCall.Function(gosub,"")
-
     If Math.Abs(startvector[2]) >limit Then
-
       startvector[two] = limit* Math.Abs(startvector[two]/startvector[two])
-
     EndIf
-
     pointnum = 1
-
     For ang2 = fromsec To tosec Step (tosec-fromsec)/sectors
-
       ppos = LDVector.Rotate(startvector,rotatevec,ang2)
-
       If gosub = "snailspiral" Then
-
         ppos = LDVector.Add(ppos,loberadiuscentervector)
-
       EndIf
-
       ppos[one] = LDMath.FixDecimal(ppos[one],four)
-
       ppos[two] = LDMath.FixDecimal(ppos[two],four)
-
       ppos[three] = LDMath.FixDecimal(ppos[three],four)
-
       point[belt][pointnum] = ppos
-
       pointnum = pointnum + one
-
     EndFor
-
   EndFor
-
   pointamt = pointnum - two
-
   beltamt = belt-one
-
   LDText.FastStringClear(points)
-
   LDText.FastStringClear(indices)
-
   LDText.FastStringClear(textures)
-
   index = 0
-
   For belt1 = 1 To beltamt
-
     LDControls.ProgressBarValue(waitbar,65 + 35*belt1/beltamt)
-
     o=1
-
     p=1
-
     For pointnum = 1 To pointamt
-
       belt2 = belt1 + one
-
       'triangle1
-
       LDText.FastStringAppend(points,point[belt1][pointnum][one]+":"+point[belt1][pointnum][two]+":"+point[belt1][pointnum][three]+":")
-
       LDText.FastStringAppend(points,point[belt2][pointnum+one][one]+":"+point[belt2][pointnum+one][two]+":"+point[belt2][pointnum+one][three]+":")
-
       LDText.FastStringAppend(points,point[belt2][pointnum][one]+":"+point[belt2][pointnum][two]+":"+point[belt2][pointnum][three]+":")
-
       LDText.FastStringAppend(indices,index+":"+(index+one)+":"+(index+two)+":")
-
       index = index+three
-
       LDText.FastStringAppend(textures,"0 0:0 1:1 1:")
-
       'triangle2
-
       LDText.FastStringAppend(points,point[belt1][pointnum][one]+":"+point[belt1][pointnum][two]+":"+point[belt1][pointnum][three]+":")
-
       LDText.FastStringAppend(points,point[belt1][pointnum+one][one]+":"+point[belt1][pointnum+one][two]+":"+point[belt1][pointnum+one][three]+":")
-
       LDText.FastStringAppend(points,point[belt2][pointnum+one][one]+":"+point[belt2][pointnum+one][two]+":"+point[belt2][pointnum+one][three]+":")
-
       LDText.FastStringAppend(indices,index+":"+(index+one)+":"+(index+two)+":")
-
       index = index+three
-
       LDText.FastStringAppend(textures,"0 0:1 1:1 0:")
-
     EndFor
-
   EndFor
-
   face = LD3DView.AddGeometry(view3d,LDText.FastStringGet(points),ldtext.FastStringGet(indices),"",fc,"D")
-
   LD3DView.SetBackMaterial(view3d,face,bc,"D")
-
   Controls.HideControl(waitbar)
-
   originalpos = LD3DView.GetPosition(view3d,face)
-
   LDCall.Function("setview","1,-1,1")
-
 EndSub
-
-
 
 Sub resetcam
-
   LD3DView.ResetCamera(view3d,0,0,100,0,0,-1,0,1,0)
-
 EndSub
-
-
 
 Sub setrgbspheres
-
   minball = LD3DView.AddSphere(view3d,ballscale*.25,8,"Red","E")
-
   maxball = LD3DView.AddSphere(view3d,ballscale*.25,8,"Blue","E")
-
 EndSub
-
 Sub setarrows
-
   xarrow = LD3DView.AddArrow(view3d,5,.25,1,.5,8,"Red","E")
-
   LD3DView.RotateGeometry(view3d,xarrow,0,0,1,270)
-
   LD3DView.TranslateGeometry(view3d,xarrow,arrowscale*2.5,arrowscale*-2.5,0)
-
   yarrow = LD3DView.AddArrow(view3d,5,.25,1,.5,8,"Green","E")
-
   zarrow = LD3DView.AddArrow(view3d,5,.25,1,.5,8,"Blue","E")
-
   LD3DView.RotateGeometry(view3d,zarrow,1,0,0,90)
-
   LD3DView.TranslateGeometry(view3d,zarrow,0,-2.5,2.5)
-
 EndSub
-
 Sub buildboundingbox
-
   If bboxstate = "H" Then
-
     bboxstate = "S"
-
     pos = LD3DView.BoundingBox(view3d,face)
-
     For i = 1 To 3
-
       pos1[i] = pos[i+3]
-
       pos2[i] = pos[i+3]+pos[i]
-
     EndFor
-
     If tubedata <> "" Then
-
       LD3DView.ModifyObject(view3d,boundingbox,"X")
-
       tubedata = ""
-
     EndIf
-
     LD3DView.ModifyObject(view3d,minball,bboxstate)
-
     LD3DView.ModifyObject(view3d,maxball,bboxstate)
-
     LD3DView.TranslateGeometry(view3d,minball,pos1[1],pos1[2],pos1[3])
-
     LD3DView.TranslateGeometry(view3d,maxball,pos2[1],pos2[2],pos2[3])
-
     tubedata = tubedata+pos1[1]+":"+pos1[2]+":"+pos1[3]+":" 'a
-
     tubedata = tubedata+pos1[1]+":"+pos2[2]+":"+pos1[3]+":"  'b
-
     tubedata = tubedata+pos2[1]+":"+pos2[2]+":"+pos1[3]+":"  'c
-
     tubedata = tubedata+pos2[1]+":"+pos1[2]+":"+pos1[3]+":"  'd
-
     tubedata = tubedata+pos1[1]+":"+pos1[2]+":"+pos1[3]+":" 'a
-
     tubedata = tubedata+pos1[1]+":"+pos1[2]+":"+pos2[3]+":"  'e
-
     tubedata = tubedata+pos1[1]+":"+pos2[2]+":"+pos2[3]+":"  'f
-
     tubedata = tubedata+pos2[1]+":"+pos2[2]+":"+pos2[3]+":"  'g
-
     tubedata = tubedata+pos2[1]+":"+pos1[2]+":"+pos2[3]+":"  'h
-
     tubedata = tubedata+pos1[1]+":"+pos1[2]+":"+(pos2[3]+.001)+":"  'e
-
     tubedata = tubedata+pos1[1]+":"+pos2[2]+":"+pos2[3]+":"  'f
-
     tubedata = tubedata+pos1[1]+":"+pos2[2]+":"+pos1[3]+":"  'b
-
     tubedata = tubedata+pos2[1]+":"+pos2[2]+":"+pos1[3]+":"  'c
-
     tubedata = tubedata+pos2[1]+":"+pos2[2]+":"+pos2[3]+":"  'g
-
     tubedata = tubedata+pos2[1]+":"+pos1[2]+":"+pos2[3]+":"  'h
-
     tubedata = tubedata+pos2[1]+":"+pos1[2]+":"+pos1[3]+":"  'd
-
     boundingbox = LD3DView.AddTube(view3d,tubedata,.125*ballscale,8,"Green","E")
-
     If but = bboxbut Then
-
       crds = LDMath.FixDecimal(pos1[1],3)+" , "+LDMath.FixDecimal(pos1[2],3)+" , "+LDMath.FixDecimal(pos1[3],3)+crlf
-
       crds = crds +LDMath.FixDecimal(pos2[1],3)+" , "+LDMath.FixDecimal(pos2[2],3)+" , "+LDMath.FixDecimal(pos2[3],3)
-
       Controls.ShowControl(messagebox)
-
       Controls.SetTextBoxText(messagebox,"Bounding Box Coordinates"+crlf+crds+crlf+crlf+"Press C to close")
-
     EndIf
-
   ElseIf bboxstate = "S" then
-
     bboxstate = "H"
-
     LD3DView.ModifyObject(view3d,boundingbox,bboxstate)
-
     LD3DView.ModifyObject(view3d,minball,bboxstate)
-
     LD3DView.ModifyObject(view3d,maxball,bboxstate)
-
   EndIf
-
 EndSub
-
 Sub upkey
-
   key = GraphicsWindow.LastKey
-
   GraphicsWindow.Title = key
-
   If key = "Escape" Then
-
     ans = LDDialogs.Confirm("Are you sure you want To quit?","End Program")
-
     If ans = "Yes" Then
-
       Program.End()
-
     EndIf
-
     Mouse.MouseX = gwc
-
     Mouse.MouseY = ghc
-
   EndIf
-
   If key = "C" Then
-
     Controls.HideControl(messagebox)
-
   EndIf
-
   If key = "OemPeriod" Then
-
     ballscale = ballscale * 1.5
-
     LD3DView.ScaleGeometry(view3d,minball,ballscale,ballscale,ballscale)
-
     LD3DView.ScaleGeometry(view3d,maxball,ballscale,ballscale,ballscale)
-
   EndIf
-
   If key = "OemComma" Then
-
     ballscale = ballscale / 1.5
-
     LD3DView.ScaleGeometry(view3d,minball,ballscale,ballscale,ballscale)
-
     LD3DView.ScaleGeometry(view3d,maxball,ballscale,ballscale,ballscale)
-
   EndIf
-
 EndSub
-
 Sub incboundingboxscale
-
   ballscale = ballscale * 1.5
-
   bboxstate = "H"
-
   buildboundingbox()
-
 EndSub
-
 Sub decboundingboxscale
-
   ballscale = ballscale / 1.5
-
   bboxstate = "H"
-
   buildboundingbox()
-
 EndSub
-
 Sub var   'SET VARIABLES   now
-
   aa=1
-
   bb=1
-
   cc=1
-
   dd=1
-
   ff=1
-
   gg=1
-
   hh=1
-
   ii=1
-
   nn=2
-
   mm=1
-
   pp=1
-
   qq=1
-
   arrowscale = 1
-
   arrowstate = "S"
-
   frombelt = 0
-
   tobelt = 360
-
   fromsec = 0
-
   tosec = 360
-
   amp = 20
-
   limit = 500
-
   zero = 0
-
   one = 1
-
   two = 2
-
   three = 3
-
   four = 4
-
   piang = Math.Pi / 180
-
   points = LDText.FastStringNew()
-
   indices = LDText.FastStringNew()
-
   textures = LDText.FastStringNew()
-
   gridscale = ".001:.002:.0025:.005:.01:.02:.025:.05:.1:.2:.25:.5:1:2:2.5:5:10:20:25:50:100:200:250:500:1000:"
-
   gridscale = LDText.Split(gridscale,":")
-
   gridscaleindex = 16
-
   gridstate = "S"
-
   args = ""
-
   bboxstate = "H"
-
   beltamt = 96
-
   ballscale = 1
-
   camviewang = 60
-
   creditmessagestate = "False"
-
   cr = Text.GetCharacter(13)
-
   crlf = cr + lf
-
   dh = Desktop.Height
-
   dw = Desktop.Width
-
   bk = "Black"
-
   bg = "Gainsboro"
-
   pc = "Silver"
-
   bl = "Blue"
-
   fc = "#FFFFFF00"
-
   wh="#FFFFFF"
-
   freq = 2
-
   gh = GraphicsWindow.Height
-
   bc = "#FF00FFFF"
-
   ribbon = dh - gh - 1
-
   ldghc = gh/2
-
   ghc = ribbon + gh/2
-
   gosub = "sin"
-
   gw = GraphicsWindow.Width
-
   gwc = gw/2
-
   lf = Text.GetCharacter(10)
-
   mousezoom = camviewang/600
-
   opacity = 255
-
   presetname = "Preset Name1"
-
   rottime = 10
-
   rtbleft = gw*.62
-
   rtbtop = gh * .38
-
   sc = "#222222"
-
   sectors = 48
-
   sp = Text.GetCharacter(32)
-
   t1 = Text.GetCharacter(9)
-
   t2 = t1 + t1
-
   t3 = t2+t1
-
   t4 = t2+t2
-
   tree[1][0] = "Trig"
-
   tree[2][1] = "sin"
-
   tree[3][1] = "cos"
-
   tree[4][1] = "tan"
-
   tree[5][1] = "sinh"
-
   tree[6][1] = "cosh"
-
   tree[7][1] = "tanh"
-
   tree[8][1] = "log"
-
   tree[9][1] = "natlog"
-
   tree[10][1] = "sqr"
-
   tree[11][1] = "sinang"
-
   tree[12][1] = "cosang"
-
   tree[13][1] = "quad"
-
   tree[14][1] = "torus"
-
   tree[15][1] = "sphere"
-
   tree[16][1] = "asinPnbcosPm"
-
   tree[17][1] = "snailspiral"
-
   tree[18][1] = "secant"
-
   tree[19][1] = "catastrophic_sine"
-
   tree[20][1] = "dampened_sine"
-
   tree[21][1] = "distorted_cubic"
-
   tree[22][1] = "cubic"
-
   tree[23][1] = "trial"
-
   boundingbox = ""''now
-
   vx[1] = 1
-
   vx[2] = 0
-
   vx[3] = 0
-
   vy[1] = 0
-
   vy[2] = 1
-
   vy[3] = 0
-
   vz[1] = 0
-
   vz[2] = 0
-
   vz[3] = 1
-
   x = Text.GetCharacter(8226)
-
   theta = Text.GetCharacter(952)
-
   alpha = Text.GetCharacter(945)
-
   sqrt = Text.GetCharacter(8730)
-
 EndSub
-
 Sub showpanel
-
   For i = Text.GetSubTextToEnd(panel,7) To Text.GetSubTextToEnd(panelswitch,7)-1
-
     Controls.showControl("Button"+i)
-
   EndFor
-
   For i = 1 To Text.GetSubTextToEnd(lastbox,8)
-
     Controls.ShowControl("TextBox"+i)
-
   EndFor
-
   Controls.SetButtonCaption(panelswitch,"-")
-
   sw = gw * .85
-
   Controls.SetSize(view3d,sw, gh)
-
 EndSub
-
 Sub hidepanel
-
   For i = Text.GetSubTextToEnd(panel,7) To Text.GetSubTextToEnd(panelswitch,7)-1
-
     Controls.HideControl("Button"+i)
-
   EndFor
-
   For i = 1 To Text.GetSubTextToEnd(lastbox,8)
-
     Controls.hideControl("TextBox"+i)
-
   EndFor
-
   Controls.HideControl(functree)
-
   Controls.SetButtonCaption(panelswitch,"+")
-
   sw = gw
-
   Controls.SetSize(view3d,gw , gh)
-
 EndSub
-
 Sub incarrow
-
   arrowscale = arrowscale * 1.5
-
   LD3DView.ScaleGeometry(view3d,xarrow,arrowscale,arrowscale,arrowscale)
-
   LD3DView.TranslateGeometry(view3d,xarrow,arrowscale*2.5,-2.5,0)
-
   LD3DView.ScaleGeometry(view3d,yarrow,arrowscale,arrowscale,arrowscale)
-
   LD3DView.TranslateGeometry(view3d,yarrow,0,-2.5+arrowscale*2.5,0)
-
   LD3DView.ScaleGeometry(view3d,zarrow,arrowscale,arrowscale,arrowscale)
-
   LD3DView.TranslateGeometry(view3d,zarrow,0,-2.5,arrowscale*2.5)
-
 EndSub
-
 Sub decarrow
-
   arrowscale = arrowscale / 1.5
-
   LD3DView.ScaleGeometry(view3d,xarrow,arrowscale,arrowscale,arrowscale)
-
   LD3DView.TranslateGeometry(view3d,xarrow,arrowscale*2.5,-2.5,0)
-
   LD3DView.ScaleGeometry(view3d,yarrow,arrowscale,arrowscale,arrowscale)
-
   LD3DView.TranslateGeometry(view3d,yarrow,0,-2.5+arrowscale*2.5,0)
-
   LD3DView.ScaleGeometry(view3d,zarrow,arrowscale,arrowscale,arrowscale)
-
   LD3DView.TranslateGeometry(view3d,zarrow,0,-2.5,arrowscale*2.5)
-
 EndSub
-
 Sub scalegrid
-
   LD3DView.ScaleGeometry(view3d,grid[1],gridscale[gridscaleindex], gridscale[gridscaleindex],gridscale[gridscaleindex])
-
   LD3DView.ScaleGeometry(view3d,grid[2],gridscale[gridscaleindex], gridscale[gridscaleindex],gridscale[gridscaleindex])
-
   Controls.SetButtonCaption(gridbut,"Grid "+10*gridscale[gridscaleindex])
-
 EndSub
-
 Sub onbuttonclick   'now
-
   but = Controls.LastClickedButton
-
   If but = gridbut Then
-
     If gridstate = "S" Then
-
       gridstate = "H"
-
     ElseIf gridstate = "H" Then
-
       gridstate = "S"
-
     EndIf
-
     LD3DView.ModifyObject(view3d,grid[1],gridstate)
-
     LD3DView.ModifyObject(view3d,grid[2],gridstate)
-
   EndIf
-
   If but = gridxbut Then
-
     LD3DView.RotateGeometry(view3d,grid[1],1,0,0,90)
-
     LD3DView.RotateGeometry(view3d,grid[2],1,0,0,90)
-
   EndIf
-
   If but = gridybut Then
-
     LD3DView.RotateGeometry(view3d,grid[1],1,0,0,0)
-
     LD3DView.RotateGeometry(view3d,grid[2],1,0,0,0)
-
   EndIf
-
   If but = gridzbut Then
-
     LD3DView.RotateGeometry(view3d,grid[1],0,1,0,90)
-
     LD3DView.RotateGeometry(view3d,grid[2],0,1,0,90)
-
   EndIf
-
   If but = gridincbut Then
-
     gridscaleindex = gridscaleindex +1
-
     If gridscaleindex > Array.GetItemCount(gridscale) Then
-
       gridscaleindex = Array.GetItemCount(gridscale)
-
     EndIf
-
     scalegrid()
-
   EndIf
-
   If but = griddecbut Then
-
     gridscaleindex = gridscaleindex -1
-
     If gridscaleindex <1 Then
-
       gridscaleindex = 1
-
     EndIf
-
     scalegrid()
-
   EndIf
-
   If but = frontcolorbut Then
-
     setcolor = "front"
-
     LDCall.Function("showcolorpicker",fc)
-
   EndIf
-
   If but = backcolorbut Then
-
     setcolor = "back"
-
     LDCall.Function("showcolorpicker",bc)
-
   EndIf
-
   If but = screencolorbut Then
-
     setcolor = "screen"
-
     LDCall.Function("showcolorpicker",sc)
-
   EndIf
-
   If but = graddircbut Then
-
     graddirectiontoggle()
-
   EndIf
-
   If but = rectbut[1] Then
-
     colorpic[1] = LDGraphicsWindow.GetPixel(LDGraphicsWindow.MouseX,LDGraphicsWindow.MouseY)
-
     colorpic[2] = colorpic[1]
-
     gradient2[1] = "White"
-
     gradient2[2] = colorpic[1]
-
     gradient2[3] = "Black"
-
     LDShapes.BrushShape(rect[2], LDShapes.BrushGradient(gradient2,"V"))
-
     LDShapes.BrushShape(colorpicrect,LDShapes.BrushGradient(colorpic,"V"))
-
   EndIf
-
   If but = rectbut[2] Then
-
     colorpic[1] = LDGraphicsWindow.GetPixel(LDGraphicsWindow.MouseX,LDGraphicsWindow.MouseY)
-
     colorpic[2] = colorpic[1]
-
     LDShapes.BrushShape(colorpicrect,LDShapes.BrushGradient(colorpic,"V"))
-
     pick = pick + 1
-
     If pick = 1 Then
-
       grad[1] = colorpic[1]
-
     ElseIf pick > 1 then
-
       grad[2] = colorpic[1]
-
       pick = 0
-
     EndIf
-
     LDShapes.BrushShape(colorpicrect2,LDShapes.BrushGradient(grad,graddir))
-
   EndIf
-
   If but = colorcancelbut Then
-
     hidecolorpicker()
-
   EndIf
-
   If but = colorselectbut Then  
-
     If setcolor = "front" Then
-
       fc = colorpic[1]
-
       hidecolorpicker()
-
       LDControls.SetButtonStyle(frontcolorbut,fc,wh,fc,bk,bk,bk,0,"False")
-
       Controls.SetSize(frontcolorbut,pwidth*.09,vplus*.95)
-
       LD3DView.ResetMaterial(view3d,face,fc,"D")
-
     EndIf
-
     If setcolor = "back" Then
-
       bc = colorpic[1]
-
       hidecolorpicker()
-
       LDControls.SetButtonStyle(backcolorbut,bc,wh,bc,bk,bk,bk,0,"False")
-
       Controls.SetSize(backcolorbut,pwidth*.09,vplus*.95)
-
       LD3DView.SetBackMaterial(view3d,face,bc,"D")
-
     EndIf
-
     If setcolor = "screen" Then
-
       sc = grad[1]
-
       hidecolorpicker()
-
       LDControls.SetButtonStyle(screencolorbut,sc,wh,sc,bk,bk,bk,0,"False")  
-
       Controls.SetSize(screencolorbut,pwidth*.09,vplus*.95)
-
       brush = LDShapes.BrushGradient(grad,graddir)
-
       LDGraphicsWindow.BackgroundBrushGradient(brush)
-
     EndIf
-
   EndIf
-
   If but = presetsavebut Then
-
     savepreset()
-
   EndIf
-
   If but = presetbut Then
-
     If Controls.GetButtonCaption(presetbut) = "Presets" Then
-
       Controls.SetButtonCaption(presetbut,"Select")
-
       Controls.ShowControl(presettree)
-
     ElseIf Controls.GetButtonCaption(presetbut) = "Select" Then
-
       Controls.SetButtonCaption(presetbut,"Presets")
-
       Controls.HideControl(presettree)
-
     EndIf
-
     If Controls.GetButtonCaption(presetchoicebut) <> "No Selection" Then
-
       getpresets()
-
     EndIf
-
   EndIf
-
   If but = incarrowbut Then
-
     incarrow()
-
   EndIf
-
   If but = decarrowbut Then
-
     decarrow()
-
   EndIf
-
   If but = incscalebut Then
-
     incboundingboxscale()
-
   EndIf
-
   If but = decscalebut Then
-
     decboundingboxscale()
-
   EndIf
-
   If but = bboxbut Then
-
     buildboundingbox()
-
   EndIf
-
   If but = xmbut Then
-
     LDCall.Function("setview","-1,0,0")
-
   EndIf
-
   If but = xbut Then
-
     LDCall.Function("setview","1,0,0")
-
   EndIf
-
   If but = ymbut Then
-
     LDCall.Function("setview","0,-1,0")
-
   EndIf
-
   If but = ybut Then
-
     LDCall.Function("setview","0,1,0")
-
   EndIf
-
   If but = zmbut Then
-
     LDCall.Function("setview","0,0,-1")
-
   EndIf
-
   If but = zbut Then
-
     LDCall.Function("setview","0,0,1")
-
   EndIf
-
   If but = nwtbut Then
-
     LDCall.Function("setview","1,-1,1")
-
   EndIf
-
   If but = swtbut Then
-
     LDCall.Function("setview","1,-1,-1")
-
   EndIf
-
   If but = netbut Then
-
     LDCall.Function("setview","-1,-1,1")
-
   EndIf
-
   If but = setbut Then
-
     LDCall.Function("setview","-1,-1,-1")
-
   EndIf
-
   If but = nwbbut Then
-
     LDCall.Function("setview","1,1,1")
-
   EndIf
-
   If but = swbbut Then
-
     LDCall.Function("setview","1,1,-1")
-
   EndIf
-
   If but = nebbut Then
-
     LDCall.Function("setview","-1,1,1")
-
   EndIf
-
   If but = sebbut Then
-
     LDCall.Function("setview","-1,1,-1")
-
   EndIf
-
   If but = reviewbut Then
-
     review()
-
   EndIf
-
   If but = xyzbut Then
-
     If arrowstate = "S" Then
-
       arrowstate = "H"
-
       LD3DView.ModifyObject(view3d,xarrow,arrowstate)
-
     ElseIf arrowstate = "H" Then
-
       arrowstate = "S"
-
     EndIf
-
     LD3DView.ModifyObject(view3d,xarrow,arrowstate)
-
     LD3DView.ModifyObject(view3d,yarrow,arrowstate)
-
     LD3DView.ModifyObject(view3d,zarrow,arrowstate)
-
   EndIf
-
   If but = cenbut Then
-
     center()
-
   EndIf
-
   If but = orgbut Then
-
     origin()
-
   EndIf
-
   If but = opacbut Then
-
     opacity = Controls.GetTextBoxText(opacbox)
-
     LD3DView.ResetMaterial(view3d,face,LDColours.SetOpacity(fc,opacity),"D")
-
     LD3DView.SetBackMaterial(view3d,face,LDColours.SetOpacity(bc,opacity),"D")
-
   EndIf
-
   If but = funcbut Then
-
     Controls.HideControl(funcbut)
-
     Controls.ShowControl(functree)
-
   EndIf
-
   If but = anibut Then
-
     rottime = Controls.GetTextBoxText(rottimebox)
-
     LD3DView.AnimateRotation(view3d,face,1,0,1,0,360,rottime,-1)
-
     axis = "1,0,1"
-
     anistart = Clock.ElapsedMilliseconds
-
   EndIf
-
   If but = antibut Then
-
     rottime = Controls.GetTextBoxText(rottimebox)
-
     LD3DView.AnimateRotation(view3d,face,1,0,-1,0,360,rottime,-1)
-
     axis = "1,0,-1"
-
     anistart = Clock.ElapsedMilliseconds
-
   EndIf
-
   If but = stoprotbut Then
-
     aniremain = Math.Remainder(Clock.ElapsedMilliseconds - anistart,rottime*1000)/rottime/1000
-
     axis = LDText.Split(axis,",")
-
     LD3DView.AnimateRotation(view3d,face,axis[1],axis[2],axis[3],360*aniremain,360*aniremain,.25,1)
-
   EndIf
-
   If but = panelswitch Then
-
     If Controls.GetButtonCaption(panelswitch) = "-" Then
-
       hidepanel()
-
     ElseIf Controls.GetButtonCaption(panelswitch) = "+" Then
-
       showpanel()
-
     EndIf
-
   EndIf
-
   If but = gobut Then
-
     set_vars_from_boxes()
-
     LD3DView.ModifyObject(view3d,face,"X")
-
     but1 = but
-
   EndIf
-
   but = ""
-
 EndSub
-
 Sub set_vars_from_boxes
-
   freq = Controls.GetTextBoxText(freqbox)
-
   amp = Controls.GetTextBoxText(ampbox)
-
   beltamt = Controls.GetTextBoxText(beltbox)
-
   frombelt = Controls.GetTextBoxText(frombeltbox)
-
   tobelt = Controls.GetTextBoxText(tobeltbox)
-
   sectors = Controls.GetTextBoxText(secbox)
-
   tosec = Controls.GetTextBoxText(tosecbox)
-
   fromsec = Controls.GetTextBoxText(fromsecbox)
-
   aa = Controls.GetTextBoxText(abox)
-
   bb = Controls.GetTextBoxText(bbox)
-
   cc = Controls.GetTextBoxText(cbox)
-
   dd = Controls.GetTextBoxText(dbox)
-
   ii = Controls.GetTextBoxText(ibox)
-
   ff = Controls.GetTextBoxText(fbox)
-
   gg = Controls.GetTextBoxText(gbox)
-
   hh = Controls.GetTextBoxText(hbox)
-
   nn = Controls.GetTextBoxText(nbox)
-
   mm = Controls.GetTextBoxText(mbox)
-
   pp = Controls.GetTextBoxText(pbox)
-
   qq = Controls.GetTextBoxText(qbox)
-
   limit = Controls.GetTextBoxText(limitbox)
-
 EndSub
-
 Sub ontreeviewchange  'now
-
   If LDControls.LastTreeView = functree Then
-
     i1 = LDControls.TreeViewGetSelected(functree)
-
     i2 = ( Array.GetAllIndices(tree[i1]))
-
     gosub = tree[i1][i2[1]]
-
     Controls.HideControl(functree)
-
     Controls.ShowControl(funcbut)
-
     Controls.SetButtonCaption(funcchoicebut,gosub)
-
     Shapes.HideShape(fimg1)
-
     Shapes.HideShape(fimg)
-
     Shapes.HideShape(fimg2)
-
     fimg1 = fimg
-
     LDCall.Function(gosub,"")
-
     Shapes.ShowShape(fimg)
-
     shapewidth = LDShapes.Width(fimg)/(gw)
-
     LDShapes.Centre(fimg,gw*.85-LDShapes.Width(fimg)/2.666,gh*.05)
-
     fimg2 = fimg
-
     fimg=fimg1
-
     fimg1 = fimg2
-
     fimg2 = ""
-
   EndIf
-
   If LDControls.LastTreeView = presettree Then   
-
     index = Array.GetAllIndices(tree2[LDControls.LastTreeViewIndex]) ' To get the second index (parent) for this item label
-
     If index[1] > 0 Then
-
       Controls.SetButtonCaption(presetchoicebut,tree2[LDControls.LastTreeViewIndex][index[1]])
-
       LDControls.SetButtonStyle(presetchoicebut,bg,"White",bg,bl,bl,bl,0,"False")
-
       prefunc = tree2[index[1]][0]
-
       presetselect = tree2[LDControls.LastTreeViewIndex][index[1]]
-
     Else
-
       Controls.SetButtonCaption(presetchoicebut,"No Selection")
-
       LDControls.SetButtonStyle(presetchoicebut,bg,bg,bg,bk,bk,bk,0,"False")
-
     EndIf
-
     If index[1] > 0 Then
-
       pdataitemcount[1] = Array.GetItemCount(pdata)   
-
       For i1 = 1 To pdataitemcount[1]
-
         if pdata[i1][1] = prefunc and pdata[i1][2] = presetselect then
-
           pdatanum = i1
-
           i1 = pdataitemcount[1]
-
         EndIf
-
       EndFor
-
     EndIf
-
     Goto here
-
     Controls.HideControl(presettree)
-
     Controls.ShowControl(presetbut)
-
     fimg1 = fimg
-
     LDCall.Function(gosub,"")
-
     fimg2 = fimg
-
     fimg=fimg1
-
     fimg1 = fimg2
-
     fimg2 = ""
-
     'EndIf
-
     here:
-
   EndIf
-
 EndSub
-
-
 
 Sub buildcontrols  
-
   vplus = .035 * gh
-
   v = vplus*.2
-
   pleft = gw*.852
-
   pwidth = gw*.15
-
   waitbar = LDControls.AddProgressBar(400,20,"H")
-
   Controls.Move(waitbar,gw*.25,gh*.25)
-
   panel = Controls.AddButton("",gw*.85,1)
-
   LDControls.SetButtonStyle(panel,pc,pc,pc,pc,pc,pc,0,"False")
-
   Controls.SetSize(panel,gw*.15,gh-1)
-
   funcbut = Controls.AddButton("Func",pleft,v)
-
   Controls.SetSize(funcbut,pwidth*.4,vplus)
-
   funcchoicebut = Controls.AddButton(gosub,pleft+pwidth*.4,v)
-
   LDControls.SetButtonStyle(funcchoicebut,bg,bg,bg,bk,bk,bk,0,"False")
-
   Controls.SetSize(funcchoicebut,pwidth*.48,vplus*.95)
-
   treev = v
-
   v=v+vplus
-
   presetbut = Controls.AddButton("Presets",pleft,v)
-
   Controls.SetSize(presetbut,pwidth*.4,vplus)
-
   presetchoicebut = Controls.AddButton("Preset Name1",pleft+pwidth*.4,v)
-
   LDControls.SetButtonStyle(presetchoicebut,bg,bg,bg,bk,bk,bk,0,"False")
-
   Controls.SetSize(presetchoicebut,pwidth*.58,vplus*.95)
-
   v=v+vplus
-
   presetsavebut = Controls.AddButton("Save Preset",pleft,v)
-
   Controls.SetSize(presetsavebut,pwidth*.4,vplus)
-
   presetnamebox = Controls.AddTextBox(pleft+pwidth*.4,v)
-
   Controls.SetSize(presetnamebox,pwidth*.58,vplus)
-
   Controls.SetTextBoxText(presetnamebox,presetname)
-
   v=v+vplus
-
   freqbut = Controls.AddButton("x  Freq.",pleft,v)
-
   LDControls.SetButtonStyle(freqbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   freqbox = Controls.AddTextBox(pleft+pwidth*.28,v)
-
   Controls.SetSize(freqbox,pwidth*.2,vplus)
-
   Controls.SetTextBoxText(freqbox,freq)
-
   beltbut = Controls.AddButton("Beltamt",pleft+pwidth*.48,v)
-
   LDControls.SetButtonStyle(beltbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   beltbox = Controls.AddTextBox(pleft+pwidth*.78,v)
-
   Controls.SetSize(beltbox,pwidth*.2,vplus)
-
   Controls.SetTextBoxText(beltbox,beltamt)
-
   v=v+vplus
-
   frombeltbut = Controls.AddButton("from",pleft,v)
-
   LDControls.SetButtonStyle(frombeltbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   frombeltbox = Controls.AddTextBox(pleft+pwidth*.2,v)
-
   Controls.SetSize(frombeltbox,pwidth*.33,vplus)
-
   Controls.SetTextBoxText(frombeltbox,frombelt)
-
   tobeltbut = Controls.AddButton("To",pleft+pwidth*.55,v)
-
   LDControls.SetButtonStyle(tobeltbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   tobeltbox = Controls.AddTextBox(pleft+pwidth*.67,v)
-
   Controls.SetSize(tobeltbox,pwidth*.33,vplus)
-
   Controls.SetTextBoxText(tobeltbox,tobelt)
-
   v=v+vplus
-
   fs = GraphicsWindow.FontSize
-
   GraphicsWindow.FontSize = fs * .8
-
   ampbut = Controls.AddButton("Amplitude",pleft,v)
-
   LDControls.SetButtonStyle(ampbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   ampbox = Controls.AddTextBox(pleft+pwidth*.3,v)
-
   Controls.SetSize(ampbox,pwidth*.2,vplus)
-
   Controls.SetTextBoxText(ampbox,amp)
-
   secbut = Controls.AddButton("Sectoramt",pleft+pwidth*.5,v)
-
   LDControls.SetButtonStyle(secbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   secbox = Controls.AddTextBox(pleft+pwidth*.8,v)
-
   Controls.SetSize(secbox,pwidth*.2,vplus)
-
   Controls.SetTextBoxText(secbox,sectors)
-
   GraphicsWindow.FontSize = fs
-
   v=v+vplus
-
   fromsecbut = Controls.AddButton("from",pleft,v)
-
   LDControls.SetButtonStyle(fromsecbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   fromsecbox = Controls.AddTextBox(pleft+pwidth*.2,v)
-
   Controls.SetSize(fromsecbox,pwidth*.33,vplus)
-
   Controls.SetTextBoxText(fromsecbox,fromsec)
-
   tosecbut = Controls.AddButton("To",pleft+pwidth*.55,v)
-
   LDControls.SetButtonStyle(tosecbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   tosecbox = Controls.AddTextBox(pleft+pwidth*.67,v)
-
   Controls.SetSize(tosecbox,pwidth*.33,vplus)
-
   Controls.SetTextBoxText(tosecbox,tosec)
-
   v=v+vplus
-
   abut = Controls.AddButton("a",pleft,v)
-
   LDControls.SetButtonStyle(abut,bg,bg,bg,bk,bk,bk,0,"False")
-
   abox = Controls.AddTextBox(pleft+pwidth*.1,v)
-
   Controls.SetSize(abox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(abox,aa)
-
   bbut = Controls.AddButton("b",pleft+pwidth*.5,v)
-
   LDControls.SetButtonStyle(bbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   bbox = Controls.AddTextBox(pleft+pwidth*.6,v)
-
   Controls.SetSize(bbox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(bbox,bb)
-
   v=v+vplus
-
   cbut = Controls.AddButton("c",pleft,v)
-
   LDControls.SetButtonStyle(cbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   cbox = Controls.AddTextBox(pleft+pwidth*.1,v)
-
   Controls.SetSize(cbox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(cbox,cc)
-
   dbut = Controls.AddButton("d",pleft+pwidth*.5,v)
-
   LDControls.SetButtonStyle(dbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   dbox = Controls.AddTextBox(pleft+pwidth*.6,v)
-
   Controls.SetSize(dbox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(dbox,dd)
-
   v=v+vplus
-
   fbut = Controls.AddButton("f",pleft,v)
-
   LDControls.SetButtonStyle(fbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   fbox = Controls.AddTextBox(pleft+pwidth*.1,v)
-
   Controls.SetSize(fbox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(fbox,ff)
-
   gbut = Controls.AddButton("g",pleft+pwidth*.5,v)
-
   LDControls.SetButtonStyle(gbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   gbox = Controls.AddTextBox(pleft+pwidth*.6,v)
-
   Controls.SetSize(gbox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(gbox,gg)
-
   v=v+vplus
-
   hbut = Controls.AddButton("h",pleft,v)
-
   LDControls.SetButtonStyle(hbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   hbox = Controls.AddTextBox(pleft+pwidth*.1,v)
-
   Controls.SetSize(hbox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(hbox,hh)
-
   ibut = Controls.AddButton("i",pleft+pwidth*.5,v)
-
   LDControls.SetButtonStyle(ibut,bg,bg,bg,bk,bk,bk,0,"False")
-
   ibox = Controls.AddTextBox(pleft+pwidth*.6,v)
-
   Controls.SetSize(ibox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(ibox,ii)
-
   v=v+vplus
-
   nbut = Controls.AddButton("n",pleft,v)
-
   LDControls.SetButtonStyle(nbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   nbox = Controls.AddTextBox(pleft+pwidth*.1,v)
-
   Controls.SetSize(nbox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(nbox,nn)
-
   mbut = Controls.AddButton("m",pleft+pwidth*.5,v)
-
   LDControls.SetButtonStyle(mbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   mbox = Controls.AddTextBox(pleft+pwidth*.6,v)
-
   Controls.SetSize(mbox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(mbox,mm)
-
   v=v+vplus
-
   pbut = Controls.AddButton("p",pleft,v)
-
   LDControls.SetButtonStyle(pbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   pbox = Controls.AddTextBox(pleft+pwidth*.1,v)
-
   Controls.SetSize(pbox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(pbox,pp)
-
   qbut = Controls.AddButton("q",pleft+pwidth*.5,v)
-
   LDControls.SetButtonStyle(qbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   qbox = Controls.AddTextBox(pleft+pwidth*.6,v)
-
   Controls.SetSize(qbox,pwidth*.4,vplus)
-
   Controls.SetTextBoxText(qbox,qq)
-
   v=v+vplus
-
   limitbut = Controls.AddButton("Limit",pleft,v)
-
   LDControls.SetButtonStyle(limitbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   limitbox = Controls.AddTextBox(pleft+pwidth*.2,v)
-
   Controls.SetSize(limitbox,pwidth*.33,vplus)
-
   Controls.SetTextBoxText(limitbox,limit)
-
   v=v+vplus
-
   reviewbut = Controls.AddButton("View",pleft,v)  
-
   xbut = Controls.AddButton("+X",pleft+pwidth*.2,v)
-
   xmbut = Controls.AddButton("-X",pleft+pwidth*.34,v)
-
   ybut = Controls.AddButton("+Y",pleft+pwidth*.46,v)
-
   ymbut = Controls.AddButton("-Y",pleft+pwidth*.6,v)
-
   zbut = Controls.AddButton("+Z",pleft+pwidth*.72,v)
-
   zmbut = Controls.AddButton("-Z",pleft+pwidth*.86,v)
-
   v=v+vplus
-
   orthotopbut = Controls.AddButton("OrthoTop",pleft,v)
-
   LDControls.SetButtonStyle(orthotopbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   nwtbut = Controls.AddButton(x,pleft+pwidth*.34,v)
-
   Controls.SetSize(nwtbut,12,11)
-
   swtbut = Controls.AddButton(x,pleft+pwidth*.34,v+vplus/2)
-
   Controls.SetSize(swtbut,12,11)
-
   netbut = Controls.AddButton(x,pleft+pwidth*.41,v)
-
   Controls.SetSize(netbut,12,11)
-
   setbut = Controls.AddButton(x,pleft+pwidth*.41,v+vplus/2)
-
   Controls.SetSize(setbut,12,11)
-
   orthobotbut = Controls.AddButton("OrthoBot",pleft+pwidth*.5,v)
-
   LDControls.SetButtonStyle(orthobotbut,bg,bg,bg,bk,bk,bk,0,"False")
-
   nwbbut = Controls.AddButton(x,pleft+pwidth*.84,v)
-
   Controls.SetSize(nwbbut,12,11)
-
   swbbut = Controls.AddButton(x,pleft+pwidth*.84,v+vplus/2)
-
   Controls.SetSize(swbbut,12,11)
-
   nebbut = Controls.AddButton(x,pleft+pwidth*.91,v)
-
   Controls.SetSize(nebbut,12,11)
-
   sebbut = Controls.AddButton(x,pleft+pwidth*.91,v+vplus/2)
-
   Controls.SetSize(sebbut,12,11)
-
   v=v+vplus
-
   cenbut = Controls.AddButton("center on origin",pleft,v)
-
   orgbut = Controls.AddButton("original position",pleft+pwidth*.5,v)
-
   v=v+vplus
-
   anibut = Controls.AddButton("Rotate",pleft+pwidth*.2,v)
-
   antibut = Controls.AddButton("Anti-Rotate",pleft+pwidth*.6,v)
-
   stoprotbut = Controls.AddButton("Stop",pleft+pwidth*.43,v)
-
   rottimebox = Controls.AddTextBox(pleft,v)
-
   Controls.SetSize(rottimebox,pwidth*.2,vplus)
-
   Controls.SetTextBoxText(rottimebox,rottime)
-
   v=v+vplus
-
   opacbut = Controls.AddButton("Opacity 0-255",pleft+pwidth*.22,v)
-
   opacbox = Controls.AddTextBox(pleft,v)
-
   Controls.SetSize(opacbox,pwidth*.2,vplus)
-
   Controls.SetTextBoxText(opacbox,opacity)
-
   frontcolorbut = Controls.AddButton("F",pleft+pwidth*.69,v)
-
   backcolorbut = Controls.AddButton("B",pleft+pwidth*.79,v)
-
   screencolorbut = Controls.AddButton("S",pleft+pwidth*.89,v)
-
   LDControls.SetButtonStyle(frontcolorbut,fc,wh,fc,bk,bk,bk,0,"False")
-
   LDControls.SetButtonStyle(backcolorbut,bc,wh,bc,bk,bk,bk,0,"False")
-
   LDControls.SetButtonStyle(screencolorbut,sc,wh,sc,bk,bk,bk,0,"False") 
-
   Controls.SetSize(frontcolorbut,pwidth*.09,vplus*.95)
-
   Controls.SetSize(backcolorbut,pwidth*.09,vplus*.95)
-
   Controls.SetSize(screencolorbut,pwidth*.09,vplus*.95)
-
   v=v+vplus
-
   griddecbut = Controls.AddButton("<",pleft,v)
-
   gridbut = Controls.AddButton("Grid 10",pleft+pwidth*.1,v)
-
   Controls.SetSize(gridbut,pwidth*.35,vplus*.95)
-
   'Controls.SetButtonCaption(gridbut,"Grid 1000")
-
   gridincbut = Controls.AddButton(">",pleft+pwidth*.47,v)
-
   gridxbut = Controls.AddButton("X",pleft+pwidth*.57,v)
-
   gridybut = Controls.AddButton("Y",pleft+pwidth*.67,v)
-
   gridzbut = Controls.AddButton("Z",pleft+pwidth*.77,v)
-
   v=v+vplus
-
   gobut = Controls.AddButton("GO",pleft,v)
-
   xyzbut = Controls.AddButton("Arrows",pleft+pwidth*.12,v)
-
   incarrowbut = Controls.AddButton(">",pleft+pwidth*.48,v)  
-
   decarrowbut = Controls.AddButton("<",pleft+pwidth*.38,v)
-
   bboxbut = Controls.AddButton("Bound",pleft+pwidth*.58,v)
-
   incscalebut = Controls.AddButton(">",pleft+pwidth*.91,v)
-
   decscalebut = Controls.AddButton("<",pleft+pwidth*.81,v)
-
   functree = LDControls.AddTreeView(tree,pwidth*.95,vplus*8)
-
   LDControls.TreeViewExpand(functree,1,"True","False")
-
   Controls.Move(functree,pleft,treev)
-
   LDControls.TreeViewSelect(functree,"sin")
-
   Controls.HideControl(functree)
-
   presettree = LDControls.AddTreeView(tree2,pwidth*.95,vplus*24)
-
   LDControls.TreeViewExpand(presettree,1,"True","False")
-
   Controls.Move(presettree,pleft,treev+vplus*2)
-
   LDControls.TreeViewSelect(presettree,"sin")
-
   Controls.HideControl(presettree)
-
   lastbox = Controls.AddTextBox(pleft,gh*.95)
-
   panelswitch = Controls.AddButton("-",gw*.985,1)
-
   messagebox = Controls.AddTextBox(gw * .001,gh*.85)
-
   Controls.SetSize(messagebox,gw*.2,gh*.15)
-
   LDControls.TextBoxReadOnly(messagebox,"True")
-
   Controls.HideControl(messagebox)
-
 EndSub
-
-
 
 Sub buildfuncimages  
-
   GraphicsWindow.FontName = "Arial"
-
   GraphicsWindow.FontSize = 24
-
   fontsize = 24
-
   image = LDImage.NewImage(320,50,"White")
-
   x = Text.GetCharacter(8226)
-
   LDImage.AddText(image,"(ax  + bx   + c )"+x+"amp",1,10,"Black")
-
   LDImage.AddText(image,"n",45,0,"Black")
-
   LDImage.AddText(image,"m",130,0,"Black")
-
   funcquad = Shapes.AddImage(image)
-
   Shapes.Zoom(funcquad,.75,.75)
-
   image = LDImage.NewImage(310,50,"White")
-
   LDImage.AddText(image,"sinh(x"+x+"freq)"+x+"amp",1,10,"Black")
-
   funcsinh= Shapes.AddImage(image)
-
   Shapes.Zoom(funcsinh,.75,.75)
-
   image = LDImage.NewImage(310,50,"White")
-
   LDImage.AddText(image,"cosh(x"+x+"freq)"+x+"amp",1,10,"Black")
-
   funccosh= Shapes.AddImage(image)
-
   Shapes.Zoom(funccosh,.75,.75)
-
   image = LDImage.NewImage(310,50,"White")
-
   LDImage.AddText(image,"tanh(x"+x+"freq)"+x+"amp",1,10,"Black")
-
   functanh= Shapes.AddImage(image)
-
   Shapes.Zoom(functanh,.75,.75)
-
   image = LDImage.NewImage(310,50,"White")
-
   LDImage.AddText(image,"sin(x"+x+"freq)"+x+"amp",1,10,"Black")
-
   funcsin= Shapes.AddImage(image)
-
   Shapes.Zoom(funcsin,.75,.75)
-
   image = LDImage.NewImage(310,50,"White")
-
   LDImage.AddText(image,"cos(x"+x+"freq)"+x+"amp",1,10,"Black")
-
   funccos= Shapes.AddImage(image)
-
   Shapes.Zoom(funccos,.75,.75)
-
   image = LDImage.NewImage(310,50,"White")
-
   LDImage.AddText(image,"tan(x"+x+"freq)"+x+"amp",1,10,"Black")
-
   functan= Shapes.AddImage(image)
-
   Shapes.Zoom(functan,.75,.75)
-
   image = LDImage.NewImage(310,50,"White")
-
   LDImage.AddText(image,"log(x"+x+"freq)"+x+"amp",1,10,"Black")
-
   funclog= Shapes.AddImage(image)
-
   Shapes.Zoom(funclog,.75,.75)
-
   image = LDImage.NewImage(310,50,"White")
-
   LDImage.AddText(image,"nlog(x"+x+"freq)"+x+"amp",1,10,"Black")
-
   funcnlog= Shapes.AddImage(image)
-
   Shapes.Zoom(funcnlog,.75,.75)
-
   image = LDImage.NewImage(360,50,"White")
-
   LDImage.AddText(image,"sin(x"+x+"freq)             "+x+"amp",1,10,"Black")
-
   LDImage.AddText(image,"(x"+x+"freq)",160,0,"Black")
-
   funcsinang= Shapes.AddImage(image)
-
   Shapes.Zoom(funcsinang,.75,.75)
-
   image = LDImage.NewImage(360,50,"White")
-
   LDImage.AddText(image,"cos(x"+x+"freq)            "+x+"amp",1,10,"Black")
-
   LDImage.AddText(image,"(x"+x+"freq)",166,0,"Black")
-
   funccosang= Shapes.AddImage(image)
-
   Shapes.Zoom(funccosang,.75,.75)
-
   
-
   image = LDImage.NewImage(385,50,"White")
-
   LDImage.AddText(image,"a=major rad b=minor rad",1,10,"Black")
-
   functorus = Shapes.AddImage(image)
-
   Shapes.Zoom(functorus,.75,.75)
-
   
-
   image = LDImage.NewImage(390,50,"White")
-
   LDImage.AddText(image,"(asin(x)  +bcos(x)   )"+x+"amp",1,14,"Black")
-
   LDImage.AddText(image,"n",116,-0,"Black")
-
   LDImage.AddText(image,"m",270,-0,"Black")
-
   funcasinPnbcosPm = Shapes.AddImage(image)
-
   Shapes.Zoom(funcasinPnbcosPm,.75,.75)
-
   
-
   image = LDImage.NewImage(385,50,"White")
-
   LDImage.AddText(image,"a=radius",1,10,"Black")
-
   funcsphere = Shapes.AddImage(image)
-
   Shapes.Zoom(funcsphere,.75,.75)
-
   
-
   image = LDImage.NewImage(140,50,"White")
-
   LDImage.AddText(image,"r=ae",1,14,"Black")
-
   LDImage.AddText(image,"b"+theta,70,0,"Black")
-
   funcsnailspiral = Shapes.AddImage(image)
-
   Shapes.Zoom(funcsnailspiral,.75,.75)
-
   
-
   image = LDImage.NewImage(250,75,"White")
-
   LDImage.AddText(image,"amplitude",5,0,"Black")
-
   LDImage.AddText(image,"__________",1,0,"Black")
-
   LDImage.AddText(image,"+c",190,14,"Black")
-
   LDImage.AddText(image,"cos("+theta+x+"freq)",1,33,"Black")
-
   funcsecant = Shapes.AddImage(image)
-
   Shapes.Zoom(funcsecant,.75,.75)
-
   
-
   image = LDImage.NewImage(390,50,"White")
-
   LDImage.AddText(image,"("+theta+x+"freq+a)sin("+theta+x+"freq)"+x+"amp",1,0,"Black")
-
   funccatastrophic_sine = Shapes.AddImage(image)
-
   Shapes.Zoom(funccatastrophic_sine,.75,.75)
-
   
-
   image = LDImage.NewImage(270,75,"White")
-
   LDImage.AddText(image,"amp"+x+"sin("+theta+x+"freq)",1,0,"Black")
-
   LDImage.AddText(image,"______________",1,0,"Black")
-
   LDImage.AddText(image,theta+x+"freq",50,33,"Black")
-
   funcdampened_sine = Shapes.AddImage(image)
-
   Shapes.Zoom(funcdampened_sine,.75,.75)
-
   
-
   image = LDImage.NewImage(200,75,"White")
-
   LDImage.AddText(image,"1-x",115,0,"Black")
-
   LDImage.AddText(image,"n",160,-10,"Black")
-
   LDImage.AddText(image,"____",115,0,"Black")
-
   
-
   GraphicsWindow.FontSize = fontsize*2
-
   LDImage.AddText(image,sqrt,70,6,"Black")
-
   GraphicsWindow.FontSize = fontsize
-
   LDImage.AddText(image,"amp"+x,1,15,"Black")
-
   LDImage.AddText(image,"1+ax",115,33,"Black")
-
   funcdistorted_cubic = Shapes.AddImage(image)
-
   Shapes.Zoom(funcdistorted_cubic,.75,.75)
-
   
-
   image = LDImage.NewImage(450,50,"White")
-
   LDImage.AddText(image,"   ________________",0,-28,"Black")
-
   GraphicsWindow.FontSize = fontsize * 1.5
-
   LDImage.AddText(image,sqrt,-2,7,"Black")
-
   LDImage.AddText(image,sqrt,0,7,"Black")
-
   GraphicsWindow.FontSize = fontsize
-
   LDImage.AddText(image,"   (x  + ax   +  bx   + c ) "+x+"amp",1,10,"Black")
-
   LDImage.AddText(image,"n",55,-2,"Black")
-
   LDImage.AddText(image,"m        p",140,-2,"Black")
-
   funccubic = Shapes.AddImage(image)
-
   Shapes.Zoom(funccubic,.75,.75)
-
   Shapes.move(funccubic,gw*.2,gh*.37)
-
   image = LDImage.NewImage(390,50,"White")   'now
-
   LDImage.AddText(image,"trial",1,0,"Black")
-
   functrial = Shapes.AddImage(image)
-
   Shapes.Zoom(functrial,.75,.75)
-
   image = LDImage.NewImage(230,50,"White")
-
   LDImage.AddText(image,"(x"+x+"freq)  "+x+"amp",1,10,"Black")
-
   LDImage.AddText(image,"2",112,0,"Black")
-
   funcsqr= Shapes.AddImage(image)
-
   Shapes.Zoom(funcsqr,.75,.75)
-
   For i = Text.GetSubTextToEnd(funcquad,6) To Text.GetSubTextToEnd(funcsqr,6)
-
     LDShapes.Centre("Image"+i,gwc,gh*.9)
-
     Shapes.HideShape("Image"+i)
-
   EndFor
-
 EndSub
-
-
 
 Sub onmousewheel
-
   If LDUtilities.KeyDown("Q") Then
-
     zoom = 50
-
   ElseIf LDUtilities.KeyDown("A") then
-
     zoom = .2
-
   Else
-
     zoom = 2
-
   EndIf
-
   move = LDEvents.LastMouseWheelDelta
-
   If LDUtilities.KeyDown("LeftShift") Then
-
     campos = LD3DView.GetCameraPosition(view3d)
-
     camdir = LD3DView.GetCameraDirection(view3d)
-
     camup = LD3DView.GetCameraUpDirection(view3d)
-
     camrt = LDVector.Multiply(LDVector.Normalise(LDVector.CrossProduct(camdir,camup)),move*zoom)
-
     campos = LDVector.Add(campos,camrt)
-
     LD3DView.ResetCamera(view3d,campos[1],campos[2],campos[3],camdir[1],camdir[2],camdir[3],camup[1],camup[2],camup[3])
-
     
-
   ElseIf LDUtilities.KeyDown("LeftCtrl") Then
-
     campos = LD3DView.GetCameraPosition(view3d)
-
     camdir = LD3DView.GetCameraDirection(view3d)
-
     camup = LD3DView.GetCameraUpDirection(view3d)
-
     camrt = LDVector.Normalise(LDVector.CrossProduct(camdir,camup))
-
     campos = LDVector.Add(campos,LDVector.Multiply(camup,move*zoom))
-
     LD3DView.ResetCamera(view3d,campos[1],campos[2],campos[3],camdir[1],camdir[2],camdir[3],camup[1],camup[2],camup[3])
-
   ElseIf LDUtilities.KeyDown("Tab") Then
-
     LD3DView.MoveCamera(view3d,0,0,move*zoom,0)
-
   ElseIf LDUtilities.KeyDown("Y") Then
-
     facepos = LD3DView.GetPosition(view3d,face)
-
     facepos = LDVector.Subtract(facepos,originalpos)
-
     LD3DView.TranslateGeometry(view3d,face,facepos[1],facepos[2]+zoom*move,facepos[3])
-
   ElseIf LDUtilities.KeyDown("Z") Then
-
     facepos = LD3DView.GetPosition(view3d,face)
-
     facepos = LDVector.Subtract(facepos,originalpos)
-
     LD3DView.TranslateGeometry(view3d,face,facepos[1],facepos[2],facepos[3]+zoom*move)
-
   ElseIf LDUtilities.KeyDown("X") Then
-
     facepos = LD3DView.GetPosition(view3d,face)
-
     facepos = LDVector.Subtract(facepos,originalpos)
-
     LD3DView.TranslateGeometry(view3d,face,facepos[1]+zoom*move,facepos[2],facepos[3])
-
   Else
-
     move = LDEvents.LastMouseWheelDelta
-
     LD3DView.MoveCamera(view3d,0,0,0,move*zoom)
-
   EndIf
-
 EndSub
-
-
 
 Sub onmousemove
-
   If Mouse.IsRightButtonDown and LDUtilities.KeyDown("LeftCtrl") = "False" Then
-
     If Mouse.MouseX > 1 And Mouse.MouseX < sw Then
-
       campos = LD3DView.GetCameraPosition(view3d)
-
       camdir = LD3DView.GetCameraDirection(view3d)
-
       camup = LD3DView.GetCameraUpDirection(view3d)
-
       camrt = LDVector.Normalise(LDVector.CrossProduct(camdir,vy))
-
       mx = -(Mouse.MouseX - mxpos) * mousezoom
-
       my = -(Mouse.MouseY - mypos) * mousezoom
-
       pos = LD3DView.GetPosition(view3d,face)
-
       campos = LDVector.RotatePoint(campos,pos,vy,mx)
-
       campos = LDVector.RotatePoint(campos,pos,camrt,my)
-
       camdir = LDVector.Normalise(LDVector.Subtract(pos,campos))
-
       LD3DView.ResetCamera(view3d,campos[1],campos[2],campos[3],camdir[1],camdir[2],camdir[3],vy[1],vy[2],vy[3])
-
       Mouse.MouseX = gwc
-
       Mouse.MouseY = ghc
-
     EndIf
-
   EndIf
-
   If Mouse.IsRightButtonDown And LDUtilities.KeyDown("LeftCtrl") Then
-
     If Mouse.MouseX > 1 And Mouse.MouseX < sw Then
-
       campos = LD3DView.GetCameraPosition(view3d)
-
       camdir = LD3DView.GetCameraDirection(view3d)
-
       camup = LD3DView.GetCameraUpDirection(view3d)
-
       camrt = LDVector.Normalise(LDVector.CrossProduct(camdir,vy))
-
       mx = -(Mouse.MouseX - mxpos) * mousezoom
-
       my = -(Mouse.MouseY - mypos) * mousezoom
-
       campos = LDVector.Rotate(campos,vy,mx)
-
       campos = LDVector.Rotate(campos,camrt,my)
-
       camdir = LDVector.Normalise(LDVector.Multiply(campos,-1))
-
       LD3DView.ResetCamera(view3d,campos[1],campos[2],campos[3],camdir[1],camdir[2],camdir[3],vy[1],vy[2],vy[3])
-
       Mouse.MouseX = gwc
-
       Mouse.MouseY = ghc
-
     EndIf
-
   EndIf
-
   If Mouse.IsleftButtonDown Then
-
     If Mouse.MouseX > 1 And Mouse.MouseX < sw Then
-
       campos = LD3DView.GetCameraPosition(view3d)
-
       camdir = LD3DView.GetCameraDirection(view3d)
-
       camup = LD3DView.GetCameraUpDirection(view3d)
-
       camrt = LDVector.Normalise(LDVector.CrossProduct(camdir,camup))
-
       mx = 2*(Mouse.MouseX - mxpos) * mousezoom
-
       my = 2*(Mouse.MouseY - mypos) * mousezoom
-
       campos = LDVector.Rotate(campos,camup,mx)
-
       campos = LDVector.Rotate(campos,camrt,my)
-
       camdir = LDVector.Normalise(LDVector.Multiply(campos,-1))
-
       LD3DView.MoveCamera(view3d,-mx,my,0,0)
-
       Mouse.MouseX = gwc
-
       Mouse.MouseY = ghc
-
     EndIf
-
   EndIf
-
   mxpos = Mouse.MouseX
-
   mypos = Mouse.MouseY
-
 EndSub
-
 Sub center
-
   pos = LD3DView.GetPosition(view3d,face)
-
   LD3DView.TranslateGeometry(view3d,face,-pos[1],-pos[2],-pos[3])
-
 EndSub
-
 Sub origin
-
   LD3DView.TranslateGeometry(view3d,face,0,0,0)
-
 EndSub
-
 Sub onmousedown
-
   If Mouse.IsRightButtonDown Then
-
     hit = LD3DView.HitTest(view3d,Mouse.MouseX,Mouse.MouseY)
-
     pos = LD3DView.GetPosition(view3d,hit[1])
-
     campos=LD3DView.GetCameraPosition(view3d)
-
     viewdist = LDVector.Length(LDVector.Subtract(campos,pos))
-
   EndIf
-
 EndSub
-
-
 
 Sub review  
-
   pos = LD3DView.BoundingBox(view3d,face)
-
   For i = 1 To 3
-
     pos1[i] = pos[i+3]
-
     pos2[i] = pos[i+3]+pos[i]
-
   EndFor
-
   bboxdiagdist = LDVector.Length(LDVector.Subtract(pos1,pos2))
-
   camdir = ldvector.Normalise(LDVector.CrossProduct(LDVector.Subtract(pos1,pos2),vy))
-
   vang = LDVector.AngleBetween(LDVector.Subtract(campos,pos1),LDVector.Subtract(campos,pos2))
-
   pos = LD3DView.GetPosition(view3d,face)
-
   viewdist = LDVector.Length(LDVector.Subtract(campos,pos))
-
   newviewdist = viewdist * vang / camviewang
-
   campos = LDVector.Add(pos, LDVector.Multiply(camdir,-bboxdiagdist))
-
   LD3DView.ResetCamera(view3d,campos[1],campos[2],campos[3],camdir[1],camdir[2],camdir[3],vy[1],vy[2],vy[3])
-
 EndSub
-
 Sub setview  'args[1] = view vector
-
   viewdir = args[1]
-
   camdir = LDVector.Normalise(LDText.Split(viewdir,","))
-
   camup = vy
-
   If LDVector.AngleBetween(camup,camdir) <.01 Then
-
     camup = LDVector.Multiply(vz,1)
-
   ElseIf LDVector.AngleBetween(camup,camdir) > 179 Then
-
     camup = LDVector.Multiply(vz,-1)
-
   EndIf
-
   pos = LD3DView.BoundingBox(view3d,face)
-
   For i = 1 To 3
-
     pos1[i] = pos[i+3]
-
     pos2[i] = pos[i+3]+pos[i]
-
   EndFor
-
   bboxdiagdist = LDVector.Length(LDVector.Subtract(pos1,pos2))
-
   pos = LD3DView.GetPosition(view3d,face)
-
   campos = LDVector.Add(pos, LDVector.Multiply(camdir,-bboxdiagdist))
-
   LD3DView.ResetCamera(view3d,campos[1],campos[2],campos[3],camdir[1],camdir[2],camdir[3],camup[1],camup[2],camup[3])
-
 EndSub
-
 Sub savepreset   
-
   presetname = Controls.GetTextBoxText(presetnamebox)
-
   ans = LDDialogs.Confirm("Use the Name Below for this preset?"+crlf+crlf+t1+presetname,"Preset Name Confirm")
-
   If ans = "Yes" Then
-
     q1 = Text.GetCharacter(34)
-
     set_vars_from_boxes()
-
     presetdata = "pdata[] = "+q1+gosub+":"+presetname+":"+freq+":"+beltamt+":"+frombelt+":"+tobelt+":"+amp+":"+sectors+":"+fromsec+":"+tosec+":"
-
     presetdata = presetdata+aa+":"+bb+":"+cc+":"+dd+":"+ff+":"+gg+":"+hh+":"+ii+":"+nn+":"+mm+":"+pp+":"+qq+":"+limit+":"+q1
-
     LDClipboard.SetText(presetdata)
-
   EndIf
-
 EndSub
-
 Sub getpresets
-
   p1 = pdatanum
-
   gosub = pdata[p1][1]
-
   Controls.SetButtonCaption(funcchoicebut,gosub)
-
   presetname = pdata[p1][2]
-
   Controls.SetTextBoxText(presetnamebox,presetname)
-
   freq = pdata[p1][3]
-
   Controls.SetTextBoxText(freqbox,freq)
-
   beltamt = pdata[p1][4]
-
   Controls.SetTextBoxText(beltbox,beltamt)
-
   frombelt = pdata[p1][5]
-
   Controls.SetTextBoxText(frombeltbox,frombelt)
-
   tobelt = pdata[p1][6]
-
   Controls.SetTextBoxText(tobeltbox,tobelt)
-
   amp = pdata[p1][7]
-
   Controls.SetTextBoxText(ampbox,amp)
-
   sectors = pdata[p1][8]
-
   Controls.SetTextBoxText(secbox,sectors)
-
   fromsec = pdata[p1][9]
-
   Controls.SetTextBoxText(fromsecbox,fromsec)
-
   tosec = pdata[p1][10]
-
   Controls.SetTextBoxText(tosecbox,tosec)
-
   aa = pdata[p1][11]
-
   Controls.SetTextBoxText(abox,aa)
-
   bb = pdata[p1][12]
-
   Controls.SetTextBoxText(bbox,bb)
-
   cc = pdata[p1][13]
-
   Controls.SetTextBoxText(cbox,cc)
-
   dd = pdata[p1][14]
-
   Controls.SetTextBoxText(dbox,dd)
-
   ff = pdata[p1][15]
-
   Controls.SetTextBoxText(fbox,ff)
-
   gg = pdata[p1][16]
-
   Controls.SetTextBoxText(gbox,gg)
-
   hh = pdata[p1][17]
-
   Controls.SetTextBoxText(hbox,hh)
-
   ii = pdata[p1][18]
-
   Controls.SetTextBoxText(ibox,ii)
-
   nn = pdata[p1][19]
-
   Controls.SetTextBoxText(nbox,nn)
-
   mm = pdata[p1][20]
-
   Controls.SetTextBoxText(mbox,mm)
-
   pp = pdata[p1][21]
-
   Controls.SetTextBoxText(pbox,pp)
-
   qq = pdata[p1][22]
-
   Controls.SetTextBoxText(qbox,qq)
-
   limit = pdata[p1][23]
-
   Controls.SetTextBoxText(limitbox,limit)
-
 EndSub
-
 Sub setpresets
-
   pdata[1] = "torus:Torus 1:1:24:0:360:5:24:0:360:30:10:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[2] = "torus:Torus Segment 1:1:24:-90:90:5:24:0:90:30:10:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[3] = "torus:90 Deg Elbow:1:24:0:360:5:24:0:90:30:10:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[4] = "sphere:Sphere 1:1:24:-90:90:5:24:0:360:25:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[5] = "sphere:Sphere Section 1:1:24:0:90:5:24:225:315:25:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[6] = "sin:Sin 1 Freq 2:2:96:0:360:20:48:0:360:1:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[7] = "sin:Sin Freq 1 Quarter:1:24:0:360:30:24:0:90:1:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[8] = "sin:Sin Wing Shape:1:24:0:360:15:2:0:300:1:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[9] = "cos:Sin Boat Shape:1:24:0:360:5:2:0:330:1:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[10] = "cos:Cos Standard:1:96:0:360:30:48:0:360:1:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[11] = "quad:3 sided peak:1:100:0:360:.0035:3:0:360:1:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[12] = "quad:Goblet:1:25:0:800:.002:64:0:360:1:1:1:1:1:1:1:1:2:1:1:1:1500:"
-
   pdata[13] = "quad:Trophy:1:100:-50:600:.000005:3:30:390:1:1:0:1:1:1:1:1:3:1:1:1:1100:"
-
   pdata[14] = "sinang:sin(ang)^ang:1:24:0:360:25:24:0:360:1:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[15] = "cosang:cos(ang)^ang:1:24:0:360:25:24:0:360:1:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[16] = "asinPnbcosPm:Multiple Rings:1:40:-1440:360:3:24:0:90:10:1:1:1:1:1:1:1:30:0:1:1:500:"
-
   pdata[17] = "snailspiral:4 turn snail half:1:64:-360:1080:5:48:0:180:10:.25:1:1:1:1:1:1:2:1:2:1:500:"
-
   pdata[18] = "secant:secant segment:1:181:0:180:1:2:-2:2:1:1:1:1:1:1:1:1:2:1:1:1:1000:"
-
   pdata[19] = "catastrophic_sine:cat.sine cutaway:2:96:-720:360:.25:48:180:360:1:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[20] = "dampened_sine:dampened sine:1:96:-1440:360:10000:48:180:360:1:1:1:1:1:1:1:1:2:1:1:1:500:"
-
   pdata[21] = "distorted_cubic:Martini:1:96:-100:2000:100:48:0:360:-2.5:1:1:1:1:1:1:1:2:1:1:1:5000:"
-
   pdata[22] = "distorted_cubic:Nose Cone:1:115:-5:360:100:60:0:360:-2.5:1:1:1:1:1:1:1:2:1:1:1:5000:"
-
   pdata[23] = "distorted_cubic:Dome:1:350:10:360:10:24:0:360:-.2:1:1:1:1:1:1:1:2:1:1:1:5000:"
-
   pdata[24] = "sqr:Teepee:1:180:0:360:.01:12:180:360:1:1:1:1:1:1:1:1:2:1:1:1:5000:"
-
   pdata[25] = "cubic:Rice Bowl:1:200:360:2000:.02:64:0:360:-800:5:1:1:1:1:1:1:3:2:1:1:20000:"
-
   
-
   pdataitemcount[1] = Array.GetItemCount(pdata)'now
-
   For i = 1 To pdataitemcount[1]
-
     pdata[i] = LDText.Split(pdata[i],":")
-
   EndFor
-
   pdataitemcount[2] = Array.GetItemCount(pdata[1])
-
   For i = 1 To pdataitemcount[1]
-
   EndFor
-
   tree2[1][0] = pdata[1][1]
-
   tree2[2][1] = pdata[1][2]
-
   For i = 2 To pdataitemcount[1]
-
     lasttree2 = Array.GetItemCount(tree2)
-
     nexttree2 = lasttree2+1
-
     For i2 = 1 To lasttree2
-
       If pdata[i][1] = tree2[i2][0] Then
-
         tree2[nexttree2][i2] = pdata[i][2]
-
         i2 = lasttree2
-
       EndIf
-
     EndFor
-
     lasttree2 = Array.GetItemCount(tree2)
-
     If lasttree2 < nexttree2 Then
-
       tree2[nexttree2][0] = pdata[i][1]
-
       tree2[nexttree2+1][nexttree2] = pdata[i][2]
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub snailshellcoordinate
-
   angle = args[one]
-
   asize = args[two]
-
   radian2 = angle * piang  ''angle of current edge
-
   radius2 = asize*LDMath.Exp(radian2*bb)  ''radius of current edge from origin
-
   radian1 = radian2-two*Math.Pi             ''angle less 360 degrees
-
   radius1 = asize*LDMath.Exp(radian1*bb)  ''radius of edge of previus edge
-
   loberadius = (radius2-radius1)/two        ''radius of the circle of the current edge
-
   loberadiuscenter = radius1 + loberadius ''radius from origin to center of current circle
-
   xcoord = loberadiuscenter* Math.Cos(radian2)
-
   ycoord = loberadiuscenter* Math.Sin(radian2)
-
   loberadiuscentervector[one] = loberadiuscenter
-
   loberadiuscentervector[two] = zero
-
   loberadiuscentervector[three] = zero
-
   loberadiuscentervector = LDVector.Rotate(loberadiuscentervector,vy,angle)  ''vector to center of current circle
-
   lobecircleaxis = LDVector.Normalise(LDVector.Rotate(loberadiuscentervector,vy,90))''vector of axis of rotation of current circle
-
   return[one] = loberadius
-
   return[two] = loberadiuscentervector
-
   return[3] = lobecircleaxis
-
 EndSub
-
-
 
 Sub showcolorpicker
-
   pick = 0
-
   colorpic[1] = args[1]
-
   colorpic[2] = args[1]
-
   Controls.ShowControl(rectbut[1])
-
   Controls.ShowControl(rectbut[2])
-
   Controls.ShowControl(colorselectbut)
-
   Controls.ShowControl(colorcancelbut)
-
   Controls.ShowControl(graddircbut)
-
   Shapes.ShowShape(colorpanel)
-
   Shapes.ShowShape(rect[1])
-
   Shapes.ShowShape(rect[2])
-
   Shapes.ShowShape(colorpicrect)
-
   Shapes.ShowShape(colorpicrect2)
-
   gradient2[1] = "White"
-
   gradient2[2] = colorpic[1]
-
   gradient2[3] = "Black"
-
   LDShapes.BrushShape(rect[2], LDShapes.BrushGradient(gradient2,"V"))
-
   LDShapes.BrushShape(colorpicrect,LDShapes.BrushGradient(colorpic,"V"))
-
 EndSub
-
 Sub hidecolorpicker
-
   Controls.HideControl(rectbut[1])
-
   Controls.HideControl(rectbut[2])
-
   Controls.HideControl(colorselectbut)
-
   Controls.HideControl(colorcancelbut)
-
   Controls.HideControl(graddircbut)
-
   Shapes.HideShape(colorpanel)
-
   Shapes.HideShape(rect[1])
-
   Shapes.HideShape(rect[2])
-
   Shapes.HideShape(colorpicrect)
-
   Shapes.HideShape(colorpicrect2)
-
 EndSub
-
 Sub setupcolorpicker
-
   graddir = "V"
-
   pc = "Silver"
-
   gradient[1] = "#FF0000"
-
   gradient[2] = "#FF00FF"
-
   gradient[3] = "#0000FF"
-
   gradient[4] = "#00FFFF"
-
   gradient[5] = "#00FF00"
-
   gradient[6] = "#FFFF00"
-
   gradient[7] = "#FF0000"
-
   gradient[8] = "#FFFFFF"
-
   gradient[9] = "#000000"
-
   GraphicsWindow.BrushColor = pc
-
   colorpanel = Shapes.AddRectangle(gw*.08,gh*.6)
-
   Shapes.Move(colorpanel,gw*.855,gh*.3)
-
   GraphicsWindow.BrushColor = "Blue"
-
   rainbow = LDShapes.BrushGradient(gradient,"V")
-
   rect[1] = Shapes.AddRectangle(gw*.02,gh*.4)
-
   Shapes.Move(rect[1],gw*.87,gh*.495)
-
   rect[2] = Shapes.AddRectangle(gw*.02,gh*.4)
-
   Shapes.Move(rect[2],gw*.90,gh*.495)
-
   gradient2[1] = "White"
-
   gradient2[2] = fc
-
   gradient2[3] = "Black"
-
   LDShapes.BrushShape(rect[2], LDShapes.BrushGradient(gradient2,"V"))
-
   colorpicrect = Shapes.AddRectangle(gw*.02,gh*.14)
-
   Shapes.Move(colorpicrect,gw*.87,gh*.35)
-
   colorpicrect2 = Shapes.AddRectangle(gw*.04,gh*.14)
-
   Shapes.Move(colorpicrect2,gw*.89,gh*.35)
-
   colorpic[1] = fc
-
   colorpic[2] = colorpic[1]
-
   LDShapes.BrushShape(colorpicrect,LDShapes.BrushGradient(colorpic,"V"))
-
   rectbut[1] = Controls.AddButton("",gw*.87,gh*.495)
-
   rectbut[2] = Controls.AddButton("",gw*.90,gh*.495)
-
   LDShapes.BrushShape(rect[1], rainbow)
-
   transparent = "#00FFFFFF"
-
   LDControls.SetButtonStyle(rectbut[1],transparent,transparent,transparent,transparent,transparent,transparent,0,"False")
-
   Controls.SetSize(rectbut[1],gw*.02,gh*.4)
-
   LDControls.SetButtonStyle(rectbut[2],transparent,transparent,transparent,transparent,transparent,transparent,0,"False")
-
   Controls.SetSize(rectbut[2],gw*.02,gh*.4)
-
   colorselectbut = Controls.AddButton("Ok",gw*.87,gh*.307)
-
   graddircbut = Controls.AddButton("|",gw*.9,gh*.307)
-
   fs = GraphicsWindow.FontSize
-
   GraphicsWindow.FontSize = 6
-
   colorcancelbut = Controls.AddButton("x",gw*.923,gh*.305)
-
   GraphicsWindow.FontSize = fs
-
 EndSub
-
 Sub graddirectiontoggle
-
   gradbut = Controls.GetButtonCaption(graddircbut)
-
   If gradbut ="|" Then
-
     graddir = "H"
-
     Controls.SetButtonCaption(graddircbut,"-")
-
   ElseIf gradbut ="-" Then
-
     Controls.SetButtonCaption(graddircbut,"/")
-
     graddir = "DU"
-
   ElseIf gradbut ="/" Then
-
     Controls.SetButtonCaption(graddircbut,"\")
-
     graddir = "DD"
-
   ElseIf gradbut ="\" Then
-
     Controls.SetButtonCaption(graddircbut,"O")
-
     graddir = "R"
-
   ElseIf gradbut ="O" Then
-
     Controls.SetButtonCaption(graddircbut,"|")
-
     graddir = "V"
-
   EndIf
-
   LDShapes.BrushShape(colorpicrect2,LDShapes.BrushGradient(grad,graddir))
-
 EndSub
-
 Sub buildgrid
-
   size = 200
-
   size2 = size/2
-
   gridspace = (size)/20
-
   griddata = ""
-
   
-
   y1 = -size/2 
-
   y2 = y1+size
-
   
-
   For x1 = -size/2 To size/2-1 Step gridspace*2
-
     x2 = x1 + gridspace
-
     griddata = griddata+x1+":"+y1+":"+0+":"
-
     griddata = griddata+x1+":"+y2+":"+0+":"
-
     griddata = griddata+x2+":"+y2+":"+0+":"
-
     griddata = griddata+x2+":"+y1+":"+0+":"
-
   EndFor
-
   x1 = -size/2 
-
   x2 = y1+size
-
   For y1 = -size/2 To size/2-1 Step gridspace*2
-
     y2 = y1 + gridspace
-
     griddata = griddata+x1+":"+y1+":"+0+":"
-
     griddata = griddata+x2+":"+y1+":"+0+":"
-
     griddata = griddata+x2+":"+y2+":"+0+":"
-
     griddata = griddata+x1+":"+y2+":"+0+":"
-
   EndFor
-
   griddata = griddata+(-size/2+.0001)+":"+(size/2)+":"+0+":"
-
   griddata = griddata+(size/2+.0001)+":"+(size/2)+":"+0+":"
-
   griddata = griddata+(size/2+.0001)+":"+(-size/2)+":"+0+":"
-
   grid[1] = LD3DView.AddTube(view3d,griddata,.125,6,"#FFFFFF","E")
-
   griddata = 0+":"+size2+":"+0+":"
-
   griddata = griddata+0+":"+(-size2)+":"+0+":"
-
   griddata = griddata+0+":"+0+":"+0+":"
-
   griddata = griddata+size2+":"+0+":"+0+":"
-
   griddata = griddata+(-size2)+":"+0+":"+0+":"
-
   grid[2] = LD3DView.AddTube(view3d,griddata,.2,6,"#FF0000","E")
-
 EndSub
-
-
-
 

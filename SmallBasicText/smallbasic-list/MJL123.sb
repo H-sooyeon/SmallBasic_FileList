@@ -1,495 +1,247 @@
 'To Do List
-
 'make aliens able to shoot
-
 'hit detection for aliens
-
 'when laser hits the bunker it loses 10 hp or if laser hits player then player loses one life
-
 'Make code the shortest it can be
 
-
-
 graphicwindow()
-
 player()
-
 bunker()
-
 Createmissiles()
-
 createinvader()
 
-
-
 'missile shooting loop
-
 While shoot = 0
-
   If (spaceDown) Then
-
     FireMissile()
-
     spaceDown = "False"
-
   EndIf
-
   Updatemissiles()
-
   delay = 15
-
   If (delay > 0) Then
-
     Program.Delay(delay)
-
   EndIf
-
   invadermove()
-
   processKey()                              
-
   Shapes.Move(player,playerX-25,playerY-25)   
-
 EndWhile
 
-
-
 'Graphic Window
-
 Sub graphicwindow
-
   GraphicsWindow.Title = "V-Space Invader"
-
   gw = 700
-
   gh = 600
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   GraphicsWindow.KeyDown = OnKeyDown
-
   GraphicsWindow.KeyUp = OnKeyUp
-
   keyLeft = 0
-
   keyRight = 0
-
   key = 0
-
   shoot = 0
-
   'GraphicsWindow.BackgroundColor = "black"
-
   'TitleLogo = Shapes.AddImage("http://i61.tinypic.com/14w4r5k.png")
-
   'Shapes.Move(TitleLogo,gw - 468,gh - 400)
-
   'GraphicsWindow.DrawText(10, gh - 20, "Loading...")
-
   'Program.Delay(5000)
-
   'Shapes.Remove(TitleLogo)
-
   'Program.Delay(1000)
-
   GraphicsWindow.DrawImage("http://i58.tinypic.com/21afh2o.png",0,0)  'Space 
-
 EndSub
-
-
 
 'Player
-
 Sub player
-
   player = Shapes.AddImage("http://i62.tinypic.com/2nhkowg.png")   'player ship
-
   playerX = 300   'player starting x coordinates
-
   playerY = 550    'player starting y coordinates
-
   Lives = 3
-
   Score = 0
-
   speed = 7   'speed at which player moves
-
   HP = 100
-
   invnum = 5  'starting number of invaders
-
   reset = 5
-
   wave = 1
-
   wavel = 0
-
   Shapes.Move(player,playerX,playerY)    'ship starts in the mid bottom of the map
-
   writeTextLSW = Shapes.AddText("Lives: "+Lives+"         Score: "+Score+"         Wave: " + wave)
-
   Shapes.Move(writeTextLSW, 30,gh-590)
-
 EndSub
-
-
 
 'Bunkers
-
 Sub bunker
-
   bb = 100
-
   For i = 1 To 3
-
     Bunker[i] = Shapes.AddImage("http://i58.tinypic.com/egz90o.png")
-
     Shapes.Move(Bunker[i],bb,410)
-
     bb = bb + 200
-
   EndFor
-
   For b = 1 To 3
-
     writeText[b] = Shapes.AddText("HP: " + HP)
-
     Shapes.Move(writeText[b], 120 + ((b-1)*200), 415)
-
   EndFor
-
 EndSub
-
-
 
 Sub newwave
-
   If wavel > 5 Then 'adds a life every 5 waves
-
     Lives = Lives + 1
-
     wavel = 0
-
   EndIf
-
   invnum = invnum + 1 'adds one more invader to the new wave
-
   wave = wave + 1
-
   wavel = wavel + 1
-
   reset = invnum
-
   scoreandlives()
-
   createinvader()
-
 EndSub
-
-
 
 Sub scoreandlives
-
   Shapes.Remove(writeTextLSW) 'removes old text
-
   writeTextLSW = Shapes.AddText("Lives: "+Lives+"         Score: "+Score+"         Wave: " + wave)
-
   Shapes.Move(writeTextLSW, 30,gh-590)
-
 EndSub
-
-
 
 Sub collision_check
-
   For j = 1 To invnum
-
     If (invaderX[j]<=missileData["Xpos"]+10  And missileData["Xpos"]+10 < invaderX[j]+70) and  (invaderY[j]<=missileData["Ypos"]  And missileData["Ypos"] < invaderY[j]+54) then 'when missile hits an invader, the invader disappears
-
       Shapes.Remove(invader[j])            '  Note  missile width=20  //  missile center=10            invader width= 70  height=54 
-
       j = invnum
-
       Hits = "True"  
-
       reset = reset - 1
-
       If reset <= 0 then 'when there are no invaders a new wave comes in
-
         newwave()
-
       Endif
-
       Score = Score + 10 'when an invader is hit score increases by 10
-
       scoreandlives() 'changes the score
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 'Invader
-
 Sub invadermove 
-
   If pos >= 1800 and reset > 0 then  'if there are invaders left when it reaches Earth, they disappear and you lose 1 life
-
     For i = 1 To invnum
-
       Shapes.Remove(invader[i])
-
     EndFor
-
     Lives = Lives - 1     'life lost since an invader hitted Earth
-
     newwave()
-
     If Lives = 0 Then 'when you have no lives its game over
-
       Program.End()
-
     EndIf
-
   EndIf
-
   pos = pos + 1 'when pos >= 1800 invaders are at the bottom 
-
   For i = 1 To invnum
-
     invaderX[i] = Shapes.GetLeft(invader[i])             '  Invader's new position -X
-
     ddy[i]=0                                             '   speed Y  is usually  zero     
-
     If (invaderX[i]<-100  Or gw<invaderX[i]) Then        '  if  x-position < -50  or  gw+50 < x-position 
-
       ddxy[i]["X"]=-ddxy[i]["X"]                         '   speed X   changes  to minus vakue    ( +3 -->. -3 ,   -3  --> +3 )  
-
       ddy[i]=ddxy[i]["Y"]                                '   speed Y  changes to  +50    (  0  -->  +50) 
-
     EndIf
-
     Shapes.Move(invader[i],Shapes.GetLeft(invader[i])+ddxy[i]["X"],Shapes.GetTop(invader[i])+ddy[i]) ' invader moved
-
     invaderX[i] = Shapes.GetLeft(invader[i])    'Invader's new position -X
-
     invaderY[i]= Shapes.Gettop(invader[i])      'Invader's new position -Y
-
   EndFor  
-
 EndSub
-
-
 
 Sub createinvader
-
   For i = 1 To invnum
-
     pos = 0
-
     invader[i] = Shapes.AddImage("http://i59.tinypic.com/2v2v1pz.png")
-
     Shapes.Move(invader[i],i*80,10)
-
     ddxy[i]="X=3;Y=50"   '   invader's speed   //  x-direction=3    Y-dirction =50 
-
   EndFor
-
 EndSub
-
-
 
 Sub Createmissiles
-
   missileImage = ImageList.LoadImage("http://i61.tinypic.com/vxn1xy.png")
-
   'missile dimensions we use the half width and height
-
   missileWidth = ImageList.GetWidthOfImage(missileImage)/2
-
   missileHeight = ImageList.GetHeightOfImage(missileImage)/2
-
   nummissile = 5
-
   For i = 1 To nummissile
-
     missileData["image"] = Shapes.AddImage(missileImage)
-
     missileData["Xpos"] = missileWidth + Math.GetRandomNumber(gw-2*missileWidth)
-
     missileData["Ypos"] = gh-missileHeight
-
     missileData["Xvel"] = 0
-
     missileData["Yvel"] = -5
-
     missileData["Status"] = 0
-
     Shapes.HideShape(missileData["image"])
-
     missiles[i] = missileData
-
   EndFor
-
   Hits="False" 'Initial  = "False"
-
 EndSub
-
-
 
 Sub Updatemissiles
-
   For i = 1 To nummissile
-
     missileData = missiles[i] 'get current missile array
-
     If (missileData["Status"] = 1) Then
-
       'Reposition missile center
-
       missileData["Xpos"] = missileData["Xpos"] + missileData["Xvel"]
-
       missileData["Ypos"] = missileData["Ypos"] + missileData["Yvel"]  
-
       'Move missile center
-
       Shapes.Move(missileData["image"],missileData["Xpos"]-missileWidth,missileData["Ypos"]-missileHeight)
-
       'missile finished with
-
       collision_check()  
-
       If (missileData["Ypos"] < -missileHeight) or Hits="True" Then
-
         missileData["Status"] = 0
-
         Shapes.HideShape(missileData["image"])
-
         Hits="False" 
-
       EndIf
-
       missiles[i] = missileData 'save updated missile array (it may have been modified)
-
     EndIf
-
   EndFor
-
 EndSub
-
-
 
 Sub FireMissile
-
   NN=NN+1      '  increment  missile number
-
   missileData = missiles[NN] ' get   NN'th   missile array
-
   If (missileData["Status"] = 0) Then
-
     missileData["Status"] = 1
-
     Shapes.ShowShape(missileData["image"])
-
     missileData["Xpos"] = playerX + 6
-
     missileData["Ypos"] = playerY + 10
-
     missiles[NN] = missileData 'save updated missile array (it may have been modified)
-
   EndIf
-
   If NN=nummissile Then   
-
     NN=0  ' to recycle
-
   EndIf  
-
 EndSub
-
-
 
 Sub OnKeyDown
-
   lastkey = GraphicsWindow.LastKey
-
   If lastkey = "Space" then  
-
     shoot = 0
-
     spaceDown = "True"
-
   EndIf
-
   If (lastKey = "Left") Then
-
     keyLeft = 1
-
   ElseIf (lastKey = "Right") Then
-
     keyRight = 1
-
   EndIf 
-
   If lastkey = "Escape" Then
-
     Program.End()
-
   EndIf 
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   lastKey = GraphicsWindow.LastKey
-
   If (lastKey = "Left") Then
-
     keyLeft = 0
-
   ElseIf (lastKey = "Right") Then
-
     keyRight = 0
-
   EndIf 
-
 EndSub
-
-
 
 Sub processKey
-
   If (keyLeft = 1) Then
-
     playerX = playerX-speed
-
   EndIf 
-
   If (keyRight = 1) Then
-
     playerX = playerX+speed
-
   EndIf 
-
   'Check for hitting edges
-
   If (playerX < 0) Then
-
     playerX = 0
-
   ElseIf (playerX > 690) Then
-
     playerX = 690
-
   EndIf
-
 EndSub
-
-

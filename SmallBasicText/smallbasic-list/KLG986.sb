@@ -1,471 +1,235 @@
 'Name: Chatter
-
 'Author: Abram Adams
-
 'Date: 10/31/2009
-
 'version:  0.1
-
 'Description: Simple instant message client.  Uses a ColdFusion web application server to handle the data processing.
-
 'Simply uses the Network.GetWebPageContents() function to send/retrieve data to/from the server. 
-
 'Note: The text input is very primitave.  Backspace is supported, but not much else.  Also, I use the DrawBoundText for the 
-
 'text input and the output screen, but that only wraps based on width.  So, if you type too much in the text input box it will 
-
 'spill over, not pretty.  Also, I try to "scroll" up the text as the chat dialog becomes too long to fit on a screen.  This probably
-
 'doesn't work well on all resolutions - your mileage may vary.
-
 'Usage:
-
 'Upon running this program you will be asked to enter a name and press enter.  This will be your "Screen name"
-
 'Next you will be prompted to enter a chat session name.  If you type in a name that doesn't exist as a current chat
-
 'session you will create a new chat session (chat room).  Others can then use that same chat session name to join
-
 'your chat.
-
 'From there you just type and press enter to add your message to the chat dialog.  You can type [reset] and press enter to
-
 'reset the session.
 
-
-
 'Hide window while we load the background image
-
 GraphicsWindow.Hide()
-
 GraphicsWindow.Height = Desktop.Height - 200
-
 GraphicsWindow.Width = Desktop.Width - 100
-
 ' The following line could be harmful and has been automatically commented.
-
 ' checkDir = File.GetFiles(Program. Directory + "images") 
-
 loaded = 0
-
 'Load the background image.  If the project was imported from the microsoft server, we will grab it from the web
-
 If checkDir <> "FAILED" Then
-
   For i = 0 To Array.GetItemCount(checkDir) 
-
     If checkDir[i] = "output-background.jpg" Then
-
       loaded = 1
-
       outputBg = ImageList.LoadImage(Program.Directory + "\images\output-background.jpg")
-
       i = 1000000
-
     EndIf 
-
   EndFor
-
 EndIf
-
 If loaded = 0 then
-
   outputBg = ImageList.LoadImage("http://www.cfxchange.com/sb/images/output-background.jpg")
-
 endif
-
-
 
 GraphicsWindow.Show()
 
-
-
 windowHeight = GraphicsWindow.Height 
-
 windowWidth = GraphicsWindow.Width  
-
 'Use to handle key input
-
 GraphicsWindow.TextInput = checkKeys
 
-
-
 mode = "init"
-
 g = 0
-
 content = ""
-
 x = 1
-
 y = 10
-
 contentY = 10
-
 input = ""
-
 inputKeys = ""
-
 maxLines = 40
-
 name = ""
 
-
-
 initSession() 
-
-
 
 drawConnectionStatus()
 
 
-
-
-
 While g = 0
-
   oldContent = content 
-
   GraphicsWindow.BrushColor = "black"
-
   drawConnectionStatus()
-
   'Check for update
-
   content = Network.GetWebPageContents(url+"&msg=[empty]")
-
   If content = "" Then
-
     GraphicsWindow.BrushColor = "red"
-
     GraphicsWindow.DrawText(205,3,"Could not get url")
-
   Else 
-
     mode = "connected"
-
   EndIf 
-
   
-
   If content <> oldContent Then
-
     
-
     writeOutput() 
-
     'Check for new content every 5 seconds
-
     Program.Delay(5000)
-
   EndIf
-
   
-
 EndWhile
-
 Program.End()
 
 
-
-
-
 Sub initSession
-
   url = "http://www.cfxchange.com/sb/msg.cfm"
-
   GraphicsWindow.Clear()
-
   drawOutputBox()
-
   drawInputBox()
-
   GraphicsWindow.FontSize = 30
-
   GraphicsWindow.BrushColor = "midnightBlue"
-
   GraphicsWindow.DrawText(windowWidth/2-200,windowHeight/2-20,"Enter your name:")
-
  
-
   GraphicsWindow.FontSize = 10
-
   
-
   While mode = "init"
-
     'do nothing
-
   endwhile
-
   
-
   
-
 endSub
-
-
-
 
 
 Sub drawInputBox 
-
   'Draws the input box
-
   GraphicsWindow.PenColor = "black"
-
   GraphicsWindow.BrushColor = "black"
-
   GraphicsWindow.DrawRectangle(20,windowHeight - 55,500,50)
-
   GraphicsWindow.BrushColor = "silver"
-
   GraphicsWindow.FillRectangle(20,windowHeight - 55,500,50)
-
   GraphicsWindow.BrushColor = "midnightblue"
-
   GraphicsWindow.DrawBoundText(20,windowHeight - 50,490,input)
-
 endSub
-
-
 
 Sub drawOutputBox 
-
   'Draws the output window (where chat dialog appears)
-
   GraphicsWindow.PenColor = "white"
-
   GraphicsWindow.DrawResizedImage(outputBg,0,0,windowWidth,windowHeight)
-
   GraphicsWindow.DrawRectangle(10,10,windowWidth-40,windowHeight-100)
-
   GraphicsWindow.BrushColor = "white" 
-
   GraphicsWindow.FillRectangle(9,0,windowWidth-38,25)
-
   drawConnectionStatus()
-
 endSub
-
-
 
 Sub writeOutput 
-
   'Writes the chat dialog to the screen
-
   drawOutputBox()
-
   drawInputBox()
-
   stripCR()
-
   getLineCount()
-
   If lineCount > maxLines then
-
     contentY = -(lineCount - maxLines)*13
-
   endif
-
   
-
   GraphicsWindow.BrushColor = "white"
-
   GraphicsWindow.DrawBoundText(15,contentY,windowWidth-50,content) 
-
   
-
 endSub 
 
-
-
 Sub drawConnectionStatus
-
   'Show the connection status 
-
   GraphicsWindow.BrushColor = "white"
-
   GraphicsWindow.FillRectangle(9,0,windowWidth-38,25)       
-
   If mode = "init" then     
-
     GraphicsWindow.BrushColor = "blue"
-
     GraphicsWindow.DrawText(505,10,"Start or Connect to chat session")
-
   ElseIf mode = "connected" then 
-
     GraphicsWindow.BrushColor = "dimGray"
-
     GraphicsWindow.DrawText(505,10,"Chat session: " + token)
-
   elseif mode = "connecting" then 
-
     GraphicsWindow.BrushColor = "green"
-
     GraphicsWindow.DrawText(505,10,"Connecting to chat session: " + token)
-
   endif
-
   GraphicsWindow.BrushColor = "dimgray"
-
     GraphicsWindow.FontSize = 10
-
   GraphicsWindow.DrawText(windowWidth-100,10,name)
-
 endSub
-
-
-
 
 
 Sub getLineCount 
-
   lineCount = 0
-
   For chr = 1 To Text.GetLength(content) 
-
     If text.GetCharacterCode(Text.GetSubText(content,chr,1)) = 10 Then
-
       lineCount = lineCount + 1
-
     EndIf
-
   endFor 
-
 EndSub 
-
-
-
 
 
 Sub stripCR
-
   'Removes leading carriage returns
-
   strippedContent = content   
-
   stripcr_i = 1
-
   While Text.GetCharacterCode(Text.GetSubText(content,stripcr_i,1)) = 10  OR Text.GetCharacterCode(Text.GetSubText(content,stripcr_i,1)) = 13 OR Text.GetCharacterCode(Text.GetSubText(content,stripcr_i,1)) = 32 OR Text.GetCharacterCode(Text.GetSubText(content,stripcr_i,1)) = 9
-
     content = Text.GetSubTextToEnd(content,stripcr_i) 
-
     stripcr_i = stripcr_i + 1
-
   EndWhile 
-
 endSub 
-
 Sub checkKeys
-
   
-
   key = GraphicsWindow.LastKey 
-
   str = GraphicsWindow.LastText
-
   Stack.PushValue(inputKeys,str) 
-
   
-
   If key <> "None" Then 
-
     drawConnectionStatus()
-
     If key = "Escape" Then      
-
       g = 1
-
     ElseIf key = "Return" then
-
       
-
       If name = "" then 
-
         'User just entered name
-
         name = input 
-
         input = ""
-
         mode = "init"
-
         drawOutputBox()
-
         GraphicsWindow.FontSize = 20
-
         GraphicsWindow.BrushColor = "midnightBlue"
-
         GraphicsWindow.DrawText(windowWidth/2-200,windowHeight/2-20,"Enter a name to start or connect to a chat session:")        
-
         GraphicsWindow.FontSize = 10
-
         drawInputBox()
-
         drawConnectionStatus()
-
       ElseIf mode <> "init" then
-
         'Text entered will be submitted as a chat message      
-
         If Text.GetLength(input) > 0 then 
-
           content = Network.GetWebPageContents(url+"&msg="+input)   
-
         EndIf
-
         writeOutput()               
-
         input = ""
-
         drawInputBox()
-
       Else         
-
         'User entered session name
-
         token = input
-
         url = url + "?token="+token+"&name="+name
-
         'initialize chat session (or connect to one with the session name entered
-
         content = Network.GetWebPageContents(url+"&msg=[join]")   
-
         writeOutput()                
-
         input = ""
-
         mode = "connecting"
-
       EndIf
-
     ElseIf key = "Back" then     
-
       'Handles the backspace 
-
       input = Text.GetSubText(input,1,text.GetLength(input)-1)
-
       drawInputBox()
-
     Else
-
       'Captures the key that was typed
-
       curString = Stack.PopValue(inputKeys)
-
       input = Text.Append(input, curString)       
-
       drawInputBox()      
-
     EndIf
-
   EndIf 
-
 EndSub 
-
       
-
-

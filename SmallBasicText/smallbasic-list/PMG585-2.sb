@@ -1,1255 +1,627 @@
 ' Program Scanner 0.5b
-
 ' Copyright © 2014-2017 Nonki Takahashi.  The MIT License.
-
 '
-
 ' History:
-
 '  0.5b 2017-07-21 Fixed #11 only LF not treated. (PMG585-2)
-
 '  0.4b 2015-12-20 Supported #8 for Program ID.
-
 '  0.3b 2015-12-15 Supported #9 and #12 for Author. (PMG585-1)
-
 '  0.2b 2014-06-06 Chaged to get last update. (PMG585-0)
-
 '  0.1b 2014-06-05 Created. (PMG585)
-
 ' 
-
 title = "Program Scanner 0.5b"
-
 dump = "True"
-
 Not = "False=True;True=False;"
-
 WQ = Text.GetCharacter(34)
-
 DIGIT = "0123456789"
-
 ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
 hd = "1=Program ID;2=Source Filename;3=Screen Shot;4=Description;5=Last Update;6=Version;7=Author;8=Lines;9=Subroutines;10=Challenge;"
-
 od = "id=1;fn=2;ss=3;ds=4;dt=5;vr=6;au=7;nl=8;sb=9;ch=10;"
-
 TextWindow.WriteLine(title)
-
 csvpath = Program.Directory + "\ProgramDB.csv"
-
 ' The following line could be harmful and has been automatically commented.
-
 ' File.WriteContents(csvpath, "")
-
 data = hd
-
 CSV_ConvertAndWriteLine()
-
 Settings_GetName()
-
 Settings_Read()
-
 npath = Array.GetItemCount(settings)
-
 For i = 1 To npath 
-
   path = settings[i]
-
 ' The following line could be harmful and has been automatically commented.
-
 '   files = File.GetFiles(path)
-
   nfile = Array.GetItemCount(files)
-
   For j = 1 To nfile
-
     filepath = files[j]
-
     ScanFile()
-
     If data <> "" Then
-
       CSV_ConvertAndWriteLine()
-
     EndIf
-
   EndFor
-
 EndFor
-
 Sub ConvertCommaToUnderscore
-
   ' param line
-
   ' return line - removed comma
-
   While Text.IsSubText(line, ",")
-
     p = Text.GetIndexOf(line, ",")
-
     line = Text.GetSubText(line, 1, p - 1) + "_" + Text.GetSubTextToEnd(line, p + 1)
-
   EndWhile
-
 EndSub
-
 Sub GetAuthor
-
   ' param line - possibly with author
-
   ' return au - author
-
   ' return p - 
-
   au = ""
-
   If Text.IsSubText(line, "Original") Then
-
     au = ""
-
     Goto gaExit
-
   EndIf
-
   p = Text.GetIndexOf(line, "Copyright ")
-
   If 0 < p Then
-
     ' Copyright (c) 2015 Nonki Takahashi.  All right reserved.
-
     SkipCopyright()
-
     GetYears()  ' skip years
-
     GetAuthorName()
-
     au = name
-
     Goto gaExit
-
   EndIf
-
   p = Text.GetIndexOf(Text.ConvertToLowerCase(line), "(c) ")
-
   If 0 < p Then
-
     ' (c) 2015  Nonki Takahashi
-
     p = p + 4
-
     SkipCopyright()
-
     GetYears()  ' skip years
-
     GetAuthorName()
-
     au = name
-
     Goto gaExit
-
   EndIf
-
   p = Text.GetIndexOf(line, "written by ")
-
   If 0 < p Then
-
     ' written by Nonki Takahashi.
-
     p = p + 11
-
     GetAuthorName()
-
     au = name
-
     Goto gaExit
-
   EndIf
-
   p = Text.GetIndexOf(line, "Author: ")
-
   If 0 < p Then
-
     ' Author: Nonki Takahashi
-
     p = p + 8
-
     GetAuthorName()
-
     au = name
-
     'Goto gaExit
-
   EndIf
-
   gaExit:
-
 EndSub
-
 Sub GetAuthorName
-
   ' param line - possibly with name
-
   ' param p - pointer to parse
-
   ' return name - author name
-
   ' return p - pointer to the next of the name
-
   name = ""
-
   c = Text.GetSubText(line, p, 1)
-
   While Text.IsSubText(ALPHA + DIGIT + " ", Text.ConvertToUpperCase(c))
-
     name = name + c
-
     p = p + 1
-
     c = Text.GetSubText(line, p, 1)
-
   EndWhile
-
 EndSub
-
 Sub GetDate
-
   ' param line
-
   ' param p - current pointer
-
   ' return year - a year or years
-
   ' return p - updated pointer
-
   ' return match - "True" if match
-
   ' get date if d/m/yyyy
-
   Stack.PushValue("local", p)
-
   GetDay()
-
   If match Then
-
     delim = "/"
-
     GetDelimiter()
-
   EndIf
-
   If match Then
-
     GetMonth()
-
   EndIf
-
   If match Then
-
     delim = "/"
-
     GetDelimiter()
-
   EndIf
-
   If match Then
-
     GetYears()
-
   EndIf
-
   If match Then
-
     Stack.PopValue("local")
-
   Else
-
     p = Stack.PopValue("local")
-
   EndIf
-
   ' get date if yyyy/m/d or yyyy-mm-dd
-
   If Not[match] Then
-
     Stack.PushValue("local", p)
-
     GetYears()
-
     If match Then
-
       delim = "/-"
-
       GetDelimiter()
-
     EndIf
-
     If match Then
-
       GetMonth()
-
     EndIf
-
     If match Then
-
       delim = "/-"
-
       GetDelimiter()
-
     EndIf
-
     If match Then
-
       GetDay()
-
     EndIf
-
     If match Then
-
       Stack.PopValue("local")
-
     Else
-
       p = Stack.PopValue("local")
-
     EndIf
-
   EndIf
-
   If match Then
-
     dt = Text.Append(year, "-") + month + "-" + day
-
   Else
-
     dt = ""
-
   EndIf
-
 EndSub
-
 Sub GetDay
-
   ' param line
-
   ' param p - current pointer
-
   ' return day - as dd format
-
   ' return p - updated pointer
-
   ' return match - "True" if match
-
   d1 = Text.GetSubText(line, p, 1)
-
   day = ""
-
   If Text.IsSubText(DIGIT, d1) Then
-
     c = 1
-
     d2 = Text.GetSubText(line, p + 1, 1)
-
     If Text.IsSubText(DIGIT, d2) Then
-
       c = 2
-
       day = Text.Append(d1, d2)
-
     Else
-
       day = d1
-
     EndIf
-
     If day < 1 Or 31 < day Then
-
       day = ""
-
     ElseIf Text.GetLength(day) = 1 Then
-
       day = Text.Append(0, day)
-
     EndIf
-
   EndIf
-
   If day <> "" Then
-
     p = p + c
-
     match = "True"
-
   Else
-
     match = "False"
-
   EndIf
-
 EndSub
-
 Sub GetDelimiter
-
   ' param line
-
   ' param p - current pointer
-
   ' param delim - delimiters
-
   ' return p - updated pointer
-
   ' return match - "True" if match
-
   If Text.IsSubText(delim, Text.GetSubText(line, p, 1)) Then
-
     p = p + 1
-
     match = "True"
-
   Else
-
     match = "False"
-
   EndIf
-
 EndSub
-
 Sub GetID
-
   ' param line - possibly ends with ID XXX999[-9[9]]
-
   ' return line - without ID
-
   ' return id - program ID
-
   p = Text.GetLength(line)
-
   id = ""
-
   If Text.EndsWith(line, ")") Then
-
     pi = p - 1
-
   Else
-
     pi = p
-
   EndIf
-
   If 9 <= pi And Text.GetSubText(line, pi - 2, 1) = "-" Then
-
     rev = Text.GetSubText(line, pi - 1, 2)
-
     pi = pi - 8
-
     id = Text.GetSubText(line, pi, 6)
-
   ElseIf 8 <= pi And Text.GetSubText(line, pi - 1, 1) = "-" Then
-
     rev = Text.GetSubText(line, pi, 1)
-
     pi = pi - 7
-
     id = Text.GetSubText(line, pi, 6)
-
   Else
-
     rev = ""
-
     pi = pi - 5
-
     id = Text.GetSubText(line, pi, 6)
-
   EndIf
-
   If Text.EndsWith(line, ")") Then
-
     If pi < 1 Or Text.GetSubText(line, pi - 1, 1) <> "(" Then
-
       rev = ""
-
       id = ""
-
     EndIf
-
   EndIf
-
   If 0 < Text.GetLength(rev) Then
-
     id = id + "-" + rev
-
     For p = 1 To Text.GetLength(rev)
-
       If Not[Text.IsSubText(DIGIT, Text.GetSubText(rev, p, 1))] Then
-
         id = ""
-
         p = Text.GetLength(rev) ' break
-
       EndIf
-
     EndFor
-
   EndIf
-
   If 0 < Text.GetLength(id) Then
-
     For p = 1 To 3
-
       If Not[Text.IsSubText(ALPHA, Text.GetSubText(id, p, 1))] Then
-
         id = ""
-
         p = 3 ' break
-
       EndIf
-
     EndFor
-
   EndIf
-
   If 0 < Text.GetLength(id) Then
-
     For p = 4 To 6
-
       If Not[Text.IsSubText(DIGIT, Text.GetSubText(id, p, 1))] Then
-
         id = ""
-
         p = 6 ' break
-
       EndIf
-
     EndFor
-
   EndIf
-
   If 0 < Text.GetLength(id) Then
-
     line = Text.Append(Text.GetSubText(line, 1, pi - 1), Text.GetSubTextToEnd(line, pi + Text.GetLength(id)))
-
     If Text.GetSubText(line, pi - 1, 2) = "()" Then
-
       line = Text.Append(Text.GetSubText(line, 1, pi - 2), Text.GetSubTextToEnd(line, pi + 1))
-
     EndIf
-
     RemoveTrailingSpace()
-
   EndIf
-
 EndSub
-
 Sub GetInfoFromSBSourceFile
-
   ' param filepath - SB source file path
-
   ' return data - data array
-
   data = ""
-
   data[od["fn"]] = filepath
-
   File_Open()
-
   File_ReadLine()
-
   au = ""
-
   If Text.GetSubText(line, 1, 1) = "'" Then
-
     ' Program Scanner 0.4b (PMG585-2)
-
     ' Program Scanner 0.4b - Copyright (c) 2015 Nonki Takahashi
-
     p = 2
-
     SkipSpace()
-
     line = Text.GetSubTextToEnd(line, p)
-
     GetVersion()
-
     GetID()
-
     RemoveCopyright()
-
     ConvertCommaToUnderscore()
-
     RemoveTrailingSymbols()
-
     If line = "Program ID" Then
-
       line = ""
-
     EndIf
-
     data[od["ds"]] = line
-
     data[od["vr"]] = ver
-
     data[od["id"]] = id
-
   EndIf
-
   dt = ""
-
   While Not[File_eof]
-
     File_ReadLine()
-
     If Text.StartsWith(line, "'") Then
-
       p = Text.GetIndexOf(Text.ConvertToLowerCase(line), "version")
-
       If ver = "" And 0 < p Then
-
         ' Version 0.1
-
         p = p + 7
-
         If Text.GetSubText(line, p, 1) = ":" Then
-
           p = p + 1
-
         EndIf
-
         SkipSpace()
-
         GetName()
-
         ver = name
-
         data[od["vr"]] = ver
-
       EndIf
-
       p = Text.GetIndexOf(Text.ConvertToLowerCase(line), "program id")
-
       If id = "" And 0 < p Then
-
         ' Program ID PMG585
-
         GetID()
-
         data[od["id"]] = id
-
       EndIf
-
       If au = "" Then
-
         GetAuthor()
-
         data[od["au"]] = au
-
       EndIf
-
       p = Text.GetIndexOf(Text.ConvertToLowerCase(line), "update")
-
       If dt = "" And 0 < p Then
-
         ' Update 2015-12-20
-
         p = p + 6
-
         SkipSpace()
-
         GetDate()
-
         data[od["dt"]] = dt
-
       EndIf
-
       If dt = "" And Text.IsSubText(line, ver) Then
-
         '  0.1b 2014-06-05 Created. (PMG585)
-
         If id = "" Then
-
           GetID()
-
           data[od["id"]] = id
-
         EndIf
-
         SkipVersion()
-
         GetDate()
-
         data[od["dt"]] = dt
-
       EndIf
-
     ElseIf data[od["ds"]] = "" And Text.IsSubText(Text.ConvertToLowerCase(line), "title = ") Then
-
       p = Text.GetIndexOf(Text.ConvertToLowerCase(line), "title = ")
-
       p = p + 8
-
       If Text.GetSubText(line, p, 1) = WQ Then
-
         p = p + 1
-
         e = Text.GetIndexOf(Text.GetSubTextToEnd(line, p), WQ)
-
         If 0 < e Then
-
           data[od["ds"]] = Text.GetSubText(line, p, e - 1)
-
         EndIf
-
       EndIf
-
     EndIf ' StartsWith(line, "'")
-
     If Text.StartsWith(line, "Sub ") Then
-
       GetSub()
-
       If data[od["sb"]] <> "" Then
-
         data[od["sb"]] = data[od["sb"]] + " "
-
       EndIf
-
       data[od["sb"]] = data[od["sb"]] + sb
-
     EndIf
-
   EndWhile
-
   data[od["nl"]] = File_nl
-
 EndSub
-
 Sub GetMonth
-
   ' param line
-
   ' param p - current pointer
-
   ' return month - as mm format
-
   ' return p - updated pointer
-
   ' return match - "True" if match
-
   m1 = Text.GetSubText(line, p, 1)
-
   month = ""
-
   If Text.IsSubText(DIGIT, m1) Then
-
     c = 1
-
     m2 = Text.GetSubText(line, p + 1, 1)
-
     If Text.IsSubText(DIGIT, m2) Then
-
       c = 2
-
       month = Text.Append(m1, m2)
-
     Else
-
       month = m1
-
     EndIf
-
     If month < 1 Or 12 < month Then
-
       month = ""
-
     ElseIf Text.GetLength(month) = 1 Then
-
       month = Text.Append(0, month)
-
     EndIf
-
   EndIf
-
   If month <> "" Then
-
     p = p + c
-
     match = "True"
-
   Else
-
     match = "False"
-
   EndIf
-
 EndSub
-
 Sub GetName
-
   ' param line - possibly with name
-
   ' param p - pointer to parse
-
   ' return name - program name
-
   name = ""
-
   c = Text.GetSubText(line, p, 1)
-
   While c <> " " And c <> "" And c <> "'"
-
     name = Text.Append(name, c)
-
     p = p + 1
-
     c = Text.GetSubText(line, p, 1)
-
   EndWhile
-
 EndSub
-
 Sub GetSub
-
   ' param line - possibly with name
-
   ' return name - program name
-
   name = ""
-
   p = 5
-
   GetName()
-
   sb = name
-
 EndSub
-
 Sub GetVersion
-
   ' param line - description
-
   ' return line - updated description
-
   ' return ver - version
-
   l = Text.GetLength(line)
-
   dot = Text.GetIndexOf(line, ".")
-
   While Text.IsSubText(Text.GetSubTextToEnd(line, dot + 1), ".")
-
     dot = dot + 1
-
   EndWhile
-
   If 2 < dot And Text.IsSubText(DIGIT, Text.GetSubText(line, dot - 1, 1)) Then
-
     For p1 = dot - 1 To 1 Step -1
-
       If Text.GetSubText(line, p1, 1) = " " Then
-
         p1 = p1 + 1
-
         Goto gvBreak1
-
       EndIf
-
     EndFor
-
     gvBreak1:
-
     For p2 = dot + 1 To l
-
       If Text.GetSubText(line, p2, 1) = " " Then
-
         p2 = p2 - 1
-
         Goto gvBreak2
-
       EndIf
-
     EndFor
-
     gvBreak2:
-
     If 0 < p1 Then
-
       ver = Text.GetSubText(line, p1, p2 - p1 + 1)
-
       line = Text.Append(Text.GetSubText(line, 1, p1 - 1),Text.GetSubTextToEnd(line, p2 + 1))
-
       RemoveTrailingSpace()
-
     Else
-
       ver = ""
-
     EndIf
-
   Else
-
     ver = ""
-
   EndIf
-
 EndSub
-
 Sub GetYears
-
   ' param line
-
   ' param p - current pointer
-
   ' return year - a year or years
-
   ' return p - updated pointer
-
   ' return match - "True" if match
-
   cont = "True"
-
   l = Text.GetLength(line)
-
   year = ""
-
   While cont
-
     If Text.GetSubText(line, p, 1) = "2" And p + 3 <= l Then
-
       y4 = Text.GetSubText(line, p, 4)
-
       If 1970 <= y4 And y4 <= Clock.Year Then 
-
         year = Text.Append(year, y4)
-
         p = p + 4
-
         d = Text.GetSubText(line, p, 1)
-
         If d = "-" Or d = "," Then
-
           year = Text.Append(year, d)
-
           p = p + 1
-
           SkipSpace()
-
         Else
-
           cont = "False"
-
         EndIf
-
       Else
-
         cont = "False"
-
       EndIf
-
     Else
-
       cont = "False"
-
     EndIf
-
   EndWhile
-
   SkipSpace()
-
   If year <> "" Then
-
     match = "True"
-
     If Text.EndsWith(year, "-") Then
-
       year = Text.GetSubText(year, 1, 4)
-
       p = p - 1
-
     EndIF
-
   Else
-
     match = "False"
-
   EndIf
-
 EndSub
-
 Sub RemoveCopyright
-
   ' param line
-
   ' return line
-
   p = Text.GetIndexOf(line, "Copyright")
-
   If p = 0 Then
-
     p = Text.GetIndexOf(Text.ConvertToLowerCase(line), "(c)")
-
   EndIf
-
   If 0 < p Then
-
     pStart = p
-
     GetAuthor()
-
     line = Text.Append(Text.GetSubText(line, 1, pStart - 1), Text.GetSubTextToEnd(line, p))
-
   EndIf
-
 EndSub
-
 Sub RemoveTrailingSpace
-
   While Text.EndsWith(line, " ")
-
     l = Text.GetLength(line)
-
     line = Text.GetSubText(line, 1, l - 1)
-
   EndWhile
-
 EndSub
-
 Sub RemoveTrailingSymbols
-
   ' param line
-
   ' return line
-
   RemoveTrailingSpace()
-
   l = Text.GetLength(line)
-
   If Text.IsSubText("-:", Text.GetSubTextToEnd(line, l)) Then
-
     line = Text.GetSubText(line, 1, l - 1)
-
   EndIf
-
   RemoveTrailingSpace()
-
 EndSub
-
 Sub ScanFile
-
   ' param filepath - file path
-
   ' return data
-
   If Text.EndsWith(filepath, ".sb") Or Text.EndsWith(filepath, ".smallbasic") Then
-
     GetInfoFromSBSourceFile()
-
   Else
-
     data = ""
-
   EndIf
-
 EndSub
-
 Sub SkipCopyright
-
   ' param line
-
   ' param p - current pointer
-
   ' return p - updated pointer
-
   p = p + 10  ' copyright + 1 space
-
   l = Text.GetLength(line)
-
   If p + 2 <= l Then
-
     c3 = Text.GetSubText(line, p, 3)
-
     If c3 = "(c)" Or c3 = "(C)" Then
-
       p = p + 3
-
     EndIf
-
     c1 = Text.GetSubText(line, p, 1)
-
     If c1 = "©" Then
-
       p = p + 1
-
     EndIf
-
   EndIf
-
   SkipSpace()
-
 EndSub
-
 Sub SkipSpace
-
   ' param line
-
   ' param p - current pointer
-
   ' return p - updated pointer
-
   While Text.IsSubText(" -=", Text.GetSubText(line, p, 1))
-
     p = p + 1
-
   EndWhile
-
 EndSub
-
 Sub SkipVersion
-
   ' param line
-
   ' param ver
-
   ' return p - next pointer
-
   v = Text.GetIndexOf(line, ver)
-
   p = v + Text.GetLength(ver)
-
   SkipSpace()
-
 EndSub
-
 Sub CSV_ConvertAndWriteLine
-
   ' param csvpath - CSV path
-
   ' param data - data array
-
   line = ""
-
   For k = 1 To 10
-
     line = line + data[k]
-
     If k < 10 Then
-
       line = line + ","
-
     EndIf
-
   EndFor
-
   TextWindow.WriteLine(line)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File.AppendContents(csvpath, line)
-
 EndSub
-
 Sub File_Open
-
   ' param filePath
-
   CR = Text.GetCharacter(13)
-
   LF = Text.GetCharacter(10)
-
 ' The following line could be harmful and has been automatically commented.
-
 '   File_buf = File.ReadContents(files[j])
-
   File_p = 1  ' buffer pointer
-
   File_nl = 0 ' number of line
-
   File_eof = "False"
-
 EndSub
-
 Sub File_ReadLine
-
   ' return line
-
   eol = Text.GetIndexOf(Text.GetSubTextToEnd(File_buf, File_p), LF)
-
   If 0 < eol Then
-
     If Text.GetSubText(File_buf, File_p + eol - 2, 1) = CR Then
-
       line = Text.GetSubText(File_buf, File_p, eol - 2)
-
     Else ' LF only
-
       line = Text.GetSubText(File_buf, File_p, eol - 1)
-
     EndIf
-
     File_p = File_p + eol
-
     File_nl = File_nl + 1
-
     File_eof = "False"
-
   Else
-
     line = Text.GetSubTextToEnd(File_buf, File_p)
-
     If line <> "" Then
-
       File_nl = File_nl + 1
-
     EndIf
-
     File_eof = "True"
-
   EndIf
-
   If dump And File_nl <= 5 Then
-
     TextWindow.ForegroundColor = "Green"
-
     TextWindow.WriteLine(line)
-
     TextWindow.ForegroundColor = "Gray"
-
   EndIf
-
 EndSub
-
 Sub Settings_GetName
-
   ' return filename
-
 ' The following line could be harmful and has been automatically commented.
-
 '   filename = File.GetSettingsFilePath()
-
 EndSub
-
 Sub Settings_Read
-
   ' param filename
-
   ' return settings
-
 ' The following line could be harmful and has been automatically commented.
-
 '   settings = File.ReadContents(filename)
-
 EndSub
-
 Sub Settings_Write
-
   ' param filename
-
   ' param settings
-
   ' return result
-
 ' The following line could be harmful and has been automatically commented.
-
 '   result = File.WriteContents(filename, settings)
-
 EndSub
-
-

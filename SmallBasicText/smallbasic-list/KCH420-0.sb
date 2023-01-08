@@ -1,605 +1,302 @@
 'Small Basic Raytracer
-
 'by ThirdMagus
 
-
-
 Init()
-
 LoadScene()
 
-
-
 previewscene:
-
 Preview()
-
 GraphicsWindow.BrushColor = "Black"
-
 GraphicsWindow.DrawText(10,450,"Press Enter to render image, or press Space for different scene.")
-
 While(Space = "False" And Enter = "False")
-
   Program.Delay(10)
-
 EndWhile
-
 If(Space = "True") Then
-
   Space = "False"
-
   Enter = "False"
-
   RandomScene()
-
   Goto previewscene
-
 EndIf
 
-
-
 Preview()
 
-
-
 For y=0 To 479
-
   For x=0 To 639
-
     Level = 0
-
     Coefficient = 1
-
     Red = 0
-
     Green = 0
-
     Blue = 0
-
     Ray["Coord"]["x"] = x
-
     Ray["Coord"]["y"] = y
-
     Ray["Coord"]["z"] = -1000
-
     Ray["Dir"]["x"] = 0
-
     Ray["Dir"]["y"] = 0
-
     Ray["Dir"]["z"] = 1
-
     While (Coefficient > 0) And (Level < 10)
-
       t = 2000
-
       FoundIndex = 0
-
       ObjectIndices = Array.GetAllIndices(Objects)
-
       IntersectRay = Ray
-
       For i = 1 To Array.GetItemCount(ObjectIndices)
-
         Object = Objects[ObjectIndices[i]]
-
         DetermineIntersection()
-
       EndFor
-
       If(FoundIndex > 0) Then
-
         Ray["Coord"]["x"] = Ray["Coord"]["x"] + Ray["Dir"]["x"] * t
-
         Ray["Coord"]["y"] = Ray["Coord"]["y"] + Ray["Dir"]["y"] * t
-
         Ray["Coord"]["z"] = Ray["Coord"]["z"] + Ray["Dir"]["z"] * t
-
         FoundObject = Objects[FoundIndex]
-
         Normalise_Vector["x"] = Ray["Coord"]["x"] - FoundObject["Coord"]["x"]
-
         Normalise_Vector["y"] = Ray["Coord"]["y"] - FoundObject["Coord"]["y"]
-
         Normalise_Vector["z"] = Ray["Coord"]["z"] - FoundObject["Coord"]["z"]
-
         Normalise()
-
         SphereNormal = Normalise_Vector
-
         LightIndices = Array.GetAllIndices(Lights)
-
         For j = 1 To Array.GetItemCount(LightIndices)
-
           Light = Lights[LightIndices[j]]
-
           LightRay["Coord"] = Ray["Coord"]
-
           Normalise_Vector["x"] = Light["Coord"]["x"] - Ray["Coord"]["x"]
-
           Normalise_Vector["y"] = Light["Coord"]["y"] - Ray["Coord"]["y"]
-
           Normalise_Vector["z"] = Light["Coord"]["z"] - Ray["Coord"]["z"]
-
           Normalise()
-
           LightRay["Dir"] = Normalise_Vector
-
           DotProduct_Vector1 = SphereNormal
-
           DotProduct_Vector2 = LightRay["Dir"]
-
           DotProduct()
-
           If(DotProduct_Product <= 0) Then
-
             Goto skiplight
-
           EndIf
-
           InShadow = "False"
-
           IntersectRay = LightRay
-
           FoundIndex = 0
-
           For i = 1 To Array.GetItemCount(ObjectIndices)
-
             Object = Objects[ObjectIndices[i]]
-
             DetermineIntersection()
-
             If(FoundIndex > 0) Then
-
               InShadow = "True"
-
             EndIf
-
           EndFor
-
           If(InShadow = "False") Then
-
             DotProduct_Vector1 = SphereNormal
-
             DotProduct_Vector2 = LightRay["Dir"]
-
             DotProduct()
-
             Lambert = DotProduct_Product * Coefficient
-
             Red = Red + Lambert * Light["Color"]["r"] * FoundObject["Color"]["r"]
-
             Green = Green + Lambert * Light["Color"]["g"] * FoundObject["Color"]["g"]
-
             Blue = Blue + Lambert * Light["Color"]["b"] * FoundObject["Color"]["b"]
-
           EndIf
-
           skiplight:
-
         EndFor
-
         Coefficient = Coefficient * FoundObject["Reflect"]
-
         DotProduct_Vector1 = Ray["Dir"]
-
         DotProduct_Vector2 = SphereNormal
-
         DotProduct()
-
         Reflet = 2 * DotProduct_Product
-
         Normalise_Vector["x"] = Ray["Dir"]["x"] - (Reflet * SphereNormal["x"])
-
         Normalise_Vector["y"] = Ray["Dir"]["y"] - (Reflet * SphereNormal["y"])
-
         Normalise_Vector["z"] = Ray["Dir"]["z"] - (Reflet * SphereNormal["z"])
-
         Normalise()
-
         Ray["Dir"] = Normalise_Vector
-
         Level = Level + 1
-
       Else
-
         Level = 10
-
       EndIf
-
     EndWhile
-
     
-
     If(Red > 1) Then
-
       Red = 1
-
     EndIf
-
     If(Green > 1) Then
-
       Green = 1
-
     EndIf
-
     If(Blue > 1) Then
-
       Blue = 1
-
     EndIf
-
     
-
     GraphicsWindow.SetPixel(x,y,GraphicsWindow.GetColorFromRGB(Red*255, Green*255, Blue*255))
-
   EndFor
-
 EndFor
 
-
-
 'Inititalises screen
-
 'Input: <none>
-
 'Output: <none>
-
 Sub Init
-
   GraphicsWindow.Title = "Raytracer"
-
   GraphicsWindow.Height = 480
-
   GraphicsWindow.Width = 640
-
   GraphicsWindow.KeyUp = OnKeyUp
-
   Space = "False"
-
   Enter = "False"
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   If (key = "Space") Then
-
     Space = "True"
-
   ElseIf (key = "Return") Then
-
     Enter = "True"
-
   EndIf
-
 EndSub
-
   
-
-
 
 'Inititalises scene
-
 'Input: <none>
-
 'Output: Objects, Lights
-
 Sub LoadScene
-
   Objects[1]["Coord"]["x"] = 240
-
   Objects[1]["Coord"]["y"] = 160
-
   Objects[1]["Coord"]["z"] = 100
-
   Objects[1]["Size"] = 120
-
   Objects[1]["Color"]["r"] = 1
-
   Objects[1]["Color"]["g"] = 0.5
-
   Objects[1]["Color"]["b"] = 0
-
   Objects[1]["Reflect"] = 0.5
-
   
-
   Objects[2]["Coord"]["x"] = 407
-
   Objects[2]["Coord"]["y"] = 260
-
   Objects[2]["Coord"]["z"] = 0
-
   Objects[2]["Size"] = 100
-
   Objects[2]["Color"]["r"] = 0
-
   Objects[2]["Color"]["g"] = 0.5
-
   Objects[2]["Color"]["b"] = 1
-
   Objects[2]["Reflect"] = 0.5
-
   
-
   Objects[3]["Coord"]["x"] = 200
-
   Objects[3]["Coord"]["y"] = 300
-
   Objects[3]["Coord"]["z"] = -40
-
   Objects[3]["Size"] = 100
-
   Objects[3]["Color"]["r"] = 0
-
   Objects[3]["Color"]["g"] = 1
-
   Objects[3]["Color"]["b"] = 0
-
   Objects[3]["Reflect"] = 0.5
-
   
-
   Lights[1]["Coord"]["x"] = 0
-
   Lights[1]["Coord"]["y"] = 240
-
   Lights[1]["Coord"]["z"] = -100
-
   Lights[1]["Color"]["r"] = 1
-
   Lights[1]["Color"]["g"] = 1
-
   Lights[1]["Color"]["b"] = 1
-
   
-
   Lights[2]["Coord"]["x"] = 640
-
   Lights[2]["Coord"]["y"] = 240
-
   Lights[2]["Coord"]["z"] = -10000
-
   Lights[2]["Color"]["r"] = 0.5
-
   Lights[2]["Color"]["g"] = 0.5
-
   Lights[2]["Color"]["b"] = 0.5
-
 EndSub
-
-
 
 'Generates a new random scene
-
 Sub RandomScene
-
   Objects = ""
-
   ObjectCount = Math.GetRandomNumber(4) + 1
-
   For i=1 To ObjectCount
-
     Objects[i]["Coord"]["x"] = Math.GetRandomNumber(640)-1
-
     Objects[i]["Coord"]["y"] = Math.GetRandomNumber(480)-1
-
     Objects[i]["Coord"]["z"] = Math.GetRandomNumber(400)-200
-
     Objects[i]["Size"] = Math.GetRandomNumber(80) + 60
-
     
-
     Normalise_Vector["x"] = Math.GetRandomNumber(256) - 1
-
     Normalise_Vector["y"] = Math.GetRandomNumber(256) - 1
-
     Normalise_Vector["z"] = Math.GetRandomNumber(256) - 1
-
     Normalise()
-
     Objects[i]["Color"]["r"] = Normalise_Vector["x"]
-
     Objects[i]["Color"]["g"] = Normalise_Vector["y"]
-
     Objects[i]["Color"]["b"] = Normalise_Vector["z"]
-
     
-
     Objects[i]["Reflect"] = (Math.GetRandomNumber(10))/10
-
     
-
   EndFor
-
 EndSub
-
   
-
-
 
 'Shows a preview of what will be rendered
-
 Sub Preview
-
   ObjectIndices = Array.GetAllIndices(Objects)
-
   'First bubblesort to object list so the objects furthest away are drawn first
-
   bubblesort:
-
   swapped = "False"
-
   For i = 1 To Array.GetItemCount(ObjectIndices)-1
-
     Object = Objects[ObjectIndices[i]]
-
     If(Objects[ObjectIndices[i+1]]["Coord"]["z"] > Object["Coord"]["z"]) Then
-
       swapped = "True"
-
       Objects[ObjectIndices[i]] = Objects[ObjectIndices[i+1]]
-
       Objects[ObjectIndices[i+1]] = Object
-
     EndIf
-
   EndFor
-
   If(swapped = "True") Then
-
     Goto bubblesort
-
   EndIf
-
   
-
   GraphicsWindow.Clear()
-
   
-
   For i = 1 To Array.GetItemCount(ObjectIndices)
-
     Object = Objects[ObjectIndices[i]]
-
     r = Object["Color"]["r"]*255
-
     g = Object["Color"]["g"]*255
-
     b = Object["Color"]["b"]*255
-
     GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(r,g,b)
-
     x = Object["Coord"]["x"] - Object["Size"]
-
     y = Object["Coord"]["y"] - Object["Size"]
-
     GraphicsWindow.FillEllipse(x, y, Object["Size"]*2, Object["Size"]*2)
-
   EndFor
-
 EndSub
-
   
-
-
 
 'Determines if and where the ray and object intersect
-
 'Input: IntersectRay["Coord"["x", "y", "z"], "Dir"["x", "y", "z"]], Object["Coord"["x", "y", "z"], "Size"], ObjectIndices[i]
-
 'Output: t, FoundIndex
-
 Sub DetermineIntersection
-
   Distance["x"] = Object["Coord"]["x"] - IntersectRay["Coord"]["x"]
-
   Distance["y"] = Object["Coord"]["y"] - IntersectRay["Coord"]["y"]
-
   Distance["z"] = Object["Coord"]["z"] - IntersectRay["Coord"]["z"]
-
   DotProduct_Vector1 = IntersectRay["Dir"]
-
   DotProduct_Vector2 = Distance
-
   DotProduct()
-
   B = DotProduct_Product
-
   DotProduct_Vector1 = Distance
-
   DotProduct_Vector2 = Distance
-
   DotProduct()
-
   D = B*B - DotProduct_Product + Object["Size"]*Object["Size"]
-
   If(D >= 0) Then
-
     t0 = B - Math.SquareRoot(D)
-
     t1 = B + Math.SquareRoot(D)
-
     
-
     If((t0 > 0.1) And (t0 < t)) Then
-
       t = t0
-
       FoundIndex = ObjectIndices[i]
-
     EndIf
-
     If((t1 > 0.1) And (t1 < t)) Then
-
       t = t1
-
       FoundIndex = ObjectIndices[i]
-
     EndIf
-
   EndIf  
-
 EndSub
-
-
 
 'Calculates dot product of two vectors
-
 'Input: DotProduct_Vector1["x", "y", "z"], DotProduct_Vector2["x", "y", "z"]
-
 'Output: DotProduct_Product
-
 Sub DotProduct
-
   DotProduct_Product = DotProduct_Vector1["x"] * DotProduct_Vector2["x"]
-
   DotProduct_Product = DotProduct_Product + DotProduct_Vector1["y"] * DotProduct_Vector2["y"]
-
   DotProduct_Product = DotProduct_Product + DotProduct_Vector1["z"] * DotProduct_Vector2["z"]
-
 EndSub
-
-
 
 'Normalises vector
-
 'Input: Normalise_Vector["x", "y", "z"]
-
 'Output: Normalise_Vector["x", "y", "z"]
-
 Sub Normalise
-
   DotProduct_Vector1 = Normalise_Vector
-
   DotProduct_Vector2 = Normalise_Vector
-
   DotProduct()
-
   If(Math.SquareRoot(DotProduct_Product) > 0) Then
-
     Normalise_Vector["x"] = Normalise_Vector["x"] / Math.SquareRoot(DotProduct_Product)
-
     Normalise_Vector["y"] = Normalise_Vector["y"] / Math.SquareRoot(DotProduct_Product)
-
     Normalise_Vector["z"] = Normalise_Vector["z"] / Math.SquareRoot(DotProduct_Product)
-
   EndIf
-
 EndSub
-
-
-
 
 
       
-
         
-
-
-
 

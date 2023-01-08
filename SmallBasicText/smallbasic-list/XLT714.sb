@@ -1,75 +1,38 @@
 highscore = 0 'initialise high score on load
 
-
-
 While 1=1 'main game loop
 
-
-
     environment()
-
     introScreen()
-
     
-
     While lives > 0 'level loop, when each level changes, this loop runs to draw the level and position player 
-
       levelConfig()           ' level maps can be found at end of program listing below 
-
       paintLevel()
-
       playersetup()
-
       parkiesetup()
-
       
-
       While (exited > 0) and lives > 0 'play loop
-
        
-
       If playerMoveDelay = 0 then 
-
         checkKeys()
 
-
-
         movePlayer()
-
       EndIf
-
       
-
       If playerMoveDelay > 0 Then
-
         playerMoveDelay = playerMoveDelay-1
-
       Else
-
         playerMoveDelay = playerDelay
-
       EndIf
-
         'check for PLAYER COLLISIONS
-
         'playerCollisions()
-
       
-
       endwhile 'end of play loop
-
       
-
     endwhile 'end of level loop
 
 
-
-
-
 endwhile 'end of main game loop
-
-
-
 
 
      '=====================================================================
@@ -77,701 +40,351 @@ endwhile 'end of main game loop
 
 
 
-
-
-
-
-
 Sub environment
-
   ' initialise the game environment
 
-
-
    progDir = Program.Directory + "\assets" ' this is used to locate the graphics and music used in the game
-
    
-
    '24 blocks - 23 For game window and 1 for status bar at the top
 
-
-
   GraphicsWindow.Title  = "Hungry Horace" 'sets window title
-
   GraphicsWindow.BackgroundColor = "Black"
-
   GraphicsWindow.Width  = 800 ' actual WINDOW size
-
   GraphicsWindow.Height = 600   
-
   GraphicsWindow.Left   = desktop.Width/2-(GraphicsWindow.Width/2)  
-
   GraphicsWindow.Top    = desktop.Height/2-(GraphicsWindow.Height/2) - 25'sets the window position on screen 
-
   
-
   'sets the playable area inside the actual graphics window. 
-
   'blocks are 16x16. (40 blocks wide)
-
   ' 22lines + 2 status * 16pixels = height + status bar at top
-
   gwTop     = 124    '16*4 '4 lines for status  - set game window top offset
-
   gwBottom  = gwTop+(22*16) '22 lines of game window area
-
   gwLeft    = 80                ' set game window left offset
-
   gwRight   = gwLeft+(40*16) '40 blocks of game window width
-
   
-
   blocksize = 16
 
-
-
   ' initialise game environment
-
   thisLevel       = 1     'which level do we start with/which is the game currently on?
-
   score           = 0
-
   lives           = 4
-
   exited          = 1 ' 1 while player is in level, 0 if they collide with the exit
-
   playerDelay     = 5000   ' speed of player movement - lower value = faster player = easier (unless you go too fast!)
-
   
-
   angryParkie      = -1   ' a counter. if >0 it indicates that the bell is eaten
-
   processing      = 0     ' a flag used in sub processes to prevent multiple runs
 
-
-
   player          = ""    ' blank player array
-
   parkie           = ""    ' blank parkie array
 
-
-
   'Timer.Interval = 2 ' set interval to check for key presses
-
   'Timer.Tick = checkKeys
-
-
 
 EndSub
 
 
-
-
-
 ' =====================================================================
-
-
-
 
 
 Sub introScreen
-
   ' display the game intro screen and wait for Space to be pressed
-
-
 
   GraphicsWindow.Clear()
 
-
-
   ' this Play command works, but then prevents any other music playing!?!?!
-
   'Sound.Play (progDir + "\intro.mid")
 
-
-
   ' show intro graphic
-
   img = ImageList.LoadImage(progDir + "\hhtitle.bmp")
-
   GraphicsWindow.DrawImage(img, 0,0 )
 
-
-
   ' wait for keypress
-
   lastkey = ""
-
   While lastkey <> "Space"
-
     lastkey = GraphicsWindow.LastKey
 
-
-
     If lastkey = "Q" Then
-
       Program.End()
-
     EndIf
-
   EndWhile
 
-
-
  ' Sound.Stop (progDir + "\intro.mid")
-
   Program.Delay(500)
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
 Sub paintLevel
-
   ' draw the level objects at the start of each level
 
 
-
-
-
   ' create a black rectangle over the whole graphics window so we can create a fade effect after the level has been drawn
-
   GraphicsWindow.BrushColor   = "Black"
-
   bbox                        = Shapes.AddRectangle( GraphicsWindow.width, GraphicsWindow.height )
-
   Shapes.SetOpacity           (bbox, 100)
 
 
-
-
-
   ' draw white bg
-
   img = ImageList.LoadImage(progDir + "\white_800x16.png")
-
   For y = 0 to 600 Step 16
-
     GraphicsWindow.DrawImage (img, 0, y)
-
   EndFor
-
-
-
-
 
 
 
   ' draw the level blocks
-
   
-
   For my = 1 To 22 '(22 rows)
-
     For mx = 1 To 40 '(40 columns)
-
       block = text.GetSubText( level[thisLevel][my], mx, 1 )
 
-
-
       ' position WALLS
-
       If block = "1" Then
-
         img = ImageList.LoadImage(progDir + "\corner_topleft.png")
-
         GraphicsWindow.DrawImage (img, ((mx-1)*16)+gwLeft, ((my-1)*16)+gwTop)
-
       EndIf
-
       
-
       If block = "H" Then
-
         img = ImageList.LoadImage(progDir + "\horiz_wall.png")
-
         GraphicsWindow.DrawImage (img, ((mx-1)*16)+gwLeft, ((my-1)*16)+gwTop)
-
       EndIf
-
       
-
        If block = "V" Then
-
         img = ImageList.LoadImage(progDir + "\vert_wall.png")
-
         GraphicsWindow.DrawImage (img, ((mx-1)*16)+gwLeft, ((my-1)*16)+gwTop)
-
       EndIf
-
       
-
        If block = "2" Then
-
         img = ImageList.LoadImage(progDir + "\corner_topright.png")
-
         GraphicsWindow.DrawImage (img, ((mx-1)*16)+gwLeft, ((my-1)*16)+gwTop)
-
       EndIf
-
       
-
        If block = "3" Then
-
         img = ImageList.LoadImage(progDir + "\corner_botleft.png")
-
         GraphicsWindow.DrawImage (img, ((mx-1)*16)+gwLeft, ((my-1)*16)+gwTop)
-
       EndIf
-
       
-
        If block = "4" Then
-
         img = ImageList.LoadImage(progDir + "\corner_botright.png")
-
         GraphicsWindow.DrawImage (img, ((mx-1)*16)+gwLeft, ((my-1)*16)+gwTop)
-
       EndIf
-
       
-
       If block = "E" Then
-
         img = ImageList.LoadImage(progDir + "\arrow.png")
-
         GraphicsWindow.DrawImage (img, ((mx-1)*16)+gwLeft, ((my-1)*16)+gwTop)
-
         player["x"] = ((mx)*16)+gwLeft    ' calculate x,y from 16 x 16 level grid blocks
-
         player["y"] = ((my-2)*16)+gwTop     ' -2 because there are two entrance blocks?
-
         player["startX"] = player["x"]         ' remember start position for when player dies
-
         player["startY"] = player["y"]
-
       EndIf
-
       
-
       If block = "X" Then
-
         img = ImageList.LoadImage(progDir + "\arrow.png")
-
         GraphicsWindow.DrawImage (img, ((mx-1)*16)+gwLeft, ((my-1)*16)+gwTop)
-
         parkie["x"] = ((mx)*16)+gwLeft-48    ' calculate x,y from 16 x 16 level grid blocks x-48 because of top left refing of sprite
-
         parkie["y"] = ((my-2)*16)+gwTop     ' -2 because there are two entrance blocks?
-
         parkie["startX"] = parkie["x"]         ' remember start position for when player dies
-
         parkie["startY"] = parkie["y"]
-
       EndIf
-
       
-
-
 
     EndFor
-
   EndFor
 
-
-
 ' show status bar
-
   status()
 
 
-
-
-
   ' fade the screen in
-
   Shapes.Move (bbox, 0, 0)
-
   For lwp = 100 To 0 Step -1
-
     Shapes.SetOpacity(bbox, lwp)
-
     Program.Delay(20)
-
   EndFor
 
-
-
 EndSub
 
-
-
 ' =====================================================================
-
-
 
 Sub status
-
   ' show the various game values in status area
 
-
-
   GraphicsWindow.BrushColor = "#68a941"
-
   GraphicsWindow.BrushColor = "#68a941"
-
   GraphicsWindow.FontSize      = 22
-
   GraphicsWindow.FontName = "Commodore 64"
-
   
-
   GraphicsWindow.DrawText      ( gwleft, gwtop - 32, "PASSES " + lives )
-
   GraphicsWindow.DrawText      ( gwleft + 250, gwtop - 32, "HIGH " + highscore )
-
   GraphicsWindow.DrawText      ( gwleft + 475, gwtop - 32, "SCORE " + score )
-
 EndSub
-
-
 
 ' =====================================================================
 
-
-
 Sub playerSetup
-
   ' create the player and display at start position
 
-
-
   img = ImageList.LoadImage(progDir + "\horace.png")    ' player sprite
-
   player["sprite"] = Shapes.AddImage(img)    
-
   Shapes.Move( player["sprite"], player["x"], player["y"] )'put player on screen
-
-
 
   PlayerMoveDelay  = playerDelay                     ' initialise player movement speed (delay)
 
-
-
 EndSub
 
 
-
-
-
 ' =====================================================================
-
 Sub parkieSetup
-
   ' create the player and display at start position
 
-
-
   img = ImageList.LoadImage(progDir + "\parkie.png")    ' parkie sprite
-
   parkie["sprite"] = Shapes.AddImage(img)    
-
   Shapes.Move( parkie["sprite"], parkie["x"], parkie["y"])   
-
   'ParkieMoveDelay  = text.GetSubText( level[thisLevel][parkieDelay], 3, 1 )                    ' initialise parkie movement speed (delay)
-
 'text.GetSubText( level[thisLevel][parkieDelay], 3, 1 )
-
 EndSub
 
-
-
 ' =====================================================================
-
-
 
 Sub checkKeys
 
-
-
   ' indicate if player is to move
-
   keyPress = GraphicsWindow.LastKey
-
   
-
 EndSub
-
-
 
 ' =====================================================================
 
-
-
 Sub movePlayer
-
   ' depending on the key pressed, move the player in the required direction
-
   ' unless we hit the edge of the screen, or a wall
-
   
-
   If keyPress <> "" Then    ' only process if a key was pressed
 
-
-
     move = 0  ' initially prevent any movement
-
     
-
    
-
     ' CHECK UP
-
     If keyPress = "Up"  Then
-
       move = 1
 
-
-
       px1 = math.Floor(((player["x"])-gwLeft)/16)+1
-
       px2 = px1+1
-
       py = math.Floor(((player["y"])-gwTop)/16)+1 'finds row and colum by block size, refing top left
 
 
-
-
-
       ' hit a wall?
-
      tile = Text.GetSubText( level[thisLevel][py], px1, 1) 'hit a wall?
-
      If tile = "V" Or tile="H" Or tile="1" Or tile ="2" Or tile="3" Or tile = "4" Then
-
        move = 0
-
      EndIf
-
    
-
    
-
         tile = Text.GetSubText( level[thisLevel][py], px2, 1) 'hit a wall?
-
      If tile = "V" Or tile="H" Or tile="1" Or tile ="2" Or tile="3" Or tile = "4" Then
-
        move = 0
-
      EndIf
-
    EndIf
-
    
-
        ' CHECK DOWN
-
     If keyPress = "Down"  Then
-
       move = 1
-
       
-
       py = math.Floor(((player["y"])-gwTop)/16)+3 'finds row and colum by block size, refing top left - hence plus 3 to find row underneath sprite
-
      px1 = math.Floor(((player["x"])-gwLeft)/16)+1
-
      px2 = math.Floor(((player["x"])-gwLeft)/16)+2
-
      
-
      TextWindow.WriteLine("py " +py)
-
      TextWindow.WriteLine("px1 " +px1)
-
      TextWindow.WriteLine("px2 " +px2)
 
-
-
       ' hit a wall?
-
      tile = Text.GetSubText( level[thisLevel][py], px1, 1) 'hit a wall?
-
      If tile = "V" Or tile="H" Or tile="1" Or tile ="2" Or tile="3" Or tile = "4" Then
-
        move = 0
-
      EndIf
-
      tile = Text.GetSubText( level[thisLevel][py], px2, 1) 'hit a wall?
-
      If tile = "V" Or tile="H" Or tile="1" Or tile ="2" Or tile="3" Or tile = "4" Then
-
        move = 0
-
      EndIf
-
    EndIf
-
    
-
       ' CHECK RIGHT
-
     If keyPress = "Right"  Then
-
       move = 1
-
-
 
      px = math.Floor(((player["x"])-gwLeft)/16)+3
-
      py1 = math.Floor(((player["y"])-gwTop)/16)+1 'finds row and colum by block size, refing top left - hence plus 3 to find row underneath sprite
-
      py2 = math.Floor(((player["y"])-gwTop)/16)+2
-
      TextWindow.WriteLine("py " +py1)
-
      TextWindow.WriteLine("py2 " +py2)
-
-
 
       ' hit a wall?
-
      tile = Text.GetSubText( level[thisLevel][py1], px, 1) 'hit a wall?
-
      If tile = "V" Or tile="H" Or tile="1" Or tile ="2" Or tile="3" Or tile = "4" Then
-
        move = 0
-
      EndIf
-
      tile = Text.GetSubText( level[thisLevel][py2], px, 1) 'hit a wall?
-
      If tile = "V" Or tile="H" Or tile="1" Or tile ="2" Or tile="3" Or tile = "4" Then
-
        move = 0
-
      EndIf
-
    EndIf
-
    
-
          ' CHECK LEFT
-
     If keyPress = "Left"  Then
-
       move = 1
 
-
-
      px = math.Floor(((player["x"])-gwLeft)/16)+1
-
      py1 = math.Floor(((player["y"])-gwTop)/16)+1
-
      py2 = math.Floor(((player["y"])-gwTop)/16)+2
-
      TextWindow.WriteLine("py " +py1)
-
      TextWindow.WriteLine("py2 " +py2)
-
      TextWindow.WriteLine("px " +px)
-
      
-
     'finds row and colum by block size, refing top left - hence plus 3 to find row underneath sprite
 
 
-
-
-
       ' hit a wall?
-
      tile = Text.GetSubText( level[thisLevel][py1], px, 1) 'hit a wall?
-
      If tile = "V" Or tile="H" Or tile="1" Or tile ="2" Or tile="3" Or tile = "4" Then
-
        move = 0
-
      EndIf
-
      tile = Text.GetSubText( level[thisLevel][py2], px, 1) 'hit a wall?
-
      If tile = "V" Or tile="H" Or tile="1" Or tile ="2" Or tile="3" Or tile = "4" Then
-
        move = 0
-
      EndIf
-
      
-
     EndIf
-
-
 
 ' ADJUST PLAYER LOCATION and rotate player to point the correct direction
 
-
-
 If move > 0 then
-
     If keyPress = "Left" Then
-
       player["x"] = player["x"] - move
-
     '  Shapes.Rotate(player["sprite"], 270)
-
     EndIf
-
     If keyPress = "Right" Then
-
       player["x"] = player["x"] + move
-
     '  Shapes.Rotate(player["sprite"], 90)
-
     EndIf
-
     If keyPress = "Up"  Then
-
       player["y"] = player["y"] - move
-
      ' Shapes.Rotate(player["sprite"], 0)
-
     EndIf
-
     If keyPress = "Down"  Then
-
       player["y"] = player["y"] + move
-
     '  Shapes.Rotate(player["sprite"], 180)
-
     EndIf
-
-
-
 
 
 ' MOVE PLAYER SPRITE
 
-
-
     Shapes.Move( player["sprite"], player["x"], player["y"] )
-
     keyPress = ""
-
   endif
-
   
-
 EndIf 'key press end if
-
 keyPress=""
-
 EndSub
 
 
@@ -781,113 +394,53 @@ EndSub
 
 
 
-
-
-
-
-
-
-
-
-
 ' =====================================================================
-
 Sub levelConfig
-
   ' configuration settings for each of the levels
-
   '
-
   ' to add new levels, simply duplicate the last one below, change it's level number, make a new layout,
-
   ' then increase the 'levels' value below. To test your new level without playing all the earlier ones, change
-
   ' the 'thisLevel' variable (at the beginning of the program code above).
-
-
-
 
 
   levels = 4
 
 
-
-
-
   level[1]["parkieDir"]  = Math.GetRandomNumber(4)  ' start park keeper off in a random direction: 1=N, 2=E, 3=S, 4=W
-
   level[1]["parkieDelay"] = 700    ' speed of park keeper (higher = slower)
-
   'level[1]["getAngry"]  = 1      ' flag indicating if the snake can switch to angry mode (=1) or not (=0)
 
 
-
-
-
 ' 1 = corner top left, 2 = corner top right, 3 = corner bottom left, 4= corner bottom right, H = horizontal, v=vertical
-
 ' E = ENTRANCE, X=EXIT
-
   ' S = parkie start location
-
   ' P = Player start location
-
   ''do we need bell/flowers?/
 
-
-
   level[0][0]=  ".........1.........2.........3.........4"    ' just a ruler
-
   level[1][1]=  "1HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH2"
-
   level[1][2]=  "V          V               V           V"
-
   level[1][3]=  "V          V               V           V"
-
   level[1][4]=  "V  1HHHHH  V  HHHHHHHHH    V  HHHHHH2  V"
-
   level[1][5]=  "V  V                                V  V"
-
   level[1][6]=  "V  V                                V  V"
-
   level[1][7]=  "V  V  1HHHHHHHHHHH2  1HHHHHHHHHHH2  V  V"
-
   level[1][8]=  "V  V  V           V  V           V  V  V"
-
   level[1][9]=  "V  V  V           3HH4           V  V  V"
-
   level[1][10]= "E  V  V                          V  V  V"
-
   level[1][11]= "E  V  V        1HHHHHHHH2        V     V"
-
   level[1][12]= "V  V  V    1HHH4        3HHHH2   V     V"
-
   level[1][13]= "V  V  3HHHH4                 3HHHHHHH  V"
-
   level[1][14]= "V  V              1HH2                 V"
-
   level[1][15]= "V  V          1HHH4  3HHHH2            V"
-
   level[1][16]= "V  V  1HHHHHHH4      1HHHH3HHHHHHHHHH  V"
-
   level[1][17]= "V  V  V              V                 V"
-
   level[1][18]= "V  V  V              V                 V"
-
   level[1][19]= "V  V  V  HHHH  1HHHHH4  V  HHHHHHHHHH  V"
-
   level[1][20]= "V              V        V              X"
-
   level[1][21]= "V              V        V              X"
-
   level[1][22]= "3HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH4"
-
   
 
-
-
 EndSub
-
-
-
 

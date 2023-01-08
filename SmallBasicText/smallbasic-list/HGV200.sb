@@ -1,263 +1,131 @@
 gameName = "TestGame" 'This the main game name - it doesn't change
-
 LoadGame() 'Load an existing game or start a new one
-
 'TextWindow.Hide() 'crashed when we do a TextWindow.Show() later so use LD version
-
 LDTextWindow.Hide()
 
-
-
 'All the game play would be here
-
 LDGraphicsWindow.SetActive()
-
 GraphicsWindow.Title = "Game "+gameIndex+" : "+thisUser+" : Press Escape to end game"
-
 'If the game ended by exiting GraphicsWindow the game is also ended cleanly
-
 LDGraphicsWindow.ExitOnClose = "False"
-
 LDGraphicsWindow.Closing = OnClosing
 
-
-
 While (GraphicsWindow.LastKey <> "Escape")
-
   UpdateGame()
-
   users = Array.GetAllIndices(GameData["Users"])
-
   numUsers = Array.GetItemCount(users)
-
   'Clear window
-
   GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
-
   GraphicsWindow.FillRectangle(0,0,GraphicsWindow.Width,GraphicsWindow.Height)
-
   'Write out current data from all users
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.DrawText(20,20,"Game running for "+Math.Round((Clock.ElapsedMilliseconds-GameData["StartTime"])/1000)+" sec")
-
   For i = 1 To numUsers
-
     user = users[i]
-
     GraphicsWindow.DrawText(20,20+20*i,user+" : "+GameData["Users"][user])
-
   EndFor
-
   Program.Delay(1000)
-
 EndWhile
 
-
-
 'A separate program could be written to purge old 'dead' games
-
 OnClosing()
 
-
-
 Sub OnClosing
-
   GraphicsWindow.Hide()
-
   LDTextWindow.Show()
-
   TextWindow.ForegroundColor = "Yellow"
-
   TextWindow.WriteLine("Do you want to save your game (y or n)?")
-
   TextWindow.ForegroundColor = "Red"
-
   input = Text.ConvertToLowerCase(TextWindow.Read())
-
   If (Text.StartsWith(input,"y")) Then
-
   Else
-
     RemoveUser()
-
   EndIf
-
   Program.End()
-
 EndSub
-
-
 
 Sub LoadGame
-
   ListGames()
-
   GameData = ""
-
   While (GameData = "")
-
     gameIndex = TextWindow.ReadNumber()
-
     If (gameIndex < 0) Then
-
       ListGames()
-
     ElseIf  (gameIndex = 0) Then 'Add a new game - most the work is getting a new unused index with as low a value as possible
-
       GameData["StartTime"] = Clock.ElapsedMilliseconds 'We set any other game data we want here
-
       gameIndex = 1
-
       For i = 1 To numActive
-
         index = indices[i]
-
         If (gameIndex = index) Then
-
           gameIndex = index+1
-
           i = 0 'This checks all indices of games again
-
         EndIf
-
       EndFor
-
       allGameData[gameIndex] = GameData
-
       LDNetwork.SetGameData(gameName,allGameData)
-
     Else
-
       GameData = allGameData[indices[gameIndex]] 'get a game if it is a valid number otherwise GameData will stay "" and we check again
-
     EndIf
-
   EndWhile
-
   'Output game selected
-
   TextWindow.ForegroundColor = "Yellow"
-
   TextWindow.Write("You are playing game ") 
-
   TextWindow.ForegroundColor = "Red"
-
   TextWindow.WriteLine(gameIndex) 
-
   'Get the user name
-
   TextWindow.ForegroundColor = "Yellow"
-
   TextWindow.WriteLine("Enter your name")
-
   TextWindow.ForegroundColor = "Red"
-
   thisUser = TextWindow.Read()
-
 EndSub
-
-
 
 Sub ListGames 'List all active games and users
-
   allGameData = LDNetwork.GetGameData(gameName)
-
   numActive = Array.GetItemCount(allGameData)
-
   indices = Array.GetAllIndices(allGameData)
-
   TextWindow.ForegroundColor = "Yellow"
-
   TextWindow.WriteLine("Enter the number for an active game to join") 
-
   TextWindow.WriteLine("Enter 0 for a new game or -1 to refresh list")
-
   For i = 1 To numActive
-
     index = indices[i]
-
     TextWindow.ForegroundColor = "Cyan"
-
     TextWindow.Write("Game ")
-
     TextWindow.ForegroundColor = "Red"
-
     TextWindow.Write(index)
-
     users = Array.GetAllIndices(allGameData[index]["Users"])
-
     TextWindow.ForegroundColor = "Green"
-
     For j = 1 To Array.GetItemCount(users)
-
       user = users[j]
-
       TextWindow.Write(" "+user)
-
     EndFor
-
     TextWindow.ForegroundColor = "Cyan"
-
     TextWindow.WriteLine(" Active for "+Math.Round((Clock.ElapsedMilliseconds-allGameData[index]["StartTime"])/1000)+" sec")
-
   EndFor
-
   TextWindow.ForegroundColor = "Red"
-
 EndSub
-
-
 
 Sub RemoveUser 'Remove the current user from game when we end
-
   allGameData[gameIndex]["Users"][thisUser] = ""
-
   'If we are the last user then remove game
-
   If (Array.GetItemCount(allGameData[gameIndex]["Users"]) = 0) Then
-
     allGameData[gameIndex] = ""
-
   EndIf
-
   LDNetwork.SetGameData(gameName,allGameData)
-
 EndSub
-
-
 
 Sub RemoveGame 'Remove the current game (all users)
-
   allGameData[gameIndex] = ""
-
   LDNetwork.SetGameData(gameName,allGameData)
-
 EndSub
-
-
 
 Sub UpdateGame 'Update data for game with server
-
   'Get the current game data
-
   allGameData = LDNetwork.GetGameData(gameName)
-
   GameData = allGameData[gameIndex]
-
   'Modify GameData as required
-
   GameData["Users"][thisUser] = "Any data I want to pass "+Math.GetRandomNumber(1000)
-
   'Update allGameData
-
   allGameData[gameIndex] = GameData
-
   'Upload the data
-
   LDNetwork.SetGameData(gameName,allGameData)
-
 EndSub
-
-

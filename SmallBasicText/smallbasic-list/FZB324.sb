@@ -1,345 +1,172 @@
 '////////////////////////////////////////////////////////////////////////////////////////
-
 '//  Author: TubbZ
-
 '//  Title: A somewhat accurate timer
-
 '//  desc: I made this timer for a sb game i have been making to improve the framerates.
-
 '//  the standard timer is inaccurate for a stable fps game and 10 milliseconds delays are
-
 '// useless too. So i made my own timer. Basically it constantly polls the time until enough 
-
 '// time has passed to run events. (Unlike the Timer routines it is ofcourse single threaded).
-
 '////////////////////////////////////////////////////////////////////////////////////////
 
-
-
 Sub defineConstants
-
   ' all CAPS_VARS are constants - they remain the same when running
-
   TRUE = 1
-
   FALSE = 0
-
   
-
   ' timer constants
-
   TIMER_RUN = TRUE ' Timer needs executing
-
   TIMER_WAIT = FALSE ' Timer is waiting until timeout
-
   NO_TIMERS = 3 ' the number of timers
-
     
-
   'adding a new timer:
-
   'add one to the timers count
-
   ' NO_TIMERS = 4
 
-
-
   TMR_1 = 0 ' timer id for the first timer, IDs must be unique!
-
   TMR_1_INTERVAL = 2000'ms (so execute every 2 seconds)
 
-
-
   TMR_2 = 1
-
   TMR_2_INTERVAL = 1000 / 30 ' to run at 30 fps divide 1000 milliseconds by 30
 
-
-
   TMR_3 = 2
-
   TMR_3_INTERVAL = 5000'ms (so every 5 seconds)
-
   
-
   ' timers need  a unique id thats less than NO_TIMERS and greater than 0.
-
   ' TMR_4 = 3   
-
   'create a variable to store the interval
-
   'TMR_4_INTERVAL = 1000
-
   
-
   ' its usually easier to name the timers by what they do rather than numbers,
-
   ' so instead of TMR_4 if we are doing collision detection call it TMR_COLLISION.
-
   
-
 EndSub
-
-
 
 Sub initTimers
-
   
-
   TimersLast[NO_TIMERS] = 0 ' array storing last execution time
-
   TimerIntervals[NO_TIMERS] = 0 'array storing the intervals
-
   TimerExe[NO_TIMERS] = 0 'array storing the current state ( TIMER_WAIT / TIMER_RUN )
-
   
-
   TimerIntervals[TMR_1] = TMR_1_INTERVAL
-
   TimerIntervals[TMR_2] = TMR_2_INTERVAL
-
   TimerIntervals[TMR_3] = TMR_3_INTERVAL
-
   ' adding a new timer:
-
   ' add the interval to the TimerIntervals array
-
   'TimerIntervals[TMR_4] = TMR_4_INTERVAL
-
   
-
   'set the intial state and last exe time to now
-
   For i = 0 to NO_TIMERS
-
     TimersLast[i] = Clock.ElapsedMilliseconds
-
     TimerExe[i] = TIMER_WAIT
-
   endfor
-
   
-
 endsub
-
-
 
 Sub pollTimers
-
   
-
   now = Clock.ElapsedMilliseconds ' current time
-
   
-
   ' see if has timed out
-
   For i = 0 To NO_TIMERS
-
    
-
    If TimerExe[i] = TIMER_WAIT then ' (should always be true)
-
      
-
      ' calculate the difference
-
       diff = now - TimersLast[i]
-
      
-
       ' if the difference is greater than or equal to the time out 
-
       ' execute it and set the current time as the last execute time
-
       If ( diff >= TimerIntervals[i]  ) Then
-
         TimerExe[i] = TIMER_RUN
-
         TimersLast[i] = now
-
       EndIf
-
       
-
     EndIf
-
     
-
   EndFor
-
   
-
   ' execute expired timers
-
   executeTimers()
-
   
-
 EndSub
-
-
 
 Sub executeTimers
-
   ' if a timers state is set to run then we execute their code
-
   ' note: using IF/EndIf as two timers could run at the same time
-
   If TimerExe[TMR_1] = TIMER_RUN Then
-
     
-
     TextWindow.WriteLine("timer1")
-
     
-
     'add your timer 1 events in here - usually create seperate timers for
-
     ' different things. In a game some actions I perform every frame other,
-
     'more taxing actions i may only perform every other frame (like collision
-
     'detection).
-
     
-
     TimerExe[TMR_1] = TIMER_WAIT ' reset Timer 1 to wait for timeout
-
   EndIf
-
   
-
   If TimerExe[TMR_2] = TIMER_RUN then
-
     
-
     TextWindow.WriteLine("timer2")
-
     
-
     monFps() ' show Timer 2's FPS.
-
     
-
     TimerExe[TMR_2] = TIMER_WAIT
-
   EndIf
-
   
-
   if TimerExe[TMR_3] = TIMER_RUN then
-
     
-
     TextWindow.WriteLine("timer3")
-
     
-
     TimerExe[TMR_3] = TIMER_WAIT
-
   EndIf  
-
   
-
   'adding a new timer:
-
   ' handle the time out
-
   'if TimerExe[TMR_4] = TIMER_RUN then
-
     
-
     'TextWindow.WriteLine("timer4")
-
     
-
     'TimerExe[TMR_4] = TIMER_WAIT
-
   'EndIf  
-
 EndSub
-
-
 
 defineConstants() 
-
 initTimers() ' initialise the timer
-
 gameLoop() ' start the game loop
 
-
-
 Sub gameLoop
-
   
-
   ' yeah this will eat up CPU but we cannot afford to use 
-
   ' program.delay(10) without seriously over delaying
-
   While 1 = 1
-
   
-
   pollTimers()
-
   
-
   EndWhile  
-
-
 
 EndSub
 
-
-
 ' monitor the current FPS of a given timer
-
 ' it counts the number of executions of that timer
-
 ' within a given second.
-
 ' NOTE: only one instance of this function can be ran
-
 ' else it will mess up the startTime variable.
 
-
-
 Sub monFps
-
   
-
   If startTime = 0 then
-
     startTime = Clock.ElapsedMilliseconds  
-
   endif
-
   
-
   fpsCurrent = fpsCurrent + 1
-
   
-
   If ( (clock.ElapsedMilliseconds - startTime) > 1000 ) then
-
     TextWindow.Title = "TMR_2 is running at: " + fpsCurrent + "fps - SMOOTH"
-
     fpsCurrent = 0
-
     startTime = Clock.ElapsedMilliseconds
-
   endif
-
   
-
 endsub
-
-
-
-
-
 
 
 

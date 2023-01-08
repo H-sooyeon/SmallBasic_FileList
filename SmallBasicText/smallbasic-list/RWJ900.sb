@@ -1,359 +1,179 @@
 '    Jigsaw puzzle    made by   NaoChanON   2012/02/22
-
 '    Data Extension is required.
 
-
-
     shortest_time =60               '   My(NaoChanON)   shortest time  XD 
-
     GraphicsWindow.MouseDown=Onmousedown
-
     GraphicsWindow.MouseUp = OnMouseUp
-
     Timer.Tick=Time_show
-
     Timer.Interval=1000
 
-
-
     init()                 '  Initial View
-
     Url_Photo()            '  Gets a photo from Flickr or User's file
-
     Crop_photo()           '  crop photo 
-
     Random_Photo()         '  Cropped photograph are  scattered
-
     
-
     Timer.Resume()
-
     T0=clock.ElapsedMilliseconds
 
 
-
-
-
  While ("True")
-
    For i = 1 To n*m
-
      If (OnMove[i] = 1) Then
-
        PosX[i] = GraphicsWindow.MouseX 
-
        PosY[i] = GraphicsWindow.MouseY 
-
        Shapes.Move(sCrop[i],posX[i],posY[i])
-
        C_i=i
-
    EndIf
-
    EndFor
-
   Program.Delay(50)
-
  EndWhile
-
  
-
 Sub Check_original  '   if position is same as original
-
   If (math.Round(PosX[C_i]/dIW)+1)=(math.Remainder((C_i-1),m)+1) And  (math.Round(PosY[C_i]/dIH)+1)=(math.Floor((C_i-1)/m)+1) Then 
-
     tend[C_i]=1   '  If  its position is filled 
-
     Shapes.Move(sCrop[C_i],math.Remainder((C_i-1),m)*dIW,math.Floor((C_i-1)/m)*dIH) ' adjust position
-
    endif
-
 EndSub
-
-
 
 Sub Time_check
-
   count=0
-
   For NN=1 To n*m
-
     count=count+tend[NN]
-
   EndFor
-
   If Count=n*m Then 
-
     Timer.Pause()
-
     if past< shortest_time Then
-
      Sound.PlayBellRingAndWait() 
-
      Shapes.SetText(PGEND," Congratulation! You win! ") 
-
     Else 
-
      Shapes.SetText(PGEND," You finished. But you are not so fast. ")
-
     EndIf 
-
   EndIf
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   MX = GraphicsWindow.MouseX
-
   MY = GraphicsWindow.MouseY
-
   For i = 1 To n*m
-
     If  (MX >= PosX[i] And MX <= PosX[i]+dIW/4 And MY >= PosY[i] And MY <= PosY[i]+dIH/4) then
-
       onmove[i] = 1
-
       If Text.IsSubText(Prei,i) Then   ' avoid   multiple selection
-
           Goto end1
-
       EndIf 
-
       Prei="_"+i+":"
-
     EndIf
-
  end1: 
-
  EndFor
-
 EndSub
-
-
 
 Sub OnMouseUp
-
   check_original()    ' check if finished or not 
-
   Time_Check()        '  fast time check
-
   For i = 1 To n*m
-
     onMove[i] = 0
-
   EndFor
-
 EndSub
-
-
 
 Sub Time_show
-
   past= Math.Round((Clock.ElapsedMilliseconds-T0)/1000+0.5)
-
   Shapes.SetText(Currenttime,Past+" sec")      '   Elapsed  seconds
-
 EndSub
-
-
 
 Sub Random_photo
-
   For k=1 To n*m
-
     Retry:
-
     PreXY=""
-
     X= math.GetRandomNumber(4*m)       ' X-scatter positon
-
     Y= Math.GetRandomNumber(4*n)       ' Y-scatter-position
-
     PreXY="_"+Text.Append(x,y)+":"
-
     If Text.IsSubText(sumPreXY,PreXY) Then   '  avoid  near position 
-
       Goto retry
-
     EndIf 
-
     sumPreXY=sumPreXY+PreXY    '  list up position
-
     PosX[k]=X*dIW/4+IW-dIW/4
-
     PosY[k]=Y*dIH/4-dIH/4 
-
     Shapes.Animate(sCrop[k],PosX[k],PosY[k],2000)
-
   EndFor 
-
  
-
   Shapes.Move(mask,0,0) 
-
   For i= 1 To 60 
-
     Shapes.SetOpacity(mask,i)         '   masking original photo  (not completely)
-
     Program.Delay(20)
-
   EndFor
-
   Yellow_line()                       '  draw meshes
-
   GraphicsWindow.BrushColor="Navy"
-
   Currenttime= Shapes.AddText("0 sec")  ' Count time
-
   Shapes.Move(Currenttime,50,GH-40)
-
   Shapes.Zoom(Currenttime,2,2)
-
 EndSub
-
-
 
 Sub Crop_photo
-
   n=5                '   Y  -  dividing number
-
   dIH=IH/n           '           divided height
-
   m=4                '   X  -  dividing number
-
   dIW=IW/m           '           divided width
-
   For j=1 To n            '  Y  
-
      For i=1 To m         '  X  
-
        kij=i+m*(j-1)      '  count up
-
        Lmargin=GL+dIW*(i-1)
-
        Rmargin=DW-(GL+dIW*i)
-
        Tmargin=GT+dIH*(j-1)
-
        Bmargin=DH-(GT+dIH*j)
-
        Crop_Photo[kij]=PictureTools.TakeScreenShot(Lmargin,Rmargin,Tmargin,Bmargin)' Crop Screen
-
        sCrop[kij]= Shapes.AddImage(Crop_Photo[kij])
-
        Shapes.Move(sCrop[kij],0,-500)
-
      EndFor
-
   EndFor
-
   Yellow_line()
-
   PGEND= Shapes.AddText(" Start rearrange photos correctly ! Shortest time is :"+shortest_time+" sec")
-
   Shapes.Zoom(PGEND,2,2)
-
   Shapes.Animate(PGend,300,GH-40,1000)
-
 EndSub
-
-
 
 Sub Yellow_line    '  Make meshes
-
   For i=1 To m-1
-
     GraphicsWindow.PenColor="Yellow"
-
     YLineH[i]= Shapes.AddLine(0,0,0,IH)  '  Lengthwise direction
-
     Shapes.Move(YLineH[i],i*dIW,0)
-
   EndFor
-
   For i=1 To n-1
-
     GraphicsWindow.PenColor="Yellow"
-
     YLineW[i]= Shapes.AddLine(0,0,IW,0)  '  Transverse direction
-
     Shapes.Move(YLineW[i],0,i*dIH)
-
   EndFor  
-
 EndSub
-
-
 
 Sub init  
-
   DW= Desktop.Width
-
   DH= Desktop.Height 
-
   GL=20
-
   GT=40
-
   GW=1300
-
   GH=700
-
   IW=(GW-100)/2
-
   IH=GH*0.9
-
   GraphicsWindow.Clear()
-
   GraphicsWindow.BackgroundColor="lightcyan"
-
   GraphicsWindow.Left=GL-5    '   Left  trimming  =5
-
   GraphicsWindow.Top=GT-23    '   Top  trimming  =23
-
   GraphicsWindow.Width=GW
-
   GraphicsWindow.Height=GH
-
   GraphicsWindow.Show()
-
   GraphicsWindow.BrushColor="Red"
-
   GraphicsWindow.FontSize=13
-
   GraphicsWindow.FontItalic="True"
-
   '
-
  
-
 EndSub
 
-
-
 Sub Url_Photo
-
    url="http://farm4.static.flickr.com/3152/2668377616_c14dc5a823.jpg" '  <-------      "60sec"   is this case   
-
    'url= Flickr.GetRandomPicture("Flower")     '   If  you want to get a random photo from Flickr
-
    PX=ImageList.LoadImage(url)
-
    GraphicsWindow.DrawResizedImage(PX,0,0,IW,IH)
-
    GraphicsWindow.Title=url
-
    GraphicsWindow.BrushColor="white"  '    
-
    mask= Shapes.AddRectangle(IW,IH)
-
    Shapes.Move(mask,0,-1000) 
-
    GraphicsWindow.BrushColor="red"  '    
-
 Endsub 
-
-

@@ -1,945 +1,472 @@
 ' Colors 0.4 - (C) 2011, 2012 Nonki Takahashi
-
 ' shows 140 named colors, RGB and HSL
-
 '
-
 ' History
-
 ' 0.4 2012/07/22 Changed to create color table (472 lines MXV150-1)
-
 ' v0.3 2012/07/22 Inner color structure changed (430 lines)
-
 ' v0.2 2011/04/05 Added RGB to HSL conversion (433 lines MXV150-0)
-
 ' v0.1 2011/04/04 Created (280 lines MXV150)
-
 '
-
 ' Reference
-
 ' [1] "Microsoft Small Basic - An Introduction to Programming"
-
 ' [2] James D. Foley, Andries Van Dam "Fundamentals of Interactive Computer Graphics" 1982
-
 '
-
 ' Constant
-
 VERSION = "0.4"
-
 UNDEFINED = "N/A"
-
 CRLF = Text.GetCharacter(13) + Text.GetCharacter(10)
-
 WQUOTE = Text.GetCharacter(34)
 
-
-
 ' Main
-
 GraphicsWindow.Height = 600
-
 GraphicsWindow.Width = 360
-
 GraphicsWindow.Show()
-
 GraphicsWindow.Title = "Colors " + VERSION
-
 ColorTable_Init()
-
 iColor = 1
-
 While sColorTable[iColor]["name"] <> ""
-
   GraphicsWindow.Clear()
-
   Console_Init()
-
   ColorPick_Init()
-
   GraphicsWindow.BrushColor = "#4F81BD"
-
   GraphicsWindow.DrawText(10, 12, sColorTable[iColor]["family"] + " Colors")
-
   iLine = 1
-
   sFamily = sColorTable[iColor]["family"]
-
   While sFamily = sColorTable[iColor]["family"]
-
     GraphicsWindow.BrushColor = sColorTable[iColor]["name"]
-
     GraphicsWindow.FillRectangle(10, 20 * iLine + 10, 250, 20)
-
     sColor = GraphicsWindow.BrushColor
-
     sColorTable[iColor]["color"] = sColor
-
     Color_RGBtoHSL()
-
     sColorTable[iColor]["hue"] = rHue
-
     sColorTable[iColor]["saturation"] = rSaturation
-
     sColorTable[iColor]["lightness"] = rLightness
-
     Color_RGBtoGray()
-
     sColorTable[iColor]["gray"] = sGray
-
     GraphicsWindow.BrushColor = sGray
-
     GraphicsWindow.FillRectangle(260, 20 * iLine + 10, 40, 20)
-
     If iLevel > 128 Then
-
       GraphicsWindow.BrushColor = "Black"
-
     Else
-
       GraphicsWindow.BrushColor = "White"
-
     EndIf
-
     GraphicsWindow.DrawText(20, 20 * iLine + 12, sColorTable[iColor]["name"])
-
     GraphicsWindow.DrawText(180, 20 * iLine + 12, sColor) 
-
     GraphicsWindow.DrawText(268, 20 * iLine + 12, iLevel)
-
     iLine = iLine + 1
-
     iColor = iColor + 1
-
   EndWhile
-
   bButtonNotClicked = "True"
-
   Controls.ButtonClicked = Console_OnButtonClicked
-
   ColorPick_Show()
-
   bMouseMoved = "False"
-
   While bButtonNotClicked
-
     If bMouseMoved Then
-
       Shapes.Move(oRect, iMX + 10, iMY + 10)
-
       Shapes.Move(oText, iMX + 14, iMY + 14)
-
       sColor = GraphicsWindow.GetPixel(iMX, iMY)
-
       Color_RGBtoHSL()
-
       Color_HSLtoRGB()
-
       If rHue = UNDEFINED Then
-
         iHue = rHue
-
       Else
-
         iHue = Math.Round(rHue * 256 / 360)
-
       EndIf
-
       sText = sColor + CRLF + "H=" + iHue + CRLF + "S=" + Math.Round(rSaturation * 255) + CRLF + "L=" + Math.Round(rLightness * 255)
-
       Shapes.SetText(oText, sText)
-
       bMouseMoved = "False"
-
     Else  
-
       Program.Delay(200)
-
     EndIf
-
   EndWhile
-
   If sColorTable[iColor]["name"] = "" Then
-
     Color_DumpTable2()
-
     iColor = 1
-
   EndIf
-
 EndWhile
 
-
-
 ' Console | Initialization
-
 Sub Console_Init
-
   GraphicsWindow.BrushColor = "White"
-
   GraphicsWindow.FillRectangle(0, 0, 600, 360)
-
   GraphicsWindow.BrushColor = "Black"
-
   oNextButton = Controls.AddButton("Next", 310, 20)
-
 EndSub
-
-
 
 ' Console | On button clicked
-
 Sub Console_OnButtonClicked
-
   bButtonNotClicked = "False"
-
 EndSub
-
-
 
 ' Color | Dump color table
-
 Sub Color_DumpTable
-
   iColor = 1
-
   While sColorTable[iColor]["name"] <> ""
-
     TextWindow.Write("sColorTable[" + iColor + "] = ")
-
     TextWindow.WriteLine(WQUOTE + sColorTable[iColor] + WQUOTE)
-
     iColor = iColor + 1
-
   EndWhile
-
 EndSub
-
-
 
 ' Color | Dump color table 2
-
 Sub Color_DumpTable2
-
   TextWindow.Write("index,")
-
   TextWindow.Write("name,")
-
   TextWindow.Write("family,")
-
   TextWindow.Write("color,")
-
   TextWindow.Write("hue,")
-
   TextWindow.Write("saturation,")
-
   TextWindow.Write("lightness,")
-
   TextWindow.WriteLine("gray")
-
   iColor = 1
-
   While sColorTable[iColor]["name"] <> ""
-
     TextWindow.Write(iColor + ",")
-
     TextWindow.Write(sColorTable[iColor]["name"] + ",")
-
     TextWindow.Write(sColorTable[iColor]["family"] + ",")
-
     TextWindow.Write(sColorTable[iColor]["color"] + ",")
-
     TextWindow.Write(sColorTable[iColor]["hue"] + ",")
-
     TextWindow.Write(sColorTable[iColor]["saturation"] + ",")
-
     TextWindow.Write(sColorTable[iColor]["lightness"] + ",")
-
     TextWindow.WriteLine(sColorTable[iColor]["gray"] + ",")
-
     iColor = iColor + 1
-
   EndWhile
-
 EndSub
-
-
 
 ' Color | Convert HSL to RGB
-
 Sub Color_HSLtoRGB
-
   ' param rHue - [0, 360) or UNDEFINED
-
   ' param rLightness - [0, 1]
-
   ' param rSaturation - [0, 1]
-
   ' return sColor - "#rrggbb"
-
   If rLightness <= 0.5 Then
-
     rN2 = rLightness * (1 + rSaturation)
-
   Else
-
     rN2 = rLightness + rSaturation - rLightness * rSaturation
-
   EndIf
-
   rN1 = 2 * rLightness - rN2
-
   If rSaturation = 0 Then
-
     iR = Math.Round(rLightness * 255)
-
     iG = Math.Round(rLightness * 255)
-
     iB = Math.Round(rLightness * 255)
-
   Else
-
     rH = rHue + 120
-
     Color_Value()
-
     iR = iValue
-
     rH = rHue
-
     Color_Value()
-
     iG = iValue
-
     rH = rHue - 120
-
     Color_Value()
-
     iB = iValue
-
   EndIf
-
   sColor = GraphicsWindow.GetColorFromRGB(iR, iG, iB)
-
 EndSub
-
-
 
 ' Color | Function value
-
 Sub Color_Value
-
   ' param rN1, rN2
-
   ' param rH - [-120, 480)
-
   ' return iValue - 0..255
-
   If rH >= 360 Then
-
     rH = rH - 360
-
   EndIF
-
   If rH < 0 Then
-
     rH = rH + 360
-
   EndIF 
-
   If rH < 60 Then
-
     rV = rN1 + (rN2 - rN1) * rH / 60
-
   ElseIf rH < 180 Then
-
     rV = rN2
-
   ElseIf rH < 240 Then
-
     rV = rN1 + (rN2 - rN1) * (240 - rH) / 60
-
   Else
-
     rV = rN1
-
   EndIf
-
   iValue = Math.Round(rV * 255)
-
 EndSub
-
-
 
 ' Color | Convert RGB to Gray
-
 Sub Color_RGBtoGray
-
   ' param sColor - "#rrggbb"
-
   ' return rBrightness - (0, 1)
-
   ' return sGray - "#rrggbb"
-
   sR = Text.GetSubText(sColor, 2, 2)
-
   sG = Text.GetSubText(sColor, 4, 2)
-
   sB = Text.GetSubText(sColor, 6, 2)
-
   sHex = sR
-
   Math_Hex2Dec()
-
   iR = iDec
-
   sHex = sG
-
   Math_Hex2Dec()
-
   iG = iDec
-
   sHex = sB
-
   Math_Hex2Dec()
-
   iB = iDec
-
   iMin = Math.Min(Math.Min(iR, iG), iB)
-
   iLevel = iMin + Math.Round(((iR - iMin) * 2 + (iG - iMin) * 4 + (iB - iMin) * 1 ) / 7)
-
   rBrightness = Math.Round(iLevel / 255 * 10000) / 10000
-
   sGray = GraphicsWindow.GetColorFromRGB(iLevel, iLevel, iLevel)
-
 EndSub
-
-
 
 ' Color | Convert RGB to HSL
-
 Sub Color_RGBtoHSL
-
   ' param sColor - "#rrggbb"
-
   ' return rHue - [0, 360) or UNDEFINED
-
   ' return rLightness - (0, 1)
-
   ' return rSaturation - (0, 1)
-
   sR = Text.GetSubText(sColor, 2, 2)
-
   sG = Text.GetSubText(sColor, 4, 2)
-
   sB = Text.GetSubText(sColor, 6, 2)
-
   sHex = sR
-
   Math_Hex2Dec()
-
   ' rR = iDec / 255 ' occurs Math.Max() bug
-
   rR = Math.Round(iDec / 255 * 10000) / 10000
-
   sHex = sG
-
   Math_Hex2Dec()
-
   ' rG = iDec / 255 ' occurs Math.Max() bug
-
   rG = Math.Round(iDec / 255 * 10000) / 10000
-
   sHex = sB
-
   Math_Hex2Dec()
-
   ' rB = iDec / 255 ' occurs Math.Max() bug
-
   rB = Math.Round(iDec / 255 * 10000) / 10000
-
   rMax = Math.Max(rR, rG)
-
   rMax = Math.Max(rMax, rB)
-
   rMin = Math.Min(rR, rG)
-
   rMin = Math.Min(rMin, rB)
-
   rLightness = (rMax + rMin) / 2
-
   If rMax = rMin Then ' rR = rG = rB
-
     rSaturation = 0
-
     rHue = UNDEFINED
-
   Else
-
     If rLightness <= 0.5 Then
-
       rSaturation = (rMax - rMin) / (rMax + rMin)
-
     Else
-
       rSaturation = (rMax - rMin) / (2 - rMax - rMin)
-
     EndIf
-
     rRC = (rMax - rR) / (rMax - rMin)
-
     rGC = (rMax - rG) / (rMax - rMin)
-
     rBC = (rMax - rB) / (rMax - rMin)
-
     If rR = rMax Then     ' between Yellow and Magenta
-
       rHue = rBC - rGC
-
     ElseIf rG = rMax Then ' between Cyan and Yellow
-
       rHue = 2 + rRC - rBC
-
     ElseIf rB = rMax Then ' between Magenta and Cyan
-
       rHue = 4 + rGC - rRC
-
     Else
-
       TextWindow.WriteLine("Error:")
-
       TextWindow.WriteLine("rMax=" + rMax)
-
       TextWindow.WriteLine("rR=" + rR + ",sR=" + sR)
-
       TextWindow.WriteLine("rG=" + rG + ",sG=" + sG)
-
       TextWindow.WriteLine("rB=" + rB + ",sB=" + sB)
-
     EndIf
-
     rHue = rHue * 60
-
     If rHue < 0 Then
-
       rHue = rHue + 360
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 ' Color | Gray from lightness
-
 Sub Color_GrayFromLightness
-
   ' param rLightness - 0..255
-
   ' return sGray - "#rrggbb"
-
   iGray = Math.Round(rLightness * 255)
-
   sGray = GraphicsWindow.GetColorFromRGB(iGray, iGray, iGray)
-
 EndSub
-
-
 
 ' Color table | Initialization
-
 Sub ColorTable_Init
-
   sColorTable[1] = "name=IndianRed;family=Red;"
-
   sColorTable[2] = "name=LightCoral;family=Red;"
-
   sColorTable[3] = "name=Salmon;family=Red;"
-
   sColorTable[4] = "name=DarkSalmon;family=Red;"
-
   sColorTable[5] = "name=LightSalmon;family=Red;"
-
   sColorTable[6] = "name=Crimson;family=Red;"
-
   sColorTable[7] = "name=Red;family=Red;"
-
   sColorTable[8] = "name=FireBrick;family=Red;"
-
   sColorTable[9] = "name=DarkRed;family=Red;"
 
-
-
   sColorTable[10] = "name=Pink;family=Pink;"
-
   sColorTable[11] = "name=LightPink;family=Pink;"
-
   sColorTable[12] = "name=HotPink;family=Pink;"
-
   sColorTable[13] = "name=DeepPink;family=Pink;"
-
   sColorTable[14] = "name=MediumVioletRed;family=Pink;"
-
   sColorTable[15] = "name=PaleVioletRed;family=Pink;"
 
-
-
   sColorTable[16] = "name=LightSalmon;family=Orange;"
-
   sColorTable[17] = "name=Coral;family=Orange;"
-
   sColorTable[18] = "name=Tomato;family=Orange;"
-
   sColorTable[19] = "name=OrangeRed;family=Orange;"
-
   sColorTable[20] = "name=DarkOrange;family=Orange;"
-
   sColorTable[21] = "name=Orange;family=Orange;"
 
-
-
   sColorTable[22] = "name=Gold;family=Yellow;"
-
   sColorTable[23] = "name=Yellow;family=Yellow;"
-
   sColorTable[24] = "name=LightYellow;family=Yellow;"
-
   sColorTable[25] = "name=LemonChiffon;family=Yellow;"
-
   sColorTable[26] = "name=LightGoldenrodYellow;family=Yellow;"
-
   sColorTable[27] = "name=PapayaWhip;family=Yellow;"
-
   sColorTable[28] = "name=Moccasin;family=Yellow;"
-
   sColorTable[29] = "name=PeachPuff;family=Yellow;"
-
   sColorTable[30] = "name=PaleGoldenrod;family=Yellow;"
-
   sColorTable[31] = "name=Khaki;family=Yellow;"
-
   sColorTable[32] = "name=DarkKhaki;family=Yellow;"
 
-
-
   sColorTable[33] = "name=Lavender;family=Purple;"
-
   sColorTable[34] = "name=Thistle;family=Purple;"
-
   sColorTable[35] = "name=Plum;family=Purple;"
-
   sColorTable[36] = "name=Violet;family=Purple;"
-
   sColorTable[37] = "name=Orchid;family=Purple;"
-
   sColorTable[38] = "name=Fuchsia;family=Purple;"
-
   sColorTable[39] = "name=Magenta;family=Purple;"
-
   sColorTable[40] = "name=MediumOrchid;family=Purple;"
-
   sColorTable[41] = "name=MediumPurple;family=Purple;"
-
   sColorTable[42] = "name=BlueViolet;family=Purple;"
-
   sColorTable[43] = "name=DarkViolet;family=Purple;"
-
   sColorTable[44] = "name=DarkOrchid;family=Purple;"
-
   sColorTable[45] = "name=DarkMagenta;family=Purple;"
-
   sColorTable[46] = "name=Purple;family=Purple;"
-
   sColorTable[47] = "name=Indigo;family=Purple;"
-
   sColorTable[48] = "name=SlateBlue;family=Purple;"
-
   sColorTable[49] = "name=DarkSlateBlue;family=Purple;"
-
   sColorTable[50] = "name=MediumSlateBlue;family=Purple;"
 
-
-
   sColorTable[51] = "name=GreenYellow;family=Green;"
-
   sColorTable[52] = "name=Chartreuse;family=Green;"
-
   sColorTable[53] = "name=LawnGreen;family=Green;"
-
   sColorTable[54] = "name=Lime;family=Green;"
-
   sColorTable[55] = "name=LimeGreen;family=Green;"
-
   sColorTable[56] = "name=PaleGreen;family=Green;"
-
   sColorTable[57] = "name=LightGreen;family=Green;"
-
   sColorTable[58] = "name=MediumSpringGreen;family=Green;"
-
   sColorTable[59] = "name=SpringGreen;family=Green;"
-
   sColorTable[60] = "name=MediumSeaGreen;family=Green;"
-
   sColorTable[61] = "name=SeaGreen;family=Green;"
-
   sColorTable[62] = "name=ForestGreen;family=Green;"
-
   sColorTable[63] = "name=Green;family=Green;"
-
   sColorTable[64] = "name=DarkGreen;family=Green;"
-
   sColorTable[65] = "name=YellowGreen;family=Green;"
-
   sColorTable[66] = "name=OliveDrab;family=Green;"
-
   sColorTable[67] = "name=Olive;family=Green;"
-
   sColorTable[68] = "name=DarkOliveGreen;family=Green;"
-
   sColorTable[69] = "name=MediumAquamarine;family=Green;"
-
   sColorTable[70] = "name=DarkSeaGreen;family=Green;"
-
   sColorTable[71] = "name=LightSeaGreen;family=Green;"
-
   sColorTable[72] = "name=DarkCyan;family=Green;"
-
   sColorTable[73] = "name=Teal;family=Green;"
 
-
-
   sColorTable[74] = "name=Aqua;family=Blue;"
-
   sColorTable[75] = "name=Cyan;family=Blue;"
-
   sColorTable[76] = "name=LightCyan;family=Blue;"
-
   sColorTable[77] = "name=PaleTurquoise;family=Blue;"
-
   sColorTable[78] = "name=Aquamarine;family=Blue;"
-
   sColorTable[79] = "name=Turquoise;family=Blue;"
-
   sColorTable[80] = "name=MediumTurquoise;family=Blue;"
-
   sColorTable[81] = "name=DarkTurquoise;family=Blue;"
-
   sColorTable[82] = "name=CadetBlue;family=Blue;"
-
   sColorTable[83] = "name=SteelBlue;family=Blue;"
-
   sColorTable[84] = "name=LightSteelBlue;family=Blue;"
-
   sColorTable[85] = "name=PowderBlue;family=Blue;"
-
   sColorTable[86] = "name=LightBlue;family=Blue;"
-
   sColorTable[87] = "name=SkyBlue;family=Blue;"
-
   sColorTable[88] = "name=LightSkyBlue;family=Blue;"
-
   sColorTable[89] = "name=DeepSkyBlue;family=Blue;"
-
   sColorTable[90] = "name=DodgerBlue;family=Blue;"
-
   sColorTable[91] = "name=CornflowerBlue;family=Blue;"
-
   sColorTable[92] = "name=MediumSlateBlue;family=Blue;"
-
   sColorTable[93] = "name=RoyalBlue;family=Blue;"
-
   sColorTable[94] = "name=Blue;family=Blue;"
-
   sColorTable[95] = "name=MediumBlue;family=Blue;"
-
   sColorTable[96] = "name=DarkBlue;family=Blue;"
-
   sColorTable[97] = "name=Navy;family=Blue;"
-
   sColorTable[98] = "name=MidnightBlue;family=Blue;"
 
-
-
   sColorTable[99] = "name=Cornsilk;family=Brown;"
-
   sColorTable[100] = "name=BlanchedAlmond;family=Brown;"
-
   sColorTable[101] = "name=Bisque;family=Brown;"
-
   sColorTable[102] = "name=NavajoWhite;family=Brown;"
-
   sColorTable[103] = "name=Wheat;family=Brown;"
-
   sColorTable[104] = "name=BurlyWood;family=Brown;"
-
   sColorTable[105] = "name=Tan;family=Brown;"
-
   sColorTable[106] = "name=RosyBrown;family=Brown;"
-
   sColorTable[107] = "name=SandyBrown;family=Brown;"
-
   sColorTable[108] = "name=Goldenrod;family=Brown;"
-
   sColorTable[109] = "name=DarkGoldenrod;family=Brown;"
-
   sColorTable[110] = "name=Peru;family=Brown;"
-
   sColorTable[111] = "name=Chocolate;family=Brown;"
-
   sColorTable[112] = "name=SaddleBrown;family=Brown;"
-
   sColorTable[113] = "name=Sienna;family=Brown;"
-
   sColorTable[114] = "name=Brown;family=Brown;"
-
   sColorTable[115] = "name=Maroon;family=Brown;"
 
-
-
   sColorTable[116] = "name=White;family=White;"
-
   sColorTable[117] = "name=Snow;family=White;"
-
   sColorTable[118] = "name=Honeydew;family=White;"
-
   sColorTable[119] = "name=MintCream;family=White;"
-
   sColorTable[120] = "name=Azure;family=White;"
-
   sColorTable[121] = "name=AliceBlue;family=White;"
-
   sColorTable[122] = "name=GhostWhite;family=White;"
-
   sColorTable[123] = "name=WhiteSmoke;family=White;"
-
   sColorTable[124] = "name=Seashell;family=White;"
-
   sColorTable[125] = "name=Beige;family=White;"
-
   sColorTable[126] = "name=OldLace;family=White;"
-
   sColorTable[127] = "name=FloralWhite;family=White;"
-
   sColorTable[128] = "name=Ivory;family=White;"
-
   sColorTable[129] = "name=AntiqueWhite;family=White;"
-
   sColorTable[130] = "name=Linen;family=White;"
-
   sColorTable[131] = "name=LavenderBlush;family=White;"
-
   sColorTable[132] = "name=MistyRose;family=White;"
 
-
-
   sColorTable[133] = "name=Gainsboro;family=Gray;"
-
   sColorTable[134] = "name=LightGray;family=Gray;"
-
   sColorTable[135] = "name=Silver;family=Gray;"
-
   sColorTable[136] = "name=DarkGray;family=Gray;"
-
   sColorTable[137] = "name=Gray;family=Gray;"
-
   sColorTable[138] = "name=DimGray;family=Gray;"
-
   sColorTable[139] = "name=LightSlateGray;family=Gray;"
-
   sColorTable[140] = "name=SlateGray;family=Gray;"
-
   sColorTable[141] = "name=DarkSlateGray;family=Gray;"
-
   sColorTable[142] = "name=Black;family=Gray;"
-
 EndSub
-
-
 
 ' Color pick | Initialize
-
 Sub ColorPick_Init
-
   GraphicsWindow.PenColor = "Gray"
-
   GraphicsWindow.BrushColor = "White"
-
   oRect = Shapes.AddRectangle(70, 67)
-
   Shapes.HideShape(oRect)
-
   GraphicsWindow.BrushColor = "Black"
-
   oText = Shapes.AddText("")
-
   Shapes.HideShape(oText)
-
 EndSub
-
-
 
 ' Color pick | Show
-
 Sub ColorPick_Show
-
   iMX = GraphicsWindow.MouseX
-
   iMY = GraphicsWindow.MouseY
-
   Shapes.Move(oRect, iMX + 10, iMY + 10)
-
   Shapes.Move(oText, iMX + 14, iMY + 14)
-
   sRGB = GraphicsWindow.GetPixel(iMX, iMY)
-
   Shapes.SetText(oText, sRGB)
-
   Shapes.ShowShape(oRect)
-
   Shapes.ShowShape(oText)
-
   GraphicsWindow.MouseMove = ColorPick_OnMouseMove
-
 EndSub
-
-
 
 ' Color pick | On mouse move
-
 Sub ColorPick_OnMouseMove
-
   iMX = GraphicsWindow.MouseX
-
   iMY = GraphicsWindow.MouseY
-
   bMouseMoved = "True"
-
 EndSub
-
-
 
 ' Math | Convert hexadecimal to decimal
-
 Sub Math_Hex2Dec
-
   ' param sHex
-
   ' return iDec
-
   iDec = 0
-
   iLen = Text.GetLength(sHex)
-
   For iPtr = 1 To iLen
-
     iDec = iDec * 16 + Text.GetIndexOf("0123456789ABCDEF", Text.GetSubText(sHex, iPtr, 1)) - 1
-
   EndFor
-
 EndSub
-
-

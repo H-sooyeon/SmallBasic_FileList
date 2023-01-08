@@ -1,833 +1,416 @@
 'Turtle Maze Game Demonstration - by LitDev for January 2015 Small Basic Challenges
-
 'Doesn't work using SliverLight online
-
 'Includes methods that may be of general interest to:
-
 'Manually and auto generate mazes
-
 'Play asyncronous background music
-
 'Turtle trail deletion
 
-
-
 '==================================================
-
 'INITIAL SETUP
-
 '==================================================
-
 SetGW()
-
 GetMedia()
-
 GraphicsWindow.KeyDown = OnKeyDown
-
 GraphicsWindow.KeyUp = OnKeyUp
-
 Timer.Interval = 10
-
 Timer.Tick = OnTick
-
-
 
 ResetGame() 'This starts the game when a key is pressed
 
-
-
 '==================================================
-
 'MAIN GAME LOOP
-
 '==================================================
-
 While ("True")
-
   UpdateTime()
-
   CheckCompleted()
-
   CheckKeys()
-
   'No delay to move turtle more smoothly when key held down
-
 EndWhile
 
-
-
 '==================================================
-
 'EVENT SUBROUTINES
-
 '==================================================
-
 Sub OnKeyDown
-
   key = GraphicsWindow.LastKey
-
   keyDown[key] = "True"
-
 EndSub
-
-
 
 Sub OnKeyUp
-
   key = GraphicsWindow.LastKey
-
   keyDown[key] = "False"
-
 EndSub
-
-
 
 Sub OnTick
-
   'See http://social.technet.microsoft.com/wiki/contents/articles/28800.how-to-add-background-music-to-a-small-basic-game.aspx
-
   'Music repeatedly played asynchronously (on timer thread)
-
   Timer.Pause()
-
   While ("True")
-
     If (playMusic) Then
-
       Sound.PlayAndWait(backgroundMusic)
-
     EndIf
-
     Program.Delay(20)
-
   EndWhile
-
 EndSub
 
-
-
 '==================================================
-
 'SETUP SUBROUTINES
-
 '==================================================
-
 Sub SetGW
-
   'gw = Desktop.Width*0.75
-
   'gh = Desktop.Height*0.75
-
   gw = 600
-
   gh = 600
-
   GraphicsWindow.Width = gw
-
   GraphicsWindow.Height = gh
-
   'Center GW on screen
-
   GraphicsWindow.Top = (Desktop.Height-gh)/4
-
   GraphicsWindow.Left = (Desktop.Width-gw)/2
-
   
-
   'Loading...
-
   GraphicsWindow.BrushColor = "Purple"
-
   GraphicsWindow.FontSize = 40
-
   GraphicsWindow.DrawText(gw/2-100,gh/3,"Loading...")
-
   
-
   'Timing display text
-
   GraphicsWindow.FontSize = 15
-
   GraphicsWindow.BrushColor = "Black"
-
   timing1 = Shapes.AddText("")
-
   GraphicsWindow.BrushColor = "Yellow"
-
   timing2 = Shapes.AddText("")
-
   Shapes.Move(timing1,gw-120+2,4+2)
-
   Shapes.Move(timing2,gw-120,4)
-
   
-
   'turtleLine Count to clear them after each screen
-
   turtleLineStart = 1
-
   turtleLine = 0
-
 EndSub
-
-
 
 Sub GetMedia
-
   'Images
-
   pathImage = ImageList.LoadImage("http://litdev.co.uk/game_images/pathImage.jpg")
-
   wallImage = ImageList.LoadImage("http://litdev.co.uk/game_images/wallImage.jpg")
-
   homeImage = ImageList.LoadImage("http://litdev.co.uk/game_images/homeImage.png")
-
   
-
   'Music - internally SB creates a cached list so they are only downloaded once
-
   backgroundMusic = "http://litdev.co.uk/game_images/backgroundMusic.mp3"
-
   crashSound = "http://litdev.co.uk/game_images/crashSound.mp3"
-
   applauseSound = "http://litdev.co.uk/game_images/applauseSound.mp3"
-
   
-
   'Basic Options
-
   playMusic = "True"
-
   level = 1
-
 EndSub
-
-
 
 Sub DrawGrid
-
   'Initially all path - add walls later
-
   'GraphicsWindow.BrushColor = "White"
-
   'GraphicsWindow.FillRectangle(0,0,gw,gh)
-
   GraphicsWindow.DrawResizedImage(pathImage,0,0,gw,gh)
-
   GraphicsWindow.Title = "Turtle Maze (Arrow Keys)"
-
   
-
   'Get the level grid
-
   GetGrid()
-
   
-
   'Number of rows
-
   nrow = Array.GetItemCount(grid)
-
   ncol = 0
-
   'Max number of columns
-
   For i = 1 To nrow 'Allow for possibility of different length rows as in this maze
-
     ncol = Math.Max(ncol,Text.GetLength(grid[i]))
-
   EndFor
-
   'width and height of a path/wall segment
-
   w = gw/ncol
-
   h = gh/nrow
-
   'Draw grid walls
-
   For i = 1 To ncol
-
     For j = 1 To nrow
-
       loc = Text.GetSubText(grid[j],i,1)
-
       If (loc = "X" Or loc = "") Then 'Unassigned is wall
-
         'GraphicsWindow.BrushColor = "Black"
-
         'GraphicsWindow.FillRectangle(x,y,w+1.5,h+1.5) '+1.5 is to prevent leaving small black lines due to non integer pixels
-
         GraphicsWindow.DrawResizedImage(wallImage,(i-1)*w,(j-1)*h,w,h)
-
       ElseIf (loc = "S") Then 'Turtle start position
-
         turtleStartX = i
-
         turtleStartY = j
-
       ElseIf (loc = "E") Then 'Home (End)
-
         GraphicsWindow.DrawResizedImage(homeImage,(i-1)*w,(j-1)*h,w,h)
-
       EndIf
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub ResetGame
-
   'Remove any previous level turtle lines
-
   ClearLines()
-
   
-
   'Create the grid
-
   DrawGrid()
-
   
-
   'Initial turtle position
-
   Turtle.PenUp()
-
   Turtle.Speed = 10
-
   turtleX = turtleStartX
-
   turtleY = turtleStartY
-
   'Turtle.MoveTo sometimes fails if we move along virtually horizontal or vertical lines (internal rounding underflow error - bug) - so we do a 2 step move
-
   Turtle.MoveTo(-100,-100) 
-
   Turtle.MoveTo((turtleX-0.5)*w,(turtleY-0.5)*h)
-
   Turtle.MoveTo((turtleX-0.5)*w,(turtleY-0.5)*h) 'Also MoveTo is not very accurate on a long move so do it twice!
-
   Turtle.Angle = angleStart
-
   Turtle.Speed = 6
-
   Turtle.PenDown()
-
   Program.Delay(100)
-
   
-
   'Start when first key is pressed
-
   gameStart = Clock.ElapsedMilliseconds
-
   UpdateTime()
-
   turtleLineStart = turtleLine+1
-
   keyDown = ""
-
   While (Array.ContainsValue(keyDown,"True") = "False")
-
     Program.Delay(20)
-
   EndWhile
-
   gameStart = Clock.ElapsedMilliseconds
-
 EndSub
 
-
-
 '==================================================
-
 'GAME SUBROUTINES
-
 '==================================================
-
 Sub CheckKeys
-
   'Move turtle if there is no barrier
-
   'If there is a barrier do a crash noise that is also a penalty delay
-
   If (keyDown["Left"] And turtleX > 1) Then
-
     loc = Text.GetSubText(grid[turtleY],turtleX-1,1)
-
     If (loc <> "X") Then
-
       Turtle.Angle = -90
-
       Turtle.Move(w)
-
       turtleLine = turtleLine+1
-
       turtleX = turtleX-1
-
     Else
-
       Sound.PlayAndWait(crashSound)
-
     EndIf
-
   ElseIf (keyDown["Right"] And turtleX < ncol) Then
-
     loc = Text.GetSubText(grid[turtleY],turtleX+1,1)
-
     If (loc <> "X") Then
-
       Turtle.Angle = 90
-
       Turtle.Move(w)
-
       turtleLine = turtleLine+1
-
       turtleX = turtleX+1
-
     Else
-
       Sound.PlayAndWait(crashSound)
-
     EndIf
-
   ElseIf (keyDown["Up"] And turtleY > 1) Then
-
     loc = Text.GetSubText(grid[turtleY-1],turtleX,1)
-
     If (loc <> "X") Then
-
       Turtle.Angle = 0
-
       Turtle.Move(h)
-
       turtleLine = turtleLine+1
-
       turtleY = turtleY-1
-
     Else
-
       Sound.PlayAndWait(crashSound)
-
     EndIf
-
   ElseIf (keyDown["Down"] And turtleY < nrow) Then
-
     loc = Text.GetSubText(grid[turtleY+1],turtleX,1)
-
     If (loc <> "X") Then
-
       Turtle.Angle = 180
-
       Turtle.Move(h)
-
       turtleLine = turtleLine+1
-
       turtleY = turtleY+1
-
     Else
-
       Sound.PlayAndWait(crashSound)
-
     EndIf
-
   ElseIf (keyDown["OemPlus"]) Then
-
     level = level+1
-
     ResetGame() 'Next Level Game
-
   ElseIf (keyDown["OemMinus"]) Then
-
     level = Math.Max(1,level-1)
-
     ResetGame() 'Previous Level Game
-
   ElseIf (keyDown["Space"]) Then
-
     ResetGame() 'Replay Level Game
-
   ElseIf (keyDown["Escape"]) Then
-
     Program.End() 'End Game
-
   EndIf
-
 EndSub
-
-
 
 Sub CheckCompleted 'Maze  Completed
-
   loc = Text.GetSubText(grid[turtleY],turtleX,1)
-
   If (loc = "E") Then
-
     txt = "You completed Level "+level+" in "+gameTime+" seconds!"
-
     GraphicsWindow.BrushColor = "Black"
-
     GraphicsWindow.FontSize = 23
-
     message1 = Shapes.AddText(txt)
-
     GraphicsWindow.BrushColor = "Yellow"
-
     message2 = Shapes.AddText(txt)
-
     Shapes.Move(message1,gw/2-225+2,gh/3+2)
-
     Shapes.Move(message2,gw/2-225,gh/3)
-
     'New level
-
     level = level+1
-
     Sound.PlayAndWait(applauseSound)
-
     Program.Delay(5000)
-
     Shapes.Remove(message1)
-
     Shapes.Remove(message2)
-
     ResetGame() 'New Game
-
   EndIf
-
 EndSub
-
-
 
 Sub UpdateTime
-
   gameTime = Clock.ElapsedMilliseconds-gameStart
-
   gameTime = 0.1*Math.Round(gameTime/100)
-
   status = "Level "+level+" "+gameTime
-
   Shapes.SetText(timing1,status)
-
   Shapes.SetText(timing2,status)
-
 EndSub
-
-
 
 Sub ClearLines 'Turtle lines are just line shapes
-
   For i = turtleLineStart To turtleLine
-
     Shapes.Remove("_turtleLine"+i)
-
   EndFor
-
   turtleLineStart = turtleLine+1
-
 EndSub
 
-
-
 '==================================================
-
 'MAZE GRID GENERATION SUBROUTINES
-
 '==================================================
-
 Sub GetGrid
-
   'Grid rows from top to bottom
-
   'X is wall, S is start, E is End, Space is path
-
   'The indices for gridRaw do not have to be contiguous numbers
-
   If (level = 1) Then
-
     angleStart = 180 'Initially facing down
-
     gridRaw[1]  = "XSXXXXXXXXXXXXXXXXX"
-
     gridRaw[2]  = "X X               X"
-
     gridRaw[3]  = "X X XXX X XXXXXXXXX"
-
     gridRaw[4]  = "X   X   X         X"
-
     gridRaw[5]  = "X XXX XXXXXXXXX X X"
-
     gridRaw[6]  = "X X   X       X X X"
-
     gridRaw[33] = "X XXXXX XXXXX XXX X" 'Out of sequnce index for test
-
     gridRaw[8]  = "X   X       X X   X"
-
     gridRaw[9]  = "XXX X XXXXX X X X X"
-
     gridRaw[10] = "X   X X   X X X X X"
-
     gridRaw[11] = "XXX X X X X X X X X"
-
     gridRaw[12] = "X   X   X X X   X X"
-
     gridRaw[13] = "X XXXXXXX XXXXXXXXX"
-
     gridRaw[14] = "X       X X       X"
-
     gridRaw[15] = "XXXXX X X X XXXXX X"
-
     gridRaw[16] = "X   X X X   X   X X"
-
     gridRaw[17] = "X XXX X XXXXX X X X"
-
     gridRaw[18] = "X     X       X X E"
-
     gridRaw[19] = "xxxxxxxxxxxxxxxxxxx" 'Deliberate lower case x as a test
-
   Else 'Auto generated levels
-
     AutoGrid()
-
   EndIf
-
   'Make sure grid is indexed monotonically - if we insert a row with 'out of order' index it will be sorted here
-
   'Also convert all to upper case for condition comparisons later
-
   indices = Array.GetAllIndices(gridRaw)
-
   grid = "" 'Ensure empty to start with
-
   For i = 1 To Array.GetItemCount(indices)
-
     grid[i] = Text.ConvertToUpperCase(gridRaw[indices[i]])
-
   EndFor
-
   gridRaw = "" 'We don't need this any more
-
 EndSub
-
-
 
 Sub AutoGrid
-
   'Grid dimension
-
   size = 5*level
-
   If (Math.Remainder(size,2) = 0) Then 'Best with odd number of cells on sides
-
     size = size+1
-
   EndIf
-
   'See http://en.wikipedia.org/wiki/Maze_generation_algorithm
-
   'Randomized Prim's algorithm
-
   'Start with a grid full of walls.
-
   For i = 1 To size  
-
     For j = 1 To size 
-
       If (Math.Remainder(i,2) = 0 And Math.Remainder(j,2) = 0) Then 'i and j even then cell
-
         grid[i][j] = "cell"
-
       ElseIf (Math.Remainder(i,2) = 0 And j > 1 And j < size) Then 'horizontal wall
-
         grid[i][j] = "wall"
-
       ElseIf (Math.Remainder(j,2) = 0 And i > 1 And i < size) Then 'vertical wall
-
         grid[i][j] = "wall"
-
       Else 'Always a barrier
-
         grid[i][j] = "X"
-
       EndIf 
-
     EndFor
-
   EndFor
-
   
-
   nWall = 0
-
   'Start position
-
   grid[1][2] = "S"
-
   angleStart = 180 'Initially facing down
-
   'Home position
-
   grid[size-1][size] = "E"
-
   'Pick a cell, mark it as part of the maze. Add the walls of the cell to the wall list.
-
   i = 2
-
   j = size-1 'Seeding top right gives a better grid on the opposite diagonal
-
   AddWalls()
-
   'While there are walls in the list:
-
   While (Array.GetItemCount(walls) > 0)
-
     'Pick a random wall from the list.
-
     indices = Array.GetAllIndices(walls)
-
     index = indices[Math.GetRandomNumber(Array.GetItemCount(indices))]
-
     wall = walls[index]
-
     'If the cell on the opposite side isn't in the maze yet:
-
     i = wall["i"]
-
     j = wall["j"]
-
     If (Math.Remainder(i,2) = 0) Then 'Horizontal Wall
-
       If (grid[i][j-1] = "cell") Then
-
         'Make the wall a passage
-
         grid[i][j] = " "
-
         'Mark the cell on the opposite side as part of the maze.
-
         'Add the neighboring walls of the cell to the wall list.
-
         j = j-1 'The cell should at i,j so modify j - we don't use it again so no problem
-
         AddWalls()
-
       ElseIf (grid[i][j+1] = "cell") Then
-
         grid[i][j] = " "
-
         j = j+1
-
         AddWalls()
-
       EndIf
-
     ElseIf (Math.Remainder(j,2) = 0) Then 'Vertical Wall
-
       If (grid[i-1][j] = "cell") Then
-
         grid[i][j] = " "
-
         i = i-1
-
         AddWalls()
-
       ElseIf (grid[i+1][j] = "cell") Then
-
         grid[i][j] = " "
-
         i = i+1
-
         AddWalls()
-
       EndIf
-
     EndIf
-
     'Remove the wall from the list.
-
     walls[index] = ""
-
   EndWhile
-
   
-
   'Convert to gridRaw text format
-
   gridRaw = ""
-
   For i = 1 To size
-
     For j = 1 To size
-
       If (Text.GetLength(grid[i][j]) > 1) Then 'Remaining walls
-
         grid[i][j] = "X"
-
       EndIf
-
       gridRaw[i] = gridRaw[i]+grid[i][j]
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 Sub AddWalls
-
   'Mark the cell as part of the maze.
-
   grid[i][j] = " "
-
   'Add the neighboring walls of the cell to the wall list.
-
   If (grid[i-1][j] = "wall") Then
-
     nWall = nWall+1
-
     walls[nWall]["i"] = i-1
-
     walls[nWall]["j"] = j
-
   EndIf
-
   If (grid[i+1][j] = "wall") Then
-
     nWall = nWall+1
-
     walls[nWall]["i"] = i+1
-
     walls[nWall]["j"] = j
-
   EndIf
-
   If (grid[i][j-1] = "wall") Then
-
     nWall = nWall+1
-
     walls[nWall]["i"] = i
-
     walls[nWall]["j"] = j-1
-
   EndIf
-
   If (grid[i][j+1] = "wall") Then
-
     nWall = nWall+1
-
     walls[nWall]["i"] = i
-
     walls[nWall]["j"] = j+1
-
   EndIf
-
 EndSub
-
-

@@ -1,309 +1,154 @@
 Controls.ButtonClicked = onClick
 
-
-
 Sub onClick
-
   lastBtn = Controls.LastClickedButton
-
   If lastBtn = "Button3" Then
-
     If Controls.GetButtonCaption(stratProgramBtn) = "Exit" Then
-
       Program.End()
-
     EndIf
-
     altitude = Controls.GetTextBoxText(altTxt) + 6371
-
     If altitude < 150+6371 Then
-
       GraphicsWindow.ShowMessage("No value less than 150 km is allowed","error")
-
     Else
-
       Controls.SetButtonCaption(stratProgramBtn,"Exit")
-
       run = "True"
-
     EndIf
-
     Shapes.SetText(altitudeLebel,altitude - 6371)
-
     Shapes.SetText(altitudeplusearthradiuasLebel,altitude)
-
   ElseIf lastBtn = "Button1" Then
-
     altitude = Controls.GetTextBoxText(altTxt)
-
     If altitude < 150 Then
-
       GraphicsWindow.ShowMessage("No value less than 150 km is allowed","error")
-
     Else
-
     altitude = Controls.GetTextBoxText(altTxt) + 6371
-
     Shapes.SetText(altitudeLebel,altitude - 6371)
-
     Shapes.SetText(altitudeplusearthradiuasLebel,altitude)
-
     orbitAdjust()
-
   EndIf
-
   ElseIf lastBtn = "Button2" And run = "True" Then
-
     geoOrbit()
-
     orbitAdjust()
-
   EndIf
-
 EndSub
-
-
 
 WindowSizeAndConsts()
-
 loadImages()
-
 DrawWindow()
-
 drawSpaceArea()
-
 drawEarthAndSat()
-
 drawControlPans()
 
-
-
 Sub WindowSizeAndConsts
-
   GraphicsWidth = 700
-
   GraphicsHeight = 450
-
   GraphicsHeightCenter = GraphicsHeight / 2
-
   GraphicsWidthCenter = GraphicsWidth / 2
-
   spaceWidth = 450
-
   controlPanWidth = GraphicsWidth - spaceWidth
-
   spaceCenterPoint = spaceWidth / 2
-
   pi2 = Math.Pi*2
-
   G = 6.67*Math.Power(10,-11)
-
   M = 5.97219*Math.Power(10,24)
-
   minAltitude = 150
-
   maxAltitude = 50000
-
   angleEarth = 0
-
   angle = 0
-
   radius = 35
-
   run = "False"
-
 EndSub
-
-
 
 Sub DrawWindow
-
   GraphicsWindow.Title = "Orbit Period & Satellite Velocity"
-
   GraphicsWindow.Width = GraphicsWidth
-
   GraphicsWindow.Height = GraphicsHeight
-
 EndSub
-
-
 
 Sub loadImages
-
   images["earth"] = Program.Directory+"\earth.jpg"
-
   earthSize["width"] = ImageList.GetWidthOfImage(images["earth"])
-
   earthSize["height"] = ImageList.GetHeightOfImage(images["earth"])
-
 EndSub
-
-
 
 Sub drawSpaceArea
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FillRectangle(0,0,spaceWidth,GraphicsHeight)
-
   For i = 1 To 200
-
     randW = Math.GetRandomNumber(spaceWidth)
-
     randH = Math.GetRandomNumber(spaceWidth)
-
     GraphicsWindow.SetPixel(randW,randH,"White")
-
   EndFor
-
 EndSub
-
-
 
 Sub drawControlPans
-
   GraphicsWindow.BrushColor = "Gray"
-
   GraphicsWindow.FillRectangle(spaceWidth+5,0,controlPanWidth-5,GraphicsHeight)
-
   GraphicsWindow.BrushColor = "Red"
-
   GraphicsWindow.FontSize = 15
-
   GraphicsWindow.DrawText(spaceWidth+10,5,"Enter Altitude :(in Km)")
-
   altTxt = Controls.AddTextBox(spaceWidth+10,25)
-
   GraphicsWindow.FontSize = 12
-
   pushBtn = Controls.AddButton("Adjust Altitude",spaceWidth+11,60)
-
   GraphicsWindow.BrushColor = "Blue"
-
   GraphicsWindow.FontSize = 15
-
   GraphicsWindow.DrawText(spaceWidth+10,100,"Sat Velocity (Km/H)")
-
   GraphicsWindow.DrawText(spaceWidth+10,150,"Orbit Period (Hour)")
-
   GraphicsWindow.DrawText(spaceWidth+10,200,"Alt from earth's center (Km)")
-
   GraphicsWindow.DrawText(spaceWidth+10,250,"Alt from earth's surface (Km)")
-
   geoBtn = Controls.AddButton("Put Sat into Geo Earth Orbit",spaceWidth+11,320)
-
   altitudeLebel = Shapes.AddText(0.00)
-
   Shapes.Move(altitudeLebel,spaceWidth+10,270)
-
   altitudeplusearthradiuasLebel = Shapes.AddText(0.00)
-
   Shapes.Move(altitudeplusearthradiuasLebel,spaceWidth+10,220)
-
   orbitPeriodLebel = Shapes.AddText(0.00)
-
   Shapes.Move(orbitPeriodLebel,spaceWidth+10,170)
-
   velocityLebel = Shapes.AddText(0.00)
-
   Shapes.Move(velocityLebel,spaceWidth+10,120)
-
   GraphicsWindow.BrushColor = "Green"
-
   GraphicsWindow.FontSize = 20
-
   stratProgramBtn = Controls.AddButton("Click to Start",spaceWidth+11,390)
-
   Controls.SetTextBoxText(altTxt,minAltitude)
-
 EndSub
-
-
 
 Sub drawEarthAndSat
-
   earthShape = Shapes.AddImage(images["earth"])
-
   Shapes.Move(earthShape,spaceCenterPoint-(earthSize["width"] / 2),spaceCenterPoint-(earthSize["height"] / 2))
-
   GraphicsWindow.BrushColor = "Red"
-
   rocketShape = Shapes.AddEllipse(15,15)
-
   Shapes.Move(rocketShape,spaceCenterPoint+40,spaceCenterPoint)
-
 EndSub
-
-
-
 
 
 While "True"
-
   If run Then
-
     angleEarth = angleEarth + 2
-
     Shapes.Rotate(earthShape,angleEarth)
-
     angle = angle + Math.Round((8-(altitude/maxAltitude)*7))
-
     x = spaceCenterPoint + (radius * Math.Cos(Math.GetRadians(angle)) - (radius * Math.Sin(Math.GetRadians(angle))))
-
     y = spaceCenterPoint + (radius * Math.Sin(Math.GetRadians(angle)) + (radius * Math.Cos(Math.GetRadians(angle))))
-
     Shapes.Move(rocketShape,x-7.5,y-7.5)
-
     If angleEarth > 360 Then
-
       angleEarth = 0
-
     EndIf
-
     If angle > 360 Then
-
       angle = 0
-
     EndIf
-
     satPeriod = pi2*(Math.SquareRoot(Math.Power(altitude*1000,3)/(G*M)))
-
     velocity = Math.SquareRoot((M*G)/altitude*1000)/1000
-
     Shapes.SetText(orbitPeriodLebel,(1/1000*Math.Round((satPeriod/3600)*1000)))
-
     Shapes.SetText(velocityLebel,(1/10000*Math.Round((velocity/1000)*10000)))
-
     Program.Delay(30)
-
   EndIf
-
 EndWhile
 
-
-
 Sub geoOrbit
-
   altitudeCube = ((86400*86400)*G*M)/(4*Math.Power(Math.Pi,2))
-
   altitude = Math.Power(altitudeCube,1/3)/1000
-
   Shapes.SetText(altitudeLebel,(1/1000*Math.Round((altitude - 6371)*1000)))
-
   Shapes.SetText(altitudeplusearthradiuasLebel,(1/1000*Math.Round((altitude)*1000)))
-
   Controls.SetButtonCaption(geoBtn,"Sat synchronized with earth")
-
   Controls.SetTextBoxText(altTxt,(1/1000*Math.Round((altitude)*1000)))
-
 EndSub
-
-
 
 Sub orbitAdjust
-
   radius = ((altitude/maxAltitude)*115)+20
-
 EndSub
-
-

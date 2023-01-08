@@ -1,663 +1,331 @@
 ' Fill Polygon 0.1
-
 ' Small Basic version ported by Nonki Takahashi.
-
 ' Numbers such as (3.8) in comment mean algorithm numbers the book [1].
-
 ' Leading  _ is added to non user routine name.
-
 ' This version neglects normalization co-ordinate, only uses screen co-ordinate.
-
 '
-
 ' History:
-
 '  0.1 2014-03-12 Created. ()
-
 '
-
 ' Reference:
-
 '  [1] Steve Harington, COMPUTER GRAPHICS A Programming Aproach, McGraw-Hill, 1983
-
 '
-
 GraphicsWindow.Title = "Fill Polygon 0.1"
-
 gw = 598
-
 gh = 428
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 scanDecrement = 1
-
 ROUNDOFF = Math.Power(10, -20)
-
 DFSIZE = 100
-
 free = 1
-
 solid = "True"
-
 ax = "1=300;2=100;3=170;4=250;5=400;"
-
 ay = "1=50;2=160;3=300;4=220;5=370;"
-
 n = Array.GetItemCount(ax)
-
 PolygonAbs2()
-
 start = 1
-
 count = 1
-
 _Interpret()
-
 Sub _PutPoint
-
   ' (2.1) wirte a complete command to display file
-
   ' param op, x, y - command to be written
-
   ' global dfOp, dfX, dfY - display file
-
   ' global free - position to next null cell
-
   ' constant DFSIZE - length of display file array
-
   If DFSIZE < free Then
-
     msg = "Error: Display file full"
-
     _Error()
-
   Else
-
     dfOp[free] = op
-
     dfX[free] = x
-
     dfY[free] = y
-
     free = free + 1
-
   EndIf
-
 EndSub  ' _PutPoint
-
 Sub _GetPoint
-
   ' (2.2 revised) Read Nth Command from Display File
-
   ' param nth - address of command to read
-
   ' return op, x, y - command to be read
-
   ' global dfOp, dfX, dfY - display file
-
   op = dfOp[nth]
-
   x = dfX[nth]
-
   y = dfY[nth]
-
 EndSub  ' _GetPoint
-
 Sub _DisplayFileEnter
-
   ' (2.3) Create a Command Combined with Operation and Pen Position and Save it to Display File
-
   ' param op - operation to be filed
-
   ' global dfPenX, dfPenY - current position of pen
-
   x = dfPenX
-
   y = dfPenY
-
   _PutPoint()
-
 EndSub  ' _DisplayFileEnter
-
 Sub LineAbs2
-
   ' (2.5) Save Command to Draw Line
-
   ' param x, y - target co-ordinate to draw line
-
   ' global dfPenX, dfPenY - current pen position
-
   dfPenX = x
-
   dfPenY = y
-
   op = 2
-
   _DisplayFileEnter()
-
 EndSub  ' LineAbs2
-
 Sub _DoMove
-
   ' (2.8 revised) Execute to Move Pen
-
   ' param x, y - point for pen moving to
-
   ' global framePenX, framePenY - point (screen co-ordinate)
-
   framePenX = x
-
   framePenY = y
-
 EndSub  ' _DoMove
-
 Sub _DoLine
-
   ' (2.9 revised) Execute to Draw Line
-
   ' param x, y - point for pen moving to
-
   ' global framePenX, framePenY - point (screen co-ordinate)
-
   GraphicsWindow.DrawLine(framePenX, framePenY, x, y)
-
   framePenX = x
-
   framePenY = y
-
 EndSub  ' _DoLine
-
 Sub PolygonAbs2
-
   ' (3.1) Write Polygon to Display File
-
   ' param n - number of edges for the polygon
-
   ' param ax, ay - array of vertices for the polygon
-
   ' global dfPenX, dfPenY - current pen position
-
   ' local i - stepping across edges for the polygon
-
   If n < 3 Or 31 < n Then
-
     msg = "Error: Polygon sides error"
-
     _Error()
-
   EndIf
-
   op = n
-
   dfPenX = ax[n]
-
   dfPenY = ay[n]
-
   _DisplayFileEnter()
-
   For i = 1 To n
-
     x = ax[i]
-
     y = ay[i]
-
     LineAbs2()
-
   EndFor
-
 EndSub  ' PolygonAbs2
-
 Sub _Error
-
   TextWindow.WriteLine(msg)
-
   TextWindow.Pause()
-
   Program.End()
-
 EndSub  ' _Error
-
 Sub _Interpret
-
   ' (3.6) Scan Display File and Execute Commands
-
   ' param start - first address to scan display file
-
   ' param count - number of commands to be executed
-
   ' local nth - address in display file
-
   ' local op, x, y - display file command
-
   ' loop to execute all commands needed
-
   For nth = start To start + count - 1
-
     _GetPoint() ' revised version
-
     If op = 1 Then
-
       _DoMove()
-
     ElseIf op = 2 Then
-
       _DoLine()
-
     ElseIf op <= 31 Then
-
       index = nth
-
       _DoPolygon()
-
       nth = index
-
     EndIf
-
   EndFor
-
 EndSub  ' _Interpret
-
 Sub _DoPolygon
-
   ' (3.7) Execute Polygon Command
-
   If solid Then
-
     _FillPolygon()
-
   EndIf
-
   _DoMove()
-
 EndSub  ' _DoPolygon
-
 Sub _FillPolygon
-
   ' (3.8) Fill Polygon
-
   ' param op, x, y - polygon command
-
   ' param index - position of command in display file
-
   ' global yMax - maximum y array for each edge of the polygon
-
   ' global scanDecrement - displacement for scan line
-
   ' local edges - number of edges to process
-
   ' local scan - y co-ordinate of scan line
-
   ' local startEdge, endEdge - edges crossing the scan line
-
   ' load information about vertices of the polygon
-
   _LoadPolygon()  ' revised version
-
   ' enough edges to consider?
-
   If edges < 2 Then
-
     msg = "Waring: one or no edge"
-
     TextWindow.WriteLine(msg)
-
     Goto return
-
   EndIf
-
   ' set scan line
-
   scan = yMax[1]
-
   ' initialize the numbers for start and end edges to process
-
   startEdge = 1
-
   endEdge = 1
-
   ' fill polygon
-
   ' get a new edge included in scan step
-
   lastEdge = edges
-
   _Include()
-
   ' determine intersection point with scan line, and remove processed edge
-
   _UpdateXValues()
-
   ' repeat until all edges are processed
-
   While startEdge < endEdge
-
     ' fill scan line
-
     _FillScan()
-
     scan = scan - scanDecrement
-
     _Include()
-
     _UpdateXValues()
-
   EndWhile
-
   return:
-
 EndSub  ' _FillPolygon
-
 Sub _LoadPolygon
-
   ' (3.9 revised) Read Information about Polygon Edges and Convert to the Screen Co-ordinate
-
   ' param op, x, y - polygon command
-
   ' param index - display file address for the command
-
   ' return edges - saved number of edges
-
   ' global widthStart, heightStart - address for start point of the screen
-
   ' global width, height - size of the screen
-
   ' constant ROUNDOFF - small number greater than any round-off error
-
   ' local x1, y1, x2, y2 - end points of the edge in actual screen co-ordinate
-
   ' local k - stepping across the edges of the polygon
-
   ' set start point for an edge
-
   x1 = x
-
   ' adjust y co-ordinate to be at middle of the scan line
-
   y1 = y + 0.5
-
   ' initialize the number of edges to save
-
   edges = 0
-
   ' loop to get information of each edge
-
   For k = index + 1 To index + op
-
     ' get next vertex
-
     nth = k
-
     Stack.PushValue("local", op)
-
     _GetPoint() ' revised version
-
     op = Stack.PopValue("local")
-
     x2 = x
-
     y2 = y + 0.5
-
     ' examine whether a horizontal line
-
     If ROUNDOFF < Math.Abs(y1 - y2) Then
-
       ' increment saved number of edge data
-
       edges = edges + 1
-
       ' save edge data in decending order of the y
-
       j = edges
-
       _PolyInsert()
-
     EndIf
-
     ' old points are reset
-
     x1 = x2
-
     y1 = y2
-
   EndFor
-
 EndSub  ' _LoadPolygon
-
 Sub _PolyInsert
-
   ' (3.10) Sort and Write Edges Information of the Polygon
-
   ' param j - insert number
-
   ' param x1, y1, x2, y2 - both ends of the edge
-
   ' global yMax, yMin, xa, dx - arrays for edges information
-
   ' local j1 - stepping across the saved edges
-
   ' local yM - maximum y for new edge
-
   ' insert maximum y into sorted global arrays
-
   j1 = j
-
   ' find maximum y
-
   yM = Math.Max(y1, y2)
-
   ' find appropriate insert place and shift entries
-
   While 1 < j1 And yMax[j1 - 1] < yM
-
     yMax[j1] = yMax[j1 - 1]
-
     yMin[j1] = yMin[j1 - 1]
-
     xa[j1] = xa[j1 - 1]
-
     dx[j1] = dx[j1 - 1]
-
     j1 = j1 - 1
-
   EndWHile
-
   ' insert edge information
-
   yMax[j1] = yM
-
   dx[j1] = (x2 - x1) / (y2 - y1)
-
   If y2 < y1 Then
-
     yMin[j1] = y2
-
     xa[j1] = x1
-
   Else
-
     yMin[j1] = y1
-
     xa[j1] = x2
-
   EndIf
-
 EndSub  ' _PolyInsert
-
 Sub _Include
-
   ' (3.11) include edges newly across with the scan line into consideration set
-
   ' param endEdge - current last element number
-
   ' param lastEdge - last edge number
-
   ' param scan - current position of the scan line
-
   ' global yMax, xa, dx - arrays for edges information
-
   ' local scanDecrement - displacement for the scan line
-
   While endEdge <= lastEdge And scan <= yMax[endEdge]
-
     ' restore start point to last scan line position
-
     xa[endEdge] = xa[endEdge] + dx[endEdge] * (scanDecrement + scan - yMax[endEdge])
-
     ' memory x displacement for a scan
-
     dx[endEdge] = dx[endEdge] * -scanDecrement
-
     endEdge = endEdge + 1
-
   EndWhile
-
 EndSub  ' _Include
-
 Sub _UpdateXValues
-
   ' (3.12) Update Intersection Points between Scan Line and the Edges
-
   ' param endEdge, startEdge - current limit in the list
-
   ' param scan - current scan line
-
   ' global yMin, xa, dx - arrays for edges information
-
   ' local k - stepping across edges
-
   ' local i - stepping across shifted up edges
-
   For k = startEdge To endEdge - 1
-
     If yMin[k] < scan Then
-
       xa[k] = xa[k] + dx[k]
-
       _XSort()
-
     Else
-
       startEdge = startEdge + 1
-
       If startEdge <= k Then
-
         For i = k To startEdge Step -1
-
           yMin[i] = yMin[i - 1]
-
           xa[i] = xa[i - 1]
-
           dx[i] = dx[i - 1]
-
         EndFor
-
       EndIf
-
     EndIf
-
   EndFor
-
 EndSub  ' _UpdateXValues
-
 Sub _XSort
-
   ' (3.13 revised) Check Order of X Co-ordinate for Intersection Points
-
   ' param startEdge - first number of considered edge
-
   ' param k - edge number to check the order
-
   ' global yMin, xa, dx - arrays of edges information
-
   ' local l - stepping across the edges
-
   l = k
-
   While startEdge < l And xa[l] < xa[l - 1]
-
     _Exchange() ' revised version
-
     l = l - 1
-
   EndWhile
-
 EndSub  ' _XSort
-
 Sub _Exchange
-
   ' (3.14 revised) Exchange Two Parameters
-
   ' param l - stepping across the edges
-
   ' global yMin, xa, dx - arrays of edges information
-
   ' local t - temporary memory
-
   t = yMin[l]
-
   yMin[l] = yMin[l - 1]
-
   yMin[l - 1] = t
-
   t = xa[l]
-
   xa[l] = xa[l - 1]
-
   xa[l - 1] = t
-
   t = dx[l]
-
   dx[l] = dx[l - 1]
-
   dx[l - 1] = t
-
 EndSub  ' _Exchange
-
 Sub _FillScan
-
   ' (3.15) Fill Scan Line
-
   ' param startEdge, endEdge - edges intersecting the scan line
-
   ' param scan - position of scan line
-
   ' global xa - array of intersection points between edges and the scan line
-
   ' local j - stepping across the edges
-
   j = startEdge
-
   While j < endEdge
-
     x1 = xa[j]
-
     x2 = xa[j + 1]
-
     y = scan
-
     _FillIn()
-
     j = j + 2
-
   EndWhile
-
 EndSub  ' _FillScan
-
 Sub _FillIn
-
   ' Fill in the Given Horizontal Line
-
   ' param x1
-
   ' param x2
-
   ' param y
-
   GraphicsWindow.FillRectangle(x1, y, x2 - x1 + 1, 1)
-
 EndSub
-
-

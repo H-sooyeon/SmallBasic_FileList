@@ -1,3473 +1,1736 @@
 
-
 GraphicsWindow.Title = "DuckShoot 0.52b"
-
 SB_Workaround()
-
 Opening()
-
 GameInit()
-
 GameLoop()
-
 Ending()
-
 Sub Bang
-
    Sound.PlayClick()
-
    shoot = shoot + 1
-
    For i = 1 To nDuck
-
      If a[i] = 90 Then
-
        If silverlight Then
-
          shX = x[i]
-
          shY = y[i]
-
          iMin = 1
-
          iMax = 10
-
          Shapes_Draw()
-
        Else
-
          GraphicsWindow.DrawImage(img, x[i], y[i])
-
        EndIf
-
        color = GraphicsWindow.GetPixel(dx, dy)
-
        If silverlight Then
-
          color = "#" + Text.GetSubTextToEnd(color, 4)
-
        EndIf
-
        GraphicsWindow.PenWidth = 0
-
        GraphicsWindow.BrushColor = bgColor
-
        GraphicsWindow.FillRectangle(x[i], y[i], dw, dh)
-
        If color <> bgColor Then
-
          hit[i] = "True"
-
        EndIf
-
      EndIf
-
    EndFor
-
 EndSub
-
 Sub Ending
-
    Shapes.Remove(stair)
-
    point = 0
-
    For i = 1 To nDuck
-
      If hit[i] Then
-
        point = point + 1
-
      EndIf
-
    EndFor
-
    score = point * 100 - Math.Max(0, shoot - nDuck) * 30
-
    GraphicsWindow.BrushColor = "White"
-
    GraphicsWindow.FontSize = 40
-
    GraphicsWindow.DrawText(170, 180, "SCORE " + score)
-
    Program.Delay(500)
-
    GraphicsWindow.DrawText(170, 230, "SHOOT " + shoot)
-
    Program.Delay(500)
-
    GraphicsWindow.DrawText(170, 280, "HIT " + point)
-
    Program.Delay(2000)
-
    GraphicsWindow.FontSize = 50
-
    GraphicsWindow.DrawText(170, 80, "GAME OVER")
-
 EndSub
-
 Sub GameInit
-
    ' Game start
-
    Shapes.ShowShape(duck[1])
-
    mouseDown = "False"
-
    GraphicsWindow.MouseDown = OnMouseDown
-
    GraphicsWindow.MouseMove = OnMouseMove
-
    Shapes.Animate(duck[1], gw, 150, 3000)
-
    Program.Delay(3000)
-
    yDuck = 150
-
    For i = 1 To nDuck
-
      hit[i] = "False"
-
      a[i] = 90
-
      x[i] = (0.5 - 1.5 * i) * dw
-
      y[i] = yDuck
-
      Shapes.Move(duck[i], x[i], y[i])
-
      Shapes.ShowShape(duck[i])
-
    EndFor
-
    GraphicsWindow.PenWidth = 0
-
    GraphicsWindow.BrushColor = bgColor
-
    yRS = yStair - (yDuck + dh / 2)
-
    shoot = 0
-
 EndSub
-
 Sub GameLoop
-
    While x[nDuck] < gw
-
      Program.Delay(50)
-
      If mouseDown Then
-
        Bang()
-
        mouseDown = "False"
-
      EndIf
-
      For i = 1 To nDuck
-
        If hit[i] And (0 < a[i]) Then
-
          a[i] = a[i] - 5
-
          cos = Math.Round(Math.Sin(Math.GetRadians(a[i])) * 100) / 100
-
          Shapes.Zoom(duck[i], 1, Math.Max(cos, 0.1))
-
          deltaY = yRS - yRS * cos
-
          y[i] = yDuck + deltaY
-
        EndIf
-
        x[i] = x[i] + 8
-
        Shapes.Move(duck[i], x[i], y[i])
-
      EndFor
-
    EndWhile
-
 EndSub
-
 Sub OnMouseDown
-
    mouseDown = "True"
-
    dx = Math.Floor(GraphicsWindow.MouseX)
-
    dy = Math.Floor(GraphicsWindow.MouseY)
-
 EndSub
-
 Sub OnMouseMove
-
    mx = Math.Floor(GraphicsWindow.MouseX)
-
    my = Math.Floor(GraphicsWindow.MouseY)
-
    If 0 <= mx And mx < gw And 0 <= my And my < gh Then
-
      Mouse.HideCursor()
-
      Shapes.Move(sighter, mx - 40, my - 40)
-
    Else
-
      Mouse.ShowCursor()
-
    EndIf
-
 EndSub
-
 Sub Opening
-
    bgColor = "#8B0000" ' DarkRed
-
    stColor = "#990000" ' for stair
-
    GraphicsWindow.BackgroundColor = bgColor
-
    gw = 598
-
    gh = 428
-
    GraphicsWindow.Width = gw
-
    GraphicsWindow.Height = gh
-
    GraphicsWindow.PenWidth = 0
-
    GraphicsWindow.BrushColor = bgColor
-
    GraphicsWindow.FillRectangle(0, 0, gw, gh)
-
    ' add duck image
-
    path = "http://gallery.technet.microsoft.com/site/view/file/119954/1/Duck2.png"
-
    img = ImageList.LoadImage(path)
-
    If silverlight Then
-
      dw = 246 + 1
-
      dh = 192 + 2
-
    Else
-
      dw = ImageList.GetWidthOfImage(img)
-
      dh = ImageList.GetHeightOfImage(img)
-
    EndIf
-
    nDuck = 3
-
    For i = 1 To nDuck
-
      duck[i] = Shapes.AddImage(img)
-
      Shapes.Move(duck[i], 194, 150)
-
      Shapes.HideShape(duck[i])
-
    EndFor
-
    ' add stair
-
    GraphicsWindow.BrushColor = stColor
-
    GraphicsWindow.PenWidth = 0
-
    stair = Shapes.AddRectangle(gw, gh - yStair)
-
    yStair = Math.Round(gh * 2 / 3)
-
    Shapes.Move(stair, 0, yStair)
-
    Shapes.HideShape(stair)
-
    ' initialize shapes
-
    GraphicsWindow.FontName = "Trebuchet MS"
-
    GraphicsWindow.FontSize = 50
-
    GraphicsWindow.BrushColor = "White"
-
    title = Shapes.AddText("DuckShoot")
-
    Shapes.Move(title, 170, 60)
-
    Shapes_Init()
-
    ' add shapes
-
    scale = 1
-
    angle = 0
-
    iMin = 1
-
    iMax = 10
-
    Shapes_Add()
-
    ' add sighter image
-
    path = "http://gallery.technet.microsoft.com/site/view/file/119955/1/Sighter.png"
-
    sighter = Shapes.AddImage(path)
-
    Shapes.Move(sighter, 250, 200)
-
    ' Blink start
-
    wait = "True"
-
    ems = Clock.ElapsedMilliseconds
-
    While wait
-
      Program.Delay(1000)
-
      x = 250 + (Math.GetRandomNumber(50) - 25)
-
      y = 200 + (Math.GetRandomNumber(50) - 25)
-
      Shapes.Move(sighter, x, y)
-
      Program.Delay(100)
-
      Shapes.HideShape(shape[4]["obj"])
-
      Program.Delay(100)
-
      Shapes.ShowShape(shape[4]["obj"])
-
      If 5000 < Clock.ElapsedMilliseconds - ems Then
-
        wait = "False"
-
      EndIf
-
    EndWhile
-
    Shapes.ShowShape(stair)
-
    iMin = 1
-
    iMax = 10
-
    Shapes_Remove()
-
    Shapes.Remove(title)
-
 EndSub
-
 Sub SB_Workaround
-
    ' Small Basic | Workaround for Silverlight
-
    ' returns silverlight - "True" if in remote
-
    color = GraphicsWindow.GetPixel(0, 0)
-
    If Text.GetLength(color) > 7 Then
-
      silverlight = "True"
-
      msWait = 300
-
    Else
-
      silverlight = "False"
-
    EndIf
-
 EndSub
-
 Sub Shapes_Add
-
    ' Shapes | add shapes as shapes data
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - 1 if same scale
-
    ' return shWidth, shHeight - total size of shapes
-
    ' return shAngle - current angle of shapes
-
    Stack.PushValue("local", i)
-
    Shapes_CalcWidthAndHeight()
-
    s = scale
-
    For i = iMin To iMax
-
      GraphicsWindow.PenWidth = shape[i]["pw"] * s
-
      If shape[i]["pw"] > 0 Then
-
        GraphicsWindow.PenColor = shape[i]["pc"]
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) Then
-
        GraphicsWindow.BrushColor = shape[i]["bc"]
-
      EndIf
-
      If shape[i]["func"] = "rect" Then
-
        shape[i]["obj"] = Shapes.AddRectangle(shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "ell" Then
-
        shape[i]["obj"] = Shapes.AddEllipse(shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "tri" Then
-
        shape[i]["obj"] = Shapes.AddTriangle(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s, shape[i]["x3"] * s, shape[i]["y3"] * s)
-
      ElseIf shape[i]["func"] = "line" Then
-
        shape[i]["obj"] = Shapes.AddLine(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s)
-
      ElseIf shape[i]["func"] = "text" Then
-
        If silverlight Then
-
          fs = Math.Floor(shape[i]["fs"] * 0.9)
-
        Else
-
          fs = shape[i]["fs"]
-
        EndIf
-
        GraphicsWindow.FontSize = fs * s
-
        GraphicsWindow.FontName = shape[i]["fn"]
-
        shape[i]["obj"] = Shapes.AddText(shape[i]["text"])
-
      EndIf
-
      If silverlight And shape[i]["func"] = "tri" Then
-
        alpha = Math.GetRadians(shape[i]["angle"])
-
        x1 = -Math.Floor(shape[i]["x3"] / 2)
-
        y1 = -Math.Floor(shape[i]["y3"] / 2)
-
        ox = shape[i]["x"] - x1
-
        oy = shape[i]["y"] - y1
-
        r = Math.SquareRoot(x1 * x1 + y1 * y1)
-
        x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
        y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
        Shapes.Move(shape[i]["obj"], shX + x * s, shY + y * s)
-
      Else
-
        Shapes.Move(shape[i]["obj"], shX + shape[i]["x"] * s, shY + shape[i]["y"] * s)
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) And shape[i]["angle"] <> 0 Then
-
        Shapes.Rotate(shape[i]["obj"], shape[i]["angle"])
-
      EndIf
-
      shape[i]["rx"] = shape[i]["x"]
-
      shape[i]["ry"] = shape[i]["y"]
-
    EndFor
-
    shAngle = 0
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_CalcWidthAndHeight
-
    ' Shapes | Calculate total width and height of shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' return shWidth, shHeight - total size of shapes
-
    For i = iMin To iMax
-
      If shape[i]["func"] = "tri" Or shape[i]["func"] = "line" Then
-
        xmin = shape[i]["x1"]
-
        xmax = shape[i]["x1"]
-
        ymin = shape[i]["y1"]
-
        ymax = shape[i]["y1"]
-
        If shape[i]["x2"] < xmin Then
-
          xmin = shape[i]["x2"]
-
        EndIf
-
        If xmax < shape[i]["x2"] Then
-
          xmax = shape[i]["x2"]
-
        EndIf
-
        If shape[i]["y2"] < ymin Then
-
          ymin = shape[i]["y2"]
-
        EndIf
-
        If ymax < shape[i]["y2"] Then
-
          ymax = shape[i]["y2"]
-
        EndIf
-
        If shape[i]["func"] = "tri" Then
-
          If shape[i]["x3"] < xmin Then
-
            xmin = shape[i]["x3"]
-
          EndIf
-
          If xmax < shape[i]["x3"] Then
-
            xmax = shape[i]["x3"]
-
          EndIf
-
          If shape[i]["y3"] < ymin Then
-
            ymin = shape[i]["y3"]
-
          EndIf
-
          If ymax < shape[i]["y3"] Then
-
            ymax = shape[i]["y3"]
-
          EndIf
-
        EndIf
-
        shape[i]["width"] = xmax - xmin
-
        shape[i]["height"] = ymax - ymin
-
      EndIf
-
      If i = 1 Then
-
        shWidth = shape[i]["x"] + shape[i]["width"]
-
        shHeight = shape[i]["y"] + shape[i]["height"]
-
      Else
-
        If shWidth < shape[i]["x"] + shape[i]["width"] Then
-
          shWidth = shape[i]["x"] + shape[i]["width"]
-
        EndIf
-
        If shHeight < shape[i]["y"] + shape[i]["height"] Then
-
          shHeight = shape[i]["y"] + shape[i]["height"]
-
        EndIf
-
      EndIf
-
    EndFor
-
 EndSub
-
 Sub Shapes_Draw
-
    ' Shapes | draw shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - 1 if same scale
-
    ' TODO to draw border line for rectangle, triangle and ellipse
-
    ' TODO to rotate rectangle and ellipse (text?)
-
    Stack.PushValue("local", x)
-
    Stack.PushValue("local", y)
-
    Stack.PushValue("local", i)
-
    s = scale
-
    For i = iMin To iMax
-
      If shape[i]["pw"] > 0 Then
-
        GraphicsWindow.PenColor = shape[i]["pc"]
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) Then
-
        GraphicsWindow.BrushColor = shape[i]["bc"]
-
      EndIf
-
      x = shX + shape[i]["x"] * s
-
      y = shY + shape[i]["y"] * s
-
      If shape[i]["func"] = "rect" Then
-
        GraphicsWindow.FillRectangle(x, y, shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "ell" Then
-
        GraphicsWindow.FillEllipse(x, y, shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "tri" Then
-
        x[1] = shX + shape[i]["x"] * s + shape[i]["x1"] * s
-
        y[1] = shY + shape[i]["y"] * s + shape[i]["y1"] * s
-
        x[2] = shX + shape[i]["x"] * s + shape[i]["x2"] * s
-
        y[2] = shY + shape[i]["y"] * s + shape[i]["y2"] * s
-
        x[3] = shX + shape[i]["x"] * s + shape[i]["x3"] * s
-
        y[3] = shY + shape[i]["y"] * s + shape[i]["y3"] * s
-
        angle = shape[i]["angle"]
-
        If angle <> 0 Then
-
          n = 3
-
          ox = (x[2] + x[3]) / 2
-
          oy = (y[1] + y[2]) / 2
-
          Shapes_RotatePolyline()
-
        EndIf
-
        GraphicsWindow.FillTriangle(x[1], y[1], x[2], y[2], x[3], y[3])
-
      ElseIf shape[i]["func"] = "line" Then
-
        x[1] = shX + shape[i]["x"] * s + shape[i]["x1"] * s
-
        y[1] = shY + shape[i]["y"] * s + shape[i]["y1"] * s
-
        x[2] = shX + shape[i]["x"] * s + shape[i]["x2"] * s
-
        y[2] = shY + shape[i]["y"] * s + shape[i]["y2"] * s
-
        If angle <> 0 Then
-
          n = 3
-
          ox = (x[2] + x[3]) / 2
-
          oy = (y[1] + y[2]) / 2
-
          Shapes_RotatePolyline()
-
        EndIf
-
        GraphicsWindow.DrawLine(x[1], y[1], x[2], y[2])
-
      ElseIf shape[i]["func"] = "text" Then
-
        If silverlight Then
-
          fs = Math.Floor(shape[i]["fs"] * 0.9)
-
        Else
-
          fs = shape[i]["fs"]
-
        EndIf
-
        GraphicsWindow.FontSize = fs * s
-
        GraphicsWindow.FontName = shape[i]["fn"]
-
        GraphicsWindow.DrawText(x, y, shape[i]["text"])
-
      EndIf
-
    EndFor
-
    i = Stack.PopValue("local")
-
    y = Stack.PopValue("local")
-
    x = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Init
-
    ' Shapes | Initialize shapes data
-
    ' return shX, shY - current position of shapes
-
    ' return shape - array of shapes
-
    shX = 194 ' x offset
-
    shY = 150 ' y offset
-
    shape[1] = "func=tri;x=153;y=41;x1=47;y1=0;x2=0;y2=22;x3=95;y3=22;bc=#CD845A;pw=0;"
-
    shape[2] = "func=ell;x=118;y=0;width=91;height=73;bc=#CDBE5A;pw=0;"
-
    shape[3] = "func=line;x=172;y=36;x1=0;y1=0;x2=22;y2=0;pc=#000000;pw=2;"
-
    shape[4] = "func=ell;x=172;y=25;width=22;height=22;bc=#000000;pw=0;"
-
    shape[5] = "func=tri;x=132;y=58;x1=31;y1=0;x2=0;y2=45;x3=62;y3=45;bc=#CDBE5A;pw=0;"
-
    shape[6] = "func=tri;x=0;y=80;x1=37;y1=0;x2=0;y2=32;x3=75;y3=32;angle=178;bc=#CDBE5A;pw=0;"
-
    shape[7] = "func=line;x=91;y=134;x1=0;y1=0;x2=0;y2=38;pc=#CD845A;pw=8;"
-
    shape[8] = "func=ell;x=33;y=72;width=164;height=82;bc=#CDBE5A;pw=0;"
-
    shape[9] = "func=tri;x=58;y=180;x1=46;y1=0;x2=0;y2=14;x3=93;y3=14;bc=#CD845A;pw=0;"
-
    shape[10] = "func=line;x=90;y=169;x1=0;y1=0;x2=14;y2=15;pc=#CD845A;pw=8;"
-
 EndSub
-
 Sub Shapes_Move
-
    ' Shapes | Move shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - to zoom
-
    ' param x, y - position to move
-
    ' return shX, shY - new position of shapes
-
    Stack.PushValue("local", i)
-
    s = scale
-
    shX = x
-
    shY = y
-
    For i = iMin To iMax
-
      _x = shape[i]["rx"]
-
      _y = shape[i]["ry"]
-
      Shapes.Move(shape[i]["obj"], shX + _x * s, shY + _y * s)
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_RotatePolyline
-
    ' Shapes | rotate polyline
-
    ' param n - number of points
-
    ' param x, y - array of x and y co-ordinates
-
    ' param ox, oy, - center of rotation
-
    ' param angle - angle of rotation
-
    Stack.PushValue("local", i)
-
    _a = Math.GetRadians(angle)
-
    For i = 1 To n
-
      xi = (x[i] - ox) * Math.Cos(_a) + (y[i] - oy) * Math.Sin(_a)
-
      yi = - (x[i] - ox) * Math.Sin(_a) + (y[i] - oy) * Math.Cos(_a)
-
      x[i] = xi + ox
-
      y[i] = yi + oy
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Remove
-
    ' Shapes | Remove shapes
-
    ' param iMin, iMax - shapes indices to remove
-
    ' param shape - array of shapes
-
    Stack.PushValue("local", i)
-
    For i = iMin To iMax
-
      Shapes.Remove(shape[i]["obj"])
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
-
 
  
 
-
-
 GraphicsWindow.Title = "DuckShoot 0.52b"
-
 SB_Workaround()
-
 Opening()
-
 GameInit()
-
 GameLoop()
-
 Ending()
-
 Sub Bang
-
    Sound.PlayClick()
-
    shoot = shoot + 1
-
    For i = 1 To nDuck
-
      If a[i] = 90 Then
-
        If silverlight Then
-
          shX = x[i]
-
          shY = y[i]
-
          iMin = 1
-
          iMax = 10
-
          Shapes_Draw()
-
        Else
-
          GraphicsWindow.DrawImage(img, x[i], y[i])
-
        EndIf
-
        color = GraphicsWindow.GetPixel(dx, dy)
-
        If silverlight Then
-
          color = "#" + Text.GetSubTextToEnd(color, 4)
-
        EndIf
-
        GraphicsWindow.PenWidth = 0
-
        GraphicsWindow.BrushColor = bgColor
-
        GraphicsWindow.FillRectangle(x[i], y[i], dw, dh)
-
        If color <> bgColor Then
-
          hit[i] = "True"
-
        EndIf
-
      EndIf
-
    EndFor
-
 EndSub
-
 Sub Ending
-
    Shapes.Remove(stair)
-
    point = 0
-
    For i = 1 To nDuck
-
      If hit[i] Then
-
        point = point + 1
-
      EndIf
-
    EndFor
-
    score = point * 100 - Math.Max(0, shoot - nDuck) * 30
-
    GraphicsWindow.BrushColor = "White"
-
    GraphicsWindow.FontSize = 40
-
    GraphicsWindow.DrawText(170, 180, "SCORE " + score)
-
    Program.Delay(500)
-
    GraphicsWindow.DrawText(170, 230, "SHOOT " + shoot)
-
    Program.Delay(500)
-
    GraphicsWindow.DrawText(170, 280, "HIT " + point)
-
    Program.Delay(2000)
-
    GraphicsWindow.FontSize = 50
-
    GraphicsWindow.DrawText(170, 80, "GAME OVER")
-
 EndSub
-
 Sub GameInit
-
    ' Game start
-
    Shapes.ShowShape(duck[1])
-
    mouseDown = "False"
-
    GraphicsWindow.MouseDown = OnMouseDown
-
    GraphicsWindow.MouseMove = OnMouseMove
-
    Shapes.Animate(duck[1], gw, 150, 3000)
-
    Program.Delay(3000)
-
    yDuck = 150
-
    For i = 1 To nDuck
-
      hit[i] = "False"
-
      a[i] = 90
-
      x[i] = (0.5 - 1.5 * i) * dw
-
      y[i] = yDuck
-
      Shapes.Move(duck[i], x[i], y[i])
-
      Shapes.ShowShape(duck[i])
-
    EndFor
-
    GraphicsWindow.PenWidth = 0
-
    GraphicsWindow.BrushColor = bgColor
-
    yRS = yStair - (yDuck + dh / 2)
-
    shoot = 0
-
 EndSub
-
 Sub GameLoop
-
    While x[nDuck] < gw
-
      Program.Delay(50)
-
      If mouseDown Then
-
        Bang()
-
        mouseDown = "False"
-
      EndIf
-
      For i = 1 To nDuck
-
        If hit[i] And (0 < a[i]) Then
-
          a[i] = a[i] - 5
-
          cos = Math.Round(Math.Sin(Math.GetRadians(a[i])) * 100) / 100
-
          Shapes.Zoom(duck[i], 1, Math.Max(cos, 0.1))
-
          deltaY = yRS - yRS * cos
-
          y[i] = yDuck + deltaY
-
        EndIf
-
        x[i] = x[i] + 8
-
        Shapes.Move(duck[i], x[i], y[i])
-
      EndFor
-
    EndWhile
-
 EndSub
-
 Sub OnMouseDown
-
    mouseDown = "True"
-
    dx = Math.Floor(GraphicsWindow.MouseX)
-
    dy = Math.Floor(GraphicsWindow.MouseY)
-
 EndSub
-
 Sub OnMouseMove
-
    mx = Math.Floor(GraphicsWindow.MouseX)
-
    my = Math.Floor(GraphicsWindow.MouseY)
-
    If 0 <= mx And mx < gw And 0 <= my And my < gh Then
-
      Mouse.HideCursor()
-
      Shapes.Move(sighter, mx - 40, my - 40)
-
    Else
-
      Mouse.ShowCursor()
-
    EndIf
-
 EndSub
-
 Sub Opening
-
    bgColor = "#8B0000" ' DarkRed
-
    stColor = "#990000" ' for stair
-
    GraphicsWindow.BackgroundColor = bgColor
-
    gw = 598
-
    gh = 428
-
    GraphicsWindow.Width = gw
-
    GraphicsWindow.Height = gh
-
    GraphicsWindow.PenWidth = 0
-
    GraphicsWindow.BrushColor = bgColor
-
    GraphicsWindow.FillRectangle(0, 0, gw, gh)
-
    ' add duck image
-
    path = "http://gallery.technet.microsoft.com/site/view/file/119954/1/Duck2.png"
-
    img = ImageList.LoadImage(path)
-
    If silverlight Then
-
      dw = 246 + 1
-
      dh = 192 + 2
-
    Else
-
      dw = ImageList.GetWidthOfImage(img)
-
      dh = ImageList.GetHeightOfImage(img)
-
    EndIf
-
    nDuck = 3
-
    For i = 1 To nDuck
-
      duck[i] = Shapes.AddImage(img)
-
      Shapes.Move(duck[i], 194, 150)
-
      Shapes.HideShape(duck[i])
-
    EndFor
-
    ' add stair
-
    GraphicsWindow.BrushColor = stColor
-
    GraphicsWindow.PenWidth = 0
-
    stair = Shapes.AddRectangle(gw, gh - yStair)
-
    yStair = Math.Round(gh * 2 / 3)
-
    Shapes.Move(stair, 0, yStair)
-
    Shapes.HideShape(stair)
-
    ' initialize shapes
-
    GraphicsWindow.FontName = "Trebuchet MS"
-
    GraphicsWindow.FontSize = 50
-
    GraphicsWindow.BrushColor = "White"
-
    title = Shapes.AddText("DuckShoot")
-
    Shapes.Move(title, 170, 60)
-
    Shapes_Init()
-
    ' add shapes
-
    scale = 1
-
    angle = 0
-
    iMin = 1
-
    iMax = 10
-
    Shapes_Add()
-
    ' add sighter image
-
    path = "http://gallery.technet.microsoft.com/site/view/file/119955/1/Sighter.png"
-
    sighter = Shapes.AddImage(path)
-
    Shapes.Move(sighter, 250, 200)
-
    ' Blink start
-
    wait = "True"
-
    ems = Clock.ElapsedMilliseconds
-
    While wait
-
      Program.Delay(1000)
-
      x = 250 + (Math.GetRandomNumber(50) - 25)
-
      y = 200 + (Math.GetRandomNumber(50) - 25)
-
      Shapes.Move(sighter, x, y)
-
      Program.Delay(100)
-
      Shapes.HideShape(shape[4]["obj"])
-
      Program.Delay(100)
-
      Shapes.ShowShape(shape[4]["obj"])
-
      If 5000 < Clock.ElapsedMilliseconds - ems Then
-
        wait = "False"
-
      EndIf
-
    EndWhile
-
    Shapes.ShowShape(stair)
-
    iMin = 1
-
    iMax = 10
-
    Shapes_Remove()
-
    Shapes.Remove(title)
-
 EndSub
-
 Sub SB_Workaround
-
    ' Small Basic | Workaround for Silverlight
-
    ' returns silverlight - "True" if in remote
-
    color = GraphicsWindow.GetPixel(0, 0)
-
    If Text.GetLength(color) > 7 Then
-
      silverlight = "True"
-
      msWait = 300
-
    Else
-
      silverlight = "False"
-
    EndIf
-
 EndSub
-
 Sub Shapes_Add
-
    ' Shapes | add shapes as shapes data
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - 1 if same scale
-
    ' return shWidth, shHeight - total size of shapes
-
    ' return shAngle - current angle of shapes
-
    Stack.PushValue("local", i)
-
    Shapes_CalcWidthAndHeight()
-
    s = scale
-
    For i = iMin To iMax
-
      GraphicsWindow.PenWidth = shape[i]["pw"] * s
-
      If shape[i]["pw"] > 0 Then
-
        GraphicsWindow.PenColor = shape[i]["pc"]
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) Then
-
        GraphicsWindow.BrushColor = shape[i]["bc"]
-
      EndIf
-
      If shape[i]["func"] = "rect" Then
-
        shape[i]["obj"] = Shapes.AddRectangle(shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "ell" Then
-
        shape[i]["obj"] = Shapes.AddEllipse(shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "tri" Then
-
        shape[i]["obj"] = Shapes.AddTriangle(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s, shape[i]["x3"] * s, shape[i]["y3"] * s)
-
      ElseIf shape[i]["func"] = "line" Then
-
        shape[i]["obj"] = Shapes.AddLine(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s)
-
      ElseIf shape[i]["func"] = "text" Then
-
        If silverlight Then
-
          fs = Math.Floor(shape[i]["fs"] * 0.9)
-
        Else
-
          fs = shape[i]["fs"]
-
        EndIf
-
        GraphicsWindow.FontSize = fs * s
-
        GraphicsWindow.FontName = shape[i]["fn"]
-
        shape[i]["obj"] = Shapes.AddText(shape[i]["text"])
-
      EndIf
-
      If silverlight And shape[i]["func"] = "tri" Then
-
        alpha = Math.GetRadians(shape[i]["angle"])
-
        x1 = -Math.Floor(shape[i]["x3"] / 2)
-
        y1 = -Math.Floor(shape[i]["y3"] / 2)
-
        ox = shape[i]["x"] - x1
-
        oy = shape[i]["y"] - y1
-
        r = Math.SquareRoot(x1 * x1 + y1 * y1)
-
        x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
        y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
        Shapes.Move(shape[i]["obj"], shX + x * s, shY + y * s)
-
      Else
-
        Shapes.Move(shape[i]["obj"], shX + shape[i]["x"] * s, shY + shape[i]["y"] * s)
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) And shape[i]["angle"] <> 0 Then
-
        Shapes.Rotate(shape[i]["obj"], shape[i]["angle"])
-
      EndIf
-
      shape[i]["rx"] = shape[i]["x"]
-
      shape[i]["ry"] = shape[i]["y"]
-
    EndFor
-
    shAngle = 0
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_CalcWidthAndHeight
-
    ' Shapes | Calculate total width and height of shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' return shWidth, shHeight - total size of shapes
-
    For i = iMin To iMax
-
      If shape[i]["func"] = "tri" Or shape[i]["func"] = "line" Then
-
        xmin = shape[i]["x1"]
-
        xmax = shape[i]["x1"]
-
        ymin = shape[i]["y1"]
-
        ymax = shape[i]["y1"]
-
        If shape[i]["x2"] < xmin Then
-
          xmin = shape[i]["x2"]
-
        EndIf
-
        If xmax < shape[i]["x2"] Then
-
          xmax = shape[i]["x2"]
-
        EndIf
-
        If shape[i]["y2"] < ymin Then
-
          ymin = shape[i]["y2"]
-
        EndIf
-
        If ymax < shape[i]["y2"] Then
-
          ymax = shape[i]["y2"]
-
        EndIf
-
        If shape[i]["func"] = "tri" Then
-
          If shape[i]["x3"] < xmin Then
-
            xmin = shape[i]["x3"]
-
          EndIf
-
          If xmax < shape[i]["x3"] Then
-
            xmax = shape[i]["x3"]
-
          EndIf
-
          If shape[i]["y3"] < ymin Then
-
            ymin = shape[i]["y3"]
-
          EndIf
-
          If ymax < shape[i]["y3"] Then
-
            ymax = shape[i]["y3"]
-
          EndIf
-
        EndIf
-
        shape[i]["width"] = xmax - xmin
-
        shape[i]["height"] = ymax - ymin
-
      EndIf
-
      If i = 1 Then
-
        shWidth = shape[i]["x"] + shape[i]["width"]
-
        shHeight = shape[i]["y"] + shape[i]["height"]
-
      Else
-
        If shWidth < shape[i]["x"] + shape[i]["width"] Then
-
          shWidth = shape[i]["x"] + shape[i]["width"]
-
        EndIf
-
        If shHeight < shape[i]["y"] + shape[i]["height"] Then
-
          shHeight = shape[i]["y"] + shape[i]["height"]
-
        EndIf
-
      EndIf
-
    EndFor
-
 EndSub
-
 Sub Shapes_Draw
-
    ' Shapes | draw shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - 1 if same scale
-
    ' TODO to draw border line for rectangle, triangle and ellipse
-
    ' TODO to rotate rectangle and ellipse (text?)
-
    Stack.PushValue("local", x)
-
    Stack.PushValue("local", y)
-
    Stack.PushValue("local", i)
-
    s = scale
-
    For i = iMin To iMax
-
      If shape[i]["pw"] > 0 Then
-
        GraphicsWindow.PenColor = shape[i]["pc"]
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) Then
-
        GraphicsWindow.BrushColor = shape[i]["bc"]
-
      EndIf
-
      x = shX + shape[i]["x"] * s
-
      y = shY + shape[i]["y"] * s
-
      If shape[i]["func"] = "rect" Then
-
        GraphicsWindow.FillRectangle(x, y, shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "ell" Then
-
        GraphicsWindow.FillEllipse(x, y, shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "tri" Then
-
        x[1] = shX + shape[i]["x"] * s + shape[i]["x1"] * s
-
        y[1] = shY + shape[i]["y"] * s + shape[i]["y1"] * s
-
        x[2] = shX + shape[i]["x"] * s + shape[i]["x2"] * s
-
        y[2] = shY + shape[i]["y"] * s + shape[i]["y2"] * s
-
        x[3] = shX + shape[i]["x"] * s + shape[i]["x3"] * s
-
        y[3] = shY + shape[i]["y"] * s + shape[i]["y3"] * s
-
        angle = shape[i]["angle"]
-
        If angle <> 0 Then
-
          n = 3
-
          ox = (x[2] + x[3]) / 2
-
          oy = (y[1] + y[2]) / 2
-
          Shapes_RotatePolyline()
-
        EndIf
-
        GraphicsWindow.FillTriangle(x[1], y[1], x[2], y[2], x[3], y[3])
-
      ElseIf shape[i]["func"] = "line" Then
-
        x[1] = shX + shape[i]["x"] * s + shape[i]["x1"] * s
-
        y[1] = shY + shape[i]["y"] * s + shape[i]["y1"] * s
-
        x[2] = shX + shape[i]["x"] * s + shape[i]["x2"] * s
-
        y[2] = shY + shape[i]["y"] * s + shape[i]["y2"] * s
-
        If angle <> 0 Then
-
          n = 3
-
          ox = (x[2] + x[3]) / 2
-
          oy = (y[1] + y[2]) / 2
-
          Shapes_RotatePolyline()
-
        EndIf
-
        GraphicsWindow.DrawLine(x[1], y[1], x[2], y[2])
-
      ElseIf shape[i]["func"] = "text" Then
-
        If silverlight Then
-
          fs = Math.Floor(shape[i]["fs"] * 0.9)
-
        Else
-
          fs = shape[i]["fs"]
-
        EndIf
-
        GraphicsWindow.FontSize = fs * s
-
        GraphicsWindow.FontName = shape[i]["fn"]
-
        GraphicsWindow.DrawText(x, y, shape[i]["text"])
-
      EndIf
-
    EndFor
-
    i = Stack.PopValue("local")
-
    y = Stack.PopValue("local")
-
    x = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Init
-
    ' Shapes | Initialize shapes data
-
    ' return shX, shY - current position of shapes
-
    ' return shape - array of shapes
-
    shX = 194 ' x offset
-
    shY = 150 ' y offset
-
    shape[1] = "func=tri;x=153;y=41;x1=47;y1=0;x2=0;y2=22;x3=95;y3=22;bc=#CD845A;pw=0;"
-
    shape[2] = "func=ell;x=118;y=0;width=91;height=73;bc=#CDBE5A;pw=0;"
-
    shape[3] = "func=line;x=172;y=36;x1=0;y1=0;x2=22;y2=0;pc=#000000;pw=2;"
-
    shape[4] = "func=ell;x=172;y=25;width=22;height=22;bc=#000000;pw=0;"
-
    shape[5] = "func=tri;x=132;y=58;x1=31;y1=0;x2=0;y2=45;x3=62;y3=45;bc=#CDBE5A;pw=0;"
-
    shape[6] = "func=tri;x=0;y=80;x1=37;y1=0;x2=0;y2=32;x3=75;y3=32;angle=178;bc=#CDBE5A;pw=0;"
-
    shape[7] = "func=line;x=91;y=134;x1=0;y1=0;x2=0;y2=38;pc=#CD845A;pw=8;"
-
    shape[8] = "func=ell;x=33;y=72;width=164;height=82;bc=#CDBE5A;pw=0;"
-
    shape[9] = "func=tri;x=58;y=180;x1=46;y1=0;x2=0;y2=14;x3=93;y3=14;bc=#CD845A;pw=0;"
-
    shape[10] = "func=line;x=90;y=169;x1=0;y1=0;x2=14;y2=15;pc=#CD845A;pw=8;"
-
 EndSub
-
 Sub Shapes_Move
-
    ' Shapes | Move shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - to zoom
-
    ' param x, y - position to move
-
    ' return shX, shY - new position of shapes
-
    Stack.PushValue("local", i)
-
    s = scale
-
    shX = x
-
    shY = y
-
    For i = iMin To iMax
-
      _x = shape[i]["rx"]
-
      _y = shape[i]["ry"]
-
      Shapes.Move(shape[i]["obj"], shX + _x * s, shY + _y * s)
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_RotatePolyline
-
    ' Shapes | rotate polyline
-
    ' param n - number of points
-
    ' param x, y - array of x and y co-ordinates
-
    ' param ox, oy, - center of rotation
-
    ' param angle - angle of rotation
-
    Stack.PushValue("local", i)
-
    _a = Math.GetRadians(angle)
-
    For i = 1 To n
-
      xi = (x[i] - ox) * Math.Cos(_a) + (y[i] - oy) * Math.Sin(_a)
-
      yi = - (x[i] - ox) * Math.Sin(_a) + (y[i] - oy) * Math.Cos(_a)
-
      x[i] = xi + ox
-
      y[i] = yi + oy
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Remove
-
    ' Shapes | Remove shapes
-
    ' param iMin, iMax - shapes indices to remove
-
    ' param shape - array of shapes
-
    Stack.PushValue("local", i)
-
    For i = iMin To iMax
-
      Shapes.Remove(shape[i]["obj"])
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
-
 
  
 
-
-
 GraphicsWindow.Title = "DuckShoot 0.52b"
-
 SB_Workaround()
-
 Opening()
-
 GameInit()
-
 GameLoop()
-
 Ending()
-
 Sub Bang
-
    Sound.PlayClick()
-
    shoot = shoot + 1
-
    For i = 1 To nDuck
-
      If a[i] = 90 Then
-
        If silverlight Then
-
          shX = x[i]
-
          shY = y[i]
-
          iMin = 1
-
          iMax = 10
-
          Shapes_Draw()
-
        Else
-
          GraphicsWindow.DrawImage(img, x[i], y[i])
-
        EndIf
-
        color = GraphicsWindow.GetPixel(dx, dy)
-
        If silverlight Then
-
          color = "#" + Text.GetSubTextToEnd(color, 4)
-
        EndIf
-
        GraphicsWindow.PenWidth = 0
-
        GraphicsWindow.BrushColor = bgColor
-
        GraphicsWindow.FillRectangle(x[i], y[i], dw, dh)
-
        If color <> bgColor Then
-
          hit[i] = "True"
-
        EndIf
-
      EndIf
-
    EndFor
-
 EndSub
-
 Sub Ending
-
    Shapes.Remove(stair)
-
    point = 0
-
    For i = 1 To nDuck
-
      If hit[i] Then
-
        point = point + 1
-
      EndIf
-
    EndFor
-
    score = point * 100 - Math.Max(0, shoot - nDuck) * 30
-
    GraphicsWindow.BrushColor = "White"
-
    GraphicsWindow.FontSize = 40
-
    GraphicsWindow.DrawText(170, 180, "SCORE " + score)
-
    Program.Delay(500)
-
    GraphicsWindow.DrawText(170, 230, "SHOOT " + shoot)
-
    Program.Delay(500)
-
    GraphicsWindow.DrawText(170, 280, "HIT " + point)
-
    Program.Delay(2000)
-
    GraphicsWindow.FontSize = 50
-
    GraphicsWindow.DrawText(170, 80, "GAME OVER")
-
 EndSub
-
 Sub GameInit
-
    ' Game start
-
    Shapes.ShowShape(duck[1])
-
    mouseDown = "False"
-
    GraphicsWindow.MouseDown = OnMouseDown
-
    GraphicsWindow.MouseMove = OnMouseMove
-
    Shapes.Animate(duck[1], gw, 150, 3000)
-
    Program.Delay(3000)
-
    yDuck = 150
-
    For i = 1 To nDuck
-
      hit[i] = "False"
-
      a[i] = 90
-
      x[i] = (0.5 - 1.5 * i) * dw
-
      y[i] = yDuck
-
      Shapes.Move(duck[i], x[i], y[i])
-
      Shapes.ShowShape(duck[i])
-
    EndFor
-
    GraphicsWindow.PenWidth = 0
-
    GraphicsWindow.BrushColor = bgColor
-
    yRS = yStair - (yDuck + dh / 2)
-
    shoot = 0
-
 EndSub
-
 Sub GameLoop
-
    While x[nDuck] < gw
-
      Program.Delay(50)
-
      If mouseDown Then
-
        Bang()
-
        mouseDown = "False"
-
      EndIf
-
      For i = 1 To nDuck
-
        If hit[i] And (0 < a[i]) Then
-
          a[i] = a[i] - 5
-
          cos = Math.Round(Math.Sin(Math.GetRadians(a[i])) * 100) / 100
-
          Shapes.Zoom(duck[i], 1, Math.Max(cos, 0.1))
-
          deltaY = yRS - yRS * cos
-
          y[i] = yDuck + deltaY
-
        EndIf
-
        x[i] = x[i] + 8
-
        Shapes.Move(duck[i], x[i], y[i])
-
      EndFor
-
    EndWhile
-
 EndSub
-
 Sub OnMouseDown
-
    mouseDown = "True"
-
    dx = Math.Floor(GraphicsWindow.MouseX)
-
    dy = Math.Floor(GraphicsWindow.MouseY)
-
 EndSub
-
 Sub OnMouseMove
-
    mx = Math.Floor(GraphicsWindow.MouseX)
-
    my = Math.Floor(GraphicsWindow.MouseY)
-
    If 0 <= mx And mx < gw And 0 <= my And my < gh Then
-
      Mouse.HideCursor()
-
      Shapes.Move(sighter, mx - 40, my - 40)
-
    Else
-
      Mouse.ShowCursor()
-
    EndIf
-
 EndSub
-
 Sub Opening
-
    bgColor = "#8B0000" ' DarkRed
-
    stColor = "#990000" ' for stair
-
    GraphicsWindow.BackgroundColor = bgColor
-
    gw = 598
-
    gh = 428
-
    GraphicsWindow.Width = gw
-
    GraphicsWindow.Height = gh
-
    GraphicsWindow.PenWidth = 0
-
    GraphicsWindow.BrushColor = bgColor
-
    GraphicsWindow.FillRectangle(0, 0, gw, gh)
-
    ' add duck image
-
    path = "http://gallery.technet.microsoft.com/site/view/file/119954/1/Duck2.png"
-
    img = ImageList.LoadImage(path)
-
    If silverlight Then
-
      dw = 246 + 1
-
      dh = 192 + 2
-
    Else
-
      dw = ImageList.GetWidthOfImage(img)
-
      dh = ImageList.GetHeightOfImage(img)
-
    EndIf
-
    nDuck = 3
-
    For i = 1 To nDuck
-
      duck[i] = Shapes.AddImage(img)
-
      Shapes.Move(duck[i], 194, 150)
-
      Shapes.HideShape(duck[i])
-
    EndFor
-
    ' add stair
-
    GraphicsWindow.BrushColor = stColor
-
    GraphicsWindow.PenWidth = 0
-
    stair = Shapes.AddRectangle(gw, gh - yStair)
-
    yStair = Math.Round(gh * 2 / 3)
-
    Shapes.Move(stair, 0, yStair)
-
    Shapes.HideShape(stair)
-
    ' initialize shapes
-
    GraphicsWindow.FontName = "Trebuchet MS"
-
    GraphicsWindow.FontSize = 50
-
    GraphicsWindow.BrushColor = "White"
-
    title = Shapes.AddText("DuckShoot")
-
    Shapes.Move(title, 170, 60)
-
    Shapes_Init()
-
    ' add shapes
-
    scale = 1
-
    angle = 0
-
    iMin = 1
-
    iMax = 10
-
    Shapes_Add()
-
    ' add sighter image
-
    path = "http://gallery.technet.microsoft.com/site/view/file/119955/1/Sighter.png"
-
    sighter = Shapes.AddImage(path)
-
    Shapes.Move(sighter, 250, 200)
-
    ' Blink start
-
    wait = "True"
-
    ems = Clock.ElapsedMilliseconds
-
    While wait
-
      Program.Delay(1000)
-
      x = 250 + (Math.GetRandomNumber(50) - 25)
-
      y = 200 + (Math.GetRandomNumber(50) - 25)
-
      Shapes.Move(sighter, x, y)
-
      Program.Delay(100)
-
      Shapes.HideShape(shape[4]["obj"])
-
      Program.Delay(100)
-
      Shapes.ShowShape(shape[4]["obj"])
-
      If 5000 < Clock.ElapsedMilliseconds - ems Then
-
        wait = "False"
-
      EndIf
-
    EndWhile
-
    Shapes.ShowShape(stair)
-
    iMin = 1
-
    iMax = 10
-
    Shapes_Remove()
-
    Shapes.Remove(title)
-
 EndSub
-
 Sub SB_Workaround
-
    ' Small Basic | Workaround for Silverlight
-
    ' returns silverlight - "True" if in remote
-
    color = GraphicsWindow.GetPixel(0, 0)
-
    If Text.GetLength(color) > 7 Then
-
      silverlight = "True"
-
      msWait = 300
-
    Else
-
      silverlight = "False"
-
    EndIf
-
 EndSub
-
 Sub Shapes_Add
-
    ' Shapes | add shapes as shapes data
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - 1 if same scale
-
    ' return shWidth, shHeight - total size of shapes
-
    ' return shAngle - current angle of shapes
-
    Stack.PushValue("local", i)
-
    Shapes_CalcWidthAndHeight()
-
    s = scale
-
    For i = iMin To iMax
-
      GraphicsWindow.PenWidth = shape[i]["pw"] * s
-
      If shape[i]["pw"] > 0 Then
-
        GraphicsWindow.PenColor = shape[i]["pc"]
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) Then
-
        GraphicsWindow.BrushColor = shape[i]["bc"]
-
      EndIf
-
      If shape[i]["func"] = "rect" Then
-
        shape[i]["obj"] = Shapes.AddRectangle(shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "ell" Then
-
        shape[i]["obj"] = Shapes.AddEllipse(shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "tri" Then
-
        shape[i]["obj"] = Shapes.AddTriangle(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s, shape[i]["x3"] * s, shape[i]["y3"] * s)
-
      ElseIf shape[i]["func"] = "line" Then
-
        shape[i]["obj"] = Shapes.AddLine(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s)
-
      ElseIf shape[i]["func"] = "text" Then
-
        If silverlight Then
-
          fs = Math.Floor(shape[i]["fs"] * 0.9)
-
        Else
-
          fs = shape[i]["fs"]
-
        EndIf
-
        GraphicsWindow.FontSize = fs * s
-
        GraphicsWindow.FontName = shape[i]["fn"]
-
        shape[i]["obj"] = Shapes.AddText(shape[i]["text"])
-
      EndIf
-
      If silverlight And shape[i]["func"] = "tri" Then
-
        alpha = Math.GetRadians(shape[i]["angle"])
-
        x1 = -Math.Floor(shape[i]["x3"] / 2)
-
        y1 = -Math.Floor(shape[i]["y3"] / 2)
-
        ox = shape[i]["x"] - x1
-
        oy = shape[i]["y"] - y1
-
        r = Math.SquareRoot(x1 * x1 + y1 * y1)
-
        x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
        y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
        Shapes.Move(shape[i]["obj"], shX + x * s, shY + y * s)
-
      Else
-
        Shapes.Move(shape[i]["obj"], shX + shape[i]["x"] * s, shY + shape[i]["y"] * s)
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) And shape[i]["angle"] <> 0 Then
-
        Shapes.Rotate(shape[i]["obj"], shape[i]["angle"])
-
      EndIf
-
      shape[i]["rx"] = shape[i]["x"]
-
      shape[i]["ry"] = shape[i]["y"]
-
    EndFor
-
    shAngle = 0
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_CalcWidthAndHeight
-
    ' Shapes | Calculate total width and height of shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' return shWidth, shHeight - total size of shapes
-
    For i = iMin To iMax
-
      If shape[i]["func"] = "tri" Or shape[i]["func"] = "line" Then
-
        xmin = shape[i]["x1"]
-
        xmax = shape[i]["x1"]
-
        ymin = shape[i]["y1"]
-
        ymax = shape[i]["y1"]
-
        If shape[i]["x2"] < xmin Then
-
          xmin = shape[i]["x2"]
-
        EndIf
-
        If xmax < shape[i]["x2"] Then
-
          xmax = shape[i]["x2"]
-
        EndIf
-
        If shape[i]["y2"] < ymin Then
-
          ymin = shape[i]["y2"]
-
        EndIf
-
        If ymax < shape[i]["y2"] Then
-
          ymax = shape[i]["y2"]
-
        EndIf
-
        If shape[i]["func"] = "tri" Then
-
          If shape[i]["x3"] < xmin Then
-
            xmin = shape[i]["x3"]
-
          EndIf
-
          If xmax < shape[i]["x3"] Then
-
            xmax = shape[i]["x3"]
-
          EndIf
-
          If shape[i]["y3"] < ymin Then
-
            ymin = shape[i]["y3"]
-
          EndIf
-
          If ymax < shape[i]["y3"] Then
-
            ymax = shape[i]["y3"]
-
          EndIf
-
        EndIf
-
        shape[i]["width"] = xmax - xmin
-
        shape[i]["height"] = ymax - ymin
-
      EndIf
-
      If i = 1 Then
-
        shWidth = shape[i]["x"] + shape[i]["width"]
-
        shHeight = shape[i]["y"] + shape[i]["height"]
-
      Else
-
        If shWidth < shape[i]["x"] + shape[i]["width"] Then
-
          shWidth = shape[i]["x"] + shape[i]["width"]
-
        EndIf
-
        If shHeight < shape[i]["y"] + shape[i]["height"] Then
-
          shHeight = shape[i]["y"] + shape[i]["height"]
-
        EndIf
-
      EndIf
-
    EndFor
-
 EndSub
-
 Sub Shapes_Draw
-
    ' Shapes | draw shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - 1 if same scale
-
    ' TODO to draw border line for rectangle, triangle and ellipse
-
    ' TODO to rotate rectangle and ellipse (text?)
-
    Stack.PushValue("local", x)
-
    Stack.PushValue("local", y)
-
    Stack.PushValue("local", i)
-
    s = scale
-
    For i = iMin To iMax
-
      If shape[i]["pw"] > 0 Then
-
        GraphicsWindow.PenColor = shape[i]["pc"]
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) Then
-
        GraphicsWindow.BrushColor = shape[i]["bc"]
-
      EndIf
-
      x = shX + shape[i]["x"] * s
-
      y = shY + shape[i]["y"] * s
-
      If shape[i]["func"] = "rect" Then
-
        GraphicsWindow.FillRectangle(x, y, shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "ell" Then
-
        GraphicsWindow.FillEllipse(x, y, shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "tri" Then
-
        x[1] = shX + shape[i]["x"] * s + shape[i]["x1"] * s
-
        y[1] = shY + shape[i]["y"] * s + shape[i]["y1"] * s
-
        x[2] = shX + shape[i]["x"] * s + shape[i]["x2"] * s
-
        y[2] = shY + shape[i]["y"] * s + shape[i]["y2"] * s
-
        x[3] = shX + shape[i]["x"] * s + shape[i]["x3"] * s
-
        y[3] = shY + shape[i]["y"] * s + shape[i]["y3"] * s
-
        angle = shape[i]["angle"]
-
        If angle <> 0 Then
-
          n = 3
-
          ox = (x[2] + x[3]) / 2
-
          oy = (y[1] + y[2]) / 2
-
          Shapes_RotatePolyline()
-
        EndIf
-
        GraphicsWindow.FillTriangle(x[1], y[1], x[2], y[2], x[3], y[3])
-
      ElseIf shape[i]["func"] = "line" Then
-
        x[1] = shX + shape[i]["x"] * s + shape[i]["x1"] * s
-
        y[1] = shY + shape[i]["y"] * s + shape[i]["y1"] * s
-
        x[2] = shX + shape[i]["x"] * s + shape[i]["x2"] * s
-
        y[2] = shY + shape[i]["y"] * s + shape[i]["y2"] * s
-
        If angle <> 0 Then
-
          n = 3
-
          ox = (x[2] + x[3]) / 2
-
          oy = (y[1] + y[2]) / 2
-
          Shapes_RotatePolyline()
-
        EndIf
-
        GraphicsWindow.DrawLine(x[1], y[1], x[2], y[2])
-
      ElseIf shape[i]["func"] = "text" Then
-
        If silverlight Then
-
          fs = Math.Floor(shape[i]["fs"] * 0.9)
-
        Else
-
          fs = shape[i]["fs"]
-
        EndIf
-
        GraphicsWindow.FontSize = fs * s
-
        GraphicsWindow.FontName = shape[i]["fn"]
-
        GraphicsWindow.DrawText(x, y, shape[i]["text"])
-
      EndIf
-
    EndFor
-
    i = Stack.PopValue("local")
-
    y = Stack.PopValue("local")
-
    x = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Init
-
    ' Shapes | Initialize shapes data
-
    ' return shX, shY - current position of shapes
-
    ' return shape - array of shapes
-
    shX = 194 ' x offset
-
    shY = 150 ' y offset
-
    shape[1] = "func=tri;x=153;y=41;x1=47;y1=0;x2=0;y2=22;x3=95;y3=22;bc=#CD845A;pw=0;"
-
    shape[2] = "func=ell;x=118;y=0;width=91;height=73;bc=#CDBE5A;pw=0;"
-
    shape[3] = "func=line;x=172;y=36;x1=0;y1=0;x2=22;y2=0;pc=#000000;pw=2;"
-
    shape[4] = "func=ell;x=172;y=25;width=22;height=22;bc=#000000;pw=0;"
-
    shape[5] = "func=tri;x=132;y=58;x1=31;y1=0;x2=0;y2=45;x3=62;y3=45;bc=#CDBE5A;pw=0;"
-
    shape[6] = "func=tri;x=0;y=80;x1=37;y1=0;x2=0;y2=32;x3=75;y3=32;angle=178;bc=#CDBE5A;pw=0;"
-
    shape[7] = "func=line;x=91;y=134;x1=0;y1=0;x2=0;y2=38;pc=#CD845A;pw=8;"
-
    shape[8] = "func=ell;x=33;y=72;width=164;height=82;bc=#CDBE5A;pw=0;"
-
    shape[9] = "func=tri;x=58;y=180;x1=46;y1=0;x2=0;y2=14;x3=93;y3=14;bc=#CD845A;pw=0;"
-
    shape[10] = "func=line;x=90;y=169;x1=0;y1=0;x2=14;y2=15;pc=#CD845A;pw=8;"
-
 EndSub
-
 Sub Shapes_Move
-
    ' Shapes | Move shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - to zoom
-
    ' param x, y - position to move
-
    ' return shX, shY - new position of shapes
-
    Stack.PushValue("local", i)
-
    s = scale
-
    shX = x
-
    shY = y
-
    For i = iMin To iMax
-
      _x = shape[i]["rx"]
-
      _y = shape[i]["ry"]
-
      Shapes.Move(shape[i]["obj"], shX + _x * s, shY + _y * s)
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_RotatePolyline
-
    ' Shapes | rotate polyline
-
    ' param n - number of points
-
    ' param x, y - array of x and y co-ordinates
-
    ' param ox, oy, - center of rotation
-
    ' param angle - angle of rotation
-
    Stack.PushValue("local", i)
-
    _a = Math.GetRadians(angle)
-
    For i = 1 To n
-
      xi = (x[i] - ox) * Math.Cos(_a) + (y[i] - oy) * Math.Sin(_a)
-
      yi = - (x[i] - ox) * Math.Sin(_a) + (y[i] - oy) * Math.Cos(_a)
-
      x[i] = xi + ox
-
      y[i] = yi + oy
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Remove
-
    ' Shapes | Remove shapes
-
    ' param iMin, iMax - shapes indices to remove
-
    ' param shape - array of shapes
-
    Stack.PushValue("local", i)
-
    For i = iMin To iMax
-
      Shapes.Remove(shape[i]["obj"])
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
-
 
  
 
-
-
 GraphicsWindow.Title = "DuckShoot 0.52b"
-
 SB_Workaround()
-
 Opening()
-
 GameInit()
-
 GameLoop()
-
 Ending()
-
 Sub Bang
-
    Sound.PlayClick()
-
    shoot = shoot + 1
-
    For i = 1 To nDuck
-
      If a[i] = 90 Then
-
        If silverlight Then
-
          shX = x[i]
-
          shY = y[i]
-
          iMin = 1
-
          iMax = 10
-
          Shapes_Draw()
-
        Else
-
          GraphicsWindow.DrawImage(img, x[i], y[i])
-
        EndIf
-
        color = GraphicsWindow.GetPixel(dx, dy)
-
        If silverlight Then
-
          color = "#" + Text.GetSubTextToEnd(color, 4)
-
        EndIf
-
        GraphicsWindow.PenWidth = 0
-
        GraphicsWindow.BrushColor = bgColor
-
        GraphicsWindow.FillRectangle(x[i], y[i], dw, dh)
-
        If color <> bgColor Then
-
          hit[i] = "True"
-
        EndIf
-
      EndIf
-
    EndFor
-
 EndSub
-
 Sub Ending
-
    Shapes.Remove(stair)
-
    point = 0
-
    For i = 1 To nDuck
-
      If hit[i] Then
-
        point = point + 1
-
      EndIf
-
    EndFor
-
    score = point * 100 - Math.Max(0, shoot - nDuck) * 30
-
    GraphicsWindow.BrushColor = "White"
-
    GraphicsWindow.FontSize = 40
-
    GraphicsWindow.DrawText(170, 180, "SCORE " + score)
-
    Program.Delay(500)
-
    GraphicsWindow.DrawText(170, 230, "SHOOT " + shoot)
-
    Program.Delay(500)
-
    GraphicsWindow.DrawText(170, 280, "HIT " + point)
-
    Program.Delay(2000)
-
    GraphicsWindow.FontSize = 50
-
    GraphicsWindow.DrawText(170, 80, "GAME OVER")
-
 EndSub
-
 Sub GameInit
-
    ' Game start
-
    Shapes.ShowShape(duck[1])
-
    mouseDown = "False"
-
    GraphicsWindow.MouseDown = OnMouseDown
-
    GraphicsWindow.MouseMove = OnMouseMove
-
    Shapes.Animate(duck[1], gw, 150, 3000)
-
    Program.Delay(3000)
-
    yDuck = 150
-
    For i = 1 To nDuck
-
      hit[i] = "False"
-
      a[i] = 90
-
      x[i] = (0.5 - 1.5 * i) * dw
-
      y[i] = yDuck
-
      Shapes.Move(duck[i], x[i], y[i])
-
      Shapes.ShowShape(duck[i])
-
    EndFor
-
    GraphicsWindow.PenWidth = 0
-
    GraphicsWindow.BrushColor = bgColor
-
    yRS = yStair - (yDuck + dh / 2)
-
    shoot = 0
-
 EndSub
-
 Sub GameLoop
-
    While x[nDuck] < gw
-
      Program.Delay(50)
-
      If mouseDown Then
-
        Bang()
-
        mouseDown = "False"
-
      EndIf
-
      For i = 1 To nDuck
-
        If hit[i] And (0 < a[i]) Then
-
          a[i] = a[i] - 5
-
          cos = Math.Round(Math.Sin(Math.GetRadians(a[i])) * 100) / 100
-
          Shapes.Zoom(duck[i], 1, Math.Max(cos, 0.1))
-
          deltaY = yRS - yRS * cos
-
          y[i] = yDuck + deltaY
-
        EndIf
-
        x[i] = x[i] + 8
-
        Shapes.Move(duck[i], x[i], y[i])
-
      EndFor
-
    EndWhile
-
 EndSub
-
 Sub OnMouseDown
-
    mouseDown = "True"
-
    dx = Math.Floor(GraphicsWindow.MouseX)
-
    dy = Math.Floor(GraphicsWindow.MouseY)
-
 EndSub
-
 Sub OnMouseMove
-
    mx = Math.Floor(GraphicsWindow.MouseX)
-
    my = Math.Floor(GraphicsWindow.MouseY)
-
    If 0 <= mx And mx < gw And 0 <= my And my < gh Then
-
      Mouse.HideCursor()
-
      Shapes.Move(sighter, mx - 40, my - 40)
-
    Else
-
      Mouse.ShowCursor()
-
    EndIf
-
 EndSub
-
 Sub Opening
-
    bgColor = "#8B0000" ' DarkRed
-
    stColor = "#990000" ' for stair
-
    GraphicsWindow.BackgroundColor = bgColor
-
    gw = 598
-
    gh = 428
-
    GraphicsWindow.Width = gw
-
    GraphicsWindow.Height = gh
-
    GraphicsWindow.PenWidth = 0
-
    GraphicsWindow.BrushColor = bgColor
-
    GraphicsWindow.FillRectangle(0, 0, gw, gh)
-
    ' add duck image
-
    path = "http://gallery.technet.microsoft.com/site/view/file/119954/1/Duck2.png"
-
    img = ImageList.LoadImage(path)
-
    If silverlight Then
-
      dw = 246 + 1
-
      dh = 192 + 2
-
    Else
-
      dw = ImageList.GetWidthOfImage(img)
-
      dh = ImageList.GetHeightOfImage(img)
-
    EndIf
-
    nDuck = 3
-
    For i = 1 To nDuck
-
      duck[i] = Shapes.AddImage(img)
-
      Shapes.Move(duck[i], 194, 150)
-
      Shapes.HideShape(duck[i])
-
    EndFor
-
    ' add stair
-
    GraphicsWindow.BrushColor = stColor
-
    GraphicsWindow.PenWidth = 0
-
    stair = Shapes.AddRectangle(gw, gh - yStair)
-
    yStair = Math.Round(gh * 2 / 3)
-
    Shapes.Move(stair, 0, yStair)
-
    Shapes.HideShape(stair)
-
    ' initialize shapes
-
    GraphicsWindow.FontName = "Trebuchet MS"
-
    GraphicsWindow.FontSize = 50
-
    GraphicsWindow.BrushColor = "White"
-
    title = Shapes.AddText("DuckShoot")
-
    Shapes.Move(title, 170, 60)
-
    Shapes_Init()
-
    ' add shapes
-
    scale = 1
-
    angle = 0
-
    iMin = 1
-
    iMax = 10
-
    Shapes_Add()
-
    ' add sighter image
-
    path = "http://gallery.technet.microsoft.com/site/view/file/119955/1/Sighter.png"
-
    sighter = Shapes.AddImage(path)
-
    Shapes.Move(sighter, 250, 200)
-
    ' Blink start
-
    wait = "True"
-
    ems = Clock.ElapsedMilliseconds
-
    While wait
-
      Program.Delay(1000)
-
      x = 250 + (Math.GetRandomNumber(50) - 25)
-
      y = 200 + (Math.GetRandomNumber(50) - 25)
-
      Shapes.Move(sighter, x, y)
-
      Program.Delay(100)
-
      Shapes.HideShape(shape[4]["obj"])
-
      Program.Delay(100)
-
      Shapes.ShowShape(shape[4]["obj"])
-
      If 5000 < Clock.ElapsedMilliseconds - ems Then
-
        wait = "False"
-
      EndIf
-
    EndWhile
-
    Shapes.ShowShape(stair)
-
    iMin = 1
-
    iMax = 10
-
    Shapes_Remove()
-
    Shapes.Remove(title)
-
 EndSub
-
 Sub SB_Workaround
-
    ' Small Basic | Workaround for Silverlight
-
    ' returns silverlight - "True" if in remote
-
    color = GraphicsWindow.GetPixel(0, 0)
-
    If Text.GetLength(color) > 7 Then
-
      silverlight = "True"
-
      msWait = 300
-
    Else
-
      silverlight = "False"
-
    EndIf
-
 EndSub
-
 Sub Shapes_Add
-
    ' Shapes | add shapes as shapes data
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - 1 if same scale
-
    ' return shWidth, shHeight - total size of shapes
-
    ' return shAngle - current angle of shapes
-
    Stack.PushValue("local", i)
-
    Shapes_CalcWidthAndHeight()
-
    s = scale
-
    For i = iMin To iMax
-
      GraphicsWindow.PenWidth = shape[i]["pw"] * s
-
      If shape[i]["pw"] > 0 Then
-
        GraphicsWindow.PenColor = shape[i]["pc"]
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) Then
-
        GraphicsWindow.BrushColor = shape[i]["bc"]
-
      EndIf
-
      If shape[i]["func"] = "rect" Then
-
        shape[i]["obj"] = Shapes.AddRectangle(shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "ell" Then
-
        shape[i]["obj"] = Shapes.AddEllipse(shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "tri" Then
-
        shape[i]["obj"] = Shapes.AddTriangle(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s, shape[i]["x3"] * s, shape[i]["y3"] * s)
-
      ElseIf shape[i]["func"] = "line" Then
-
        shape[i]["obj"] = Shapes.AddLine(shape[i]["x1"] * s, shape[i]["y1"] * s, shape[i]["x2"] * s, shape[i]["y2"] * s)
-
      ElseIf shape[i]["func"] = "text" Then
-
        If silverlight Then
-
          fs = Math.Floor(shape[i]["fs"] * 0.9)
-
        Else
-
          fs = shape[i]["fs"]
-
        EndIf
-
        GraphicsWindow.FontSize = fs * s
-
        GraphicsWindow.FontName = shape[i]["fn"]
-
        shape[i]["obj"] = Shapes.AddText(shape[i]["text"])
-
      EndIf
-
      If silverlight And shape[i]["func"] = "tri" Then
-
        alpha = Math.GetRadians(shape[i]["angle"])
-
        x1 = -Math.Floor(shape[i]["x3"] / 2)
-
        y1 = -Math.Floor(shape[i]["y3"] / 2)
-
        ox = shape[i]["x"] - x1
-
        oy = shape[i]["y"] - y1
-
        r = Math.SquareRoot(x1 * x1 + y1 * y1)
-
        x = x1 * Math.Cos(alpha) - y1 * Math.Sin(alpha) + ox
-
        y = x1 * Math.Sin(alpha) + y1 * Math.Cos(alpha) + oy
-
        Shapes.Move(shape[i]["obj"], shX + x * s, shY + y * s)
-
      Else
-
        Shapes.Move(shape[i]["obj"], shX + shape[i]["x"] * s, shY + shape[i]["y"] * s)
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) And shape[i]["angle"] <> 0 Then
-
        Shapes.Rotate(shape[i]["obj"], shape[i]["angle"])
-
      EndIf
-
      shape[i]["rx"] = shape[i]["x"]
-
      shape[i]["ry"] = shape[i]["y"]
-
    EndFor
-
    shAngle = 0
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_CalcWidthAndHeight
-
    ' Shapes | Calculate total width and height of shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' return shWidth, shHeight - total size of shapes
-
    For i = iMin To iMax
-
      If shape[i]["func"] = "tri" Or shape[i]["func"] = "line" Then
-
        xmin = shape[i]["x1"]
-
        xmax = shape[i]["x1"]
-
        ymin = shape[i]["y1"]
-
        ymax = shape[i]["y1"]
-
        If shape[i]["x2"] < xmin Then
-
          xmin = shape[i]["x2"]
-
        EndIf
-
        If xmax < shape[i]["x2"] Then
-
          xmax = shape[i]["x2"]
-
        EndIf
-
        If shape[i]["y2"] < ymin Then
-
          ymin = shape[i]["y2"]
-
        EndIf
-
        If ymax < shape[i]["y2"] Then
-
          ymax = shape[i]["y2"]
-
        EndIf
-
        If shape[i]["func"] = "tri" Then
-
          If shape[i]["x3"] < xmin Then
-
            xmin = shape[i]["x3"]
-
          EndIf
-
          If xmax < shape[i]["x3"] Then
-
            xmax = shape[i]["x3"]
-
          EndIf
-
          If shape[i]["y3"] < ymin Then
-
            ymin = shape[i]["y3"]
-
          EndIf
-
          If ymax < shape[i]["y3"] Then
-
            ymax = shape[i]["y3"]
-
          EndIf
-
        EndIf
-
        shape[i]["width"] = xmax - xmin
-
        shape[i]["height"] = ymax - ymin
-
      EndIf
-
      If i = 1 Then
-
        shWidth = shape[i]["x"] + shape[i]["width"]
-
        shHeight = shape[i]["y"] + shape[i]["height"]
-
      Else
-
        If shWidth < shape[i]["x"] + shape[i]["width"] Then
-
          shWidth = shape[i]["x"] + shape[i]["width"]
-
        EndIf
-
        If shHeight < shape[i]["y"] + shape[i]["height"] Then
-
          shHeight = shape[i]["y"] + shape[i]["height"]
-
        EndIf
-
      EndIf
-
    EndFor
-
 EndSub
-
 Sub Shapes_Draw
-
    ' Shapes | draw shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - 1 if same scale
-
    ' TODO to draw border line for rectangle, triangle and ellipse
-
    ' TODO to rotate rectangle and ellipse (text?)
-
    Stack.PushValue("local", x)
-
    Stack.PushValue("local", y)
-
    Stack.PushValue("local", i)
-
    s = scale
-
    For i = iMin To iMax
-
      If shape[i]["pw"] > 0 Then
-
        GraphicsWindow.PenColor = shape[i]["pc"]
-
      EndIf
-
      If Text.IsSubText("rect|ell|tri|text", shape[i]["func"]) Then
-
        GraphicsWindow.BrushColor = shape[i]["bc"]
-
      EndIf
-
      x = shX + shape[i]["x"] * s
-
      y = shY + shape[i]["y"] * s
-
      If shape[i]["func"] = "rect" Then
-
        GraphicsWindow.FillRectangle(x, y, shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "ell" Then
-
        GraphicsWindow.FillEllipse(x, y, shape[i]["width"]* s, shape[i]["height"] * s)
-
      ElseIf shape[i]["func"] = "tri" Then
-
        x[1] = shX + shape[i]["x"] * s + shape[i]["x1"] * s
-
        y[1] = shY + shape[i]["y"] * s + shape[i]["y1"] * s
-
        x[2] = shX + shape[i]["x"] * s + shape[i]["x2"] * s
-
        y[2] = shY + shape[i]["y"] * s + shape[i]["y2"] * s
-
        x[3] = shX + shape[i]["x"] * s + shape[i]["x3"] * s
-
        y[3] = shY + shape[i]["y"] * s + shape[i]["y3"] * s
-
        angle = shape[i]["angle"]
-
        If angle <> 0 Then
-
          n = 3
-
          ox = (x[2] + x[3]) / 2
-
          oy = (y[1] + y[2]) / 2
-
          Shapes_RotatePolyline()
-
        EndIf
-
        GraphicsWindow.FillTriangle(x[1], y[1], x[2], y[2], x[3], y[3])
-
      ElseIf shape[i]["func"] = "line" Then
-
        x[1] = shX + shape[i]["x"] * s + shape[i]["x1"] * s
-
        y[1] = shY + shape[i]["y"] * s + shape[i]["y1"] * s
-
        x[2] = shX + shape[i]["x"] * s + shape[i]["x2"] * s
-
        y[2] = shY + shape[i]["y"] * s + shape[i]["y2"] * s
-
        If angle <> 0 Then
-
          n = 3
-
          ox = (x[2] + x[3]) / 2
-
          oy = (y[1] + y[2]) / 2
-
          Shapes_RotatePolyline()
-
        EndIf
-
        GraphicsWindow.DrawLine(x[1], y[1], x[2], y[2])
-
      ElseIf shape[i]["func"] = "text" Then
-
        If silverlight Then
-
          fs = Math.Floor(shape[i]["fs"] * 0.9)
-
        Else
-
          fs = shape[i]["fs"]
-
        EndIf
-
        GraphicsWindow.FontSize = fs * s
-
        GraphicsWindow.FontName = shape[i]["fn"]
-
        GraphicsWindow.DrawText(x, y, shape[i]["text"])
-
      EndIf
-
    EndFor
-
    i = Stack.PopValue("local")
-
    y = Stack.PopValue("local")
-
    x = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Init
-
    ' Shapes | Initialize shapes data
-
    ' return shX, shY - current position of shapes
-
    ' return shape - array of shapes
-
    shX = 194 ' x offset
-
    shY = 150 ' y offset
-
    shape[1] = "func=tri;x=153;y=41;x1=47;y1=0;x2=0;y2=22;x3=95;y3=22;bc=#CD845A;pw=0;"
-
    shape[2] = "func=ell;x=118;y=0;width=91;height=73;bc=#CDBE5A;pw=0;"
-
    shape[3] = "func=line;x=172;y=36;x1=0;y1=0;x2=22;y2=0;pc=#000000;pw=2;"
-
    shape[4] = "func=ell;x=172;y=25;width=22;height=22;bc=#000000;pw=0;"
-
    shape[5] = "func=tri;x=132;y=58;x1=31;y1=0;x2=0;y2=45;x3=62;y3=45;bc=#CDBE5A;pw=0;"
-
    shape[6] = "func=tri;x=0;y=80;x1=37;y1=0;x2=0;y2=32;x3=75;y3=32;angle=178;bc=#CDBE5A;pw=0;"
-
    shape[7] = "func=line;x=91;y=134;x1=0;y1=0;x2=0;y2=38;pc=#CD845A;pw=8;"
-
    shape[8] = "func=ell;x=33;y=72;width=164;height=82;bc=#CDBE5A;pw=0;"
-
    shape[9] = "func=tri;x=58;y=180;x1=46;y1=0;x2=0;y2=14;x3=93;y3=14;bc=#CD845A;pw=0;"
-
    shape[10] = "func=line;x=90;y=169;x1=0;y1=0;x2=14;y2=15;pc=#CD845A;pw=8;"
-
 EndSub
-
 Sub Shapes_Move
-
    ' Shapes | Move shapes
-
    ' param iMin, iMax - shape indices to add
-
    ' param shape - array of shapes
-
    ' param scale - to zoom
-
    ' param x, y - position to move
-
    ' return shX, shY - new position of shapes
-
    Stack.PushValue("local", i)
-
    s = scale
-
    shX = x
-
    shY = y
-
    For i = iMin To iMax
-
      _x = shape[i]["rx"]
-
      _y = shape[i]["ry"]
-
      Shapes.Move(shape[i]["obj"], shX + _x * s, shY + _y * s)
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_RotatePolyline
-
    ' Shapes | rotate polyline
-
    ' param n - number of points
-
    ' param x, y - array of x and y co-ordinates
-
    ' param ox, oy, - center of rotation
-
    ' param angle - angle of rotation
-
    Stack.PushValue("local", i)
-
    _a = Math.GetRadians(angle)
-
    For i = 1 To n
-
      xi = (x[i] - ox) * Math.Cos(_a) + (y[i] - oy) * Math.Sin(_a)
-
      yi = - (x[i] - ox) * Math.Sin(_a) + (y[i] - oy) * Math.Cos(_a)
-
      x[i] = xi + ox
-
      y[i] = yi + oy
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
 Sub Shapes_Remove
-
    ' Shapes | Remove shapes
-
    ' param iMin, iMax - shapes indices to remove
-
    ' param shape - array of shapes
-
    Stack.PushValue("local", i)
-
    For i = iMin To iMax
-
      Shapes.Remove(shape[i]["obj"])
-
    EndFor
-
    i = Stack.PopValue("local")
-
 EndSub
-
-
 
  
-
-

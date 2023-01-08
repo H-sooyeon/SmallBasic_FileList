@@ -1,947 +1,473 @@
 'This is a demo of a simple game environment with an Ai pathfinding system
-
 'Anyone may use or alter this code as they please
 
-
-
 'Use W, A, S, D to control the character
-
 'The controls are a bit buggy in the browser version
 
-
-
 '///////////   Load Game   //////////////
-
 GraphicsWindow.Height = 320
-
 GraphicsWindow.Width = 320
-
 GraphicsWindow.CanResize = "False"
-
 GraphicsWindow.Title = "Pathfinder Game Demo"
 
-
-
 LoadMapFromFile()
-
 AddMapGraphics()
-
 AddPlayer()
-
 AddEnemy()
 
-
-
 GraphicsWindow.KeyUp = KeyUp      'If a key is release run the KeyUp function
-
 GraphicsWindow.KeyDown = KeyDown  'If a key is pressed run the KeyDown function
-
 execTimer = 0                     'Execution timer used with pathfinding
-
 '//////////////////////////////////////
-
-
-
 
 
 '///////////  Game Loop   /////////////
-
 GameLoop:
 
-
-
 MovePlayer()
-
 EnemyAI()
 
-
-
 Program.Delay(8)  'This makes the game run at a reasonable fps
-
 Goto GameLoop
-
 '//////////////////////////////////////
 
-
-
 '///////////  Keyboard  /////////////
-
 'These functions allow for a smoother control input
 
-
-
 'Registers a key press .  
-
 Sub KeyDown
-
   keyModified = GraphicsWindow.LastKey
-
   Keyboard[keyModified] = 1
-
 EndSub
-
-
 
 'Unregisters a key press
-
 Sub KeyUp
-
   keyModified = GraphicsWindow.LastKey
-
   Keyboard[keyModified] = 0
-
 EndSub
-
-
 
 '///////////  Map Functions  /////////////
 
-
-
 'Load a map from an Arrays of strings
-
 Sub LoadMapFromFile
-
   
-
   'This is a visual representation.  0 = walls, 1 = where u can walk.
-
 ' The following line could be harmful and has been automatically commented.
-
 '   'This can very easily be modified to read from a file using File.ReadLine after the first For statement
-
   pathMap[1] =  "1111111101111111"
-
   pathMap[2] =  "1010101010101010"
-
   pathMap[3] =  "1111111111111111"
-
   pathMap[4] =  "1000000000000100"
-
   pathMap[5] =  "1011111010111110"
-
   pathMap[6] =  "1011111010111110"
-
   pathMap[7] =  "1111111011111110"
-
   pathMap[8] =  "0000010010000010"
-
   pathMap[9] =  "1111111111111111"
-
   pathMap[10] = "1010101010101010"
-
   pathMap[11] = "1111111111111111"
-
   pathMap[12] = "0001000010000100"
-
   pathMap[13] = "0111111110111110"
-
   pathMap[14] = "0111111010111110"
-
   pathMap[15] = "1111111010111110"
-
   pathMap[16] = "1000000010000000"
-
   
-
   
-
   For y = 1 To 16
-
     currentRow = pathMap[y]
-
     For x = 1 To 16
-
       
-
       'currentTile is a representation of a map tile.  "walkable" is either 1 (for yes) or 0 (for no). 
-
       currentTile["walkable"] = Text.GetSubText(currentRow, x, 1)
-
       currentTile["gridx"] = x
-
       currentTile["gridy"] = y
-
       
-
       'pathfinding variables
-
       currentTile["distance"] = -1
-
       currentTile["parent"] = -1
-
       
-
       'map is a 2d array which represents a graph with X and Y axis
-
       map[x][y] = currentTile
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 'Add graphical boxes to represent the map tiles
-
 Sub AddMapGraphics
-
   boxSize = 20
-
   For y = 1 To 16
-
     For x = 1 To 16
-
       
-
       If map[x][y]["walkable"] = 0 Then
-
         GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(39,40,71)
-
       Else
-
         GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(200,200,200)
-
       EndIf
-
       
-
       rectangle = Shapes.AddRectangle(boxSize, boxSize)
-
       boxes[x][y] = rectangle
-
       Shapes.Move(rectangle, (x-1) * boxSize, (y-1) * boxSize)
-
       
-
     EndFor
-
   EndFor
-
 EndSub
-
-
 
 '///////////  Functions  to Load the Player and Enemy     /////////////
-
 'Adds a player object
-
 Sub AddPlayer
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(1,1,255)
-
   texture = Shapes.AddRectangle(6,10)
-
   player["tex"] = texture
-
   player["screenX"] = 10
-
   player["screenY"] = 15
-
   player["maxSpeed"] = 1
-
   player["velocityX"] = 0
-
   player["velocityY"] = 0
-
   Shapes.Move(texture, player["screenX"] - 3, player["screenY"] - 10)
-
 EndSub
-
-
 
 'Adds an enemy object
-
 Sub AddEnemy
-
   GraphicsWindow.BrushColor = GraphicsWindow.GetColorFromRGB(255,1,1)
-
   texture = Shapes.AddRectangle(6,10)
-
   
-
   enemy["tex"] = texture
-
   enemy["screenX"] = 150
-
   enemy["screenY"] = 50
-
   enemy["maxSpeed"] = .5
-
   enemy["velocityX"] = 0
-
   enemy["velocityY"] = 0
-
   enemy["targetTile"] = 0
-
   Shapes.Move(texture, enemy["screenX"] - 3, enemy["screenY"] - 10)
-
 EndSub
-
-
 
 '/////////////  Functions to Move the Player and Enemy   ////////////
 
-
-
 'Move the player
-
 Sub MovePlayer
-
   
-
   'The player's current tile position
-
   playerCurrentTileX = Math.Floor( player["screenX"] / 20 ) + 1
-
   playerCurrentTileY = Math.Floor( player["screenY"] / 20 ) + 1
-
   
-
   'The player's future tile position, obtained by adding the velocity to the players current position
-
   playerFutureTileX = Math.Floor( ( player["screenX"] + player["velocityX"] ) / 20 ) + 1
-
   playerFutureTileY = Math.Floor( ( player["screenY"] + player["velocityY"] ) / 20 ) + 1
-
   
-
   'Collide if the upcoming tile is not "walkable"
-
   '     First test the X-axis
-
   If map[playerFutureTileX][playerCurrentTileY]["walkable"] = 0 Then
-
     player["velocityX"] = player["velocityX"] * -1
-
   EndIf
-
   '     Next test the Y-axis
-
   If map[playerCurrentTileX][playerFutureTileY]["walkable"] = 0 Then
-
     player["velocityY"] = player["velocityY"] * -1
-
   EndIf
-
   
-
   'Collide if out of bounds
-
   If playerFutureTileY > 16 Then
-
     player["velocityY"] = player["velocityY"] * -1
-
   EndIf
-
   If playerFutureTileY < 1 Then
-
     player["velocityY"] = player["velocityY"] * -1
-
   EndIf
-
   If playerFutureTileX > 16 Then
-
     player["velocityX"] = player["velocityX"] * -1
-
   EndIf
-
   If playerFutureTileX < 1 Then
-
     player["velocityX"] = player["velocityX"] * -1
-
   EndIf
-
   
-
   'Add the velocity to the player's coordinates
-
   player["screenX"] = player["screenX"] + player["velocityX"]
-
   player["screenY"] = player["screenY"] + player["velocityY"]
-
   
-
   'Update the texture
-
   Shapes.Move(player["tex"], player["screenX"] - 3, player["screenY"] - 10)
-
   
-
   'Apply friction to slow down the player after releasing the movement key
-
   player["velocityX"] = player["velocityX"] * 0.9
-
   player["velocityY"] = player["velocityY"] * 0.9
-
   
-
   'Add acceleration to the velocity
-
   If Keyboard["W"] = 1 Then
-
     player["velocityY"] = player["velocityY"] - 0.25
-
   EndIf
-
   If Keyboard["A"] = 1 Then
-
     player["velocityX"] = player["velocityX"] - 0.25
-
   EndIf
-
   If Keyboard["S"] = 1 Then
-
     player["velocityY"] = player["velocityY"] + 0.25
-
   EndIf
-
   If Keyboard["D"] = 1 Then
-
     player["velocityX"] = player["velocityX"] + 0.25
-
   EndIf
-
   
-
   'Limit the player's speed to maxSpeed 
-
   If player["velocityX"] > player["maxSpeed"] Then
-
     player["velocityX"] = player["maxSpeed"]
-
   EndIf
-
   If player["velocityY"] > player["maxSpeed"] Then
-
     player["velocityY"] = player["maxSpeed"]
-
   EndIf
-
   If player["velocityX"] < (-1 * player["maxSpeed"]) Then
-
     player["velocityX"] = (-1 * player["maxSpeed"])
-
   EndIf
-
   If player["velocityY"] < (-1 * player["maxSpeed"]) Then
-
     player["velocityY"] = (-1 * player["maxSpeed"])
-
   EndIf
-
   
-
 EndSub
-
-
 
 Sub MoveEnemy
-
   
-
   'If the enemy currently does not have a target tile to be moving toward, then get one
-
   If enemy["targetTile"] = 0 Then
-
     enemy["targetTile"] = Stack.PopValue("routeStack")
-
   EndIf
-
   
-
   'Get the screen distance between the enemy character and the target tile
-
   targetScreenX = (enemy["targetTile"]["x"] - 1 ) * 20 + 10   'This is a conversion from tile coordinate to the screen coordinate
-
   targetScreenY = (enemy["targetTile"]["y"] - 1 ) * 20 + 10   'It converts 1 to 10, 2 to 30, 3 to 50, etc. The + 10 centers the coordinate.
-
   distX = targetScreenX - enemy["screenX"]
-
   distY = targetScreenY - enemy["screenY"]
-
   
-
   'If the enemy character is standing within 2 pixels of the target tile, then it has reached its destination and needs a new target
-
   'This is done by popping off the next tile in the routeStack
-
   If Math.Abs(distX) < 2 Then
-
     If Math.Abs(distY) < 2 Then
-
       If Stack.GetCount("routeStack") > 0 Then
-
         enemy["targetTile"] = Stack.PopValue("routeStack")
-
         targetScreenX = (enemy["targetTile"]["x"] - 1 ) * 20 + 10   'This is a conversion from tile coordinate to the screen coordinate
-
         targetScreenY = (enemy["targetTile"]["y"] - 1 ) * 20 + 10   'It converts 1 to 10, 2 to 30, 3 to 50, etc. The + 10 centers the coordinate.
-
         distX = targetScreenX - enemy["screenX"]
-
         distY = targetScreenY - enemy["screenY"]
-
       EndIf
-
     EndIf
-
   EndIf
-
   
-
   'Use the Pythagorean Theorm to find the exact distance from the enemy character to the target tile
-
   screenDist = Math.SquareRoot( distX * distX + distY * distY )
-
   
-
   'Use screenDist to "normalise" the velocity down to a value between 0.0 and 1.0
-
   'Then multipy the normalised value by the maximum speed to get the velocity
-
   enemy["velocityX"] = distX/screenDist * enemy["maxSpeed"]
-
   enemy["velocityY"] = distY/screenDist * enemy["maxSpeed"]
-
   
-
   'Add the velocity to the enemy's coordinates
-
   enemy["screenX"] = enemy["screenX"] + enemy["velocityX"]
-
   enemy["screenY"] = enemy["screenY"] + enemy["velocityY"]
-
   
-
   'Update the texture
-
   Shapes.Move(enemy["tex"], enemy["screenX"] - 3, enemy["screenY"] - 10)
-
   
-
 EndSub
-
-
 
 '///////////////////  Ai Code  ////////////////////
 
-
-
 'Begin AI Code.  First see if a pathfind is allowed.  Then move the character.
-
 Sub EnemyAI
-
   
-
   'Since pathfinding takes a lot of cpu time an execution manager is needed. It will only allow the pathfinder to run every 60 frames.
-
   'At every frame the execTimer, which starts at 60, is decreased by 1.  When it reaches 0 the pathfinder runs and execTimer is reset to 60.
-
   execTimer = execTimer - 1
-
   If execTimer < 1 Then
-
     execTimer = 60
-
     Pathfind()
-
   EndIf
-
   
-
   MoveEnemy()
-
 EndSub
-
-
 
 'This pathfinder is based on an unweighted Dijkstra algorithm.
-
 'There are two lines where I have to flip a stack twice in order to emulate a Queue data structure since SmallBasic does not have a Queue.
-
 Sub Pathfind
-
   
-
   'This resets all map tile "distance" and "parent" values to -1
-
   ResetMap()
-
   
-
   'Create a "pointer" to the destination tile, where the player is located
-
   destinationTileX = Math.Floor( player["screenX"] / 20 ) + 1
-
   destinationTileY = Math.Floor( player["screenY"] / 20 ) + 1
-
   destinationTile["x"] = destinationTileX
-
   destinationTile["y"] = destinationTileY
-
   
-
   'Create a "pointer" to the starting tile, where the Ai character is located
-
   startTileX = Math.Floor( enemy["screenX"] / 20 ) + 1
-
   startTileY = Math.Floor( enemy["screenY"] / 20 ) + 1
-
   startTile["x"] = startTileX
-
   startTile["y"] = startTileY
-
   
-
   'Set the starting tile distance to zero
-
   map[startTileX][startTileY]["distance"] = 0
-
   
-
   'Add the starting tile "pointer" to a stack of tiles to be evaluated
-
   Stack.PushValue("evalStackMain", startTile)
-
   
-
   'If the start tile is the destination tile, then prevent the pathfinder from running by emptying the eval stack
-
   If startTile = destinationTile Then
-
     Stack.PopValue("evalStackMain")
-
   EndIf
-
   
-
   'While there are tiles to be evaulated..
-
   While Stack.GetCount("evalStackMain") > 0
-
     
-
     'Pop off the top item in the stack
-
     currentTile = Stack.PopValue("evalStackMain")
-
     
-
     ' *** Flip the eval stack in order to emulate a Queue.  Small Basic does not have a Queue data structure.
-
     While Stack.GetCount("evalStackMain") > 0
-
       Stack.PushValue( "evalStack", Stack.PopValue("evalStackMain") )
-
     EndWhile
-
     
-
     'Add valid neighbors of currentTile to evalStack
-
     AddNeighborTiles()
-
     
-
     ' *** Flip the eval stack back in order to emulate a Queue.
-
     While Stack.GetCount("evalStack") > 0
-
       Stack.PushValue( "evalStackMain", Stack.PopValue("evalStack") )
-
     EndWhile
-
     
-
     'If we have found a path from source to target, retrace the path adding tiles to a stack called routeStack
-
     If currentTile["x"] = destinationTile["x"] Then
-
       If currentTile["y"] = destinationTile["y"] Then
-
         RetracePath()
-
       EndIf
-
     EndIf
-
     
-
   EndWhile 
-
 EndSub
-
-
 
 Sub AddNeighborTiles
-
   'This function has a block of code repeated 4 times with one slight variation.  There is one block of code for each direction (up,down,left,right).
-
   'I could have consolidated the code but it would have made it slightly more difficult to read
-
   
-
   'If the tile to the right of the Ai character is in bounds
-
   If currentTile["x"] < 16 Then
-
     testX = currentTile["x"] + 1
-
     testY = currentTile["y"]
-
     'And if the tile is "walkable"
-
     If map[testX][testY]["walkable"] = 1 Then
-
       'And if the tile has not been visited yet
-
       If map[testX][testY]["distance"] = -1 Then
-
         'Record the distance
-
         map[testX][testY]["distance"] = map[ currentTile["x"] ][ currentTile["y"] ]["distance"] + 1
-
         'Set the parent
-
         map[testX][testY]["parent"] = currentTile
-
         'Add to pathfinding stack
-
         adjacentTile["x"] = testX
-
         adjacentTile["y"] = testY
-
         Stack.PushValue("evalStack", adjacentTile)
-
       EndIf
-
     EndIf
-
   EndIf
-
   
-
   'If the tile below the Ai character is in bounds
-
   If currentTile["y"] < 16 Then
-
     testX = currentTile["x"]
-
     testY = currentTile["y"] + 1
-
     'And if the tile is "walkable"
-
     If map[testX][testY]["walkable"] = 1 Then
-
       'If the tile has not been visited yet
-
       If map[testX][testY]["distance"] = -1 Then
-
         'Update the distance
-
         map[testX][testY]["distance"] = map[ currentTile["x"] ][ currentTile["y"] ]["distance"] + 1
-
         'Set the parent
-
         map[testX][testY]["parent"] = currentTile
-
         'Add it to pathfinding stack
-
         adjacentTile["x"] = testX
-
         adjacentTile["y"] = testY
-
         Stack.PushValue("evalStack", adjacentTile)
-
       EndIf
-
     EndIf
-
   EndIf
-
   
-
   'If the tile to the left of the Ai character is in bounds
-
   If currentTile["x"] > 1 Then
-
     testX = currentTile["x"] - 1
-
     testY = currentTile["y"]
-
     'And if the tile is "walkable"
-
     If map[testX][testY]["walkable"] = 1 Then
-
       'If the tile has not been visited yet
-
       If map[testX][testY]["distance"] = -1 Then
-
         'Update the distance
-
         map[testX][testY]["distance"] = map[ currentTile["x"] ][ currentTile["y"] ]["distance"] + 1
-
         'Set the parent
-
         map[testX][testY]["parent"] = currentTile
-
         'Add it to pathfinding stack
-
         adjacentTile["x"] = testX
-
         adjacentTile["y"] = testY
-
         Stack.PushValue("evalStack", adjacentTile)
-
       EndIf
-
     EndIf
-
   EndIf
-
   
-
   'If the tile above the Ai character is in bounds
-
   If currentTile["y"] > 1 Then
-
     testX = currentTile["x"]
-
     testY = currentTile["y"] - 1
-
     'And if the tile is "walkable"
-
     If map[testX][testY]["walkable"] = 1 Then
-
       'If the tile has not been visited yet
-
       If map[testX][testY]["distance"] = -1 Then
-
         'Update the distance
-
         map[testX][testY]["distance"] = map[ currentTile["x"] ][ currentTile["y"] ]["distance"] + 1
-
         'Set the parent
-
         map[testX][testY]["parent"] = currentTile
-
         'Add it to pathfinding stack
-
         adjacentTile["x"] = testX
-
         adjacentTile["y"] = testY
-
         Stack.PushValue("evalStack", adjacentTile)
-
       EndIf
-
     EndIf
-
   EndIf
-
 EndSub
-
-
 
 'This function fills routeStack with the optimal path found by the pathfinding algorithm
-
 Sub RetracePath
-
   
-
   'Clear the evalStack to ensure that the pathfinding loop ends
-
   While Stack.GetCount("evalStackMain") > 0
-
     Stack.PopValue("evalStackMain")
-
   EndWhile
-
   
-
   'Clear the route stack
-
   While Stack.GetCount("routeStack") > 0
-
     Stack.PopValue("routeStack")
-
   EndWhile
-
   
-
   'Add the destination tile to the routeStack first, since it will always be the last tile visited
-
   Stack.PushValue("routeStack", destinationTile)
-
   
-
   'Start iterating at the destination tile's parent
-
   currentRoute = map[destinationTileX][destinationTileY]["parent"]
-
   
-
   'Iteratively travel back to the starting tile, adding each tile to the routeStack along the way
-
   While "True"
-
     'If we have reached the starting tile then break out of the loop
-
     If currentRoute["x"] = startTileX Then
-
       If currentRoute["y"] = startTileY Then
-
         Goto BreakRetraceLoop
-
       EndIf
-
     EndIf
-
     
-
     'Add the current tile to the route
-
     Stack.PushValue("routeStack", currentRoute)
-
     'Move to the next tile
-
     tmpX = currentRoute["x"] 
-
     tmpY = currentRoute["y"] 
-
     currentRoute = map[tmpX][tmpY]["parent"]
-
     
-
   EndWhile
-
   BreakRetraceLoop:
-
   
-
 EndSub
-
-
 
 'Set all distance and parent values to -1
-
 Sub ResetMap
-
   For y = 1 To 16
-
     For x = 1 To 16
-
       map[x][y]["distance"] = -1
-
       map[x][y]["parent"] = -1
-
     EndFor
-
   EndFor
-
 EndSub
-
-

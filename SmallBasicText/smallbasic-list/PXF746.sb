@@ -1,239 +1,119 @@
 using System;
-
 using System.Collections.Generic;
-
 using Microsoft.SmallBasic.Library;
-
 using Microsoft.SmallBasic.Library.Internal;
-
 using System.Reflection;
 
-
-
 namespace Jibba
-
 {
-
     /// <summary>
-
     /// The XMath object provides extra mathematical tools
-
     /// </summary>
-
     [SmallBasicType]
-
     public static class XMath
-
     {
-
         private static SievePrimes SievePrimes = new SievePrimes();
 
-
-
         /// <summary>
-
         /// Gets an ascending list of prime numbers for a given range
-
         /// </summary>
-
         /// <param name="from">The integer to start from</param>
-
         /// <param name="to">The integer to finish at</param>
-
         /// <param name="showStatistics">The boolean value to return the number of primes listed and how long it took.
-
         /// Can be "true", "false" or "". Default "" is false
-
         /// </param>
-
         /// <returns>A CSV string of all primes in the range.
-
         /// Throws an exception if 'to &lt; from' or 'to &lt; 2'.
-
         /// Will be slower for very large ranges.
-
         /// </returns>        
-
         /// <example>XMath.PrimeNumbers(0, 20000, "true")</example>
-
         public static Primitive PrimeNumbers(Primitive from, Primitive to, Primitive showStatistics)
-
         {
-
             Primitive output = "";
-
-
 
             try { output = SievePrimes.GetAll(from, to, showStatistics); }
 
-
-
             catch
-
             {
-
                 string NL = Environment.NewLine;
-
                 string j = "Exception has occurred with:" + NL;
-
                 j += MethodBase.GetCurrentMethod().DeclaringType.Name.ToString() + ".";
-
                 j += MethodBase.GetCurrentMethod().Name + "()" + NL;
 
-
-
                 GraphicsWindow.Hide();
-
                 System.Media.SystemSounds.Exclamation.Play();
-
                 GraphicsWindow.ShowMessage(j, "Exception");
-
                 Program.End();
-
             }
 
-
-
             return output;
-
         }
-
     }
 
-
-
     class SievePrimes
-
     {
-
         public string GetAll(Primitive from, Primitive to, Primitive showStatistics)
-
         {
-
             //cast primitives to c# types
-
             string _showStatistics = (string)showStatistics;
-
             bool statisticsRequested = false;
 
-
-
             if (_showStatistics.ToLower() == "true")
-
                 statisticsRequested = true;
 
-
-
             int rangeLowest = (int)System.Math.Max(2, from);  //updated every 5k
-
             int rangeHighest = (int)to;
-
-
 
             List<int> integers = new List<int>();
 
-
-
             //declare and init local var's
-
             DateTime begin = DateTime.Now;
-
             int count = 0, range = 5000;  //range hangs at 100k use 5k             
-
             string k = "";
-
             bool finished = false;
 
-
-
             while (!finished)  //The Sieve of Eratosthenes
-
             {
-
                 if (rangeHighest - rangeLowest < range)
-
                     range = rangeHighest - rangeLowest;
-
-
 
                 integers.Capacity = range;
 
-
-
                 for (int i = rangeLowest; i <= rangeLowest + range; i++)
-
                     integers.Add(i);
 
-
-
                 for (int i = 2; i <= (rangeLowest + range) / 2; i++)
-
                 {
-
                     for (int j = 0; j < integers.Count; j++)
-
                     {
-
                         if (integers[j] % i == 0 && integers[j] > i) // % nearly 2x quicker than dbl Math.IEEERemainder
-
                         {
-
                             integers.Remove(integers[j]);
-
                             integers.Capacity--;
-
                         }
-
                     }
-
                 }
 
-
-
                 if (range < 5000 || range < 5000 && range < 1)
-
                     finished = true;
 
-
-
                 if (integers.Count != 0)
-
                     rangeLowest = (int)integers[integers.Count - 1] + 1;
 
-
-
                 k += string.Join(",", integers) + ",";
-
                 count += integers.Count;
-
                 integers.Clear();
-
             }
-
-
 
             TimeSpan elapsed = DateTime.Now - begin;
 
-
-
             if (statisticsRequested)
-
             {
-
                 k += Environment.NewLine;
-
                 k += String.Format("count: {0} | elapsed: {1}", count.ToString(), elapsed.ToString());
-
             }
 
-
-
             return k;
-
         }
-
     }
-
 }
-
-

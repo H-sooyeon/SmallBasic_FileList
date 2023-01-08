@@ -1,291 +1,145 @@
 ' Abacus 0.1
-
 '
-
 ' History : 
-
 '  0.1 2012/08/03 Created one rod.
-
 '
-
 GraphicsWindow.Title = "Abacus 0.1"
-
 scale = 3 ' [pixel/mm]
-
 x0 = 20 * scale ' [pixel]
-
 y0 = 20 * scale ' [pixel]
-
 dx = 15   ' [mm]
-
 dy = 5    ' [mm]
-
 fw = 4    ' frame width [mm]
-
 rh = 52   ' rod height [mm]
-
 bh = 8    ' bead height [mm]
-
 For i = 0 To 14
-
   CreateRod()
-
 EndFor
-
 DrawFrame()
-
 CreateBeam()
-
 clicked = "False"
-
 GraphicsWindow.MouseDown = OnMouseDown
-
 While "True"
-
   Program.Delay("300")
-
   If clicked Then
-
     MoveBeads()
-
     clicked = "False"
-
   EndIf
-
 EndWhile
 
-
-
 Sub CreateBead
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "SaddleBrown"
-
   abacus[i]["oBead" + n] = Shapes.AddEllipse((dx - 2) * scale, bh * scale)
-
   If n = 5 Then
-
     y = y0 + fw * scale
-
   Else
-
     y = y0 + (15 + fw + dy + (n - 1) * bh) * scale
-
   EndIf
-
   Shapes.Move(abacus[i]["oBead" + n], x0 + ((14 - i) * dx + 12 - 13 / 2) * scale, y)
-
 EndSub
-
-
 
 Sub CreateBeam
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "Black"
-
   width = (234 - 2 * fw) * scale
-
   oBeam = Shapes.AddRectangle(width, 2 * scale)
-
   Shapes.Move(oBeam, x0 + fw * scale, y0 + (13 + fw) * scale)
-
   GraphicsWindow.BrushColor = "White"
-
   oBeam = Shapes.AddRectangle(width, 1 * scale)
-
   Shapes.Move(oBeam, x0 + fw * scale, y0 + (13.5 + fw) * scale)
-
 EndSub
-
-
 
 Sub CreateRod
-
   ' param i - rod index (means i^10)
-
   ' param dx - rod to rod
-
   GraphicsWindow.PenWidth = 0
-
   GraphicsWindow.BrushColor = "BurlyWood"
-
   abacus[i]["oRod"] = Shapes.AddRectangle(2 * scale, rh * scale)
-
   Shapes.Move(abacus[i]["oRod"], x0 + ((14 - i) * dx + 11) * scale, y0 + fw * scale)
-
   n = 5
-
   CreateBead()
-
   For n = 1 To 4
-
     CreateBead()
-
   EndFor
-
   GraphicsWindow.BrushColor = "Black"
-
   GraphicsWindow.FontSize = 20
-
   abacus[i]["digit"] = "0"
-
   abacus[i]["oDigit"] = Shapes.AddText(abacus[i]["digit"])
-
   Shapes.Move(abacus[i]["oDigit"], x0 + ((14 - i) * dx + 10) * scale, y0 + 65 * scale)
-
 EndSub
-
-
 
 Sub DrawFrame
-
   GraphicsWindow.PenColor = "Black"
-
   GraphicsWindow.PenWidth = fw * scale
-
   x = x0 + (fw / 2) * scale
-
   y = y0 + (fw / 2) * scale
-
   width = (234 - fw) * scale
-
   height = (rh + fw) * scale
-
   GraphicsWindow.DrawRectangle(x, y, width, height)
-
   GraphicsWindow.Width = x0 * 2 + width
-
   GraphicsWindow.Height = y0 * 2.7 + height
-
 EndSub
-
-
 
 Sub MoveBeads
-
   i = 14 - Math.Floor((mx - (x0 + fw * scale)) / (dx * scale))
-
   If i < 0 Or 14 < i Then
-
     Goto mb_return
-
   EndIf
-
   ' Check 5-unit bead
-
   on = Math.Floor(abacus[i]["digit"] / 5)
-
   y1 = y0 + (fw + on * dy) * scale
-
   y2 = y0 + (fw + on * dy + bh) * scale
-
   If y1 <= my And my <= y2 Then
-
     Sound.PlayClick()
-
     If on = 1 Then
-
       y = y0 + fw * scale
-
       abacus[i]["digit"] = abacus[i]["digit"] - 5
-
     Else  ' on = 0
-
       y = y0 + (fw + dy) * scale
-
       abacus[i]["digit"] = abacus[i]["digit"] + 5
-
     EndIf
-
     Shapes.Move(abacus[i]["oBead5"], x0 + ((14 - i) * dx + 12 - 13 / 2) * scale, y)
-
     Shapes.SetText(abacus[i]["oDigit"], abacus[i]["digit"])
-
     Goto mb_return
-
   EndIf
-
   ' Check 1-unit beads
-
   rem = Math.Remainder(abacus[i]["digit"], 5)
-
   If rem > 0 Then   ' check on-beads
-
     y1 = y0 + (fw + 15) * scale
-
     y2 = y0 + (fw + 15 + rem * bh) * scale
-
     If y1 <= my And my <= y2 Then
-
       Sound.PlayClick()
-
       n = Math.Floor((my - y1) / (bh * scale)) + 1
-
       abacus[i]["digit"] = abacus[i]["digit"] - rem + n - 1
-
       For b = rem To n Step -1 
-
         y = y0 + (15 + fw + dy + (b - 1) * bh) * scale
-
         Shapes.Move(abacus[i]["oBead" + b], x0 + ((14 - i) * dx + 12 - 13 / 2) * scale, y)
-
       EndFor
-
       Shapes.SetText(abacus[i]["oDigit"], abacus[i]["digit"])
-
       Goto mb_return
-
     EndIf
-
   EndIf
-
   If rem < 4 Then   ' check off-beads
-
     y1 = y0 + (fw + 15 + (rem * bh) + dy) * scale
-
     y2 = y0 + (fw + 15 + (4 * bh) + dy) * scale
-
     If y1 <= my And my <= y2 Then
-
       Sound.PlayClick()
-
       n = Math.Floor((my - y1) / (bh * scale)) + rem + 1
-
       abacus[i]["digit"] = abacus[i]["digit"] - rem + n
-
       For b = rem + 1 To n
-
         y = y0 + (15 + fw + (b - 1) * bh) * scale
-
         Shapes.Move(abacus[i]["oBead" + b], x0 + ((14 - i) * dx + 12 - 13 / 2) * scale, y)
-
       EndFor
-
       Shapes.SetText(abacus[i]["oDigit"], abacus[i]["digit"])
-
       Goto mb_return
-
     EndIf
-
   EndIf
-
 mb_return:
-
 EndSub
-
-
 
 Sub OnMouseDown
-
   mx = GraphicsWindow.MouseX
-
   my = GraphicsWindow.MouseY
-
   clicked = "True"
-
 EndSub
-
-

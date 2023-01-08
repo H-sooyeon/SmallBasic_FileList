@@ -1,259 +1,129 @@
 '==================================================================
-
 '                                                                        INITIALISATION
-
 '==================================================================
-
-
 
 'Main Variable that can be changed
-
 nball = 15
-
 gw = Desktop.Width-14
-
 gh = Desktop.Height-100
-
 dt = 1 'Time-step
-
 G = 250 'Gravity force constant
-
 radius = 5
-
 friction = 0.001 'To slow the balls a little
 
-
-
 'Setup GraphicsWindow
-
 GraphicsWindow.Width = gw
-
 GraphicsWindow.Height = gh
-
 GraphicsWindow.Top = 0
-
 GraphicsWindow.Left = 0
-
 GraphicsWindow.BrushColor = "Black"
-
 GraphicsWindow.Title = "Click to clear tracers"
 
-
-
 'Create balls and set thier initial positions and velocities
-
 For i = 1 To nball
-
   ball[i] = Shapes.AddEllipse(2*radius,2*radius)
-
   mass[i] = Math.GetRandomNumber(10) ' Some balls are different masses
-
   X[i] = radius+Math.GetRandomNumber(gw-2*radius)
-
   Y[i] = radius+Math.GetRandomNumber(gh-2*radius)
-
   VX[i] = (Math.GetRandomNumber(201)-101)/50
-
   VY[i] = (Math.GetRandomNumber(201)-101)/50
-
 EndFor
 
-
-
 'Start event to clear tracers
-
 GraphicsWindow.MouseDown = OnMouseDown
 
-
-
 'Tracer line 
-
 GraphicsWindow.PenColor = "#66000000"
-
 GraphicsWindow.PenWidth = 0.1
 
-
-
 '==================================================================
-
 '                                                                        MAIN LOOP
-
 '==================================================================
-
-
 
 While ("True")
-
   start = Clock.ElapsedMilliseconds
-
   attraction() 'Do the attraction accelerations
-
   For i = 1 To nball
-
     'Current position for tracer lines
-
     Xlast = X[i]
-
     Ylast = Y[i]
-
     'Update velocities
-
     VX[i] = VX[i] + AX[i]*dt/2
-
     VY[i] = VY[i] + AY[i]*dt/2
-
     'We may need a little friction to keep things stable - the physics of the simulated collisions isn't exact especially with larger dt or faster balls
-
     'Effectively the 'bounce' adds enery to the system so we we nee need to loose some (the friction) to stop the balls getting faster and faster
-
     VX[i] = VX[i]*(1-friction)
-
     VY[i] = VY[i]*(1-friction)
-
     'Update positions
-
     X[i] = X[i] + VX[i]*dt
-
     Y[i] = Y[i] + VY[i]*dt
-
     'Wall bounces - if there is one then do a move to position the ball back inside the screen area - or no bounce (comment out below code)
-
     If (X[i] < radius Or X[i] > gw-radius) Then
-
       VX[i] = -VX[i]
-
       X[i] = X[i] + VX[i]*dt
-
       Y[i] = Y[i] + VY[i]*dt
-
     EndIf
-
     If (Y[i] < radius Or Y[i] > gh-radius) Then
-
       VY[i] = -VY[i]
-
       X[i] = X[i] + VX[i]*dt
-
       Y[i] = Y[i] + VY[i]*dt
-
     EndIf
-
     'Update ball and tracer
-
     Shapes.Move(ball[i],X[i]-radius,Y[i]-radius)
-
     GraphicsWindow.DrawLine(Xlast,Ylast,X[i],Y[i])
-
   EndFor
-
   'Delay upto 20ms depending on time taken to do the updates
-
   delay = 20-(Clock.ElapsedMilliseconds-start)
-
   If (delay > 0) Then
-
     Program.Delay(delay)
-
   EndIf
-
 EndWhile
 
-
-
 '==================================================================
-
 '                                                                        SUBROUTINES
-
 '==================================================================
-
-
 
 Sub attraction
-
   'Set accelerations to zero - to add gravity set AY[i] = 1 or some other value
-
   For i = 1 To nball
-
     AX[i] = 0
-
     AY[i] = 0
-
   EndFor
-
   'Consider each ball pair - every ball attracts every other ball
-
   For i = 1 To nball
-
     For j = i+1 To nball
-
       'Vector from ball i to ball j - the direction between ball centres - the direction of force or acceleration
-
       dx = X[j]-X[i]
-
       dy = Y[j]-Y[i]
-
       'Distance between the balls
-
       D = Math.SquareRoot(dx*dx + dy*dy)
-
       'Overlapping balls are repulsive - looks like a bounce without the math
-
       If (D < 2*radius) Then 
-
         D = -D
-
       EndIf
-
       'Unit vector direction for force
-
       dx = dx/D
-
       dy = dy/D
-
       'No excessive force when the balls overlap - we don't want D = 0 (or very near 0)  since we are dividing by it
-
       D2 = Math.Max(D*D,4*radius*radius)
-
       'The acceleration is proportional to the force and inversely proportional to mass (F=m.a - Newtons 2nd Law)
-
       'Update (add) the force or acceleration to both balls (opposite forces for each ball - Newtons 3rd Law)
-
       'For gravity, the attraction force is proportional to the product of the masses and inverse of distance squared (GMm/r^2 - Newton again)
-
       F = G/D2
-
       AX[i] = AX[i] + F*dx
-
       AY[i] = AY[i] + F*dy
-
       AX[j] = AX[j] - F*dx
-
       AY[j] = AY[j] - F*dy
-
     EndFor
-
   EndFor
-
 EndSub
 
-
-
 '==================================================================
-
 '                                                                        EVENT SUBROUTINES
-
 '==================================================================
-
-
 
 'Clear the tracers with a click
-
 Sub OnMouseDown
-
   GraphicsWindow.BrushColor = GraphicsWindow.BackgroundColor
-
   GraphicsWindow.FillRectangle(-10,-10,gw+20,gh+20)
-
 EndSub
-
-

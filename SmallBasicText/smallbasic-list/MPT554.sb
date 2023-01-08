@@ -1,691 +1,345 @@
 '  ScreenLockPattern Sony Xperia 3 x 3 without hard pattern and crossover
-
 '
-
 StartNode = 1  ' Startposition
-
 MaxLevel  = 4  ' Number of Steps
-
 Init()
-
 '..............................................................................................................................................................................................
-
 GraphicsWindow.MouseUp  = OnMouseUp
-
 Controls.ButtonClicked  = OnButtonClicked
-
 '..............................................................................................................................................................................................
-
 Execute = "TRUE"
-
 While (Execute)  
-
   If Wait_for_Confirm = "TRUE" Then           ' Wait for Go 
-
     If Confirm = 1 Then
-
       Confirm = 0
-
       Wait_for_Confirm = "False"
-
       DecLevel = 1
-
       Taken[Node[Level]] = 0
-
       CheckNode = Node[Level]
-
       ClearChecked()
-
       Node[Level] = 0
-
       RemoveTrack()
-
       Level = Level - 1
-
       Node[Level] = LastNode
-
       ActNode = LastNode
-
     Endif
-
   Else
-
     If     StepCount = 0 Then                ' Setupmode
-
     
-
     ElseIf StepCount = 1 And Level = 0 Then  ' Init StartNode
-
       Node[1] = StartNode
-
       ActNode = Node[1]
-
       LastNode = 0
-
       Level = 1
-
       'TextWindow.WriteLine("Level1 = " + Level + "  Node = " + Node[Level])
-
     Else                                      ' Running Mode
-
       ' Node Taken
-
       If Taken[ActNode] = 1 AND DecLevel = 0 Then
-
         GoBack = 1
-
         Node[Level] = 0
-
         RemoveTrack()
-
         Level = Level - 1
-
         Node[Level] = LastNode
-
         ActNode = Node[Level]
-
       Endif
-
       DecLevel = 0
-
       ' Level complete
-
       If Level = MaxLevel + 1 Then
-
         TextWindow.WriteLine(StepCount + ">  " + Node[1] + "  " + Node[2] + "  " + Node[3] + "  " + Node[4] + "  " + Node[5] + "  " + Node[6] + "   " + Node[7] + "  " + Node[8]+ "  " + Node[9])
-
         IF AUTO = 0 Then 
-
           'Taken[ActNode] = 1
-
           Wait_for_Confirm = "TRUE"
-
           Confirm = 0
-
         Else
-
           Wait_for_Confirm = "TRUE"
-
           Confirm = 1
-
           StepCount = StepCount + 1
-
           Program.Delay(LoopDelay)   
-
         EndIf       
-
       Else                                  ' Branches
-
         ' Search Branch
-
         For iB = 1 To Array.GetItemCount(p[ActNode])
-
           IF p[ActNode][iB][1] = 0 Then
-
             p[ActNode][iB][1] = 1
-
             Taken[ActNode] = 1
-
             LastNode = Node[Level]
-
             Level= Level + 1
-
             GetBranch =  p[ActNode][iB][0]
-
             Node[Level] = GetBranch
-
             ActNode = Node[Level]
-
             SetTrack()
-
             NoBranch = 0
-
             iB=99
-
           Else
-
             NoBranch = 1
-
           Endif
-
         Endfor
-
         ' No Branch
-
         IF NoBranch = 1 Then
-
           GoBack = 1
-
           DecLevel = 1
-
           Taken[ActNode] = 0
-
           CheckNode = Node[Level]
-
           ClearChecked()
-
           Node[Level] = 0
-
           RemoveTrack()
-
           Level = Level - 1
-
           ActNode = Node[Level]
-
           IF Level < 1 Then
-
             ActNode = StartNode
-
             StepCount = 0
-
           EndIf
-
         EndIF
-
       Endif
-
         'TextWindow.WriteLine("Level = " + Level + "  Node = " + Node[Level] + "    ActNode = " +ActNode)
-
         'TextWindow.WriteLine("p[ActNode][][1] = " + p[ActNode])
-
         'TextWindow.WriteLine("Taken[] = " + Taken[1] + Taken[2] + Taken[3] +Taken[4] + Taken[5] +Taken[6] +Taken[7] +Taken[8] +Taken[9])
-
         ShowActNode()
-
     EndIf 
-
   Endif
-
   GraphicsWindow.BrushColor = "Gold"
-
   Shapes.SetText(sStepCount,StepCount)
-
   ShowActNode()
-
   Program.Delay(LoopDelay)  
-
 Endwhile
-
 TextWindow.Read()
-
 Program.End()
 
-
-
 Sub RemoveTrack
-
     Shapes.Remove(sTrack[Level])
-
 Endsub
-
-
 
 Sub SetTrack
-
   'TextWindow.WriteLine("LastNode= " + LastNode + "  ActNode= " + ActNode + "  Node[Level]= " + Node[Level])
-
   'TextWindow.WriteLine("XPos[LastNode]= " + Xpos[LastNode] + "  YPos[LastNode]= " + Ypos[LastNode] + "XPos[ActNode]= " + Xpos[ActNode] + "  YPos[ActNode]= " + Ypos[ActNode])
-
   GraphicsWindow.PenColor = "#9900FF00"
-
   GraphicsWindow.PenWidth = 8
-
   sTrack[Level] = Shapes.AddLine(Xpos[LastNode]+10,Ypos[LastNode]+10,Xpos[ActNode]+10,Ypos[ActNode]+10)
-
 Endsub
-
-
 
 Sub ShowActNode
-
   Shapes.Move(sActNode,Xpos[ActNode]-5,Ypos[ActNode]-5)  
-
 Endsub
-
-
 
 Sub ClearChecked
-
   For ClCh = 1 to Array.GetItemCount(p[CheckNode])
-
     p[CheckNode][ClCh][1] = 0  
-
   EndFor
-
 Endsub
 
-
-
 Sub OnMouseUp
-
   xclick = GraphicsWindow.MouseX
-
   yclick = GraphicsWindow.MouseY
-
 EndSub
-
-
 
 Sub OnButtonClicked 
-
   Button = Controls.LastClickedButton
-
   'TextWindow.WriteLine(Button)
-
   If Button = bGo Then
-
     If Wait_for_Confirm = "TRUE" OR StepCount = 0 Then
-
       Confirm = 1
-
       StepCount = StepCount + 1  
-
     Endif
-
   EndIf
-
   If Button = bRun Then
-
     Wait_for_Confirm = "FALSE"
-
     Confirm = 0
-
     Auto = 1
-
   Endif
-
   If Button = bStop Then
-
     Wait_for_Confirm = "TRUE"
-
     Confirm = 0
-
     Auto = 0
-
   Endif
-
   If Button = bClear Then
-
     Wait_for_Confirm = "TRUE"
-
     Confirm = 0
-
     StepCount = 0
-
     Level = 0
-
     For i = 1 to 9
-
       Taken[i] = 0
-
       CheckNode = i
-
       ClearChecked()
-
     EndFor 
-
     GoBack = 0
-
     LastNode = 0
-
   Endif
-
 EndSub
-
 '..............................................................................................................................................................................................
-
 Sub Init
-
 GraphicsWindow.Width  = 250
-
 GraphicsWindow.Height = 400
-
 GraphicsWindow.BackgroundColor = "Black"
-
 GraphicsWindow.PenColor = "Gold"
-
 GraphicsWindow.FontSize = 12
-
 GraphicsWindow.BrushColor = "Khaki"
-
 GraphicsWindow.Title = "ScreenUnlocker 3 x 3"  
-
 TextWindow.left = GraphicsWindow.left + GraphicsWindow.width + 10
-
 TextWindow.top = GraphicsWindow.top 
-
 TextWindow.BackgroundColor = "Yellow"
-
 TextWindow.ForegroundColor = "Black"
-
   TextWindow.Clear()
-
 TextWindow.Title = "ScreenUnlocker 3 x 3 Simple without hard pattern and crossover"  
 
-
-
 GraphicsWindow.DrawEllipse(30,30,20,20)
-
 GraphicsWindow.FillEllipse(31,31,18,18)
-
 GraphicsWindow.DrawEllipse(90,30,20,20)
-
 GraphicsWindow.FillEllipse(91,31,18,18)
-
 GraphicsWindow.DrawEllipse(150,30,20,20)
-
 GraphicsWindow.FillEllipse(151,31,18,18)
-
 GraphicsWindow.DrawEllipse(30,90,20,20)
-
 GraphicsWindow.FillEllipse(31,91,18,18)
-
 GraphicsWindow.DrawEllipse(90,90,20,20)
-
 GraphicsWindow.FillEllipse(91,91,18,18)
-
 GraphicsWindow.DrawEllipse(150,90,20,20)
-
 GraphicsWindow.FillEllipse(151,91,18,18)
-
 GraphicsWindow.DrawEllipse(30,150,20,20)
-
 GraphicsWindow.FillEllipse(31,151,18,18)
-
 GraphicsWindow.DrawEllipse(90,150,20,20)
-
 GraphicsWindow.FillEllipse(91,151,18,18)
-
 GraphicsWindow.DrawEllipse(150,150,20,20)
-
 GraphicsWindow.FillEllipse(151,151,18,18)
-
 GraphicsWindow.BrushColor = "Black"
-
 GraphicsWindow.DrawText(36,33,"1")
-
 GraphicsWindow.DrawText(96,33,"2")
-
 GraphicsWindow.DrawText(156,33,"3")
-
 GraphicsWindow.DrawText(36,93,"4")
-
 GraphicsWindow.DrawText(96,93,"5")
-
 GraphicsWindow.DrawText(156,93,"6")
-
 GraphicsWindow.DrawText(36,153,"7")
-
 GraphicsWindow.DrawText(96,153,"8")
-
 GraphicsWindow.DrawText(156,153,"9")
-
   
-
 bGo    = Controls.AddButton("    G O             ",30,200)  
-
 bRun   = Controls.AddButton("    R U N         ",30,230)  
-
 bStop  = Controls.AddButton("    S T O P      ",30,260)  
-
 bClear = Controls.AddButton("    C L E A R   ",300,290)  
-
   
-
 GraphicsWindow.BrushColor = "Gold"
-
 sStepCount = Shapes.AddText(StepCount)
-
 Shapes.Move(sStepCount,200,230)  
-
  
-
   Xpos[1] = 30
-
   Ypos[1] = 30
-
   Xpos[2] = 90
-
   Ypos[2] = 30
-
   Xpos[3] = 150
-
   Ypos[3] = 30
-
   Xpos[4] = 30
-
   Ypos[4] = 90
-
   Xpos[5] = 90
-
   Ypos[5] = 90
-
   Xpos[6] = 150
-
   Ypos[6] = 90
-
   Xpos[7] = 30
-
   Ypos[7] = 150
-
   Xpos[8] = 90
-
   Ypos[8] = 150
-
   Xpos[9] = 150
-
   Ypos[9] = 150
-
   
-
   ActNode = 1
-
   GraphicsWindow.BrushColor = "#11FF0000"
-
   sActNode = Shapes.AddEllipse(30,30)
-
   Shapes.Move(sActNode,Xpos[ActNode]-5,Xpos[ActNode]-5)  
-
   GraphicsWindow.BrushColor = "#1100FF00"
-
   GraphicsWindow.PenColor = "Red"
-
   sStartNode = Shapes.AddEllipse(30,30)
-
   Shapes.Move(sStartNode,Xpos[StartNode]-5,Ypos[StartNode]-5)  
-
   
-
   GraphicsWindow.BrushColor = "Blue"
-
   
-
   p[1][1][0] = 2
-
   p[1][2][0] = 5
-
   p[1][3][0] = 4
-
   p[1][1][1] = 0
-
   p[1][2][1] = 0
-
   p[1][3][1] = 0
-
   p[2][1][0] = 3
-
   p[2][2][0] = 6
-
   p[2][3][0] = 5
-
   p[2][4][0] = 4
-
   p[2][5][0] = 1
-
   p[2][1][1] = 0
-
   p[2][2][1] = 0
-
   p[2][3][1] = 0
-
   p[2][4][1] = 0
-
   p[2][5][1] = 0
-
   p[3][1][0] = 2
-
   p[3][2][0]= 5
-
   p[3][3][0] = 6
-
   p[3][1][1] = 0
-
   p[3][2][1] = 0
-
   p[3][3][1] = 0
-
   p[4][1][0] = 1
-
   p[4][2][0] = 2
-
   p[4][3][0]= 5
-
   p[4][4][0] = 8
-
   p[4][5][0] = 7
-
   p[4][1][1] = 0
-
   p[4][2][1] = 0
-
   p[4][3][1] = 0
-
   p[4][4][1] = 0
-
   p[4][5][1] = 0
-
   p[5][1][0] = 2
-
   p[5][2][0] = 3
-
   p[5][3][0]= 6
-
   p[5][4][0] = 9
-
   p[5][5][0]= 8
-
   p[5][6][0] = 7
-
   p[5][7][0] = 4
-
   p[5][8][0]= 1
-
   p[5][1][1] = 0
-
   p[5][2][1] = 0
-
   p[5][3][1] = 0
-
   p[5][4][1] = 0
-
   p[5][5][1] = 0
-
   p[5][6][1] = 0
-
   p[5][7][1] = 0
-
   p[5][8][1] = 0
-
   p[6][1][0]= 3
-
   p[6][2][0]= 2
-
   p[6][3][0] = 5
-
   p[6][4][0]= 8
-
   p[6][5][0] = 9
-
   p[6][1][1] = 0
-
   p[6][2][1] = 0
-
   p[6][3][1] = 0
-
   p[6][4][1] = 0
-
   p[6][5][1] = 0
-
   p[7][1][0] = 4
-
   p[7][2][0] = 5
-
   p[7][3][0] = 8
-
   p[7][1][1] = 0
-
   p[7][2][1] = 0
-
   p[7][3][1] = 0
-
   p[8][1][0] = 7
-
   p[8][2][0]= 4
-
   p[8][3][0] = 5
-
   p[8][4][0] = 6
-
   p[8][5][0] = 9
-
   p[8][1][1] = 0
-
   p[8][2][1] = 0
-
   p[8][3][1] = 0
-
   p[8][4][1] = 0
-
   p[8][5][1] = 0
-
   p[9][1][0] = 6
-
   p[9][2][0] = 5
-
   p[9][3][0] = 8
-
   p[9][1][1] = 0
-
   p[9][2][1] = 0
-
   p[9][3][1] = 0
-
   
-
   LoopDelay = 50
-
   StepCount = 0
-
   Level = 0
-
   DecLevel = 0
-
   For i = 1 to 9
-
     Taken[i] = 0
-
     Node[i] = 0
-
   EndFor
-
   GoBack = 0
-
   LastNode = 0
-
   Auto = 0
-
   GetBranch = 0
-
 EndSub
-
-

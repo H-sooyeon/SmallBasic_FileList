@@ -1,361 +1,180 @@
 ballImage = ImageList.LoadImage(Program.Directory + "\img.png")
-
 GameWindow.ReplaceGraphicsWindow()
-
 GameWindow.Title = "Game!"
-
 GameWindow.BackgroundColor = "LightGreen"
-
 GameWindow.FullScreenMode = "True"
-
 GameWindow.Closing = Closing
-
 levelslct_btn = GameControls2D.AddButton("Level Select", GameWindow.Width/3, 200, 150, 50)
-
 GameControls2D.RegisterMouseDownEvent(levelslct_btn, "level")
-
 intro = "True"
-
 ball = GameControls2D.AddImage(ballImage, 0, ImageList.GetHeightOfImage(ballImage)/2)
-
 radius = ImageList.GetHeightOfImage(ballImage)/2
-
 gradient = Math.ArcTan(0.5) ' The 0.5 is Y/X for the slope i.e. 1 in 2 gradient (Try 0.01 to 100 for this)
-
 grav = 10
-
 accX = grav*Math.Sin(gradient)*Math.Cos(gradient)
-
 accY = grav*Math.Sin(gradient)*Math.Sin(gradient)
-
 posX = radius
-
 posY = 100+radius*Math.Tan(gradient)-radius/Math.Cos(gradient) ' Pedantic starting position just touching left wall
-
 velX = 0
-
 velY = 0
-
 dt = 0.1'A short timestep with a short Program.Delay in the main loop gives a smoother motion as long as the update is completed
-
 rotate = 0
-
 pi = Math.Pi
-
 gw = GameWindow.Width
-
 gh = GameWindow.Height
-
 GameWindow.GameBrushColor = "LightGray"
-
 GameControls2D.AddTriangle(0,100,0,10*gh,10*gw*Math.Cos(gradient),100+10*gw*Math.Sin(gradient)) ' A big triangle off the screen
-
 GameMouse.MouseMove = MouseMove
-
 GameKeyboard.KeyDown = KeyDown
 
-
-
 While intro="true"
-
   velX = velX+accX*dt/2
-
   velY = velY+accY*dt/2
-
   posX = posX+velX*dt
-
   posY = posY+velY*dt
-
   If (posX < radius Or posX > gw-radius Or posY > gh-radius Or posY < radius) Then ' Bounce on any bounday
-
     velX = -velX
-
     velY = -velY
-
     'Update position to make sure we don't draw past the boundary - This is a second dummy timestep - but looks ok since a collision does take a little time
-
     posX = posX+velX*dt
-
     posY = posY+velY*dt
-
   EndIf
-
   speed = Math.SquareRoot(velX*velX+velY*velY)*velX/Math.Abs(velX) 'speed signed by direction to reverse spin when we go backwards
-
   rotate = rotate + speed*dt/radius*180/pi
-
   GameControls2D.SetPosition(ball,posX-radius,posY-radius,0)
-
   GameControls2D.Rotate(ball,rotate)
-
   Program.Delay(100*dt)
-
 EndWhile
 
-
-
 Sub level
-
   GameControls2D.Remove(levelslct_btn)
-
   levelselect()
-
 EndSub
-
-
 
 Sub Closing
-
   Program.End()
-
 EndSub
-
-
 
 Sub levelselect
-
   x = 350
-
   y = 150
-
   count = 1
-
   For i = 1 To 4
-
     y = y + 40
-
     For j = 1 To 10
-
       button[count] = GameControls2D.AddButton(count, x, y, 30, 30)
-
       GameControls2D.RegisterMouseDownEvent(button[count], "loadlevel" + count)
-
       x = x + 40
-
       count = count + 1
-
     EndFor
-
     x = 350
-
   EndFor
-
 EndSub
-
-
 
 Sub removelevel
-
   intro = "False"
-
   For i = 1 To 40
-
     GameControls2D.Remove(button[i])
-
   EndFor
-
   GameWindow.Clear()
-
   GameControls2D.Remove(ballImage)
-
 EndSub
-
-
 
 Sub loadlevel1
-
   removelevel()
-
   lvl = 1
-
   rec_max = 5
-
   ball = GameControls2D.AddImage(ballImage, GameWindow.Width-(2*radius)-10, 10)
-
   GameWindow.GameBrushColor = "FloralWhite"
-
   rectangle[0]=GameControls2D.AddRectangle(GameWindow.Width-((2*radius)+50), radius*2+10, 2*radius+50, 20)
-
   GameControls2D.Rotate(rectangle[0], -10)
-
   goal_rec = GameControls2D.AddRectangle(0, gh-100, 100, 100)
-
   GameWindow.GameBrushColor = "Black"
-
   GameControls2D.AddText("GOAL", 20, gh-60, "Times New Roman", 20, "True", "False")
-
 EndSub
-
-
 
 Sub KeyDown
-
   lastkey = GameKeyboard.LastKey
-
   If lastkey = "D1" And reccount < rec_max+1 Then
-
     addrectangle()
-
   EndIf
-
   If lastkey = "Space" Then
-
     startrolling()
-
   ElseIf lastkey = "Escape" Then
-
     'stoprolling()
-
   EndIf
-
 EndSub
-
-
 
 Sub addrectangle
-
   GameWindow.GameBrushColor = "FloralWhite"
-
   reccount = reccount + 1
-
   rectangle[reccount] = GameControls2D.AddRectangle(GameWindow.Width/2-150, 400, 150, 20)
-
   GameControls2D.RegisterMouseDownEvent(rectangle[reccount], "rectangle" + reccount)
-
 EndSub
-
-
 
 Sub MouseMove
-
   mX = GameMouse.MouseX
-
   mY = GameMouse.MouseY
-
   If mX < prevX Then
-
     islessX = "True"
-
     ismoreX = "False"
-
   ElseIf mX > prevX Then
-
     islessX = "False"
-
     ismoreX = "True"
-
   EndIf
-
   If GameKeyboard.IsKeyDown("R") And GameMouse.IsLeftButtonDown Then
-
     isrotating = "True"
-
     If ismoreX Then
-
       angle = angle + 1
-
     ElseIf islessX Then
-
       angle = angle - 1
-
     EndIf
-
     If angle > 360 Or angle < -360 Then
-
       angle = 0
-
     EndIf
-
     GameControls2D.Rotate(rectangle[reccount], angle)
-
   Else
-
     isrotating = "False"
-
   EndIf
-
   If GameMouse.IsLeftButtonDown And GameKeyboard.CtrlDown Then
-
     GameControls2D.SetPosition(rectangle[reccount], mX-75, mY-10, 1)
-
   EndIf
-
   prevX = mX
-
   prevY = mY
-
 EndSub
-
-
 
 Sub startrolling
-
   gradient = Math.ArcTan((-10)/80) ' The 0.5 is Y/X for the slope i.e. 1 in 2 gradient (Try 0.01 to 100 for this)
-
   grav = 10
-
   accX = grav*Math.Sin(gradient)*Math.Cos(gradient)
-
   accY = grav*Math.Sin(gradient)*Math.Sin(gradient)
-
   posX = GameWindow.Width-(radius+10)
-
   posY = 10+radius ' Pedantic starting position just touching left wall
-
   velX = 0
-
   velY = 0
-
   dt = 0.1'A short timestep with a short Program.Delay in the main loop gives a smoother motion as long as the update is completed
-
   rotate = 0
-
   pi = Math.Pi
-
   gw = GameWindow.Width
-
   gh = GameWindow.Height
-
   isatgoal = "False"
-
   While isatgoal = "False"
-
     velX = velX+accX*dt/2
-
     velY = velY+accY*dt/2
-
     posX = posX+velX*dt
-
     posY = posY+velY*dt
-
     If (posX < radius Or posX > gw-radius Or posY > gh-radius Or posY < radius) Then ' Bounce on any bounday
-
       velX = -velX
-
       velY = -velY
-
       'Update position to make sure we don't draw past the boundary - This is a second dummy timestep - but looks ok since a collision does take a little time
-
       posX = posX+velX*dt
-
       posY = posY+velY*dt
-
     EndIf
-
     speed = Math.SquareRoot(velX*velX+velY*velY)*velX/Math.Abs(velX) 'speed signed by direction to reverse spin when we go backwards
-
     rotate = rotate + speed*dt/radius*180/pi
-
     GameControls2D.SetPosition(ball,posX-radius,posY-radius,0)
-
     GameControls2D.Rotate(ball,rotate)
-
     Program.Delay(100*dt)
-
   EndWhile
-
 EndSub
-
   
-
-

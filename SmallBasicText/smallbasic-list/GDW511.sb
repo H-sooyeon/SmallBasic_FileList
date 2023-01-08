@@ -1,1213 +1,606 @@
 'Tiro al blanco con arco y flechas
-
 'jalpc November 2014
-
 fps=50 
-
 data_()
-
 GraphicsWindow.Hide()
-
 form_()
-
 btns_()
-
 objs_()
-
 draws_()
-
 GraphicsWindow.Show()
-
 Controls.ButtonClicked=OnButtonClicked
-
 Timer.Tick=OnTick
-
 Timer.Interval=100 
-
 '
-
 While "True"  
-
   start = Clock.ElapsedMilliseconds' recoge hora entrada en loop  
-
   update()
-
   delay = 1000/fps - (Clock.ElapsedMilliseconds - start)' retraso
-
   If (delay > 0) Then
-
     Program.Delay(delay)
-
   EndIf
-
 Endwhile
-
 '
-
 Sub update
-
   If btnClick=btnName["End"] Then
-
     Program.End()
-
   EndIf
-
   If btnClick=btnName["Help"] Then
-
     showHelp()
-
     btnClick=""
-
     Goto EXIT_LOOP
-
   EndIf
-
   If btnClick=btnName["onOff"]  And flag["onOff"]="off"  Then
-
     flag["onOff"]="on"
-
     lightOn()
-
     Program.Delay(300)
-
     pm="opacity=100;"
-
     pm["text"]="Click START"
-
     msgMidScreen()
-
     btnClick=""
-
     Goto EXIT_LOOP
-
   EndIf 
-
   If btnClick=btnName["onOff"]  And flag["onOff"]="on" Then    
-
     flag["onOff"]="off"
-
     flag["start"]="False"
-
     pm="0=hide;1=estate;2=bow;3=arrow;4=datboard;"
-
     hideShowObjects()
-
     initConstant()
-
     updateText()    
-
     msgOff()
-
     Shapes.SetOpacity(object["pgOn"],0)
-
     btnClick=""
-
     Goto EXIT_LOOP
-
   EndIf
-
   If btnClick=btnName["start"] And flag["onOff"]="on" Then
-
     flag["start"]="True"
-
     pm="opacity=0;text=msg;"
-
     msgMidScreen() 
-
     initDif()
-
     If datMove["lapDifYY"] < 4 Then
-
       datMove["lapDifYY"]=datMove["lapDifYY"]+1 ' Velocidad vertical dianas aumenta cada START
-
     Else
-
       datMove["lapDifYY"]=1
-
     EndIf
-
     valueTimeFire = "time shot: "+0.1*(Math.Round(10*(Clock.ElapsedMilliseconds-contTimePlay)/1000))+" s"
-
     valueTimePlay = "time play: "+Math.Floor((Clock.ElapsedMilliseconds-contTimeStart)/1000)+ " s"
-
     shot["num"]=1
-
     valResult=0  
-
     contTimeStart=Clock.ElapsedMilliseconds
-
     contTimePlay=contTimeStart
-
     pm="0=show;1=estate;2=bow;3=arrow;4=datboard;"
-
     hideShowObjects()
-
     updateText()
-
     btnClick=""
-
     Goto EXIT_LOOP
-
   EndIf 
-
   If btnClick=btnName["up"] And flag["start"] And NOT[flag["fire"]] Then
-
     If datMove["lapY"] < 2 Then
-
       datMove["lapY"]=datMove["lapY"]+1
-
       updateText()
-
     EndIf
-
     btnClick=""
-
     Goto EXIT_LOOP
-
   EndIf
-
   If btnClick=btnName["down"] And flag["start"] And NOT[flag["fire"]] Then   
-
     If datMove["lapY"] > -2 Then
-
       datMove["lapY"]=datMove["lapY"]-1
-
       updateText()
-
     EndIf    
-
     btnClick=""
-
     Goto EXIT_LOOP
-
   EndIf
-
   If btnClick=btnName["left"] And flag["start"] And NOT[flag["fire"]] Then 
-
     If x_LeftRight["posBow"] > x_LeftRight["lapMin"] Then
-
       difX_OLD=difX
-
       difX= -x_LeftRight[1]
-
       moveBow()
-
       moveArrow()
-
       difX=difX_OLD
-
       x_LeftRight["posBow"]=x_LeftRight["posBow"]-1
-
       updateText()
-
     EndIf
-
     btnClick=""
-
     Goto EXIT_LOOP
-
   EndIf
-
   If btnClick=btnName["right"] And flag["start"] And NOT[flag["fire"]] Then  
-
     If x_LeftRight["posBow"] < x_LeftRight["lapMax"] Then
-
       difX_OLD=difX
-
       difX= x_LeftRight[1]
-
       moveBow()
-
       moveArrow()
-
       difX=difX_OLD
-
       x_LeftRight["posBow"]=x_LeftRight["posBow"]+1
-
       updateText()
-
     EndIf
-
     btnClick=""
-
     Goto EXIT_LOOP
-
   EndIf
-
   If btnClick=btnName["fire"] And flag["start"] Then 
-
     flag["fire"]="True"
-
     savePosArrow()
-
     fireArrow() 
-
     If flag["wrongShot"]="True" Then
-
       pm="opacity=100;"
-
       pm["text"]="Wrong !"
-
       msgMidScreen() 
-
       Program.Delay(delay2)
-
       pm="opacity=0;text=msg;"
-
       msgMidScreen() 
-
       contTimePlay=Clock.ElapsedMilliseconds 
-
       flag["wrongShot"]="False"
-
       Program.Delay(delay2)
-
       restorePosArrow()
-
       increaseNumShot()
-
       initDif()
-
       datMove["moveUpDown"]="True"
-
       datMove["moveUpDown2"]="True"
-
       flag["fire"]="False"
-
     EndIf
-
     If flag["whiteTarget"] Then
-
       pm="opacity=100;"
-
       pm["text"]=errorSuccess[flag["datboardNum"]]
-
       msgMidScreen() 
-
       Program.Delay(delay2)
-
       pm="opacity=0;text=msg;"
-
       msgMidScreen() 
-
       valResult=valResult+(points[flag["datboardNum"]])*factMult[x_LeftRight["posBow"]]
-
       contTimePlay=Clock.ElapsedMilliseconds 'poner contador tiempo de tiro a cero
-
       updateText()
-
       Program.Delay(delay2)
-
       restorePosArrow() 
-
       increaseNumShot()
-
       initDif()
-
       datMove["moveUpDown"]="True"
-
       datMove["moveUpDown2"]="True"
-
       flag["fire"]="False"
-
       flag["whiteTarget"]="False"
-
     EndIf
-
     btnClick=""
-
     Goto EXIT_LOOP
-
   EndIf  
-
   If flag["start"] Then    
-
     moveBowArrowUpDown()
-
     valueTimeFire = "time shot: "+0.1*(Math.Round(10*(Clock.ElapsedMilliseconds-contTimePlay)/1000))+" s"
-
     valueTimePlay = "time play: "+Math.Floor((Clock.ElapsedMilliseconds-contTimeStart)/1000)+ " s"
-
     updateText()
-
   EndIf
-
   If flag["start"] And NOT[flag["fire"]] Then 
-
     moveDatboardUpDown()
-
   EndIf
-
   EXIT_LOOP:
-
 EndSub
-
 Sub OnButtonClicked  
-
   btnClick=Controls.LastClickedButton  
-
 EndSub
-
 Sub OnTick
-
   If dat["HelpMsg"] Then
-
     dat["contLapMsg"]=dat["contLapMsg"]+1
-
     If dat["contLapMsg"] >= 80 Then
-
       dat["contLapMsg"]=0
-
       hideHelp()
-
     EndIf
-
   EndIf    
-
 EndSub
-
 Sub form_
-
   GraphicsWindow.BackgroundColor="LightBlue"
-
   GraphicsWindow.Width=dim["pgW"]
-
   GraphicsWindow.Height=dim["pgH"]
-
   GraphicsWindow.Top=dim["pgTop"]
-
   GraphicsWindow.Left=dim["pgLeft"]
-
   GraphicsWindow.CanResize="False"
-
   GraphicsWindow.Title=dat["title"]
-
 EndSub
-
 Sub btns_
-
   For bt=1 To Array.GetItemCount(btn)
-
     pm=btn[bt]
-
     pmFormat()
-
     n=Array.GetItemCount(numBtn)+1
-
     numBtn[n]=Controls.AddButton(pm["caption"],pm["x"],pm["y"])
-
     Shapes.SetOpacity(numBtn[n],pm["opacity"])
-
     Controls.SetSize(numBtn[n],pm["w"],pm["h"]) 
-
     If pm["rotate"] = 90 Or  pm["rotate"] = -90 Then
-
       Shapes.Rotate(numBtn[n],pm["rotate"])
-
     EndIf
-
     If pm["hide"]="True" Then
-
       Controls.HideControl(numBtn[n])
-
     EndIf
-
     btnName[pm["name"]]=numBtn[n]
-
     pm=""
-
   EndFor
-
 EndSub
-
 Sub draws_
-
   arrayTemp=draW
-
   typeObject="draw"
-
   loopIndex() 
-
 EndSub
-
 Sub objs_
-
   arrayTemp=shap
-
   typeObject="shap"
-
   loopIndex()    
-
 EndSub
-
 Sub loopIndex
-
   listIndex1=Array.GetAllIndices(arrayTemp)
-
   For index1 = 1 To Array.GetItemCount(listIndex1) 
-
     listIndex2=Array.GetAllIndices(arrayTemp[listIndex1[index1]])
-
     For index2= 1 To Array.GetItemCount(listIndex2)    
-
       pm=arrayTemp[listIndex1[index1]][listIndex2[index2]]
-
       If typeObject = "draw" Then
-
         genDraw()
-
       Else
-
         genObject()
-
       EndIf
-
       pm=""
-
     EndFor
-
   EndFor
-
   arrayTemp=""
-
 EndSub
-
 Sub genObject
-
   pmFormat()
-
   If pm["type"]="Ellipse" Then
-
     object[pm["name"]]= Shapes.AddEllipse(pm["w"],pm["h"])  
-
     Shapes.SetOpacity(object[pm["name"]],pm["opacity"])
-
     Shapes.Move(object[pm["name"]],pm["x"],pm["y"])
-
     If pm["hide"]="True" Then
-
       Shapes.HideShape(object[pm["name"]])
-
     EndIf
-
   EndIf
-
   If pm["type"]="Triangle" Then
-
     object[pm["name"]]= Shapes.AddTriangle(pm["x1"],pm["y1"],pm["x2"],pm["y2"],pm["x3"],pm["y3"])   
-
     Shapes.SetOpacity(object[pm["name"]],pm["opacity"])
-
     If pm["hide"]="True" Then
-
       Shapes.HideShape(object[pm["name"]])
-
     EndIf
-
   EndIf
-
   If pm["type"]="Rectangle" Then
-
     object[pm["name"]]= Shapes.AddRectangle(pm["w"],pm["h"])        
-
     Shapes.SetOpacity(object[pm["name"]],pm["opacity"])
-
     Shapes.Move(object[pm["name"]],pm["x"],pm["y"])
-
     If pm["hide"]="True" Then
-
       Shapes.HideShape(object[pm["name"]])
-
     EndIf
-
   EndIf
-
   If pm["type"]="Text" Then
-
     object[pm["name"]]= Shapes.AddText(pm["text"])  
-
     Shapes.SetOpacity(object[pm["name"]],pm["opacity"]) 
-
     Shapes.Move(object[pm["name"]],pm["x"],pm["y"])
-
     If pm["hide"]="True" Then
-
       Shapes.HideShape(object[pm["name"]])
-
     EndIf
-
   EndIf  
-
 EndSub
-
 Sub genDraw
-
   pmFormat()
-
   If pm["type"]="drawRect" Then
-
     GraphicsWindow.DrawRectangle(pm["x"],pm["y"],pm["w"],pm["h"])   
-
   EndIf
-
   If pm["type"]="fillRect" Then
-
     GraphicsWindow.FillRectangle(pm["x"],pm["y"],pm["w"],pm["h"])
-
   EndIf
-
   If pm["type"]="drawText" Then
-
     GraphicsWindow.DrawBoundText(pm["x"],pm["y"],pm["w"],pm["value"]) 
-
   EndIf 
-
 EndSub
-
 Sub pmFormat
-
   If pm["color"] <> "" Then
-
     GraphicsWindow.BrushColor=pm["color"]
-
   EndIf
-
   If pm["penColor"] <> "" Then
-
     GraphicsWindow.PenColor=pm["penColor"]  
-
   EndIf
-
   If pm["penSize"] <> "" Then 
-
     GraphicsWindow.PenWidth=pm["penSize"]
-
   EndIf
-
   If pm["fontSize"] <> "" Then 
-
     GraphicsWindow.FontSize=pm["fontSize"]
-
   EndIf
-
   If pm["fontName"] <> "" Then 
-
     GraphicsWindow.FontName=pm["fontName"]
-
   EndIf
-
 EndSub
-
 Sub showHelp  
-
   dat["HelpMsg"]="True"
-
   For k =1 to Array.GetItemCount(shap["msg"]) 
-
     Shapes.ShowShape(object["msg"+k])    
-
     Shapes.SetOpacity(object["msg"+k],100)
-
   EndFor 
-
 EndSub
-
 Sub hideHelp
-
   dat["HelpMsg"]="False"
-
   For k =1 to Array.GetItemCount(shap["msg"])  
-
     Shapes.HideShape(object["msg"+k])     
-
     Shapes.SetOpacity(object["msg"+k],0)
-
   EndFor
-
 EndSub
-
 Sub moveDatboardLR
-
   If Math.Remainder(datMove["lapDifYY"],2)=0 Then
-
     contXX =contXX +1
-
     If contXX <=20 Then
-
       datMove["difXX"]=1
-
     EndIf
-
     If contXX > 20 And contXX <=40 Then
-
       datMove["difXX"]=-1
-
     EndIf
-
     If contXX = 40 Then 
-
       contXX=0
-
     EndIf
-
   EndIf
-
 EndSub
-
 Sub moveDatboardUpDown
-
   moveDatboardLR()
-
   If datMove["moveUpDown2"]="True" Then
-
     If shap["datboard"][1]["y"]< (datMove["y_Max"]-20) Then
-
       difYY=-datMove["lapDifYY"]
-
       MoveDatboard()      
-
     Else
-
       datMove["moveUpDown2"]="False"
-
       difYY=0
-
       Goto EXIT_DatboardUpDown
-
     EndIf 
-
   EndIf
-
   If datMove["moveUpDown2"]="False" Then
-
     If shap["datboard"][1]["y"] > (datMove["y_Min"]-20)Then
-
       difYY=datMove["lapDifYY"]   
-
       MoveDatboard()
-
     Else
-
       datMove["moveUpDown2"]="True"
-
       difY=0
-
       Goto EXIT_DatboardUpDown
-
     EndIf
-
   EndIf
-
   EXIT_DatboardUpDown:
-
 EndSub
-
 Sub moveBowArrowUpDown
-
   If datMove["moveUpDown"]="True" Then
-
     If shap["bow"][1]["y"]> datMove["y_Min"] Then
-
       difY=-2-datMove["lapY"]
-
       If NOT[flag["fire"]] Then
-
         moveBow()
-
         MoveArrow() 
-
       EndIf      
-
     Else
-
       datMove["moveUpDown"]="False"
-
       difY=0
-
       Goto EXIT_MoveBowAndArrow
-
     EndIf 
-
   EndIf
-
   If datMove["moveUpDown"]="False" Then
-
     If shap["bow"][1]["y"] < datMove["y_Max"] Then
-
       difY=2 +datMove["lapY"] 
-
       If NOT[flag["fire"]] Then
-
         moveBow()
-
         MoveArrow()
-
       EndIf      
-
     Else
-
       datMove["moveUpDown"]="True"
-
       difY=0
-
       Goto EXIT_MoveBowAndArrow
-
     EndIf
-
   EndIf
-
   EXIT_MoveBowAndArrow:
-
 EndSub
-
 Sub fireArrow  
-
   If shap["arrow"][1]["x"] < datMove["x_Max"] Then
-
     While shap["arrow"][1]["x"] < datMove["x_Max"] 
-
       difX=1  
-
       difY=0
-
       MoveArrow()
-
       collision()
-
       If flag["whiteTarget"] Then
-
         Goto EXIT_fireArrow
-
       EndIf
-
     EndWhile 
-
   EndIf
-
     If shap["arrow"][1]["x"] = datMove["x_Max"] Then
-
     flag["wrongShot"]="True"
-
   EndIf
-
   EXIT_fireArrow:
-
 EndSub
-
 Sub moveBow
-
   For nS=1 To Array.GetItemCount(shap["bow"])
-
     shap["bow"][nS]["x"]=shap["bow"][nS]["x"] + difX
-
     shap["bow"][nS]["y"]=shap["bow"][nS]["y"] + difY
-
     x=shap["bow"][nS]["x"]
-
     y=shap["bow"][nS]["y"]
-
     Shapes.Move(object[shap["bow"][nS]["name"]],x,y)
-
   EndFor
-
 EndSub
-
 Sub moveArrow 
-
   For nS=1 To Array.GetItemCount(shap["arrow"])
-
     shap["arrow"][nS]["x"]=shap["arrow"][nS]["x"] + difX
-
     shap["arrow"][nS]["y"]=shap["arrow"][nS]["y"] + difY
-
     x=shap["arrow"][nS]["x"]
-
     y=shap["arrow"][nS]["y"]
-
     Shapes.Move(object[shap["arrow"][nS]["name"]],x,y)
-
   EndFor   
-
 EndSub
-
 Sub collision
-
   getArrowX=Shapes.GetLeft(object["arrow1"])
-
   getArrowY=Shapes.GetTop(object["arrow1"])
-
   centArrowRightX=getArrowX+shap["arrow"][1]["w"]
-
   centArrowRightY=getArrowY
-
   For nSDatBoard =1 To Array.GetItemCount(shap["datboard"])
-
     getDatboardX[nSDatBoard]=Shapes.GetLeft(object[shap["datboard"][nSDatBoard]["name"]])
-
     getDatboardY[nSDatBoard]=Shapes.GetTop(object[shap["datboard"][nSDatBoard]["name"]])
-
     xIniDatboard=getDatboardX[nSDatBoard]
-
     xFinDatboard=getDatboardX[nSDatBoard]+shap["datboard"][nSDatBoard]["w"]
-
     xMedDatboard=xIniDatboard+shap["datboard"][nSDatBoard]["w"]/2    
-
     yIniDatboard=getDatboardY[nSDatBoard]
-
     yFinDatboard=getDatboardY[nSDatBoard]+shap["datboard"][nSDatBoard]["h"]
-
     If centArrowRightX>=xIniDatboard And centArrowRightX <=xFinDatboard Then
-
       If centArrowRightY>=yIniDatboard And centArrowRightY <= yFinDatboard Then       
-
         If centArrowRightX = xMedDatboard Then
-
           flag["datboardNum"]=nSDatBoard
-
           flag["whiteTarget"]="True"
-
         EndIf
-
       EndIf
-
     EndIf 
-
   EndFor  
-
 EndSub
-
 Sub MoveDatboard 
-
   For nS2=1 To Array.GetItemCount(shap["datboard"]) 
-
     shap["datboard"][nS2]["y"]=shap["datboard"][nS2]["y"]-difYY
-
     shap["datboard"][nS2]["x"]=shap["datboard"][nS2]["x"]-datMove["difXX"]
-
     x=shap["datboard"][nS2]["x"]
-
     y=shap["datboard"][nS2]["y"]
-
     Shapes.Move(object[shap["datboard"][nS2]["name"]],x,y)    
-
   EndFor
-
 EndSub
-
 Sub lightOn
-
   light="True"
-
   For light=1 To 10
-
     Shapes.SetOpacity(object["pgOn"],light*10)
-
     pm="opacity=100;text=msg;"
-
     pm["text"]="WAIT: "+(10-light)
-
     msgMidScreen()  
-
     Program.Delay(100)
-
   EndFor
-
   light="False"
-
   pm="opacity=0;text=;"
-
   msgMidScreen()
-
   Program.Delay(200)
-
 EndSub
-
 Sub msgMidScreen  
-
   If light Then
-
     Shapes.SetOpacity(object["rectMsg"],light*10)
-
   Else
-
     Shapes.SetOpacity(object["rectMsg"],pm["opacity"])
-
   EndIf  
-
   Shapes.SetOpacity(object["textMsg"],pm["opacity"])
-
   Shapes.SetText(object["textMsg"],pm["text"]) 
-
   pm=""
-
 EndSub
-
 Sub hideShowObjects
-
   For item = 1 To Array.GetItemCount(pm) 
-
     For num = 1 To Array.GetItemCount(shap[pm[item]])   
-
       If pm[0]="hide" Then
-
         Shapes.HideShape(object[shap[pm[item]][num]["name"]])
-
       EndIf
-
       If pm[0]="show" Then
-
         Shapes.ShowShape(object[shap[pm[item]][num]["name"]])
-
       EndIf
-
     EndFor
-
   EndFor
-
   pm=""  
-
 EndSub
-
 Sub initConstant
-
   datMove["lapDifYY"]=0
-
   datMove["lapY"]=0
-
   valueTimeFire = "time shot: "+0.1*(Math.Round(10*(Clock.ElapsedMilliseconds-contTimePlay)/1000))+" s"
-
   valueTimePlay = "time play: "+Math.Floor((Clock.ElapsedMilliseconds-contTimeStart)/1000)+ " s"
-
   shot["num"]=1
-
   valResult=0  
-
 EndSub
-
 Sub updateText
-
   Shapes.SetText(object["timeFire"],valueTimeFire)  
-
   Shapes.SetText(object["timePlay"],valueTimePlay)
-
   Shapes.SetText(object["numShot"],"num.Shot: "+shot["num"])
-
   Shapes.SetText(object["result"],"result: "+valResult)
-
   Shapes.SetText(object["multPoint"], "points X"+factMult[x_LeftRight["posBow"]])
-
   Shapes.SetText(object["speedD"],"speed X"+datMove["lapDifYY"])
-
   Shapes.SetText(object["speedA"],"speed X"+(datMove["lapY"]+2))  
-
 EndSub
-
 Sub savePOsArrow
-
   For num= 1 to Array.GetItemCount(shap["arrow"])
-
     arrowOLD_X[num]=Shapes.GetLeft(object[shap["arrow"][num]["name"]])
-
     arrowOLD_Y[num]=Shapes.GetTop(object[shap["arrow"][num]["name"]])
-
   EndFor
-
 EndSub
-
 Sub restorePosArrow
-
   For num= 1 to Array.GetItemCount(shap["arrow"])
-
     shap["arrow"][num]["x"]=arrowOLD_X[num]
-
     shap["arrow"][num]["y"]=arrowOLD_Y[num]
-
     Shapes.Move(object[shap["arrow"][num]["name"]],arrowOLD_X[num],arrowOLD_Y[num])      
-
   EndFor 
-
 EndSub
-
 Sub initDif
-
   difX=0
-
   difY=0
-
   datMove["difXX"]=0
-
   difYY=0
-
 EndSub
-
 Sub increaseNumShot
-
   If shot["num"] < shot["Max"] Then
-
     shot["num"]=shot["num"]+1
-
     updateText()
-
   Else
-
     pm="opacity=100;"
-
     pm["text"]="GAME OVER"
-
     msgMidScreen()
-
     Program.Delay(delay2*2)
-
     pm="opacity=100;"
-
     pm["text"]="Click START"
-
     msgMidScreen()
-
     flag["start"]="False"
-
   EndIf
-
 EndSub  
-
 Sub msgOff
-
   pm="opacity=0;text=msg;"
-
   msgMidScreen() 
-
 EndSub
-
 Sub data_
-
   dim="pgW=450;pgH=450;pgLeft=50;pgTop=30;"
-
   delay2=400  
-
   dat="title=target shooting;HelpMsg=False;contLapMsg=0;"  
-
   flag="onOff=off;start=False;fire=False;whiteTarget=False;datboardNum=0;wrongShot=False"  
-
   shot="num=1;Max=5;"
-
   errorSuccess="1=apple !!!!;2=head ?;3=neck ?;4=body ?;5=legs ?;6=feet ?;"
-
   points="1=100;2=-50;3=-30;4=-20;5=-10;6=-5;"
-
   NOT="True=False;False=True;"    
-
   datMove="lapY=0;lapX=0;y_Min=70;y_Max=250;x_Min=40;x_Max=363;difXX=0;lapDifYY=0;moveUpDown=True;moveUpDown2=True;"
-
   x_LeftRight="1=50;posBow=1;lapMax=5;lapMin=1;"
-
   factMult="1=40;2=20;3=10;4=5;5=1;"
-
   btn[1]="color=Red;fontSize=12;x=20;y=410;w=50;h=30;caption=Help;opacity=100;name=Help;"  
-
   btn[2]="color=Black;fontSize=12;x=380;y=410;w=50;h=30;caption=END;opacity=100;name=End;"
-
   btn[3]="color=Maroon;fontSize=12;x=42;y=340;w=30;h=30;caption=<;opacity=70;name=left;"
-
   btn[4]="color=Maroon;fontSize=12;x=75;y=328;w=30;h=30;caption=+;opacity=70;name=up;"
-
   btn[5]="color=Maroon;fontSize=12;x=75;y=362;w=30;h=30;caption=-;opacity=70;name=down;"
-
   btn[6]="color=Maroon;fontSize=12;x=110;y=340;w=30;h=30;caption=>;opacity=70;name=right;"
-
   btn[7]="color=Red;fontSize=12;x=150;y=340;w=40;h=30;caption=>>;opacity=70;name=fire;"
-
   btn[8]="color=Green;fontSize=12;x=290;y=340;w=50;h=30;caption=START;opacity=70;name=start;"
-
   btn[9]="color=Red;fontSize=12;x=350;y=340;w=50;h=30;caption=On/Off;opacity=70;name=onOff;"  
-
   shap["pgOn"][1]="type=Rectangle;color=Aquamarine;penColor=Aquamarine;x=40;y=40;w=360;h=280;opacity=0;name=pgOn"
-
   shap["bow"][1]="type=Ellipse;hide=True;color=Aquamarine;penColor=Black;penSize=4;x=65;y=152;w=20;h=50;opacity=100;name=bow1;"
-
   shap["bow"][2]="type=Rectangle;hide=True;color=Aquamarine;penColor=Aquamarine;penSize=4;x=53;y=152;w=20;h=50;opacity=100;name=bow2;"
-
   shap["bow"][3]="type=Rectangle;hide=True;color=DimGray;penColor=DimGray;penSize=2;x=72;y=152;w=2;h=50;opacity=100;name=bow3;"
-
   shap["bow"][4]="type=Ellipse;hide=True;color=Aquamarine;penColor=Black;penSize=3;x=55;y=150;w=16;h=16;opacity=100;name=bow4;"
-
   shap["bow"][5]="type=Rectangle;hide=True;color=Aquamarine;penColor=Black;penSize=2;x=60;y=166;w=4;h=20;opacity=100;name=bow5;"
-
   shap["bow"][6]="type=Rectangle;hide=True;color=Aquamarine;penColor=Black;penSize=3;x=58;y=170;w=10;h=25;opacity=100;name=bow6;"
-
   shap["bow"][7]="type=Rectangle;hide=True;color=Aquamarine;penColor=Black;penSize=2;x=60;y=195;w=4;h=15;opacity=100;name=bow7;"
-
   shap["bow"][8]="type=Rectangle;hide=True;color=Aquamarine;penColor=Black;penSize=2;x=60;y=210;w=7;h=4;opacity=100;name=bow8;"
-
   shap["bow"][9]="type=Rectangle;hide=True;color=Black;penColor=Black;penSize=3;x=63;y=178;w=20;h=4;opacity=100;name=bow9;"
-
   shap["estate"][1]="type=Text;hide=True;color=DarkSlateGray;fontSize=12;x=50;y=45;text=shot;opacity=100;name=timeFire;"
-
   shap["estate"][2]="type=Text;hide=True;color=DarkSlateGray;fontSize=12;x=50;y=300;text=play;opacity=100;name=timePlay;"
-
   shap["estate"][3]="type=Text;hide=True;color=DarkSlateGray;fontSize=12;x=180;y=300;text=num.Shot;opacity=100;name=numShot;"
-
   shap["estate"][4]="type=Text;hide=True;color=DarkSlateGray;fontSize=12;x=300;y=300;text=points X40;opacity=100;name=multPoint;"
-
   shap["estate"][5]="type=Text;hide=True;color=DarkSlateGray;fontSize=12;x=175;y=45;text=result:;opacity=100;name=result;"
-
   shap["estate"][6]="type=Text;hide=True;color=DarkSlateGray;fontSize=12;x=260;y=45;text=speed;opacity=100;name=speedA;"
-
   shap["estate"][7]="type=Text;hide=True;color=DarkSlateGray;fontSize=12;x=330;y=45;text=speed;opacity=100;name=speedD;"
-
   shap["datboard"][1]="type=Ellipse;hide=True;color=Black;penColor=Black;penSize=3;x=364;y=137;w=12;h=12;opacity=100;name=dartboard1;"
-
   shap["datboard"][2]="type=Ellipse;hide=True;color=Aquamarine;penColor=Black;penSize=3;x=362;y=150;w=16;h=16;opacity=100;name=dartboard2;"
-
   shap["datboard"][3]="type=Rectangle;hide=True;color=Aquamarine;penColor=Black;penSize=2;x=368;y=166;w=4;h=20;opacity=100;name=dartboard3;"
-
   shap["datboard"][4]="type=Rectangle;hide=True;color=Aquamarine;penColor=Black;penSize=3;x=365;y=170;w=10;h=25;opacity=100;name=dartboard4;"
-
   shap["datboard"][5]="type=Rectangle;hide=True;color=Aquamarine;penColor=Black;penSize=2;x=369;y=195;w=4;h=15;opacity=100;name=dartboard5;"
-
   shap["datboard"][6]="type=Rectangle;hide=True;color=Aquamarine;penColor=Black;penSize=2;x=366;y=210;w=7;h=4;opacity=100;name=dartboard6;"
-
   shap["arrow"][1]="type=Rectangle;hide=True;color=Black;penColor=Black;penSize=3;x=73;y=173;w=30;h=4;opacity=100;name=arrow1;"
-
   shap["arrow"][2]="type=Text;hide=True;color=Black;fontSize=25;x=94;y=158;text=>;opacity=100;name=arrow2;"
-
   shap["msg"][1]="type=Ellipse;hide=True;color=Gold;penColor=Gold;x=38;y=313;w=290;h=90;opacity=0;name=msg1;"
-
   shap["msg"][2]="type=Triangle;hide=True;color=Gold;penColor=Gold;x1=67;y1=417;x2=83;y2=390;x3=142;y3=400;opacity=0;name=msg2;"
-
   shap["msg"][3]="type=Triangle;hide=True;color=Yellow;penColor=Yellow;x1=64;y1=414;x2=80;y2=387;x3=139;y3=397;opacity=0;name=msg3;"
-
   shap["msg"][4]="type=Ellipse;hide=True;color=Yellow;penColor=Yellow;x=35;y=310;w=290;h=90;opacity=0;name=msg4;"
-
   shap["msg"][5]="type=Text;hide=True;color=Red;fontSize=12;x=95;y=327;text=1.Click on/off And Click Start;opacity=0;name=msg5;"
-
   shap["msg"][6]="type=Text;hide=True;color=Red;fontSize=12;x=95;y=347;text=2.+/- change speed;opacity=0;name=msg6;"
-
   shap["msg"][7]="type=Text;hide=True;color=Red;fontSize=12;x=95;y=367;text=3.Left/Right change distance;opacity=0;name=msg7;"
-
   shap["textMsg"][1]="type=Rectangle;color=Aquamarine;penColor=Black;penSize=3;x=130;y=150;w=180;h=50;opacity=0;name=rectMsg;"
-
   shap["textMsg"][2]="type=Text;color=Black;fontSize=24;x=150;y=160;text=WAIT:;opacity=0;name=textMsg;"
-
   draw["box"][1]="type=fillRect;color=Gray;x=25;y=20;w=400;h=385;"
-
   draw["box"][2]="type=fillRect;color=OrangeRed;x=20;y=15;w=400;h=385;"
-
   draw["box"][3]="type=drawRect;penColor=Black;penSize=3;x=20;y=15;w=400;h=385;"   
-
   draw["box"][4]="type=fillRect;color=DarkSlateGray;x=40;y=40;w=360;h=280;"'pg off
-
   draw["box"][5]="type=drawRect;penColor=Black;penSize=3;x=40;y=40;w=360;h=280;"
-
   If Text.GetLength(GraphicsWindow.GetPixel(0, 0)) = 9 Then
-
  shap["arrow"][2]="type=Text;hide=True;color=Black;fontSize=25;x=94;y=155;text=>;opacity=100;name=arrow2;"
 
-
-
 EndIf
-
 EndSub
-
   
-
-

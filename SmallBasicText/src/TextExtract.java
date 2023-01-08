@@ -13,12 +13,16 @@ import java.util.regex.Pattern;
 public class TextExtract {
 
 	public static void main(String[] args) throws IOException {
-		// smallbasic id°¡ ÀúÀåµÈ text ÆÄÀÏ
-		File file = new File("C:\\Users\\Hwangsooyeon\\Desktop\\smallbasic-program-list.txt");
+		// ê²½ë¡œ ë¶ˆëŸ¬ì˜¤ê¸°
+		String path = TextExtract.class.getResource("").getPath();
+		String rootPath = System.getProperty("user.dir");
+		
+		// smallbasic idê°€ ì €ì¥ëœ text íŒŒì¼
+		File file = new File(path + "smallbasic-program-list.txt");
 		BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
 		InputStream is = null;
 		
-		// °¢ text ÆÄÀÏÀÇ smallbasic ÄÚµå¸¸À» ÃßÃâ
+		// smallbasic idê°€ ì €ì¥ëœ text íŒŒì¼
 		Pattern pattern = Pattern.compile("<div id=\"codeListing\">(.*?)</div>", Pattern.DOTALL);
 		
 		String str;
@@ -32,32 +36,33 @@ public class TextExtract {
 				StringBuilder result = new StringBuilder();
 				int readBytes;
 				
-				// url µ¥ÀÌÅÍ¸¦ ¹®ÀÚ¿­·Î °¡Á®¿Â´Ù
+				// url ë°ì´í„°ë¥¼ ë¬¸ìì—´ë¡œ ê°€ì ¸ì˜¨ë‹¤
 				while((readBytes = is.read(buffer)) != -1) {
 					String part = new String(buffer, 0, readBytes);
 					result.append(part);
 				}
 				
 				String extract = "";
-				// <div id=\"codeListing\"> ÇØ´ç ÅÂ±× ³»ÀÇ ÄÚµå¸¸ ÃßÃâ
+				// <div id=\"codeListing\"> í•´ë‹¹ íƒœê·¸ ë‚´ì˜ ì½”ë“œë§Œ ì¶”ì¶œ
 				Matcher matcher = pattern.matcher(result);
 				
 				while(matcher.find()) {
 					extract = matcher.group(1).trim();
 				}
 				
-				// ÄÚµå¿¡ ³²¾ÆÀÖ´Â <br /> ÅÂ±× Á¦°Å
-				extract = extract.replaceAll("<br />", "\n");
+				// ì½”ë“œì— ë‚¨ì•„ìˆëŠ” <br /> íƒœê·¸ ì œê±°
+				extract = extract.replaceAll("<br />", "");
 				
-				// ÆÄÀÏ ÀúÀå
-				String newFile = "C:\\Users\\Hwangsooyeon\\Desktop\\smallbasic-list\\"+str+".sb";
-				FileWriter fileWriter = new FileWriter(newFile);
-				fileWriter.write(extract);
-				
-				fileWriter.close();
-				
-				// ÆÄÀÏ ´Ù¿î·Îµå È®ÀÎ¿ë Ãâ·Â
-				System.out.println(str + " file downloaded successfully");
+				// íŒŒì¼ ì €ì¥
+				 if(!(extract.equals("error"))) {
+					String newFile = rootPath + "\\smallbasic-list\\"+str+".sb";
+					FileWriter fileWriter = new FileWriter(newFile);
+					fileWriter.write(extract);
+					fileWriter.close();
+					
+					// íŒŒì¼ ë‹¤ìš´ë¡œë“œ í™•ì¸ìš© ì¶œë ¥
+					System.out.println(str + " file downloaded successfully");
+				 }
 				
 			} catch(MalformedURLException e) {
 				System.err.println(e);
