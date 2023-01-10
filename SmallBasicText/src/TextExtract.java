@@ -13,6 +13,11 @@ import java.util.regex.Pattern;
 public class TextExtract {
 
 	public static void main(String[] args) throws IOException {
+	    
+		// 경로 불러오기
+		int numOfSBFilesTried = 0;
+		int numOfSBFilesDownloaded = 0;
+		
 		// 경로 불러오기
 		String path = TextExtract.class.getResource("").getPath();
 		String rootPath = System.getProperty("user.dir");
@@ -27,7 +32,9 @@ public class TextExtract {
 		
 		String str;
 		while((str = bufferedReader.readLine()) != null) {
-			try {
+			try {			    
+			        numOfSBFilesTried++;
+				
 				URL url = new URL("http://smallbasic.com/program/?" + str);
 				
 				URLConnection urlConnection = url.openConnection();
@@ -55,19 +62,28 @@ public class TextExtract {
 				
 				// 파일 저장
 				 if(!(extract.equals("error"))) {
-					String newFile = rootPath + "\\smallbasic-list\\"+str+".sb";
+					String newFile = rootPath + "/smallbasic-list/"+str+".sb";
 					FileWriter fileWriter = new FileWriter(newFile);
 					fileWriter.write(extract);
 					fileWriter.close();
 					
 					// 파일 다운로드 확인용 출력
-					System.out.println(str + " file downloaded successfully");
+					System.out.println(str);
+
+					numOfSBFilesDownloaded++;
+				 }
+				 else {
+					// 에러 발생한 파일 확인용 출력
+					System.out.println(str + " : error");
 				 }
 				
 			} catch(MalformedURLException e) {
 				System.err.println(e);
 			}
 		}
+		System.out.println("Total: " + numOfSBFilesTried);
+		System.out.println("Downloads: " + numOfSBFilesDownloaded);
+		System.out.println("Errors: " + (numOfSBFilesTried - numOfSBFilesDownloaded));
 	}
 
 }
