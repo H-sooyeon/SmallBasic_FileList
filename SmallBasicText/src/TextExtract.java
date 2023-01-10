@@ -55,13 +55,17 @@ public class TextExtract {
 				
 				// 파일 저장
 				 if(!(extract.equals("error"))) {
-					String newFile = rootPath + "\\smallbasic-list\\"+str+".sb";
+					String newFile = rootPath + "/smallbasic-list/"+str+".sb";
 					FileWriter fileWriter = new FileWriter(newFile);
 					fileWriter.write(extract);
 					fileWriter.close();
 					
 					// 파일 다운로드 확인용 출력
-					System.out.println(str + " file downloaded successfully");
+					System.out.println(str);
+				 }
+				 else {
+					// 에러 발생한 파일 확인용 출력
+					System.out.println(str + " : error");
 				 }
 				
 			} catch(MalformedURLException e) {
