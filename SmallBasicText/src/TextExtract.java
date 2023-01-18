@@ -34,9 +34,8 @@ public class TextExtract {
 		while((str = bufferedReader.readLine()) != null) {
 			try {			    
 			        numOfSBFilesTried++;
-				
+			        
 				URL url = new URL("http://smallbasic.com/program/?" + str);
-				
 				URLConnection urlConnection = url.openConnection();
 				is = urlConnection.getInputStream();
 				byte[] buffer = new byte[1024];
