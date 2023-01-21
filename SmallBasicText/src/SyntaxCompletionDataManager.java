@@ -2,12 +2,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Scanner;
-import java.util.Set;
 
 public class SyntaxCompletionDataManager {
 	private static HashMap<Integer, ArrayList<Pair>> map;
