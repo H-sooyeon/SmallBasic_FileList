@@ -54,10 +54,10 @@ public class SyntaxCompletionDataManager {
 						
 				for(int i = 1; i < str_arr.length - 1; i++) {
 					if(str_arr[i].equals("Terminal")) {
-								result.add("T");
+						result.add("T");
 					} 
 					else if(str_arr[i].equals("Nonterminal")) {
-								result.add("NT");
+						result.add("NT");
 					} 
 					else {
 						result.add(str_arr[i]);
