@@ -21,7 +21,7 @@ public class SyntaxCompletionDataManager {
 		
 		buildSyntaxCompletionData();
 		
-		searchForSyntaxCompletion();
+		listForSyntaxCompletion();
 		
 	}
 	
@@ -100,12 +100,35 @@ public class SyntaxCompletionDataManager {
         // 사용자로부터 상태값 입력 받아 빈도수대로 출력
         int user_state;
         Scanner sc = new Scanner(System.in);
-        System.out.print("Enter a state: ");
-        user_state = sc.nextInt();
         
-		for(int i = 0; i < map.get(user_state).size(); i++) {
-			System.out.println(map.get(user_state).get(i).getFirst() + " : " + map.get(user_state).get(i).getSecond());
-		}
+        while (true) {
+	        System.out.print("Enter a state: ");
+	        user_state = sc.nextInt();
+	        
+	        if (map.get(user_state) != null) {
+				for(int i = 0; i < map.get(user_state).size(); i++) {
+					System.out.println(map.get(user_state).get(i).getFirst() + " : " + map.get(user_state).get(i).getSecond());
+				}
+	        }
+        }
+	} // searchForSyntaxCompletion end
+	
+	public static void listForSyntaxCompletion() {
+        // 사용자로부터 상태값 입력 받아 빈도수대로 출력
+        int user_state = 0;
+        final int MAX_STATE = 118;  // 0 ~ 118
+        
+        while (user_state <= MAX_STATE) {
+	        System.out.println("State " + user_state);
+	        
+	        if (map.get(user_state) != null) {
+				for(int i = 0; i < map.get(user_state).size(); i++) {
+					System.out.println(map.get(user_state).get(i).getFirst() + " : " + map.get(user_state).get(i).getSecond());
+				}
+	        }
+	        
+	        user_state = user_state + 1;
+        }
 	} // searchForSyntaxCompletion end
 	
  	static class Pair implements Comparable<Pair>{
