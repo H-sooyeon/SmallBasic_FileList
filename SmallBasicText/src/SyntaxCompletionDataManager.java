@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Scanner;
@@ -23,6 +24,10 @@ public class SyntaxCompletionDataManager {
 		
 		listForSyntaxCompletion();
 		
+	}
+	
+	SyntaxCompletionDataManager() throws IOException {
+		buildSyntaxCompletionData();
 	}
 	
 	public static void buildSyntaxCompletionData() throws IOException {
@@ -96,25 +101,31 @@ public class SyntaxCompletionDataManager {
 		}
 	} // buildSyntaxCompletionData end
 	
-	public static void searchForSyntaxCompletion() {
-        // 사용자로부터 상태값 입력 받아 빈도수대로 출력
-        int user_state;
-        Scanner sc = new Scanner(System.in);
-        
-        while (true) {
-	        System.out.print("Enter a state: ");
-	        user_state = sc.nextInt();
-	        
-	        if (map.get(user_state) != null) {
-				for(int i = 0; i < map.get(user_state).size(); i++) {
-					System.out.println(map.get(user_state).get(i).getFirst() + " : " + map.get(user_state).get(i).getSecond());
-				}
-	        }
-        }
+	public static HashMap<Integer, ArrayList<Pair>> getMap() {
+		return map;
+	}
+	
+	// 성능 분석 시 사용, 구문 search
+	public static int searchForSyntaxCompletion(ArrayList<String> arr, int state) {
+        int search_state = state;
+	    int value = 0; // 후보 번호
+	    
+		Iterator<Pair> keys = map.get(search_state).iterator();
+		int count = 0;
+		while(keys.hasNext()) {
+			Pair key = keys.next();
+			count++;
+			if(key.getFirst().equals(arr)) {
+				// 구문이 존재하면 후보 번호 설정
+				value = count;
+				break;
+			}
+	    }
+		
+		return value;
 	} // searchForSyntaxCompletion end
 	
 	public static void listForSyntaxCompletion() {
-        // 사용자로부터 상태값 입력 받아 빈도수대로 출력
         int user_state = 0;
         final int MAX_STATE = 118;  // 0 ~ 118
         
@@ -129,7 +140,7 @@ public class SyntaxCompletionDataManager {
 	        
 	        user_state = user_state + 1;
         }
-	} // searchForSyntaxCompletion end
+	} // listForSyntaxCompletion end
 	
  	static class Pair implements Comparable<Pair>{
  		private ArrayList<String> first;
