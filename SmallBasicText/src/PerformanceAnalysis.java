@@ -24,9 +24,9 @@ public class PerformanceAnalysis {
 	}
 	
 	public static void buildSyntaxData() throws IOException {
-		// ÆÄÀÏ¿¡¼­ ±¸¹® ÃßÃâ
-		String path = TextExtract.class.getResource("").getPath();
-		file = new File(path + "smallbasic_tutorial_programs.txt");
+		// íŒŒì¼ì—ì„œ êµ¬ë¬¸ ì¶”ì¶œ
+		String path = System.getProperty("user.dir");
+		file = new File(path + "/input_source/smallbasic_tutorial_programs.txt");
 		
 		bufferedReader = new BufferedReader(new FileReader(file));
 		
@@ -35,14 +35,14 @@ public class PerformanceAnalysis {
 		boolean integer = false;
 		searchList = new ArrayList<>();
 		while((str = bufferedReader.readLine()) != null) {
-			// ¶óÀÎÀÇ Ã¹ ¹®ÀÚ°¡ ¼ıÀÚÀÌ¸é ½ÇÇà
+			// ë¼ì¸ì˜ ì²« ë¬¸ìê°€ ìˆ«ìì´ë©´ ì‹¤í–‰
 			integer = Character.isDigit(str.charAt(0));
 			
 			if(integer) {
-				// °ø¹éÀ» ±âÁØÀ¸·Î splitÇÏ¿© list¿¡ ÀúÀå
+				// ê³µë°±ì„ ê¸°ì¤€ìœ¼ë¡œ splití•˜ì—¬ listì— ì €ì¥
 				str_arr = str.split("\\s");
 				
-				// »óÅÂ ºĞ·ù ¸®½ºÆ®¿¡ ¸ÂÃç µ¥ÀÌÅÍ ÀúÀå
+				// ìƒíƒœ ë¶„ë¥˜ ë¦¬ìŠ¤íŠ¸ì— ë§ì¶° ë°ì´í„° ì €ì¥
 				for(int i = 1; i < str_arr.length - 1; i++) {
 					if(str_arr[i].equals("Terminal")) {
 						str_arr[i] = "T";
@@ -52,14 +52,14 @@ public class PerformanceAnalysis {
 					}
 				}
 				
-				// °Ë»öÇÒ ±¸¹® Ãß°¡
+				// ê²€ìƒ‰í•  êµ¬ë¬¸ ì¶”ê°€
 				searchList.add(String.join(" ", str_arr));
 			}
 		}
 	} // buildSyntaxData end
 	
 	public static void searchForSyntax(ArrayList<String> list) throws IOException {
-		// ÀúÀåÇÑ list °Ë»ö ¹× Á¸Àç ¿©ºÎ Ãâ·Â
+		// ì €ì¥í•œ list ê²€ìƒ‰ ë° ì¡´ì¬ ì—¬ë¶€ ì¶œë ¥
 		dataManager = new SyntaxCompletionDataManager();
 		int total = 0, not = 0;
 		

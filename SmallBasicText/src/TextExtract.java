@@ -19,11 +19,10 @@ public class TextExtract {
 		int numOfSBFilesDownloaded = 0;
 		
 		// 경로 불러오기
-		String path = TextExtract.class.getResource("").getPath();
 		String rootPath = System.getProperty("user.dir");
 		
 		// smallbasic id가 저장된 text 파일
-		File file = new File(path + "smallbasic-program-list.txt");
+		File file = new File(rootPath + "/input_source/smallbasic-program-list.txt");
 		BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
 		InputStream is = null;
 		
