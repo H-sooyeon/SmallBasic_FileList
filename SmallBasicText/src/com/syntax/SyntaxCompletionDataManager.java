@@ -1,9 +1,12 @@
+package com.syntax;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Scanner;
@@ -26,14 +29,15 @@ public class SyntaxCompletionDataManager {
 		
 	}
 	
-	SyntaxCompletionDataManager() throws IOException {
+	public SyntaxCompletionDataManager() throws IOException {
 		buildSyntaxCompletionData();
 	}
 	
 	public static void buildSyntaxCompletionData() throws IOException {
 		// 파일에서 상태 추출
-		String path = System.getProperty("user.dir");
-		file = new File(path + "/input_source/datacollection.txt");
+		// String path = System.getProperty("user.dir");
+		String path = "./../../SmallBasic_FileList/SmallBasicText/input_source/datacollection.txt";
+		file = new File(path);
 				
 		bufferedReader = new BufferedReader(new FileReader(file));
 				
@@ -124,6 +128,21 @@ public class SyntaxCompletionDataManager {
 		
 		return value;
 	} // searchForSyntaxCompletion end
+	
+	// smallBasic 구문 완성 검색 시 사용
+	public ArrayList<String> searchForSyntaxCompletion(String str) {
+		int idx = str.indexOf(" ");
+		int search_state = Integer.parseInt(str.substring(idx + 1));
+		String modi_str;
+		
+		ArrayList<Pair> pair = map.get(search_state);
+		ArrayList<String> arr = new ArrayList<String>();
+		for(int i = 0; i < pair.size(); i++) {
+			arr.add(String.join(" ", pair.get(i).getFirst()) + " ");
+		}
+		
+		return arr;
+	}
 	
 	public static void listForSyntaxCompletion() {
         int user_state = 0;
