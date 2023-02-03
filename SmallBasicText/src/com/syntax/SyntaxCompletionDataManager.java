@@ -131,9 +131,7 @@ public class SyntaxCompletionDataManager {
 	
 	// smallBasic 구문 완성 검색 시 사용
 	public ArrayList<String> searchForSyntaxCompletion(String str) {
-		int idx = str.indexOf(" ");
-		int search_state = Integer.parseInt(str.substring(idx + 1));
-		String modi_str;
+		int search_state = Integer.parseInt(str);
 		
 		ArrayList<Pair> pair = map.get(search_state);
 		ArrayList<String> arr = new ArrayList<String>();
