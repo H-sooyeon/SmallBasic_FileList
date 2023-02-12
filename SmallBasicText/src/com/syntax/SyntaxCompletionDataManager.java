@@ -110,6 +110,7 @@ public class SyntaxCompletionDataManager {
         int search_state = state;
 	    int value = 0; // 후보 번호
 	    
+	    // 전달받은 상태에 대해 전달받은 후보 구문이 몇 번째 구문에 해당하는지 찾는다.
 		Iterator<Pair> keys = map.get(search_state).iterator();
 		int count = 0;
 		while(keys.hasNext()) {
@@ -132,11 +133,12 @@ public class SyntaxCompletionDataManager {
 		ArrayList<Pair> pair = map.get(search_state);
 		ArrayList<String> arr = new ArrayList<String>();
 		for(int i = 0; i < pair.size(); i++) {
+			// 전달받은 상태에 대한 후보 구문들을 공백으로 나누어 리스트에 저장
 			arr.add(String.join(" ", pair.get(i).getFirst()) + " ");
 		}
 		
 		return arr;
-	}
+	} // searchForSyntaxCompletion end
 	
 	public static void listForSyntaxCompletion() {
         int user_state = 0;

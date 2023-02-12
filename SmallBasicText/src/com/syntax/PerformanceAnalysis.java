@@ -22,6 +22,7 @@ public class PerformanceAnalysis {
 		buildSyntaxData();
 		
 		searchForSyntax(searchList);
+		
 	}
 	
 	public static void buildSyntaxData() throws IOException {
@@ -78,8 +79,8 @@ public class PerformanceAnalysis {
 			state = Integer.parseInt(line[0]);
 			
 			if(dataManager.getMap().get(state) != null) {
-				size = dataManager.getMap().get(state).size();
-				value = dataManager.searchForSyntaxCompletion(arrList, state);
+				size = dataManager.getMap().get(state).size(); // 해당 상태에 대한 후보 개수
+				value = dataManager.searchForSyntaxCompletion(arrList, state); // 찾은 후보들 중 몇 번째에 해당하는지
 				
 				if(value != 0) flag = true;
 			}
