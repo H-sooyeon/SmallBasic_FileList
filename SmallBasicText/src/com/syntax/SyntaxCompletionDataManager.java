@@ -31,7 +31,6 @@ public class SyntaxCompletionDataManager {
 	
 	public static void buildSyntaxCompletionData() throws IOException {
 		// 파일에서 상태 추출
-		// String path = System.getProperty("user.dir");
 		String path = "./../../SmallBasic_FileList/SmallBasicText/input_source/datacollection.txt";
 		file = new File(path);
 				

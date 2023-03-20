@@ -94,11 +94,13 @@ public class PerformanceAnalysis {
 			}
 			
 			System.out.println(result);
+			
 		}
 		
 		System.out.println("\nTotal: " + total);
 		System.out.println("Found: " + (total - not));
 		System.out.println("NotFound: " + not);
+		
 	} // searchForSyntaxCompletion end
 	
 }
