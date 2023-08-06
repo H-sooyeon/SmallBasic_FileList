@@ -10,6 +10,7 @@
 **추가 관련 레퍼지터리**
 - https://github.com/H-sooyeon/SmallBasicDataCollection
 - https://github.com/H-sooyeon/MySmallBasic
+- https://github.com/H-sooyeon/YapbConfigManager
 
 </br>
 
